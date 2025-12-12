@@ -1,0 +1,307 @@
+import { useState } from 'react'
+import { X, ChevronRight, Wine, Coffee, Martini } from 'lucide-react'
+import { useProducts, departments, categories } from '../context/ProductContext'
+import { useTranslation, useLanguage } from '../context/LanguageContext'
+
+// Иконки для отделов
+const departmentIcons = {
+  'honor-bar': Wine,
+  'mokki-bar': Coffee,
+  'ozen-bar': Martini
+}
+
+export default function AddBatchModal({ onClose, preselectedProduct = null }) {
+  const { t } = useTranslation()
+  const { language } = useLanguage()
+  const { catalog, addBatch } = useProducts()
+
+  // Шаги мастера
+  const [step, setStep] = useState(preselectedProduct ? 4 : 1)
+  const [selectedDepartment, setSelectedDepartment] = useState(
+    preselectedProduct?.departmentId || null
+  )
+  const [selectedCategory, setSelectedCategory] = useState(preselectedProduct?.categoryId || null)
+  const [selectedProduct, setSelectedProduct] = useState(preselectedProduct || null)
+
+  // Данные партии
+  const [batchData, setBatchData] = useState({
+    manufacturingDate: '',
+    expiryDate: '',
+    quantity: 1
+  })
+
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // Получить название категории
+  const getCategoryName = (category) => {
+    if (language === 'ru') return category.nameRu
+    if (language === 'kk') return category.nameKz
+    return category.name
+  }
+
+  // Получить доступные категории для отдела
+  const getAvailableCategories = () => {
+    if (!selectedDepartment) return []
+    const deptCatalog = catalog[selectedDepartment] || {}
+    return categories.filter((cat) => {
+      const products = deptCatalog[cat.id] || []
+      return products.length > 0
+    })
+  }
+
+  // Получить товары категории
+  const getProductsInCategory = () => {
+    if (!selectedDepartment || !selectedCategory) return []
+    return catalog[selectedDepartment]?.[selectedCategory] || []
+  }
+
+  // Выбор отдела
+  const handleDepartmentSelect = (deptId) => {
+    setSelectedDepartment(deptId)
+    setSelectedCategory(null)
+    setSelectedProduct(null)
+    setStep(2)
+  }
+
+  // Выбор категории
+  const handleCategorySelect = (catId) => {
+    setSelectedCategory(catId)
+    setSelectedProduct(null)
+    setStep(3)
+  }
+
+  // Выбор товара
+  const handleProductSelect = (product) => {
+    setSelectedProduct(product)
+    setStep(4)
+  }
+
+  // Отправка формы
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    if (!selectedProduct || !batchData.manufacturingDate || !batchData.expiryDate) return
+
+    setIsSubmitting(true)
+
+    addBatch(
+      selectedProduct.id,
+      selectedDepartment,
+      batchData.manufacturingDate,
+      batchData.expiryDate,
+      batchData.quantity,
+      'User'
+    )
+
+    onClose()
+  }
+
+  // Назад
+  const handleBack = () => {
+    if (preselectedProduct) {
+      onClose()
+      return
+    }
+    if (step > 1) {
+      setStep(step - 1)
+    }
+  }
+
+  // Закрытие по оверлею
+  const handleOverlayClick = (e) => {
+    if (e.target === e.currentTarget) {
+      onClose()
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 bg-charcoal/50 flex items-center justify-center z-50 p-4"
+      onClick={handleOverlayClick}
+    >
+      <div className="bg-cream rounded-lg w-full max-w-lg overflow-hidden animate-slide-up">
+        {/* Заголовок */}
+        <div className="flex items-center justify-between p-6 border-b border-sand">
+          <div>
+            <h2 className="font-serif text-xl text-charcoal">{t('batch.addBatch')}</h2>
+            {/* Индикатор шагов */}
+            {!preselectedProduct && (
+              <div className="flex items-center gap-2 mt-2">
+                {[1, 2, 3, 4].map((s) => (
+                  <div
+                    key={s}
+                    className={`w-2 h-2 rounded-full transition-colors ${
+                      s <= step ? 'bg-accent' : 'bg-sand'
+                    }`}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+          <button
+            onClick={onClose}
+            className="text-warmgray hover:text-charcoal transition-colors p-2"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Контент */}
+        <div className="p-6">
+          {/* Шаг 1: Выбор отдела */}
+          {step === 1 && (
+            <div className="animate-fade-in">
+              <p className="text-warmgray mb-4">{t('batch.selectDepartment')}</p>
+              <div className="space-y-2">
+                {departments.map((dept) => {
+                  const Icon = departmentIcons[dept.id]
+                  return (
+                    <button
+                      key={dept.id}
+                      onClick={() => handleDepartmentSelect(dept.id)}
+                      className="w-full flex items-center justify-between p-4 bg-white border border-sand rounded-lg hover:border-accent transition-colors group"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="w-10 h-10 rounded-full flex items-center justify-center"
+                          style={{ backgroundColor: `${dept.color}20` }}
+                        >
+                          <Icon className="w-5 h-5" style={{ color: dept.color }} />
+                        </div>
+                        <span className="font-medium text-charcoal">{dept.name}</span>
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-warmgray group-hover:text-accent transition-colors" />
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Шаг 2: Выбор категории */}
+          {step === 2 && (
+            <div className="animate-fade-in">
+              <p className="text-warmgray mb-4">{t('batch.selectCategory')}</p>
+              <div className="space-y-2">
+                {getAvailableCategories().map((cat) => (
+                  <button
+                    key={cat.id}
+                    onClick={() => handleCategorySelect(cat.id)}
+                    className="w-full flex items-center justify-between p-4 bg-white border border-sand rounded-lg hover:border-accent transition-colors group"
+                  >
+                    <span className="font-medium text-charcoal">{getCategoryName(cat)}</span>
+                    <ChevronRight className="w-5 h-5 text-warmgray group-hover:text-accent transition-colors" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Шаг 3: Выбор товара */}
+          {step === 3 && (
+            <div className="animate-fade-in">
+              <p className="text-warmgray mb-4">{t('batch.selectProduct')}</p>
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {getProductsInCategory().map((product) => (
+                  <button
+                    key={product.id}
+                    onClick={() => handleProductSelect(product)}
+                    className="w-full flex items-center justify-between p-4 bg-white border border-sand rounded-lg hover:border-accent transition-colors group"
+                  >
+                    <span className="font-medium text-charcoal">{product.name}</span>
+                    <ChevronRight className="w-5 h-5 text-warmgray group-hover:text-accent transition-colors" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Шаг 4: Данные партии */}
+          {step === 4 && (
+            <div className="animate-fade-in">
+              {/* Выбранный товар */}
+              <div className="bg-white rounded-lg p-4 border border-sand mb-6">
+                <p className="text-sm text-warmgray">{t('batch.selectedProduct')}</p>
+                <p className="font-medium text-charcoal">{selectedProduct?.name}</p>
+              </div>
+
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm text-warmgray mb-1">
+                    {t('product.manufacturingDate')} *
+                  </label>
+                  <input
+                    type="date"
+                    value={batchData.manufacturingDate}
+                    onChange={(e) =>
+                      setBatchData((prev) => ({ ...prev, manufacturingDate: e.target.value }))
+                    }
+                    className="w-full px-4 py-3 border border-sand rounded-lg focus:outline-none focus:border-accent"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm text-warmgray mb-1">
+                    {t('product.expiryDate')} *
+                  </label>
+                  <input
+                    type="date"
+                    value={batchData.expiryDate}
+                    onChange={(e) =>
+                      setBatchData((prev) => ({ ...prev, expiryDate: e.target.value }))
+                    }
+                    className="w-full px-4 py-3 border border-sand rounded-lg focus:outline-none focus:border-accent"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm text-warmgray mb-1">
+                    {t('product.quantity')} *
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={batchData.quantity}
+                    onChange={(e) =>
+                      setBatchData((prev) => ({ ...prev, quantity: parseInt(e.target.value) || 1 }))
+                    }
+                    className="w-full px-4 py-3 border border-sand rounded-lg focus:outline-none focus:border-accent"
+                    required
+                  />
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={handleBack}
+                    className="flex-1 py-3 border border-sand text-warmgray rounded-lg hover:border-charcoal hover:text-charcoal transition-colors"
+                  >
+                    {t('common.back')}
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="flex-1 py-3 bg-accent text-white rounded-lg hover:bg-accent/90 transition-colors disabled:opacity-50"
+                  >
+                    {t('batch.addBatch')}
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {/* Кнопка назад для шагов 2-3 */}
+          {step > 1 && step < 4 && (
+            <button
+              onClick={handleBack}
+              className="mt-4 text-sm text-warmgray hover:text-charcoal transition-colors"
+            >
+              ← {t('common.back')}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}

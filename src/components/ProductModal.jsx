@@ -1,0 +1,347 @@
+import { useState } from 'react'
+import { X, Plus, Check, Calendar, Package, User, Trash2 } from 'lucide-react'
+import { useProducts, categories } from '../context/ProductContext'
+import { useTranslation, useLanguage } from '../context/LanguageContext'
+import { format, parseISO } from 'date-fns'
+
+// Цвета статусов для полоски слева
+const statusBorderColors = {
+  expired: 'border-l-danger',
+  today: 'border-l-danger',
+  critical: 'border-l-danger',
+  warning: 'border-l-warning',
+  attention: 'border-l-warning',
+  good: 'border-l-success'
+}
+
+export default function ProductModal({ product, onClose }) {
+  const { t } = useTranslation()
+  const { language } = useLanguage()
+  const { getBatchesByProduct, collectBatch, deleteBatch, addBatch } = useProducts()
+
+  const [showAddForm, setShowAddForm] = useState(false)
+  const [newBatch, setNewBatch] = useState({
+    manufacturingDate: '',
+    expiryDate: '',
+    quantity: 1
+  })
+
+  // Получить партии товара (по имени товара и отделу)
+  const batches = getBatchesByProduct(product.name, product.departmentId)
+  const activeBatches = batches.filter((b) => !b.isCollected)
+  const collectedBatches = batches.filter((b) => b.isCollected)
+
+  // Форматирование даты в DD.MM.YYYY
+  const formatDateDisplay = (dateString) => {
+    if (!dateString) return 'N/A'
+    try {
+      return format(parseISO(dateString), 'dd.MM.yyyy')
+    } catch {
+      return 'Invalid date'
+    }
+  }
+
+  // Форматирование даты и времени
+  const formatDateTime = (isoString) => {
+    if (!isoString) return 'N/A'
+    try {
+      return format(new Date(isoString), 'dd.MM.yyyy HH:mm')
+    } catch {
+      return 'Invalid date'
+    }
+  }
+
+  // Получить название категории
+  const getCategoryName = () => {
+    const category = categories.find((c) => c.id === product.categoryId)
+    if (!category) return ''
+    if (language === 'ru') return category.nameRu
+    if (language === 'kk') return category.nameKz
+    return category.name
+  }
+
+  // Обработка добавления партии
+  const handleAddBatch = async (e) => {
+    e.preventDefault()
+    if (!newBatch.manufacturingDate || !newBatch.expiryDate || !newBatch.quantity) return
+
+    try {
+      await addBatch(
+        product.id || product.name, // productId или имя
+        product.departmentId,
+        newBatch.manufacturingDate,
+        newBatch.expiryDate,
+        newBatch.quantity
+      )
+
+      setNewBatch({ manufacturingDate: '', expiryDate: '', quantity: 1 })
+      setShowAddForm(false)
+    } catch (error) {
+      console.error('Error adding batch:', error)
+    }
+  }
+
+  // Закрытие по клику на оверлей
+  const handleOverlayClick = (e) => {
+    if (e.target === e.currentTarget) {
+      onClose()
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 bg-charcoal/50 flex items-center justify-center z-50 p-4"
+      onClick={handleOverlayClick}
+    >
+      <div className="bg-cream rounded-lg w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col animate-slide-up">
+        {/* Заголовок */}
+        <div className="flex items-center justify-between p-6 border-b border-sand">
+          <div>
+            <h2 className="font-serif text-2xl text-charcoal">{product.name}</h2>
+            <span className="text-sm text-warmgray bg-sand/50 px-2 py-0.5 rounded mt-1 inline-block">
+              {getCategoryName()}
+            </span>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-warmgray hover:text-charcoal transition-colors p-2"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Контент со скроллом */}
+        <div className="flex-1 overflow-y-auto p-6">
+          {/* Статистика */}
+          <div className="flex gap-4 mb-6">
+            <div className="bg-white rounded-lg p-4 flex-1 border border-sand">
+              <div className="text-2xl font-medium text-charcoal">{activeBatches.length}</div>
+              <div className="text-sm text-warmgray">{t('product.activeBatches')}</div>
+            </div>
+            <div className="bg-white rounded-lg p-4 flex-1 border border-sand">
+              <div className="text-2xl font-medium text-charcoal">
+                {activeBatches.reduce((sum, b) => sum + b.quantity, 0)}
+              </div>
+              <div className="text-sm text-warmgray">{t('product.totalUnits')}</div>
+            </div>
+          </div>
+
+          {/* Список активных партий */}
+          {activeBatches.length > 0 && (
+            <div className="mb-6">
+              <h3 className="text-sm font-medium text-warmgray mb-3">
+                {t('product.activeBatches')}
+              </h3>
+              <div className="space-y-3">
+                {activeBatches.map((batch) => (
+                  <div
+                    key={batch.id}
+                    className={`bg-white rounded-lg p-4 border-l-4 ${statusBorderColors[batch.status.status]} border border-sand`}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        {/* Даты */}
+                        <div className="flex items-center gap-2 text-charcoal mb-1">
+                          <Calendar className="w-4 h-4 text-warmgray" />
+                          <span className="font-medium">
+                            {formatDateDisplay(batch.manufacturingDate)} —{' '}
+                            {formatDateDisplay(batch.expiryDate)}
+                          </span>
+                        </div>
+
+                        {/* Количество */}
+                        <div className="flex items-center gap-2 text-sm text-warmgray mb-2">
+                          <Package className="w-4 h-4" />
+                          <span>
+                            {t('product.quantity')}:{' '}
+                            <strong className="text-charcoal">{batch.quantity}</strong>
+                          </span>
+                        </div>
+
+                        {/* Добавлено */}
+                        <div className="flex items-center gap-2 text-xs text-warmgray">
+                          <User className="w-3 h-3" />
+                          <span>
+                            {t('product.addedAt')}: {formatDateTime(batch.addedAt)}, {batch.addedBy}
+                          </span>
+                        </div>
+
+                        {/* Статус */}
+                        <div
+                          className={`mt-2 text-xs font-medium ${
+                            batch.status.status === 'expired' ||
+                            batch.status.status === 'critical' ||
+                            batch.status.status === 'today'
+                              ? 'text-danger'
+                              : batch.status.status === 'warning' ||
+                                  batch.status.status === 'attention'
+                                ? 'text-warning'
+                                : 'text-success'
+                          }`}
+                        >
+                          {batch.daysLeft < 0
+                            ? t('status.expiredDaysAgo', { days: Math.abs(batch.daysLeft) })
+                            : batch.daysLeft === 0
+                              ? t('status.expiresToday')
+                              : t('status.expiresInDays', { days: batch.daysLeft })}
+                        </div>
+                      </div>
+
+                      {/* Кнопки действий */}
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => collectBatch(batch.id)}
+                          className="flex items-center gap-1 px-3 py-1.5 text-sm border border-success text-success rounded hover:bg-success hover:text-white transition-colors"
+                        >
+                          <Check className="w-4 h-4" />
+                          {t('product.collect')}
+                        </button>
+                        <button
+                          onClick={() => deleteBatch(batch.id)}
+                          className="p-1.5 text-warmgray hover:text-danger transition-colors"
+                          title={t('common.delete')}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Собранные партии */}
+          {collectedBatches.length > 0 && (
+            <div className="mb-6">
+              <h3 className="text-sm font-medium text-warmgray mb-3">
+                {t('product.collectedBatches')}
+              </h3>
+              <div className="space-y-2">
+                {collectedBatches.slice(0, 5).map((batch) => (
+                  <div
+                    key={batch.id}
+                    className="bg-sand/30 rounded-lg p-3 border border-sand/50 opacity-60"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-sm text-warmgray">
+                        <Check className="w-4 h-4 text-success" />
+                        <span>
+                          {formatDateDisplay(batch.manufacturingDate)} —{' '}
+                          {formatDateDisplay(batch.expiryDate)}
+                        </span>
+                        <span>•</span>
+                        <span>
+                          {batch.quantity} {t('inventory.units')}
+                        </span>
+                      </div>
+                      <div className="text-xs text-warmgray">
+                        {t('product.collectedAt')}: {formatDateTime(batch.collectedAt)}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {collectedBatches.length > 5 && (
+                  <p className="text-xs text-warmgray text-center">
+                    +{collectedBatches.length - 5} {t('product.moreBatches')}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Пустое состояние */}
+          {activeBatches.length === 0 && collectedBatches.length === 0 && (
+            <div className="text-center py-8">
+              <Package className="w-12 h-12 text-sand mx-auto mb-3" />
+              <p className="text-warmgray">{t('product.noBatches')}</p>
+              <p className="text-sm text-warmgray/70">{t('product.addFirstBatch')}</p>
+            </div>
+          )}
+
+          {/* Форма добавления партии */}
+          {showAddForm && (
+            <div className="bg-white rounded-lg p-4 border border-accent mb-4">
+              <h4 className="font-medium text-charcoal mb-4">{t('product.addNewBatch')}</h4>
+              <form onSubmit={handleAddBatch} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm text-warmgray mb-1">
+                      {t('product.manufacturingDate')}
+                    </label>
+                    <input
+                      type="date"
+                      value={newBatch.manufacturingDate}
+                      onChange={(e) =>
+                        setNewBatch((prev) => ({ ...prev, manufacturingDate: e.target.value }))
+                      }
+                      className="w-full px-3 py-2 border border-sand rounded focus:outline-none focus:border-accent"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-warmgray mb-1">
+                      {t('product.expiryDate')}
+                    </label>
+                    <input
+                      type="date"
+                      value={newBatch.expiryDate}
+                      onChange={(e) =>
+                        setNewBatch((prev) => ({ ...prev, expiryDate: e.target.value }))
+                      }
+                      className="w-full px-3 py-2 border border-sand rounded focus:outline-none focus:border-accent"
+                      required
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm text-warmgray mb-1">
+                    {t('product.quantity')}
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={newBatch.quantity}
+                    onChange={(e) =>
+                      setNewBatch((prev) => ({ ...prev, quantity: parseInt(e.target.value) || 1 }))
+                    }
+                    className="w-full px-3 py-2 border border-sand rounded focus:outline-none focus:border-accent"
+                    required
+                  />
+                </div>
+                <div className="flex gap-2 justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddForm(false)}
+                    className="px-4 py-2 text-sm text-warmgray hover:text-charcoal transition-colors"
+                  >
+                    {t('common.cancel')}
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 text-sm bg-accent text-white rounded hover:bg-accent/90 transition-colors"
+                  >
+                    {t('common.add')}
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+        </div>
+
+        {/* Футер */}
+        <div className="p-6 border-t border-sand bg-sand/30">
+          {!showAddForm && (
+            <button
+              onClick={() => setShowAddForm(true)}
+              className="w-full flex items-center justify-center gap-2 py-3 bg-charcoal text-white rounded-lg hover:bg-charcoal/90 transition-colors"
+            >
+              <Plus className="w-5 h-5" />
+              {t('product.addBatch')}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}

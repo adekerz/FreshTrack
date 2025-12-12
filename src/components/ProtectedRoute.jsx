@@ -1,0 +1,168 @@
+/**
+ * Protected Route Component
+ * Компонент для защиты маршрутов на основе аутентификации и ролей
+ */
+
+import { Navigate, useLocation } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
+
+/**
+ * Нормализует роль пользователя (Administrator -> admin, Manager -> manager)
+ */
+const normalizeRole = (role) => {
+  if (!role) return null
+  return role.toLowerCase().replace('istrator', '')
+}
+
+/**
+ * Проверяет является ли пользователь админом (admin/Administrator)
+ */
+const isAdmin = (role) => {
+  const normalized = normalizeRole(role)
+  return normalized === 'admin'
+}
+
+/**
+ * ProtectedRoute - обёртка для защищённых маршрутов
+ * @param {Object} props
+ * @param {React.ReactNode} props.children - Дочерние компоненты
+ * @param {string[]} props.allowedRoles - Массив разрешённых ролей (если не указан - доступно всем авторизованным)
+ * @param {string[]} props.allowedDepartments - Массив разрешённых отделов
+ * @param {boolean} props.requireAdmin - Требуется роль admin
+ * @param {string} props.redirectTo - Путь для редиректа при отказе доступа
+ */
+export default function ProtectedRoute({
+  children,
+  allowedRoles = null,
+  allowedDepartments = null,
+  requireAdmin = false,
+  redirectTo = '/login'
+}) {
+  const { user, isAuthenticated, loading } = useAuth()
+  const location = useLocation()
+
+  // Показываем загрузку пока проверяется авторизация
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-cream flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-sand border-t-accent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-warmgray">Проверка авторизации...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Если не авторизован - редирект на страницу входа
+  if (!isAuthenticated) {
+    return <Navigate to={redirectTo} state={{ from: location }} replace />
+  }
+
+  // Проверка роли admin если требуется
+  if (requireAdmin && !isAdmin(user?.role)) {
+    return <Navigate to="/" state={{ accessDenied: true }} replace />
+  }
+
+  // Проверка разрешённых ролей
+  if (allowedRoles && allowedRoles.length > 0) {
+    const normalizedUserRole = normalizeRole(user?.role)
+    if (!normalizedUserRole || !allowedRoles.includes(normalizedUserRole)) {
+      return <Navigate to="/" state={{ accessDenied: true }} replace />
+    }
+  }
+
+  // Проверка разрешённых отделов (только для сотрудников, админ имеет доступ ко всем)
+  if (allowedDepartments && allowedDepartments.length > 0 && !isAdmin(user?.role)) {
+    const userDepts = user?.departments || []
+    const hasAccess = allowedDepartments.some((dept) => userDepts.includes(dept))
+
+    if (!hasAccess) {
+      return <Navigate to="/" state={{ accessDenied: true }} replace />
+    }
+  }
+
+  return children
+}
+
+/**
+ * AdminRoute - обёртка для маршрутов только для администраторов
+ */
+export function AdminRoute({ children, redirectTo = '/' }) {
+  return (
+    <ProtectedRoute requireAdmin redirectTo={redirectTo}>
+      {children}
+    </ProtectedRoute>
+  )
+}
+
+/**
+ * DepartmentRoute - обёртка для маршрутов с доступом к определённым отделам
+ */
+export function DepartmentRoute({ children, departments, redirectTo = '/' }) {
+  return (
+    <ProtectedRoute allowedDepartments={departments} redirectTo={redirectTo}>
+      {children}
+    </ProtectedRoute>
+  )
+}
+
+/**
+ * RoleRoute - обёртка для маршрутов с доступом к определённым ролям
+ */
+export function RoleRoute({ children, roles, redirectTo = '/' }) {
+  return (
+    <ProtectedRoute allowedRoles={roles} redirectTo={redirectTo}>
+      {children}
+    </ProtectedRoute>
+  )
+}
+
+/**
+ * Хук для проверки прав доступа
+ */
+export function useAccessControl() {
+  const { user, isAuthenticated } = useAuth()
+
+  const hasRole = (role) => {
+    if (!isAuthenticated || !user) return false
+    return normalizeRole(user.role) === normalizeRole(role)
+  }
+
+  const hasAnyRole = (roles) => {
+    if (!isAuthenticated || !user) return false
+    const normalizedUserRole = normalizeRole(user.role)
+    return roles.map(normalizeRole).includes(normalizedUserRole)
+  }
+
+  const hasDepartmentAccess = (departmentId) => {
+    if (!isAuthenticated || !user) return false
+    if (isAdmin(user.role)) return true
+    return user.departments?.includes(departmentId) || false
+  }
+
+  const hasAnyDepartmentAccess = (departmentIds) => {
+    if (!isAuthenticated || !user) return false
+    if (isAdmin(user.role)) return true
+    return departmentIds.some((dept) => user.departments?.includes(dept))
+  }
+
+  const checkIsAdmin = () => hasRole('admin')
+  const checkIsManager = () => hasRole('manager')
+  const checkIsStaff = () => hasRole('staff')
+
+  return {
+    user,
+    isAuthenticated,
+    hasRole,
+    hasAnyRole,
+    hasDepartmentAccess,
+    hasAnyDepartmentAccess,
+    isAdmin: checkIsAdmin,
+    isManager: checkIsManager,
+    isStaff: checkIsStaff,
+    canManageUsers: checkIsAdmin(),
+    canViewAllDepartments: checkIsAdmin(),
+    canExportData: checkIsAdmin() || checkIsManager(),
+    canManageSettings: checkIsAdmin()
+  }
+}
