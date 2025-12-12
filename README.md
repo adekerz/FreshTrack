@@ -1,41 +1,59 @@
-# 🏨 FreshTrack - Ritz-Carlton Inventory Management
+# 🏨 FreshTrack - Inventory Management System
 
-Элегантная система управления инвентарём для баров отеля Ritz-Carlton Astana.  
+Современная система управления инвентарём и контроля сроков годности для отелей и ресторанов.  
 *Designed in "Quiet Luxury" style.*
 
 ![FreshTrack](https://img.shields.io/badge/version-2.0.0-blue.svg)
 ![React](https://img.shields.io/badge/React-18.2.0-61dafb.svg)
 ![Node.js](https://img.shields.io/badge/Node.js-18+-339933.svg)
 ![SQLite](https://img.shields.io/badge/SQLite-3-003B57.svg)
+![License](https://img.shields.io/badge/license-MIT-green.svg)
 
-## ✨ Особенности
+## ✨ Возможности
 
-- 📦 **Управление инвентарём** — отслеживание продуктов по отделам (Honor Bar, Mokki Bar, Ozen Bar)
+- 📦 **Управление инвентарём** — отслеживание продуктов по отделам и категориям
 - ⏰ **Контроль сроков годности** — автоматические уведомления о просроченных и истекающих продуктах
 - 📱 **Telegram интеграция** — ежедневные уведомления в Telegram чат
-- 🌐 **Мультиязычность** — поддержка Русского, English, Қазақша
-- 🔐 **Авторизация** — JWT-based аутентификация
-- 🎨 **Quiet Luxury дизайн** — минималистичный и элегантный интерфейс
+- 🌐 **Мультиязычность** — Русский, English, Қазақша
+- 🔐 **Авторизация** — JWT-based аутентификация с ролями (Admin/User)
+- 📊 **Аналитика** — статистика по отделам, рейтинг эффективности
+- 📅 **Календарь** — визуализация сроков годности
+- 📋 **История сборов** — учёт собранных просроченных товаров
+- 📝 **Журнал аудита** — логирование всех действий
+- 📱 **PWA** — работает как мобильное приложение
+- 🎨 **Quiet Luxury дизайн** — минималистичный элегантный интерфейс
 
 ## 🛠️ Технологии
 
 ### Frontend
-- **React 18** + **Vite**
-- **Tailwind CSS** (custom quiet luxury palette)
-- **Lucide React** (icons)
-- **React Router** v6
+- **React 18** + **Vite** — современный быстрый бандлер
+- **Tailwind CSS** — utility-first CSS с кастомной палитрой
+- **Lucide React** — иконки
+- **React Router v6** — маршрутизация
+- **PWA** — Service Worker для офлайн работы
 
 ### Backend
-- **Node.js** + **Express**
-- **SQLite** (better-sqlite3)
-- **JWT** (jsonwebtoken) — авторизация
+- **Node.js** + **Express** — REST API
+- **SQLite** (better-sqlite3) — легковесная база данных
+- **JWT** — авторизация
 - **bcryptjs** — хеширование паролей
 - **node-telegram-bot-api** — Telegram интеграция
 - **node-cron** — планировщик задач
 
-## 🚀 Запуск проекта
+## 🚀 Быстрый старт
 
-### 1. Установка зависимостей
+### Требования
+- Node.js 18+
+- npm или yarn
+
+### 1. Клонирование репозитория
+
+```bash
+git clone https://github.com/adekerz/FreshTrack.git
+cd FreshTrack
+```
+
+### 2. Установка зависимостей
 
 ```bash
 # Frontend
@@ -47,11 +65,35 @@ npm install
 cd ..
 ```
 
-### 2. Настройка окружения
+### 3. Настройка окружения
 
-Backend уже настроен с Telegram Bot в `server/.env`:
+Скопируйте пример конфигурации и настройте:
 
-### 3. Запуск
+```bash
+cd server
+cp .env.example .env
+```
+
+Отредактируйте `server/.env`:
+
+```env
+# Server
+PORT=3001
+NODE_ENV=development
+
+# JWT Secret (измените на свой!)
+JWT_SECRET=your_secure_secret_key_here
+
+# Telegram Bot (получите токен у @BotFather)
+TELEGRAM_BOT_TOKEN=your_telegram_bot_token
+TELEGRAM_CHAT_ID=your_telegram_chat_id
+TELEGRAM_POLLING=true
+
+# Database
+DATABASE_PATH=./db/freshtrack.db
+```
+
+### 4. Запуск
 
 **Вариант 1: Два терминала**
 
@@ -64,161 +106,209 @@ npm start
 npm run dev
 ```
 
-**Вариант 2: Одновременный запуск**
+**Вариант 2: Параллельный запуск (Windows)**
 
 ```bash
-# Backend в фоне + Frontend
-cd server && npm start & cd .. && npm run dev
+start cmd /k "cd server && npm start" && npm run dev
 ```
 
 Откройте http://localhost:5173
 
-## 📡 API Endpoints
-
-### Products
-| Метод | Endpoint | Описание |
-|-------|----------|----------|
-| GET | `/api/products` | Все продукты |
-| POST | `/api/products` | Добавить продукт |
-| PUT | `/api/products/:id` | Обновить продукт |
-| DELETE | `/api/products/:id` | Удалить продукт |
-| GET | `/api/products/status/expired` | Просроченные |
-| GET | `/api/products/status/expiring-today` | Истекают сегодня |
-| GET | `/api/products/status/expiring-soon?days=3` | Истекают скоро |
-
-### Auth
-| Метод | Endpoint | Описание |
-|-------|----------|----------|
-| POST | `/api/auth/login` | Авторизация |
-| POST | `/api/auth/register` | Регистрация |
-| GET | `/api/auth/me` | Текущий пользователь |
-
-### Notifications
-| Метод | Endpoint | Описание |
-|-------|----------|----------|
-| POST | `/api/notifications/test` | Тестовое уведомление |
-| GET | `/api/notifications/send-daily` | Ежедневное уведомление |
-| GET | `/api/notifications/summary` | Сводка |
-| GET | `/api/notifications/status` | Статус планировщика |
-| GET | `/api/notifications/logs` | История уведомлений |
-| POST | `/api/notifications/send-custom` | Пользовательское сообщение |
-
 ## 👤 Демо-аккаунт
 
 ```
-Email: admin@ritzcarlton.com
-Password: admin123
+Логин: admin
+Пароль: AdminRC2025!
 ```
 
-## 🎨 Цветовая палитра
+## 📡 API Endpoints
 
-| Цвет | HEX | Использование |
-|------|-----|---------------|
-| Cream | `#FAF8F5` | Фон |
-| Sand | `#F5F0E8` | Карточки |
-| Charcoal | `#1A1A1A` | Текст |
-| Warm Gray | `#6B6560` | Вторичный текст |
-| Accent | `#FF8D6B` | Акценты |
-| Success | `#4A7C59` | Успех/OK |
-| Warning | `#D4A853` | Предупреждения |
-| Danger | `#C4554D` | Ошибки/Просрочено |
+### Авторизация
+| Метод | Endpoint | Описание |
+|-------|----------|----------|
+| POST | `/api/auth/login` | Вход |
+| POST | `/api/auth/register` | Регистрация |
+| GET | `/api/auth/me` | Текущий пользователь |
+
+### Продукты и партии
+| Метод | Endpoint | Описание |
+|-------|----------|----------|
+| GET | `/api/products` | Каталог продуктов |
+| POST | `/api/products` | Добавить продукт |
+| GET | `/api/batches` | Все партии |
+| POST | `/api/batches` | Добавить партию |
+| GET | `/api/batches/stats` | Статистика |
+| GET | `/api/batches/department/:dept` | Партии отдела |
+
+### Уведомления
+| Метод | Endpoint | Описание |
+|-------|----------|----------|
+| POST | `/api/notifications/test` | Тестовое уведомление |
+| GET | `/api/notifications/send-daily` | Отправить ежедневный отчёт |
+| GET | `/api/notifications/logs` | История уведомлений |
+
+### Сборы
+| Метод | Endpoint | Описание |
+|-------|----------|----------|
+| GET | `/api/collections` | История сборов |
+| POST | `/api/collections` | Зафиксировать сбор |
+
+### Настройки
+| Метод | Endpoint | Описание |
+|-------|----------|----------|
+| GET | `/api/settings` | Все настройки |
+| PUT | `/api/settings/:key` | Обновить настройку |
+| GET | `/api/settings/telegram/status` | Статус Telegram бота |
 
 ## 📁 Структура проекта
 
 ```
-freshtrack-project/
-├── src/
-│   ├── components/          # UI компоненты
-│   │   ├── AddProductModal.jsx
-│   │   ├── AlertCard.jsx
-│   │   ├── DepartmentCard.jsx
+FreshTrack/
+├── src/                      # Frontend
+│   ├── components/           # UI компоненты
+│   │   ├── AddBatchModal.jsx
+│   │   ├── BottomNavigation.jsx
+│   │   ├── CollectModal.jsx
+│   │   ├── DeliveryTemplateModal.jsx
+│   │   ├── ExportButton.jsx
+│   │   ├── GlobalSearch.jsx
 │   │   ├── Header.jsx
-│   │   ├── LanguageSwitcher.jsx  # NEW
+│   │   ├── LanguageSwitcher.jsx
 │   │   ├── Layout.jsx
-│   │   ├── ProductTable.jsx
-│   │   ├── Sidebar.jsx
-│   │   └── StatCard.jsx
-│   ├── pages/               # Страницы
+│   │   ├── ProtectedRoute.jsx
+│   │   └── Sidebar.jsx
+│   ├── pages/                # Страницы
 │   │   ├── DashboardPage.jsx
 │   │   ├── InventoryPage.jsx
-│   │   ├── LoginPage.jsx
 │   │   ├── NotificationsPage.jsx
+│   │   ├── CalendarPage.jsx
+│   │   ├── AnalyticsPage.jsx
+│   │   ├── DepartmentRankingPage.jsx
+│   │   ├── CollectionHistoryPage.jsx
+│   │   ├── AuditLogsPage.jsx
+│   │   ├── SettingsPage.jsx
+│   │   ├── LoginPage.jsx
 │   │   └── RegisterPage.jsx
-│   ├── context/             # React Context
+│   ├── context/              # React Context
 │   │   ├── AuthContext.jsx
-│   │   ├── LanguageContext.jsx   # NEW
+│   │   ├── LanguageContext.jsx
 │   │   └── ProductContext.jsx
-│   ├── services/            # API сервисы
-│   │   └── api.js               # NEW
-│   ├── locales/             # Переводы
-│   │   ├── en.json              # NEW
-│   │   ├── ru.json              # NEW
-│   │   └── kk.json              # NEW
-│   ├── utils/               # Утилиты
-│   │   ├── classNames.js
-│   │   └── dateUtils.js
+│   ├── locales/              # Переводы
+│   │   ├── ru.json
+│   │   ├── en.json
+│   │   └── kk.json
+│   ├── services/
+│   │   └── api.js
+│   ├── utils/
+│   │   ├── dateUtils.js
+│   │   ├── exportUtils.js
+│   │   └── browserAlerts.js
 │   ├── styles/
 │   │   └── index.css
 │   ├── App.jsx
 │   └── main.jsx
-├── server/                  # Backend
+├── server/                   # Backend
 │   ├── db/
-│   │   └── database.js      # SQLite
+│   │   └── database.js
 │   ├── routes/
-│   │   ├── auth.js          # JWT авторизация
-│   │   ├── notifications.js # Telegram API
-│   │   └── products.js      # CRUD продуктов
+│   │   ├── auth.js
+│   │   ├── products.js
+│   │   ├── batches.js
+│   │   ├── collections.js
+│   │   ├── notifications.js
+│   │   ├── settings.js
+│   │   └── audit-logs.js
 │   ├── services/
-│   │   ├── scheduler.js     # node-cron
-│   │   └── telegram.js      # Bot API
-│   ├── .env
-│   ├── .gitignore
+│   │   ├── scheduler.js
+│   │   └── telegram.js
+│   ├── middleware/
+│   │   └── auth.js
+│   ├── .env.example
 │   ├── index.js
 │   └── package.json
 ├── public/
+│   ├── manifest.json
+│   └── sw.js
 ├── index.html
 ├── package.json
 ├── tailwind.config.js
-├── postcss.config.js
-└── vite.config.js
+├── vite.config.js
+└── README.md
 ```
+
+## 🎨 Цветовая палитра (Quiet Luxury)
+
+| Цвет | HEX | Использование |
+|------|-----|---------------|
+| Cream | `#FAF8F5` | Основной фон |
+| Sand | `#F5F0E8` | Фон карточек |
+| Charcoal | `#1A1A1A` | Основной текст |
+| Warm Gray | `#6B6560` | Вторичный текст |
+| Accent | `#FF8D6B` | Акценты, кнопки |
+| Success | `#4A7C59` | Успех, в норме |
+| Warning | `#D4A853` | Предупреждения |
+| Danger | `#C4554D` | Ошибки, просрочено |
 
 ## 🔔 Telegram уведомления
 
-Бот автоматически отправляет ежедневные уведомления в **9:00 (Asia/Almaty)** со списком:
-- ❌ **Просроченные продукты** — требуют немедленного внимания
-- ⚠️ **Истекают сегодня** — критический статус
-- ⏰ **Истекают в ближайшие 3 дня** — предупреждение
+Бот автоматически отправляет ежедневные уведомления в **09:00 (Asia/Almaty)**:
 
-### Тестирование Telegram
+- ❌ **Просроченные** — требуют немедленного сбора
+- ⚠️ **Критические (0-3 дня)** — срочное внимание
+- ⏰ **Предупреждение (3-7 дней)** — запланировать проверку
 
-1. Запустите backend: `cd server && npm start`
-2. В Header есть кнопка 📱 **"Тест"** — нажмите для отправки тестового уведомления
+### Настройка Telegram бота
+
+1. Создайте бота через [@BotFather](https://t.me/BotFather)
+2. Получите токен бота
+3. Добавьте бота в группу/канал
+4. Получите Chat ID (можно через бота [@userinfobot](https://t.me/userinfobot))
+5. Внесите данные в `server/.env`
 
 ## 🌐 Мультиязычность
 
-Поддерживаемые языки:
-- 🇷🇺 **Русский** (по умолчанию)
-- 🇬🇧 **English**
-- 🇰🇿 **Қазақша**
+| Язык | Код | Статус |
+|------|-----|--------|
+| 🇷🇺 Русский | `ru` | ✅ Полная поддержка |
+| 🇬🇧 English | `en` | ✅ Полная поддержка |
+| 🇰🇿 Қазақша | `kk` | ✅ Полная поддержка |
 
-Переключатель языков находится в Header рядом с именем пользователя.
+Переключатель языков в правом верхнем углу.
 
-## 🏗️ Будущие улучшения
+## 🔒 Безопасность
 
-- [x] Backend API интеграция
-- [x] Telegram уведомления
-- [x] Мультиязычность (RU/EN/KK)
-- [ ] Push-уведомления (Email)
-- [ ] Barcode/QR сканирование
-- [ ] Экспорт отчётов (PDF/Excel)
-- [ ] Аналитика и графики
-- [ ] Тёмная тема
+- ✅ JWT токены с истечением срока действия
+- ✅ Хеширование паролей (bcrypt)
+- ✅ Защищённые роуты (Admin/User роли)
+- ✅ Валидация входных данных
+- ✅ CORS настройки
+
+## 📱 PWA
+
+FreshTrack работает как Progressive Web App:
+
+1. Откройте сайт в Chrome/Edge
+2. Нажмите "Установить" в адресной строке
+3. Приложение появится на рабочем столе
+
+## 🤝 Contributing
+
+1. Fork репозитория
+2. Создайте feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit изменения (`git commit -m 'Add amazing feature'`)
+4. Push в branch (`git push origin feature/amazing-feature`)
+5. Откройте Pull Request
 
 ## 📄 Лицензия
 
-MIT License
+MIT License - см. [LICENSE](LICENSE) файл.
+
+## 👨‍💻 Автор
+
+**adekerz**
+
+- GitHub: [@adekerz](https://github.com/adekerz)
 
 ---
 
-*Разработано для Ritz-Carlton Astana* 🏨
+⭐ Если проект полезен, поставьте звезду!
