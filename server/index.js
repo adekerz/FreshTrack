@@ -1,6 +1,6 @@
 /**
- * FreshTrack Server - Главный файл
- * Ritz-Carlton Inventory Management System
+ * FreshTrack Server - Enterprise Inventory Management
+ * Main server file
  */
 
 import express from 'express'
@@ -22,6 +22,8 @@ import notificationRulesRouter from './routes/notification-rules.js'
 import deliveryTemplatesRouter from './routes/delivery-templates.js'
 import departmentSettingsRouter from './routes/department-settings.js'
 import customContentRouter from './routes/custom-content.js'
+import categoriesRouter from './routes/categories.js'
+import importRouter from './routes/import.js'
 
 // Импорт сервисов
 import { initDatabase } from './db/database.js'
@@ -56,6 +58,8 @@ app.use('/api/notification-rules', notificationRulesRouter)
 app.use('/api/delivery-templates', deliveryTemplatesRouter)
 app.use('/api/department-settings', departmentSettingsRouter)
 app.use('/api/custom-content', customContentRouter)
+app.use('/api/categories', categoriesRouter)
+app.use('/api/import', importRouter)
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -107,10 +111,10 @@ async function startServer() {
     // Запускаем сервер
     app.listen(PORT, () => {
       console.log(`
-🚀 FreshTrack Server is running!
+🚀 FreshTrack Enterprise Server is running!
 📍 Port: ${PORT}
 🌐 API: http://localhost:${PORT}/api
-🏨 Ritz-Carlton Inventory Management
+📦 Enterprise Inventory Management
 
 Available endpoints:
   - GET  /api/health

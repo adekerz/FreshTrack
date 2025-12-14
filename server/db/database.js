@@ -1,6 +1,7 @@
 /**
- * FreshTrack Database - SQLite
- * Управление базой данных для системы учёта сроков годности
+ * FreshTrack Enterprise Database
+ * Clean architecture - NO demo data
+ * Multi-property ready
  */
 
 import Database from 'better-sqlite3'
@@ -11,52 +12,215 @@ import bcrypt from 'bcryptjs'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-// Путь к базе данных
 const dbPath = process.env.DATABASE_PATH || path.join(__dirname, 'freshtrack.db')
 
 let db = null
 
 /**
- * Инициализация базы данных и создание таблиц
+ * Get database instance
+ */
+export function getDb() {
+  if (!db) {
+    throw new Error('Database not initialized. Call initDatabase() first.')
+  }
+  return db
+}
+
+/**
+ * Initialize database and create tables
  */
 export function initDatabase() {
   db = new Database(dbPath)
-  
-  // Включаем foreign keys
+  db.pragma('journal_mode = WAL')
   db.pragma('foreign_keys = ON')
 
-  // Создаём таблицу пользователей
+  console.log('📦 Initializing FreshTrack Enterprise Database...')
+
+  // ═══════════════════════════════════════════════════════════════
+  // ENTERPRISE TABLES
+  // ═══════════════════════════════════════════════════════════════
+
+  // Hotel Chains / Brands
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS hotel_chains (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      code TEXT UNIQUE,
+      logo_url TEXT,
+      primary_color TEXT DEFAULT '#FF8D6B',
+      is_active INTEGER DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `)
+
+  // Properties (Hotels)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS properties (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      chain_id INTEGER,
+      name TEXT NOT NULL,
+      code TEXT UNIQUE,
+      address TEXT,
+      city TEXT,
+      country TEXT,
+      timezone TEXT DEFAULT 'UTC',
+      currency TEXT DEFAULT 'USD',
+      is_active INTEGER DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (chain_id) REFERENCES hotel_chains(id)
+    )
+  `)
+
+  // Roles with permissions
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS roles (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT UNIQUE NOT NULL,
+      display_name TEXT,
+      description TEXT,
+      permissions TEXT,
+      is_system INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `)
+
+  // ═══════════════════════════════════════════════════════════════
+  // CORE TABLES
+  // ═══════════════════════════════════════════════════════════════
+
+  // Users
   db.exec(`
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       login TEXT UNIQUE NOT NULL,
-      name TEXT NOT NULL,
-      email TEXT UNIQUE NOT NULL,
       password TEXT NOT NULL,
-      role TEXT DEFAULT 'manager',
-      departments TEXT, -- JSON массив доступных отделов
+      name TEXT NOT NULL,
+      email TEXT UNIQUE,
+      role TEXT DEFAULT 'staff',
+      property_id INTEGER,
+      department_id TEXT,
+      departments TEXT,
+      is_active INTEGER DEFAULT 1,
       telegram_chat_id TEXT,
       telegram_username TEXT,
+      last_login DATETIME,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (property_id) REFERENCES properties(id)
     )
   `)
 
-  // Создаём таблицу продуктов
+  // User-Property assignments (for multi-property access)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS user_properties (
+      user_id INTEGER,
+      property_id INTEGER,
+      role TEXT DEFAULT 'staff',
+      PRIMARY KEY (user_id, property_id),
+      FOREIGN KEY (user_id) REFERENCES users(id),
+      FOREIGN KEY (property_id) REFERENCES properties(id)
+    )
+  `)
+
+  // Departments (created by admin)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS departments (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      name_en TEXT,
+      name_kk TEXT,
+      property_id INTEGER,
+      color TEXT DEFAULT '#FF8D6B',
+      icon TEXT DEFAULT 'package',
+      sort_order INTEGER DEFAULT 0,
+      is_active INTEGER DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (property_id) REFERENCES properties(id)
+    )
+  `)
+
+  // Categories (created by admin)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS categories (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      name_en TEXT,
+      name_kk TEXT,
+      color TEXT DEFAULT '#6B6560',
+      icon TEXT,
+      sort_order INTEGER DEFAULT 0,
+      is_active INTEGER DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `)
+
+  // Products catalog (created by admin)
   db.exec(`
     CREATE TABLE IF NOT EXISTS products (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
-      department TEXT NOT NULL,
-      category TEXT NOT NULL,
-      quantity INTEGER NOT NULL DEFAULT 0,
-      expiry_date DATE NOT NULL,
+      name_en TEXT,
+      name_kk TEXT,
+      category_id INTEGER,
+      department TEXT,
+      category TEXT,
+      default_shelf_life INTEGER DEFAULT 30,
+      barcode TEXT,
+      sku TEXT,
+      unit TEXT DEFAULT 'pcs',
+      image_url TEXT,
+      quantity INTEGER DEFAULT 0,
+      expiry_date DATE,
+      is_active INTEGER DEFAULT 1,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (category_id) REFERENCES categories(id)
     )
   `)
 
-  // Создаём таблицу логов сборов
+  // Batches (inventory items with expiry)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS batches (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      product_id INTEGER NOT NULL,
+      department_id TEXT NOT NULL,
+      quantity INTEGER DEFAULT 1,
+      manufacturing_date DATE,
+      expiry_date DATE NOT NULL,
+      batch_number TEXT,
+      supplier TEXT,
+      purchase_price REAL,
+      is_collected INTEGER DEFAULT 0,
+      collected_at DATETIME,
+      collected_by INTEGER,
+      collection_reason TEXT,
+      added_by INTEGER,
+      added_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (product_id) REFERENCES products(id),
+      FOREIGN KEY (added_by) REFERENCES users(id),
+      FOREIGN KEY (collected_by) REFERENCES users(id)
+    )
+  `)
+
+  // Collections (collection history)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS collections (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      batch_id INTEGER,
+      product_id INTEGER,
+      product_name TEXT,
+      department_id TEXT,
+      quantity INTEGER,
+      reason TEXT,
+      comment TEXT,
+      collected_by INTEGER,
+      collected_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (batch_id) REFERENCES batches(id),
+      FOREIGN KEY (collected_by) REFERENCES users(id)
+    )
+  `)
+
+  // Collection logs (legacy support)
   db.exec(`
     CREATE TABLE IF NOT EXISTS collection_logs (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -67,26 +231,42 @@ export function initDatabase() {
       quantity INTEGER,
       collected_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       collected_by INTEGER REFERENCES users(id),
-      reason TEXT DEFAULT 'manual'
+      reason TEXT DEFAULT 'manual',
+      comment TEXT
     )
   `)
 
-  // Создаём таблицу логов уведомлений
+  // Delivery templates
   db.exec(`
-    CREATE TABLE IF NOT EXISTS notifications_log (
+    CREATE TABLE IF NOT EXISTS delivery_templates (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      type TEXT NOT NULL,
-      message TEXT NOT NULL,
-      products_count INTEGER DEFAULT 0,
-      content TEXT, -- JSON с деталями уведомления
-      telegram_message_id TEXT,
-      sent_by INTEGER REFERENCES users(id),
-      sent_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      status TEXT DEFAULT 'sent'
+      name TEXT NOT NULL,
+      department_id TEXT,
+      items TEXT,
+      is_active INTEGER DEFAULT 1,
+      created_by INTEGER,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (created_by) REFERENCES users(id)
     )
   `)
 
-  // Создаём таблицу системных настроек
+  // Notification rules
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS notification_rules (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      category_id INTEGER,
+      department_id TEXT,
+      warning_days INTEGER DEFAULT 7,
+      critical_days INTEGER DEFAULT 3,
+      telegram_enabled INTEGER DEFAULT 1,
+      email_enabled INTEGER DEFAULT 0,
+      is_active INTEGER DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `)
+
+  // System settings
   db.exec(`
     CREATE TABLE IF NOT EXISTS system_settings (
       key TEXT PRIMARY KEY,
@@ -96,179 +276,218 @@ export function initDatabase() {
     )
   `)
 
-  // Миграция: добавляем колонку login если её нет
-  try {
-    const columns = db.prepare("PRAGMA table_info(users)").all()
-    const columnNames = columns.map(col => col.name)
-    
-    // Миграция: добавляем login
-    if (!columnNames.includes('login')) {
-      console.log('🔄 Migrating database: adding login column to users...')
-      db.exec(`ALTER TABLE users ADD COLUMN login TEXT`)
-      db.exec(`UPDATE users SET login = SUBSTR(email, 1, INSTR(email, '@') - 1) WHERE login IS NULL`)
-      console.log('✅ Migration complete: login column added')
-    }
-    
-    // Миграция: добавляем departments
-    if (!columnNames.includes('departments')) {
-      console.log('🔄 Migrating database: adding departments column to users...')
-      db.exec(`ALTER TABLE users ADD COLUMN departments TEXT`)
-      console.log('✅ Migration complete: departments column added')
-    }
-    
-    // Миграция: добавляем telegram_chat_id
-    if (!columnNames.includes('telegram_chat_id')) {
-      console.log('🔄 Migrating database: adding telegram_chat_id column to users...')
-      db.exec(`ALTER TABLE users ADD COLUMN telegram_chat_id TEXT`)
-      console.log('✅ Migration complete: telegram_chat_id column added')
-    }
-    
-    // Миграция: добавляем telegram_username
-    if (!columnNames.includes('telegram_username')) {
-      console.log('🔄 Migrating database: adding telegram_username column to users...')
-      db.exec(`ALTER TABLE users ADD COLUMN telegram_username TEXT`)
-      console.log('✅ Migration complete: telegram_username column added')
-    }
-    
-  } catch (err) {
-    console.log('Migration error:', err.message)
-  }
+  // Audit logs
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS audit_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER,
+      user_name TEXT,
+      action TEXT NOT NULL,
+      action_type TEXT,
+      entity_type TEXT,
+      entity_id TEXT,
+      entity_name TEXT,
+      old_value TEXT,
+      new_value TEXT,
+      ip_address TEXT,
+      user_agent TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `)
 
-  // Миграция для таблицы notifications_log
-  try {
-    const notifColumns = db.prepare("PRAGMA table_info(notifications_log)").all()
-    const notifColumnNames = notifColumns.map(col => col.name)
-    
-    // Миграция: добавляем content
-    if (!notifColumnNames.includes('content')) {
-      console.log('🔄 Migrating database: adding content column to notifications_log...')
-      db.exec(`ALTER TABLE notifications_log ADD COLUMN content TEXT`)
-      console.log('✅ Migration complete: content column added')
-    }
-    
-    // Миграция: добавляем telegram_message_id
-    if (!notifColumnNames.includes('telegram_message_id')) {
-      console.log('🔄 Migrating database: adding telegram_message_id column to notifications_log...')
-      db.exec(`ALTER TABLE notifications_log ADD COLUMN telegram_message_id TEXT`)
-      console.log('✅ Migration complete: telegram_message_id column added')
-    }
-    
-    // Миграция: добавляем sent_by
-    if (!notifColumnNames.includes('sent_by')) {
-      console.log('🔄 Migrating database: adding sent_by column to notifications_log...')
-      db.exec(`ALTER TABLE notifications_log ADD COLUMN sent_by INTEGER`)
-      console.log('✅ Migration complete: sent_by column added')
-    }
-    
-    // Миграция: добавляем status
-    if (!notifColumnNames.includes('status')) {
-      console.log('🔄 Migrating database: adding status column to notifications_log...')
-      db.exec(`ALTER TABLE notifications_log ADD COLUMN status TEXT DEFAULT 'sent'`)
-      console.log('✅ Migration complete: status column added')
-    }
-    
-  } catch (err) {
-    console.log('Migration error (notifications_log):', err.message)
-  }
+  // Notifications
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS notifications (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      type TEXT,
+      title TEXT,
+      message TEXT,
+      department_id TEXT,
+      batch_id INTEGER,
+      is_read INTEGER DEFAULT 0,
+      sent_telegram INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `)
 
-  // Миграция для таблицы collection_logs
-  try {
-    const collectionColumns = db.prepare("PRAGMA table_info(collection_logs)").all()
-    const collectionColumnNames = collectionColumns.map(col => col.name)
-    
-    // Миграция: добавляем comment
-    if (!collectionColumnNames.includes('comment')) {
-      console.log('🔄 Migrating database: adding comment column to collection_logs...')
-      db.exec(`ALTER TABLE collection_logs ADD COLUMN comment TEXT`)
-      console.log('✅ Migration complete: comment column added')
-    }
-  } catch (err) {
-    console.log('Migration error (collection_logs):', err.message)
-  }
+  // Notification logs
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS notifications_log (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      type TEXT NOT NULL,
+      message TEXT NOT NULL,
+      products_count INTEGER DEFAULT 0,
+      content TEXT,
+      telegram_message_id TEXT,
+      sent_by INTEGER REFERENCES users(id),
+      sent_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      status TEXT DEFAULT 'sent'
+    )
+  `)
 
-  // Создаём индексы для быстрого поиска
+  // Department notification settings
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS department_notification_settings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      department_id TEXT NOT NULL,
+      setting_key TEXT NOT NULL,
+      setting_value TEXT,
+      UNIQUE(department_id, setting_key)
+    )
+  `)
+
+  // Custom texts/branding
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS custom_texts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      key TEXT UNIQUE NOT NULL,
+      value TEXT,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `)
+
+  // Webhooks for integrations
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS webhooks (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      url TEXT NOT NULL,
+      events TEXT,
+      secret TEXT,
+      property_id INTEGER,
+      is_active INTEGER DEFAULT 1,
+      created_by INTEGER,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (property_id) REFERENCES properties(id),
+      FOREIGN KEY (created_by) REFERENCES users(id)
+    )
+  `)
+
+  // ═══════════════════════════════════════════════════════════════
+  // INDEXES
+  // ═══════════════════════════════════════════════════════════════
+
   db.exec(`
     CREATE INDEX IF NOT EXISTS idx_products_expiry ON products(expiry_date);
     CREATE INDEX IF NOT EXISTS idx_products_department ON products(department);
     CREATE INDEX IF NOT EXISTS idx_products_category ON products(category);
-    CREATE INDEX IF NOT EXISTS idx_products_dept_expiry ON products(department, expiry_date);
-    CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+    CREATE INDEX IF NOT EXISTS idx_products_active ON products(is_active);
+    CREATE INDEX IF NOT EXISTS idx_batches_expiry ON batches(expiry_date);
+    CREATE INDEX IF NOT EXISTS idx_batches_department ON batches(department_id);
+    CREATE INDEX IF NOT EXISTS idx_batches_collected ON batches(is_collected);
     CREATE INDEX IF NOT EXISTS idx_users_login ON users(login);
+    CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+    CREATE INDEX IF NOT EXISTS idx_users_active ON users(is_active);
     CREATE INDEX IF NOT EXISTS idx_collection_logs_date ON collection_logs(collected_at);
-    CREATE INDEX IF NOT EXISTS idx_collection_logs_dept ON collection_logs(department_id);
-    CREATE INDEX IF NOT EXISTS idx_notifications_log_date ON notifications_log(sent_at);
-    CREATE INDEX IF NOT EXISTS idx_notifications_log_type ON notifications_log(type);
+    CREATE INDEX IF NOT EXISTS idx_audit_logs_date ON audit_logs(created_at);
+    CREATE INDEX IF NOT EXISTS idx_audit_logs_user ON audit_logs(user_id);
   `)
 
-  // Создаём системных пользователей если их нет
-  initializeUsers()
+  // ═══════════════════════════════════════════════════════════════
+  // INITIAL SETUP - ONLY SUPER ADMIN
+  // ═══════════════════════════════════════════════════════════════
 
-  // Вставляем демо-данные продуктов если таблица пуста
-  const productsCount = db.prepare('SELECT COUNT(*) as count FROM products').get()
-  if (productsCount.count === 0) {
-    insertDemoProducts()
-  }
+  initializeRoles()
+  initializeAdmin()
+  initializeSettings()
 
-  console.log('Database tables created successfully')
+  console.log('✅ Database initialized successfully')
+  console.log('   No demo data - clean slate for production')
+  
   return db
 }
 
 /**
- * Инициализация системных пользователей
+ * Initialize system roles
  */
-function initializeUsers() {
-  const users = [
-    {
-      login: 'admin',
-      email: 'admin@ritzcarlton.com',
-      password: 'AdminRC2025!',
-      name: 'Administrator',
-      role: 'admin',
-      departments: ['honor-bar']
+function initializeRoles() {
+  const roles = [
+    { 
+      name: 'super_admin', 
+      display_name: 'Super Administrator',
+      description: 'Full system access', 
+      permissions: ['*'] 
     },
-    {
-      login: 'honorbar',
-      email: 'honorbar@ritzcarlton.com',
-      password: 'Honor2025RC!',
-      name: 'Honor Bar Manager',
-      role: 'manager',
-      departments: ['honor-bar']
-    }
+    { 
+      name: 'chain_admin', 
+      display_name: 'Chain Administrator',
+      description: 'Hotel chain administrator', 
+      permissions: ['chain.*', 'property.*', 'users.*', 'reports.*'] 
+    },
+    { 
+      name: 'property_admin', 
+      display_name: 'Property Administrator',
+      description: 'Single property administrator', 
+      permissions: ['property.view', 'users.manage', 'inventory.*', 'reports.property'] 
+    },
+    { 
+      name: 'admin', 
+      display_name: 'Administrator',
+      description: 'System administrator', 
+      permissions: ['inventory.*', 'users.*', 'settings.*', 'reports.*'] 
+    },
+    { 
+      name: 'manager', 
+      display_name: 'Manager',
+      description: 'Department manager', 
+      permissions: ['inventory.*', 'reports.department'] 
+    },
+    { 
+      name: 'staff', 
+      display_name: 'Staff',
+      description: 'Regular staff member', 
+      permissions: ['inventory.view', 'inventory.add_batch', 'inventory.collect'] 
+    },
   ]
 
-  for (const user of users) {
-    const exists = db.prepare('SELECT id FROM users WHERE login = ?').get(user.login)
+  for (const role of roles) {
+    const exists = db.prepare('SELECT id FROM roles WHERE name = ?').get(role.name)
     if (!exists) {
-      const hashedPassword = bcrypt.hashSync(user.password, 10)
       db.prepare(`
-        INSERT INTO users (login, name, email, password, role, departments) 
-        VALUES (?, ?, ?, ?, ?, ?)
-      `).run(
-        user.login, 
-        user.name, 
-        user.email, 
-        hashedPassword, 
-        user.role, 
-        JSON.stringify(user.departments)
-      )
-      console.log(`Created user: ${user.login}`)
+        INSERT INTO roles (name, display_name, description, permissions, is_system) 
+        VALUES (?, ?, ?, ?, 1)
+      `).run(role.name, role.display_name, role.description, JSON.stringify(role.permissions))
     }
   }
-
-  // Инициализация системных настроек
-  initializeSettings()
 }
 
 /**
- * Инициализация системных настроек
+ * Initialize admin user
+ */
+function initializeAdmin() {
+  const adminExists = db.prepare('SELECT id FROM users WHERE login = ?').get('admin')
+  
+  if (!adminExists) {
+    const hashedPassword = bcrypt.hashSync('Admin123!', 10)
+    db.prepare(`
+      INSERT INTO users (login, password, name, email, role, is_active)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run('admin', hashedPassword, 'System Administrator', 'admin@freshtrack.local', 'admin', 1)
+    
+    console.log('')
+    console.log('┌─────────────────────────────────────────────┐')
+    console.log('│  🔐 INITIAL ADMIN CREDENTIALS               │')
+    console.log('├─────────────────────────────────────────────┤')
+    console.log('│  Login:    admin                            │')
+    console.log('│  Password: Admin123!                        │')
+    console.log('├─────────────────────────────────────────────┤')
+    console.log('│  ⚠️  CHANGE THIS PASSWORD IMMEDIATELY!      │')
+    console.log('└─────────────────────────────────────────────┘')
+    console.log('')
+  }
+}
+
+/**
+ * Initialize default settings
  */
 function initializeSettings() {
   const defaultSettings = [
+    { key: 'site_name', value: 'FreshTrack' },
     { key: 'notification_days_warning', value: '7' },
     { key: 'notification_days_critical', value: '3' },
     { key: 'notification_time', value: '09:00' },
-    { key: 'notification_weekends', value: 'true' },
-    { key: 'telegram_chat_id', value: '-5090103384' }
+    { key: 'date_format', value: 'DD.MM.YYYY' },
+    { key: 'timezone', value: 'UTC' },
+    { key: 'default_language', value: 'en' }
   ]
 
   for (const setting of defaultSettings) {
@@ -280,80 +499,53 @@ function initializeSettings() {
 }
 
 /**
- * Вставка демо-данных продуктов
+ * Reset database (for development)
  */
-function insertDemoProducts() {
-  const demoProducts = [
-    { name: 'Premium Vodka', department: 'honor-bar', category: 'Spirits', quantity: 12, expiry_date: '2025-01-15' },
-    { name: 'Fresh Orange Juice', department: 'honor-bar', category: 'Beverages', quantity: 24, expiry_date: '2024-12-15' },
-    { name: 'Aged Whiskey', department: 'honor-bar', category: 'Spirits', quantity: 8, expiry_date: '2026-06-20' },
-    { name: 'Coconut Cream', department: 'honor-bar', category: 'Mixers', quantity: 15, expiry_date: '2024-12-20' },
-    { name: 'Champagne Brut', department: 'honor-bar', category: 'Wine', quantity: 6, expiry_date: '2025-03-10' },
-    { name: 'Fresh Lime Juice', department: 'honor-bar', category: 'Beverages', quantity: 20, expiry_date: '2024-12-12' },
-    { name: 'Artisan Gin', department: 'honor-bar', category: 'Spirits', quantity: 10, expiry_date: '2025-08-01' },
-    { name: 'Organic Tonic Water', department: 'honor-bar', category: 'Mixers', quantity: 48, expiry_date: '2024-12-25' },
-    { name: 'Dark Rum', department: 'honor-bar', category: 'Spirits', quantity: 14, expiry_date: '2025-12-01' },
-    { name: 'Fresh Mint', department: 'honor-bar', category: 'Produce', quantity: 30, expiry_date: '2024-12-11' },
-    { name: 'Angostura Bitters', department: 'honor-bar', category: 'Mixers', quantity: 6, expiry_date: '2026-01-15' },
-    { name: 'Prosecco', department: 'honor-bar', category: 'Wine', quantity: 12, expiry_date: '2025-02-28' }
-  ]
-
-  const stmt = db.prepare(`
-    INSERT INTO products (name, department, category, quantity, expiry_date) 
-    VALUES (?, ?, ?, ?, ?)
-  `)
-
-  for (const product of demoProducts) {
-    stmt.run(product.name, product.department, product.category, product.quantity, product.expiry_date)
-  }
-
-  console.log(`Inserted ${demoProducts.length} demo products`)
+export function resetDatabase() {
+  console.log('🗑️  Resetting database...')
+  
+  db.exec('DELETE FROM batches')
+  db.exec('DELETE FROM collections')
+  db.exec('DELETE FROM collection_logs')
+  db.exec('DELETE FROM products')
+  db.exec('DELETE FROM categories')
+  db.exec('DELETE FROM departments')
+  db.exec('DELETE FROM delivery_templates')
+  db.exec('DELETE FROM notification_rules')
+  db.exec('DELETE FROM notifications')
+  db.exec('DELETE FROM notifications_log')
+  db.exec('DELETE FROM audit_logs')
+  db.exec('DELETE FROM webhooks')
+  db.exec("DELETE FROM users WHERE login != 'admin'")
+  
+  // Reset auto-increment
+  db.exec("DELETE FROM sqlite_sequence WHERE name IN ('batches', 'collections', 'collection_logs', 'products', 'categories', 'delivery_templates', 'notification_rules', 'notifications', 'notifications_log', 'audit_logs', 'webhooks')")
+  
+  console.log('✅ Database reset complete')
 }
 
-/**
- * Получить экземпляр базы данных
- */
-export function getDb() {
-  if (!db) {
-    throw new Error('Database not initialized. Call initDatabase() first.')
-  }
-  return db
-}
+// ═══════════════════════════════════════════════════════════════
+// PRODUCT FUNCTIONS
+// ═══════════════════════════════════════════════════════════════
 
-// ============================================
-// Функции для работы с продуктами
-// ============================================
-
-/**
- * Получить все продукты
- */
 export function getAllProducts() {
-  return db.prepare('SELECT * FROM products ORDER BY expiry_date ASC').all()
+  return db.prepare('SELECT * FROM products WHERE is_active = 1 ORDER BY expiry_date ASC').all()
 }
 
-/**
- * Получить продукт по ID
- */
 export function getProductById(id) {
   return db.prepare('SELECT * FROM products WHERE id = ?').get(id)
 }
 
-/**
- * Добавить новый продукт
- */
 export function createProduct(product) {
   const { name, department, category, quantity, expiry_date } = product
   const result = db.prepare(`
-    INSERT INTO products (name, department, category, quantity, expiry_date) 
-    VALUES (?, ?, ?, ?, ?)
-  `).run(name, department, category, quantity, expiry_date)
+    INSERT INTO products (name, department, category, quantity, expiry_date, is_active) 
+    VALUES (?, ?, ?, ?, ?, 1)
+  `).run(name, department, category, quantity || 0, expiry_date)
   
   return { id: result.lastInsertRowid, ...product }
 }
 
-/**
- * Обновить продукт
- */
 export function updateProduct(id, updates) {
   const { name, department, category, quantity, expiry_date } = updates
   const result = db.prepare(`
@@ -370,51 +562,33 @@ export function updateProduct(id, updates) {
   return result.changes > 0
 }
 
-/**
- * Удалить продукт
- */
 export function deleteProduct(id) {
-  const result = db.prepare('DELETE FROM products WHERE id = ?').run(id)
+  const result = db.prepare('UPDATE products SET is_active = 0 WHERE id = ?').run(id)
   return result.changes > 0
 }
 
-/**
- * Получить продукты по дате истечения
- */
 export function getProductsByExpiryRange(startDate, endDate) {
   return db.prepare(`
     SELECT * FROM products 
-    WHERE expiry_date BETWEEN ? AND ? 
+    WHERE expiry_date BETWEEN ? AND ? AND is_active = 1
     ORDER BY expiry_date ASC
   `).all(startDate, endDate)
 }
 
-/**
- * Получить просроченные продукты
- */
 export function getExpiredProducts() {
   const today = new Date().toISOString().split('T')[0]
   return db.prepare(`
     SELECT * FROM products 
-    WHERE expiry_date < ? 
+    WHERE expiry_date < ? AND is_active = 1
     ORDER BY expiry_date ASC
   `).all(today)
 }
 
-/**
- * Получить продукты, истекающие сегодня
- */
 export function getExpiringTodayProducts() {
   const today = new Date().toISOString().split('T')[0]
-  return db.prepare(`
-    SELECT * FROM products 
-    WHERE expiry_date = ?
-  `).all(today)
+  return db.prepare('SELECT * FROM products WHERE expiry_date = ? AND is_active = 1').all(today)
 }
 
-/**
- * Получить продукты, истекающие в течение N дней
- */
 export function getExpiringSoonProducts(days = 3) {
   const today = new Date()
   const futureDate = new Date(today)
@@ -425,25 +599,15 @@ export function getExpiringSoonProducts(days = 3) {
   
   return db.prepare(`
     SELECT * FROM products 
-    WHERE expiry_date > ? AND expiry_date <= ?
+    WHERE expiry_date > ? AND expiry_date <= ? AND is_active = 1
     ORDER BY expiry_date ASC
   `).all(todayStr, futureStr)
 }
 
-/**
- * Получить все активные продукты (для Telegram бота и статистики)
- */
 export function getActiveProducts() {
-  return db.prepare(`
-    SELECT * FROM products 
-    WHERE quantity > 0
-    ORDER BY expiry_date ASC
-  `).all()
+  return db.prepare('SELECT * FROM products WHERE quantity > 0 AND is_active = 1 ORDER BY expiry_date ASC').all()
 }
 
-/**
- * Получить статистику по продуктам
- */
 export function getStats() {
   const today = new Date()
   const todayStr = today.toISOString().split('T')[0]
@@ -457,10 +621,10 @@ export function getStats() {
   const sevenDaysStr = sevenDaysLater.toISOString().split('T')[0]
   
   const stats = {
-    total: db.prepare('SELECT COUNT(*) as count FROM products').get().count,
-    expired: db.prepare('SELECT COUNT(*) as count FROM products WHERE expiry_date < ?').get(todayStr).count,
-    critical: db.prepare('SELECT COUNT(*) as count FROM products WHERE expiry_date >= ? AND expiry_date <= ?').get(todayStr, threeDaysStr).count,
-    warning: db.prepare('SELECT COUNT(*) as count FROM products WHERE expiry_date > ? AND expiry_date <= ?').get(threeDaysStr, sevenDaysStr).count
+    total: db.prepare('SELECT COUNT(*) as count FROM products WHERE is_active = 1').get().count,
+    expired: db.prepare('SELECT COUNT(*) as count FROM products WHERE expiry_date < ? AND is_active = 1').get(todayStr).count,
+    critical: db.prepare('SELECT COUNT(*) as count FROM products WHERE expiry_date >= ? AND expiry_date <= ? AND is_active = 1').get(todayStr, threeDaysStr).count,
+    warning: db.prepare('SELECT COUNT(*) as count FROM products WHERE expiry_date > ? AND expiry_date <= ? AND is_active = 1').get(threeDaysStr, sevenDaysStr).count
   }
   
   stats.good = stats.total - stats.expired - stats.critical - stats.warning
@@ -468,62 +632,46 @@ export function getStats() {
   return stats
 }
 
-// ============================================
-// Функции для работы с пользователями
-// ============================================
+// ═══════════════════════════════════════════════════════════════
+// USER FUNCTIONS
+// ═══════════════════════════════════════════════════════════════
 
-/**
- * Найти пользователя по email
- */
 export function getUserByEmail(email) {
   const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email)
   if (user && user.departments) {
-    user.departments = JSON.parse(user.departments)
+    try { user.departments = JSON.parse(user.departments) } catch { user.departments = [] }
   }
   return user
 }
 
-/**
- * Найти пользователя по логину
- */
 export function getUserByLogin(login) {
   const user = db.prepare('SELECT * FROM users WHERE login = ?').get(login)
   if (user && user.departments) {
-    user.departments = JSON.parse(user.departments)
+    try { user.departments = JSON.parse(user.departments) } catch { user.departments = [] }
   }
   return user
 }
 
-/**
- * Найти пользователя по логину ИЛИ email
- */
 export function getUserByLoginOrEmail(identifier) {
-  // Если содержит @, ищем по email, иначе по login
   const isEmail = identifier.includes('@')
   const user = isEmail 
     ? db.prepare('SELECT * FROM users WHERE email = ?').get(identifier)
     : db.prepare('SELECT * FROM users WHERE login = ?').get(identifier)
   
   if (user && user.departments) {
-    user.departments = JSON.parse(user.departments)
+    try { user.departments = JSON.parse(user.departments) } catch { user.departments = [] }
   }
   return user
 }
 
-/**
- * Найти пользователя по telegram chat id
- */
 export function getUserByTelegramId(chatId) {
   const user = db.prepare('SELECT * FROM users WHERE telegram_chat_id = ?').get(String(chatId))
   if (user && user.departments) {
-    user.departments = JSON.parse(user.departments)
+    try { user.departments = JSON.parse(user.departments) } catch { user.departments = [] }
   }
   return user
 }
 
-/**
- * Обновить telegram данные пользователя
- */
 export function updateUserTelegram(userId, chatId, username = null) {
   return db.prepare(`
     UPDATE users SET telegram_chat_id = ?, telegram_username = ?, updated_at = CURRENT_TIMESTAMP 
@@ -531,46 +679,38 @@ export function updateUserTelegram(userId, chatId, username = null) {
   `).run(String(chatId), username, userId)
 }
 
-/**
- * Получить всех пользователей
- */
 export function getAllUsers() {
-  const users = db.prepare('SELECT id, login, name, email, role, departments, telegram_chat_id, telegram_username, created_at FROM users').all()
+  const users = db.prepare(`
+    SELECT id, login, name, email, role, departments, telegram_chat_id, telegram_username, is_active, created_at 
+    FROM users 
+    ORDER BY created_at DESC
+  `).all()
   return users.map(u => ({
     ...u,
     departments: u.departments ? JSON.parse(u.departments) : []
   }))
 }
 
-/**
- * Создать нового пользователя
- */
 export function createUser(user) {
-  const { name, email, password, role, department } = user
+  const { login, name, email, password, role, departments } = user
   const hashedPassword = bcrypt.hashSync(password, 10)
   
   const result = db.prepare(`
-    INSERT INTO users (name, email, password, role, department) 
-    VALUES (?, ?, ?, ?, ?)
-  `).run(name, email, hashedPassword, role || 'Staff', department)
+    INSERT INTO users (login, name, email, password, role, departments, is_active) 
+    VALUES (?, ?, ?, ?, ?, ?, 1)
+  `).run(login, name, email, hashedPassword, role || 'staff', departments ? JSON.stringify(departments) : null)
   
-  return { id: result.lastInsertRowid, name, email, role: role || 'Staff', department }
+  return { id: result.lastInsertRowid, login, name, email, role: role || 'staff' }
 }
 
-/**
- * Проверить пароль пользователя
- */
 export function verifyPassword(plainPassword, hashedPassword) {
   return bcrypt.compareSync(plainPassword, hashedPassword)
 }
 
-// ============================================
-// Функции для работы с логами уведомлений
-// ============================================
+// ═══════════════════════════════════════════════════════════════
+// NOTIFICATION & COLLECTION LOGS
+// ═══════════════════════════════════════════════════════════════
 
-/**
- * Записать лог отправки уведомления
- */
 export function logNotification(type, message, productsCount, status = 'sent', content = null, sentBy = null) {
   db.prepare(`
     INSERT INTO notifications_log (type, message, products_count, status, content, sent_by) 
@@ -578,9 +718,6 @@ export function logNotification(type, message, productsCount, status = 'sent', c
   `).run(type, message, productsCount, status, content ? JSON.stringify(content) : null, sentBy)
 }
 
-/**
- * Получить последние логи уведомлений с фильтрами
- */
 export function getNotificationLogs(limit = 50, offset = 0, filters = {}) {
   let query = `
     SELECT nl.*, u.name as sent_by_name 
@@ -609,16 +746,12 @@ export function getNotificationLogs(limit = 50, offset = 0, filters = {}) {
   params.push(limit, offset)
   
   const logs = db.prepare(query).all(...params)
-  
   return logs.map(log => ({
     ...log,
     content: log.content ? JSON.parse(log.content) : null
   }))
 }
 
-/**
- * Получить количество логов уведомлений с фильтрами
- */
 export function getNotificationLogsCount(filters = {}) {
   let query = 'SELECT COUNT(*) as count FROM notifications_log WHERE 1=1'
   const params = []
@@ -641,13 +774,6 @@ export function getNotificationLogsCount(filters = {}) {
   return db.prepare(query).get(...params).count
 }
 
-// ============================================
-// Функции для работы с логами сборов
-// ============================================
-
-/**
- * Записать лог сбора
- */
 export function logCollection(data) {
   const { batchId, productName, departmentId, expiryDate, quantity, collectedBy, reason } = data
   return db.prepare(`
@@ -656,9 +782,6 @@ export function logCollection(data) {
   `).run(batchId, productName, departmentId, expiryDate, quantity, collectedBy, reason || 'manual')
 }
 
-/**
- * Получить историю сборов
- */
 export function getCollectionLogs(limit = 50, offset = 0, filters = {}) {
   let query = `
     SELECT cl.*, u.name as collected_by_name 
@@ -694,9 +817,6 @@ export function getCollectionLogs(limit = 50, offset = 0, filters = {}) {
   return db.prepare(query).all(...params)
 }
 
-/**
- * Получить количество логов сборов
- */
 export function getCollectionLogsCount(filters = {}) {
   let query = 'SELECT COUNT(*) as count FROM collection_logs WHERE 1=1'
   const params = []
@@ -719,9 +839,6 @@ export function getCollectionLogsCount(filters = {}) {
   return db.prepare(query).get(...params).count
 }
 
-/**
- * Получить статистику сборов по дням
- */
 export function getCollectionStats(days = 7, departmentId = null) {
   let query = `
     SELECT DATE(collected_at) as date, COUNT(*) as count, SUM(quantity) as total_quantity
@@ -740,21 +857,15 @@ export function getCollectionStats(days = 7, departmentId = null) {
   return db.prepare(query).all(...params)
 }
 
-// ============================================
-// Функции для работы с настройками
-// ============================================
+// ═══════════════════════════════════════════════════════════════
+// SETTINGS FUNCTIONS
+// ═══════════════════════════════════════════════════════════════
 
-/**
- * Получить системную настройку
- */
 export function getSetting(key) {
   const row = db.prepare('SELECT value FROM system_settings WHERE key = ?').get(key)
   return row ? row.value : null
 }
 
-/**
- * Сохранить системную настройку
- */
 export function setSetting(key, value, userId = null) {
   const exists = db.prepare('SELECT key FROM system_settings WHERE key = ?').get(key)
   if (exists) {
@@ -766,9 +877,6 @@ export function setSetting(key, value, userId = null) {
   }
 }
 
-/**
- * Получить все настройки
- */
 export function getAllSettings() {
   const rows = db.prepare('SELECT key, value FROM system_settings').all()
   const settings = {}
@@ -778,9 +886,57 @@ export function getAllSettings() {
   return settings
 }
 
+// ═══════════════════════════════════════════════════════════════
+// DEPARTMENT FUNCTIONS
+// ═══════════════════════════════════════════════════════════════
+
+export function getAllDepartments() {
+  return db.prepare('SELECT * FROM departments WHERE is_active = 1 ORDER BY sort_order ASC').all()
+}
+
+export function getDepartmentById(id) {
+  return db.prepare('SELECT * FROM departments WHERE id = ?').get(id)
+}
+
+export function createDepartment(dept) {
+  const { id, name, name_en, name_kk, color, icon } = dept
+  db.prepare(`
+    INSERT INTO departments (id, name, name_en, name_kk, color, icon, is_active) 
+    VALUES (?, ?, ?, ?, ?, ?, 1)
+  `).run(id, name, name_en, name_kk, color || '#FF8D6B', icon || 'package')
+  return dept
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CATEGORY FUNCTIONS
+// ═══════════════════════════════════════════════════════════════
+
+export function getAllCategories() {
+  return db.prepare('SELECT * FROM categories WHERE is_active = 1 ORDER BY sort_order ASC').all()
+}
+
+export function getCategoryById(id) {
+  return db.prepare('SELECT * FROM categories WHERE id = ?').get(id)
+}
+
+export function createCategory(cat) {
+  const { name, name_en, name_kk, color, icon } = cat
+  const result = db.prepare(`
+    INSERT INTO categories (name, name_en, name_kk, color, icon, is_active) 
+    VALUES (?, ?, ?, ?, ?, 1)
+  `).run(name, name_en, name_kk, color || '#6B6560', icon)
+  return { id: result.lastInsertRowid, ...cat }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// EXPORT
+// ═══════════════════════════════════════════════════════════════
+
 export default {
   initDatabase,
   getDb,
+  resetDatabase,
+  // Products
   getAllProducts,
   getProductById,
   createProduct,
@@ -789,6 +945,9 @@ export default {
   getExpiredProducts,
   getExpiringTodayProducts,
   getExpiringSoonProducts,
+  getActiveProducts,
+  getStats,
+  // Users
   getUserByEmail,
   getUserByLogin,
   getUserByLoginOrEmail,
@@ -797,14 +956,25 @@ export default {
   getAllUsers,
   createUser,
   verifyPassword,
+  // Notifications
   logNotification,
   getNotificationLogs,
   getNotificationLogsCount,
+  // Collections
   logCollection,
   getCollectionLogs,
   getCollectionLogsCount,
   getCollectionStats,
+  // Settings
   getSetting,
   setSetting,
-  getAllSettings
+  getAllSettings,
+  // Departments
+  getAllDepartments,
+  getDepartmentById,
+  createDepartment,
+  // Categories
+  getAllCategories,
+  getCategoryById,
+  createCategory
 }

@@ -1,20 +1,20 @@
 /**
  * FreshTrack Telegram Service
- * Интеграция с Telegram Bot API для отправки уведомлений и команд
+ * Enterprise Telegram Bot API Integration for notifications and commands
  */
 
 import TelegramBot from 'node-telegram-bot-api'
-import { logNotification, getActiveProducts, getAllProducts, getNotificationLogs, getStats, getSetting } from '../db/database.js'
+import { logNotification, getActiveProducts, getAllProducts, getNotificationLogs, getStats, getSetting, getAllDepartments } from '../db/database.js'
 
 // Функции для получения настроек (сначала БД, потом .env)
 function getBotToken() {
   const dbToken = getSetting('TELEGRAM_BOT_TOKEN')
-  return dbToken || process.env.TELEGRAM_BOT_TOKEN || '7792952266:AAHWSDqKWBkFOtvmmjOlre_pR84bBnV9I4Y'
+  return dbToken || process.env.TELEGRAM_BOT_TOKEN
 }
 
 function getChatId() {
   const dbChatId = getSetting('TELEGRAM_CHAT_ID')
-  return dbChatId || process.env.TELEGRAM_CHAT_ID || '-1003390509067'
+  return dbChatId || process.env.TELEGRAM_CHAT_ID
 }
 
 // Создаём экземпляр бота
@@ -59,6 +59,19 @@ export function initTelegramBot(enablePolling = false) {
 }
 
 /**
+ * Получение названия отдела по ID
+ */
+function getDepartmentName(departmentId) {
+  try {
+    const departments = getAllDepartments ? getAllDepartments() : []
+    const dept = departments.find(d => d.id === departmentId || d.code === departmentId)
+    return dept?.name || departmentId
+  } catch {
+    return departmentId
+  }
+}
+
+/**
  * Настройка обработчиков команд
  */
 function setupCommandHandlers() {
@@ -67,20 +80,19 @@ function setupCommandHandlers() {
   // /start - Приветственное сообщение
   bot.onText(/\/start/, (msg) => {
     const chatId = msg.chat.id
-    const welcomeMessage = `👋 *Добро пожаловать в FreshTrack Bot!*
+    const welcomeMessage = `👋 *Welcome to FreshTrack Bot!*
 
-🏨 Система управления сроками годности
-The Ritz-Carlton
+📦 Enterprise Inventory Management System
 
-*Доступные команды:*
+*Available commands:*
 
-/status - Текущий статус системы
-/report - Краткий отчёт по товарам
-/alerts - Список требующих внимания товаров
-/departments - Информация по отделам
-/help - Справка по командам
+/status - Current system status
+/report - Quick inventory report
+/alerts - Items requiring attention
+/departments - Department statistics
+/help - Help with commands
 
-📱 Вы будете получать уведомления о товарах с истекающим сроком годности.`
+📱 You will receive notifications about products with expiring dates.`
 
     bot.sendMessage(chatId, welcomeMessage, { parse_mode: 'Markdown' })
   })
@@ -88,24 +100,24 @@ The Ritz-Carlton
   // /help - Справка по командам
   bot.onText(/\/help/, (msg) => {
     const chatId = msg.chat.id
-    const helpMessage = `📚 *Справка по командам FreshTrack*
+    const helpMessage = `📚 *FreshTrack Commands Help*
 
-*Основные команды:*
-/status - Общая статистика системы
-/report - Сводный отчёт по всем товарам
-/alerts - Товары требующие внимания
-/departments - Статистика по отделам
+*Main commands:*
+/status - Overall system statistics
+/report - Summary report for all products
+/alerts - Products requiring attention
+/departments - Department statistics
 
-*Дополнительные команды:*
-/today - Товары истекающие сегодня
-/week - Товары истекающие на этой неделе
-/expired - Просроченные товары
+*Additional commands:*
+/today - Products expiring today
+/week - Products expiring this week
+/expired - Expired products
 
-*Информация:*
-/info - О системе FreshTrack
-/feedback - Отправить отзыв
+*Information:*
+/info - About FreshTrack system
+/feedback - Send feedback
 
-💡 _Уведомления отправляются автоматически каждый день в установленное время._`
+💡 _Notifications are sent automatically at the scheduled time._`
 
     bot.sendMessage(chatId, helpMessage, { parse_mode: 'Markdown' })
   })
@@ -118,29 +130,28 @@ The Ritz-Carlton
       const products = getActiveProducts()
       const stats = calculateStats(products)
       
-      const statusMessage = `📊 *Статус системы FreshTrack*
+      const statusMessage = `📊 *FreshTrack System Status*
 
-🏨 The Ritz-Carlton
 📅 ${formatDate()}
 
-*Общая статистика:*
-📦 Всего партий: ${stats.total}
-✅ В норме: ${stats.good}
-⚠️ Внимание: ${stats.warning}
-❗ Критично: ${stats.critical}
-❌ Просрочено: ${stats.expired}
+*Statistics:*
+📦 Total batches: ${stats.total}
+✅ Good: ${stats.good}
+⚠️ Warning: ${stats.warning}
+❗ Critical: ${stats.critical}
+❌ Expired: ${stats.expired}
 
-*Индекс здоровья:* ${stats.healthScore}%
+*Health Score:* ${stats.healthScore}%
 
-${stats.healthScore >= 80 ? '🟢' : stats.healthScore >= 50 ? '🟡' : '🔴'} Состояние: ${
-  stats.healthScore >= 80 ? 'Отлично' : 
-  stats.healthScore >= 50 ? 'Требует внимания' : 
-  'Критическое'
+${stats.healthScore >= 80 ? '🟢' : stats.healthScore >= 50 ? '🟡' : '🔴'} Status: ${
+  stats.healthScore >= 80 ? 'Excellent' : 
+  stats.healthScore >= 50 ? 'Needs attention' : 
+  'Critical'
 }`
 
       bot.sendMessage(chatId, statusMessage, { parse_mode: 'Markdown' })
     } catch (error) {
-      bot.sendMessage(chatId, '❌ Ошибка при получении статуса')
+      bot.sendMessage(chatId, '❌ Error retrieving status')
       console.error('Status command error:', error)
     }
   })
@@ -154,36 +165,36 @@ ${stats.healthScore >= 80 ? '🟢' : stats.healthScore >= 50 ? '🟡' : '🔴'} 
       const stats = calculateStats(products)
       const departments = calculateDepartmentStats(products)
       
-      let reportMessage = `📋 *Сводный отчёт FreshTrack*
+      let reportMessage = `📋 *FreshTrack Summary Report*
 
 📅 ${formatDate()} | ${formatTime()}
 
-*═══ Общая статистика ═══*
-📦 Всего партий: ${stats.total}
-✅ Хорошо: ${stats.good} (${Math.round(stats.good/stats.total*100) || 0}%)
-⚠️ Внимание: ${stats.warning} (${Math.round(stats.warning/stats.total*100) || 0}%)
-❗ Критично: ${stats.critical} (${Math.round(stats.critical/stats.total*100) || 0}%)
-❌ Просрочено: ${stats.expired} (${Math.round(stats.expired/stats.total*100) || 0}%)
+*═══ Overall Statistics ═══*
+📦 Total batches: ${stats.total}
+✅ Good: ${stats.good} (${Math.round(stats.good/stats.total*100) || 0}%)
+⚠️ Warning: ${stats.warning} (${Math.round(stats.warning/stats.total*100) || 0}%)
+❗ Critical: ${stats.critical} (${Math.round(stats.critical/stats.total*100) || 0}%)
+❌ Expired: ${stats.expired} (${Math.round(stats.expired/stats.total*100) || 0}%)
 
-*═══ По отделам ═══*`
+*═══ By Department ═══*`
 
       for (const [deptId, deptStats] of Object.entries(departments)) {
-        const deptName = departmentNames[deptId] || deptId
+        const deptName = getDepartmentName(deptId)
         const healthEmoji = deptStats.healthScore >= 80 ? '🟢' : deptStats.healthScore >= 50 ? '🟡' : '🔴'
         
         reportMessage += `
 
 ${healthEmoji} *${deptName}*
-   Партий: ${deptStats.total} | Проблемных: ${deptStats.critical + deptStats.expired}`
+   Batches: ${deptStats.total} | Issues: ${deptStats.critical + deptStats.expired}`
       }
 
       reportMessage += `
 
-_Отчёт сформирован автоматически_`
+_Report generated automatically_`
 
       bot.sendMessage(chatId, reportMessage, { parse_mode: 'Markdown' })
     } catch (error) {
-      bot.sendMessage(chatId, '❌ Ошибка при формировании отчёта')
+      bot.sendMessage(chatId, '❌ Error generating report')
       console.error('Report command error:', error)
     }
   })
@@ -200,16 +211,16 @@ _Отчёт сформирован автоматически_`
       }).slice(0, 15) // Лимит 15 товаров
       
       if (alertProducts.length === 0) {
-        bot.sendMessage(chatId, `✅ *Отличные новости!*
+        bot.sendMessage(chatId, `✅ *Great news!*
 
-Нет товаров требующих немедленного внимания.
-Все сроки годности в норме.
+No products require immediate attention.
+All expiration dates are within normal range.
 
 📅 ${formatDate()}`, { parse_mode: 'Markdown' })
         return
       }
 
-      let alertMessage = `🚨 *Товары требующие внимания*
+      let alertMessage = `🚨 *Products Requiring Attention*
 
 📅 ${formatDate()}
 
@@ -218,27 +229,26 @@ _Отчёт сформирован автоматически_`
       alertProducts.forEach((p, i) => {
         const daysLeft = Math.ceil((new Date(p.expiry_date) - new Date()) / (1000 * 60 * 60 * 24))
         const emoji = daysLeft < 0 ? '❌' : daysLeft === 0 ? '⚠️' : '⏰'
-        const deptName = departmentNames[p.department] || p.department
+        const deptName = getDepartmentName(p.department)
         
         alertMessage += `${emoji} *${p.name}*
-   📍 ${deptName} | ${daysLeft < 0 ? 'Просрочен' : daysLeft === 0 ? 'Сегодня!' : `${daysLeft} дн.`}
+   📍 ${deptName} | ${daysLeft < 0 ? 'Expired' : daysLeft === 0 ? 'Today!' : `${daysLeft} days`}
 
 `
       })
 
-      if (products.filter(p => {
+      const totalAlerts = products.filter(p => {
         const daysLeft = Math.ceil((new Date(p.expiry_date) - new Date()) / (1000 * 60 * 60 * 24))
         return daysLeft <= 7
-      }).length > 15) {
-        alertMessage += `_...и ещё ${products.filter(p => {
-          const daysLeft = Math.ceil((new Date(p.expiry_date) - new Date()) / (1000 * 60 * 60 * 24))
-          return daysLeft <= 7
-        }).length - 15} товаров_`
+      }).length
+
+      if (totalAlerts > 15) {
+        alertMessage += `_...and ${totalAlerts - 15} more products_`
       }
 
       bot.sendMessage(chatId, alertMessage, { parse_mode: 'Markdown' })
     } catch (error) {
-      bot.sendMessage(chatId, '❌ Ошибка при получении списка')
+      bot.sendMessage(chatId, '❌ Error retrieving list')
       console.error('Alerts command error:', error)
     }
   })
@@ -251,29 +261,29 @@ _Отчёт сформирован автоматически_`
       const products = getActiveProducts()
       const departments = calculateDepartmentStats(products)
       
-      let deptMessage = `🏢 *Статистика по отделам*
+      let deptMessage = `🏢 *Department Statistics*
 
 📅 ${formatDate()}
 
 `
 
       for (const [deptId, stats] of Object.entries(departments)) {
-        const deptName = departmentNames[deptId] || deptId
+        const deptName = getDepartmentName(deptId)
         const healthEmoji = stats.healthScore >= 80 ? '🟢' : stats.healthScore >= 50 ? '🟡' : '🔴'
         const progressBar = generateProgressBar(stats.healthScore)
         
         deptMessage += `*${deptName}*
 ${healthEmoji} ${progressBar} ${stats.healthScore}%
-📦 Партий: ${stats.total}
-✅ Норма: ${stats.good} | ⚠️ Внимание: ${stats.warning}
-❗ Критично: ${stats.critical} | ❌ Просрочено: ${stats.expired}
+📦 Batches: ${stats.total}
+✅ Good: ${stats.good} | ⚠️ Warning: ${stats.warning}
+❗ Critical: ${stats.critical} | ❌ Expired: ${stats.expired}
 
 `
       }
 
       bot.sendMessage(chatId, deptMessage, { parse_mode: 'Markdown' })
     } catch (error) {
-      bot.sendMessage(chatId, '❌ Ошибка при получении данных')
+      bot.sendMessage(chatId, '❌ Error retrieving data')
       console.error('Departments command error:', error)
     }
   })
@@ -290,31 +300,31 @@ ${healthEmoji} ${progressBar} ${stats.healthScore}%
       })
       
       if (todayProducts.length === 0) {
-        bot.sendMessage(chatId, `✅ *Сегодня нет товаров с истекающим сроком*
+        bot.sendMessage(chatId, `✅ *No products expiring today*
 
 📅 ${formatDate()}`, { parse_mode: 'Markdown' })
         return
       }
 
-      let message = `⚠️ *Истекает СЕГОДНЯ*
+      let message = `⚠️ *Expiring TODAY*
 
 📅 ${formatDate()}
 
 `
       
       todayProducts.forEach(p => {
-        const deptName = departmentNames[p.department] || p.department
+        const deptName = getDepartmentName(p.department)
         message += `• *${p.name}*
-   📍 ${deptName} | 📦 ${p.quantity} шт.
+   📍 ${deptName} | 📦 ${p.quantity} pcs.
 
 `
       })
 
-      message += `_Всего: ${todayProducts.length} товаров_`
+      message += `_Total: ${todayProducts.length} products_`
 
       bot.sendMessage(chatId, message, { parse_mode: 'Markdown' })
     } catch (error) {
-      bot.sendMessage(chatId, '❌ Ошибка')
+      bot.sendMessage(chatId, '❌ Error')
       console.error('Today command error:', error)
     }
   })
@@ -331,41 +341,41 @@ ${healthEmoji} ${progressBar} ${stats.healthScore}%
       })
       
       if (expiredProducts.length === 0) {
-        bot.sendMessage(chatId, `✅ *Просроченных товаров нет!*
+        bot.sendMessage(chatId, `✅ *No expired products!*
 
-Отличная работа команды! 🎉
+Great work team! 🎉
 
 📅 ${formatDate()}`, { parse_mode: 'Markdown' })
         return
       }
 
-      let message = `❌ *Просроченные товары*
+      let message = `❌ *Expired Products*
 
 📅 ${formatDate()}
 
 `
       
       expiredProducts.slice(0, 10).forEach(p => {
-        const deptName = departmentNames[p.department] || p.department
+        const deptName = getDepartmentName(p.department)
         const daysExpired = Math.abs(Math.ceil((new Date(p.expiry_date) - new Date()) / (1000 * 60 * 60 * 24)))
         
         message += `• *${p.name}*
-   📍 ${deptName} | ⏰ ${daysExpired} дн. назад
+   📍 ${deptName} | ⏰ ${daysExpired} days ago
 
 `
       })
 
       if (expiredProducts.length > 10) {
-        message += `_...и ещё ${expiredProducts.length - 10} товаров_
+        message += `_...and ${expiredProducts.length - 10} more products_
 
 `
       }
 
-      message += `⚠️ _Требуется немедленное изъятие!_`
+      message += `⚠️ _Immediate removal required!_`
 
       bot.sendMessage(chatId, message, { parse_mode: 'Markdown' })
     } catch (error) {
-      bot.sendMessage(chatId, '❌ Ошибка')
+      bot.sendMessage(chatId, '❌ Error')
       console.error('Expired command error:', error)
     }
   })
@@ -373,22 +383,22 @@ ${healthEmoji} ${progressBar} ${stats.healthScore}%
   // /info - О системе
   bot.onText(/\/info/, (msg) => {
     const chatId = msg.chat.id
-    const infoMessage = `ℹ️ *О системе FreshTrack*
+    const infoMessage = `ℹ️ *About FreshTrack*
 
-*FreshTrack* — система управления сроками годности продуктов для отелей премиум-класса.
+*FreshTrack* — Enterprise inventory and expiration date management system for hospitality and food service industries.
 
-🏨 *Клиент:* The Ritz-Carlton
-📦 *Версия:* 2.0.0
-🛠 *Разработчик:* Adilet Y.
+📦 *Version:* 2.0.0 Enterprise
+🌍 *Type:* Multi-property SaaS
 
-*Возможности:*
-• Отслеживание сроков годности
-• Автоматические уведомления
-• Статистика по отделам
-• Экспорт отчётов
+*Features:*
+• Expiration date tracking
+• Automatic notifications
+• Department analytics
+• Report export
+• Multi-property support
+• Role-based access control
 
-💬 Telegram: @aadeke
-📧 Поддержка: esimadilet@gmail.com`
+📧 Support: support@freshtrack.io`
 
     bot.sendMessage(chatId, infoMessage, { parse_mode: 'Markdown' })
   })
@@ -461,23 +471,14 @@ function generateProgressBar(percent, length = 10) {
 }
 
 /**
- * Маппинг отделов на русские названия
- */
-const departmentNames = {
-  'honor-bar': 'Honor Bar',
-  'mokki-bar': 'Mokki Bar',
-  'ozen-bar': 'Ozen Bar'
-}
-
-/**
  * Форматирование списка продуктов для сообщения
  */
 function formatProductList(products) {
   if (!products || products.length === 0) return ''
   
   return products.map(p => {
-    const deptName = departmentNames[p.department] || p.department
-    return `• ${p.name} (${deptName}) - ${p.quantity} шт.`
+    const deptName = getDepartmentName(p.department)
+    return `• ${p.name} (${deptName}) - ${p.quantity} pcs.`
   }).join('\n')
 }
 
@@ -485,7 +486,7 @@ function formatProductList(products) {
  * Форматирование даты
  */
 function formatDate(date = new Date()) {
-  return date.toLocaleDateString('ru-RU', {
+  return date.toLocaleDateString('en-US', {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric'
@@ -496,7 +497,7 @@ function formatDate(date = new Date()) {
  * Форматирование времени
  */
 function formatTime(date = new Date()) {
-  return date.toLocaleTimeString('ru-RU', {
+  return date.toLocaleTimeString('en-US', {
     hour: '2-digit',
     minute: '2-digit'
   })
@@ -528,30 +529,30 @@ export async function sendDailyAlert({ expiredProducts = [], expiringToday = [],
   }
 
   // Формируем сообщение
-  let message = `🚨 *FreshTrack Alert | Ritz-Carlton*\n\n`
+  let message = `🚨 *FreshTrack Daily Alert*\n\n`
 
   // Истекает сегодня
   if (expiringToday.length > 0) {
-    message += `⚠️ *СРОЧНО - Истекает сегодня:*\n\n`
+    message += `⚠️ *URGENT - Expiring today:*\n\n`
     message += formatProductList(expiringToday)
     message += '\n\n'
   }
 
   // Истекает в течение 3 дней
   if (expiringSoon.length > 0) {
-    message += `⏰ *Внимание - Истекает в течение 3 дней:*\n\n`
+    message += `⏰ *Attention - Expiring within 3 days:*\n\n`
     message += formatProductList(expiringSoon)
     message += '\n\n'
   }
 
   // Просрочено
   if (expiredProducts.length > 0) {
-    message += `❌ *Просрочено:*\n\n`
+    message += `❌ *Expired:*\n\n`
     message += formatProductList(expiredProducts)
     message += '\n\n'
   }
 
-  message += `📅 *Дата:* ${formatDate()}`
+  message += `📅 *Date:* ${formatDate()}`
 
   try {
     const chatId = getChatId()
@@ -584,12 +585,12 @@ export async function sendTestNotification() {
 
   const message = `🔔 *FreshTrack Test Notification*
 
-✅ Telegram интеграция работает корректно!
+✅ Telegram integration is working correctly!
 
-🏨 *Ritz-Carlton Inventory Management*
+📦 *Enterprise Inventory Management*
 📅 ${formatDate()}
 
-_Это тестовое сообщение от системы FreshTrack._`
+_This is a test message from FreshTrack system._`
 
   try {
     const chatId = getChatId()
@@ -638,17 +639,17 @@ export async function sendProductAlert(product, alertType = 'expiring') {
     return { success: false, error: 'Bot not initialized' }
   }
 
-  const deptName = departmentNames[product.department] || product.department
+  const deptName = getDepartmentName(product.department)
   const emoji = alertType === 'expired' ? '❌' : '⚠️'
-  const status = alertType === 'expired' ? 'Просрочен' : 'Истекает скоро'
+  const status = alertType === 'expired' ? 'Expired' : 'Expiring soon'
 
   const message = `${emoji} *FreshTrack Alert*
 
 *${product.name}*
 📍 ${deptName}
-📦 Количество: ${product.quantity} шт.
-📅 Срок годности: ${formatDate(new Date(product.expiry_date))}
-⚡ Статус: *${status}*`
+📦 Quantity: ${product.quantity} pcs.
+📅 Expiry date: ${formatDate(new Date(product.expiry_date))}
+⚡ Status: *${status}*`
 
   try {
     const chatId = getChatId()

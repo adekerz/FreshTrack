@@ -1,7 +1,7 @@
 {
   "name": "freshtrack-server",
   "version": "1.0.0",
-  "description": "FreshTrack Backend Server - Ritz-Carlton Inventory Management",
+  "description": "FreshTrack Enterprise Backend Server",
   "main": "index.js",
   "type": "module",
   "scripts": {
@@ -23,7 +23,7 @@
     "freshtrack",
     "inventory",
     "telegram",
-    "ritz-carlton"
+    "enterprise"
   ],
   "author": "Adilet Y.",
   "license": "ISC"
