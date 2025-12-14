@@ -163,10 +163,16 @@ export function exportToPDF(title, data, columns, options = {}) {
     summary = null
   } = options
 
-  // Создание нового окна для печати
-  const printWindow = window.open('', '_blank')
+  // Проверяем данные
+  if (!data || data.length === 0) {
+    alert('Нет данных для экспорта')
+    return
+  }
 
-  if (!printWindow) {
+  // Создание нового окна для печати
+  const printWindow = window.open('', '_blank', 'width=1200,height=800')
+
+  if (!printWindow || printWindow.closed || typeof printWindow.closed === 'undefined') {
     alert('Пожалуйста, разрешите всплывающие окна для создания PDF')
     return
   }
@@ -437,6 +443,12 @@ export function exportToPDF(title, data, columns, options = {}) {
 
   printWindow.document.write(html)
   printWindow.document.close()
+  
+  // Фокус на окне и автоматический вызов печати после загрузки
+  printWindow.focus()
+  printWindow.onload = function() {
+    printWindow.focus()
+  }
 }
 
 /**

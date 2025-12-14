@@ -29,7 +29,12 @@
     "days": "days",
     "allDepartments": "All departments",
     "optional": "optional",
-    "processing": "Processing..."
+    "processing": "Processing...",
+    "good": "Good",
+    "warning": "Expiring soon",
+    "critical": "Critical",
+    "expired": "Expired",
+    "select": "Select"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -178,15 +183,18 @@
     }
   },
   "departments": {
-    "honor-bar": "Honor Bar",
-    "mokki-bar": "Mokki Bar",
-    "ozen-bar": "Ozen Bar"
+    "honor-bar": "Honor Bar"
   },
   "categories": {
     "soft-drinks": "Soft Drinks",
     "alcohol-drinks": "Alcoholic Drinks",
     "food": "Food",
-    "other": "Other"
+    "other": "Other",
+    "Wine": "Wine",
+    "Spirits": "Spirits",
+    "Beverages": "Beverages",
+    "Mixers": "Mixers",
+    "snacks": "Snacks"
   },
   "batch": {
     "manufacturingDate": "Manufacturing Date",
@@ -695,7 +703,11 @@
     "noTemplates": "No templates available",
     "create": "Create Template",
     "name": "Template Name",
-    "description": "Description"
+    "description": "Description",
+    "targetDepartment": "Target Department",
+    "changeTemplate": "Change Template",
+    "products": "Products",
+    "createNew": "Create New Template"
   },
   "deptNotifications": {
     "title": "Department Notifications",

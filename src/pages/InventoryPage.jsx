@@ -28,7 +28,8 @@ export default function InventoryPage() {
   const { language } = useLanguage()
   const { getProductsByDepartment, catalog, refresh } = useProducts()
 
-  const [selectedDepartment, setSelectedDepartment] = useState(null)
+  // Всегда используем honor-bar
+  const selectedDepartment = 'honor-bar'
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [selectedProduct, setSelectedProduct] = useState(null)
   const [showProductModal, setShowProductModal] = useState(false)
@@ -93,54 +94,12 @@ export default function InventoryPage() {
     setShowProductModal(true)
   }
 
-  // Вернуться к выбору отделов
+  // Вернуться к выбору отделов (deprecated - только один отдел)
   const handleBackToDepartments = () => {
-    setSelectedDepartment(null)
-    setSelectedCategory('all')
+    // Ничего не делаем - отдел только один
   }
 
-  // Экран выбора отдела
-  if (!selectedDepartment) {
-    return (
-      <div className="p-8 animate-fade-in">
-        <div className="text-center mb-12">
-          <h1 className="font-serif text-3xl mb-2">{t('inventory.selectDepartment')}</h1>
-          <p className="text-warmgray">{t('inventory.selectDepartmentDesc')}</p>
-        </div>
-
-        <div className="flex justify-center gap-8 flex-wrap">
-          {departments.map((dept, index) => {
-            const Icon = departmentIcons[dept.id]
-            return (
-              <button
-                key={dept.id}
-                onClick={() => setSelectedDepartment(dept.id)}
-                className={`
-                  group bg-white border border-sand rounded-lg p-8 w-64
-                  transition-all duration-300 hover:shadow-lg hover:-translate-y-1
-                  hover:border-accent focus:outline-none focus:border-accent
-                  animate-slide-up stagger-${index + 1}
-                `}
-                style={{ animationFillMode: 'backwards' }}
-              >
-                <div
-                  className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 transition-colors"
-                  style={{ backgroundColor: `${dept.color}20` }}
-                >
-                  <Icon className="w-8 h-8 transition-colors" style={{ color: dept.color }} />
-                </div>
-                <h3 className="font-serif text-xl text-charcoal group-hover:text-accent transition-colors">
-                  {dept.name}
-                </h3>
-              </button>
-            )
-          })}
-        </div>
-      </div>
-    )
-  }
-
-  // Экран инвентаря отдела
+  // Экран инвентаря отдела (сразу показываем Honor Bar)
   const department = departments.find((d) => d.id === selectedDepartment)
   const DeptIcon = departmentIcons[selectedDepartment]
   const products = getFilteredProducts()
@@ -148,25 +107,17 @@ export default function InventoryPage() {
 
   return (
     <div className="p-8 animate-fade-in">
-      {/* Заголовок с кнопкой назад */}
+      {/* Заголовок */}
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
-          <button
-            onClick={handleBackToDepartments}
-            className="flex items-center gap-2 text-warmgray hover:text-charcoal transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            <span>{t('inventory.backToDepartments')}</span>
-          </button>
-          <div className="h-6 w-px bg-sand" />
           <div className="flex items-center gap-3">
             <div
               className="w-10 h-10 rounded-full flex items-center justify-center"
-              style={{ backgroundColor: `${department.color}20` }}
+              style={{ backgroundColor: `${department?.color || '#FF8D6B'}20` }}
             >
-              <DeptIcon className="w-5 h-5" style={{ color: department.color }} />
+              {DeptIcon && <DeptIcon className="w-5 h-5" style={{ color: department?.color || '#FF8D6B' }} />}
             </div>
-            <h1 className="font-serif text-2xl">{department.name}</h1>
+            <h1 className="font-serif text-2xl">{t('inventory.title')} — Honor Bar</h1>
           </div>
         </div>
 

@@ -14,10 +14,8 @@ import {
   Settings,
   Check,
   AlertCircle,
-  Package,
   Image
 } from 'lucide-react'
-import DepartmentNotificationSettings from '../components/DepartmentNotificationSettings'
 import NotificationRulesSettings from '../components/NotificationRulesSettings'
 import CustomContentSettings from '../components/CustomContentSettings'
 
@@ -52,19 +50,14 @@ export default function SettingsPage() {
 
   const userRole = normalizeRole(user?.role)
 
-  // Табы настроек
+  // Табы настроек (убраны Отделы, правила только для admin)
   const tabs = [
     { id: 'profile', icon: User, label: t('settings.tabs.profile') },
     { id: 'notifications', icon: Bell, label: t('settings.tabs.notifications') },
     { id: 'language', icon: Languages, label: t('settings.tabs.language') },
-    ...(userRole === 'admin' || userRole === 'manager'
-      ? [
-          { id: 'rules', icon: Bell, label: t('settings.tabs.rules') || 'Правила' },
-          { id: 'departments', icon: Package, label: t('settings.tabs.departments') || 'Отделы' }
-        ]
-      : []),
     ...(userRole === 'admin'
       ? [
+          { id: 'rules', icon: Bell, label: t('settings.tabs.rules') || 'Правила' },
           { id: 'branding', icon: Image, label: t('settings.tabs.branding') || 'Брендинг' },
           { id: 'system', icon: Settings, label: t('settings.tabs.system') }
         ]
@@ -378,8 +371,7 @@ export default function SettingsPage() {
           {activeTab === 'profile' && renderProfile()}
           {activeTab === 'notifications' && renderNotifications()}
           {activeTab === 'language' && renderLanguage()}
-          {activeTab === 'rules' && <NotificationRulesSettings />}
-          {activeTab === 'departments' && <DepartmentNotificationSettings />}
+          {activeTab === 'rules' && userRole === 'admin' && <NotificationRulesSettings />}
           {activeTab === 'branding' && userRole === 'admin' && <CustomContentSettings />}
           {activeTab === 'system' && userRole === 'admin' && renderSystem()}
 

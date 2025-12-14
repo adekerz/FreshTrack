@@ -224,7 +224,7 @@ function initializeUsers() {
       password: 'AdminRC2025!',
       name: 'Administrator',
       role: 'admin',
-      departments: ['honor-bar', 'mokki-bar', 'ozen-bar']
+      departments: ['honor-bar']
     },
     {
       login: 'honorbar',
@@ -233,22 +233,6 @@ function initializeUsers() {
       name: 'Honor Bar Manager',
       role: 'manager',
       departments: ['honor-bar']
-    },
-    {
-      login: 'mokkibar',
-      email: 'mokkibar@ritzcarlton.com',
-      password: 'Mokki2025RC!',
-      name: 'Mokki Bar Manager',
-      role: 'manager',
-      departments: ['mokki-bar']
-    },
-    {
-      login: 'ozenbar',
-      email: 'ozenbar@ritzcarlton.com',
-      password: 'Ozen2025RC!',
-      name: 'Ozen Bar Manager',
-      role: 'manager',
-      departments: ['ozen-bar']
     }
   ]
 
@@ -302,16 +286,16 @@ function insertDemoProducts() {
   const demoProducts = [
     { name: 'Premium Vodka', department: 'honor-bar', category: 'Spirits', quantity: 12, expiry_date: '2025-01-15' },
     { name: 'Fresh Orange Juice', department: 'honor-bar', category: 'Beverages', quantity: 24, expiry_date: '2024-12-15' },
-    { name: 'Aged Whiskey', department: 'mokki-bar', category: 'Spirits', quantity: 8, expiry_date: '2026-06-20' },
-    { name: 'Coconut Cream', department: 'mokki-bar', category: 'Mixers', quantity: 15, expiry_date: '2024-12-20' },
-    { name: 'Champagne Brut', department: 'ozen-bar', category: 'Wine', quantity: 6, expiry_date: '2025-03-10' },
-    { name: 'Fresh Lime Juice', department: 'ozen-bar', category: 'Beverages', quantity: 20, expiry_date: '2024-12-12' },
+    { name: 'Aged Whiskey', department: 'honor-bar', category: 'Spirits', quantity: 8, expiry_date: '2026-06-20' },
+    { name: 'Coconut Cream', department: 'honor-bar', category: 'Mixers', quantity: 15, expiry_date: '2024-12-20' },
+    { name: 'Champagne Brut', department: 'honor-bar', category: 'Wine', quantity: 6, expiry_date: '2025-03-10' },
+    { name: 'Fresh Lime Juice', department: 'honor-bar', category: 'Beverages', quantity: 20, expiry_date: '2024-12-12' },
     { name: 'Artisan Gin', department: 'honor-bar', category: 'Spirits', quantity: 10, expiry_date: '2025-08-01' },
-    { name: 'Organic Tonic Water', department: 'mokki-bar', category: 'Mixers', quantity: 48, expiry_date: '2024-12-25' },
-    { name: 'Dark Rum', department: 'ozen-bar', category: 'Spirits', quantity: 14, expiry_date: '2025-12-01' },
-    { name: 'Fresh Mint', department: 'mokki-bar', category: 'Produce', quantity: 30, expiry_date: '2024-12-11' },
+    { name: 'Organic Tonic Water', department: 'honor-bar', category: 'Mixers', quantity: 48, expiry_date: '2024-12-25' },
+    { name: 'Dark Rum', department: 'honor-bar', category: 'Spirits', quantity: 14, expiry_date: '2025-12-01' },
+    { name: 'Fresh Mint', department: 'honor-bar', category: 'Produce', quantity: 30, expiry_date: '2024-12-11' },
     { name: 'Angostura Bitters', department: 'honor-bar', category: 'Mixers', quantity: 6, expiry_date: '2026-01-15' },
-    { name: 'Prosecco', department: 'ozen-bar', category: 'Wine', quantity: 12, expiry_date: '2025-02-28' }
+    { name: 'Prosecco', department: 'honor-bar', category: 'Wine', quantity: 12, expiry_date: '2025-02-28' }
   ]
 
   const stmt = db.prepare(`

@@ -29,7 +29,12 @@
     "days": "күн",
     "allDepartments": "Барлық бөлімдер",
     "optional": "міндетті емес",
-    "processing": "Өңделуде..."
+    "processing": "Өңделуде...",
+    "good": "Жақсы",
+    "warning": "Мерзімі жақын",
+    "critical": "Сын",
+    "expired": "Мерзімі өткен",
+    "select": "Таңдау"
   },
   "nav": {
     "dashboard": "Басты бет",
@@ -178,15 +183,18 @@
     }
   },
   "departments": {
-    "honor-bar": "Honor Bar",
-    "mokki-bar": "Mokki Bar",
-    "ozen-bar": "Ozen Bar"
+    "honor-bar": "Honor Bar"
   },
   "categories": {
     "soft-drinks": "Алкогольсіз сусындар",
     "alcohol-drinks": "Алкогольді сусындар",
     "food": "Тамақ",
-    "other": "Басқа"
+    "other": "Басқа",
+    "Wine": "Шарап",
+    "Spirits": "Арақ",
+    "Beverages": "Сусындар",
+    "Mixers": "Миксерлер",
+    "snacks": "Тұздықтар"
   },
   "batch": {
     "manufacturingDate": "Өндіріс күні",
@@ -696,7 +704,11 @@
     "noTemplates": "Үлгілер жоқ",
     "create": "Үлгі жасау",
     "name": "Үлгі атауы",
-    "description": "Сипаттама"
+    "description": "Сипаттама",
+    "targetDepartment": "Мақсатты бөлім",
+    "changeTemplate": "Үлгіні өзгерту",
+    "products": "Тауарлар",
+    "createNew": "Жаңа үлгі жасау"
   },
   "deptNotifications": {
     "title": "Бөлімдер бойынша хабарламалар",

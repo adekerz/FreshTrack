@@ -9,12 +9,8 @@ import NotificationsPage from './pages/NotificationsPage'
 import NotificationsHistoryPage from './pages/NotificationsHistoryPage'
 import CollectionHistoryPage from './pages/CollectionHistoryPage'
 import StatisticsPage from './pages/StatisticsPage'
-import AnalyticsPage from './pages/AnalyticsPage'
 import SettingsPage from './pages/SettingsPage'
 import CalendarPage from './pages/CalendarPage'
-import DepartmentDashboardPage from './pages/DepartmentDashboardPage'
-import DepartmentRankingPage from './pages/DepartmentRankingPage'
-import NotificationRulesPage from './pages/NotificationRulesPage'
 import AuditLogsPage from './pages/AuditLogsPage'
 import Layout from './components/Layout'
 
@@ -49,9 +45,6 @@ function App() {
         {/* Общедоступные страницы (для всех авторизованных) */}
         <Route path="/" element={<DashboardPage />} />
         <Route path="/inventory" element={<InventoryPage />} />
-        <Route path="/inventory/:departmentId" element={<InventoryPage />} />
-        <Route path="/department/:departmentId" element={<DepartmentDashboardPage />} />
-        <Route path="/department-ranking" element={<DepartmentRankingPage />} />
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/calendar" element={<CalendarPage />} />
         <Route path="/settings" element={<SettingsPage />} />
@@ -81,24 +74,6 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={['admin', 'manager']}>
               <StatisticsPage />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/analytics"
-          element={
-            <ProtectedRoute allowedRoles={['admin', 'manager']}>
-              <AnalyticsPage />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/notification-rules"
-          element={
-            <ProtectedRoute allowedRoles={['admin', 'manager']}>
-              <NotificationRulesPage />
             </ProtectedRoute>
           }
         />

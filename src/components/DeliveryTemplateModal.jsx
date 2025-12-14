@@ -28,19 +28,14 @@ export default function DeliveryTemplateModal({ isOpen, onClose, onApply, depart
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [applying, setApplying] = useState(false)
-  const [targetDepartment, setTargetDepartment] = useState(departmentId || '')
+  // Всегда используем honor-bar (единственный отдел)
+  const targetDepartment = 'honor-bar'
 
   useEffect(() => {
     if (isOpen) {
       loadTemplates()
     }
   }, [isOpen])
-
-  useEffect(() => {
-    if (departmentId) {
-      setTargetDepartment(departmentId)
-    }
-  }, [departmentId])
 
   const loadTemplates = async () => {
     setLoading(true)
@@ -71,10 +66,6 @@ export default function DeliveryTemplateModal({ isOpen, onClose, onApply, depart
       }
     })
     setItems(preparedItems)
-
-    if (template.departmentId) {
-      setTargetDepartment(template.departmentId)
-    }
   }
 
   const updateItem = (index, field, value) => {
@@ -205,23 +196,12 @@ export default function DeliveryTemplateModal({ isOpen, onClose, onApply, depart
             ) : (
               /* Items Configuration */
               <div className="space-y-6">
-                {/* Department selector */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    {t('templates.targetDepartment') || 'Целевой отдел'}
-                  </label>
-                  <select
-                    value={targetDepartment}
-                    onChange={(e) => setTargetDepartment(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  >
-                    <option value="">{t('common.select') || 'Выберите...'}</option>
-                    {departments.map((dept) => (
-                      <option key={dept.id} value={dept.id}>
-                        {t(`departments.${dept.id}`) || dept.name}
-                      </option>
-                    ))}
-                  </select>
+                {/* Department info (только один отдел) */}
+                <div className="p-3 bg-accent/10 rounded-lg">
+                  <p className="text-sm text-charcoal">
+                    <span className="font-medium">{t('templates.targetDepartment') || 'Целевой отдел'}:</span>{' '}
+                    Honor Bar
+                  </p>
                 </div>
 
                 {/* Items list */}
@@ -331,7 +311,7 @@ export default function DeliveryTemplateModal({ isOpen, onClose, onApply, depart
                 </button>
                 <button
                   onClick={handleApply}
-                  disabled={applying || !targetDepartment || items.length === 0}
+                  disabled={applying || items.length === 0}
                   className="flex items-center gap-2 px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   {applying ? (

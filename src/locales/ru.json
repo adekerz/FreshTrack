@@ -29,7 +29,12 @@
     "days": "дн.",
     "allDepartments": "Все отделы",
     "optional": "необязательно",
-    "processing": "Обработка..."
+    "processing": "Обработка...",
+    "good": "В норме",
+    "warning": "Скоро истекает",
+    "critical": "Критично",
+    "expired": "Просрочено",
+    "select": "Выбрать"
   },
   "nav": {
     "dashboard": "Главная",
@@ -178,15 +183,18 @@
     }
   },
   "departments": {
-    "honor-bar": "Honor Bar",
-    "mokki-bar": "Mokki Bar",
-    "ozen-bar": "Ozen Bar"
+    "honor-bar": "Honor Bar"
   },
   "categories": {
     "soft-drinks": "Безалкогольные напитки",
     "alcohol-drinks": "Алкогольные напитки",
     "food": "Еда",
-    "other": "Другое"
+    "other": "Другое",
+    "Wine": "Вино",
+    "Spirits": "Крепкие напитки",
+    "Beverages": "Напитки",
+    "Mixers": "Миксеры",
+    "snacks": "Закуски"
   },
   "batch": {
     "manufacturingDate": "Дата производства",
@@ -695,7 +703,11 @@
     "noTemplates": "Нет доступных шаблонов",
     "create": "Создать шаблон",
     "name": "Название шаблона",
-    "description": "Описание"
+    "description": "Описание",
+    "targetDepartment": "Целевой отдел",
+    "changeTemplate": "Сменить шаблон",
+    "products": "Товары",
+    "createNew": "Создать новый шаблон"
   },
   "deptNotifications": {
     "title": "Уведомления по отделам",

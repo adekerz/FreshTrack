@@ -260,7 +260,9 @@ router.put('/notifications/rules', (req, res) => {
     const { rules } = req.body
     const userId = req.user?.id || null
     
-    if (req.user?.role !== 'admin' && req.user?.role !== 'Administrator') {
+    // Нормализация роли для проверки (admin, administrator -> admin)
+    const userRole = req.user?.role?.toLowerCase()?.replace('istrator', '') || ''
+    if (userRole !== 'admin') {
       return res.status(403).json({ error: 'Only admins can change notification rules' })
     }
     
@@ -312,7 +314,9 @@ router.put('/notification-rules', (req, res) => {
     const { rules } = req.body
     const userId = req.user?.id || null
     
-    if (req.user?.role !== 'admin' && req.user?.role !== 'Administrator') {
+    // Нормализация роли для проверки (admin, administrator -> admin)
+    const userRole = req.user?.role?.toLowerCase()?.replace('istrator', '') || ''
+    if (userRole !== 'admin') {
       return res.status(403).json({ error: 'Only admins can change notification rules' })
     }
     

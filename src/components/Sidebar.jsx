@@ -8,12 +8,9 @@ import {
   PanelLeftOpen,
   ClipboardList,
   BarChart3,
-  TrendingUp,
   Settings,
   Calendar,
-  Trophy,
   FileText,
-  Sliders,
   X
 } from 'lucide-react'
 import { useProducts } from '../context/ProductContext'
@@ -35,7 +32,7 @@ export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose })
       ? getUnreadNotificationsCount()
       : stats.critical + stats.expired
 
-  // Основные пункты меню
+  // Основные пункты меню (убраны пункты связанные с отделами)
   const navItems = [
     {
       path: '/',
@@ -63,34 +60,16 @@ export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose })
       roles: ['admin', 'manager']
     },
     {
-      path: '/collection-history',
-      icon: ClipboardList,
-      label: t('nav.collectionHistory'),
-      roles: ['admin'] // Только для админа
-    },
-    {
-      path: '/department-ranking',
-      icon: Trophy,
-      label: t('nav.departmentRanking') || 'Рейтинг отделов',
-      roles: ['admin', 'manager']
-    },
-    {
       path: '/statistics',
       icon: BarChart3,
       label: t('nav.statistics'),
       roles: ['admin', 'manager']
     },
     {
-      path: '/analytics',
-      icon: TrendingUp,
-      label: t('nav.analytics'),
-      roles: ['admin', 'manager']
-    },
-    {
-      path: '/notification-rules',
-      icon: Sliders,
-      label: t('notificationRules.title') || 'Правила уведомлений',
-      roles: ['admin', 'manager']
+      path: '/collection-history',
+      icon: ClipboardList,
+      label: t('nav.collectionHistory'),
+      roles: ['admin'] // Только для админа
     },
     {
       path: '/audit-logs',

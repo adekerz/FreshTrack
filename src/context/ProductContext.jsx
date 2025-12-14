@@ -11,11 +11,9 @@ const ProductContext = createContext(null)
 // Базовый URL API
 const API_URL = 'http://localhost:3001/api'
 
-// Отделы
+// Отделы (только Honor Bar)
 export const departments = [
-  { id: 'honor-bar', name: 'Honor Bar', icon: 'Wine', color: '#8B7355' },
-  { id: 'mokki-bar', name: 'Mokki Bar', icon: 'Coffee', color: '#6B8E7A' },
-  { id: 'ozen-bar', name: 'Ozen Bar', icon: 'Martini', color: '#7B6B8D' }
+  { id: 'honor-bar', name: 'Honor Bar', icon: 'Wine', color: '#FF8D6B' }
 ]
 
 // Категории
@@ -71,18 +69,6 @@ const initialCatalog = {
       { id: 'fruit-chips', name: 'Fruit Chips' }
     ],
     other: [{ id: 'feminine-pack', name: 'Feminine Pack' }]
-  },
-  'mokki-bar': {
-    'soft-drinks': [],
-    'alcohol-drinks': [],
-    food: [],
-    other: []
-  },
-  'ozen-bar': {
-    'soft-drinks': [],
-    'alcohol-drinks': [],
-    food: [],
-    other: []
   }
 }
 
