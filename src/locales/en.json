@@ -228,7 +228,9 @@
     "selectProduct": "Select Product",
     "selectedProduct": "Selected Product",
     "enterDetails": "Enter Details",
-    "pieces": "pcs"
+    "pieces": "pcs",
+    "noQuantity": "No quantity",
+    "noQuantityLabel": "No quantity tracking"
   },
   "product": {
     "addToCatalog": "Add to Catalog",

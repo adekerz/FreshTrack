@@ -119,7 +119,7 @@ export default function InventoryPage() {
             productName: product.name,
             category: categoryName,
             department: dept?.name || selectedDepartment,
-            quantity: batch.quantity || 1,
+            quantity: batch.quantity === null || batch.quantity === undefined ? '—' : batch.quantity,
             unit: product.unit || 'шт',
             formattedDate: batch.expiryDate
               ? new Date(batch.expiryDate).toLocaleDateString('ru-RU')

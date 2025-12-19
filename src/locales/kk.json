@@ -228,7 +228,9 @@
     "selectProduct": "Тауарды таңдаңыз",
     "selectedProduct": "Таңдалған тауар",
     "enterDetails": "Деректерді енгізіңіз",
-    "pieces": "дана"
+    "pieces": "дана",
+    "noQuantity": "Саны жоқ",
+    "noQuantityLabel": "Санды есепсіз"
   },
   "product": {
     "addToCatalog": "Каталоғқа қосу",

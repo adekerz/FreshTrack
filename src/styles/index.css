@@ -262,3 +262,46 @@ body {
   display: none;
 }
 
+/* Toggle switch for "No quantity" */
+.quantity-toggle {
+  --toggle-size: 14px;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  width: 3.5em;
+  height: 1.75em;
+  background: linear-gradient(to right, #e5e7eb 50%, #D4A574 50%) no-repeat;
+  background-size: 205%;
+  background-position: 0;
+  transition: 0.3s ease;
+  border-radius: 99em;
+  position: relative;
+  cursor: pointer;
+  font-size: var(--toggle-size);
+  flex-shrink: 0;
+}
+
+.quantity-toggle::before {
+  content: "";
+  width: 1.35em;
+  height: 1.35em;
+  position: absolute;
+  top: 0.2em;
+  left: 0.2em;
+  background: linear-gradient(to right, #ffffff 50%, #ffffff 50%) no-repeat;
+  background-size: 205%;
+  background-position: 100%;
+  border-radius: 50%;
+  transition: 0.3s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.quantity-toggle:checked::before {
+  left: calc(100% - 1.35em - 0.2em);
+  background-position: 0;
+}
+
+.quantity-toggle:checked {
+  background-position: 100%;
+}
+

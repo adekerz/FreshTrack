@@ -205,7 +205,7 @@ export function ProductProvider({ children }) {
             productName,
             department: departmentId,
             category,
-            quantity: parseInt(quantity),
+            quantity: quantity === null || quantity === undefined ? null : parseInt(quantity),
             expiryDate,
             manufacturingDate
           })
@@ -391,9 +391,14 @@ export function ProductProvider({ children }) {
           // Определяем общий статус товара
           let overallStatus = 'good'
           let totalQuantity = 0
+          let hasNoQuantity = false
 
           productBatches.forEach((batch) => {
-            totalQuantity += batch.quantity
+            if (batch.quantity === null || batch.quantity === undefined) {
+              hasNoQuantity = true
+            } else {
+              totalQuantity += batch.quantity
+            }
             const status = batch.status?.status || batch.status
             if (status === 'expired') {
               overallStatus = 'expired'
@@ -414,7 +419,7 @@ export function ProductProvider({ children }) {
             departmentId,
             batches: productBatches,
             totalBatches: productBatches.length,
-            totalQuantity,
+            totalQuantity: hasNoQuantity && totalQuantity === 0 ? '—' : totalQuantity,
             overallStatus,
             hasExpired: productBatches.some((b) => (b.status?.status || b.status) === 'expired'),
             hasExpiringSoon: productBatches.some((b) =>

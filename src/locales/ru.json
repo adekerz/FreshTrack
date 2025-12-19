@@ -228,7 +228,9 @@
     "selectProduct": "Выберите товар",
     "selectedProduct": "Выбранный товар",
     "enterDetails": "Введите данные",
-    "pieces": "шт."
+    "pieces": "шт.",
+    "noQuantity": "Нет количества",
+    "noQuantityLabel": "Без учёта количества"
   },
   "product": {
     "addToCatalog": "Добавить в каталог",

@@ -297,7 +297,7 @@ router.post('/', authMiddleware, hotelIsolation, departmentIsolation, requireHot
       hotel_id: req.hotelId || product.hotel_id,
       department_id: batchDepartmentId,
       product_id: product.id,
-      quantity: quantity || 1,
+      quantity: quantity === null ? null : (quantity || 1),
       expiry_date: expiryDate,
       batch_number: batchNumber,
       added_by: req.user.id

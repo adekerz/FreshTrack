@@ -29,7 +29,8 @@ export default function ProductModal({ product, onClose }) {
   const [newBatch, setNewBatch] = useState({
     manufacturingDate: '',
     expiryDate: '',
-    quantity: 1
+    quantity: '',
+    noQuantity: false
   })
 
   // Получить партии товара (по имени товара и отделу)
@@ -69,7 +70,8 @@ export default function ProductModal({ product, onClose }) {
   // Обработка добавления партии
   const handleAddBatch = async (e) => {
     e.preventDefault()
-    if (!newBatch.manufacturingDate || !newBatch.expiryDate || !newBatch.quantity) return
+    if (!newBatch.manufacturingDate || !newBatch.expiryDate) return
+    if (!newBatch.noQuantity && (!newBatch.quantity || parseInt(newBatch.quantity) <= 0)) return
 
     try {
       await addBatch(
@@ -77,10 +79,10 @@ export default function ProductModal({ product, onClose }) {
         product.departmentId,
         newBatch.manufacturingDate,
         newBatch.expiryDate,
-        newBatch.quantity
+        newBatch.noQuantity ? null : parseInt(newBatch.quantity)
       )
 
-      setNewBatch({ manufacturingDate: '', expiryDate: '', quantity: 1 })
+      setNewBatch({ manufacturingDate: '', expiryDate: '', quantity: '', noQuantity: false })
       setShowAddForm(false)
     } catch (error) {
       console.error('Error adding batch:', error)
@@ -191,7 +193,11 @@ export default function ProductModal({ product, onClose }) {
                           <Package className="w-4 h-4" />
                           <span>
                             {t('product.quantity')}:{' '}
-                            <strong className="text-charcoal">{batch.quantity}</strong>
+                            <strong className="text-charcoal">
+                              {batch.quantity === null || batch.quantity === undefined 
+                                ? '—' 
+                                : batch.quantity}
+                            </strong>
                           </span>
                         </div>
 
@@ -336,18 +342,42 @@ export default function ProductModal({ product, onClose }) {
                 </div>
                 <div>
                   <label className="block text-sm text-warmgray mb-1">
-                    {t('product.quantity')}
+                    {t('product.quantity')} {!newBatch.noQuantity && '*'}
                   </label>
                   <input
                     type="number"
                     min="1"
                     value={newBatch.quantity}
                     onChange={(e) =>
-                      setNewBatch((prev) => ({ ...prev, quantity: parseInt(e.target.value) || 1 }))
+                      setNewBatch((prev) => ({ ...prev, quantity: e.target.value }))
                     }
-                    className="w-full px-3 py-2 border border-sand rounded focus:outline-none focus:border-accent"
-                    required
+                    disabled={newBatch.noQuantity}
+                    className={`w-full px-3 py-2 border border-sand rounded focus:outline-none focus:border-accent transition-colors ${
+                      newBatch.noQuantity ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : ''
+                    }`}
+                    required={!newBatch.noQuantity}
+                    placeholder={newBatch.noQuantity ? t('batch.noQuantity') || 'Нет количества' : ''}
                   />
+                  
+                  {/* Переключатель "Нет количества" */}
+                  <div className="flex items-center gap-3 mt-2">
+                    <input
+                      type="checkbox"
+                      id="noQuantityProduct"
+                      checked={newBatch.noQuantity}
+                      onChange={(e) =>
+                        setNewBatch((prev) => ({ 
+                          ...prev, 
+                          noQuantity: e.target.checked,
+                          quantity: e.target.checked ? '' : prev.quantity
+                        }))
+                      }
+                      className="quantity-toggle"
+                    />
+                    <label htmlFor="noQuantityProduct" className="text-sm text-warmgray cursor-pointer select-none">
+                      {t('batch.noQuantityLabel') || 'Без учёта количества'}
+                    </label>
+                  </div>
                 </div>
                 <div className="flex gap-2 justify-end">
                   <button

@@ -34,7 +34,8 @@ export default function AddBatchModal({ onClose, preselectedProduct = null }) {
   const [batchData, setBatchData] = useState({
     manufacturingDate: '',
     expiryDate: '',
-    quantity: 1
+    quantity: '',
+    noQuantity: false
   })
 
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -87,6 +88,9 @@ export default function AddBatchModal({ onClose, preselectedProduct = null }) {
   const handleSubmit = (e) => {
     e.preventDefault()
     if (!selectedProduct || !batchData.manufacturingDate || !batchData.expiryDate) return
+    
+    // Если не "нет количества" и количество пустое или <= 0
+    if (!batchData.noQuantity && (!batchData.quantity || parseInt(batchData.quantity) <= 0)) return
 
     setIsSubmitting(true)
 
@@ -95,7 +99,7 @@ export default function AddBatchModal({ onClose, preselectedProduct = null }) {
       selectedDepartment,
       batchData.manufacturingDate,
       batchData.expiryDate,
-      batchData.quantity,
+      batchData.noQuantity ? null : parseInt(batchData.quantity),
       'User'
     )
 
@@ -264,18 +268,42 @@ export default function AddBatchModal({ onClose, preselectedProduct = null }) {
 
                 <div>
                   <label className="block text-sm text-warmgray mb-1">
-                    {t('product.quantity')} *
+                    {t('product.quantity')} {!batchData.noQuantity && '*'}
                   </label>
                   <input
                     type="number"
                     min="1"
                     value={batchData.quantity}
                     onChange={(e) =>
-                      setBatchData((prev) => ({ ...prev, quantity: parseInt(e.target.value) || 1 }))
+                      setBatchData((prev) => ({ ...prev, quantity: e.target.value }))
                     }
-                    className="w-full px-4 py-3 border border-sand rounded-lg focus:outline-none focus:border-accent"
-                    required
+                    disabled={batchData.noQuantity}
+                    className={`w-full px-4 py-3 border border-sand rounded-lg focus:outline-none focus:border-accent transition-colors ${
+                      batchData.noQuantity ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : ''
+                    }`}
+                    required={!batchData.noQuantity}
+                    placeholder={batchData.noQuantity ? t('batch.noQuantity') || 'Нет количества' : ''}
                   />
+                  
+                  {/* Переключатель "Нет количества" */}
+                  <div className="flex items-center gap-3 mt-3">
+                    <input
+                      type="checkbox"
+                      id="noQuantity"
+                      checked={batchData.noQuantity}
+                      onChange={(e) =>
+                        setBatchData((prev) => ({ 
+                          ...prev, 
+                          noQuantity: e.target.checked,
+                          quantity: e.target.checked ? '' : prev.quantity
+                        }))
+                      }
+                      className="quantity-toggle"
+                    />
+                    <label htmlFor="noQuantity" className="text-sm text-warmgray cursor-pointer select-none">
+                      {t('batch.noQuantityLabel') || 'Без учёта количества'}
+                    </label>
+                  </div>
                 </div>
 
                 <div className="flex gap-3 pt-4">
