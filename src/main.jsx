@@ -9,9 +9,13 @@ import { ToastProvider } from './context/ToastContext'
 import ToastContainer from './components/Toast'
 import './styles/index.css'
 
+// Определяем базовый путь для GitHub Pages
+const basename = import.meta.env.BASE_URL
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter
+      basename={basename}
       future={{
         v7_startTransition: true,
         v7_relativeSplatPath: true,
