@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { X, ChevronRight, Wine, Coffee, Utensils, ChefHat, Warehouse, Package } from 'lucide-react'
 import { useProducts } from '../context/ProductContext'
 import { useTranslation, useLanguage } from '../context/LanguageContext'
+import { useToast } from '../context/ToastContext'
 
 // Иконки для отделов - универсальный маппинг
 const ICON_MAP = { Wine, Coffee, Utensils, ChefHat, Warehouse, Package }
@@ -21,6 +22,7 @@ export default function AddBatchModal({ onClose, preselectedProduct = null }) {
   const { t } = useTranslation()
   const { language } = useLanguage()
   const { catalog, addBatch, departments, categories } = useProducts()
+  const toast = useToast()
 
   // Шаги мастера
   const [step, setStep] = useState(preselectedProduct ? 4 : 1)
@@ -85,7 +87,7 @@ export default function AddBatchModal({ onClose, preselectedProduct = null }) {
   }
 
   // Отправка формы
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     if (!selectedProduct || !batchData.manufacturingDate || !batchData.expiryDate) return
     
@@ -94,16 +96,21 @@ export default function AddBatchModal({ onClose, preselectedProduct = null }) {
 
     setIsSubmitting(true)
 
-    addBatch(
-      selectedProduct.id,
-      selectedDepartment,
-      batchData.manufacturingDate,
-      batchData.expiryDate,
-      batchData.noQuantity ? null : parseInt(batchData.quantity),
-      'User'
-    )
-
-    onClose()
+    try {
+      await addBatch(
+        selectedProduct.id,
+        selectedDepartment,
+        batchData.manufacturingDate,
+        batchData.expiryDate,
+        batchData.noQuantity ? null : parseInt(batchData.quantity),
+        'User'
+      )
+      toast.success(t('toast.batchAdded'), selectedProduct.name)
+      onClose()
+    } catch (error) {
+      toast.error(t('toast.error'), error.message || t('toast.somethingWentWrong'))
+      setIsSubmitting(false)
+    }
   }
 
   // Назад

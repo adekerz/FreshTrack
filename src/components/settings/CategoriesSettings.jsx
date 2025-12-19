@@ -5,6 +5,7 @@
 
 import { useState, useEffect } from 'react'
 import { useTranslation } from '../../context/LanguageContext'
+import { useToast } from '../../context/ToastContext'
 import { Plus, X, RefreshCw, Tag, Palette } from 'lucide-react'
 
 const API_URL = 'http://localhost:3001/api'
@@ -32,6 +33,7 @@ const defaultColors = [
 
 export default function CategoriesSettings() {
   const { t } = useTranslation()
+  const { addToast } = useToast()
   const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(true)
   const [newCategory, setNewCategory] = useState({ name: '', color: '#FF8D6B' })
@@ -60,7 +62,6 @@ export default function CategoriesSettings() {
       setLoading(false)
     }
   }
-
   const addCategory = async () => {
     if (!newCategory.name.trim()) return
     
@@ -72,8 +73,10 @@ export default function CategoriesSettings() {
       })
       fetchCategories()
       setNewCategory({ name: '', color: defaultColors[Math.floor(Math.random() * defaultColors.length)] })
+      addToast(t('toast.categoryAdded'), 'success')
     } catch (error) {
       console.error('Error adding category:', error)
+      addToast(t('toast.categoryAddError'), 'error')
     } finally {
       setAdding(false)
     }
@@ -87,8 +90,10 @@ export default function CategoriesSettings() {
         method: 'DELETE'
       })
       fetchCategories()
+      addToast(t('toast.categoryDeleted'), 'success')
     } catch (error) {
       console.error('Error deleting category:', error)
+      addToast(t('toast.categoryDeleteError'), 'error')
     }
   }
 

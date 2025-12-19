@@ -5,6 +5,7 @@
 
 import { useState, useEffect } from 'react'
 import { useTranslation } from '../../context/LanguageContext'
+import { useToast } from '../../context/ToastContext'
 import { 
   Send, 
   Save, 
@@ -37,6 +38,7 @@ const apiFetch = async (url, options = {}) => {
 
 export default function TelegramSettings() {
   const { t } = useTranslation()
+  const { addToast } = useToast()
   const [settings, setSettings] = useState({
     botToken: '',
     chatId: '-5090103384',
@@ -81,10 +83,12 @@ export default function TelegramSettings() {
         body: JSON.stringify(settings)
       })
       setMessage({ type: 'success', text: t('settings.saved') })
+      addToast(t('toast.telegramSettingsSaved'), 'success')
       setTimeout(() => setMessage(null), 3000)
     } catch (error) {
       console.error('Error saving settings:', error)
       setMessage({ type: 'error', text: t('settings.saveError') })
+      addToast(t('toast.telegramSettingsError'), 'error')
     } finally {
       setSaving(false)
     }
@@ -102,9 +106,15 @@ export default function TelegramSettings() {
           ? (t('telegram.testSuccess') || 'Тестовое сообщение отправлено!')
           : (t('telegram.testError') || 'Ошибка отправки')
       })
+      if (response.success) {
+        addToast(t('toast.telegramTestSuccess'), 'success')
+      } else {
+        addToast(t('toast.telegramTestError'), 'error')
+      }
     } catch (error) {
       console.error('Error testing telegram:', error)
       setMessage({ type: 'error', text: t('telegram.testError') || 'Ошибка отправки' })
+      addToast(t('toast.telegramTestError'), 'error')
     } finally {
       setTesting(false)
       setTimeout(() => setMessage(null), 3000)

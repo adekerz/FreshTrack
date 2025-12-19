@@ -9,6 +9,7 @@ import { useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useTranslation, useLanguage } from '../context/LanguageContext'
 import { departments } from '../context/ProductContext'
+import { useToast } from '../context/ToastContext'
 import {
   User,
   Bell,
@@ -39,6 +40,7 @@ export default function SettingsPage() {
   const { t } = useTranslation()
   const { user } = useAuth()
   const { language, changeLanguage } = useLanguage()
+  const { addToast } = useToast()
   const [activeTab, setActiveTab] = useState('profile')
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState(null)
@@ -98,9 +100,11 @@ export default function SettingsPage() {
       // Симуляция сохранения (в реальности - API запрос)
       await new Promise((resolve) => setTimeout(resolve, 500))
       setMessage({ type: 'success', text: t('settings.saved') })
+      addToast(t('toast.settingsSaved'), 'success')
       setTimeout(() => setMessage(null), 3000)
     } catch (error) {
       setMessage({ type: 'error', text: t('settings.saveError') })
+      addToast(t('toast.settingsSaveError'), 'error')
     } finally {
       setSaving(false)
     }

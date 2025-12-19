@@ -3,6 +3,7 @@ import { X, Plus, Check, Calendar, Package, User, Trash2, AlertTriangle } from '
 import { useProducts, categories } from '../context/ProductContext'
 import { useAuth } from '../context/AuthContext'
 import { useTranslation, useLanguage } from '../context/LanguageContext'
+import { useToast } from '../context/ToastContext'
 import { format, parseISO } from 'date-fns'
 import CollectModal from './CollectModal'
 
@@ -20,6 +21,7 @@ export default function ProductModal({ product, onClose }) {
   const { language } = useLanguage()
   const { user } = useAuth()
   const { getBatchesByProduct, collectBatch, deleteBatch, addBatch, deleteProduct } = useProducts()
+  const toast = useToast()
 
   const [showAddForm, setShowAddForm] = useState(false)
   const [collectModalOpen, setCollectModalOpen] = useState(false)
@@ -84,8 +86,10 @@ export default function ProductModal({ product, onClose }) {
 
       setNewBatch({ manufacturingDate: '', expiryDate: '', quantity: '', noQuantity: false })
       setShowAddForm(false)
+      addToast(t('toast.batchAdded'), 'success')
     } catch (error) {
       console.error('Error adding batch:', error)
+      addToast(t('toast.batchAddError'), 'error')
     }
   }
 
@@ -106,10 +110,11 @@ export default function ProductModal({ product, onClose }) {
     setDeleting(true)
     try {
       await deleteProduct(product.id)
+      addToast(t('toast.productDeleted'), 'success')
       onClose()
     } catch (error) {
       console.error('Error deleting product:', error)
-      alert(t('product.deleteError') || 'Ошибка при удалении товара')
+      addToast(t('toast.productDeleteError'), 'error')
     } finally {
       setDeleting(false)
       setShowDeleteConfirm(false)

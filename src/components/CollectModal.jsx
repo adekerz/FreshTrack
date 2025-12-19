@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { useTranslation } from '../context/LanguageContext'
 import { departments } from '../context/ProductContext'
+import { useToast } from '../context/ToastContext'
 
 const reasons = [
   { id: 'kitchen', icon: ChefHat, color: 'text-green-600' },
@@ -25,6 +26,7 @@ const reasons = [
 
 export default function CollectModal({ isOpen, onClose, batch, onConfirm }) {
   const { t } = useTranslation()
+  const { addToast } = useToast()
   const [reason, setReason] = useState('expired')
   const [comment, setComment] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -50,9 +52,11 @@ export default function CollectModal({ isOpen, onClose, batch, onConfirm }) {
       // Сброс формы
       setReason('expired')
       setComment('')
+      addToast(t('toast.batchCollected'), 'success')
       onClose()
     } catch (error) {
       console.error('Error collecting batch:', error)
+      addToast(t('toast.batchCollectError'), 'error')
     } finally {
       setIsSubmitting(false)
     }

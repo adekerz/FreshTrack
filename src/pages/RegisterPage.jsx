@@ -4,12 +4,14 @@ import { Leaf } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useProducts } from '../context/ProductContext'
 import { useTranslation } from '../context/LanguageContext'
+import { useToast } from '../context/ToastContext'
 
 export default function RegisterPage() {
   const navigate = useNavigate()
   const { register } = useAuth()
   const { departments } = useProducts()
   const { t } = useTranslation()
+  const { addToast } = useToast()
 
   const [formData, setFormData] = useState({
     name: '',
@@ -39,9 +41,11 @@ export default function RegisterPage() {
     const result = await register(formData)
 
     if (result.success) {
+      addToast(t('toast.registerSuccess'), 'success')
       navigate('/')
     } else {
       setError(result.error)
+      addToast(t('toast.registerError'), 'error')
     }
 
     setIsLoading(false)

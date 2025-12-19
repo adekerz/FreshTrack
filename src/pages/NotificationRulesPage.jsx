@@ -15,6 +15,7 @@ import {
   AlertTriangle
 } from 'lucide-react'
 import { useTranslation } from '../context/LanguageContext'
+import { useToast } from '../context/ToastContext'
 import { cn } from '../utils/classNames'
 
 const API_URL = 'http://localhost:3001/api'
@@ -67,6 +68,7 @@ const DEFAULT_RULES = [
 
 export default function NotificationRulesPage() {
   const { t } = useTranslation()
+  const { addToast } = useToast()
   const [rules, setRules] = useState([])
   const [loading, setLoading] = useState(true)
   const [editingRule, setEditingRule] = useState(null)
@@ -119,9 +121,14 @@ export default function NotificationRulesPage() {
 
   const handleDeleteRule = async (ruleId) => {
     if (!window.confirm(t('notificationRules.deleteConfirm'))) return
-    const newRules = rules.filter((rule) => rule.id !== ruleId)
-    setRules(newRules)
-    await saveRules(newRules)
+    try {
+      const newRules = rules.filter((rule) => rule.id !== ruleId)
+      setRules(newRules)
+      await saveRules(newRules)
+      addToast(t('toast.ruleDeleted'), 'success')
+    } catch (error) {
+      addToast(t('toast.ruleDeleteError'), 'error')
+    }
   }
 
   const handleEditRule = (rule) => {
@@ -146,20 +153,25 @@ export default function NotificationRulesPage() {
   const handleSaveRule = async () => {
     if (!formData.name.trim()) return
 
-    let newRules
-    if (editingRule) {
-      newRules = rules.map((rule) =>
-        rule.id === editingRule ? { ...formData, id: editingRule } : rule
-      )
-    } else {
-      const newId = Math.max(0, ...rules.map((r) => r.id)) + 1
-      newRules = [...rules, { ...formData, id: newId }]
-    }
+    try {
+      let newRules
+      if (editingRule) {
+        newRules = rules.map((rule) =>
+          rule.id === editingRule ? { ...formData, id: editingRule } : rule
+        )
+      } else {
+        const newId = Math.max(0, ...rules.map((r) => r.id)) + 1
+        newRules = [...rules, { ...formData, id: newId }]
+      }
 
-    setRules(newRules)
-    await saveRules(newRules)
-    setShowForm(false)
-    setEditingRule(null)
+      setRules(newRules)
+      await saveRules(newRules)
+      setShowForm(false)
+      setEditingRule(null)
+      addToast(t('toast.ruleSaved'), 'success')
+    } catch (error) {
+      addToast(t('toast.ruleSaveError'), 'error')
+    }
   }
 
   const toggleChannel = (channel) => {

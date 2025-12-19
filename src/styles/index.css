@@ -305,3 +305,32 @@ body {
   background-position: 100%;
 }
 
+/* Toast animations */
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes toastProgress {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}
+
+.animate-toast-in {
+  animation: toastIn 0.3s ease-out forwards;
+}
+
+.animate-toast-progress {
+  animation: toastProgress linear forwards;
+}
+

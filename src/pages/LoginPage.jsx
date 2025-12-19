@@ -3,11 +3,13 @@ import { useNavigate, Link } from 'react-router-dom'
 import { Leaf, ShieldCheck, Bell, BarChart3, ArrowRight } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useTranslation } from '../context/LanguageContext'
+import { useToast } from '../context/ToastContext'
 
 export default function LoginPage() {
   const navigate = useNavigate()
   const { login } = useAuth()
   const { t } = useTranslation()
+  const { addToast } = useToast()
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -21,9 +23,11 @@ export default function LoginPage() {
     const result = await login(identifier, password)
 
     if (result.success) {
+      addToast(t('toast.loginSuccess'), 'success')
       navigate('/')
     } else {
       setError(result.error || t('auth.invalidCredentials'))
+      addToast(t('toast.loginError'), 'error')
     }
 
     setIsLoading(false)

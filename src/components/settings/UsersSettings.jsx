@@ -5,6 +5,7 @@
 
 import { useState, useEffect } from 'react'
 import { useTranslation } from '../../context/LanguageContext'
+import { useToast } from '../../context/ToastContext'
 import { 
   UserPlus, 
   User, 
@@ -40,6 +41,7 @@ const apiFetch = async (url, options = {}) => {
 
 export default function UsersSettings() {
   const { t } = useTranslation()
+  const { addToast } = useToast()
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [showCreateModal, setShowCreateModal] = useState(false)
@@ -70,7 +72,6 @@ export default function UsersSettings() {
       setLoading(false)
     }
   }
-
   const createUser = async () => {
     if (!newUser.login || !newUser.password || !newUser.name) {
       setError(t('users.fillRequired') || 'Заполните обязательные поля')
@@ -87,8 +88,10 @@ export default function UsersSettings() {
       fetchUsers()
       setShowCreateModal(false)
       setNewUser({ login: '', password: '', name: '', email: '', role: 'STAFF' })
+      addToast(t('toast.userCreated'), 'success')
     } catch (error) {
       setError(error.message)
+      addToast(t('toast.userCreateError'), 'error')
     } finally {
       setCreating(false)
     }
@@ -101,8 +104,10 @@ export default function UsersSettings() {
         body: JSON.stringify({ is_active: !isActive })
       })
       fetchUsers()
+      addToast(t('toast.userUpdated'), 'success')
     } catch (error) {
       console.error('Error toggling user status:', error)
+      addToast(t('toast.userUpdateError'), 'error')
     }
   }
 
@@ -114,8 +119,10 @@ export default function UsersSettings() {
         method: 'DELETE'
       })
       fetchUsers()
+      addToast(t('toast.userDeleted'), 'success')
     } catch (error) {
       console.error('Error deleting user:', error)
+      addToast(t('toast.userDeleteError'), 'error')
     }
   }
 

@@ -5,6 +5,7 @@
 
 import { useState, useRef } from 'react'
 import { useTranslation } from '../../context/LanguageContext'
+import { useToast } from '../../context/ToastContext'
 import { 
   Upload, 
   Download, 
@@ -21,6 +22,7 @@ const API_URL = 'http://localhost:3001/api'
 
 export default function ImportExportSettings() {
   const { t } = useTranslation()
+  const { addToast } = useToast()
   const [importing, setImporting] = useState(false)
   const [importResult, setImportResult] = useState(null)
   const [exporting, setExporting] = useState(null)
@@ -52,6 +54,11 @@ export default function ImportExportSettings() {
         imported: result.imported,
         errors: result.errors
       })
+      if (response.ok) {
+        addToast(t('toast.importSuccess'), 'success')
+      } else {
+        addToast(t('toast.importError'), 'error')
+      }
     } catch (error) {
       console.error('Import error:', error)
       setImportResult({
@@ -59,6 +66,7 @@ export default function ImportExportSettings() {
         message: t('import.error') || 'Ошибка импорта',
         errors: [error.message]
       })
+      addToast(t('toast.importError'), 'error')
     } finally {
       setImporting(false)
       if (fileInputRef.current) {
@@ -88,9 +96,10 @@ export default function ImportExportSettings() {
       a.click()
       document.body.removeChild(a)
       window.URL.revokeObjectURL(url)
+      addToast(t('toast.exportSuccess'), 'success')
     } catch (error) {
       console.error('Export error:', error)
-      alert(t('export.error') || 'Ошибка экспорта')
+      addToast(t('toast.exportError'), 'error')
     } finally {
       setExporting(null)
     }

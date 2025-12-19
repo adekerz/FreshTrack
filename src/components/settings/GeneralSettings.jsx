@@ -5,6 +5,7 @@
 
 import { useState, useEffect } from 'react'
 import { useTranslation } from '../../context/LanguageContext'
+import { useToast } from '../../context/ToastContext'
 import { Save, Check, AlertCircle, RefreshCw } from 'lucide-react'
 
 const API_URL = 'http://localhost:3001/api'
@@ -27,6 +28,7 @@ const apiFetch = async (url, options = {}) => {
 
 export default function GeneralSettings() {
   const { t } = useTranslation()
+  const { addToast } = useToast()
   const [settings, setSettings] = useState({
     siteName: 'FreshTrack',
     departmentName: '',
@@ -65,10 +67,12 @@ export default function GeneralSettings() {
         body: JSON.stringify(settings)
       })
       setMessage({ type: 'success', text: t('settings.saved') })
+      addToast(t('toast.settingsSaved'), 'success')
       setTimeout(() => setMessage(null), 3000)
     } catch (error) {
       console.error('Error saving settings:', error)
       setMessage({ type: 'error', text: t('settings.saveError') })
+      addToast(t('toast.settingsSaveError'), 'error')
     } finally {
       setSaving(false)
     }

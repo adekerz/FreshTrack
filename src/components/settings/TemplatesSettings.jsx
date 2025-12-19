@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from '../../context/LanguageContext'
 import { useProducts } from '../../context/ProductContext'
+import { useToast } from '../../context/ToastContext'
 import { 
   Plus, 
   X, 
@@ -38,6 +39,7 @@ const apiFetch = async (url, options = {}) => {
 export default function TemplatesSettings() {
   const { t } = useTranslation()
   const { departments } = useProducts()
+  const { addToast } = useToast()
   const [templates, setTemplates] = useState([])
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
@@ -79,7 +81,6 @@ export default function TemplatesSettings() {
       setLoading(false)
     }
   }
-
   const createTemplate = async () => {
     if (!newTemplate.name.trim() || newTemplate.items.length === 0) return
     
@@ -94,8 +95,10 @@ export default function TemplatesSettings() {
       })
       fetchData()
       closeModal()
+      addToast(t('toast.templateCreated'), 'success')
     } catch (error) {
       console.error('Error creating template:', error)
+      addToast(t('toast.templateCreateError'), 'error')
     } finally {
       setSaving(false)
     }
@@ -112,8 +115,10 @@ export default function TemplatesSettings() {
       })
       fetchData()
       closeModal()
+      addToast(t('toast.templateUpdated'), 'success')
     } catch (error) {
       console.error('Error updating template:', error)
+      addToast(t('toast.templateUpdateError'), 'error')
     } finally {
       setSaving(false)
     }
@@ -127,8 +132,10 @@ export default function TemplatesSettings() {
         method: 'DELETE'
       })
       fetchData()
+      addToast(t('toast.templateDeleted'), 'success')
     } catch (error) {
       console.error('Error deleting template:', error)
+      addToast(t('toast.templateDeleteError'), 'error')
     }
   }
 

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { X, Wine, Coffee, Utensils, ChefHat, Warehouse, Package } from 'lucide-react'
 import { useProducts } from '../context/ProductContext'
 import { useTranslation, useLanguage } from '../context/LanguageContext'
+import { useToast } from '../context/ToastContext'
 
 // Иконки для отделов - универсальный маппинг
 const ICON_MAP = { Wine, Coffee, Utensils, ChefHat, Warehouse, Package }
@@ -21,6 +22,7 @@ export default function AddCustomProductModal({ onClose, departmentId = null }) 
   const { t } = useTranslation()
   const { language } = useLanguage()
   const { addCustomProduct, departments, categories } = useProducts()
+  const { addToast } = useToast()
 
   const [selectedDepartment, setSelectedDepartment] = useState(departmentId)
   const [selectedCategory, setSelectedCategory] = useState(null)
@@ -57,9 +59,11 @@ export default function AddCustomProductModal({ onClose, departmentId = null }) 
 
     try {
       await addCustomProduct(selectedDepartment, selectedCategory, productName.trim())
+      addToast(t('toast.productAdded'), 'success')
       onClose()
     } catch (err) {
       setError(err.message || 'Error adding product')
+      addToast(t('toast.productAddError'), 'error')
       setIsSubmitting(false)
     }
   }
