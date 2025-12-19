@@ -11,6 +11,7 @@
     "add": "Add",
     "search": "Search",
     "filter": "Filter",
+    "filters": "Filters",
     "all": "All",
     "yes": "Yes",
     "no": "No",
@@ -34,7 +35,17 @@
     "warning": "Expiring soon",
     "critical": "Critical",
     "expired": "Expired",
-    "select": "Select"
+    "select": "Select",
+    "export": "Export",
+    "total": "Total",
+    "filtered": "Filtered",
+    "of": "of",
+    "actions": "Actions",
+    "viewDetails": "View Details",
+    "justNow": "Just now",
+    "minutesAgo": "min ago",
+    "hoursAgo": "hours ago",
+    "daysAgo": "days ago"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -83,7 +94,7 @@
     "signingIn": "Signing in...",
     "noAccount": "Don't have an account?",
     "createAccount": "Create Account",
-    "demoCredentials": "Demo credentials: admin@ritzcarlton.com / admin123",
+    "demoCredentials": "",
     "fullName": "Full Name",
     "fullNamePlaceholder": "Your full name",
     "department": "Department",
@@ -95,13 +106,13 @@
     "joinSubtitle": "Create your account and become part of our commitment to maintaining the highest standards in hospitality.",
     "precisionTitle": "Precision in Every",
     "precisionHighlight": "Detail",
-    "precisionDescription": "Elevating inventory management to an art form. Track expiration dates, receive intelligent notifications, and maintain the exceptional standards expected at Ritz-Carlton.",
+    "precisionDescription": "Elevating inventory management to an art form. Track expiration dates, receive intelligent notifications, and maintain exceptional quality standards.",
     "secure": "Secure",
     "smartAlerts": "Smart Alerts",
     "analytics": "Analytics",
     "passwordMismatch": "Passwords do not match",
     "passwordTooShort": "Password must be at least 6 characters",
-    "invalidCredentials": "Invalid credentials. Try admin / AdminRC2025!"
+    "invalidCredentials": "Invalid credentials"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -144,7 +155,9 @@
     "addNewProduct": "Add Product",
     "addBatchToStart": "Add a batch to get started",
     "units": "pcs",
-    "applyTemplate": "Apply Template"
+    "applyTemplate": "Apply Template",
+    "noDepartments": "No departments",
+    "createDepartment": "Create department"
   },
   "notifications": {
     "title": "Notifications",
@@ -241,7 +254,8 @@
     "category": "Category",
     "productName": "Product Name",
     "productNamePlaceholder": "Enter product name",
-    "addToCatalog": "Add to Catalog"
+    "addToCatalog": "Add to Catalog",
+    "errorSelectDepartment": "Select a department"
   },
   "modal": {
     "batchManagement": "Batch Management",
@@ -441,7 +455,135 @@
       "cms": "Content",
       "rules": "Notification Rules",
       "departments": "Departments",
-      "branding": "Branding"
+      "branding": "Branding",
+      "general": "General",
+      "users": "Users",
+      "catalog": "Catalog",
+      "categories": "Categories",
+      "telegram": "Telegram",
+      "importExport": "Import/Export"
+    },
+    "generalTitle": "General Settings",
+    "generalDescription": "Basic system parameters",
+    "siteName": "Site Name",
+    "departmentName": "Department Name",
+    "warningDays": "Warning Days",
+    "warningDaysHint": "Days before expiry to warn",
+    "criticalDays": "Critical Days",
+    "criticalDaysHint": "When product is considered critical",
+    "dateFormat": "Date Format",
+    "timezone": "Timezone",
+    "defaultLanguage": "Default Language",
+    "general": {
+      "title": "General Settings",
+      "siteName": "Site Name",
+      "departmentName": "Department Name",
+      "warningDays": "Warning Days",
+      "criticalDays": "Critical Days",
+      "dateFormat": "Date Format",
+      "timezone": "Timezone",
+      "defaultLanguage": "Default Language"
+    },
+    "users": {
+      "title": "User Management",
+      "addUser": "Add User",
+      "editUser": "Edit User",
+      "username": "Username",
+      "email": "Email",
+      "role": "Role",
+      "status": "Status",
+      "lastLogin": "Last Login",
+      "createdAt": "Created At",
+      "roles": {
+        "admin": "Administrator",
+        "manager": "Manager",
+        "staff": "Staff"
+      },
+      "statuses": {
+        "active": "Active",
+        "blocked": "Blocked"
+      },
+      "actions": {
+        "block": "Block",
+        "unblock": "Unblock",
+        "delete": "Delete",
+        "resetPassword": "Reset Password"
+      },
+      "confirmDelete": "Delete user?",
+      "confirmBlock": "Block user?",
+      "noUsers": "No users found"
+    },
+    "categories": {
+      "title": "Category Management",
+      "addCategory": "Add Category",
+      "editCategory": "Edit Category",
+      "name": "Name",
+      "color": "Color",
+      "productsCount": "Products",
+      "noCategories": "No categories",
+      "confirmDelete": "Delete category?"
+    },
+    "templates": {
+      "title": "Delivery Templates",
+      "addTemplate": "Add Template",
+      "editTemplate": "Edit Template",
+      "name": "Template Name",
+      "products": "Products",
+      "addProduct": "Add Product",
+      "selectProduct": "Select Product",
+      "quantity": "Quantity",
+      "shelfLife": "Shelf Life (days)",
+      "noTemplates": "No templates available",
+      "confirmDelete": "Delete template?",
+      "create": "Create Template",
+      "createFirst": "Create first template",
+      "description": "Description",
+      "targetDepartment": "Target Department",
+      "changeTemplate": "Change Template",
+      "selectTemplate": "Select a template to apply:",
+      "items": "items",
+      "itemsToAdd": "items will be added",
+      "apply": "Apply Template",
+      "createNew": "Create New Template"
+    },
+    "telegram": {
+      "title": "Telegram Settings",
+      "botToken": "Bot Token",
+      "chatId": "Chat ID",
+      "enabled": "Enabled",
+      "testConnection": "Test Connection",
+      "scheduleTime": "Schedule Time",
+      "messageTemplates": "Message Templates",
+      "dailyReport": "Daily Report",
+      "expiryWarning": "Expiry Warning",
+      "expiredAlert": "Expired Alert",
+      "collectionConfirm": "Collection Confirmation",
+      "testSuccess": "Test successful",
+      "testError": "Test failed"
+    },
+    "importExport": {
+      "title": "Import and Export Data",
+      "import": {
+        "title": "Import Data",
+        "description": "Upload Excel or CSV file",
+        "selectFile": "Select File",
+        "dragDrop": "Drag & drop file or click to browse",
+        "formats": "Supported formats: XLSX, XLS, CSV",
+        "preview": "Preview",
+        "importing": "Importing...",
+        "success": "Imported {{count}} records",
+        "error": "Import error"
+      },
+      "export": {
+        "title": "Export Data",
+        "description": "Download data in desired format",
+        "inventory": "Export Inventory",
+        "batches": "Export Batches",
+        "collections": "Export Collections",
+        "auditLogs": "Export Audit Logs",
+        "format": "Format",
+        "exporting": "Exporting..."
+      }
     },
     "profile": {
       "title": "Profile Information",
@@ -542,10 +684,16 @@
     "user": "User",
     "action": "Action",
     "target": "Target",
+    "entity": "Entity",
     "details": "Details",
     "timestamp": "Timestamp",
     "ipAddress": "IP Address",
+    "userAgent": "User Agent",
     "noLogs": "No logs found",
+    "records": "records",
+    "logDetails": "Log Details",
+    "oldValue": "Old Value",
+    "newValue": "New Value",
     "actions": {
       "login": "Login",
       "logout": "Logout",
@@ -553,12 +701,26 @@
       "update": "Update",
       "delete": "Delete",
       "collect": "Collect Item",
-      "settingsChange": "Settings Change"
+      "settingsChange": "Settings Change",
+      "import": "Import Data",
+      "export": "Export Data"
+    },
+    "entities": {
+      "product": "Product",
+      "batch": "Batch",
+      "user": "User",
+      "category": "Category",
+      "settings": "Settings",
+      "template": "Template"
     },
     "filters": {
       "allActions": "All Actions",
       "allUsers": "All Users",
-      "dateRange": "Date Range"
+      "dateRange": "Date Range",
+      "actionType": "Action Type",
+      "entityType": "Entity Type",
+      "dateFrom": "Date From",
+      "dateTo": "Date To"
     }
   },
   "notificationRules": {
@@ -693,21 +855,6 @@
     "beforeDays": "Before",
     "days": "days",
     "all": "All"
-  },
-  "templates": {
-    "title": "Delivery Templates",
-    "selectTemplate": "Select a template to apply:",
-    "items": "items",
-    "itemsToAdd": "items will be added",
-    "apply": "Apply Template",
-    "noTemplates": "No templates available",
-    "create": "Create Template",
-    "name": "Template Name",
-    "description": "Description",
-    "targetDepartment": "Target Department",
-    "changeTemplate": "Change Template",
-    "products": "Products",
-    "createNew": "Create New Template"
   },
   "deptNotifications": {
     "title": "Department Notifications",

@@ -242,26 +242,25 @@ export function initDatabase() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
       department_id TEXT,
-      items TEXT,
-      is_active INTEGER DEFAULT 1,
+      items TEXT NOT NULL,
       created_by INTEGER,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (created_by) REFERENCES users(id)
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `)
 
   // Notification rules
+  // Note: Таблица будет создана/обновлена в routes/notification-rules.js с ленивой инициализацией
   db.exec(`
     CREATE TABLE IF NOT EXISTS notification_rules (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
-      category_id INTEGER,
       department_id TEXT,
-      warning_days INTEGER DEFAULT 7,
-      critical_days INTEGER DEFAULT 3,
-      telegram_enabled INTEGER DEFAULT 1,
-      email_enabled INTEGER DEFAULT 0,
+      category TEXT,
+      days_before INTEGER NOT NULL DEFAULT 7,
+      notification_type TEXT DEFAULT 'all',
       is_active INTEGER DEFAULT 1,
+      created_by INTEGER,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `)
@@ -276,22 +275,25 @@ export function initDatabase() {
     )
   `)
 
-  // Audit logs
+  // Audit logs - схема синхронизирована с routes/audit-logs.js
   db.exec(`
     CREATE TABLE IF NOT EXISTS audit_logs (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER,
-      user_name TEXT,
+      user_name TEXT NOT NULL,
       action TEXT NOT NULL,
       action_type TEXT,
       entity_type TEXT,
       entity_id TEXT,
       entity_name TEXT,
+      target TEXT,
+      target_type TEXT,
+      details TEXT,
       old_value TEXT,
       new_value TEXT,
       ip_address TEXT,
       user_agent TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `)
 
@@ -326,23 +328,27 @@ export function initDatabase() {
   `)
 
   // Department notification settings
+  // Note: Таблица использует department_id как PRIMARY KEY для хранения настроек уведомлений по отделам
   db.exec(`
     CREATE TABLE IF NOT EXISTS department_notification_settings (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      department_id TEXT NOT NULL,
-      setting_key TEXT NOT NULL,
-      setting_value TEXT,
-      UNIQUE(department_id, setting_key)
+      department_id TEXT PRIMARY KEY,
+      telegram_enabled INTEGER DEFAULT 1,
+      push_enabled INTEGER DEFAULT 1,
+      email_enabled INTEGER DEFAULT 0,
+      quiet_hours_start TEXT DEFAULT '22:00',
+      quiet_hours_end TEXT DEFAULT '08:00',
+      notification_days TEXT DEFAULT '[7, 3, 1]',
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `)
 
   // Custom texts/branding
   db.exec(`
     CREATE TABLE IF NOT EXISTS custom_texts (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      key TEXT UNIQUE NOT NULL,
+      key TEXT PRIMARY KEY,
       value TEXT,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_by INTEGER
     )
   `)
 
@@ -378,7 +384,7 @@ export function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
     CREATE INDEX IF NOT EXISTS idx_users_active ON users(is_active);
     CREATE INDEX IF NOT EXISTS idx_collection_logs_date ON collection_logs(collected_at);
-    CREATE INDEX IF NOT EXISTS idx_audit_logs_date ON audit_logs(created_at);
+    CREATE INDEX IF NOT EXISTS idx_audit_logs_date ON audit_logs(timestamp);
     CREATE INDEX IF NOT EXISTS idx_audit_logs_user ON audit_logs(user_id);
   `)
 

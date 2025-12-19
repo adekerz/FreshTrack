@@ -1,7 +1,7 @@
 {
   "name": "FreshTrack",
   "short_name": "FreshTrack",
-  "description": "Система управления сроками годности для Ritz-Carlton",
+  "description": "Enterprise Inventory & Expiration Date Management System",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#FBF9F7",

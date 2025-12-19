@@ -11,6 +11,7 @@
     "add": "Добавить",
     "search": "Поиск",
     "filter": "Фильтр",
+    "filters": "Фильтры",
     "all": "Все",
     "yes": "Да",
     "no": "Нет",
@@ -34,7 +35,17 @@
     "warning": "Скоро истекает",
     "critical": "Критично",
     "expired": "Просрочено",
-    "select": "Выбрать"
+    "select": "Выбрать",
+    "export": "Экспорт",
+    "total": "Всего",
+    "filtered": "Отфильтровано",
+    "of": "из",
+    "actions": "Действия",
+    "viewDetails": "Подробнее",
+    "justNow": "Только что",
+    "minutesAgo": "мин. назад",
+    "hoursAgo": "ч. назад",
+    "daysAgo": "дн. назад"
   },
   "nav": {
     "dashboard": "Главная",
@@ -83,7 +94,7 @@
     "signingIn": "Вход...",
     "noAccount": "Нет аккаунта?",
     "createAccount": "Создать аккаунт",
-    "demoCredentials": "Демо данные: admin@ritzcarlton.com / admin123",
+    "demoCredentials": "",
     "fullName": "Полное имя",
     "fullNamePlaceholder": "Ваше полное имя",
     "department": "Отдел",
@@ -95,13 +106,13 @@
     "joinSubtitle": "Создайте аккаунт и станьте частью нашей команды, поддерживающей высочайшие стандарты гостеприимства.",
     "precisionTitle": "Точность в каждой",
     "precisionHighlight": "Детали",
-    "precisionDescription": "Поднимаем управление запасами до уровня искусства. Отслеживайте сроки годности, получайте умные уведомления и поддерживайте исключительные стандарты Ritz-Carlton.",
+    "precisionDescription": "Поднимаем управление запасами до уровня искусства. Отслеживайте сроки годности, получайте умные уведомления и поддерживайте исключительные стандарты качества.",
     "secure": "Безопасно",
     "smartAlerts": "Умные оповещения",
     "analytics": "Аналитика",
     "passwordMismatch": "Пароли не совпадают",
     "passwordTooShort": "Пароль должен быть не менее 6 символов",
-    "invalidCredentials": "Неверные данные. Попробуйте admin / AdminRC2025!"
+    "invalidCredentials": "Неверные учётные данные"
   },
   "dashboard": {
     "title": "Главная",
@@ -144,7 +155,9 @@
     "addNewProduct": "Добавить товар",
     "addBatchToStart": "Добавьте партию, чтобы начать",
     "units": "шт.",
-    "applyTemplate": "Применить шаблон"
+    "applyTemplate": "Применить шаблон",
+    "noDepartments": "Нет отделов",
+    "createDepartment": "Создать отдел"
   },
   "notifications": {
     "title": "Уведомления",
@@ -241,7 +254,8 @@
     "category": "Категория",
     "productName": "Название товара",
     "productNamePlaceholder": "Введите название товара",
-    "addToCatalog": "Добавить в каталог"
+    "addToCatalog": "Добавить в каталог",
+    "errorSelectDepartment": "Выберите отдел"
   },
   "modal": {
     "batchManagement": "Управление партиями",
@@ -441,7 +455,135 @@
       "cms": "Контент",
       "rules": "Правила уведомлений",
       "departments": "Отделы",
-      "branding": "Брендинг"
+      "branding": "Брендинг",
+      "general": "Общие",
+      "users": "Пользователи",
+      "catalog": "Каталог",
+      "categories": "Категории",
+      "telegram": "Telegram",
+      "importExport": "Импорт/Экспорт"
+    },
+    "generalTitle": "Общие настройки",
+    "generalDescription": "Основные параметры системы",
+    "siteName": "Название сайта",
+    "departmentName": "Название отдела",
+    "warningDays": "Предупреждать за (дней)",
+    "warningDaysHint": "За сколько дней до истечения предупреждать",
+    "criticalDays": "Критический срок (дней)",
+    "criticalDaysHint": "Когда товар считается критическим",
+    "dateFormat": "Формат даты",
+    "timezone": "Часовой пояс",
+    "defaultLanguage": "Язык по умолчанию",
+    "general": {
+      "title": "Общие настройки",
+      "siteName": "Название сайта",
+      "departmentName": "Название отдела",
+      "warningDays": "Дни предупреждения",
+      "criticalDays": "Критические дни",
+      "dateFormat": "Формат даты",
+      "timezone": "Часовой пояс",
+      "defaultLanguage": "Язык по умолчанию"
+    },
+    "users": {
+      "title": "Управление пользователями",
+      "addUser": "Добавить пользователя",
+      "editUser": "Редактировать пользователя",
+      "username": "Логин",
+      "email": "Email",
+      "role": "Роль",
+      "status": "Статус",
+      "lastLogin": "Последний вход",
+      "createdAt": "Создан",
+      "roles": {
+        "admin": "Администратор",
+        "manager": "Менеджер",
+        "staff": "Сотрудник"
+      },
+      "statuses": {
+        "active": "Активен",
+        "blocked": "Заблокирован"
+      },
+      "actions": {
+        "block": "Заблокировать",
+        "unblock": "Разблокировать",
+        "delete": "Удалить",
+        "resetPassword": "Сбросить пароль"
+      },
+      "confirmDelete": "Удалить пользователя?",
+      "confirmBlock": "Заблокировать пользователя?",
+      "noUsers": "Нет пользователей"
+    },
+    "categories": {
+      "title": "Управление категориями",
+      "addCategory": "Добавить категорию",
+      "editCategory": "Редактировать категорию",
+      "name": "Название",
+      "color": "Цвет",
+      "productsCount": "Товаров",
+      "noCategories": "Нет категорий",
+      "confirmDelete": "Удалить категорию?"
+    },
+    "templates": {
+      "title": "Шаблоны поставок",
+      "addTemplate": "Добавить шаблон",
+      "editTemplate": "Редактировать шаблон",
+      "name": "Название",
+      "products": "Товары",
+      "addProduct": "Добавить товар",
+      "selectProduct": "Выберите товар",
+      "quantity": "Количество",
+      "shelfLife": "Срок хранения (дней)",
+      "noTemplates": "Нет шаблонов",
+      "confirmDelete": "Удалить шаблон?",
+      "create": "Создать шаблон",
+      "createFirst": "Создать первый шаблон",
+      "createNew": "Создать новый шаблон",
+      "description": "Описание",
+      "selectTemplate": "Выберите шаблон для применения:",
+      "items": "позиций",
+      "itemsToAdd": "позиций будет добавлено",
+      "apply": "Применить шаблон",
+      "targetDepartment": "Целевой отдел",
+      "changeTemplate": "Сменить шаблон"
+    },
+    "telegram": {
+      "title": "Настройки Telegram",
+      "botToken": "Токен бота",
+      "chatId": "ID чата",
+      "enabled": "Включено",
+      "testConnection": "Тест соединения",
+      "scheduleTime": "Время рассылки",
+      "messageTemplates": "Шаблоны сообщений",
+      "dailyReport": "Ежедневный отчёт",
+      "expiryWarning": "Предупреждение об истечении",
+      "expiredAlert": "Оповещение о просрочке",
+      "collectionConfirm": "Подтверждение сбора",
+      "testSuccess": "Тест успешен",
+      "testError": "Ошибка теста"
+    },
+    "importExport": {
+      "title": "Импорт и экспорт данных",
+      "import": {
+        "title": "Импорт данных",
+        "description": "Загрузите файл Excel или CSV",
+        "selectFile": "Выбрать файл",
+        "dragDrop": "Перетащите файл или нажмите для выбора",
+        "formats": "Поддерживаемые форматы: XLSX, XLS, CSV",
+        "preview": "Предпросмотр",
+        "importing": "Импорт...",
+        "success": "Импортировано {{count}} записей",
+        "error": "Ошибка импорта"
+      },
+      "export": {
+        "title": "Экспорт данных",
+        "description": "Выгрузите данные в нужном формате",
+        "inventory": "Экспорт инвентаря",
+        "batches": "Экспорт партий",
+        "collections": "Экспорт сборов",
+        "auditLogs": "Экспорт журнала",
+        "format": "Формат",
+        "exporting": "Экспорт..."
+      }
     },
     "profile": {
       "title": "Информация профиля",
@@ -542,10 +684,16 @@
     "user": "Пользователь",
     "action": "Действие",
     "target": "Объект",
+    "entity": "Объект",
     "details": "Подробности",
     "timestamp": "Время",
     "ipAddress": "IP адрес",
+    "userAgent": "User Agent",
     "noLogs": "Журнал пуст",
+    "records": "записей",
+    "logDetails": "Детали записи",
+    "oldValue": "Старое значение",
+    "newValue": "Новое значение",
     "actions": {
       "login": "Вход в систему",
       "logout": "Выход из системы",
@@ -553,12 +701,26 @@
       "update": "Обновление",
       "delete": "Удаление",
       "collect": "Сбор товара",
-      "settingsChange": "Изменение настроек"
+      "settingsChange": "Изменение настроек",
+      "import": "Импорт данных",
+      "export": "Экспорт данных"
+    },
+    "entities": {
+      "product": "Продукт",
+      "batch": "Партия",
+      "user": "Пользователь",
+      "category": "Категория",
+      "settings": "Настройки",
+      "template": "Шаблон"
     },
     "filters": {
       "allActions": "Все действия",
       "allUsers": "Все пользователи",
-      "dateRange": "Период"
+      "dateRange": "Период",
+      "actionType": "Тип действия",
+      "entityType": "Тип объекта",
+      "dateFrom": "Дата от",
+      "dateTo": "Дата до"
     }
   },
   "notificationRules": {
@@ -693,21 +855,6 @@
     "beforeDays": "За",
     "days": "дней",
     "all": "Все"
-  },
-  "templates": {
-    "title": "Шаблоны поставок",
-    "selectTemplate": "Выберите шаблон для применения:",
-    "items": "позиций",
-    "itemsToAdd": "позиций будет добавлено",
-    "apply": "Применить шаблон",
-    "noTemplates": "Нет доступных шаблонов",
-    "create": "Создать шаблон",
-    "name": "Название шаблона",
-    "description": "Описание",
-    "targetDepartment": "Целевой отдел",
-    "changeTemplate": "Сменить шаблон",
-    "products": "Товары",
-    "createNew": "Создать новый шаблон"
   },
   "deptNotifications": {
     "title": "Уведомления по отделам",

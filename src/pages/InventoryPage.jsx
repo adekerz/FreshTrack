@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback } from 'react'
-import { Wine, Coffee, Martini, ArrowLeft, Plus, Package, FileBox } from 'lucide-react'
-import { useProducts, departments, categories } from '../context/ProductContext'
+import { useParams } from 'react-router-dom'
+import { Wine, Coffee, Utensils, ChefHat, Warehouse, Package, ArrowLeft, Plus, FileBox } from 'lucide-react'
+import { useProducts } from '../context/ProductContext'
 import { useTranslation, useLanguage } from '../context/LanguageContext'
 import ProductModal from '../components/ProductModal'
 import AddCustomProductModal from '../components/AddCustomProductModal'
@@ -8,11 +9,26 @@ import DeliveryTemplateModal from '../components/DeliveryTemplateModal'
 import ExportButton from '../components/ExportButton'
 import { EXPORT_COLUMNS } from '../utils/exportUtils'
 
-// Иконки для отделов
-const departmentIcons = {
-  'honor-bar': Wine,
-  'mokki-bar': Coffee,
-  'ozen-bar': Martini
+// Иконки для отделов - универсальный маппинг
+const ICON_MAP = {
+  Wine,
+  Coffee,
+  Utensils,
+  ChefHat,
+  Warehouse,
+  Package
+}
+
+// Получить иконку по имени или типу
+const getDeptIcon = (dept) => {
+  if (dept?.icon && ICON_MAP[dept.icon]) return ICON_MAP[dept.icon]
+  const name = (dept?.name || dept?.code || '').toLowerCase()
+  if (name.includes('bar')) return Wine
+  if (name.includes('kitchen') || name.includes('кухня')) return ChefHat
+  if (name.includes('restaurant') || name.includes('ресторан')) return Utensils
+  if (name.includes('storage') || name.includes('склад')) return Warehouse
+  if (name.includes('cafe') || name.includes('кафе')) return Coffee
+  return Package
 }
 
 // Цвета статусов
@@ -26,10 +42,11 @@ const statusColors = {
 export default function InventoryPage() {
   const { t } = useTranslation()
   const { language } = useLanguage()
-  const { getProductsByDepartment, catalog, refresh } = useProducts()
+  const { departmentId } = useParams()
+  const { getProductsByDepartment, catalog, refresh, departments, categories } = useProducts()
 
-  // Всегда используем honor-bar
-  const selectedDepartment = 'honor-bar'
+  // Используем отдел из URL или первый доступный
+  const selectedDepartment = departmentId || (departments.length > 0 ? departments[0].id : null)
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [selectedProduct, setSelectedProduct] = useState(null)
   const [showProductModal, setShowProductModal] = useState(false)
@@ -38,8 +55,8 @@ export default function InventoryPage() {
 
   // Получить название категории в зависимости от языка
   const getCategoryName = (category) => {
-    if (language === 'ru') return category.nameRu
-    if (language === 'kk') return category.nameKz
+    if (language === 'ru') return category.nameRu || category.name
+    if (language === 'kk') return category.nameKz || category.name
     return category.name
   }
 
@@ -96,14 +113,27 @@ export default function InventoryPage() {
 
   // Вернуться к выбору отделов (deprecated - только один отдел)
   const handleBackToDepartments = () => {
-    // Ничего не делаем - отдел только один
+    // Navigate to inventory page to select department
   }
 
-  // Экран инвентаря отдела (сразу показываем Honor Bar)
-  const department = departments.find((d) => d.id === selectedDepartment)
-  const DeptIcon = departmentIcons[selectedDepartment]
+  // Экран инвентаря отдела
+  const department = departments.find((d) => d.id === selectedDepartment || d.code === selectedDepartment)
+  const DeptIcon = getDeptIcon(department)
   const products = getFilteredProducts()
   const availableCategories = getAvailableCategories()
+
+  // Если нет выбранного отдела, показываем сообщение
+  if (!selectedDepartment && departments.length === 0) {
+    return (
+      <div className="p-8 animate-fade-in">
+        <div className="text-center py-12">
+          <Package className="w-16 h-16 text-warmgray mx-auto mb-4" />
+          <h2 className="font-serif text-xl text-charcoal mb-2">{t('inventory.noDepartments') || 'No departments configured'}</h2>
+          <p className="text-warmgray">{t('inventory.createDepartment') || 'Please create a department in Settings first.'}</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="p-8 animate-fade-in">
@@ -113,11 +143,11 @@ export default function InventoryPage() {
           <div className="flex items-center gap-3">
             <div
               className="w-10 h-10 rounded-full flex items-center justify-center"
-              style={{ backgroundColor: `${department?.color || '#FF8D6B'}20` }}
+              style={{ backgroundColor: `${department?.color || '#C4A35A'}20` }}
             >
-              {DeptIcon && <DeptIcon className="w-5 h-5" style={{ color: department?.color || '#FF8D6B' }} />}
+              {DeptIcon && <DeptIcon className="w-5 h-5" style={{ color: department?.color || '#C4A35A' }} />}
             </div>
-            <h1 className="font-serif text-2xl">{t('inventory.title')} — Honor Bar</h1>
+            <h1 className="font-serif text-2xl">{t('inventory.title')} — {department?.name || selectedDepartment}</h1>
           </div>
         </div>
 

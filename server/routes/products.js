@@ -18,6 +18,36 @@ import {
 const router = express.Router()
 
 /**
+ * GET /api/products/catalog - Получить каталог продуктов для шаблонов
+ */
+router.get('/catalog', (req, res) => {
+  try {
+    const products = getAllProducts()
+    
+    // Группируем продукты по категориям
+    const catalog = {}
+    products.forEach(p => {
+      const category = p.category || 'other'
+      if (!catalog[category]) {
+        catalog[category] = []
+      }
+      catalog[category].push({
+        id: p.id,
+        name: p.name,
+        department: p.department,
+        category: p.category,
+        defaultShelfLife: p.default_shelf_life || 30
+      })
+    })
+    
+    res.json({ products, catalog })
+  } catch (error) {
+    console.error('Error fetching product catalog:', error)
+    res.status(500).json({ error: 'Failed to fetch product catalog' })
+  }
+})
+
+/**
  * GET /api/products - Получить все продукты
  */
 router.get('/', (req, res) => {

@@ -1,19 +1,26 @@
 import { useState } from 'react'
-import { X, ChevronRight, Wine, Coffee, Martini } from 'lucide-react'
-import { useProducts, departments, categories } from '../context/ProductContext'
+import { X, ChevronRight, Wine, Coffee, Utensils, ChefHat, Warehouse, Package } from 'lucide-react'
+import { useProducts } from '../context/ProductContext'
 import { useTranslation, useLanguage } from '../context/LanguageContext'
 
-// Иконки для отделов
-const departmentIcons = {
-  'honor-bar': Wine,
-  'mokki-bar': Coffee,
-  'ozen-bar': Martini
+// Иконки для отделов - универсальный маппинг
+const ICON_MAP = { Wine, Coffee, Utensils, ChefHat, Warehouse, Package }
+
+const getDeptIcon = (dept) => {
+  if (dept?.icon && ICON_MAP[dept.icon]) return ICON_MAP[dept.icon]
+  const name = (dept?.name || dept?.code || '').toLowerCase()
+  if (name.includes('bar')) return Wine
+  if (name.includes('kitchen') || name.includes('кухня')) return ChefHat
+  if (name.includes('restaurant') || name.includes('ресторан')) return Utensils
+  if (name.includes('storage') || name.includes('склад')) return Warehouse
+  if (name.includes('cafe') || name.includes('кафе')) return Coffee
+  return Package
 }
 
 export default function AddBatchModal({ onClose, preselectedProduct = null }) {
   const { t } = useTranslation()
   const { language } = useLanguage()
-  const { catalog, addBatch } = useProducts()
+  const { catalog, addBatch, departments, categories } = useProducts()
 
   // Шаги мастера
   const [step, setStep] = useState(preselectedProduct ? 4 : 1)
@@ -153,7 +160,7 @@ export default function AddBatchModal({ onClose, preselectedProduct = null }) {
               <p className="text-warmgray mb-4">{t('batch.selectDepartment')}</p>
               <div className="space-y-2">
                 {departments.map((dept) => {
-                  const Icon = departmentIcons[dept.id]
+                  const Icon = getDeptIcon(dept)
                   return (
                     <button
                       key={dept.id}
@@ -163,9 +170,9 @@ export default function AddBatchModal({ onClose, preselectedProduct = null }) {
                       <div className="flex items-center gap-3">
                         <div
                           className="w-10 h-10 rounded-full flex items-center justify-center"
-                          style={{ backgroundColor: `${dept.color}20` }}
+                          style={{ backgroundColor: `${dept.color || '#C4A35A'}20` }}
                         >
-                          <Icon className="w-5 h-5" style={{ color: dept.color }} />
+                          <Icon className="w-5 h-5" style={{ color: dept.color || '#C4A35A' }} />
                         </div>
                         <span className="font-medium text-charcoal">{dept.name}</span>
                       </div>

@@ -90,8 +90,7 @@ router.get('/', (req, res) => {
         department_id as departmentId,
         items,
         created_by as createdBy,
-        created_at as createdAt,
-        updated_at as updatedAt
+        created_at as createdAt
       FROM delivery_templates
     `
     const params = []

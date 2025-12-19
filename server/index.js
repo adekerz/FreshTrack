@@ -21,9 +21,11 @@ import auditLogsRouter from './routes/audit-logs.js'
 import notificationRulesRouter from './routes/notification-rules.js'
 import deliveryTemplatesRouter from './routes/delivery-templates.js'
 import departmentSettingsRouter from './routes/department-settings.js'
+import departmentsRouter from './routes/departments.js'
 import customContentRouter from './routes/custom-content.js'
 import categoriesRouter from './routes/categories.js'
 import importRouter from './routes/import.js'
+import exportRouter from './routes/export.js'
 
 // Импорт сервисов
 import { initDatabase } from './db/database.js'
@@ -57,9 +59,11 @@ app.use('/api/audit-logs', auditLogsRouter)
 app.use('/api/notification-rules', notificationRulesRouter)
 app.use('/api/delivery-templates', deliveryTemplatesRouter)
 app.use('/api/department-settings', departmentSettingsRouter)
+app.use('/api/departments', departmentsRouter)
 app.use('/api/custom-content', customContentRouter)
 app.use('/api/categories', categoriesRouter)
 app.use('/api/import', importRouter)
+app.use('/api/export', exportRouter)
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

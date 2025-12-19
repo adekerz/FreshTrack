@@ -157,7 +157,7 @@ export function exportToExcel(data, columns, filename = 'export', sheetName = 'S
 export function exportToPDF(title, data, columns, options = {}) {
   const {
     subtitle = '',
-    companyName = 'The Ritz-Carlton',
+    companyName = 'FreshTrack',
     printDate = new Date().toLocaleDateString('ru-RU'),
     orientation = 'landscape',
     summary = null

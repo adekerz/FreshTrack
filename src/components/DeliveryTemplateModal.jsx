@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
 import { X, Package, Plus, Minus, Calendar, Check, Loader2 } from 'lucide-react'
 import { useTranslation } from '../context/LanguageContext'
-import { departments } from '../context/ProductContext'
+import { useProducts } from '../context/ProductContext'
 
-const API_URL = 'http://localhost:3001/api'
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 
 const apiFetch = async (url, options = {}) => {
   const token = localStorage.getItem('freshtrack_token')
@@ -23,13 +23,14 @@ const apiFetch = async (url, options = {}) => {
 
 export default function DeliveryTemplateModal({ isOpen, onClose, onApply, departmentId }) {
   const { t } = useTranslation()
+  const { departments } = useProducts()
   const [templates, setTemplates] = useState([])
   const [selectedTemplate, setSelectedTemplate] = useState(null)
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [applying, setApplying] = useState(false)
-  // Всегда используем honor-bar (единственный отдел)
-  const targetDepartment = 'honor-bar'
+  // Используем переданный departmentId или первый доступный отдел
+  const targetDepartment = departmentId || (departments.length > 0 ? departments[0].id : null)
 
   useEffect(() => {
     if (isOpen) {
@@ -196,11 +197,11 @@ export default function DeliveryTemplateModal({ isOpen, onClose, onApply, depart
             ) : (
               /* Items Configuration */
               <div className="space-y-6">
-                {/* Department info (только один отдел) */}
+                {/* Department info */}
                 <div className="p-3 bg-accent/10 rounded-lg">
                   <p className="text-sm text-charcoal">
                     <span className="font-medium">{t('templates.targetDepartment') || 'Целевой отдел'}:</span>{' '}
-                    Honor Bar
+                    {departments.find(d => d.id === targetDepartment)?.name || targetDepartment}
                   </p>
                 </div>
 

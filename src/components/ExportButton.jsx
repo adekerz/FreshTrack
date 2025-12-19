@@ -57,7 +57,7 @@ export default function ExportButton({
           exportToPDF(title, data, columns, {
             subtitle,
             summary,
-            companyName: 'The Ritz-Carlton'
+            companyName: 'FreshTrack'
           })
           break
         default:

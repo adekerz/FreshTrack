@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Bell, Plus, Trash2, Save, Loader2, ToggleLeft, ToggleRight, X } from 'lucide-react'
 import { useTranslation } from '../context/LanguageContext'
-import { departments, categories } from '../context/ProductContext'
+import { useProducts } from '../context/ProductContext'
 import { cn } from '../utils/classNames'
 
 const API_URL = 'http://localhost:3001/api'
@@ -24,6 +24,7 @@ const apiFetch = async (url, options = {}) => {
 
 export default function NotificationRulesSettings() {
   const { t } = useTranslation()
+  const { departments, categories } = useProducts()
   const [rules, setRules] = useState([])
   const [loading, setLoading] = useState(true)
   const [showAddForm, setShowAddForm] = useState(false)

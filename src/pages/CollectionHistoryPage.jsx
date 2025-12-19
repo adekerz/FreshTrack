@@ -6,17 +6,11 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from '../context/LanguageContext'
 import { useAuth } from '../context/AuthContext'
+import { useProducts } from '../context/ProductContext'
 import { Navigate } from 'react-router-dom'
 import { Filter, RefreshCw, ChevronLeft, ChevronRight, ArchiveX, User, Package } from 'lucide-react'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
-
-// Отделы
-const DEPARTMENTS = {
-  'honor-bar': { name: 'Honor Bar', color: '#4A7C59' },
-  'mokki-bar': { name: 'Mokki Bar', color: '#D4A853' },
-  'ozen-bar': { name: 'Ozen Bar', color: '#C4554D' }
-}
 
 // Причины сбора
 const REASONS = {
@@ -29,6 +23,7 @@ const REASONS = {
 export default function CollectionHistoryPage() {
   const { t } = useTranslation()
   const { user } = useAuth()
+  const { departments } = useProducts()
   const [logs, setLogs] = useState([])
   const [stats, setStats] = useState({ today: 0, week: 0, month: 0, total: 0 })
   const [loading, setLoading] = useState(true)
@@ -244,9 +239,9 @@ export default function CollectionHistoryPage() {
                 className="w-full px-3 py-2 border border-sand rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
               >
                 <option value="">{t('collectionHistory.allDepartments')}</option>
-                {Object.entries(DEPARTMENTS).map(([key, { name }]) => (
-                  <option key={key} value={key}>
-                    {name}
+                {departments.map((dept) => (
+                  <option key={dept.id} value={dept.id}>
+                    {dept.name}
                   </option>
                 ))}
               </select>
@@ -364,9 +359,10 @@ export default function CollectionHistoryPage() {
                 <tbody className="divide-y divide-sand/50">
                   {logs.map((log) => {
                     const reasonInfo = getReason(log.reason)
-                    const department = DEPARTMENTS[log.departmentId] || {
+                    const dept = departments.find(d => d.id === log.departmentId)
+                    const department = dept || {
                       name: log.departmentId,
-                      color: '#666'
+                      color: '#C4A35A'
                     }
 
                     return (

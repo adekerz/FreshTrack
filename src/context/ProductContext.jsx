@@ -1,6 +1,6 @@
 /**
- * FreshTrack Product Context
- * Управление данными товаров и партий через API сервера
+ * FreshTrack Enterprise Product Context
+ * Data loaded from API - NO hardcoded data
  */
 
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
@@ -8,71 +8,28 @@ import { getDaysUntilExpiry, getExpiryStatus } from '../utils/dateUtils'
 
 const ProductContext = createContext(null)
 
-// Базовый URL API
-const API_URL = 'http://localhost:3001/api'
+// API URL from environment or default
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 
-// Отделы (только Honor Bar)
-export const departments = [
-  { id: 'honor-bar', name: 'Honor Bar', icon: 'Wine', color: '#FF8D6B' }
-]
+// Legacy exports for backwards compatibility - will be populated from state
+export let departments = []
+export let categories = []
 
-// Категории
-export const categories = [
-  {
-    id: 'soft-drinks',
-    name: 'Soft Drinks',
-    nameRu: 'Безалкогольные напитки',
-    nameKz: 'Алкогольсіз сусындар'
-  },
-  {
-    id: 'alcohol-drinks',
-    name: 'Alcohol Drinks',
-    nameRu: 'Алкогольные напитки',
-    nameKz: 'Алкогольді сусындар'
-  },
-  { id: 'food', name: 'Food', nameRu: 'Еда', nameKz: 'Тамақ' },
-  { id: 'other', name: 'Other', nameRu: 'Другое', nameKz: 'Басқа' }
-]
+// Empty catalog - products loaded from API
+const initialCatalog = {}
 
-// Начальный каталог товаров (статический, для выбора при добавлении)
-const initialCatalog = {
-  'honor-bar': {
-    'soft-drinks': [
-      { id: 'pepsi', name: 'Pepsi' },
-      { id: 'cola-original', name: 'Cola Original' },
-      { id: 'fanta', name: 'Fanta' },
-      { id: 'sprite', name: 'Sprite' },
-      { id: '7up', name: '7 Up' },
-      { id: 'mirinda', name: 'Mirinda' },
-      { id: 'pago-apple', name: 'Pago Apple' },
-      { id: 'pago-orange', name: 'Pago Orange' },
-      { id: 'red-bull', name: 'Red Bull' },
-      { id: 'san-pellegrino', name: 'San Pellegrino Sparkling' },
-      { id: 'aqua-panna', name: 'Aqua Panna Still' },
-      { id: 'cola-zero', name: 'Cola Zero' }
-    ],
-    'alcohol-drinks': [
-      { id: 'budweiser', name: 'Budweiser' },
-      { id: 'corona', name: 'Corona' }
-    ],
-    food: [
-      { id: 'kz-chocolate', name: 'Kazakhstan Chocolate' },
-      { id: 'snickers', name: 'Snickers' },
-      { id: 'mars', name: 'Mars' },
-      { id: 'chewing-gum', name: 'Chewing Gum' },
-      { id: 'ritter-sport', name: 'Ritter Sport' },
-      { id: 'pistachio', name: 'Pistachio' },
-      { id: 'cashew', name: 'Cashew' },
-      { id: 'chocolate-peanuts', name: 'Chocolate Peanuts' },
-      { id: 'gummy-bear', name: 'Gummy Bear' },
-      { id: 'potato-chips', name: 'Potato Chips' },
-      { id: 'fruit-chips', name: 'Fruit Chips' }
-    ],
-    other: [{ id: 'feminine-pack', name: 'Feminine Pack' }]
-  }
+// Default department icon mapping (can be customized per department in DB)
+const DEFAULT_DEPARTMENT_ICONS = {
+  restaurant: 'Utensils',
+  bar: 'Wine',
+  kitchen: 'ChefHat',
+  storage: 'Warehouse',
+  minibar: 'Coffee',
+  cafe: 'Coffee',
+  default: 'Package'
 }
 
-// Ключ для localStorage (только для каталога)
+// Storage key for local catalog cache
 const CATALOG_STORAGE_KEY = 'freshtrack_catalog'
 
 /**
@@ -104,6 +61,10 @@ export function ProductProvider({ children }) {
     const saved = localStorage.getItem(CATALOG_STORAGE_KEY)
     return saved ? JSON.parse(saved) : initialCatalog
   })
+
+  // Динамические отделы и категории с сервера
+  const [departmentList, setDepartmentList] = useState([])
+  const [categoryList, setCategoryList] = useState([])
 
   // Партии с сервера
   const [batches, setBatches] = useState([])
@@ -141,13 +102,29 @@ export function ProductProvider({ children }) {
       setLoading(true)
       setError(null)
 
-      const [batchesRes, statsRes] = await Promise.all([
+      // Загружаем батчи, статистику, отделы и категории параллельно
+      const [batchesRes, statsRes, departmentsRes, categoriesRes] = await Promise.all([
         apiFetch('/batches'),
-        apiFetch('/batches/stats')
+        apiFetch('/batches/stats'),
+        apiFetch('/departments').catch(() => []),
+        apiFetch('/categories').catch(() => [])
       ])
 
       setBatches(batchesRes)
       setStats(statsRes)
+      
+      // Обновляем динамические отделы
+      if (Array.isArray(departmentsRes)) {
+        setDepartmentList(departmentsRes)
+        // Обновляем legacy export для обратной совместимости
+        departments = departmentsRes
+      }
+      
+      // Обновляем динамические категории
+      if (Array.isArray(categoriesRes)) {
+        setCategoryList(categoriesRes)
+        categories = categoriesRes
+      }
     } catch (err) {
       console.error('Error fetching data:', err)
       setError(err.message)
@@ -465,8 +442,8 @@ export function ProductProvider({ children }) {
     // Данные
     catalog,
     batches,
-    departments,
-    categories,
+    departments: departmentList,
+    categories: categoryList,
     loading,
     error,
 
@@ -488,7 +465,13 @@ export function ProductProvider({ children }) {
     getStats,
     getUnreadNotificationsCount,
     getAlerts,
-    findProduct
+    findProduct,
+    
+    // Хелпер для иконок отделов
+    getDepartmentIcon: (deptId) => {
+      const dept = departmentList.find(d => d.id === deptId || d.code === deptId)
+      return dept?.icon || DEFAULT_DEPARTMENT_ICONS[dept?.type] || DEFAULT_DEPARTMENT_ICONS.default
+    }
   }
 
   return <ProductContext.Provider value={value}>{children}</ProductContext.Provider>

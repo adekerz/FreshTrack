@@ -6,24 +6,42 @@ import {
   Clock,
   Wine,
   Coffee,
-  Martini,
+  Utensils,
+  ChefHat,
+  Warehouse,
   Calendar,
   ArrowRight
 } from 'lucide-react'
-import { useProducts, departments } from '../context/ProductContext'
+import { useProducts } from '../context/ProductContext'
 import { useTranslation } from '../context/LanguageContext'
 import { format, parseISO } from 'date-fns'
 
-// Иконки для отделов
-const departmentIcons = {
-  'honor-bar': Wine,
-  'mokki-bar': Coffee,
-  'ozen-bar': Martini
+// Иконки для отделов - универсальный маппинг
+const ICON_MAP = {
+  Wine,
+  Coffee,
+  Utensils,
+  ChefHat,
+  Warehouse,
+  Package
+}
+
+// Получить иконку по имени или типу
+const getDeptIcon = (dept) => {
+  if (dept?.icon && ICON_MAP[dept.icon]) return ICON_MAP[dept.icon]
+  // Fallback based on type or name keywords
+  const name = (dept?.name || dept?.code || '').toLowerCase()
+  if (name.includes('bar')) return Wine
+  if (name.includes('kitchen') || name.includes('кухня')) return ChefHat
+  if (name.includes('restaurant') || name.includes('ресторан')) return Utensils
+  if (name.includes('storage') || name.includes('склад')) return Warehouse
+  if (name.includes('cafe') || name.includes('кафе')) return Coffee
+  return Package
 }
 
 export default function DashboardPage() {
   const { t } = useTranslation()
-  const { getStats, getAlerts, collectBatch } = useProducts()
+  const { getStats, getAlerts, collectBatch, departments } = useProducts()
 
   const stats = getStats()
   const alerts = getAlerts()
@@ -111,7 +129,7 @@ export default function DashboardPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {departments.map((dept, index) => {
-            const Icon = departmentIcons[dept.id]
+            const Icon = getDeptIcon(dept)
             return (
               <Link
                 key={dept.id}
@@ -122,9 +140,9 @@ export default function DashboardPage() {
                 <div className="flex items-center gap-4">
                   <div
                     className="w-14 h-14 rounded-full flex items-center justify-center"
-                    style={{ backgroundColor: `${dept.color}20` }}
+                    style={{ backgroundColor: `${dept.color || '#C4A35A'}20` }}
                   >
-                    <Icon className="w-7 h-7" style={{ color: dept.color }} />
+                    <Icon className="w-7 h-7" style={{ color: dept.color || '#C4A35A' }} />
                   </div>
                   <div>
                     <h3 className="font-medium text-charcoal group-hover:text-accent transition-colors">

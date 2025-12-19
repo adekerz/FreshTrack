@@ -1,47 +1,12 @@
+/**
+ * FreshTrack Enterprise Auth Context
+ * Clean authentication - NO demo users
+ */
+
 import { createContext, useContext, useState, useEffect } from 'react'
 import { authAPI } from '../services/api'
 
 const AuthContext = createContext(null)
-
-// Системные пользователи для демо (fallback если backend недоступен)
-const systemUsers = [
-  {
-    id: 1,
-    login: 'admin',
-    email: 'admin@ritzcarlton.com',
-    password: 'AdminRC2025!',
-    name: 'Administrator',
-    role: 'admin',
-    departments: ['honor-bar', 'mokki-bar', 'ozen-bar']
-  },
-  {
-    id: 2,
-    login: 'honorbar',
-    email: 'honorbar@ritzcarlton.com',
-    password: 'Honor2025RC!',
-    name: 'Honor Bar Manager',
-    role: 'manager',
-    departments: ['honor-bar']
-  },
-  {
-    id: 3,
-    login: 'mokkibar',
-    email: 'mokkibar@ritzcarlton.com',
-    password: 'Mokki2025RC!',
-    name: 'Mokki Bar Manager',
-    role: 'manager',
-    departments: ['mokki-bar']
-  },
-  {
-    id: 4,
-    login: 'ozenbar',
-    email: 'ozenbar@ritzcarlton.com',
-    password: 'Ozen2025RC!',
-    name: 'Ozen Bar Manager',
-    role: 'manager',
-    departments: ['ozen-bar']
-  }
-]
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
@@ -49,24 +14,28 @@ export function AuthProvider({ children }) {
   const [token, setToken] = useState(null)
 
   useEffect(() => {
-    // Проверяем сохранённого пользователя в localStorage
+    // Check saved user in localStorage
     const savedUser = localStorage.getItem('freshtrack_user')
     const savedToken = localStorage.getItem('freshtrack_token')
 
     if (savedUser && savedToken) {
-      setUser(JSON.parse(savedUser))
-      setToken(savedToken)
+      try {
+        setUser(JSON.parse(savedUser))
+        setToken(savedToken)
+      } catch (e) {
+        // Invalid data in localStorage
+        localStorage.removeItem('freshtrack_user')
+        localStorage.removeItem('freshtrack_token')
+      }
     }
     setLoading(false)
   }, [])
 
   /**
-   * Вход в систему
-   * Поддерживает вход по email ИЛИ логину
+   * Login - supports email OR username
    */
   const login = async (identifier, password) => {
     try {
-      // Пробуем через API
       const response = await authAPI.login(identifier, password)
 
       if (response.success) {
@@ -80,43 +49,16 @@ export function AuthProvider({ children }) {
 
       return { success: false, error: response.error || 'Invalid credentials' }
     } catch (error) {
-      console.warn('API login failed, trying local auth:', error.message)
-
-      // Fallback на локальную авторизацию
-      return localLogin(identifier, password)
-    }
-  }
-
-  /**
-   * Локальная авторизация (fallback если backend недоступен)
-   */
-  const localLogin = (identifier, password) => {
-    // Определяем, это email или логин
-    const isEmail = identifier.includes('@')
-
-    const foundUser = systemUsers.find((u) => {
-      if (isEmail) {
-        return u.email === identifier && u.password === password
+      console.error('Login error:', error.message)
+      return { 
+        success: false, 
+        error: 'Unable to connect to server. Please check your connection.' 
       }
-      return u.login === identifier && u.password === password
-    })
-
-    if (foundUser) {
-      // eslint-disable-next-line no-unused-vars
-      const { password: _unused, ...userWithoutPassword } = foundUser
-      setUser(userWithoutPassword)
-      localStorage.setItem('freshtrack_user', JSON.stringify(userWithoutPassword))
-      return { success: true }
-    }
-
-    return {
-      success: false,
-      error: 'Неверные данные. Попробуйте admin / AdminRC2025!'
     }
   }
 
   /**
-   * Регистрация нового пользователя
+   * Register new user
    */
   const register = async (userData) => {
     try {
@@ -133,15 +75,15 @@ export function AuthProvider({ children }) {
 
       return { success: false, error: response.error }
     } catch (error) {
-      return { success: false, error: 'Registration failed' }
+      return { success: false, error: 'Registration failed. Please try again.' }
     }
   }
 
   /**
-   * Выход из системы
+   * Logout
    */
   const logout = async () => {
-    // Логируем выход на сервере (игнорируем ошибки)
+    // Log logout on server
     try {
       const currentToken = token || localStorage.getItem('freshtrack_token')
       if (currentToken) {
@@ -163,23 +105,24 @@ export function AuthProvider({ children }) {
   }
 
   /**
-   * Проверка, является ли пользователь админом
+   * Check if user is admin
    */
   const isAdmin = () => {
-    return user?.role === 'admin'
+    const role = user?.role?.toLowerCase()
+    return role === 'admin' || role === 'administrator' || role === 'super_admin'
   }
 
   /**
-   * Проверка, имеет ли пользователь доступ к отделу
+   * Check if user has access to department
    */
   const hasAccessToDepartment = (departmentId) => {
     if (!user) return false
-    if (user.role === 'admin') return true
+    if (isAdmin()) return true
     return user.departments?.includes(departmentId)
   }
 
   /**
-   * Получить доступные отделы пользователя
+   * Get user's accessible departments
    */
   const getAccessibleDepartments = () => {
     if (!user) return []
@@ -187,12 +130,32 @@ export function AuthProvider({ children }) {
   }
 
   /**
-   * Обновить данные пользователя
+   * Update user data
    */
   const updateUser = (userData) => {
     const updatedUser = { ...user, ...userData }
     setUser(updatedUser)
     localStorage.setItem('freshtrack_user', JSON.stringify(updatedUser))
+  }
+
+  /**
+   * Check permission
+   */
+  const hasPermission = (permission) => {
+    if (!user) return false
+    if (isAdmin()) return true
+    
+    const userPermissions = user.permissions || []
+    if (userPermissions.includes('*')) return true
+    
+    return userPermissions.some(p => {
+      if (p === permission) return true
+      if (p.endsWith('.*')) {
+        const prefix = p.slice(0, -2)
+        return permission.startsWith(prefix)
+      }
+      return false
+    })
   }
 
   const value = {
@@ -206,7 +169,8 @@ export function AuthProvider({ children }) {
     isAdmin,
     hasAccessToDepartment,
     getAccessibleDepartments,
-    updateUser
+    updateUser,
+    hasPermission
   }
 
   return <AuthContext.Provider value={value}>{!loading && children}</AuthContext.Provider>

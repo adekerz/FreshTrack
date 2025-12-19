@@ -1,7 +1,7 @@
 {
   "name": "freshtrack",
   "version": "1.0.0",
-  "description": "Expiry Date Tracking System for Ritz-Carlton",
+  "description": "Enterprise Inventory & Expiration Date Management System",
   "private": true,
   "type": "module",
   "scripts": {

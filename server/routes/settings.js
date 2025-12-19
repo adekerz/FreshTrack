@@ -10,6 +10,122 @@ import { logAction } from './audit-logs.js'
 const router = express.Router()
 
 /**
+ * GET /api/settings/general - Получить общие настройки
+ */
+router.get('/general', (req, res) => {
+  try {
+    res.json({
+      siteName: getSetting('SITE_NAME') || 'FreshTrack',
+      departmentName: getSetting('DEPARTMENT_NAME') || '',
+      timezone: getSetting('TIMEZONE') || 'Asia/Almaty',
+      dateFormat: getSetting('DATE_FORMAT') || 'DD.MM.YYYY',
+      warningDays: parseInt(getSetting('WARNING_DAYS')) || 7,
+      criticalDays: parseInt(getSetting('CRITICAL_DAYS')) || 3
+    })
+  } catch (error) {
+    console.error('Error fetching general settings:', error)
+    res.status(500).json({ error: 'Failed to fetch general settings' })
+  }
+})
+
+/**
+ * PUT /api/settings/general - Обновить общие настройки
+ */
+router.put('/general', (req, res) => {
+  try {
+    const userId = req.user?.id || null
+    const { siteName, departmentName, timezone, dateFormat, warningDays, criticalDays } = req.body
+    
+    // Проверяем права (только админ может менять настройки)
+    const userRole = req.user?.role?.toLowerCase()?.replace('istrator', '') || ''
+    if (userRole !== 'admin') {
+      return res.status(403).json({ error: 'Only admins can change settings' })
+    }
+    
+    if (siteName !== undefined) setSetting('SITE_NAME', siteName, userId)
+    if (departmentName !== undefined) setSetting('DEPARTMENT_NAME', departmentName, userId)
+    if (timezone !== undefined) setSetting('TIMEZONE', timezone, userId)
+    if (dateFormat !== undefined) setSetting('DATE_FORMAT', dateFormat, userId)
+    if (warningDays !== undefined) setSetting('WARNING_DAYS', String(warningDays), userId)
+    if (criticalDays !== undefined) setSetting('CRITICAL_DAYS', String(criticalDays), userId)
+    
+    // Записываем в audit log
+    const userName = req.user?.name || req.user?.login || 'Unknown'
+    logAction(userId, userName, 'settingsChange', 'General settings', 'settings', 'Изменены общие настройки', req.ip)
+    
+    res.json({ success: true })
+  } catch (error) {
+    console.error('Error updating general settings:', error)
+    res.status(500).json({ error: 'Failed to update general settings' })
+  }
+})
+
+/**
+ * GET /api/settings/telegram - Получить настройки Telegram
+ */
+router.get('/telegram', (req, res) => {
+  try {
+    const botToken = getSetting('TELEGRAM_BOT_TOKEN') || ''
+    const userRole = req.user?.role?.toLowerCase()?.replace('istrator', '') || ''
+    
+    res.json({
+      botToken: userRole === 'admin' ? botToken : (botToken ? botToken.slice(0, 10) + '...' : ''),
+      chatId: getSetting('TELEGRAM_CHAT_ID') || '-5090103384',
+      enabled: getSetting('TELEGRAM_ENABLED') !== 'false',
+      scheduleTime: getSetting('TELEGRAM_SCHEDULE_TIME') || '09:00',
+      messageTemplates: {
+        dailyReport: getSetting('TELEGRAM_TEMPLATE_DAILY') || '📊 Ежедневный отчёт FreshTrack\n\n✅ В норме: {good}\n⚠️ Скоро истекает: {warning}\n🔴 Просрочено: {expired}',
+        expiryWarning: getSetting('TELEGRAM_TEMPLATE_WARNING') || '⚠️ Внимание! {product} истекает {date} ({quantity} шт)',
+        expiredAlert: getSetting('TELEGRAM_TEMPLATE_EXPIRED') || '🔴 ПРОСРОЧЕНО: {product} — {quantity} шт',
+        collectionConfirm: getSetting('TELEGRAM_TEMPLATE_COLLECTION') || '✅ Собрано: {product} — {quantity} шт\nПричина: {reason}'
+      }
+    })
+  } catch (error) {
+    console.error('Error fetching telegram settings:', error)
+    res.status(500).json({ error: 'Failed to fetch telegram settings' })
+  }
+})
+
+/**
+ * PUT /api/settings/telegram - Обновить настройки Telegram
+ */
+router.put('/telegram', (req, res) => {
+  try {
+    const userId = req.user?.id || null
+    const { botToken, chatId, enabled, scheduleTime, messageTemplates } = req.body
+    
+    // Проверяем права (только админ может менять настройки)
+    const userRole = req.user?.role?.toLowerCase()?.replace('istrator', '') || ''
+    if (userRole !== 'admin') {
+      return res.status(403).json({ error: 'Only admins can change settings' })
+    }
+    
+    if (botToken !== undefined && !botToken.includes('...')) {
+      setSetting('TELEGRAM_BOT_TOKEN', botToken, userId)
+    }
+    if (chatId !== undefined) setSetting('TELEGRAM_CHAT_ID', chatId, userId)
+    if (enabled !== undefined) setSetting('TELEGRAM_ENABLED', String(enabled), userId)
+    if (scheduleTime !== undefined) setSetting('TELEGRAM_SCHEDULE_TIME', scheduleTime, userId)
+    
+    if (messageTemplates) {
+      if (messageTemplates.dailyReport) setSetting('TELEGRAM_TEMPLATE_DAILY', messageTemplates.dailyReport, userId)
+      if (messageTemplates.expiryWarning) setSetting('TELEGRAM_TEMPLATE_WARNING', messageTemplates.expiryWarning, userId)
+      if (messageTemplates.expiredAlert) setSetting('TELEGRAM_TEMPLATE_EXPIRED', messageTemplates.expiredAlert, userId)
+      if (messageTemplates.collectionConfirm) setSetting('TELEGRAM_TEMPLATE_COLLECTION', messageTemplates.collectionConfirm, userId)
+    }
+    
+    // Записываем в audit log
+    const userName = req.user?.name || req.user?.login || 'Unknown'
+    logAction(userId, userName, 'settingsChange', 'Telegram settings', 'settings', 'Изменены настройки Telegram', req.ip)
+    
+    res.json({ success: true })
+  } catch (error) {
+    console.error('Error updating telegram settings:', error)
+    res.status(500).json({ error: 'Failed to update telegram settings' })
+  }
+})
+
+/**
  * GET /api/settings - Получить все настройки
  */
 router.get('/', (req, res) => {

@@ -1,6 +1,8 @@
 /**
  * Settings Page - Страница настроек
  * Настройки системы и профиля пользователя
+ * Расширенная админ-панель для управления всем
+ * Updated: 2024-12-14
  */
 
 import { useState } from 'react'
@@ -14,10 +16,23 @@ import {
   Settings,
   Check,
   AlertCircle,
-  Image
+  Image,
+  Users,
+  Package,
+  Tags,
+  FileBox,
+  Send,
+  Palette,
+  Database
 } from 'lucide-react'
 import NotificationRulesSettings from '../components/NotificationRulesSettings'
 import CustomContentSettings from '../components/CustomContentSettings'
+import GeneralSettings from '../components/settings/GeneralSettings'
+import UsersSettings from '../components/settings/UsersSettings'
+import CategoriesSettings from '../components/settings/CategoriesSettings'
+import TemplatesSettings from '../components/settings/TemplatesSettings'
+import TelegramSettings from '../components/settings/TelegramSettings'
+import ImportExportSettings from '../components/settings/ImportExportSettings'
 
 export default function SettingsPage() {
   const { t } = useTranslation()
@@ -50,19 +65,30 @@ export default function SettingsPage() {
 
   const userRole = normalizeRole(user?.role)
 
-  // Табы настроек (убраны Отделы, правила только для admin)
-  const tabs = [
+  // Табы для обычных пользователей
+  const userTabs = [
     { id: 'profile', icon: User, label: t('settings.tabs.profile') },
     { id: 'notifications', icon: Bell, label: t('settings.tabs.notifications') },
-    { id: 'language', icon: Languages, label: t('settings.tabs.language') },
-    ...(userRole === 'admin'
-      ? [
-          { id: 'rules', icon: Bell, label: t('settings.tabs.rules') || 'Правила' },
-          { id: 'branding', icon: Image, label: t('settings.tabs.branding') || 'Брендинг' },
-          { id: 'system', icon: Settings, label: t('settings.tabs.system') }
-        ]
-      : [])
+    { id: 'language', icon: Languages, label: t('settings.tabs.language') }
   ]
+
+  // Расширенные табы для админа
+  const adminTabs = [
+    { id: 'profile', icon: User, label: t('settings.tabs.profile') },
+    { id: 'general', icon: Settings, label: t('settings.tabs.general') || 'Общие' },
+    { id: 'users', icon: Users, label: t('settings.tabs.users') || 'Пользователи' },
+    { id: 'categories', icon: Tags, label: t('settings.tabs.categories') || 'Категории' },
+    { id: 'templates', icon: FileBox, label: t('settings.tabs.templates') || 'Шаблоны' },
+    { id: 'rules', icon: Bell, label: t('settings.tabs.rules') || 'Правила' },
+    { id: 'telegram', icon: Send, label: t('settings.tabs.telegram') || 'Telegram' },
+    { id: 'branding', icon: Palette, label: t('settings.tabs.branding') || 'Брендинг' },
+    { id: 'import-export', icon: Database, label: t('settings.tabs.importExport') || 'Импорт/Экспорт' },
+    { id: 'language', icon: Languages, label: t('settings.tabs.language') },
+    { id: 'system', icon: Shield, label: t('settings.tabs.system') }
+  ]
+
+  // Выбор табов в зависимости от роли
+  const tabs = userRole === 'admin' ? adminTabs : userTabs
 
   // Сохранение настроек
   const handleSave = async () => {
@@ -371,16 +397,18 @@ export default function SettingsPage() {
           {activeTab === 'profile' && renderProfile()}
           {activeTab === 'notifications' && renderNotifications()}
           {activeTab === 'language' && renderLanguage()}
+          {activeTab === 'general' && userRole === 'admin' && <GeneralSettings />}
+          {activeTab === 'users' && userRole === 'admin' && <UsersSettings />}
+          {activeTab === 'categories' && userRole === 'admin' && <CategoriesSettings />}
+          {activeTab === 'templates' && userRole === 'admin' && <TemplatesSettings />}
           {activeTab === 'rules' && userRole === 'admin' && <NotificationRulesSettings />}
+          {activeTab === 'telegram' && userRole === 'admin' && <TelegramSettings />}
           {activeTab === 'branding' && userRole === 'admin' && <CustomContentSettings />}
+          {activeTab === 'import-export' && userRole === 'admin' && <ImportExportSettings />}
           {activeTab === 'system' && userRole === 'admin' && renderSystem()}
 
-          {/* Кнопка сохранения */}
-          {activeTab !== 'language' &&
-            activeTab !== 'profile' &&
-            activeTab !== 'rules' &&
-            activeTab !== 'departments' &&
-            activeTab !== 'branding' && (
+          {/* Кнопка сохранения (только для вкладок уведомлений у обычных пользователей) */}
+          {activeTab === 'notifications' && userRole !== 'admin' && (
               <div className="flex justify-end pt-6 mt-6 border-t border-sand">
                 <button
                   onClick={handleSave}

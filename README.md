@@ -1,314 +1,277 @@
-# 🏨 FreshTrack - Inventory Management System
+# 🏨 FreshTrack Enterprise
 
-Современная система управления инвентарём и контроля сроков годности для отелей и ресторанов.  
-*Designed in "Quiet Luxury" style.*
+**Enterprise Inventory & Expiration Date Management System**
 
-![FreshTrack](https://img.shields.io/badge/version-2.0.0-blue.svg)
+Modern multi-property inventory management platform for hospitality, food service, and retail industries.  
+*Designed with "Quiet Luxury" aesthetics for premium establishments.*
+
+![FreshTrack](https://img.shields.io/badge/version-2.0.0_Enterprise-blue.svg)
 ![React](https://img.shields.io/badge/React-18.2.0-61dafb.svg)
 ![Node.js](https://img.shields.io/badge/Node.js-18+-339933.svg)
 ![SQLite](https://img.shields.io/badge/SQLite-3-003B57.svg)
-![License](https://img.shields.io/badge/license-MIT-green.svg)
-
-## ✨ Возможности
-
-- 📦 **Управление инвентарём** — отслеживание продуктов по отделам и категориям
-- ⏰ **Контроль сроков годности** — автоматические уведомления о просроченных и истекающих продуктах
-- 📱 **Telegram интеграция** — ежедневные уведомления в Telegram чат
-- 🌐 **Мультиязычность** — Русский, English, Қазақша
-- 🔐 **Авторизация** — JWT-based аутентификация с ролями (Admin/User)
-- 📊 **Аналитика** — статистика по отделам, рейтинг эффективности
-- 📅 **Календарь** — визуализация сроков годности
-- 📋 **История сборов** — учёт собранных просроченных товаров
-- 📝 **Журнал аудита** — логирование всех действий
-- 📱 **PWA** — работает как мобильное приложение
-- 🎨 **Quiet Luxury дизайн** — минималистичный элегантный интерфейс
-
-## 🛠️ Технологии
-
-### Frontend
-- **React 18** + **Vite** — современный быстрый бандлер
-- **Tailwind CSS** — utility-first CSS с кастомной палитрой
-- **Lucide React** — иконки
-- **React Router v6** — маршрутизация
-- **PWA** — Service Worker для офлайн работы
-
-### Backend
-- **Node.js** + **Express** — REST API
-- **SQLite** (better-sqlite3) — легковесная база данных
-- **JWT** — авторизация
-- **bcryptjs** — хеширование паролей
-- **node-telegram-bot-api** — Telegram интеграция
-- **node-cron** — планировщик задач
-
-## 🚀 Быстрый старт
-
-### Требования
-- Node.js 18+
-- npm или yarn
-
-### 1. Клонирование репозитория
-
-```bash
-git clone https://github.com/adekerz/FreshTrack.git
-cd FreshTrack
-```
-
-### 2. Установка зависимостей
-
-```bash
-# Frontend
-npm install
-
-# Backend
-cd server
-npm install
-cd ..
-```
-
-### 3. Настройка окружения
-
-Скопируйте пример конфигурации и настройте:
-
-```bash
-cd server
-cp .env.example .env
-```
-
-Отредактируйте `server/.env`:
-
-```env
-# Server
-PORT=3001
-NODE_ENV=development
-
-# JWT Secret (измените на свой!)
-JWT_SECRET=your_secure_secret_key_here
-
-# Telegram Bot (получите токен у @BotFather)
-TELEGRAM_BOT_TOKEN=your_telegram_bot_token
-TELEGRAM_CHAT_ID=your_telegram_chat_id
-TELEGRAM_POLLING=true
-
-# Database
-DATABASE_PATH=./db/freshtrack.db
-```
-
-### 4. Запуск
-
-**Вариант 1: Два терминала**
-
-```bash
-# Терминал 1 — Backend (port 3001)
-cd server
-npm start
-
-# Терминал 2 — Frontend (port 5173)
-npm run dev
-```
-
-**Вариант 2: Параллельный запуск (Windows)**
-
-```bash
-start cmd /k "cd server && npm start" && npm run dev
-```
-
-Откройте http://localhost:5173
-
-## 👤 Демо-аккаунт
-
-```
-Логин: admin
-Пароль: AdminRC2025!
-```
-
-## 📡 API Endpoints
-
-### Авторизация
-| Метод | Endpoint | Описание |
-|-------|----------|----------|
-| POST | `/api/auth/login` | Вход |
-| POST | `/api/auth/register` | Регистрация |
-| GET | `/api/auth/me` | Текущий пользователь |
-
-### Продукты и партии
-| Метод | Endpoint | Описание |
-|-------|----------|----------|
-| GET | `/api/products` | Каталог продуктов |
-| POST | `/api/products` | Добавить продукт |
-| GET | `/api/batches` | Все партии |
-| POST | `/api/batches` | Добавить партию |
-| GET | `/api/batches/stats` | Статистика |
-| GET | `/api/batches/department/:dept` | Партии отдела |
-
-### Уведомления
-| Метод | Endpoint | Описание |
-|-------|----------|----------|
-| POST | `/api/notifications/test` | Тестовое уведомление |
-| GET | `/api/notifications/send-daily` | Отправить ежедневный отчёт |
-| GET | `/api/notifications/logs` | История уведомлений |
-
-### Сборы
-| Метод | Endpoint | Описание |
-|-------|----------|----------|
-| GET | `/api/collections` | История сборов |
-| POST | `/api/collections` | Зафиксировать сбор |
-
-### Настройки
-| Метод | Endpoint | Описание |
-|-------|----------|----------|
-| GET | `/api/settings` | Все настройки |
-| PUT | `/api/settings/:key` | Обновить настройку |
-| GET | `/api/settings/telegram/status` | Статус Telegram бота |
-
-## 📁 Структура проекта
-
-```
-FreshTrack/
-├── src/                      # Frontend
-│   ├── components/           # UI компоненты
-│   │   ├── AddBatchModal.jsx
-│   │   ├── BottomNavigation.jsx
-│   │   ├── CollectModal.jsx
-│   │   ├── DeliveryTemplateModal.jsx
-│   │   ├── ExportButton.jsx
-│   │   ├── GlobalSearch.jsx
-│   │   ├── Header.jsx
-│   │   ├── LanguageSwitcher.jsx
-│   │   ├── Layout.jsx
-│   │   ├── ProtectedRoute.jsx
-│   │   └── Sidebar.jsx
-│   ├── pages/                # Страницы
-│   │   ├── DashboardPage.jsx
-│   │   ├── InventoryPage.jsx
-│   │   ├── NotificationsPage.jsx
-│   │   ├── CalendarPage.jsx
-│   │   ├── AnalyticsPage.jsx
-│   │   ├── DepartmentRankingPage.jsx
-│   │   ├── CollectionHistoryPage.jsx
-│   │   ├── AuditLogsPage.jsx
-│   │   ├── SettingsPage.jsx
-│   │   ├── LoginPage.jsx
-│   │   └── RegisterPage.jsx
-│   ├── context/              # React Context
-│   │   ├── AuthContext.jsx
-│   │   ├── LanguageContext.jsx
-│   │   └── ProductContext.jsx
-│   ├── locales/              # Переводы
-│   │   ├── ru.json
-│   │   ├── en.json
-│   │   └── kk.json
-│   ├── services/
-│   │   └── api.js
-│   ├── utils/
-│   │   ├── dateUtils.js
-│   │   ├── exportUtils.js
-│   │   └── browserAlerts.js
-│   ├── styles/
-│   │   └── index.css
-│   ├── App.jsx
-│   └── main.jsx
-├── server/                   # Backend
-│   ├── db/
-│   │   └── database.js
-│   ├── routes/
-│   │   ├── auth.js
-│   │   ├── products.js
-│   │   ├── batches.js
-│   │   ├── collections.js
-│   │   ├── notifications.js
-│   │   ├── settings.js
-│   │   └── audit-logs.js
-│   ├── services/
-│   │   ├── scheduler.js
-│   │   └── telegram.js
-│   ├── middleware/
-│   │   └── auth.js
-│   ├── .env.example
-│   ├── index.js
-│   └── package.json
-├── public/
-│   ├── manifest.json
-│   └── sw.js
-├── index.html
-├── package.json
-├── tailwind.config.js
-├── vite.config.js
-└── README.md
-```
-
-## 🎨 Цветовая палитра (Quiet Luxury)
-
-| Цвет | HEX | Использование |
-|------|-----|---------------|
-| Cream | `#FAF8F5` | Основной фон |
-| Sand | `#F5F0E8` | Фон карточек |
-| Charcoal | `#1A1A1A` | Основной текст |
-| Warm Gray | `#6B6560` | Вторичный текст |
-| Accent | `#FF8D6B` | Акценты, кнопки |
-| Success | `#4A7C59` | Успех, в норме |
-| Warning | `#D4A853` | Предупреждения |
-| Danger | `#C4554D` | Ошибки, просрочено |
-
-## 🔔 Telegram уведомления
-
-Бот автоматически отправляет ежедневные уведомления в **09:00 (Asia/Almaty)**:
-
-- ❌ **Просроченные** — требуют немедленного сбора
-- ⚠️ **Критические (0-3 дня)** — срочное внимание
-- ⏰ **Предупреждение (3-7 дней)** — запланировать проверку
-
-### Настройка Telegram бота
-
-1. Создайте бота через [@BotFather](https://t.me/BotFather)
-2. Получите токен бота
-3. Добавьте бота в группу/канал
-4. Получите Chat ID (можно через бота [@userinfobot](https://t.me/userinfobot))
-5. Внесите данные в `server/.env`
-
-## 🌐 Мультиязычность
-
-| Язык | Код | Статус |
-|------|-----|--------|
-| 🇷🇺 Русский | `ru` | ✅ Полная поддержка |
-| 🇬🇧 English | `en` | ✅ Полная поддержка |
-| 🇰🇿 Қазақша | `kk` | ✅ Полная поддержка |
-
-Переключатель языков в правом верхнем углу.
-
-## 🔒 Безопасность
-
-- ✅ JWT токены с истечением срока действия
-- ✅ Хеширование паролей (bcrypt)
-- ✅ Защищённые роуты (Admin/User роли)
-- ✅ Валидация входных данных
-- ✅ CORS настройки
-
-## 📱 PWA
-
-FreshTrack работает как Progressive Web App:
-
-1. Откройте сайт в Chrome/Edge
-2. Нажмите "Установить" в адресной строке
-3. Приложение появится на рабочем столе
-
-## 🤝 Contributing
-
-1. Fork репозитория
-2. Создайте feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit изменения (`git commit -m 'Add amazing feature'`)
-4. Push в branch (`git push origin feature/amazing-feature`)
-5. Откройте Pull Request
-
-## 📄 Лицензия
-
-MIT License - см. [LICENSE](LICENSE) файл.
-
-## 👨‍💻 Автор
-
-**adekerz**
-
-- GitHub: [@adekerz](https://github.com/adekerz)
+![License](https://img.shields.io/badge/license-Commercial-red.svg)
 
 ---
 
-⭐ Если проект полезен, поставьте звезду!
+## ✨ Key Features
+
+### Inventory Management
+- 📦 **Multi-Department Tracking** — organize products by dynamically created departments
+- ⏰ **Expiration Monitoring** — automatic alerts for expiring and expired products
+- 📋 **Batch Management** — track individual batches with manufacturing and expiry dates
+- 🔄 **Delivery Templates** — streamline recurring deliveries with reusable templates
+
+### Enterprise Features
+- 🏢 **Multi-Property Support** — manage multiple locations from a single dashboard
+- 👥 **Role-Based Access Control (RBAC)** — granular permissions by role and department
+- 📊 **Global Analytics** — cross-property reporting and insights
+- 🏷️ **White-Label Ready** — customizable branding per organization
+- 🔌 **REST API** — comprehensive API with webhook support
+
+### Communication & Alerts
+- 📱 **Telegram Integration** — daily notifications and on-demand reports
+- 🔔 **Smart Notifications** — configurable alert rules and schedules
+- 📧 **Email Support** — integration-ready notification system
+
+### User Experience
+- 🌐 **Multilingual** — Russian, English, Kazakh (easily extensible)
+- 📱 **Progressive Web App (PWA)** — works offline, installable on mobile
+- 🎨 **Quiet Luxury Design** — minimalist, elegant interface
+- 📅 **Visual Calendar** — expiration date visualization
+
+### Compliance & Audit
+- 📝 **Audit Logs** — comprehensive action logging
+- 📋 **Collection History** — track disposed/collected items
+- 📊 **Export Reports** — Excel, PDF export capabilities
+
+---
+
+## 🛠️ Technology Stack
+
+### Frontend
+- **React 18** + **Vite** — fast, modern build tooling
+- **Tailwind CSS** — utility-first CSS with custom theme
+- **Lucide React** — premium icon set
+- **React Router v6** — client-side routing
+- **PWA** — Service Worker for offline capability
+
+### Backend
+- **Node.js** + **Express** — REST API server
+- **SQLite** (better-sqlite3) — lightweight embedded database
+- **JWT** — secure token-based authentication
+- **bcryptjs** — password hashing
+- **node-telegram-bot-api** — Telegram bot integration
+- **node-cron** — task scheduling
+
+### Database Schema
+- `users` — user accounts with roles
+- `departments` — dynamically created departments
+- `categories` — product categories
+- `products` — product catalog
+- `batches` — inventory batches with expiry tracking
+- `collections` — collection/disposal history
+- `audit_logs` — comprehensive audit trail
+- `notification_rules` — configurable notifications
+- `delivery_templates` — reusable delivery templates
+- `settings` — system configuration
+
+---
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Node.js 18+
+- npm or yarn
+
+### 1. Clone Repository
+
+```bash
+git clone https://github.com/your-org/freshtrack.git
+cd freshtrack
+```
+
+### 2. Install Dependencies
+
+```bash
+# Install all dependencies
+npm install
+
+# Install server dependencies
+cd server && npm install && cd ..
+```
+
+### 3. Environment Setup
+
+```bash
+# Copy example environment file
+cp .env.example .env
+
+# Edit with your settings
+nano .env
+```
+
+Required environment variables:
+```env
+# Server
+PORT=3001
+JWT_SECRET=your-secure-secret-key
+
+# Telegram (optional)
+TELEGRAM_BOT_TOKEN=your-bot-token
+TELEGRAM_CHAT_ID=your-chat-id
+```
+
+### 4. Start Development
+
+```bash
+# Start both frontend and backend
+npm run dev
+```
+
+Frontend: http://localhost:5173  
+API: http://localhost:3001
+
+### 5. Default Login
+
+```
+Login: admin
+Password: Admin123!
+```
+
+> ⚠️ **Important**: Change the default admin password immediately after first login!
+
+---
+
+## 📁 Project Structure
+
+```
+freshtrack/
+├── src/                    # Frontend React application
+│   ├── components/         # Reusable UI components
+│   ├── pages/              # Page components
+│   ├── context/            # React contexts (Auth, Products, Language)
+│   ├── locales/            # i18n translation files
+│   ├── utils/              # Utility functions
+│   └── styles/             # CSS styles
+├── server/                 # Backend Express application
+│   ├── routes/             # API route handlers
+│   ├── db/                 # Database schema and queries
+│   ├── services/           # Business logic (Telegram, Scheduler)
+│   └── middleware/         # Express middleware (Auth, Permissions)
+├── public/                 # Static assets
+└── docs/                   # Documentation
+```
+
+---
+
+## 🔐 API Authentication
+
+All API endpoints require JWT authentication:
+
+```bash
+# Login to get token
+curl -X POST http://localhost:3001/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"login":"admin","password":"Admin123!"}'
+
+# Use token in subsequent requests
+curl http://localhost:3001/api/batches \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+---
+
+## 🔒 Role-Based Access
+
+| Role | Permissions |
+|------|-------------|
+| `super_admin` | Full system access, multi-property management |
+| `admin` | Property-level admin, user management |
+| `manager` | Department management, reports |
+| `user` | View and manage assigned departments |
+
+---
+
+## 📊 API Endpoints
+
+### Authentication
+- `POST /api/auth/login` — User login
+- `POST /api/auth/register` — User registration
+- `GET /api/auth/me` — Current user info
+
+### Batches
+- `GET /api/batches` — List all batches
+- `POST /api/batches` — Create batch
+- `PATCH /api/batches/:id/collect` — Mark as collected
+- `GET /api/batches/stats` — Batch statistics
+
+### Departments
+- `GET /api/department-settings` — List departments
+- `POST /api/department-settings` — Create department
+
+### Categories
+- `GET /api/categories` — List categories
+- `POST /api/categories` — Create category
+
+### Settings
+- `GET /api/settings` — Get system settings
+- `PUT /api/settings` — Update settings
+
+---
+
+## 🌍 Localization
+
+Add new languages by creating translation files in `src/locales/`:
+
+```
+src/locales/
+├── en.json     # English
+├── ru.json     # Russian
+├── kk.json     # Kazakh
+└── es.json     # Spanish (add new)
+```
+
+---
+
+## 📦 Building for Production
+
+```bash
+# Build frontend
+npm run build
+
+# Build creates dist/ folder
+# Serve with any static file server
+```
+
+---
+
+## 🐳 Docker Deployment
+
+```dockerfile
+# Example Dockerfile
+FROM node:18-alpine
+WORKDIR /app
+COPY . .
+RUN npm install
+RUN npm run build
+EXPOSE 3001
+CMD ["npm", "run", "start:server"]
+```
+
+---
+
+## 📄 License
+
+Commercial License. Contact sales@freshtrack.io for licensing information.
+
+---
+
+## 🤝 Support
+
+- 📧 Email: support@freshtrack.io
+- 📖 Documentation: https://docs.freshtrack.io
+- 🐛 Issues: https://github.com/your-org/freshtrack/issues
+
+---
+
+**Built with ❤️ for the hospitality industry**
