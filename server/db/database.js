@@ -607,6 +607,11 @@ export async function updateBatch(id, updates) {
   return result.rowCount > 0
 }
 
+export async function deleteBatch(id) {
+  const result = await query('DELETE FROM batches WHERE id = $1', [id])
+  return result.rowCount > 0
+}
+
 export async function collectBatch(batchId, userId, reason = 'expired', comment = null) {
   const batch = await getBatchById(batchId)
   if (!batch) return null
