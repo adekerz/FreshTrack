@@ -213,47 +213,47 @@ freshtrack-project/
 
 Система поставляется с предустановленным каталогом продуктов для мини-баров отелей, содержащим **26 продуктов** в **4 категориях**:
 
-### 🥤 Безалкогольные напитки (Soft Drinks)
+### 🥤 Безалкогольные напитки (Soft Drinks) — 12 товаров
 | Продукт | Срок годности |
 |---------|---------------|
-| Coca-Cola 0.33L | 180 дней |
-| Pepsi 0.33L | 180 дней |
-| Sprite 0.33L | 180 дней |
-| Fanta 0.33L | 180 дней |
-| Red Bull 0.25L | 365 дней |
-| Evian Water 0.5L | 730 дней |
-| Orange Juice 0.25L | 30 дней |
-| Apple Juice 0.25L | 30 дней |
+| Pepsi | 180 дней |
+| Coca-Cola Original | 180 дней |
+| Fanta | 180 дней |
+| Sprite | 180 дней |
+| 7 Up | 180 дней |
+| Mirinda | 180 дней |
+| Pago Apple | 365 дней |
+| Pago Orange | 365 дней |
+| Red Bull | 365 дней |
+| San Pellegrino Sparkling | 730 дней |
+| Acqua Panna Still | 730 дней |
+| Coca-Cola Zero | 180 дней |
 
-### 🍷 Алкогольные напитки (Alcohol Drinks)
+### 🍺 Алкогольные напитки (Alcohol Drinks) — 2 товара
 | Продукт | Срок годности |
 |---------|---------------|
-| Heineken Beer 0.33L | 180 дней |
-| Corona Beer 0.33L | 180 дней |
-| Mini Vodka 50ml | 1825 дней |
-| Mini Whiskey 50ml | 1825 дней |
-| Mini Gin 50ml | 1825 дней |
-| Red Wine 187ml | 730 дней |
-| White Wine 187ml | 730 дней |
-| Champagne Mini 200ml | 1095 дней |
+| Budweiser | 180 дней |
+| Corona | 180 дней |
 
-### 🍫 Еда (Food)
+### 🍫 Еда (Food) — 11 товаров
 | Продукт | Срок годности |
 |---------|---------------|
-| Pringles Original 40g | 365 дней |
-| Mixed Nuts 50g | 180 дней |
-| Chocolate Bar | 365 дней |
-| Snickers Bar | 270 дней |
-| KitKat Bar | 365 дней |
-| Gummy Bears 100g | 365 дней |
-| Beef Jerky 25g | 180 дней |
-| Cheese Crackers 30g | 270 дней |
+| Kazakhstan Chocolate | 365 дней |
+| Snickers | 365 дней |
+| Mars | 365 дней |
+| Chewing Gum | 730 дней |
+| Ritter Sport | 365 дней |
+| Pistachio | 180 дней |
+| Cashew | 180 дней |
+| Chocolate Peanuts | 180 дней |
+| Gummy Bears | 365 дней |
+| Potato Chips | 90 дней |
+| Fruit Chips | 90 дней |
 
-### 📦 Прочее (Other)
+### 📦 Прочее (Other) — 1 товар
 | Продукт | Срок годности |
 |---------|---------------|
-| Premium Tea Set | 730 дней |
-| Instant Coffee Sachets | 540 дней |
+| Feminine Pack | 1095 дней |
 
 ---
 
