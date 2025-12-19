@@ -34,29 +34,17 @@ import { query } from './db/postgres.js'
 const app = express()
 const PORT = process.env.PORT || 3001
 
-// Middleware - CORS configuration
-const corsOrigins = process.env.CORS_ORIGIN 
-  ? process.env.CORS_ORIGIN.split(',').map(s => s.trim())
-  : ['http://localhost:5173', 'http://localhost:3000']
-
+// CORS - Allow all origins for now (can be restricted later)
 app.use(cors({
-  origin: function(origin, callback) {
-    // Allow requests with no origin (mobile apps, curl, etc.)
-    if (!origin) return callback(null, true)
-    
-    // Check if origin is in allowed list or matches vercel.app pattern
-    if (corsOrigins.includes(origin) || 
-        origin.endsWith('.vercel.app') || 
-        origin.endsWith('.railway.app')) {
-      return callback(null, true)
-    }
-    
-    callback(new Error('Not allowed by CORS'))
-  },
+  origin: true,
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }))
+
+// Handle preflight requests
+app.options('*', cors())
+
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true }))
 
