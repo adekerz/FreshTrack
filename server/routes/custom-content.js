@@ -4,12 +4,12 @@
  */
 
 import express from 'express'
-import { getDb } from '../db/database.js'
+import { db } from '../db/database.js'
 import multer from 'multer'
 import path from 'path'
 import fs from 'fs'
 import { fileURLToPath } from 'url'
-import { authMiddleware } from '../middleware/auth.js'
+import { authMiddleware, hotelAdminOnly } from '../middleware/auth.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -58,8 +58,6 @@ const ensureTable = () => {
   if (tableInitialized) return
   
   try {
-    const db = getDb()
-    
     db.exec(`
       CREATE TABLE IF NOT EXISTS custom_texts (
         key TEXT PRIMARY KEY,
@@ -103,7 +101,6 @@ router.use((req, res, next) => {
  */
 router.get('/', (req, res) => {
   try {
-    const db = getDb()
     const texts = db.prepare(`
       SELECT key, value, updated_at as updatedAt
       FROM custom_texts
@@ -127,7 +124,6 @@ router.get('/', (req, res) => {
  */
 router.get('/:key', (req, res) => {
   try {
-    const db = getDb()
     const { key } = req.params
     
     const text = db.prepare('SELECT value FROM custom_texts WHERE key = ?').get(key)
@@ -148,7 +144,6 @@ router.get('/:key', (req, res) => {
  */
 router.put('/:key', (req, res) => {
   try {
-    const db = getDb()
     const { key } = req.params
     const { value } = req.body
     const updatedBy = req.user?.id || null
@@ -180,7 +175,6 @@ router.put('/:key', (req, res) => {
  */
 router.put('/', (req, res) => {
   try {
-    const db = getDb()
     const { content } = req.body
     const updatedBy = req.user?.id || null
     
@@ -217,7 +211,6 @@ router.post('/upload-logo', upload.single('logo'), (req, res) => {
       return res.status(400).json({ error: 'No file uploaded' })
     }
     
-    const db = getDb()
     const logoUrl = `/uploads/${req.file.filename}`
     const updatedBy = req.user?.id || null
     
@@ -258,7 +251,6 @@ router.post('/upload-logo', upload.single('logo'), (req, res) => {
  */
 router.delete('/logo', (req, res) => {
   try {
-    const db = getDb()
     const updatedBy = req.user?.id || null
     
     // Получаем текущий логотип для удаления файла

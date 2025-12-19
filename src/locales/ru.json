@@ -42,6 +42,7 @@
     "of": "из",
     "actions": "Действия",
     "viewDetails": "Подробнее",
+    "category": "Категория",
     "justNow": "Только что",
     "minutesAgo": "мин. назад",
     "hoursAgo": "ч. назад",
@@ -149,6 +150,8 @@
     "noProducts": "Товары не найдены",
     "batches": "партий",
     "noBatches": "Нет партий",
+    "expiringSoon": "Скоро истекает",
+    "hasExpired": "Есть просроченные партии",
     "changeDepartment": "Сменить отдел",
     "addCustomProduct": "Добавить товар",
     "backToDepartments": "К отделам",
@@ -223,6 +226,7 @@
     "selectDepartment": "Выберите отдел",
     "selectCategory": "Выберите категорию",
     "selectProduct": "Выберите товар",
+    "selectedProduct": "Выбранный товар",
     "enterDetails": "Введите данные",
     "pieces": "шт."
   },
@@ -246,7 +250,11 @@
     "collectedAt": "Собрано",
     "noBatches": "Нет партий",
     "addFirstBatch": "Добавьте первую партию для этого товара",
-    "moreBatches": "ещё партий"
+    "moreBatches": "ещё партий",
+    "delete": "Удалить товар",
+    "deleteConfirmTitle": "Удалить товар?",
+    "deleteConfirmMessage": "Это действие нельзя отменить. Все партии этого товара также будут удалены.",
+    "deleteError": "Ошибка при удалении товара"
   },
   "customProduct": {
     "title": "Добавить новый товар",
@@ -255,7 +263,9 @@
     "productName": "Название товара",
     "productNamePlaceholder": "Введите название товара",
     "addToCatalog": "Добавить в каталог",
-    "errorSelectDepartment": "Выберите отдел"
+    "errorSelectDepartment": "Выберите отдел",
+    "errorSelectCategory": "Выберите категорию",
+    "errorEnterName": "Введите название товара"
   },
   "modal": {
     "batchManagement": "Управление партиями",
@@ -376,12 +386,17 @@
       "quantity": "Количество",
       "expiryDate": "Срок годности",
       "reason": "Причина",
+      "comment": "Комментарий",
       "collectedBy": "Кто собрал"
     },
     "reasons": {
       "manual": "Ручной сбор",
       "expired": "Просрочено",
       "damaged": "Повреждено",
+      "kitchen": "Использовано на кухне",
+      "disposed": "Утилизировано",
+      "staff": "Выдано сотрудникам",
+      "returned": "Возврат поставщику",
       "other": "Другое"
     }
   },
@@ -486,18 +501,32 @@
     },
     "users": {
       "title": "Управление пользователями",
+      "description": "Управление пользователями системы",
       "addUser": "Добавить пользователя",
+      "create": "Создать пользователя",
       "editUser": "Редактировать пользователя",
       "username": "Логин",
+      "login": "Логин",
+      "name": "Имя",
       "email": "Email",
       "role": "Роль",
       "status": "Статус",
       "lastLogin": "Последний вход",
       "createdAt": "Создан",
+      "hotel": "Отель",
+      "department": "Отдел",
+      "active": "Активен",
+      "block": "Заблокировать",
+      "roleAdmin": "Администратор",
+      "roleManager": "Менеджер",
+      "roleStaff": "Сотрудник",
       "roles": {
         "admin": "Администратор",
         "manager": "Менеджер",
-        "staff": "Сотрудник"
+        "staff": "Сотрудник",
+        "SUPER_ADMIN": "Супер-администратор",
+        "HOTEL_ADMIN": "Администратор отеля",
+        "STAFF": "Сотрудник"
       },
       "statuses": {
         "active": "Активен",
@@ -515,13 +544,21 @@
     },
     "categories": {
       "title": "Управление категориями",
+      "description": "Управление категориями товаров",
       "addCategory": "Добавить категорию",
       "editCategory": "Редактировать категорию",
       "name": "Название",
       "color": "Цвет",
+      "selectColor": "Выберите цвет",
+      "quickColors": "Быстрый выбор",
       "productsCount": "Товаров",
       "noCategories": "Нет категорий",
-      "confirmDelete": "Удалить категорию?"
+      "confirmDelete": "Удалить категорию?",
+      "food": "Продукты питания",
+      "beverages": "Напитки",
+      "snacks": "Закуски",
+      "alcohol": "Алкоголь",
+      "other": "Прочее"
     },
     "templates": {
       "title": "Шаблоны поставок",
@@ -613,8 +650,13 @@
     }
   },
   "export": {
+    "title": "Экспорт данных",
     "button": "Экспорт",
     "selectFormat": "Выберите формат",
+    "inventory": "Инвентарь",
+    "batches": "Все партии",
+    "collections": "История сборов",
+    "auditLog": "Журнал действий",
     "csv": "CSV файл",
     "csvDescription": "Совместим с Excel и Google Sheets",
     "excel": "Excel файл",
@@ -639,6 +681,17 @@
       "reason": "Причина",
       "collectedBy": "Собрал"
     }
+  },
+  "import": {
+    "title": "Импорт данных",
+    "description": "Массовые операции с данными",
+    "selectFile": "Выберите файл для импорта",
+    "formats": "Поддерживаемые форматы",
+    "downloadTemplate": "Скачать шаблон для импорта",
+    "processing": "Обработка...",
+    "imported": "Импортировано",
+    "error": "Ошибка импорта",
+    "success": "Импорт успешно завершён"
   },
   "departmentRanking": {
     "title": "Рейтинг отделов",
@@ -867,5 +920,133 @@
     "email": "Email",
     "enabled": "Включено",
     "disabled": "Отключено"
+  },
+  "writeOff": {
+    "title": "Списание",
+    "collect": "Собрать",
+    "collected": "Собрано",
+    "expired": "Просрочено",
+    "damaged": "Повреждено",
+    "other": "Другое",
+    "reason": "Причина списания",
+    "notes": "Примечания",
+    "quantity": "Количество",
+    "value": "Стоимость",
+    "date": "Дата списания",
+    "performedBy": "Выполнил",
+    "confirmCollect": "Подтвердить сбор?",
+    "confirmWriteOff": "Подтвердить списание?",
+    "selectReason": "Выберите причину"
+  },
+  "reports": {
+    "title": "Отчёты",
+    "pilotSummary": "Сводка пилота",
+    "dailyReport": "Ежедневный отчёт",
+    "inventorySnapshot": "Снимок инвентаря",
+    "auditLog": "Журнал действий",
+    "export": "Экспорт данных",
+    "period": "Период",
+    "startDate": "Начало",
+    "endDate": "Конец",
+    "summary": {
+      "totalWriteOffs": "Всего списаний",
+      "totalQuantity": "Общее количество",
+      "totalValue": "Общая стоимость",
+      "savedValue": "Сохранённая стоимость",
+      "efficiency": "Эффективность",
+      "atRisk": "Под угрозой"
+    },
+    "categories": {
+      "byReason": "По причине",
+      "byCategory": "По категории",
+      "byDepartment": "По отделу",
+      "topProducts": "Топ продуктов"
+    },
+    "trend": {
+      "daily": "По дням",
+      "weekly": "По неделям",
+      "monthly": "По месяцам"
+    }
+  },
+  "pilot": {
+    "title": "Пилотный проект",
+    "hotel": "Honor Bar, Ritz-Carlton Astana",
+    "description": "Отслеживание сроков годности минибара",
+    "metrics": {
+      "before": "До внедрения",
+      "after": "После внедрения",
+      "savings": "Экономия",
+      "efficiency": "Эффективность сбора"
+    }
+  },
+  "users": {
+    "title": "Управление пользователями",
+    "description": "Управление пользователями системы",
+    "addUser": "Добавить пользователя",
+    "create": "Создать пользователя",
+    "editUser": "Редактировать пользователя",
+    "username": "Логин",
+    "login": "Логин",
+    "name": "Имя",
+    "email": "Email",
+    "role": "Роль",
+    "status": "Статус",
+    "lastLogin": "Последний вход",
+    "active": "Активен",
+    "block": "Заблокировать",
+    "roleAdmin": "Администратор",
+    "roleManager": "Менеджер",
+    "roleStaff": "Сотрудник",
+    "fillRequired": "Заполните обязательные поля"
+  },
+  "categorySettings": {
+    "title": "Управление категориями",
+    "description": "Управление категориями товаров",
+    "addCategory": "Добавить категорию",
+    "name": "Название",
+    "color": "Цвет",
+    "selectColor": "Выберите цвет",
+    "quickColors": "Быстрый выбор"
+  },
+  "templates": {
+    "title": "Шаблоны поставок",
+    "description": "Управление шаблонами для быстрого добавления товаров",
+    "create": "Создать шаблон",
+    "noTemplates": "Шаблонов пока нет",
+    "createFirst": "Создайте первый шаблон",
+    "name": "Название шаблона",
+    "namePlaceholder": "Например: Ежедневная поставка",
+    "descriptionLabel": "Описание",
+    "descriptionPlaceholder": "Описание шаблона (опционально)",
+    "selectProducts": "Выберите товары",
+    "selectedProducts": "Выбранные товары",
+    "quantity": "Кол-во",
+    "shelfLife": "Срок (дн.)",
+    "products": "товаров",
+    "editTemplate": "Редактировать шаблон",
+    "confirmDelete": "Удалить шаблон?"
+  },
+  "telegram": {
+    "title": "Настройки Telegram",
+    "description": "Настройки Telegram-бота для уведомлений",
+    "connection": "Подключение",
+    "botToken": "Токен бота",
+    "chatId": "ID чата",
+    "enabled": "Уведомления включены",
+    "test": "Тест отправки",
+    "testSuccess": "Тестовое сообщение отправлено!",
+    "testError": "Ошибка отправки",
+    "schedule": "Расписание",
+    "scheduleTime": "Время ежедневного отчёта",
+    "messageTemplates": "Шаблоны сообщений",
+    "templatesHint": "Используйте переменные в фигурных скобках",
+    "dailyReport": "Ежедневный отчёт",
+    "expiryWarning": "Предупреждение об истечении",
+    "expiredAlert": "Уведомление о просрочке",
+    "collectionConfirm": "Подтверждение сбора",
+    "variables": "Переменные",
+    "save": "Сохранить",
+    "saving": "Сохранение...",
+    "saved": "Настройки сохранены"
   }
 }

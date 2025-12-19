@@ -4,17 +4,18 @@
  */
 
 import { useState, useMemo } from 'react'
-import { useTranslation } from '../context/LanguageContext'
+import { useTranslation, useLanguage } from '../context/LanguageContext'
 import { useAuth } from '../context/AuthContext'
-import { useProducts, departments } from '../context/ProductContext'
+import { useProducts } from '../context/ProductContext'
 import ExportButton from '../components/ExportButton'
 import { EXPORT_COLUMNS } from '../utils/exportUtils'
 import { Package, AlertTriangle, CheckCircle, Clock } from 'lucide-react'
 
 export default function StatisticsPage() {
   const { t } = useTranslation()
+  const { language } = useLanguage()
   const { user } = useAuth()
-  const { getActiveBatches, getStats } = useProducts()
+  const { getActiveBatches, getStats, departments, categories } = useProducts()
   const [selectedPeriod, setSelectedPeriod] = useState('week')
 
   const stats = getStats()
@@ -22,7 +23,7 @@ export default function StatisticsPage() {
 
   // Фильтрация доступных отделов для пользователя
   const userDepartments = useMemo(() => {
-    if (user?.role === 'admin') return departments
+    if (['SUPER_ADMIN', 'HOTEL_ADMIN'].includes(user?.role)) return departments
     return departments.filter((d) => user?.departments?.includes(d.id))
   }, [user])
 
@@ -56,9 +57,9 @@ export default function StatisticsPage() {
     const categories = {}
 
     batches.forEach((batch) => {
-      if (!user?.role === 'admin' && !user?.departments?.includes(batch.departmentId)) return
+      if (!['SUPER_ADMIN', 'HOTEL_ADMIN'].includes(user?.role) && !user?.departments?.includes(batch.departmentId)) return
 
-      const cat = batch.category || 'other'
+      const cat = batch.category && batch.category !== 'undefined' ? batch.category : 'other'
       if (!categories[cat]) {
         categories[cat] = { total: 0, expired: 0, quantity: 0 }
       }
@@ -67,46 +68,72 @@ export default function StatisticsPage() {
       if (batch.daysLeft < 0) categories[cat].expired++
     })
 
-    return Object.entries(categories).map(([key, data]) => ({
-      id: key,
-      name: t(`categories.${key}`) || key,
-      ...data
-    }))
+    return Object.entries(categories).map(([key, data]) => {
+      const translatedName = t(`categories.${key}`)
+      return {
+        id: key,
+        name: translatedName && !translatedName.includes('categories.') ? translatedName : key,
+        ...data
+      }
+    })
   }, [batches, user, t])
 
   // Топ товаров, требующих внимания
   const topAlertProducts = useMemo(() => {
     return batches
       .filter((b) => {
-        if (user?.role !== 'admin' && !user?.departments?.includes(b.departmentId)) return false
+        if (!['SUPER_ADMIN', 'HOTEL_ADMIN'].includes(user?.role) && !user?.departments?.includes(b.departmentId)) return false
         return b.daysLeft <= 7
       })
       .sort((a, b) => a.daysLeft - b.daysLeft)
       .slice(0, 5)
   }, [batches, user])
 
-  // Подготовка данных для экспорта
+  // Подготовка данных для экспорта (синхронизировано с InventoryPage)
   const exportData = useMemo(() => {
-    return batches.map((batch) => ({
-      productName: batch.name || batch.productName,
-      category: t(`categories.${batch.category}`) || batch.category,
-      department: departments.find((d) => d.id === batch.departmentId)?.name || batch.departmentId,
-      quantity: batch.quantity || 1,
-      unit: batch.unit || 'шт',
-      formattedDate: batch.expiryDate
-        ? new Date(batch.expiryDate).toLocaleDateString('ru-RU')
-        : '-',
-      daysLeft: batch.daysLeft ?? '-',
-      statusLabel:
-        {
-          good: t('common.good') || 'Хорошо',
-          warning: t('common.warning') || 'Внимание',
-          critical: t('common.critical') || 'Критично',
-          expired: t('common.expired') || 'Просрочено'
-        }[batch.status] || '-',
-      status: batch.status
-    }))
-  }, [batches, t])
+    // Функция для получения названия категории
+    const getCategoryName = (categoryId) => {
+      const cat = categories.find(c => c.id === categoryId)
+      if (!cat) return '-'
+      if (language === 'ru') return cat.nameRu || cat.name || '-'
+      if (language === 'kk') return cat.nameKz || cat.name || '-'
+      return cat.name || '-'
+    }
+
+    // Функция для получения текста статуса
+    // Синхронизировано с dateUtils.js - пороги: expired(<0), today(0), critical(1-3), warning(4-7), good(>7)
+    const getStatusLabel = (status) => {
+      if (!status) return '-'
+      const statusMap = {
+        good: t('common.good') || 'В норме',
+        ok: t('common.good') || 'В норме',
+        warning: t('common.warning') || 'Внимание',
+        critical: t('common.critical') || 'Критично',
+        today: t('common.today') || 'Истекает сегодня',
+        expired: t('common.expired') || 'Просрочено'
+      }
+      return statusMap[status] || status || '-'
+    }
+
+    return batches.map((batch) => {
+      const categoryName = getCategoryName(batch.categoryId) || '-'
+      const status = batch.status?.status || batch.status
+      
+      return {
+        productName: batch.name || batch.productName,
+        category: categoryName,
+        department: departments.find((d) => d.id === batch.departmentId)?.name || batch.departmentId,
+        quantity: batch.quantity || 1,
+        unit: batch.unit || 'шт',
+        formattedDate: batch.expiryDate
+          ? new Date(batch.expiryDate).toLocaleDateString('ru-RU')
+          : '-',
+        daysLeft: batch.daysLeft ?? '-',
+        statusLabel: getStatusLabel(status),
+        status: status || 'good'
+      }
+    })
+  }, [batches, departments, categories, language, t])
 
   // Статистические карточки
   const statCards = [

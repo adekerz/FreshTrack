@@ -21,6 +21,12 @@ export function getDaysUntilExpiry(expiryDate) {
 
 /**
  * Get expiry status based on days remaining
+ * Пороговые значения синхронизированы с сервером:
+ * - expired: < 0 дней (просрочено)
+ * - today: 0 дней (сегодня)
+ * - critical: 1-3 дня (критично)
+ * - warning: 4-7 дней (внимание)
+ * - good: > 7 дней (в норме)
  * @param {number} days - Days until expiry
  * @returns {object} - Status object with status, label, and color
  */
@@ -36,9 +42,6 @@ export function getExpiryStatus(days) {
   }
   if (days <= 7) {
     return { status: 'warning', label: 'Expiring Soon', color: 'warning' }
-  }
-  if (days <= 14) {
-    return { status: 'attention', label: 'Attention', color: 'warning' }
   }
   return { status: 'good', label: 'Good', color: 'success' }
 }

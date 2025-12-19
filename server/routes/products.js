@@ -1,6 +1,6 @@
 /**
  * FreshTrack Products API
- * CRUD операции для продуктов
+ * Product catalog management with hotel isolation
  */
 
 import express from 'express'
@@ -10,61 +10,49 @@ import {
   createProduct, 
   updateProduct, 
   deleteProduct,
-  getExpiredProducts,
-  getExpiringTodayProducts,
-  getExpiringSoonProducts
+  getAllCategories,
+  logAudit,
+  db 
 } from '../db/database.js'
+import { authMiddleware, hotelAdminOnly, hotelIsolation } from '../middleware/auth.js'
 
 const router = express.Router()
 
-/**
- * GET /api/products/catalog - Получить каталог продуктов для шаблонов
- */
-router.get('/catalog', (req, res) => {
-  try {
-    const products = getAllProducts()
-    
-    // Группируем продукты по категориям
-    const catalog = {}
-    products.forEach(p => {
-      const category = p.category || 'other'
-      if (!catalog[category]) {
-        catalog[category] = []
+// Middleware to require hotel context (with auto-selection for SUPER_ADMIN)
+const requireHotelContext = (req, res, next) => {
+  if (!req.hotelId) {
+    if (req.user?.role === 'SUPER_ADMIN') {
+      const firstHotel = db.prepare('SELECT id FROM hotels WHERE is_active = 1 LIMIT 1').get()
+      if (firstHotel) {
+        req.hotelId = firstHotel.id
+        return next()
       }
-      catalog[category].push({
-        id: p.id,
-        name: p.name,
-        department: p.department,
-        category: p.category,
-        defaultShelfLife: p.default_shelf_life || 30
-      })
-    })
-    
-    res.json({ products, catalog })
-  } catch (error) {
-    console.error('Error fetching product catalog:', error)
-    res.status(500).json({ error: 'Failed to fetch product catalog' })
+    }
+    return res.status(400).json({ error: 'Hotel context required' })
   }
-})
+  next()
+}
 
 /**
- * GET /api/products - Получить все продукты
+ * GET /api/products - Get all products with hotel isolation
  */
-router.get('/', (req, res) => {
+router.get('/', authMiddleware, hotelIsolation, requireHotelContext, (req, res) => {
   try {
-    const products = getAllProducts()
+    const products = getAllProducts(req.hotelId)
     
-    // Преобразуем формат для совместимости с frontend
-    const formattedProducts = products.map(p => ({
+    res.json(products.map(p => ({
       id: p.id,
       name: p.name,
-      department: p.department,
-      category: p.category,
-      quantity: p.quantity,
-      expiryDate: p.expiry_date // Frontend использует camelCase
-    }))
-    
-    res.json(formattedProducts)
+      nameEn: p.name_en,
+      nameKk: p.name_kk,
+      categoryId: p.category_id,
+      categoryName: p.category_name,
+      barcode: p.barcode,
+      defaultShelfLife: p.default_shelf_life,
+      unit: p.unit,
+      hotelId: p.hotel_id,
+      isActive: Boolean(p.is_active)
+    })))
   } catch (error) {
     console.error('Error fetching products:', error)
     res.status(500).json({ error: 'Failed to fetch products' })
@@ -72,23 +60,75 @@ router.get('/', (req, res) => {
 })
 
 /**
- * GET /api/products/:id - Получить продукт по ID
+ * GET /api/products/catalog - Get product catalog grouped by category
  */
-router.get('/:id', (req, res) => {
+router.get('/catalog', authMiddleware, hotelIsolation, (req, res) => {
   try {
-    const product = getProductById(parseInt(req.params.id))
+    const products = getAllProducts(req.hotelId)
+    const categories = getAllCategories(req.hotelId)
+    
+    // Group products by category
+    const catalog = {}
+    categories.forEach(cat => {
+      catalog[cat.id] = {
+        id: cat.id,
+        name: cat.name,
+        color: cat.color,
+        products: []
+      }
+    })
+    
+    products.forEach(p => {
+      if (p.category_id && catalog[p.category_id]) {
+        catalog[p.category_id].products.push({
+          id: p.id,
+          name: p.name,
+          barcode: p.barcode,
+          defaultShelfLife: p.default_shelf_life,
+          unit: p.unit
+        })
+      }
+    })
+    
+    res.json({ 
+      success: true,
+      products,
+      catalog: Object.values(catalog)
+    })
+  } catch (error) {
+    console.error('Error fetching product catalog:', error)
+    res.status(500).json({ error: 'Failed to fetch product catalog' })
+  }
+})
+
+/**
+ * GET /api/products/:id - Get product by ID
+ */
+router.get('/:id', authMiddleware, hotelIsolation, (req, res) => {
+  try {
+    const { id } = req.params
+    const product = getProductById(id)
     
     if (!product) {
       return res.status(404).json({ error: 'Product not found' })
     }
     
+    // Check hotel access
+    if (req.hotelId && product.hotel_id !== req.hotelId) {
+      return res.status(403).json({ error: 'Access denied to this product' })
+    }
+    
     res.json({
       id: product.id,
       name: product.name,
-      department: product.department,
-      category: product.category,
-      quantity: product.quantity,
-      expiryDate: product.expiry_date
+      nameEn: product.name_en,
+      nameKk: product.name_kk,
+      categoryId: product.category_id,
+      barcode: product.barcode,
+      defaultShelfLife: product.default_shelf_life,
+      unit: product.unit,
+      hotelId: product.hotel_id,
+      isActive: Boolean(product.is_active)
     })
   } catch (error) {
     console.error('Error fetching product:', error)
@@ -97,32 +137,57 @@ router.get('/:id', (req, res) => {
 })
 
 /**
- * POST /api/products - Создать новый продукт
+ * POST /api/products - Create product
+ * Any authenticated user can create products for their hotel
  */
-router.post('/', (req, res) => {
+router.post('/', authMiddleware, hotelIsolation, requireHotelContext, (req, res) => {
   try {
-    const { name, department, category, quantity, expiryDate } = req.body
+    const { name, nameEn, nameKk, categoryId, barcode, defaultShelfLife, unit } = req.body
     
-    // Валидация
-    if (!name || !department || !category || !quantity || !expiryDate) {
-      return res.status(400).json({ error: 'All fields are required' })
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: 'Product name is required' })
     }
     
-    const newProduct = createProduct({
-      name,
-      department,
-      category,
-      quantity: parseInt(quantity),
-      expiry_date: expiryDate
+    if (!req.hotelId) {
+      return res.status(400).json({ error: 'Hotel ID is required' })
+    }
+    
+    const product = createProduct({
+      hotel_id: req.hotelId,
+      category_id: categoryId,
+      name: name.trim(),
+      name_en: nameEn || name.trim(),
+      name_kk: nameKk || name.trim(),
+      barcode,
+      default_shelf_life: defaultShelfLife || 30,
+      unit: unit || 'pcs'
     })
     
-    res.status(201).json({
-      id: newProduct.id,
-      name: newProduct.name,
-      department: newProduct.department,
-      category: newProduct.category,
-      quantity: newProduct.quantity,
-      expiryDate: newProduct.expiry_date
+    // Log action
+    logAudit({
+      hotel_id: req.hotelId,
+      user_id: req.user.id,
+      user_name: req.user.name,
+      action: 'create',
+      entity_type: 'product',
+      entity_id: product.id,
+      details: { name },
+      ip_address: req.ip
+    })
+    
+    res.status(201).json({ 
+      success: true,
+      product: {
+        id: product.id,
+        name: product.name,
+        nameEn: product.name_en,
+        nameKk: product.name_kk,
+        categoryId: product.category_id,
+        barcode: product.barcode,
+        defaultShelfLife: product.default_shelf_life,
+        unit: product.unit,
+        hotelId: product.hotel_id
+      }
     })
   } catch (error) {
     console.error('Error creating product:', error)
@@ -131,34 +196,51 @@ router.post('/', (req, res) => {
 })
 
 /**
- * PUT /api/products/:id - Обновить продукт
+ * PUT /api/products/:id - Update product
+ * HOTEL_ADMIN or higher
  */
-router.put('/:id', (req, res) => {
+router.put('/:id', authMiddleware, hotelAdminOnly, hotelIsolation, (req, res) => {
   try {
-    const id = parseInt(req.params.id)
-    const { name, department, category, quantity, expiryDate } = req.body
+    const { id } = req.params
+    const { name, nameEn, nameKk, categoryId, barcode, defaultShelfLife, unit, isActive } = req.body
     
-    const updated = updateProduct(id, {
-      name,
-      department,
-      category,
-      quantity: quantity ? parseInt(quantity) : undefined,
-      expiry_date: expiryDate
-    })
-    
-    if (!updated) {
+    const product = getProductById(id)
+    if (!product) {
       return res.status(404).json({ error: 'Product not found' })
     }
     
-    const product = getProductById(id)
-    res.json({
-      id: product.id,
-      name: product.name,
-      department: product.department,
-      category: product.category,
-      quantity: product.quantity,
-      expiryDate: product.expiry_date
-    })
+    // Check hotel access
+    if (req.hotelId && product.hotel_id !== req.hotelId) {
+      return res.status(403).json({ error: 'Access denied to this product' })
+    }
+    
+    const updates = {}
+    if (name !== undefined) updates.name = name.trim()
+    if (nameEn !== undefined) updates.name_en = nameEn
+    if (nameKk !== undefined) updates.name_kk = nameKk
+    if (categoryId !== undefined) updates.category_id = categoryId
+    if (barcode !== undefined) updates.barcode = barcode
+    if (defaultShelfLife !== undefined) updates.default_shelf_life = defaultShelfLife
+    if (unit !== undefined) updates.unit = unit
+    if (isActive !== undefined) updates.is_active = isActive ? 1 : 0
+    
+    const success = updateProduct(id, updates)
+    
+    if (success) {
+      // Log action
+      logAudit({
+        hotel_id: product.hotel_id,
+        user_id: req.user.id,
+        user_name: req.user.name,
+        action: 'update',
+        entity_type: 'product',
+        entity_id: id,
+        details: { updates: Object.keys(updates) },
+        ip_address: req.ip
+      })
+    }
+    
+    res.json({ success })
   } catch (error) {
     console.error('Error updating product:', error)
     res.status(500).json({ error: 'Failed to update product' })
@@ -166,79 +248,43 @@ router.put('/:id', (req, res) => {
 })
 
 /**
- * DELETE /api/products/:id - Удалить продукт
+ * DELETE /api/products/:id - Delete (deactivate) product
+ * HOTEL_ADMIN or higher
  */
-router.delete('/:id', (req, res) => {
+router.delete('/:id', authMiddleware, hotelAdminOnly, hotelIsolation, (req, res) => {
   try {
-    const id = parseInt(req.params.id)
-    const deleted = deleteProduct(id)
+    const { id } = req.params
     
-    if (!deleted) {
+    const product = getProductById(id)
+    if (!product) {
       return res.status(404).json({ error: 'Product not found' })
     }
     
-    res.json({ success: true, message: 'Product deleted' })
+    // Check hotel access
+    if (req.hotelId && product.hotel_id !== req.hotelId) {
+      return res.status(403).json({ error: 'Access denied to this product' })
+    }
+    
+    const success = deleteProduct(id)
+    
+    if (success) {
+      // Log action
+      logAudit({
+        hotel_id: product.hotel_id,
+        user_id: req.user.id,
+        user_name: req.user.name,
+        action: 'delete',
+        entity_type: 'product',
+        entity_id: id,
+        details: { name: product.name },
+        ip_address: req.ip
+      })
+    }
+    
+    res.json({ success })
   } catch (error) {
     console.error('Error deleting product:', error)
     res.status(500).json({ error: 'Failed to delete product' })
-  }
-})
-
-/**
- * GET /api/products/status/expired - Получить просроченные продукты
- */
-router.get('/status/expired', (req, res) => {
-  try {
-    const products = getExpiredProducts()
-    res.json(products.map(p => ({
-      id: p.id,
-      name: p.name,
-      department: p.department,
-      category: p.category,
-      quantity: p.quantity,
-      expiryDate: p.expiry_date
-    })))
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch expired products' })
-  }
-})
-
-/**
- * GET /api/products/status/expiring-today - Получить истекающие сегодня
- */
-router.get('/status/expiring-today', (req, res) => {
-  try {
-    const products = getExpiringTodayProducts()
-    res.json(products.map(p => ({
-      id: p.id,
-      name: p.name,
-      department: p.department,
-      category: p.category,
-      quantity: p.quantity,
-      expiryDate: p.expiry_date
-    })))
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch products expiring today' })
-  }
-})
-
-/**
- * GET /api/products/status/expiring-soon - Получить истекающие скоро
- */
-router.get('/status/expiring-soon', (req, res) => {
-  try {
-    const days = parseInt(req.query.days) || 3
-    const products = getExpiringSoonProducts(days)
-    res.json(products.map(p => ({
-      id: p.id,
-      name: p.name,
-      department: p.department,
-      category: p.category,
-      quantity: p.quantity,
-      expiryDate: p.expiry_date
-    })))
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch products expiring soon' })
   }
 })
 

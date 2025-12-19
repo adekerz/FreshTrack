@@ -112,7 +112,7 @@ export default function DepartmentNotificationSettings() {
               className="w-full flex items-center justify-between p-4 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
             >
               <span className="font-medium text-gray-900 dark:text-white">
-                {t(`departments.${dept.id}`) || dept.name}
+                {dept.name}
               </span>
               <div className="flex items-center gap-3">
                 {/* Quick status indicators */}

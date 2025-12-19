@@ -198,7 +198,7 @@ export default function DepartmentRankingPage() {
                     <div className="w-3 h-3 rounded-full" style={{ backgroundColor: dept.color }} />
                     <div>
                       <p className="font-medium text-charcoal">
-                        {t(`departments.${dept.id}`) || dept.name}
+                        {dept.name}
                       </p>
                       <p className="text-sm text-charcoal/60">
                         {dept.total} {t('common.items')}

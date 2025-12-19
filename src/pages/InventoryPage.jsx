@@ -78,32 +78,75 @@ export default function InventoryPage() {
     return products.filter((p) => p.categoryId === selectedCategory)
   }, [selectedDepartment, selectedCategory, getProductsByDepartment])
 
-  // Подготовка данных для экспорта
+  // Подготовка данных для экспорта (экспортируем отдельные партии, не агрегированные товары)
   const exportData = useMemo(() => {
     const products = getFilteredProducts()
     const dept = departments.find((d) => d.id === selectedDepartment)
+    const exportRows = []
 
-    return products.map((product) => ({
-      productName: product.name,
-      category: product.category?.name || '-',
-      department: dept?.name || selectedDepartment,
-      quantity: product.quantity || 1,
-      unit: product.unit || 'шт',
-      formattedDate: product.expiryDate
-        ? new Date(product.expiryDate).toLocaleDateString('ru-RU')
-        : '-',
-      daysLeft: product.daysLeft ?? '-',
-      statusLabel: product.status
-        ? {
-            good: t('common.good') || 'Хорошо',
-            warning: t('common.warning') || 'Внимание',
-            critical: t('common.critical') || 'Критично',
-            expired: t('common.expired') || 'Просрочено'
-          }[product.status]
-        : '-',
-      status: product.status
-    }))
-  }, [selectedDepartment, getFilteredProducts, t])
+    // Функция для получения названия категории
+    const getCategoryName = (categoryId) => {
+      const cat = categories.find(c => c.id === categoryId)
+      if (!cat) return '-'
+      if (language === 'ru') return cat.nameRu || cat.name || '-'
+      if (language === 'kk') return cat.nameKz || cat.name || '-'
+      return cat.name || '-'
+    }
+
+    // Функция для получения текста статуса
+    // Синхронизировано с dateUtils.js - пороги: expired(<0), today(0), critical(1-3), warning(4-7), good(>7)
+    const getStatusLabel = (status) => {
+      if (!status) return '-'
+      const statusMap = {
+        good: t('common.good') || 'В норме',
+        ok: t('common.good') || 'В норме',
+        warning: t('common.warning') || 'Внимание',
+        critical: t('common.critical') || 'Критично',
+        today: t('common.expired') || 'Истекает сегодня',
+        expired: t('common.expired') || 'Просрочено'
+      }
+      return statusMap[status] || status || '-'
+    }
+
+    products.forEach((product) => {
+      const categoryName = getCategoryName(product.categoryId) || product.category?.name || '-'
+      
+      // Если у товара есть партии, экспортируем каждую партию отдельно
+      if (product.batches && product.batches.length > 0) {
+        product.batches.forEach((batch) => {
+          const status = batch.status?.status || batch.status
+          exportRows.push({
+            productName: product.name,
+            category: categoryName,
+            department: dept?.name || selectedDepartment,
+            quantity: batch.quantity || 1,
+            unit: product.unit || 'шт',
+            formattedDate: batch.expiryDate
+              ? new Date(batch.expiryDate).toLocaleDateString('ru-RU')
+              : '-',
+            daysLeft: batch.daysLeft ?? '-',
+            statusLabel: getStatusLabel(status),
+            status: status || 'good'
+          })
+        })
+      } else {
+        // Если партий нет, показываем "Нет партий"
+        exportRows.push({
+          productName: product.name,
+          category: categoryName,
+          department: dept?.name || selectedDepartment,
+          quantity: 0,
+          unit: product.unit || 'шт',
+          formattedDate: '-',
+          daysLeft: '-',
+          statusLabel: t('inventory.noBatches') || 'Нет партий',
+          status: 'noBatches'
+        })
+      }
+    })
+
+    return exportRows
+  }, [selectedDepartment, getFilteredProducts, departments, categories, language, t])
 
   // Открыть модальное окно товара
   const handleProductClick = (product) => {

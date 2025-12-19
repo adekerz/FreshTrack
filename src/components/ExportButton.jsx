@@ -6,7 +6,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Download, FileSpreadsheet, FileText, ChevronDown } from 'lucide-react'
 import { useTranslation } from '../context/LanguageContext'
-import { exportToCSV, exportToExcel, exportToPDF } from '../utils/exportUtils'
+import { exportToExcel, exportToPDF } from '../utils/exportUtils'
 
 export default function ExportButton({
   data,
@@ -47,9 +47,6 @@ export default function ExportButton({
       const exportFilename = `${filename}_${timestamp}`
 
       switch (type) {
-        case 'csv':
-          exportToCSV(data, columns, exportFilename)
-          break
         case 'excel':
           exportToExcel(data, columns, exportFilename, title)
           break
@@ -73,13 +70,6 @@ export default function ExportButton({
   }
 
   const exportOptions = [
-    {
-      id: 'csv',
-      label: t('export.csv'),
-      description: t('export.csvDescription'),
-      icon: FileSpreadsheet,
-      color: 'text-green-600'
-    },
     {
       id: 'excel',
       label: t('export.excel'),

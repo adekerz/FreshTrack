@@ -42,6 +42,7 @@
     "of": "of",
     "actions": "Actions",
     "viewDetails": "View Details",
+    "category": "Category",
     "justNow": "Just now",
     "minutesAgo": "min ago",
     "hoursAgo": "hours ago",
@@ -149,6 +150,8 @@
     "noProducts": "No products found",
     "batches": "batches",
     "noBatches": "No batches",
+    "expiringSoon": "Expiring soon",
+    "hasExpired": "Has expired batches",
     "changeDepartment": "Change Department",
     "addCustomProduct": "Add Product",
     "backToDepartments": "Back to departments",
@@ -223,6 +226,7 @@
     "selectDepartment": "Select Department",
     "selectCategory": "Select Category",
     "selectProduct": "Select Product",
+    "selectedProduct": "Selected Product",
     "enterDetails": "Enter Details",
     "pieces": "pcs"
   },
@@ -246,7 +250,11 @@
     "collectedAt": "Collected at",
     "noBatches": "No batches",
     "addFirstBatch": "Add the first batch for this product",
-    "moreBatches": "more batches"
+    "moreBatches": "more batches",
+    "delete": "Delete Product",
+    "deleteConfirmTitle": "Delete Product?",
+    "deleteConfirmMessage": "This action cannot be undone. All batches of this product will also be deleted.",
+    "deleteError": "Error deleting product"
   },
   "customProduct": {
     "title": "Add New Product",
@@ -255,7 +263,9 @@
     "productName": "Product Name",
     "productNamePlaceholder": "Enter product name",
     "addToCatalog": "Add to Catalog",
-    "errorSelectDepartment": "Select a department"
+    "errorSelectDepartment": "Select a department",
+    "errorSelectCategory": "Select a category",
+    "errorEnterName": "Enter product name"
   },
   "modal": {
     "batchManagement": "Batch Management",
@@ -376,12 +386,17 @@
       "quantity": "Quantity",
       "expiryDate": "Expiry Date",
       "reason": "Reason",
+      "comment": "Comment",
       "collectedBy": "Collected By"
     },
     "reasons": {
       "manual": "Manual Collection",
       "expired": "Expired",
       "damaged": "Damaged",
+      "kitchen": "Used in Kitchen",
+      "disposed": "Disposed",
+      "staff": "Given to Staff",
+      "returned": "Returned to Supplier",
       "other": "Other"
     }
   },
@@ -486,18 +501,32 @@
     },
     "users": {
       "title": "User Management",
+      "description": "System user management",
       "addUser": "Add User",
+      "create": "Create User",
       "editUser": "Edit User",
       "username": "Username",
+      "login": "Login",
+      "name": "Name",
       "email": "Email",
       "role": "Role",
       "status": "Status",
       "lastLogin": "Last Login",
       "createdAt": "Created At",
+      "hotel": "Hotel",
+      "department": "Department",
+      "active": "Active",
+      "block": "Block",
+      "roleAdmin": "Administrator",
+      "roleManager": "Manager",
+      "roleStaff": "Staff",
       "roles": {
         "admin": "Administrator",
         "manager": "Manager",
-        "staff": "Staff"
+        "staff": "Staff",
+        "SUPER_ADMIN": "Super Administrator",
+        "HOTEL_ADMIN": "Hotel Administrator",
+        "STAFF": "Staff"
       },
       "statuses": {
         "active": "Active",
@@ -515,13 +544,21 @@
     },
     "categories": {
       "title": "Category Management",
+      "description": "Product category management",
       "addCategory": "Add Category",
       "editCategory": "Edit Category",
       "name": "Name",
       "color": "Color",
+      "selectColor": "Select Color",
+      "quickColors": "Quick Colors",
       "productsCount": "Products",
       "noCategories": "No categories",
-      "confirmDelete": "Delete category?"
+      "confirmDelete": "Delete category?",
+      "food": "Food",
+      "beverages": "Beverages",
+      "snacks": "Snacks",
+      "alcohol": "Alcohol",
+      "other": "Other"
     },
     "templates": {
       "title": "Delivery Templates",
@@ -613,8 +650,13 @@
     }
   },
   "export": {
+    "title": "Export Data",
     "button": "Export",
     "selectFormat": "Select format",
+    "inventory": "Inventory",
+    "batches": "All Batches",
+    "collections": "Collection History",
+    "auditLog": "Audit Log",
     "csv": "CSV File",
     "csvDescription": "Compatible with Excel and Google Sheets",
     "excel": "Excel File",
@@ -639,6 +681,17 @@
       "reason": "Reason",
       "collectedBy": "Collected By"
     }
+  },
+  "import": {
+    "title": "Import Data",
+    "description": "Bulk data operations",
+    "selectFile": "Select file for import",
+    "formats": "Supported formats",
+    "downloadTemplate": "Download import template",
+    "processing": "Processing...",
+    "imported": "Imported",
+    "error": "Import error",
+    "success": "Import completed successfully"
   },
   "departmentRanking": {
     "title": "Department Ranking",
@@ -867,5 +920,133 @@
     "email": "Email",
     "enabled": "Enabled",
     "disabled": "Disabled"
+  },
+  "writeOff": {
+    "title": "Write-off",
+    "collect": "Collect",
+    "collected": "Collected",
+    "expired": "Expired",
+    "damaged": "Damaged",
+    "other": "Other",
+    "reason": "Write-off reason",
+    "notes": "Notes",
+    "quantity": "Quantity",
+    "value": "Value",
+    "date": "Write-off date",
+    "performedBy": "Performed by",
+    "confirmCollect": "Confirm collection?",
+    "confirmWriteOff": "Confirm write-off?",
+    "selectReason": "Select reason"
+  },
+  "reports": {
+    "title": "Reports",
+    "pilotSummary": "Pilot Summary",
+    "dailyReport": "Daily Report",
+    "inventorySnapshot": "Inventory Snapshot",
+    "auditLog": "Audit Log",
+    "export": "Export Data",
+    "period": "Period",
+    "startDate": "Start Date",
+    "endDate": "End Date",
+    "summary": {
+      "totalWriteOffs": "Total Write-offs",
+      "totalQuantity": "Total Quantity",
+      "totalValue": "Total Value",
+      "savedValue": "Saved Value",
+      "efficiency": "Efficiency",
+      "atRisk": "At Risk"
+    },
+    "categories": {
+      "byReason": "By Reason",
+      "byCategory": "By Category",
+      "byDepartment": "By Department",
+      "topProducts": "Top Products"
+    },
+    "trend": {
+      "daily": "Daily",
+      "weekly": "Weekly",
+      "monthly": "Monthly"
+    }
+  },
+  "pilot": {
+    "title": "Pilot Project",
+    "hotel": "Honor Bar, Ritz-Carlton Astana",
+    "description": "Minibar expiry date tracking",
+    "metrics": {
+      "before": "Before implementation",
+      "after": "After implementation",
+      "savings": "Savings",
+      "efficiency": "Collection efficiency"
+    }
+  },
+  "users": {
+    "title": "User Management",
+    "description": "System user management",
+    "addUser": "Add User",
+    "create": "Create User",
+    "editUser": "Edit User",
+    "username": "Username",
+    "login": "Login",
+    "name": "Name",
+    "email": "Email",
+    "role": "Role",
+    "status": "Status",
+    "lastLogin": "Last Login",
+    "active": "Active",
+    "block": "Block",
+    "roleAdmin": "Administrator",
+    "roleManager": "Manager",
+    "roleStaff": "Staff",
+    "fillRequired": "Fill in required fields"
+  },
+  "categorySettings": {
+    "title": "Category Management",
+    "description": "Product category management",
+    "addCategory": "Add Category",
+    "name": "Name",
+    "color": "Color",
+    "selectColor": "Select Color",
+    "quickColors": "Quick Colors"
+  },
+  "templates": {
+    "title": "Delivery Templates",
+    "description": "Template management for quick product addition",
+    "create": "Create Template",
+    "noTemplates": "No templates yet",
+    "createFirst": "Create your first template",
+    "name": "Template Name",
+    "namePlaceholder": "e.g. Daily Delivery",
+    "descriptionLabel": "Description",
+    "descriptionPlaceholder": "Template description (optional)",
+    "selectProducts": "Select Products",
+    "selectedProducts": "Selected Products",
+    "quantity": "Qty",
+    "shelfLife": "Shelf Life",
+    "products": "products",
+    "editTemplate": "Edit Template",
+    "confirmDelete": "Delete template?"
+  },
+  "telegram": {
+    "title": "Telegram Settings",
+    "description": "Telegram bot settings for notifications",
+    "connection": "Connection",
+    "botToken": "Bot Token",
+    "chatId": "Chat ID",
+    "enabled": "Notifications enabled",
+    "test": "Test send",
+    "testSuccess": "Test message sent!",
+    "testError": "Send error",
+    "schedule": "Schedule",
+    "scheduleTime": "Daily report time",
+    "messageTemplates": "Message templates",
+    "templatesHint": "Use variables in curly braces",
+    "dailyReport": "Daily report",
+    "expiryWarning": "Expiry warning",
+    "expiredAlert": "Expired alert",
+    "collectionConfirm": "Collection confirmation",
+    "variables": "Variables",
+    "save": "Save",
+    "saving": "Saving...",
+    "saved": "Settings saved"
   }
 }

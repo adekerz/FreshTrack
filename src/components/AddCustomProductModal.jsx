@@ -30,13 +30,13 @@ export default function AddCustomProductModal({ onClose, departmentId = null }) 
 
   // Получить название категории
   const getCategoryName = (category) => {
-    if (language === 'ru') return category.nameRu
-    if (language === 'kk') return category.nameKz
-    return category.name
+    if (language === 'ru') return category.nameRu || category.name
+    if (language === 'kk') return category.nameKz || category.name
+    return category.name || category.nameRu || 'Категория'
   }
 
   // Отправка формы
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
 
     if (!selectedDepartment) {
@@ -55,8 +55,13 @@ export default function AddCustomProductModal({ onClose, departmentId = null }) 
     setIsSubmitting(true)
     setError('')
 
-    addCustomProduct(selectedDepartment, selectedCategory, productName.trim())
-    onClose()
+    try {
+      await addCustomProduct(selectedDepartment, selectedCategory, productName.trim())
+      onClose()
+    } catch (err) {
+      setError(err.message || 'Error adding product')
+      setIsSubmitting(false)
+    }
   }
 
   // Закрытие по оверлею

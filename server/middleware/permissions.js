@@ -1,6 +1,7 @@
 /**
  * FreshTrack Enterprise Permissions Middleware
  * Role-based access control (RBAC)
+ * Roles: SUPER_ADMIN, HOTEL_ADMIN, STAFF (uppercase)
  */
 
 /**
@@ -13,10 +14,10 @@ export function checkPermission(requiredPermission) {
     }
 
     const userPermissions = req.user.permissions || []
-    const userRole = req.user.role?.toLowerCase()
+    const userRole = req.user.role?.toUpperCase()
     
-    // Super admin and admin have all permissions
-    if (userRole === 'super_admin' || userRole === 'admin' || userRole === 'administrator') {
+    // Super admin and hotel admin have all permissions
+    if (userRole === 'SUPER_ADMIN' || userRole === 'HOTEL_ADMIN') {
       return next()
     }
     
@@ -58,11 +59,11 @@ export function requireRole(...roles) {
       return res.status(401).json({ error: 'Authentication required' })
     }
 
-    const userRole = req.user.role?.toLowerCase()
-    const normalizedRoles = roles.map(r => r.toLowerCase())
+    const userRole = req.user.role?.toUpperCase()
+    const normalizedRoles = roles.map(r => r.toUpperCase())
     
-    // Always allow super_admin
-    if (userRole === 'super_admin') {
+    // Always allow SUPER_ADMIN
+    if (userRole === 'SUPER_ADMIN') {
       return next()
     }
     
@@ -79,51 +80,46 @@ export function requireRole(...roles) {
 }
 
 /**
- * Require admin role
+ * Require admin role (SUPER_ADMIN or HOTEL_ADMIN)
  */
 export function requireAdmin() {
-  return requireRole('admin', 'administrator', 'super_admin')
+  return requireRole('SUPER_ADMIN', 'HOTEL_ADMIN')
 }
 
 /**
  * Require manager or higher role
  */
 export function requireManager() {
-  return requireRole('admin', 'administrator', 'super_admin', 'manager')
+  return requireRole('SUPER_ADMIN', 'HOTEL_ADMIN')
 }
 
 /**
- * Check if user has access to specific property
+ * Check if user has access to specific hotel
  */
-export function requirePropertyAccess(propertyIdParam = 'propertyId') {
+export function requireHotelAccess(hotelIdParam = 'hotelId') {
   return (req, res, next) => {
     if (!req.user) {
       return res.status(401).json({ error: 'Authentication required' })
     }
 
-    const userRole = req.user.role?.toLowerCase()
+    const userRole = req.user.role?.toUpperCase()
     
-    // Super admin and chain admin have access to all properties
-    if (['super_admin', 'chain_admin', 'admin', 'administrator'].includes(userRole)) {
+    // Super admin has access to all hotels
+    if (userRole === 'SUPER_ADMIN') {
       return next()
     }
     
-    const propertyId = req.params[propertyIdParam] || req.body?.property_id || req.query?.property_id
+    const hotelId = req.params[hotelIdParam] || req.body?.hotel_id || req.query?.hotel_id
     
-    if (!propertyId) {
-      return next() // No specific property required
+    if (!hotelId) {
+      return next() // No specific hotel required
     }
     
-    // Check if user has access to this property
-    const userProperties = req.user.properties || []
-    const hasAccess = userProperties.some(p => 
-      p.property_id === parseInt(propertyId) || p.property_id === propertyId
-    )
-    
-    if (!hasAccess && req.user.property_id !== parseInt(propertyId)) {
+    // Check if user has access to this hotel
+    if (req.user.hotel_id !== hotelId) {
       return res.status(403).json({ 
-        error: 'Property access denied',
-        message: `You don't have access to this property`
+        error: 'Hotel access denied',
+        message: `You don't have access to this hotel`
       })
     }
     
@@ -140,10 +136,10 @@ export function requireDepartmentAccess(departmentIdParam = 'departmentId') {
       return res.status(401).json({ error: 'Authentication required' })
     }
 
-    const userRole = req.user.role?.toLowerCase()
+    const userRole = req.user.role?.toUpperCase()
     
     // Admin roles have access to all departments
-    if (['super_admin', 'admin', 'administrator', 'property_admin'].includes(userRole)) {
+    if (['SUPER_ADMIN', 'HOTEL_ADMIN'].includes(userRole)) {
       return next()
     }
     
@@ -153,12 +149,8 @@ export function requireDepartmentAccess(departmentIdParam = 'departmentId') {
       return next() // No specific department required
     }
     
-    // Check if user has access to this department
-    const userDepartments = req.user.departments || []
-    const hasAccess = userDepartments.includes(departmentId) || 
-                      req.user.department_id === departmentId
-    
-    if (!hasAccess) {
+    // STAFF can only access their own department
+    if (req.user.department_id !== departmentId) {
       return res.status(403).json({ 
         error: 'Department access denied',
         message: `You don't have access to this department`
@@ -174,6 +166,6 @@ export default {
   requireRole,
   requireAdmin,
   requireManager,
-  requirePropertyAccess,
+  requireHotelAccess,
   requireDepartmentAccess
 }

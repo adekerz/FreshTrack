@@ -102,28 +102,67 @@ export function ProductProvider({ children }) {
       setLoading(true)
       setError(null)
 
-      // Загружаем батчи, статистику, отделы и категории параллельно
-      const [batchesRes, statsRes, departmentsRes, categoriesRes] = await Promise.all([
+      // Загружаем батчи, статистику, отделы, категории и продукты параллельно
+      const [batchesRes, statsRes, departmentsRes, categoriesRes, productsRes] = await Promise.all([
         apiFetch('/batches'),
         apiFetch('/batches/stats'),
-        apiFetch('/departments').catch(() => []),
-        apiFetch('/categories').catch(() => [])
+        apiFetch('/departments').catch(() => ({ departments: [] })),
+        apiFetch('/categories').catch(() => ({ categories: [] })),
+        apiFetch('/products').catch(() => [])
       ])
 
       setBatches(batchesRes)
       setStats(statsRes)
       
-      // Обновляем динамические отделы
-      if (Array.isArray(departmentsRes)) {
-        setDepartmentList(departmentsRes)
+      // Обновляем динамические отделы (API возвращает { departments: [...] } или массив)
+      const deptData = Array.isArray(departmentsRes) ? departmentsRes : (departmentsRes.departments || [])
+      if (Array.isArray(deptData)) {
+        setDepartmentList(deptData)
         // Обновляем legacy export для обратной совместимости
-        departments = departmentsRes
+        departments = deptData
       }
       
-      // Обновляем динамические категории
-      if (Array.isArray(categoriesRes)) {
-        setCategoryList(categoriesRes)
-        categories = categoriesRes
+      // Обновляем динамические категории (API возвращает { categories: [...] })
+      const catData = Array.isArray(categoriesRes) ? categoriesRes : (categoriesRes.categories || [])
+      if (Array.isArray(catData)) {
+        setCategoryList(catData)
+        categories = catData
+      }
+
+      // Обновляем каталог продуктов из API
+      const productsData = Array.isArray(productsRes) ? productsRes : (productsRes.products || [])
+      console.log('📦 Products from API:', productsData.length, productsData)
+      console.log('🏢 Departments:', deptData.length, deptData)
+      console.log('📂 Categories:', catData.length, catData)
+      
+      if (productsData.length > 0 && deptData.length > 0) {
+        // Строим каталог: department -> category -> products
+        // Продукты в БД не привязаны к отделам, поэтому показываем их во всех отделах
+        const newCatalog = {}
+        
+        deptData.forEach(dept => {
+          newCatalog[dept.id] = {}
+          catData.forEach(cat => {
+            // Добавляем продукты этой категории для каждого отдела
+            const categoryProducts = productsData.filter(p => {
+              const pCatId = p.categoryId || p.category_id
+              return pCatId === cat.id
+            })
+            
+            newCatalog[dept.id][cat.id] = categoryProducts.map(product => ({
+              id: product.id,
+              name: product.name,
+              barcode: product.barcode,
+              defaultShelfLife: product.defaultShelfLife || product.default_shelf_life,
+              unit: product.unit || 'шт'
+            }))
+          })
+        })
+
+        console.log('📋 New catalog built:', newCatalog)
+        setCatalog(newCatalog)
+      } else {
+        console.log('⚠️ No products or departments loaded')
       }
     } catch (err) {
       console.error('Error fetching data:', err)
@@ -200,7 +239,7 @@ export function ProductProvider({ children }) {
   const collectBatch = useCallback(async (batchId, reason = 'manual', comment = '') => {
     try {
       await apiFetch(`/batches/${batchId}/collect`, {
-        method: 'PATCH',
+        method: 'POST',
         body: JSON.stringify({ reason, comment })
       })
 
@@ -240,25 +279,60 @@ export function ProductProvider({ children }) {
   }, [])
 
   /**
-   * Добавить новый товар в каталог
+   * Добавить новый товар в каталог (сохраняет в БД на сервере)
    */
-  const addCustomProduct = useCallback((departmentId, categoryId, name) => {
-    const productId = `custom-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`
-    const newProduct = { id: productId, name, isCustom: true }
+  const addCustomProduct = useCallback(async (departmentId, categoryId, name) => {
+    try {
+      // Создать продукт на сервере
+      const response = await apiFetch('/products', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: name.trim(),
+          categoryId: categoryId
+        })
+      })
 
-    setCatalog((prev) => {
-      const updated = { ...prev }
-      if (!updated[departmentId]) {
-        updated[departmentId] = {}
-      }
-      if (!updated[departmentId][categoryId]) {
-        updated[departmentId][categoryId] = []
-      }
-      updated[departmentId][categoryId] = [...updated[departmentId][categoryId], newProduct]
-      return updated
-    })
+      const newProduct = response.product || response
+      
+      // Обновить локальный каталог
+      setCatalog((prev) => {
+        const updated = { ...prev }
+        if (!updated[departmentId]) {
+          updated[departmentId] = {}
+        }
+        if (!updated[departmentId][categoryId]) {
+          updated[departmentId][categoryId] = []
+        }
+        updated[departmentId][categoryId] = [...updated[departmentId][categoryId], {
+          id: newProduct.id,
+          name: newProduct.name,
+          isCustom: true
+        }]
+        return updated
+      })
 
-    return newProduct
+      return newProduct
+    } catch (error) {
+      console.error('Error adding custom product:', error)
+      
+      // Fallback: добавить только в локальный каталог
+      const productId = `custom-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`
+      const newProduct = { id: productId, name, isCustom: true }
+
+      setCatalog((prev) => {
+        const updated = { ...prev }
+        if (!updated[departmentId]) {
+          updated[departmentId] = {}
+        }
+        if (!updated[departmentId][categoryId]) {
+          updated[departmentId][categoryId] = []
+        }
+        updated[departmentId][categoryId] = [...updated[departmentId][categoryId], newProduct]
+        return updated
+      })
+
+      return newProduct
+    }
   }, [])
 
   /**
@@ -300,7 +374,14 @@ export function ProductProvider({ children }) {
       Object.entries(departmentCatalog).forEach(([categoryId, categoryProducts]) => {
         categoryProducts.forEach((product) => {
           const productBatches = batches
-            .filter((b) => b.productName === product.name && b.department === departmentId)
+            .filter((b) => {
+              // Проверяем совпадение имени продукта
+              const nameMatch = b.productName === product.name
+              // Проверяем совпадение отдела (поддержка обоих форматов: department и departmentId)
+              const batchDeptId = b.departmentId || b.department
+              const deptMatch = batchDeptId === departmentId
+              return nameMatch && deptMatch
+            })
             .map((b) => ({
               ...b,
               daysLeft: b.daysLeft ?? getDaysUntilExpiry(b.expiryDate),
@@ -438,6 +519,38 @@ export function ProductProvider({ children }) {
     [catalog]
   )
 
+  /**
+   * Удалить товар из каталога (только для SUPER_ADMIN и HOTEL_ADMIN)
+   */
+  const deleteProduct = useCallback(async (productId) => {
+    try {
+      await apiFetch(`/products/${productId}`, {
+        method: 'DELETE'
+      })
+
+      // Удалить из локального каталога
+      setCatalog((prev) => {
+        const updated = { ...prev }
+        Object.keys(updated).forEach((deptId) => {
+          Object.keys(updated[deptId]).forEach((catId) => {
+            updated[deptId][catId] = updated[deptId][catId].filter(
+              (product) => product.id !== productId
+            )
+          })
+        })
+        return updated
+      })
+
+      // Удалить связанные партии из локального состояния
+      setBatches((prev) => prev.filter((b) => b.productId !== productId && b.product_id !== productId))
+
+      return true
+    } catch (error) {
+      console.error('Error deleting product:', error)
+      throw error
+    }
+  }, [])
+
   const value = {
     // Данные
     catalog,
@@ -455,6 +568,7 @@ export function ProductProvider({ children }) {
 
     // Операции с каталогом
     addCustomProduct,
+    deleteProduct,
 
     // Получение данных
     getBatchesByProduct,

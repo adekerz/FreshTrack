@@ -134,7 +134,7 @@ export default function CalendarPage() {
   // Название отдела
   const getDepartmentName = (id) => {
     const dept = departments.find((d) => d.id === id)
-    return dept ? t(`departments.${dept.id}`) || dept.name : id
+    return dept ? dept.name : id
   }
 
   return (
@@ -160,7 +160,7 @@ export default function CalendarPage() {
             <option value="">{t('common.allDepartments') || 'Все отделы'}</option>
             {departments.map((dept) => (
               <option key={dept.id} value={dept.id}>
-                {t(`departments.${dept.id}`) || dept.name}
+                {dept.name}
               </option>
             ))}
           </select>

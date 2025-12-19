@@ -4,9 +4,8 @@
  */
 
 import express from 'express'
-import { getDb } from '../db/database.js'
-import { authMiddleware, adminMiddleware } from '../middleware/auth.js'
-import { logAction } from './audit-logs.js'
+import { db, logAudit } from '../db/database.js'
+import { authMiddleware, hotelAdminOnly, hotelIsolation } from '../middleware/auth.js'
 import multer from 'multer'
 import fs from 'fs'
 import path from 'path'
@@ -15,7 +14,25 @@ const router = express.Router()
 
 // Применяем authMiddleware ко всем маршрутам
 router.use(authMiddleware)
-router.use(adminMiddleware)
+router.use(hotelAdminOnly)
+router.use(hotelIsolation)
+
+// Middleware для автоматического выбора отеля для SUPER_ADMIN
+const requireHotelContext = (req, res, next) => {
+  if (!req.hotelId) {
+    if (req.user?.role === 'SUPER_ADMIN') {
+      const firstHotel = db.prepare('SELECT id FROM hotels WHERE is_active = 1 LIMIT 1').get()
+      if (firstHotel) {
+        req.hotelId = firstHotel.id
+        return next()
+      }
+    }
+    return res.status(400).json({ error: 'Hotel context required' })
+  }
+  next()
+}
+
+router.use(requireHotelContext)
 
 // Настройка multer для загрузки файлов
 const uploadsDir = path.join(process.cwd(), 'uploads', 'temp')
@@ -89,7 +106,7 @@ router.post('/batches', upload.single('file'), async (req, res) => {
       return res.status(400).json({ success: false, error: 'File is empty or invalid format' })
     }
     
-    const db = getDb()
+    
     let imported = 0
     const errors = []
     
@@ -148,20 +165,16 @@ router.post('/batches', upload.single('file'), async (req, res) => {
     }
     
     // Логируем импорт
-    logAction(
-      req.user.id,
-      req.user.name || req.user.login,
-      'create',
-      null,
-      'import',
-      `Импортировано ${imported} партий из файла ${req.file.originalname}`,
-      req.ip,
-      {
-        actionType: 'create',
-        entityType: 'import',
-        newValue: { imported, errors: errors.length, filename: req.file.originalname }
-      }
-    )
+    logAudit({
+      hotel_id: req.hotelId,
+      user_id: req.user.id,
+      user_name: req.user.name || req.user.login,
+      action: 'import',
+      entity_type: 'batch',
+      entity_id: null,
+      details: { imported, errors: errors.length, filename: req.file.originalname },
+      ip_address: req.ip
+    })
     
     res.json({ 
       success: true, 
@@ -209,7 +222,7 @@ async function handleCsvImport(filePath, req, res) {
       })
     }
     
-    const db = getDb()
+    
     let imported = 0
     const errors = []
     

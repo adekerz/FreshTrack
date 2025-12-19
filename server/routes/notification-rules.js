@@ -4,13 +4,31 @@
  */
 
 import express from 'express'
-import { getDb } from '../db/database.js'
-import { authMiddleware } from '../middleware/auth.js'
+import { db } from '../db/database.js'
+import { authMiddleware, hotelAdminOnly, hotelIsolation } from '../middleware/auth.js'
 
 const router = express.Router()
 
 // Применяем authMiddleware ко всем маршрутам
 router.use(authMiddleware)
+router.use(hotelIsolation)
+
+// Middleware для автоматического выбора отеля для SUPER_ADMIN
+const requireHotelContext = (req, res, next) => {
+  if (!req.hotelId) {
+    if (req.user?.role === 'SUPER_ADMIN') {
+      const firstHotel = db.prepare('SELECT id FROM hotels WHERE is_active = 1 LIMIT 1').get()
+      if (firstHotel) {
+        req.hotelId = firstHotel.id
+        return next()
+      }
+    }
+    return res.status(400).json({ error: 'Hotel context required' })
+  }
+  next()
+}
+
+router.use(requireHotelContext)
 
 let tableInitialized = false
 
@@ -19,7 +37,7 @@ const ensureTable = () => {
   if (tableInitialized) return
   
   try {
-    const db = getDb()
+    
     
     // Таблица правил уведомлений
     db.exec(`
@@ -66,7 +84,7 @@ router.use((req, res, next) => {
  */
 router.get('/', (req, res) => {
   try {
-    const db = getDb()
+    
     const rules = db.prepare(`
       SELECT 
         id,
@@ -100,7 +118,7 @@ router.get('/', (req, res) => {
  */
 router.get('/active', (req, res) => {
   try {
-    const db = getDb()
+    
     const rules = db.prepare(`
       SELECT 
         id,
@@ -126,7 +144,7 @@ router.get('/active', (req, res) => {
  */
 router.post('/', (req, res) => {
   try {
-    const db = getDb()
+    
     const { name, departmentId, category, daysBefore, notificationType } = req.body
     const createdBy = req.user?.id || null
     
@@ -155,7 +173,7 @@ router.post('/', (req, res) => {
  */
 router.put('/:id', (req, res) => {
   try {
-    const db = getDb()
+    
     const id = parseInt(req.params.id)
     const { name, departmentId, category, daysBefore, notificationType, isActive } = req.body
     
@@ -195,7 +213,7 @@ router.put('/:id', (req, res) => {
  */
 router.patch('/:id/toggle', (req, res) => {
   try {
-    const db = getDb()
+    
     const id = parseInt(req.params.id)
     
     const existing = db.prepare('SELECT * FROM notification_rules WHERE id = ?').get(id)
@@ -218,7 +236,7 @@ router.patch('/:id/toggle', (req, res) => {
  */
 router.delete('/:id', (req, res) => {
   try {
-    const db = getDb()
+    
     const id = parseInt(req.params.id)
     
     const existing = db.prepare('SELECT * FROM notification_rules WHERE id = ?').get(id)

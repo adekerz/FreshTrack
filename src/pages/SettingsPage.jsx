@@ -8,6 +8,7 @@
 import { useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useTranslation, useLanguage } from '../context/LanguageContext'
+import { departments } from '../context/ProductContext'
 import {
   User,
   Bell,
@@ -57,13 +58,13 @@ export default function SettingsPage() {
     { code: 'kk', name: 'Қазақша', flag: '🇰🇿' }
   ]
 
-  // Нормализация роли (Administrator -> admin, Manager -> manager)
-  const normalizeRole = (role) => {
-    if (!role) return null
-    return role.toLowerCase().replace('istrator', '')
+  // Проверка является ли пользователь админом
+  const isAdmin = () => {
+    const role = user?.role?.toUpperCase()
+    return role === 'SUPER_ADMIN' || role === 'HOTEL_ADMIN'
   }
 
-  const userRole = normalizeRole(user?.role)
+  const userIsAdmin = isAdmin()
 
   // Табы для обычных пользователей
   const userTabs = [
@@ -88,7 +89,7 @@ export default function SettingsPage() {
   ]
 
   // Выбор табов в зависимости от роли
-  const tabs = userRole === 'admin' ? adminTabs : userTabs
+  const tabs = userIsAdmin ? adminTabs : userTabs
 
   // Сохранение настроек
   const handleSave = async () => {
@@ -143,7 +144,7 @@ export default function SettingsPage() {
               <input
                 type="text"
                 value={
-                  userRole === 'admin'
+                  userIsAdmin
                     ? t('settings.profile.roleAdmin')
                     : t('settings.profile.roleManager')
                 }
@@ -159,14 +160,17 @@ export default function SettingsPage() {
               {t('settings.profile.departments')}
             </label>
             <div className="flex flex-wrap gap-2">
-              {user?.departments?.map((dept) => (
-                <span
-                  key={dept}
-                  className="px-3 py-1 bg-sand/50 text-charcoal text-sm rounded-full"
-                >
-                  {t(`departments.${dept}`)}
-                </span>
-              ))}
+              {user?.departments?.map((deptId) => {
+                const dept = departments.find(d => d.id === deptId)
+                return (
+                  <span
+                    key={deptId}
+                    className="px-3 py-1 bg-sand/50 text-charcoal text-sm rounded-full"
+                  >
+                    {dept?.name || deptId}
+                  </span>
+                )
+              })}
             </div>
           </div>
         </div>
@@ -397,18 +401,18 @@ export default function SettingsPage() {
           {activeTab === 'profile' && renderProfile()}
           {activeTab === 'notifications' && renderNotifications()}
           {activeTab === 'language' && renderLanguage()}
-          {activeTab === 'general' && userRole === 'admin' && <GeneralSettings />}
-          {activeTab === 'users' && userRole === 'admin' && <UsersSettings />}
-          {activeTab === 'categories' && userRole === 'admin' && <CategoriesSettings />}
-          {activeTab === 'templates' && userRole === 'admin' && <TemplatesSettings />}
-          {activeTab === 'rules' && userRole === 'admin' && <NotificationRulesSettings />}
-          {activeTab === 'telegram' && userRole === 'admin' && <TelegramSettings />}
-          {activeTab === 'branding' && userRole === 'admin' && <CustomContentSettings />}
-          {activeTab === 'import-export' && userRole === 'admin' && <ImportExportSettings />}
-          {activeTab === 'system' && userRole === 'admin' && renderSystem()}
+          {activeTab === 'general' && userIsAdmin && <GeneralSettings />}
+          {activeTab === 'users' && userIsAdmin && <UsersSettings />}
+          {activeTab === 'categories' && userIsAdmin && <CategoriesSettings />}
+          {activeTab === 'templates' && userIsAdmin && <TemplatesSettings />}
+          {activeTab === 'rules' && userIsAdmin && <NotificationRulesSettings />}
+          {activeTab === 'telegram' && userIsAdmin && <TelegramSettings />}
+          {activeTab === 'branding' && userIsAdmin && <CustomContentSettings />}
+          {activeTab === 'import-export' && userIsAdmin && <ImportExportSettings />}
+          {activeTab === 'system' && userIsAdmin && renderSystem()}
 
           {/* Кнопка сохранения (только для вкладок уведомлений у обычных пользователей) */}
-          {activeTab === 'notifications' && userRole !== 'admin' && (
+          {activeTab === 'notifications' && !userIsAdmin && (
               <div className="flex justify-end pt-6 mt-6 border-t border-sand">
                 <button
                   onClick={handleSave}

@@ -1,25 +1,33 @@
 /**
  * Protected Route Component
  * Компонент для защиты маршрутов на основе аутентификации и ролей
+ * Updated for new role system: SUPER_ADMIN, HOTEL_ADMIN, STAFF
  */
 
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
 /**
- * Нормализует роль пользователя (Administrator -> admin, Manager -> manager)
+ * Нормализует роль пользователя к верхнему регистру
  */
 const normalizeRole = (role) => {
   if (!role) return null
-  return role.toLowerCase().replace('istrator', '')
+  return role.toUpperCase()
 }
 
 /**
- * Проверяет является ли пользователь админом (admin/Administrator)
+ * Проверяет является ли пользователь админом (SUPER_ADMIN или HOTEL_ADMIN)
  */
 const isAdmin = (role) => {
   const normalized = normalizeRole(role)
-  return normalized === 'admin'
+  return normalized === 'SUPER_ADMIN' || normalized === 'HOTEL_ADMIN'
+}
+
+/**
+ * Проверяет является ли пользователь супер-админом
+ */
+const isSuperAdmin = (role) => {
+  return normalizeRole(role) === 'SUPER_ADMIN'
 }
 
 /**
@@ -66,7 +74,8 @@ export default function ProtectedRoute({
   // Проверка разрешённых ролей
   if (allowedRoles && allowedRoles.length > 0) {
     const normalizedUserRole = normalizeRole(user?.role)
-    if (!normalizedUserRole || !allowedRoles.includes(normalizedUserRole)) {
+    const normalizedAllowedRoles = allowedRoles.map(normalizeRole)
+    if (!normalizedUserRole || !normalizedAllowedRoles.includes(normalizedUserRole)) {
       return <Navigate to="/" state={{ accessDenied: true }} replace />
     }
   }
@@ -137,18 +146,18 @@ export function useAccessControl() {
   const hasDepartmentAccess = (departmentId) => {
     if (!isAuthenticated || !user) return false
     if (isAdmin(user.role)) return true
-    return user.departments?.includes(departmentId) || false
+    return user.departments?.includes(departmentId) || user.department_id === departmentId || false
   }
 
   const hasAnyDepartmentAccess = (departmentIds) => {
     if (!isAuthenticated || !user) return false
     if (isAdmin(user.role)) return true
-    return departmentIds.some((dept) => user.departments?.includes(dept))
+    return departmentIds.some((dept) => user.departments?.includes(dept) || user.department_id === dept)
   }
 
-  const checkIsAdmin = () => hasRole('admin')
-  const checkIsManager = () => hasRole('manager')
-  const checkIsStaff = () => hasRole('staff')
+  const checkIsSuperAdmin = () => isSuperAdmin(user?.role)
+  const checkIsAdmin = () => isAdmin(user?.role)
+  const checkIsStaff = () => normalizeRole(user?.role) === 'STAFF'
 
   return {
     user,
@@ -157,12 +166,13 @@ export function useAccessControl() {
     hasAnyRole,
     hasDepartmentAccess,
     hasAnyDepartmentAccess,
+    isSuperAdmin: checkIsSuperAdmin,
     isAdmin: checkIsAdmin,
-    isManager: checkIsManager,
+    isHotelAdmin: () => normalizeRole(user?.role) === 'HOTEL_ADMIN',
     isStaff: checkIsStaff,
     canManageUsers: checkIsAdmin(),
     canViewAllDepartments: checkIsAdmin(),
-    canExportData: checkIsAdmin() || checkIsManager(),
+    canExportData: checkIsAdmin(),
     canManageSettings: checkIsAdmin()
   }
 }

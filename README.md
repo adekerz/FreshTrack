@@ -135,7 +135,7 @@ API: http://localhost:3001
 
 ```
 Login: admin
-Password: Admin123!
+Password:
 ```
 
 > ⚠️ **Important**: Change the default admin password immediately after first login!
@@ -172,7 +172,7 @@ All API endpoints require JWT authentication:
 # Login to get token
 curl -X POST http://localhost:3001/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"login":"admin","password":"Admin123!"}'
+  -d '{"login":"admin","password":""}'
 
 # Use token in subsequent requests
 curl http://localhost:3001/api/batches \

@@ -1,70 +1,58 @@
 /**
  * FreshTrack Categories API
- * CRUD операции для категорий товаров
+ * Category management with hotel isolation
  */
 
 import express from 'express'
-import { getDb } from '../db/database.js'
-import { authMiddleware, adminMiddleware } from '../middleware/auth.js'
-import { logAction } from './audit-logs.js'
+import { 
+  getAllCategories, 
+  getCategoryById, 
+  createCategory, 
+  updateCategory,
+  deleteCategory,
+  logAudit,
+  db
+} from '../db/database.js'
+import { authMiddleware, hotelAdminOnly, hotelIsolation } from '../middleware/auth.js'
 
 const router = express.Router()
 
-// Применяем authMiddleware ко всем маршрутам
-router.use(authMiddleware)
-
-// Инициализация таблицы категорий
-const ensureCategoriesTable = () => {
-  try {
-    const db = getDb()
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS categories (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL UNIQUE,
-        color TEXT DEFAULT '#FF8D6B',
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
-    `)
-    
-    // Добавляем стандартные категории если таблица пуста
-    const count = db.prepare('SELECT COUNT(*) as count FROM categories').get()
-    if (count.count === 0) {
-      const defaultCategories = [
-        { name: 'Wine', color: '#722F37' },
-        { name: 'Spirits', color: '#8B4513' },
-        { name: 'Beverages', color: '#4169E1' },
-        { name: 'Mixers', color: '#32CD32' },
-        { name: 'snacks', color: '#FF8C00' }
-      ]
-      
-      const insert = db.prepare('INSERT INTO categories (name, color) VALUES (?, ?)')
-      for (const cat of defaultCategories) {
-        try {
-          insert.run(cat.name, cat.color)
-        } catch (e) {
-          // Игнорируем ошибки дубликатов
-        }
+// Middleware to require hotel context (with auto-selection for SUPER_ADMIN)
+const requireHotelContext = (req, res, next) => {
+  if (!req.hotelId) {
+    if (req.user?.role === 'SUPER_ADMIN') {
+      const firstHotel = db.prepare('SELECT id FROM hotels WHERE is_active = 1 LIMIT 1').get()
+      if (firstHotel) {
+        req.hotelId = firstHotel.id
+        return next()
       }
     }
-  } catch (error) {
-    console.log('Ошибка инициализации таблицы categories:', error.message)
+    return res.status(400).json({ error: 'Hotel context required' })
   }
+  next()
 }
 
-// Middleware для инициализации
-router.use((req, res, next) => {
-  ensureCategoriesTable()
-  next()
-})
-
 /**
- * GET /api/categories - Получить все категории
+ * GET /api/categories - Get all categories with hotel isolation
  */
-router.get('/', (req, res) => {
+router.get('/', authMiddleware, hotelIsolation, requireHotelContext, (req, res) => {
   try {
-    const db = getDb()
-    const categories = db.prepare('SELECT * FROM categories ORDER BY name').all()
-    res.json({ categories })
+    const categories = getAllCategories(req.hotelId)
+    
+    res.json({ 
+      success: true,
+      categories: categories.map(c => ({
+        id: c.id,
+        name: c.name,
+        nameEn: c.name_en,
+        nameKk: c.name_kk,
+        color: c.color,
+        icon: c.icon,
+        sortOrder: c.sort_order,
+        hotelId: c.hotel_id,
+        isActive: Boolean(c.is_active)
+      }))
+    })
   } catch (error) {
     console.error('Error fetching categories:', error)
     res.status(500).json({ error: 'Failed to fetch categories' })
@@ -72,91 +60,144 @@ router.get('/', (req, res) => {
 })
 
 /**
- * POST /api/categories - Создать категорию (только админ)
+ * GET /api/categories/:id - Get category by ID
  */
-router.post('/', adminMiddleware, (req, res) => {
+router.get('/:id', authMiddleware, hotelIsolation, (req, res) => {
   try {
-    const { name, color = '#FF8D6B' } = req.body
+    const { id } = req.params
+    const category = getCategoryById(id)
+    
+    if (!category) {
+      return res.status(404).json({ error: 'Category not found' })
+    }
+    
+    // Check hotel access
+    if (req.hotelId && category.hotel_id !== req.hotelId) {
+      return res.status(403).json({ error: 'Access denied to this category' })
+    }
+    
+    res.json({
+      success: true,
+      category: {
+        id: category.id,
+        name: category.name,
+        nameEn: category.name_en,
+        nameKk: category.name_kk,
+        color: category.color,
+        icon: category.icon,
+        sortOrder: category.sort_order,
+        hotelId: category.hotel_id,
+        isActive: Boolean(category.is_active)
+      }
+    })
+  } catch (error) {
+    console.error('Error fetching category:', error)
+    res.status(500).json({ error: 'Failed to fetch category' })
+  }
+})
+
+/**
+ * POST /api/categories - Create category
+ * HOTEL_ADMIN or higher
+ */
+router.post('/', authMiddleware, hotelAdminOnly, hotelIsolation, requireHotelContext, (req, res) => {
+  try {
+    const { name, nameEn, nameKk, color, icon, sortOrder } = req.body
     
     if (!name || !name.trim()) {
       return res.status(400).json({ error: 'Category name is required' })
     }
     
-    const db = getDb()
-    const result = db.prepare('INSERT INTO categories (name, color) VALUES (?, ?)').run(name.trim(), color)
+    if (!req.hotelId) {
+      return res.status(400).json({ error: 'Hotel ID is required' })
+    }
     
-    // Логируем действие
-    logAction(
-      req.user.id, 
-      req.user.name || req.user.login, 
-      'create', 
-      result.lastInsertRowid.toString(), 
-      'category',
-      `Создана категория: ${name}`,
-      req.ip,
-      {
-        actionType: 'create',
-        entityType: 'category',
-        entityId: result.lastInsertRowid.toString(),
-        entityName: name,
-        newValue: { name, color }
-      }
-    )
+    const category = createCategory({
+      hotel_id: req.hotelId,
+      name: name.trim(),
+      name_en: nameEn || name.trim(),
+      name_kk: nameKk || name.trim(),
+      color: color || '#6B6560',
+      icon: icon || null,
+      sort_order: sortOrder || 0
+    })
+    
+    // Log action
+    logAudit({
+      hotel_id: req.hotelId,
+      user_id: req.user.id,
+      user_name: req.user.name,
+      action: 'create',
+      entity_type: 'category',
+      entity_id: category.id,
+      details: { name },
+      ip_address: req.ip
+    })
     
     res.status(201).json({ 
-      id: result.lastInsertRowid, 
-      name: name.trim(), 
-      color 
+      success: true,
+      category: {
+        id: category.id,
+        name: category.name,
+        nameEn: category.name_en,
+        nameKk: category.name_kk,
+        color: category.color,
+        icon: category.icon,
+        sortOrder: category.sort_order,
+        hotelId: category.hotel_id
+      }
     })
   } catch (error) {
     console.error('Error creating category:', error)
-    if (error.message.includes('UNIQUE')) {
-      return res.status(400).json({ error: 'Category already exists' })
-    }
     res.status(500).json({ error: 'Failed to create category' })
   }
 })
 
 /**
- * PUT /api/categories/:id - Обновить категорию (только админ)
+ * PUT /api/categories/:id - Update category
+ * HOTEL_ADMIN or higher
  */
-router.put('/:id', adminMiddleware, (req, res) => {
+router.put('/:id', authMiddleware, hotelAdminOnly, hotelIsolation, (req, res) => {
   try {
     const { id } = req.params
-    const { name, color } = req.body
+    const { name, nameEn, nameKk, color, icon, sortOrder, isActive } = req.body
     
-    const db = getDb()
-    const existing = db.prepare('SELECT * FROM categories WHERE id = ?').get(id)
-    
-    if (!existing) {
+    const category = getCategoryById(id)
+    if (!category) {
       return res.status(404).json({ error: 'Category not found' })
     }
     
-    const updateName = name?.trim() || existing.name
-    const updateColor = color || existing.color
+    // Check hotel access
+    if (req.hotelId && category.hotel_id !== req.hotelId) {
+      return res.status(403).json({ error: 'Access denied to this category' })
+    }
     
-    db.prepare('UPDATE categories SET name = ?, color = ? WHERE id = ?').run(updateName, updateColor, id)
+    const updates = {}
+    if (name !== undefined) updates.name = name.trim()
+    if (nameEn !== undefined) updates.name_en = nameEn
+    if (nameKk !== undefined) updates.name_kk = nameKk
+    if (color !== undefined) updates.color = color
+    if (icon !== undefined) updates.icon = icon
+    if (sortOrder !== undefined) updates.sort_order = sortOrder
+    if (isActive !== undefined) updates.is_active = isActive ? 1 : 0
     
-    // Логируем действие
-    logAction(
-      req.user.id,
-      req.user.name || req.user.login,
-      'update',
-      id,
-      'category',
-      `Обновлена категория: ${updateName}`,
-      req.ip,
-      {
-        actionType: 'update',
-        entityType: 'category',
-        entityId: id,
-        entityName: updateName,
-        oldValue: existing,
-        newValue: { name: updateName, color: updateColor }
-      }
-    )
+    const success = updateCategory(id, updates)
     
-    res.json({ id: parseInt(id), name: updateName, color: updateColor })
+    if (success) {
+      // Log action
+      logAudit({
+        hotel_id: category.hotel_id,
+        user_id: req.user.id,
+        user_name: req.user.name,
+        action: 'update',
+        entity_type: 'category',
+        entity_id: id,
+        details: { updates: Object.keys(updates) },
+        ip_address: req.ip
+      })
+    }
+    
+    res.json({ success })
   } catch (error) {
     console.error('Error updating category:', error)
     res.status(500).json({ error: 'Failed to update category' })
@@ -164,39 +205,40 @@ router.put('/:id', adminMiddleware, (req, res) => {
 })
 
 /**
- * DELETE /api/categories/:id - Удалить категорию (только админ)
+ * DELETE /api/categories/:id - Delete (deactivate) category
+ * HOTEL_ADMIN or higher
  */
-router.delete('/:id', adminMiddleware, (req, res) => {
+router.delete('/:id', authMiddleware, hotelAdminOnly, hotelIsolation, (req, res) => {
   try {
     const { id } = req.params
-    const db = getDb()
     
-    const category = db.prepare('SELECT * FROM categories WHERE id = ?').get(id)
+    const category = getCategoryById(id)
     if (!category) {
       return res.status(404).json({ error: 'Category not found' })
     }
     
-    db.prepare('DELETE FROM categories WHERE id = ?').run(id)
+    // Check hotel access
+    if (req.hotelId && category.hotel_id !== req.hotelId) {
+      return res.status(403).json({ error: 'Access denied to this category' })
+    }
     
-    // Логируем действие
-    logAction(
-      req.user.id,
-      req.user.name || req.user.login,
-      'delete',
-      id,
-      'category',
-      `Удалена категория: ${category.name}`,
-      req.ip,
-      {
-        actionType: 'delete',
-        entityType: 'category',
-        entityId: id,
-        entityName: category.name,
-        oldValue: category
-      }
-    )
+    const success = deleteCategory(id)
     
-    res.json({ success: true })
+    if (success) {
+      // Log action
+      logAudit({
+        hotel_id: category.hotel_id,
+        user_id: req.user.id,
+        user_name: req.user.name,
+        action: 'delete',
+        entity_type: 'category',
+        entity_id: id,
+        details: { name: category.name },
+        ip_address: req.ip
+      })
+    }
+    
+    res.json({ success })
   } catch (error) {
     console.error('Error deleting category:', error)
     res.status(500).json({ error: 'Failed to delete category' })

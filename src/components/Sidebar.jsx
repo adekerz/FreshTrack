@@ -38,59 +38,58 @@ export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose })
       path: '/',
       icon: LayoutDashboard,
       label: t('nav.dashboard'),
-      roles: ['admin', 'manager']
+      roles: ['SUPER_ADMIN', 'HOTEL_ADMIN', 'STAFF']
     },
     {
       path: '/inventory',
       icon: Package,
       label: t('nav.inventory'),
-      roles: ['admin', 'manager']
+      roles: ['SUPER_ADMIN', 'HOTEL_ADMIN', 'STAFF']
     },
     {
       path: '/notifications',
       icon: Bell,
       label: t('nav.notifications'),
       badge: unreadCount > 0 ? unreadCount : null,
-      roles: ['admin', 'manager']
+      roles: ['SUPER_ADMIN', 'HOTEL_ADMIN', 'STAFF']
     },
     {
       path: '/calendar',
       icon: Calendar,
       label: t('nav.calendar') || 'Календарь',
-      roles: ['admin', 'manager']
+      roles: ['SUPER_ADMIN', 'HOTEL_ADMIN', 'STAFF']
     },
     {
       path: '/statistics',
       icon: BarChart3,
       label: t('nav.statistics'),
-      roles: ['admin', 'manager']
+      roles: ['SUPER_ADMIN', 'HOTEL_ADMIN']
     },
     {
       path: '/collection-history',
       icon: ClipboardList,
       label: t('nav.collectionHistory'),
-      roles: ['admin'] // Только для админа
+      roles: ['SUPER_ADMIN', 'HOTEL_ADMIN']
     },
     {
       path: '/audit-logs',
       icon: FileText,
       label: t('nav.auditLogs') || 'Журнал действий',
-      roles: ['admin']
+      roles: ['SUPER_ADMIN', 'HOTEL_ADMIN']
     },
     {
       path: '/settings',
       icon: Settings,
       label: t('nav.settings'),
-      roles: ['admin', 'manager']
+      roles: ['SUPER_ADMIN', 'HOTEL_ADMIN']
     }
   ]
 
   // Фильтруем пункты меню по роли пользователя
   const filteredNavItems = navItems.filter((item) => {
     if (!user) return false
-    // Нормализуем роль для сравнения (admin/Administrator -> admin, manager/Manager -> manager)
-    const normalizedRole = user.role?.toLowerCase().replace('istrator', '')
-    return item.roles.includes(normalizedRole)
+    const userRole = user.role?.toUpperCase()
+    return item.roles.includes(userRole)
   })
 
   const isActive = (path) => {

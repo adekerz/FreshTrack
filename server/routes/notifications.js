@@ -1,198 +1,459 @@
 /**
  * FreshTrack Notifications API
- * Управление уведомлениями и Telegram интеграция
+ * Управление уведомлениями с hotel isolation
+ * Для пилотного проекта Honor Bar, Ritz-Carlton Astana
  */
 
 import express from 'express'
-import { sendTestNotification, sendDailyAlert } from '../services/telegram.js'
-import { runDailyCheck, getSchedulerStatus } from '../services/scheduler.js'
-import { 
-  getExpiredProducts, 
-  getExpiringTodayProducts, 
-  getExpiringSoonProducts,
-  getNotificationLogs,
-  getNotificationLogsCount
-} from '../db/database.js'
-import { authMiddleware } from '../middleware/auth.js'
+import { authMiddleware, hotelAdminOnly, hotelIsolation } from '../middleware/auth.js'
+import { db, logAudit } from '../db/database.js'
 
 const router = express.Router()
 
-// Применяем authMiddleware ко всем маршрутам
+// Применяем authMiddleware и hotelIsolation ко всем маршрутам
 router.use(authMiddleware)
+router.use(hotelIsolation)
 
 /**
- * POST /api/notifications/test - Отправить тестовое уведомление
+ * POST /api/notifications/test - Тестовое уведомление (для совместимости)
  */
-router.post('/test', async (req, res) => {
+router.post('/test', (req, res) => {
+  res.json({ 
+    success: true, 
+    message: 'Test notification endpoint (Telegram disabled in pilot)' 
+  })
+})
+
+/**
+ * POST /api/notifications/test-telegram - Тест отправки в Telegram
+ */
+router.post('/test-telegram', hotelAdminOnly, async (req, res) => {
   try {
-    const result = await sendTestNotification()
-    
-    if (result.success) {
-      res.json({ 
-        success: true, 
-        message: 'Test notification sent successfully' 
-      })
-    } else {
-      res.status(500).json({ 
-        success: false, 
-        error: result.error || 'Failed to send notification' 
-      })
-    }
+    // В пилотном проекте Telegram отключен
+    // Здесь будет логика отправки через Telegram Bot API
+    res.json({ 
+      success: true, 
+      message: 'Telegram test message sent successfully (simulated in pilot)' 
+    })
   } catch (error) {
-    console.error('Test notification error:', error)
+    console.error('Telegram test error:', error)
     res.status(500).json({ 
       success: false, 
-      error: 'Failed to send test notification' 
+      error: 'Failed to send Telegram message' 
     })
   }
 })
 
 /**
- * GET /api/notifications/send-daily - Принудительно отправить ежедневное уведомление
+ * GET /api/notifications - Получить уведомления для отеля
+ * Поддержка фильтров: type, is_read, priority
  */
-router.get('/send-daily', async (req, res) => {
+router.get('/', (req, res) => {
   try {
-    const result = await runDailyCheck()
+    const { type, is_read, priority, limit = 50 } = req.query
+    const hotelId = req.hotelId
     
-    if (result.success) {
-      res.json({ 
-        success: true, 
-        message: 'Daily notification sent',
-        productsNotified: result.productsNotified || 0
-      })
-    } else {
-      res.status(500).json({ 
-        success: false, 
-        error: result.error || 'Failed to send daily notification' 
-      })
+    let query = `
+      SELECT n.*, d.name as department_name
+      FROM notifications n
+      LEFT JOIN departments d ON n.department_id = d.id
+      WHERE n.hotel_id = ?
+    `
+    const params = [hotelId]
+    
+    // Для STAFF показываем только уведомления его отдела
+    if (req.user.role === 'STAFF' && req.user.department_id) {
+      query += ' AND (n.department_id = ? OR n.department_id IS NULL)'
+      params.push(req.user.department_id)
     }
-  } catch (error) {
-    console.error('Daily notification error:', error)
-    res.status(500).json({ 
-      success: false, 
-      error: 'Failed to send daily notification' 
+    
+    if (type) {
+      query += ' AND n.type = ?'
+      params.push(type)
+    }
+    
+    if (is_read !== undefined) {
+      query += ' AND n.is_read = ?'
+      params.push(is_read === 'true' ? 1 : 0)
+    }
+    
+    if (priority) {
+      query += ' AND n.priority = ?'
+      params.push(priority)
+    }
+    
+    query += ' ORDER BY n.created_at DESC LIMIT ?'
+    params.push(parseInt(limit))
+    
+    const notifications = db.prepare(query).all(...params)
+    
+    // Подсчет непрочитанных
+    let unreadQuery = `
+      SELECT COUNT(*) as count FROM notifications 
+      WHERE hotel_id = ? AND is_read = 0
+    `
+    const unreadParams = [hotelId]
+    
+    if (req.user.role === 'STAFF' && req.user.department_id) {
+      unreadQuery += ' AND (department_id = ? OR department_id IS NULL)'
+      unreadParams.push(req.user.department_id)
+    }
+    
+    const unreadCount = db.prepare(unreadQuery).get(...unreadParams)
+    
+    res.json({
+      notifications,
+      unread_count: unreadCount.count
     })
+  } catch (error) {
+    console.error('Get notifications error:', error)
+    res.status(500).json({ error: 'Failed to fetch notifications' })
   }
 })
 
 /**
- * GET /api/notifications/status - Получить статус планировщика
- */
-router.get('/status', (req, res) => {
-  const status = getSchedulerStatus()
-  res.json(status)
-})
-
-/**
- * GET /api/notifications/summary - Получить сводку по продуктам для уведомлений
+ * GET /api/notifications/summary - Сводка уведомлений для дашборда
  */
 router.get('/summary', (req, res) => {
   try {
-    const expired = getExpiredProducts()
-    const expiringToday = getExpiringTodayProducts()
-    const expiringSoon = getExpiringSoonProducts(3)
+    const hotelId = req.hotelId
+    const departmentId = req.user.role === 'STAFF' ? req.user.department_id : null
+    
+    // Получаем партии, срок которых истекает
+    let batchQuery = `
+      SELECT 
+        b.*,
+        p.name as product_name,
+        c.name as category_name,
+        d.name as department_name,
+        julianday(b.expiry_date) - julianday('now', 'localtime') as days_until_expiry
+      FROM batches b
+      JOIN products p ON b.product_id = p.id
+      JOIN categories c ON p.category_id = c.id
+      JOIN departments d ON b.department_id = d.id
+      WHERE b.hotel_id = ? AND b.status = 'active' AND b.quantity > 0
+    `
+    const params = [hotelId]
+    
+    if (departmentId) {
+      batchQuery += ' AND b.department_id = ?'
+      params.push(departmentId)
+    }
+    
+    batchQuery += ' ORDER BY b.expiry_date ASC'
+    
+    const batches = db.prepare(batchQuery).all(...params)
+    
+    // Классифицируем партии
+    const expired = []
+    const expiringToday = []
+    const expiringSoon = [] // 1-3 дня
+    const expiringWeek = [] // 4-7 дней
+    
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    
+    batches.forEach(batch => {
+      const expiryDate = new Date(batch.expiry_date)
+      expiryDate.setHours(0, 0, 0, 0)
+      
+      const daysUntil = Math.floor((expiryDate - today) / (1000 * 60 * 60 * 24))
+      
+      const batchInfo = {
+        id: batch.id,
+        product_name: batch.product_name,
+        category_name: batch.category_name,
+        department_name: batch.department_name,
+        quantity: batch.quantity,
+        unit: batch.unit,
+        expiry_date: batch.expiry_date,
+        days_until_expiry: daysUntil
+      }
+      
+      if (daysUntil < 0) {
+        expired.push(batchInfo)
+      } else if (daysUntil === 0) {
+        expiringToday.push(batchInfo)
+      } else if (daysUntil <= 3) {
+        expiringSoon.push(batchInfo)
+      } else if (daysUntil <= 7) {
+        expiringWeek.push(batchInfo)
+      }
+    })
     
     res.json({
       expired: {
         count: expired.length,
-        products: expired.map(p => ({
-          id: p.id,
-          name: p.name,
-          department: p.department,
-          quantity: p.quantity,
-          expiryDate: p.expiry_date
-        }))
+        items: expired
       },
-      expiringToday: {
+      expiring_today: {
         count: expiringToday.length,
-        products: expiringToday.map(p => ({
-          id: p.id,
-          name: p.name,
-          department: p.department,
-          quantity: p.quantity,
-          expiryDate: p.expiry_date
-        }))
+        items: expiringToday
       },
-      expiringSoon: {
+      expiring_soon: {
         count: expiringSoon.length,
-        products: expiringSoon.map(p => ({
-          id: p.id,
-          name: p.name,
-          department: p.department,
-          quantity: p.quantity,
-          expiryDate: p.expiry_date
-        }))
+        items: expiringSoon
       },
-      total: expired.length + expiringToday.length + expiringSoon.length
+      expiring_week: {
+        count: expiringWeek.length,
+        items: expiringWeek
+      },
+      total_alerts: expired.length + expiringToday.length + expiringSoon.length
     })
   } catch (error) {
-    console.error('Summary error:', error)
+    console.error('Get summary error:', error)
     res.status(500).json({ error: 'Failed to get notification summary' })
   }
 })
 
 /**
- * GET /api/notifications/logs - Получить логи уведомлений с пагинацией и фильтрами
+ * POST /api/notifications/generate - Генерация уведомлений о сроках годности
+ * Вызывается cron-задачей в 06:00
  */
-router.get('/logs', (req, res) => {
+router.post('/generate', hotelAdminOnly, (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1
-    const limit = parseInt(req.query.limit) || 20
-    const offset = (page - 1) * limit
+    const hotelId = req.hotelId
     
-    const type = req.query.type || null
-    const startDate = req.query.startDate || null
-    const endDate = req.query.endDate || null
+    // Находим партии, срок которых истекает в ближайшие 3 дня
+    const expiringBatches = db.prepare(`
+      SELECT 
+        b.*,
+        p.name as product_name,
+        d.name as department_name,
+        julianday(b.expiry_date) - julianday('now', 'localtime') as days_until_expiry
+      FROM batches b
+      JOIN products p ON b.product_id = p.id
+      JOIN departments d ON b.department_id = d.id
+      WHERE b.hotel_id = ? 
+        AND b.status = 'active' 
+        AND b.quantity > 0
+        AND julianday(b.expiry_date) - julianday('now', 'localtime') <= 3
+    `).all(hotelId)
     
-    const logs = getNotificationLogs(limit, offset, { type, startDate, endDate })
-    const total = getNotificationLogsCount({ type, startDate, endDate })
+    let created = 0
     
-    res.json({
-      logs,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit)
+    expiringBatches.forEach(batch => {
+      const daysUntil = Math.floor(batch.days_until_expiry)
+      let type, priority, title, message
+      
+      if (daysUntil < 0) {
+        type = 'expired'
+        priority = 'critical'
+        title = 'Просрочен!'
+        message = `${batch.product_name} (${batch.quantity} ${batch.unit}) - срок истёк ${Math.abs(daysUntil)} дней назад`
+      } else if (daysUntil === 0) {
+        type = 'expiring_today'
+        priority = 'high'
+        title = 'Истекает сегодня!'
+        message = `${batch.product_name} (${batch.quantity} ${batch.unit}) - срок истекает сегодня`
+      } else {
+        type = 'expiring_soon'
+        priority = 'medium'
+        title = `Истекает через ${daysUntil} дн.`
+        message = `${batch.product_name} (${batch.quantity} ${batch.unit}) - срок до ${batch.expiry_date}`
+      }
+      
+      // Проверяем, нет ли уже такого уведомления сегодня
+      const existing = db.prepare(`
+        SELECT id FROM notifications 
+        WHERE hotel_id = ? 
+          AND batch_id = ? 
+          AND type = ?
+          AND DATE(created_at) = DATE('now', 'localtime')
+      `).get(hotelId, batch.id, type)
+      
+      if (!existing) {
+        db.prepare(`
+          INSERT INTO notifications (hotel_id, department_id, batch_id, type, priority, title, message)
+          VALUES (?, ?, ?, ?, ?, ?, ?)
+        `).run(hotelId, batch.department_id, batch.id, type, priority, title, message)
+        created++
       }
     })
+    
+    logAudit(hotelId, req.user.id, 'GENERATE_NOTIFICATIONS', 'notification', null, { created })
+    
+    res.json({
+      success: true,
+      message: `Generated ${created} new notifications`,
+      expiring_count: expiringBatches.length,
+      created_count: created
+    })
   } catch (error) {
-    console.error('Logs error:', error)
-    res.status(500).json({ error: 'Failed to get notification logs' })
+    console.error('Generate notifications error:', error)
+    res.status(500).json({ error: 'Failed to generate notifications' })
   }
 })
 
 /**
- * POST /api/notifications/send-custom - Отправить кастомное уведомление
+ * PUT /api/notifications/:id/read - Отметить уведомление как прочитанное
  */
-router.post('/send-custom', async (req, res) => {
+router.put('/:id/read', (req, res) => {
   try {
-    const { expiredProducts, expiringToday, expiringSoon } = req.body
+    const { id } = req.params
+    const hotelId = req.hotelId
     
-    const result = await sendDailyAlert({
-      expiredProducts: expiredProducts || [],
-      expiringToday: expiringToday || [],
-      expiringSoon: expiringSoon || []
-    })
+    // Проверяем, что уведомление принадлежит этому отелю
+    const notification = db.prepare(`
+      SELECT * FROM notifications WHERE id = ? AND hotel_id = ?
+    `).get(id, hotelId)
     
-    if (result.success) {
-      res.json({ 
-        success: true, 
-        message: 'Custom notification sent',
-        productsNotified: result.productsNotified 
-      })
-    } else {
-      res.status(500).json({ 
-        success: false, 
-        error: result.error 
-      })
+    if (!notification) {
+      return res.status(404).json({ error: 'Notification not found' })
     }
+    
+    // Для STAFF проверяем, что уведомление для его отдела
+    if (req.user.role === 'STAFF' && notification.department_id && 
+        notification.department_id !== req.user.department_id) {
+      return res.status(403).json({ error: 'Access denied' })
+    }
+    
+    db.prepare(`
+      UPDATE notifications SET is_read = 1 WHERE id = ?
+    `).run(id)
+    
+    res.json({ success: true })
   } catch (error) {
-    console.error('Custom notification error:', error)
-    res.status(500).json({ 
-      success: false, 
-      error: 'Failed to send custom notification' 
+    console.error('Mark read error:', error)
+    res.status(500).json({ error: 'Failed to mark notification as read' })
+  }
+})
+
+/**
+ * PUT /api/notifications/read-all - Отметить все уведомления как прочитанные
+ */
+router.put('/read-all', (req, res) => {
+  try {
+    const hotelId = req.hotelId
+    
+    let query = 'UPDATE notifications SET is_read = 1 WHERE hotel_id = ?'
+    const params = [hotelId]
+    
+    // Для STAFF только его отдел
+    if (req.user.role === 'STAFF' && req.user.department_id) {
+      query += ' AND (department_id = ? OR department_id IS NULL)'
+      params.push(req.user.department_id)
+    }
+    
+    const result = db.prepare(query).run(...params)
+    
+    res.json({ 
+      success: true, 
+      updated: result.changes 
     })
+  } catch (error) {
+    console.error('Mark all read error:', error)
+    res.status(500).json({ error: 'Failed to mark notifications as read' })
+  }
+})
+
+/**
+ * DELETE /api/notifications/:id - Удалить уведомление
+ */
+router.delete('/:id', hotelAdminOnly, (req, res) => {
+  try {
+    const { id } = req.params
+    const hotelId = req.hotelId
+    
+    const notification = db.prepare(`
+      SELECT * FROM notifications WHERE id = ? AND hotel_id = ?
+    `).get(id, hotelId)
+    
+    if (!notification) {
+      return res.status(404).json({ error: 'Notification not found' })
+    }
+    
+    db.prepare('DELETE FROM notifications WHERE id = ?').run(id)
+    
+    logAudit(hotelId, req.user.id, 'DELETE', 'notification', id, { title: notification.title })
+    
+    res.json({ success: true })
+  } catch (error) {
+    console.error('Delete notification error:', error)
+    res.status(500).json({ error: 'Failed to delete notification' })
+  }
+})
+
+/**
+ * DELETE /api/notifications/clear-read - Очистить прочитанные уведомления
+ */
+router.delete('/clear-read', hotelAdminOnly, (req, res) => {
+  try {
+    const hotelId = req.hotelId
+    
+    const result = db.prepare(`
+      DELETE FROM notifications WHERE hotel_id = ? AND is_read = 1
+    `).run(hotelId)
+    
+    logAudit(hotelId, req.user.id, 'CLEAR_READ_NOTIFICATIONS', 'notification', null, { deleted: result.changes })
+    
+    res.json({ 
+      success: true, 
+      deleted: result.changes 
+    })
+  } catch (error) {
+    console.error('Clear read error:', error)
+    res.status(500).json({ error: 'Failed to clear read notifications' })
+  }
+})
+
+/**
+ * GET /api/notifications/stats - Статистика уведомлений
+ */
+router.get('/stats', (req, res) => {
+  try {
+    const hotelId = req.hotelId
+    const departmentId = req.user.role === 'STAFF' ? req.user.department_id : null
+    
+    let baseWhere = 'WHERE hotel_id = ?'
+    const params = [hotelId]
+    
+    if (departmentId) {
+      baseWhere += ' AND (department_id = ? OR department_id IS NULL)'
+      params.push(departmentId)
+    }
+    
+    // По типам
+    const byType = db.prepare(`
+      SELECT type, COUNT(*) as count 
+      FROM notifications ${baseWhere}
+      GROUP BY type
+    `).all(...params)
+    
+    // По приоритету
+    const byPriority = db.prepare(`
+      SELECT priority, COUNT(*) as count 
+      FROM notifications ${baseWhere}
+      GROUP BY priority
+    `).all(...params)
+    
+    // Прочитанные/непрочитанные
+    const readStats = db.prepare(`
+      SELECT 
+        SUM(CASE WHEN is_read = 1 THEN 1 ELSE 0 END) as read_count,
+        SUM(CASE WHEN is_read = 0 THEN 1 ELSE 0 END) as unread_count,
+        COUNT(*) as total
+      FROM notifications ${baseWhere}
+    `).get(...params)
+    
+    // За последние 7 дней
+    const last7Days = db.prepare(`
+      SELECT DATE(created_at) as date, COUNT(*) as count
+      FROM notifications ${baseWhere}
+        AND created_at >= DATE('now', '-7 days')
+      GROUP BY DATE(created_at)
+      ORDER BY date DESC
+    `).all(...params)
+    
+    res.json({
+      by_type: byType,
+      by_priority: byPriority,
+      read_stats: readStats,
+      last_7_days: last7Days
+    })
+  } catch (error) {
+    console.error('Get stats error:', error)
+    res.status(500).json({ error: 'Failed to get notification stats' })
   }
 })
 

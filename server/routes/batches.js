@@ -1,85 +1,111 @@
 /**
  * FreshTrack Batches API
- * CRUD операции для партий товаров
+ * Batch (inventory item) management with hotel and department isolation
  */
 
 import express from 'express'
-import { getDb } from '../db/database.js'
-import { logAction } from './audit-logs.js'
-import { authMiddleware } from '../middleware/auth.js'
+import { 
+  getAllBatches, 
+  getBatchById, 
+  createBatch, 
+  updateBatch,
+  collectBatch,
+  getExpiringBatches,
+  getExpiredBatches,
+  getBatchStats,
+  getProductById,
+  getProductByName,
+  createProduct,
+  getCategoryById,
+  getDepartmentById,
+  logAudit,
+  db 
+} from '../db/database.js'
+import { authMiddleware, hotelIsolation, departmentIsolation } from '../middleware/auth.js'
 
 const router = express.Router()
 
-// Применяем authMiddleware ко всем маршрутам
-router.use(authMiddleware)
-
-/**
- * GET /api/batches - Получить все партии
- */
-router.get('/', (req, res) => {
-  try {
-    const db = getDb()
-    const { department, status, category } = req.query
-    
-    let sql = `
-      SELECT 
-        p.id,
-        p.name as product_name,
-        p.department,
-        p.category,
-        p.quantity,
-        p.expiry_date,
-        p.created_at as added_at,
-        CASE 
-          WHEN p.expiry_date < date('now') THEN 'expired'
-          WHEN p.expiry_date <= date('now', '+3 days') THEN 'critical'
-          WHEN p.expiry_date <= date('now', '+7 days') THEN 'warning'
-          ELSE 'good'
-        END as status,
-        julianday(p.expiry_date) - julianday('now') as days_left
-      FROM products p
-      WHERE 1=1
-    `
-    
-    const params = []
-    
-    if (department) {
-      sql += ' AND p.department = ?'
-      params.push(department)
-    }
-    
-    if (category) {
-      sql += ' AND p.category = ?'
-      params.push(category)
-    }
-    
-    if (status) {
-      if (status === 'expired') {
-        sql += " AND p.expiry_date < date('now')"
-      } else if (status === 'critical') {
-        sql += " AND p.expiry_date >= date('now') AND p.expiry_date <= date('now', '+3 days')"
-      } else if (status === 'warning') {
-        sql += " AND p.expiry_date > date('now', '+3 days') AND p.expiry_date <= date('now', '+7 days')"
-      } else if (status === 'good') {
-        sql += " AND p.expiry_date > date('now', '+7 days')"
+// Middleware to require hotel context (with auto-selection for SUPER_ADMIN)
+const requireHotelContext = (req, res, next) => {
+  if (!req.hotelId) {
+    if (req.user?.role === 'SUPER_ADMIN') {
+      const firstHotel = db.prepare('SELECT id FROM hotels WHERE is_active = 1 LIMIT 1').get()
+      if (firstHotel) {
+        req.hotelId = firstHotel.id
+        // Also get first department if needed
+        if (!req.departmentId) {
+          const firstDept = db.prepare('SELECT id FROM departments WHERE hotel_id = ? AND is_active = 1 LIMIT 1').get(firstHotel.id)
+          if (firstDept) {
+            req.departmentId = firstDept.id
+          }
+        }
+        return next()
       }
     }
+    return res.status(400).json({ error: 'Hotel context required' })
+  }
+  next()
+}
+
+/**
+ * GET /api/batches - Get all batches with isolation
+ */
+router.get('/', authMiddleware, hotelIsolation, departmentIsolation, requireHotelContext, (req, res) => {
+  try {
+    const { status, category } = req.query
     
-    sql += ' ORDER BY p.expiry_date ASC'
+    // По умолчанию возвращаем только активные партии (не собранные)
+    let batches = getAllBatches(req.hotelId, req.departmentId, status || 'active')
     
-    const batches = db.prepare(sql).all(...params)
+    // Filter by status
+    if (status && status !== 'active') {
+      const today = new Date().toISOString().split('T')[0]
+      const threeDays = new Date()
+      threeDays.setDate(threeDays.getDate() + 3)
+      const threeDaysStr = threeDays.toISOString().split('T')[0]
+      const sevenDays = new Date()
+      sevenDays.setDate(sevenDays.getDate() + 7)
+      const sevenDaysStr = sevenDays.toISOString().split('T')[0]
+      
+      batches = batches.filter(b => {
+        if (status === 'expired') return b.expiry_date < today
+        if (status === 'critical') return b.expiry_date >= today && b.expiry_date <= threeDaysStr
+        if (status === 'warning') return b.expiry_date > threeDaysStr && b.expiry_date <= sevenDaysStr
+        if (status === 'good') return b.expiry_date > sevenDaysStr
+        return true
+      })
+    }
     
-    res.json(batches.map(b => ({
-      id: b.id,
-      productName: b.product_name,
-      department: b.department,
-      category: b.category,
-      quantity: b.quantity,
-      expiryDate: b.expiry_date,
-      addedAt: b.added_at,
-      status: b.status,
-      daysLeft: Math.floor(b.days_left)
-    })))
+    // Calculate days left and status for each batch
+    const today = new Date()
+    const result = batches.map(b => {
+      const expiryDate = new Date(b.expiry_date)
+      const daysLeft = Math.ceil((expiryDate - today) / (1000 * 60 * 60 * 24))
+      
+      let batchStatus = 'good'
+      if (daysLeft < 0) batchStatus = 'expired'
+      else if (daysLeft <= 3) batchStatus = 'critical'
+      else if (daysLeft <= 7) batchStatus = 'warning'
+      
+      return {
+        id: b.id,
+        productId: b.product_id,
+        productName: b.product_name,
+        barcode: b.barcode,
+        categoryName: b.category_name,
+        departmentId: b.department_id,
+        departmentName: b.department_name,
+        quantity: b.quantity,
+        expiryDate: b.expiry_date,
+        batchNumber: b.batch_number,
+        status: b.status === 'active' ? batchStatus : b.status,
+        daysLeft,
+        addedAt: b.added_at,
+        addedBy: b.added_by
+      }
+    })
+    
+    res.json(result)
   } catch (error) {
     console.error('Error fetching batches:', error)
     res.status(500).json({ error: 'Failed to fetch batches' })
@@ -87,39 +113,12 @@ router.get('/', (req, res) => {
 })
 
 /**
- * GET /api/batches/stats - Статистика партий
+ * GET /api/batches/stats - Get batch statistics
  */
-router.get('/stats', (req, res) => {
+router.get('/stats', authMiddleware, hotelIsolation, departmentIsolation, requireHotelContext, (req, res) => {
   try {
-    const db = getDb()
-    const { department } = req.query
-    
-    let whereClause = ''
-    const params = []
-    
-    if (department) {
-      whereClause = 'WHERE department = ?'
-      params.push(department)
-    }
-    
-    const stats = db.prepare(`
-      SELECT 
-        COUNT(*) as total,
-        SUM(CASE WHEN expiry_date < date('now') THEN 1 ELSE 0 END) as expired,
-        SUM(CASE WHEN expiry_date >= date('now') AND expiry_date <= date('now', '+3 days') THEN 1 ELSE 0 END) as critical,
-        SUM(CASE WHEN expiry_date > date('now', '+3 days') AND expiry_date <= date('now', '+7 days') THEN 1 ELSE 0 END) as warning,
-        SUM(CASE WHEN expiry_date > date('now', '+7 days') THEN 1 ELSE 0 END) as good
-      FROM products
-      ${whereClause}
-    `).get(...params)
-    
-    res.json({
-      total: stats.total || 0,
-      expired: stats.expired || 0,
-      critical: stats.critical || 0,
-      warning: stats.warning || 0,
-      good: stats.good || 0
-    })
+    const stats = getBatchStats(req.hotelId, req.departmentId)
+    res.json(stats)
   } catch (error) {
     console.error('Error fetching stats:', error)
     res.status(500).json({ error: 'Failed to fetch stats' })
@@ -127,355 +126,91 @@ router.get('/stats', (req, res) => {
 })
 
 /**
- * GET /api/batches/by-department - Статистика по отделам
+ * GET /api/batches/expiring - Get expiring batches
  */
-router.get('/by-department', (req, res) => {
+router.get('/expiring', authMiddleware, hotelIsolation, departmentIsolation, requireHotelContext, (req, res) => {
   try {
-    const db = getDb()
+    const days = parseInt(req.query.days) || 7
+    const batches = getExpiringBatches(req.hotelId, days)
     
-    const batches = db.prepare(`
-      SELECT 
-        department,
-        COUNT(*) as total,
-        SUM(CASE WHEN expiry_date < date('now') THEN 1 ELSE 0 END) as expired,
-        SUM(CASE WHEN expiry_date >= date('now') AND expiry_date <= date('now', '+3 days') THEN 1 ELSE 0 END) as critical,
-        SUM(CASE WHEN expiry_date > date('now', '+3 days') AND expiry_date <= date('now', '+7 days') THEN 1 ELSE 0 END) as warning,
-        SUM(CASE WHEN expiry_date > date('now', '+7 days') THEN 1 ELSE 0 END) as good
-      FROM products
-      GROUP BY department
-    `).all()
-    
-    res.json(batches)
-  } catch (error) {
-    console.error('Error fetching department stats:', error)
-    res.status(500).json({ error: 'Failed to fetch department stats' })
-  }
-})
-
-/**
- * GET /api/batches/alerts - Партии требующие внимания (истекают в ближайшие 7 дней)
- */
-router.get('/alerts', (req, res) => {
-  try {
-    const db = getDb()
-    const { department } = req.query
-    
-    let sql = `
-      SELECT 
-        p.id,
-        p.name as product_name,
-        p.department,
-        p.category,
-        p.quantity,
-        p.expiry_date,
-        julianday(p.expiry_date) - julianday('now') as days_left,
-        CASE 
-          WHEN p.expiry_date < date('now') THEN 'expired'
-          WHEN p.expiry_date <= date('now', '+3 days') THEN 'critical'
-          ELSE 'warning'
-        END as status
-      FROM products p
-      WHERE p.expiry_date <= date('now', '+7 days')
-    `
-    
-    const params = []
-    
-    if (department) {
-      sql += ' AND p.department = ?'
-      params.push(department)
+    // Filter by department if needed
+    let result = batches
+    if (req.departmentId) {
+      result = batches.filter(b => b.department_id === req.departmentId)
     }
     
-    sql += ' ORDER BY p.expiry_date ASC'
-    
-    const alerts = db.prepare(sql).all(...params)
-    
-    res.json(alerts.map(a => ({
-      id: a.id,
-      productName: a.product_name,
-      department: a.department,
-      category: a.category,
-      quantity: a.quantity,
-      expiryDate: a.expiry_date,
-      daysLeft: Math.floor(a.days_left),
-      status: a.status
+    res.json(result.map(b => ({
+      id: b.id,
+      productId: b.product_id,
+      productName: b.product_name,
+      departmentName: b.department_name,
+      quantity: b.quantity,
+      expiryDate: b.expiry_date,
+      daysLeft: Math.ceil((new Date(b.expiry_date) - new Date()) / (1000 * 60 * 60 * 24))
     })))
   } catch (error) {
-    console.error('Error fetching alerts:', error)
-    res.status(500).json({ error: 'Failed to fetch alerts' })
+    console.error('Error fetching expiring batches:', error)
+    res.status(500).json({ error: 'Failed to fetch expiring batches' })
   }
 })
 
 /**
- * GET /api/batches/collections - История сборов
+ * GET /api/batches/expired - Get expired batches
  */
-router.get('/collections', (req, res) => {
+router.get('/expired', authMiddleware, hotelIsolation, departmentIsolation, requireHotelContext, (req, res) => {
   try {
-    const db = getDb()
-    const { department, startDate, endDate, limit = 100 } = req.query
+    const batches = getExpiredBatches(req.hotelId)
     
-    let sql = `
-      SELECT 
-        c.id,
-        c.batch_id,
-        c.product_name,
-        c.department_id as department,
-        c.expiry_date,
-        c.quantity,
-        c.collected_at,
-        c.collected_by,
-        c.reason,
-        c.comment,
-        u.name as collector_name
-      FROM collection_logs c
-      LEFT JOIN users u ON c.collected_by = u.id
-      WHERE 1=1
-    `
-    
-    const params = []
-    
-    if (department) {
-      sql += ' AND c.department_id = ?'
-      params.push(department)
+    // Filter by department if needed
+    let result = batches
+    if (req.departmentId) {
+      result = batches.filter(b => b.department_id === req.departmentId)
     }
     
-    if (startDate) {
-      sql += ' AND date(c.collected_at) >= date(?)'
-      params.push(startDate)
-    }
-    
-    if (endDate) {
-      sql += ' AND date(c.collected_at) <= date(?)'
-      params.push(endDate)
-    }
-    
-    sql += ' ORDER BY c.collected_at DESC LIMIT ?'
-    params.push(parseInt(limit))
-    
-    const collections = db.prepare(sql).all(...params)
-    
-    res.json(collections.map(c => ({
-      id: c.id,
-      batchId: c.batch_id,
-      productName: c.product_name,
-      department: c.department,
-      expiryDate: c.expiry_date,
-      quantity: c.quantity,
-      collectedAt: c.collected_at,
-      collectedBy: c.collected_by,
-      collectorName: c.collector_name,
-      reason: c.reason,
-      comment: c.comment
+    res.json(result.map(b => ({
+      id: b.id,
+      productId: b.product_id,
+      productName: b.product_name,
+      departmentName: b.department_name,
+      quantity: b.quantity,
+      expiryDate: b.expiry_date,
+      daysLeft: Math.ceil((new Date(b.expiry_date) - new Date()) / (1000 * 60 * 60 * 24))
     })))
   } catch (error) {
-    console.error('Error fetching collections:', error)
-    res.status(500).json({ error: 'Failed to fetch collections' })
+    console.error('Error fetching expired batches:', error)
+    res.status(500).json({ error: 'Failed to fetch expired batches' })
   }
 })
 
 /**
- * GET /api/batches/collections/stats - Статистика сборов
+ * GET /api/batches/:id - Get batch by ID
  */
-router.get('/collections/stats', (req, res) => {
+router.get('/:id', authMiddleware, hotelIsolation, (req, res) => {
   try {
-    const db = getDb()
-    const { period = 'week' } = req.query
-    
-    // Определяем период
-    let dateFilter = "date('now', '-7 days')"
-    if (period === 'month') dateFilter = "date('now', '-30 days')"
-    if (period === 'year') dateFilter = "date('now', '-365 days')"
-    
-    // Общая статистика
-    const total = db.prepare(`
-      SELECT 
-        COUNT(*) as totalCollections,
-        SUM(quantity) as totalQuantity
-      FROM collection_logs
-      WHERE date(collected_at) >= ${dateFilter}
-    `).get()
-    
-    // По отделам
-    const byDepartment = db.prepare(`
-      SELECT 
-        department_id as department,
-        COUNT(*) as collections,
-        SUM(quantity) as quantity
-      FROM collection_logs
-      WHERE date(collected_at) >= ${dateFilter}
-      GROUP BY department_id
-      ORDER BY quantity DESC
-    `).all()
-    
-    // По дням
-    const byDay = db.prepare(`
-      SELECT 
-        date(collected_at) as date,
-        COUNT(*) as collections,
-        SUM(quantity) as quantity
-      FROM collection_logs
-      WHERE date(collected_at) >= ${dateFilter}
-      GROUP BY date(collected_at)
-      ORDER BY date ASC
-    `).all()
-    
-    // По причинам
-    const byReason = db.prepare(`
-      SELECT 
-        reason,
-        COUNT(*) as count,
-        SUM(quantity) as quantity
-      FROM collection_logs
-      WHERE date(collected_at) >= ${dateFilter}
-      GROUP BY reason
-    `).all()
-    
-    res.json({
-      total: {
-        collections: total.totalCollections || 0,
-        quantity: total.totalQuantity || 0
-      },
-      byDepartment,
-      byDay,
-      byReason
-    })
-  } catch (error) {
-    console.error('Error fetching collection stats:', error)
-    res.status(500).json({ error: 'Failed to fetch collection stats' })
-  }
-})
-
-/**
- * POST /api/batches - Создать новую партию
- */
-router.post('/', (req, res) => {
-  try {
-    const db = getDb()
-    const { productName, department, category, quantity, expiryDate, manufacturingDate } = req.body
-    
-    // Валидация
-    if (!productName || !department || !category || !quantity || !expiryDate) {
-      return res.status(400).json({ error: 'Все обязательные поля должны быть заполнены' })
-    }
-    
-    const result = db.prepare(`
-      INSERT INTO products (name, department, category, quantity, expiry_date, created_at) 
-      VALUES (?, ?, ?, ?, ?, datetime('now'))
-    `).run(productName, department, category, parseInt(quantity), expiryDate)
-    
-    const newBatch = db.prepare('SELECT * FROM products WHERE id = ?').get(result.lastInsertRowid)
-    
-    // Записываем в audit log
-    const userId = req.user?.id || null
-    const userName = req.user?.name || req.user?.login || 'Unknown'
-    logAction(userId, userName, 'create', productName, 'batch', `Создана новая партия: ${quantity} шт., срок годности: ${expiryDate}`, req.ip)
-    
-    res.status(201).json({
-      id: newBatch.id,
-      productName: newBatch.name,
-      department: newBatch.department,
-      category: newBatch.category,
-      quantity: newBatch.quantity,
-      expiryDate: newBatch.expiry_date,
-      addedAt: newBatch.created_at
-    })
-  } catch (error) {
-    console.error('Error creating batch:', error)
-    res.status(500).json({ error: 'Failed to create batch' })
-  }
-})
-
-/**
- * POST /api/batches/bulk - Создать несколько партий (для шаблонов)
- */
-router.post('/bulk', (req, res) => {
-  try {
-    const db = getDb()
-    const { items } = req.body
-    
-    if (!items || !Array.isArray(items)) {
-      return res.status(400).json({ error: 'Items array is required' })
-    }
-    
-    const stmt = db.prepare(`
-      INSERT INTO products (name, department, category, quantity, expiry_date, created_at) 
-      VALUES (?, ?, ?, ?, ?, datetime('now'))
-    `)
-    
-    const insertMany = db.transaction((items) => {
-      const results = []
-      for (const item of items) {
-        const result = stmt.run(
-          item.productName, 
-          item.department, 
-          item.category, 
-          parseInt(item.quantity), 
-          item.expiryDate
-        )
-        results.push(result.lastInsertRowid)
-      }
-      return results
-    })
-    
-    const ids = insertMany(items)
-    
-    // Записываем в audit log
-    const userId = req.user?.id || null
-    const userName = req.user?.name || req.user?.login || 'Unknown'
-    logAction(userId, userName, 'create', 'Bulk import', 'batch', `Создано ${ids.length} партий из шаблона`, req.ip)
-    
-    res.status(201).json({ 
-      success: true, 
-      count: ids.length,
-      ids 
-    })
-  } catch (error) {
-    console.error('Error creating batches:', error)
-    res.status(500).json({ error: 'Failed to create batches' })
-  }
-})
-
-/**
- * GET /api/batches/:id - Получить партию по ID
- */
-router.get('/:id', (req, res) => {
-  try {
-    const db = getDb()
-    const id = parseInt(req.params.id)
-    
-    const batch = db.prepare(`
-      SELECT 
-        p.id,
-        p.name as product_name,
-        p.department,
-        p.category,
-        p.quantity,
-        p.expiry_date,
-        p.created_at as added_at,
-        CASE 
-          WHEN p.expiry_date < date('now') THEN 'expired'
-          WHEN p.expiry_date <= date('now', '+3 days') THEN 'critical'
-          WHEN p.expiry_date <= date('now', '+7 days') THEN 'warning'
-          ELSE 'good'
-        END as status,
-        julianday(p.expiry_date) - julianday('now') as days_left
-      FROM products p
-      WHERE p.id = ?
-    `).get(id)
+    const { id } = req.params
+    const batch = getBatchById(id)
     
     if (!batch) {
       return res.status(404).json({ error: 'Batch not found' })
     }
     
+    // Check hotel access
+    if (req.hotelId && batch.hotel_id !== req.hotelId) {
+      return res.status(403).json({ error: 'Access denied to this batch' })
+    }
+    
     res.json({
       id: batch.id,
+      productId: batch.product_id,
       productName: batch.product_name,
-      department: batch.department,
-      category: batch.category,
+      departmentId: batch.department_id,
+      departmentName: batch.department_name,
       quantity: batch.quantity,
       expiryDate: batch.expiry_date,
-      addedAt: batch.added_at,
+      batchNumber: batch.batch_number,
       status: batch.status,
-      daysLeft: Math.floor(batch.days_left)
+      addedAt: batch.added_at,
+      addedBy: batch.added_by
     })
   } catch (error) {
     console.error('Error fetching batch:', error)
@@ -484,48 +219,165 @@ router.get('/:id', (req, res) => {
 })
 
 /**
- * PUT /api/batches/:id - Обновить партию
+ * POST /api/batches - Create batch
  */
-router.put('/:id', (req, res) => {
+router.post('/', authMiddleware, hotelIsolation, departmentIsolation, requireHotelContext, (req, res) => {
   try {
-    const db = getDb()
-    const id = parseInt(req.params.id)
-    const { productName, department, category, quantity, expiryDate } = req.body
+    const { productId, productName, departmentId, department, quantity, expiryDate, batchNumber, category } = req.body
     
-    const existing = db.prepare('SELECT * FROM products WHERE id = ?').get(id)
-    if (!existing) {
+    if (!productId && !productName) {
+      return res.status(400).json({ error: 'Product ID or Product Name is required' })
+    }
+    
+    if (!expiryDate) {
+      return res.status(400).json({ error: 'Expiry date is required' })
+    }
+    
+    // Get product - by ID or by name, or create if not exists
+    let product = null
+    if (productId) {
+      product = getProductById(productId)
+    } else if (productName) {
+      product = getProductByName(productName, req.hotelId)
+      
+      // Auto-create product if not found
+      if (!product) {
+        try {
+          // Find category ID if category name/id provided
+          let categoryId = category || null
+          if (category && typeof category === 'string') {
+            // Try to find category by id first
+            const catRecord = getCategoryById(category)
+            if (catRecord) {
+              categoryId = catRecord.id
+            }
+          }
+          
+          product = createProduct({
+            hotel_id: req.hotelId,
+            category_id: categoryId,
+            name: productName,
+            name_en: productName,
+            name_kk: productName
+          })
+          
+          console.log(`Auto-created product: ${productName} (ID: ${product.id})`)
+        } catch (createErr) {
+          console.error('Error auto-creating product:', createErr)
+          return res.status(500).json({ error: 'Failed to create product' })
+        }
+      }
+    }
+    
+    if (!product) {
+      return res.status(404).json({ error: 'Product not found and could not be created' })
+    }
+    
+    if (req.hotelId && product.hotel_id !== req.hotelId) {
+      return res.status(403).json({ error: 'Product does not belong to your hotel' })
+    }
+    
+    // Determine department ID (support both 'departmentId' and 'department' field names)
+    let batchDepartmentId = departmentId || department || req.departmentId
+    if (!batchDepartmentId) {
+      return res.status(400).json({ error: 'Department ID is required' })
+    }
+    
+    // Verify department belongs to hotel
+    const deptRecord = getDepartmentById(batchDepartmentId)
+    if (!deptRecord) {
+      return res.status(404).json({ error: 'Department not found' })
+    }
+    
+    if (req.hotelId && deptRecord.hotel_id !== req.hotelId) {
+      return res.status(403).json({ error: 'Department does not belong to your hotel' })
+    }
+    
+    const batch = createBatch({
+      hotel_id: req.hotelId || product.hotel_id,
+      department_id: batchDepartmentId,
+      product_id: product.id,
+      quantity: quantity || 1,
+      expiry_date: expiryDate,
+      batch_number: batchNumber,
+      added_by: req.user.id
+    })
+    
+    // Log action
+    logAudit({
+      hotel_id: batch.hotel_id,
+      user_id: req.user.id,
+      user_name: req.user.name,
+      action: 'create',
+      entity_type: 'batch',
+      entity_id: batch.id,
+      details: { productId: product.id, productName: product.name, quantity, expiryDate },
+      ip_address: req.ip
+    })
+    
+    res.status(201).json({ 
+      success: true,
+      batch: {
+        id: batch.id,
+        productId: batch.product_id,
+        departmentId: batch.department_id,
+        quantity: batch.quantity,
+        expiryDate: batch.expiry_date,
+        batchNumber: batch.batch_number,
+        status: batch.status
+      }
+    })
+  } catch (error) {
+    console.error('Error creating batch:', error)
+    res.status(500).json({ error: 'Failed to create batch' })
+  }
+})
+
+/**
+ * PUT /api/batches/:id - Update batch
+ */
+router.put('/:id', authMiddleware, hotelIsolation, (req, res) => {
+  try {
+    const { id } = req.params
+    const { quantity, expiryDate, batchNumber } = req.body
+    
+    const batch = getBatchById(id)
+    if (!batch) {
       return res.status(404).json({ error: 'Batch not found' })
     }
     
-    db.prepare(`
-      UPDATE products 
-      SET name = COALESCE(?, name),
-          department = COALESCE(?, department),
-          category = COALESCE(?, category),
-          quantity = COALESCE(?, quantity),
-          expiry_date = COALESCE(?, expiry_date),
-          updated_at = datetime('now')
-      WHERE id = ?
-    `).run(productName, department, category, quantity, expiryDate, id)
+    // Check hotel access
+    if (req.hotelId && batch.hotel_id !== req.hotelId) {
+      return res.status(403).json({ error: 'Access denied to this batch' })
+    }
     
-    const updated = db.prepare('SELECT * FROM products WHERE id = ?').get(id)
+    // Check department access for staff
+    if (req.user.role === 'STAFF' && batch.department_id !== req.user.department_id) {
+      return res.status(403).json({ error: 'Access denied to this batch' })
+    }
     
-    // Записываем в audit log
-    const userId = req.user?.id || null
-    const userName = req.user?.name || req.user?.login || 'Unknown'
-    const changes = []
-    if (quantity !== undefined && quantity !== existing.quantity) changes.push(`количество: ${existing.quantity} → ${quantity}`)
-    if (expiryDate && expiryDate !== existing.expiry_date) changes.push(`срок годности: ${existing.expiry_date} → ${expiryDate}`)
-    logAction(userId, userName, 'update', existing.name, 'batch', changes.length > 0 ? `Обновлено: ${changes.join(', ')}` : 'Обновлена партия', req.ip)
+    const updates = {}
+    if (quantity !== undefined) updates.quantity = quantity
+    if (expiryDate !== undefined) updates.expiry_date = expiryDate
+    if (batchNumber !== undefined) updates.batch_number = batchNumber
     
-    res.json({
-      id: updated.id,
-      productName: updated.name,
-      department: updated.department,
-      category: updated.category,
-      quantity: updated.quantity,
-      expiryDate: updated.expiry_date
-    })
+    const success = updateBatch(id, updates)
+    
+    if (success) {
+      // Log action
+      logAudit({
+        hotel_id: batch.hotel_id,
+        user_id: req.user.id,
+        user_name: req.user.name,
+        action: 'update',
+        entity_type: 'batch',
+        entity_id: id,
+        details: { updates: Object.keys(updates) },
+        ip_address: req.ip
+      })
+    }
+    
+    res.json({ success })
   } catch (error) {
     console.error('Error updating batch:', error)
     res.status(500).json({ error: 'Failed to update batch' })
@@ -533,47 +385,55 @@ router.put('/:id', (req, res) => {
 })
 
 /**
- * PATCH /api/batches/:id/collect - Отметить партию как собранную
+ * POST /api/batches/:id/collect - Collect (write-off) batch
  */
-router.patch('/:id/collect', (req, res) => {
+router.post('/:id/collect', authMiddleware, hotelIsolation, (req, res) => {
   try {
-    const db = getDb()
-    const id = parseInt(req.params.id)
+    const { id } = req.params
     const { reason, comment } = req.body
-    const collectedBy = req.user?.id || null
-    const collectedByName = req.user?.name || 'Система'
     
-    // Получаем партию
-    const batch = db.prepare('SELECT * FROM products WHERE id = ?').get(id)
+    const batch = getBatchById(id)
     if (!batch) {
       return res.status(404).json({ error: 'Batch not found' })
     }
     
-    // Записываем в лог сборов (с комментарием)
-    db.prepare(`
-      INSERT INTO collection_logs (batch_id, product_name, department_id, expiry_date, quantity, collected_by, reason, comment)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(id, batch.name, batch.department, batch.expiry_date, batch.quantity, collectedBy, reason || 'manual', comment || null)
+    // Check hotel access
+    if (req.hotelId && batch.hotel_id !== req.hotelId) {
+      return res.status(403).json({ error: 'Access denied to this batch' })
+    }
     
-    // Записываем в audit log
-    logAction(
-      collectedBy, 
-      collectedByName, 
-      'collect', 
-      batch.name, 
-      'batch', 
-      `Собрано ${batch.quantity} шт. Причина: ${reason || 'не указана'}${comment ? '. Комментарий: ' + comment : ''}`,
-      req.ip
-    )
+    // Check department access for staff
+    if (req.user.role === 'STAFF' && batch.department_id !== req.user.department_id) {
+      return res.status(403).json({ error: 'Access denied to this batch' })
+    }
     
-    // Удаляем партию из products (или помечаем как собранную)
-    db.prepare('DELETE FROM products WHERE id = ?').run(id)
+    if (batch.status === 'collected') {
+      return res.status(400).json({ error: 'Batch already collected' })
+    }
     
-    res.json({ 
-      success: true, 
-      message: 'Batch collected',
-      batchId: id
-    })
+    const result = collectBatch(id, req.user.id, reason || 'expired', comment)
+    
+    if (result) {
+      // Log action
+      logAudit({
+        hotel_id: batch.hotel_id,
+        user_id: req.user.id,
+        user_name: req.user.name,
+        action: 'collect',
+        entity_type: 'batch',
+        entity_id: id,
+        details: { reason, productName: batch.product_name, quantity: batch.quantity },
+        ip_address: req.ip
+      })
+      
+      res.json({ 
+        success: true, 
+        writeOffId: result.writeOffId,
+        message: 'Batch collected successfully' 
+      })
+    } else {
+      res.status(500).json({ error: 'Failed to collect batch' })
+    }
   } catch (error) {
     console.error('Error collecting batch:', error)
     res.status(500).json({ error: 'Failed to collect batch' })
@@ -581,26 +441,124 @@ router.patch('/:id/collect', (req, res) => {
 })
 
 /**
- * DELETE /api/batches/:id - Удалить партию
+ * POST /api/batches/collect-multiple - Collect multiple batches
  */
-router.delete('/:id', (req, res) => {
+router.post('/collect-multiple', authMiddleware, hotelIsolation, (req, res) => {
   try {
-    const db = getDb()
-    const id = parseInt(req.params.id)
+    const { batchIds, reason, comment } = req.body
     
-    const existing = db.prepare('SELECT * FROM products WHERE id = ?').get(id)
-    if (!existing) {
+    if (!batchIds || !Array.isArray(batchIds) || batchIds.length === 0) {
+      return res.status(400).json({ error: 'Batch IDs are required' })
+    }
+    
+    const results = []
+    const errors = []
+    
+    for (const batchId of batchIds) {
+      try {
+        const batch = getBatchById(batchId)
+        if (!batch) {
+          errors.push({ batchId, error: 'Batch not found' })
+          continue
+        }
+        
+        // Check hotel access
+        if (req.hotelId && batch.hotel_id !== req.hotelId) {
+          errors.push({ batchId, error: 'Access denied' })
+          continue
+        }
+        
+        // Check department access for staff
+        if (req.user.role === 'STAFF' && batch.department_id !== req.user.department_id) {
+          errors.push({ batchId, error: 'Access denied' })
+          continue
+        }
+        
+        if (batch.status === 'collected') {
+          errors.push({ batchId, error: 'Already collected' })
+          continue
+        }
+        
+        const result = collectBatch(batchId, req.user.id, reason || 'expired', comment)
+        if (result) {
+          results.push({ batchId, writeOffId: result.writeOffId })
+          
+          // Log action
+          logAudit({
+            hotel_id: batch.hotel_id,
+            user_id: req.user.id,
+            user_name: req.user.name,
+            action: 'collect',
+            entity_type: 'batch',
+            entity_id: batchId,
+            details: { reason, productName: batch.product_name, quantity: batch.quantity },
+            ip_address: req.ip
+          })
+        } else {
+          errors.push({ batchId, error: 'Collection failed' })
+        }
+      } catch (e) {
+        errors.push({ batchId, error: e.message })
+      }
+    }
+    
+    res.json({
+      success: true,
+      collected: results.length,
+      failed: errors.length,
+      results,
+      errors
+    })
+  } catch (error) {
+    console.error('Error collecting batches:', error)
+    res.status(500).json({ error: 'Failed to collect batches' })
+  }
+})
+
+/**
+ * DELETE /api/batches/:id - Delete batch (only if not collected)
+ */
+router.delete('/:id', authMiddleware, hotelIsolation, (req, res) => {
+  try {
+    const { id } = req.params
+    
+    const batch = getBatchById(id)
+    if (!batch) {
       return res.status(404).json({ error: 'Batch not found' })
     }
     
-    db.prepare('DELETE FROM products WHERE id = ?').run(id)
+    // Check hotel access
+    if (req.hotelId && batch.hotel_id !== req.hotelId) {
+      return res.status(403).json({ error: 'Access denied to this batch' })
+    }
     
-    // Записываем в audit log
-    const userId = req.user?.id || null
-    const userName = req.user?.name || req.user?.login || 'Unknown'
-    logAction(userId, userName, 'delete', existing.name, 'batch', `Удалена партия: ${existing.quantity} шт.`, req.ip)
+    // Only admins can delete batches
+    if (!['SUPER_ADMIN', 'HOTEL_ADMIN'].includes(req.user.role)) {
+      return res.status(403).json({ error: 'Only admins can delete batches' })
+    }
     
-    res.json({ success: true, message: 'Batch deleted' })
+    // Cannot delete collected batches (for audit trail)
+    if (batch.status === 'collected') {
+      return res.status(400).json({ error: 'Cannot delete collected batches' })
+    }
+    
+    const success = updateBatch(id, { status: 'deleted' })
+    
+    if (success) {
+      // Log action
+      logAudit({
+        hotel_id: batch.hotel_id,
+        user_id: req.user.id,
+        user_name: req.user.name,
+        action: 'delete',
+        entity_type: 'batch',
+        entity_id: id,
+        details: { productName: batch.product_name },
+        ip_address: req.ip
+      })
+    }
+    
+    res.json({ success })
   } catch (error) {
     console.error('Error deleting batch:', error)
     res.status(500).json({ error: 'Failed to delete batch' })

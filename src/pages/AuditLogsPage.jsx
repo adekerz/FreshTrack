@@ -143,9 +143,10 @@ export default function AuditLogsPage() {
   }
 
   const getActionLabel = (action) => {
-    const actionType = action?.toLowerCase() || ''
+    if (!action) return 'Действие'
+    const actionType = String(action).toLowerCase()
     const actions = t('auditLogs.actions') || {}
-    return actions[actionType] || action || 'Действие'
+    return actions[actionType] || String(action) || 'Действие'
   }
 
   const getActionColor = (action) => {
@@ -202,6 +203,34 @@ export default function AuditLogsPage() {
     return formatDate(timestamp, true)
   }
 
+  // Форматирование details (может быть объектом или строкой)
+  const formatDetails = (details) => {
+    if (!details) return '—'
+    if (typeof details === 'string') return details
+    if (typeof details === 'object') {
+      try {
+        return JSON.stringify(details, null, 2)
+      } catch {
+        return String(details)
+      }
+    }
+    return String(details)
+  }
+
+  // Получить строку для поиска из details
+  const getDetailsSearchString = (details) => {
+    if (!details) return ''
+    if (typeof details === 'string') return details.toLowerCase()
+    if (typeof details === 'object') {
+      try {
+        return JSON.stringify(details).toLowerCase()
+      } catch {
+        return ''
+      }
+    }
+    return String(details).toLowerCase()
+  }
+
   // Локальная фильтрация по поиску
   const filteredLogs = logs.filter((log) => {
     if (!searchQuery) return true
@@ -209,7 +238,7 @@ export default function AuditLogsPage() {
     return (
       (log.userName || log.user || '').toLowerCase().includes(query) ||
       (log.entityName || log.target || '').toLowerCase().includes(query) ||
-      (log.details || '').toLowerCase().includes(query)
+      getDetailsSearchString(log.details).includes(query)
     )
   })
 
@@ -490,7 +519,7 @@ export default function AuditLogsPage() {
                       </td>
                       <td className="px-4 py-3">
                         <span className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
-                          {log.details || '—'}
+                          {formatDetails(log.details)}
                         </span>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
@@ -554,7 +583,7 @@ export default function AuditLogsPage() {
 
                   {log.details && (
                     <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
-                      {log.details}
+                      {formatDetails(log.details)}
                     </p>
                   )}
                 </div>
@@ -689,9 +718,9 @@ export default function AuditLogsPage() {
                   <label className="text-sm text-gray-500 dark:text-gray-400">
                     {t('auditLogs.details') || 'Детали'}
                   </label>
-                  <p className="mt-1 text-gray-900 dark:text-white whitespace-pre-wrap">
-                    {selectedLog.details}
-                  </p>
+                  <pre className="mt-1 text-gray-900 dark:text-white whitespace-pre-wrap text-sm bg-gray-50 dark:bg-gray-700 p-2 rounded">
+                    {formatDetails(selectedLog.details)}
+                  </pre>
                 </div>
               )}
 

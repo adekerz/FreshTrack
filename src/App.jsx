@@ -53,7 +53,7 @@ function App() {
         <Route
           path="/notifications/history"
           element={
-            <ProtectedRoute allowedRoles={['admin', 'manager']}>
+            <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'HOTEL_ADMIN']}>
               <NotificationsHistoryPage />
             </ProtectedRoute>
           }
@@ -63,16 +63,16 @@ function App() {
         <Route
           path="/collection-history"
           element={
-            <AdminRoute>
+            <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'HOTEL_ADMIN']}>
               <CollectionHistoryPage />
-            </AdminRoute>
+            </ProtectedRoute>
           }
         />
 
         <Route
           path="/statistics"
           element={
-            <ProtectedRoute allowedRoles={['admin', 'manager']}>
+            <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'HOTEL_ADMIN']}>
               <StatisticsPage />
             </ProtectedRoute>
           }
@@ -81,9 +81,9 @@ function App() {
         <Route
           path="/audit-logs"
           element={
-            <AdminRoute>
+            <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'HOTEL_ADMIN']}>
               <AuditLogsPage />
-            </AdminRoute>
+            </ProtectedRoute>
           }
         />
 

@@ -117,7 +117,7 @@ export default function DeliveryTemplateModal({ isOpen, onClose, onApply, depart
 
   const getDepartmentName = (id) => {
     const dept = departments.find((d) => d.id === id)
-    return dept ? t(`departments.${dept.id}`) || dept.name : id
+    return dept ? dept.name : id
   }
 
   if (!isOpen) return null

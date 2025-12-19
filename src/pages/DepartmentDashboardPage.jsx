@@ -70,7 +70,7 @@ export default function DepartmentDashboardPage() {
           <div className="w-4 h-4 rounded-full" style={{ backgroundColor: department.color }} />
           <div>
             <h1 className="text-xl sm:text-2xl font-playfair text-charcoal">
-              {t(`departments.${department.id}`) || department.name}
+              {department.name}
             </h1>
             <p className="text-sm text-charcoal/60">
               {t('department.dashboard') || 'Дашборд отдела'}

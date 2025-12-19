@@ -1,39 +1,39 @@
 /**
  * FreshTrack Departments API
- * CRUD операции для отделов
+ * Department management with hotel isolation
  */
 
 import express from 'express'
-import { getDb } from '../db/database.js'
-import { authMiddleware } from '../middleware/auth.js'
+import { 
+  getAllDepartments, 
+  getDepartmentById, 
+  createDepartment, 
+  updateDepartment,
+  deleteDepartment,
+  logAudit 
+} from '../db/database.js'
+import { authMiddleware, hotelAdminOnly, hotelIsolation } from '../middleware/auth.js'
 
 const router = express.Router()
 
 /**
- * GET /api/departments - Получить все отделы (публичный)
+ * GET /api/departments - Get all departments with hotel isolation
  */
-router.get('/', (req, res) => {
+router.get('/', authMiddleware, hotelIsolation, (req, res) => {
   try {
-    const db = getDb()
-    const departments = db.prepare(`
-      SELECT 
-        id,
-        name,
-        name_en as nameEn,
-        name_kk as nameKk,
-        color,
-        icon,
-        sort_order as sortOrder,
-        is_active as isActive,
-        created_at as createdAt
-      FROM departments
-      WHERE is_active = 1
-      ORDER BY sort_order ASC, name ASC
-    `).all()
+    const departments = getAllDepartments(req.hotelId)
     
     res.json(departments.map(d => ({
-      ...d,
-      isActive: Boolean(d.isActive)
+      id: d.id,
+      name: d.name,
+      nameEn: d.name_en,
+      nameKk: d.name_kk,
+      type: d.type,
+      color: d.color,
+      icon: d.icon,
+      hotelId: d.hotel_id,
+      isActive: Boolean(d.is_active),
+      createdAt: d.created_at
     })))
   } catch (error) {
     console.error('Error fetching departments:', error)
@@ -42,66 +42,33 @@ router.get('/', (req, res) => {
 })
 
 /**
- * GET /api/departments/all - Получить все отделы включая неактивные (требует авторизации)
+ * GET /api/departments/:id - Get department by ID
  */
-router.get('/all', authMiddleware, (req, res) => {
+router.get('/:id', authMiddleware, hotelIsolation, (req, res) => {
   try {
-    const db = getDb()
-    const departments = db.prepare(`
-      SELECT 
-        id,
-        name,
-        name_en as nameEn,
-        name_kk as nameKk,
-        color,
-        icon,
-        sort_order as sortOrder,
-        is_active as isActive,
-        created_at as createdAt
-      FROM departments
-      ORDER BY sort_order ASC, name ASC
-    `).all()
-    
-    res.json(departments.map(d => ({
-      ...d,
-      isActive: Boolean(d.isActive)
-    })))
-  } catch (error) {
-    console.error('Error fetching all departments:', error)
-    res.status(500).json({ error: 'Failed to fetch departments' })
-  }
-})
-
-/**
- * GET /api/departments/:id - Получить отдел по ID
- */
-router.get('/:id', (req, res) => {
-  try {
-    const db = getDb()
     const { id } = req.params
-    
-    const department = db.prepare(`
-      SELECT 
-        id,
-        name,
-        name_en as nameEn,
-        name_kk as nameKk,
-        color,
-        icon,
-        sort_order as sortOrder,
-        is_active as isActive,
-        created_at as createdAt
-      FROM departments
-      WHERE id = ?
-    `).get(id)
+    const department = getDepartmentById(id)
     
     if (!department) {
       return res.status(404).json({ error: 'Department not found' })
     }
     
+    // Check hotel access
+    if (req.hotelId && department.hotel_id !== req.hotelId) {
+      return res.status(403).json({ error: 'Access denied to this department' })
+    }
+    
     res.json({
-      ...department,
-      isActive: Boolean(department.isActive)
+      id: department.id,
+      name: department.name,
+      nameEn: department.name_en,
+      nameKk: department.name_kk,
+      type: department.type,
+      color: department.color,
+      icon: department.icon,
+      hotelId: department.hotel_id,
+      isActive: Boolean(department.is_active),
+      createdAt: department.created_at
     })
   } catch (error) {
     console.error('Error fetching department:', error)
@@ -110,46 +77,55 @@ router.get('/:id', (req, res) => {
 })
 
 /**
- * POST /api/departments - Создать отдел
+ * POST /api/departments - Create department
+ * HOTEL_ADMIN or higher
  */
-router.post('/', authMiddleware, (req, res) => {
+router.post('/', authMiddleware, hotelAdminOnly, hotelIsolation, (req, res) => {
   try {
-    const db = getDb()
-    const { id, name, nameEn, nameKk, color, icon, sortOrder } = req.body
+    const { name, nameEn, nameKk, type, color, icon } = req.body
     
-    // Проверяем права (только админ)
-    const userRole = req.user?.role?.toLowerCase()?.replace('istrator', '') || ''
-    if (userRole !== 'admin') {
-      return res.status(403).json({ error: 'Only admins can create departments' })
+    if (!name) {
+      return res.status(400).json({ error: 'Name is required' })
     }
     
-    if (!id || !name) {
-      return res.status(400).json({ error: 'ID and name are required' })
+    if (!req.hotelId) {
+      return res.status(400).json({ error: 'Hotel ID is required' })
     }
     
-    // Проверяем, не существует ли отдел с таким ID
-    const existing = db.prepare('SELECT id FROM departments WHERE id = ?').get(id)
-    if (existing) {
-      return res.status(409).json({ error: 'Department with this ID already exists' })
-    }
-    
-    db.prepare(`
-      INSERT INTO departments (id, name, name_en, name_kk, color, icon, sort_order)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      id,
+    const department = createDepartment({
+      hotel_id: req.hotelId,
       name,
-      nameEn || name,
-      nameKk || name,
-      color || '#FF8D6B',
-      icon || 'package',
-      sortOrder || 0
-    )
+      name_en: nameEn || name,
+      name_kk: nameKk || name,
+      type: type || 'other',
+      color: color || '#FF8D6B',
+      icon: icon || 'package'
+    })
+    
+    // Log action
+    logAudit({
+      hotel_id: req.hotelId,
+      user_id: req.user.id,
+      user_name: req.user.name,
+      action: 'create',
+      entity_type: 'department',
+      entity_id: department.id,
+      details: { name },
+      ip_address: req.ip
+    })
     
     res.status(201).json({ 
       success: true, 
-      id,
-      message: 'Department created' 
+      department: {
+        id: department.id,
+        name: department.name,
+        nameEn: department.name_en,
+        nameKk: department.name_kk,
+        type: department.type,
+        color: department.color,
+        icon: department.icon,
+        hotelId: department.hotel_id
+      }
     })
   } catch (error) {
     console.error('Error creating department:', error)
@@ -158,48 +134,50 @@ router.post('/', authMiddleware, (req, res) => {
 })
 
 /**
- * PUT /api/departments/:id - Обновить отдел
+ * PUT /api/departments/:id - Update department
+ * HOTEL_ADMIN or higher
  */
-router.put('/:id', authMiddleware, (req, res) => {
+router.put('/:id', authMiddleware, hotelAdminOnly, hotelIsolation, (req, res) => {
   try {
-    const db = getDb()
     const { id } = req.params
-    const { name, nameEn, nameKk, color, icon, sortOrder, isActive } = req.body
+    const { name, nameEn, nameKk, type, color, icon, isActive } = req.body
     
-    // Проверяем права (только админ)
-    const userRole = req.user?.role?.toLowerCase()?.replace('istrator', '') || ''
-    if (userRole !== 'admin') {
-      return res.status(403).json({ error: 'Only admins can update departments' })
-    }
-    
-    const existing = db.prepare('SELECT * FROM departments WHERE id = ?').get(id)
-    if (!existing) {
+    const department = getDepartmentById(id)
+    if (!department) {
       return res.status(404).json({ error: 'Department not found' })
     }
     
-    db.prepare(`
-      UPDATE departments
-      SET 
-        name = COALESCE(?, name),
-        name_en = COALESCE(?, name_en),
-        name_kk = COALESCE(?, name_kk),
-        color = COALESCE(?, color),
-        icon = COALESCE(?, icon),
-        sort_order = COALESCE(?, sort_order),
-        is_active = COALESCE(?, is_active)
-      WHERE id = ?
-    `).run(
-      name,
-      nameEn,
-      nameKk,
-      color,
-      icon,
-      sortOrder,
-      isActive !== undefined ? (isActive ? 1 : 0) : null,
-      id
-    )
+    // Check hotel access
+    if (req.hotelId && department.hotel_id !== req.hotelId) {
+      return res.status(403).json({ error: 'Access denied to this department' })
+    }
     
-    res.json({ success: true, message: 'Department updated' })
+    const updates = {}
+    if (name !== undefined) updates.name = name
+    if (nameEn !== undefined) updates.name_en = nameEn
+    if (nameKk !== undefined) updates.name_kk = nameKk
+    if (type !== undefined) updates.type = type
+    if (color !== undefined) updates.color = color
+    if (icon !== undefined) updates.icon = icon
+    if (isActive !== undefined) updates.is_active = isActive ? 1 : 0
+    
+    const success = updateDepartment(id, updates)
+    
+    if (success) {
+      // Log action
+      logAudit({
+        hotel_id: department.hotel_id,
+        user_id: req.user.id,
+        user_name: req.user.name,
+        action: 'update',
+        entity_type: 'department',
+        entity_id: id,
+        details: { updates: Object.keys(updates) },
+        ip_address: req.ip
+      })
+    }
+    
+    res.json({ success })
   } catch (error) {
     console.error('Error updating department:', error)
     res.status(500).json({ error: 'Failed to update department' })
@@ -207,28 +185,40 @@ router.put('/:id', authMiddleware, (req, res) => {
 })
 
 /**
- * DELETE /api/departments/:id - Удалить отдел (soft delete)
+ * DELETE /api/departments/:id - Delete (deactivate) department
+ * HOTEL_ADMIN or higher
  */
-router.delete('/:id', authMiddleware, (req, res) => {
+router.delete('/:id', authMiddleware, hotelAdminOnly, hotelIsolation, (req, res) => {
   try {
-    const db = getDb()
     const { id } = req.params
     
-    // Проверяем права (только админ)
-    const userRole = req.user?.role?.toLowerCase()?.replace('istrator', '') || ''
-    if (userRole !== 'admin') {
-      return res.status(403).json({ error: 'Only admins can delete departments' })
-    }
-    
-    const existing = db.prepare('SELECT * FROM departments WHERE id = ?').get(id)
-    if (!existing) {
+    const department = getDepartmentById(id)
+    if (!department) {
       return res.status(404).json({ error: 'Department not found' })
     }
     
-    // Мягкое удаление - просто деактивируем
-    db.prepare('UPDATE departments SET is_active = 0 WHERE id = ?').run(id)
+    // Check hotel access
+    if (req.hotelId && department.hotel_id !== req.hotelId) {
+      return res.status(403).json({ error: 'Access denied to this department' })
+    }
     
-    res.json({ success: true, message: 'Department deactivated' })
+    const success = deleteDepartment(id)
+    
+    if (success) {
+      // Log action
+      logAudit({
+        hotel_id: department.hotel_id,
+        user_id: req.user.id,
+        user_name: req.user.name,
+        action: 'delete',
+        entity_type: 'department',
+        entity_id: id,
+        details: { name: department.name },
+        ip_address: req.ip
+      })
+    }
+    
+    res.json({ success })
   } catch (error) {
     console.error('Error deleting department:', error)
     res.status(500).json({ error: 'Failed to delete department' })

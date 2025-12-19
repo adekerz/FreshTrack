@@ -111,7 +111,7 @@ export default function NotificationRulesSettings() {
   const getDepartmentName = (id) => {
     if (!id) return t('rules.allDepartments') || 'Все отделы'
     const dept = departments.find((d) => d.id === id)
-    return dept ? t(`departments.${dept.id}`) || dept.name : id
+    return dept ? dept.name : id
   }
 
   const getCategoryName = (id) => {
@@ -233,7 +233,7 @@ export default function NotificationRulesSettings() {
                 <option value="">{t('rules.allDepartments') || 'Все отделы'}</option>
                 {departments.map((dept) => (
                   <option key={dept.id} value={dept.id}>
-                    {t(`departments.${dept.id}`) || dept.name}
+                    {dept.name}
                   </option>
                 ))}
               </select>

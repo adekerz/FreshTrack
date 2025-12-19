@@ -4,13 +4,31 @@
  */
 
 import express from 'express'
-import { getDb } from '../db/database.js'
-import { authMiddleware } from '../middleware/auth.js'
+import { db } from '../db/database.js'
+import { authMiddleware, hotelIsolation } from '../middleware/auth.js'
 
 const router = express.Router()
 
 // Применяем authMiddleware ко всем маршрутам
 router.use(authMiddleware)
+router.use(hotelIsolation)
+
+// Middleware для автоматического выбора отеля для SUPER_ADMIN
+const requireHotelContext = (req, res, next) => {
+  if (!req.hotelId) {
+    if (req.user?.role === 'SUPER_ADMIN') {
+      const firstHotel = db.prepare('SELECT id FROM hotels WHERE is_active = 1 LIMIT 1').get()
+      if (firstHotel) {
+        req.hotelId = firstHotel.id
+        return next()
+      }
+    }
+    return res.status(400).json({ error: 'Hotel context required' })
+  }
+  next()
+}
+
+router.use(requireHotelContext)
 
 let tableInitialized = false
 
@@ -19,7 +37,7 @@ const ensureTable = () => {
   if (tableInitialized) return
   
   try {
-    const db = getDb()
+    
     
     db.exec(`
       CREATE TABLE IF NOT EXISTS department_notification_settings (
@@ -52,7 +70,7 @@ router.use((req, res, next) => {
  */
 router.get('/', (req, res) => {
   try {
-    const db = getDb()
+    
     const settings = db.prepare(`
       SELECT 
         department_id as departmentId,
@@ -92,7 +110,7 @@ router.get('/', (req, res) => {
  */
 router.get('/:departmentId', (req, res) => {
   try {
-    const db = getDb()
+    
     const { departmentId } = req.params
     
     let settings = db.prepare(`
@@ -143,7 +161,7 @@ router.get('/:departmentId', (req, res) => {
  */
 router.put('/:departmentId', (req, res) => {
   try {
-    const db = getDb()
+    
     const { departmentId } = req.params
     const { 
       telegramEnabled, 
@@ -209,7 +227,7 @@ router.put('/:departmentId', (req, res) => {
  */
 export function isQuietHours(departmentId) {
   try {
-    const db = getDb()
+    
     const settings = db.prepare(`
       SELECT quiet_hours_start, quiet_hours_end
       FROM department_notification_settings
@@ -239,7 +257,7 @@ export function isQuietHours(departmentId) {
  */
 export function shouldNotify(departmentId, channel = 'telegram') {
   try {
-    const db = getDb()
+    
     const settings = db.prepare(`
       SELECT telegram_enabled, push_enabled, email_enabled
       FROM department_notification_settings

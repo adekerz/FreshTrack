@@ -104,7 +104,7 @@ export default function CategoriesSettings() {
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-semibold text-charcoal">{t('settings.categories.title') || 'Категории'}</h2>
-        <p className="text-sm text-warmgray mt-1">{t('categories.description') || 'Управление категориями товаров'}</p>
+        <p className="text-sm text-warmgray mt-1">{t('categorySettings.description') || 'Управление категориями товаров'}</p>
       </div>
 
       {/* Форма добавления */}
@@ -112,7 +112,7 @@ export default function CategoriesSettings() {
         <div className="flex-1">
           <input 
             type="text"
-            placeholder={t('categories.name') || 'Название категории'}
+            placeholder={t('categorySettings.name') || 'Название категории'}
             value={newCategory.name}
             onChange={(e) => setNewCategory({...newCategory, name: e.target.value})}
             className="w-full px-4 py-2.5 border border-sand rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
@@ -127,7 +127,7 @@ export default function CategoriesSettings() {
               value={newCategory.color}
               onChange={(e) => setNewCategory({...newCategory, color: e.target.value})}
               className="w-12 h-10 rounded-lg border border-sand cursor-pointer"
-              title={t('categories.selectColor') || 'Выберите цвет'}
+              title={t('categorySettings.selectColor') || 'Выберите цвет'}
             />
           </div>
           
@@ -179,7 +179,7 @@ export default function CategoriesSettings() {
               </div>
               <div>
                 <span className="font-medium text-charcoal">
-                  {t(`categories.${cat.name}`) || cat.name}
+                  {cat.name}
                 </span>
                 <p className="text-xs text-warmgray">{cat.color}</p>
               </div>

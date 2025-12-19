@@ -108,8 +108,23 @@ export function AuthProvider({ children }) {
    * Check if user is admin
    */
   const isAdmin = () => {
-    const role = user?.role?.toLowerCase()
-    return role === 'admin' || role === 'administrator' || role === 'super_admin'
+    const role = user?.role?.toUpperCase()
+    return role === 'ADMIN' || role === 'ADMINISTRATOR' || role === 'SUPER_ADMIN' || role === 'HOTEL_ADMIN'
+  }
+
+  /**
+   * Check if user is super admin
+   */
+  const isSuperAdmin = () => {
+    return user?.role?.toUpperCase() === 'SUPER_ADMIN'
+  }
+
+  /**
+   * Check if user is hotel admin
+   */
+  const isHotelAdmin = () => {
+    const role = user?.role?.toUpperCase()
+    return role === 'SUPER_ADMIN' || role === 'HOTEL_ADMIN'
   }
 
   /**
@@ -167,6 +182,8 @@ export function AuthProvider({ children }) {
     register,
     logout,
     isAdmin,
+    isSuperAdmin,
+    isHotelAdmin,
     hasAccessToDepartment,
     getAccessibleDepartments,
     updateUser,

@@ -83,7 +83,7 @@ export default function ImportExportSettings() {
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `freshtrack-${type}-${new Date().toISOString().split('T')[0]}.xlsx`
+      a.download = `freshtrack-${type}-${new Date().toISOString().split('T')[0]}.xls`
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)

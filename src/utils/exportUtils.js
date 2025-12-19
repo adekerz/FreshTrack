@@ -5,6 +5,7 @@
 
 /**
  * Экспорт данных в CSV (совместим с Excel)
+ * CSV не поддерживает стили, но мы добавляем эмодзи для статусов
  * @param {Array} data - Массив объектов для экспорта
  * @param {Array} columns - Конфигурация колонок [{key, title}]
  * @param {string} filename - Имя файла без расширения
@@ -13,7 +14,7 @@ export function exportToCSV(data, columns, filename = 'export') {
   // BOM для корректного отображения кириллицы в Excel
   const BOM = '\uFEFF'
 
-  // Заголовки
+  // Заголовки с разделительной линией
   const headers = columns.map((col) => `"${col.title}"`).join(';')
 
   // Строки данных
@@ -30,7 +31,7 @@ export function exportToCSV(data, columns, filename = 'export') {
 
         // Форматирование значения
         if (value === null || value === undefined) {
-          value = ''
+          value = '-'
         } else if (typeof value === 'number') {
           value = value.toString()
         } else if (value instanceof Date) {
@@ -39,6 +40,23 @@ export function exportToCSV(data, columns, filename = 'export') {
           value = value ? 'Да' : 'Нет'
         } else {
           value = String(value).replace(/"/g, '""') // Экранирование кавычек
+        }
+
+        // Добавляем эмодзи для статусов чтобы было визуально понятно
+        if (col.key === 'statusLabel' || col.isStatus) {
+          const status = item.status || item[col.statusKey]
+          const valueLower = value.toLowerCase()
+          if (status === 'expired' || valueLower.includes('просроч')) {
+            value = '🔴 ' + value
+          } else if (status === 'critical' || valueLower.includes('критич')) {
+            value = '🟠 ' + value
+          } else if (status === 'warning' || valueLower.includes('внимани')) {
+            value = '🟡 ' + value
+          } else if (status === 'good' || valueLower.includes('норм')) {
+            value = '🟢 ' + value
+          } else if (status === 'noBatches' || valueLower.includes('нет парти')) {
+            value = '⚪ ' + value
+          }
         }
 
         return `"${value}"`
@@ -68,43 +86,91 @@ export function exportToExcel(data, columns, filename = 'export', sheetName = 'S
       .replace(/'/g, '&apos;')
   }
 
-  // Создание XML для Excel
+  // Создание XML для Excel с улучшенными стилями
   let xml = `<?xml version="1.0" encoding="UTF-8"?>
 <?mso-application progid="Excel.Sheet"?>
 <Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
-  xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+  xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
+  xmlns:x="urn:schemas-microsoft-com:office:excel">
   <Styles>
+    <Style ss:ID="Default" ss:Name="Normal">
+      <Alignment ss:Vertical="Center"/>
+      <Font ss:FontName="Arial" ss:Size="10"/>
+    </Style>
     <Style ss:ID="header">
-      <Font ss:Bold="1" ss:Size="11"/>
+      <Font ss:Bold="1" ss:Size="11" ss:FontName="Arial" ss:Color="#2D2D2D"/>
       <Interior ss:Color="#F5F0E8" ss:Pattern="Solid"/>
-      <Alignment ss:Horizontal="Center"/>
+      <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
+      <Borders>
+        <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#C4A35A"/>
+      </Borders>
+    </Style>
+    <Style ss:ID="cell">
+      <Alignment ss:Vertical="Center"/>
+      <Borders>
+        <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E8E4DC"/>
+      </Borders>
+    </Style>
+    <Style ss:ID="cellAlt">
+      <Interior ss:Color="#FAFAFA" ss:Pattern="Solid"/>
+      <Alignment ss:Vertical="Center"/>
+      <Borders>
+        <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E8E4DC"/>
+      </Borders>
     </Style>
     <Style ss:ID="date">
-      <NumberFormat ss:Format="Short Date"/>
+      <NumberFormat ss:Format="DD.MM.YYYY"/>
+      <Alignment ss:Vertical="Center"/>
+    </Style>
+    <Style ss:ID="number">
+      <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
     </Style>
     <Style ss:ID="danger">
-      <Font ss:Color="#C4554D"/>
+      <Font ss:Color="#FFFFFF" ss:Bold="1"/>
+      <Interior ss:Color="#C4554D" ss:Pattern="Solid"/>
+      <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
     </Style>
     <Style ss:ID="warning">
-      <Font ss:Color="#D4A853"/>
+      <Font ss:Color="#5C4813" ss:Bold="1"/>
+      <Interior ss:Color="#FEF3CD" ss:Pattern="Solid"/>
+      <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
+    </Style>
+    <Style ss:ID="critical">
+      <Font ss:Color="#FFFFFF" ss:Bold="1"/>
+      <Interior ss:Color="#E67E22" ss:Pattern="Solid"/>
+      <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
     </Style>
     <Style ss:ID="success">
-      <Font ss:Color="#4A7C59"/>
+      <Font ss:Color="#FFFFFF" ss:Bold="1"/>
+      <Interior ss:Color="#4A7C59" ss:Pattern="Solid"/>
+      <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
+    </Style>
+    <Style ss:ID="noBatches">
+      <Font ss:Color="#6B7280" ss:Italic="1"/>
+      <Interior ss:Color="#F3F4F6" ss:Pattern="Solid"/>
+      <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
     </Style>
   </Styles>
   <Worksheet ss:Name="${escapeXml(sheetName)}">
     <Table>`
 
+  // Ширина колонок
+  columns.forEach((col, idx) => {
+    const width = col.width || (col.key.includes('name') || col.key.includes('Name') ? 150 : 100)
+    xml += `\n      <Column ss:Index="${idx + 1}" ss:AutoFitWidth="0" ss:Width="${width}"/>`
+  })
+
   // Заголовки
-  xml += '\n      <Row>'
+  xml += '\n      <Row ss:Height="25">'
   columns.forEach((col) => {
     xml += `\n        <Cell ss:StyleID="header"><Data ss:Type="String">${escapeXml(col.title)}</Data></Cell>`
   })
   xml += '\n      </Row>'
 
   // Данные
-  data.forEach((item) => {
-    xml += '\n      <Row>'
+  data.forEach((item, rowIndex) => {
+    const isAltRow = rowIndex % 2 === 1
+    xml += `\n      <Row ss:Height="22">`
     columns.forEach((col) => {
       let value = item[col.key]
 
@@ -115,25 +181,36 @@ export function exportToExcel(data, columns, filename = 'export', sheetName = 'S
       }
 
       let type = 'String'
-      let style = ''
+      let style = isAltRow ? 'cellAlt' : 'cell'
 
       if (typeof value === 'number') {
         type = 'Number'
+        style = 'number'
       } else if (value instanceof Date) {
         type = 'DateTime'
         value = value.toISOString()
-        style = ' ss:StyleID="date"'
-      } else if (col.status) {
+        style = 'date'
+      } else if (col.isStatus || col.key === 'statusLabel' || col.key === 'status') {
         // Применение стиля на основе статуса
-        const status = item[col.statusKey] || item.status
-        if (status === 'critical' || status === 'expired') style = ' ss:StyleID="danger"'
-        else if (status === 'warning') style = ' ss:StyleID="warning"'
-        else if (status === 'good') style = ' ss:StyleID="success"'
+        const status = item[col.statusKey] || item.status || item.overallStatus
+        const statusValue = (value || '').toLowerCase()
+        
+        if (status === 'expired' || status === 'today' || statusValue.includes('просроч') || statusValue.includes('истек')) {
+          style = 'danger'
+        } else if (status === 'critical' || statusValue.includes('критич')) {
+          style = 'critical'
+        } else if (status === 'warning' || statusValue.includes('внимани')) {
+          style = 'warning'
+        } else if (status === 'good' || status === 'ok' || statusValue.includes('норм') || statusValue.includes('хорош')) {
+          style = 'success'
+        } else if (status === 'noBatches' || statusValue.includes('нет парти')) {
+          style = 'noBatches'
+        }
       }
 
-      value = value ?? ''
+      value = value ?? '-'
 
-      xml += `\n        <Cell${style}><Data ss:Type="${type}">${escapeXml(String(value))}</Data></Cell>`
+      xml += `\n        <Cell ss:StyleID="${style}"><Data ss:Type="${type}">${escapeXml(String(value))}</Data></Cell>`
     })
     xml += '\n      </Row>'
   })

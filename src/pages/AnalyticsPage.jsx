@@ -28,7 +28,7 @@ export default function AnalyticsPage() {
 
   // Фильтрация по доступным отделам
   const filteredBatches = useMemo(() => {
-    if (user?.role === 'admin') return batches
+    if (['SUPER_ADMIN', 'HOTEL_ADMIN'].includes(user?.role)) return batches
     return batches.filter((b) => user?.departments?.includes(b.departmentId))
   }, [batches, user])
 
@@ -121,7 +121,7 @@ export default function AnalyticsPage() {
   // Статистика по отделам для сравнения
   const departmentComparison = useMemo(() => {
     const userDepts =
-      user?.role === 'admin'
+      ['SUPER_ADMIN', 'HOTEL_ADMIN'].includes(user?.role)
         ? departments
         : departments.filter((d) => user?.departments?.includes(d.id))
 

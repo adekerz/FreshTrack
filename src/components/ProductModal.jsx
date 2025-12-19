@@ -1,8 +1,10 @@
 import { useState } from 'react'
-import { X, Plus, Check, Calendar, Package, User, Trash2 } from 'lucide-react'
+import { X, Plus, Check, Calendar, Package, User, Trash2, AlertTriangle } from 'lucide-react'
 import { useProducts, categories } from '../context/ProductContext'
+import { useAuth } from '../context/AuthContext'
 import { useTranslation, useLanguage } from '../context/LanguageContext'
 import { format, parseISO } from 'date-fns'
+import CollectModal from './CollectModal'
 
 // Цвета статусов для полоски слева
 const statusBorderColors = {
@@ -10,16 +12,20 @@ const statusBorderColors = {
   today: 'border-l-danger',
   critical: 'border-l-danger',
   warning: 'border-l-warning',
-  attention: 'border-l-warning',
   good: 'border-l-success'
 }
 
 export default function ProductModal({ product, onClose }) {
   const { t } = useTranslation()
   const { language } = useLanguage()
-  const { getBatchesByProduct, collectBatch, deleteBatch, addBatch } = useProducts()
+  const { user } = useAuth()
+  const { getBatchesByProduct, collectBatch, deleteBatch, addBatch, deleteProduct } = useProducts()
 
   const [showAddForm, setShowAddForm] = useState(false)
+  const [collectModalOpen, setCollectModalOpen] = useState(false)
+  const [batchToCollect, setBatchToCollect] = useState(null)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [newBatch, setNewBatch] = useState({
     manufacturingDate: '',
     expiryDate: '',
@@ -88,6 +94,26 @@ export default function ProductModal({ product, onClose }) {
     }
   }
 
+  // Проверка прав на удаление (SUPER_ADMIN или HOTEL_ADMIN)
+  const canDeleteProduct = user?.role === 'SUPER_ADMIN' || user?.role === 'HOTEL_ADMIN'
+
+  // Удаление товара
+  const handleDeleteProduct = async () => {
+    if (!product.id) return
+    
+    setDeleting(true)
+    try {
+      await deleteProduct(product.id)
+      onClose()
+    } catch (error) {
+      console.error('Error deleting product:', error)
+      alert(t('product.deleteError') || 'Ошибка при удалении товара')
+    } finally {
+      setDeleting(false)
+      setShowDeleteConfirm(false)
+    }
+  }
+
   return (
     <div
       className="fixed inset-0 bg-charcoal/50 flex items-center justify-center z-50 p-4"
@@ -102,12 +128,23 @@ export default function ProductModal({ product, onClose }) {
               {getCategoryName()}
             </span>
           </div>
-          <button
-            onClick={onClose}
-            className="text-warmgray hover:text-charcoal transition-colors p-2"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            {canDeleteProduct && (
+              <button
+                onClick={() => setShowDeleteConfirm(true)}
+                className="text-warmgray hover:text-danger transition-colors p-2"
+                title={t('product.delete') || 'Удалить товар'}
+              >
+                <Trash2 className="w-5 h-5" />
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              className="text-warmgray hover:text-charcoal transition-colors p-2"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Контент со скроллом */}
@@ -190,7 +227,10 @@ export default function ProductModal({ product, onClose }) {
                       {/* Кнопки действий */}
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={() => collectBatch(batch.id)}
+                          onClick={() => {
+                            setBatchToCollect(batch)
+                            setCollectModalOpen(true)
+                          }}
                           className="flex items-center gap-1 px-3 py-1.5 text-sm border border-success text-success rounded hover:bg-success hover:text-white transition-colors"
                         >
                           <Check className="w-4 h-4" />
@@ -342,6 +382,68 @@ export default function ProductModal({ product, onClose }) {
           )}
         </div>
       </div>
+
+      {/* Модалка сбора */}
+      <CollectModal
+        isOpen={collectModalOpen}
+        batch={batchToCollect}
+        onClose={() => {
+          setCollectModalOpen(false)
+          setBatchToCollect(null)
+        }}
+        onConfirm={async ({ batchId, reason, comment }) => {
+          await collectBatch(batchId, reason, comment)
+          setCollectModalOpen(false)
+          setBatchToCollect(null)
+        }}
+      />
+
+      {/* Модалка подтверждения удаления */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-charcoal/70 flex items-center justify-center z-[60]">
+          <div className="bg-white rounded-xl p-6 max-w-sm w-full mx-4 shadow-xl">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-full bg-danger/10 flex items-center justify-center">
+                <AlertTriangle className="w-6 h-6 text-danger" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-charcoal">
+                  {t('product.deleteConfirmTitle') || 'Удалить товар?'}
+                </h3>
+                <p className="text-sm text-warmgray">
+                  {product.name}
+                </p>
+              </div>
+            </div>
+            
+            <p className="text-sm text-warmgray mb-6">
+              {t('product.deleteConfirmMessage') || 'Это действие нельзя отменить. Все партии этого товара также будут удалены.'}
+            </p>
+            
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={deleting}
+                className="flex-1 px-4 py-2 border border-sand rounded-lg text-charcoal hover:bg-sand/50 transition-colors disabled:opacity-50"
+              >
+                {t('common.cancel') || 'Отмена'}
+              </button>
+              <button
+                onClick={handleDeleteProduct}
+                disabled={deleting}
+                className="flex-1 px-4 py-2 bg-danger text-white rounded-lg hover:bg-danger/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {deleting ? (
+                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <Trash2 className="w-4 h-4" />
+                )}
+                {t('common.delete') || 'Удалить'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

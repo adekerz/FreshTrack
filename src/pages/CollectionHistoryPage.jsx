@@ -17,6 +17,10 @@ const REASONS = {
   manual: { label: 'collectionHistory.reasons.manual', color: 'bg-blue-100 text-blue-800' },
   expired: { label: 'collectionHistory.reasons.expired', color: 'bg-red-100 text-red-800' },
   damaged: { label: 'collectionHistory.reasons.damaged', color: 'bg-orange-100 text-orange-800' },
+  kitchen: { label: 'collectionHistory.reasons.kitchen', color: 'bg-green-100 text-green-800' },
+  disposed: { label: 'collectionHistory.reasons.disposed', color: 'bg-yellow-100 text-yellow-800' },
+  staff: { label: 'collectionHistory.reasons.staff', color: 'bg-purple-100 text-purple-800' },
+  returned: { label: 'collectionHistory.reasons.returned', color: 'bg-cyan-100 text-cyan-800' },
   other: { label: 'collectionHistory.reasons.other', color: 'bg-gray-100 text-gray-800' }
 }
 
@@ -101,14 +105,14 @@ export default function CollectionHistoryPage() {
   )
 
   useEffect(() => {
-    if (user?.role === 'admin') {
+    if (['SUPER_ADMIN', 'HOTEL_ADMIN'].includes(user?.role)) {
       fetchLogs(pagination.page)
       fetchStats()
     }
   }, [fetchLogs, fetchStats, pagination.page, user?.role])
 
-  // Проверка роли - только admin
-  if (user?.role !== 'admin') {
+  // Проверка роли - только SUPER_ADMIN и HOTEL_ADMIN
+  if (!['SUPER_ADMIN', 'HOTEL_ADMIN'].includes(user?.role)) {
     return <Navigate to="/" replace />
   }
 
@@ -352,6 +356,9 @@ export default function CollectionHistoryPage() {
                       {t('collectionHistory.columns.reason')}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-warmgray uppercase tracking-wider">
+                      {t('collectionHistory.columns.comment')}
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-warmgray uppercase tracking-wider">
                       {t('collectionHistory.columns.collectedBy')}
                     </th>
                   </tr>
@@ -401,6 +408,9 @@ export default function CollectionHistoryPage() {
                           >
                             {t(reasonInfo.label)}
                           </span>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-warmgray max-w-xs truncate" title={log.comment || ''}>
+                          {log.comment || '-'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center gap-2 text-sm text-warmgray">

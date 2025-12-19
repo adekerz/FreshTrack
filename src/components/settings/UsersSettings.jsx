@@ -49,7 +49,7 @@ export default function UsersSettings() {
     password: '',
     name: '',
     email: '',
-    role: 'staff'
+    role: 'STAFF'
   })
   const [error, setError] = useState(null)
   const [creating, setCreating] = useState(false)
@@ -86,7 +86,7 @@ export default function UsersSettings() {
       })
       fetchUsers()
       setShowCreateModal(false)
-      setNewUser({ login: '', password: '', name: '', email: '', role: 'staff' })
+      setNewUser({ login: '', password: '', name: '', email: '', role: 'STAFF' })
     } catch (error) {
       setError(error.message)
     } finally {
@@ -219,7 +219,7 @@ export default function UsersSettings() {
                     >
                       <Ban className="w-4 h-4" />
                     </button>
-                    {user.role?.toLowerCase() !== 'admin' && (
+                    {!['SUPER_ADMIN'].includes(user.role?.toUpperCase()) && (
                       <button 
                         onClick={() => deleteUser(user.id, user.name)}
                         className="p-2 rounded-lg hover:bg-red-50 text-warmgray hover:text-red-600 transition-colors"
@@ -336,9 +336,8 @@ export default function UsersSettings() {
                   onChange={(e) => setNewUser({...newUser, role: e.target.value})}
                   className="w-full px-4 py-2.5 border border-sand rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-white"
                 >
-                  <option value="staff">{t('users.roleStaff') || 'Сотрудник'}</option>
-                  <option value="manager">{t('users.roleManager') || 'Менеджер'}</option>
-                  <option value="admin">{t('users.roleAdmin') || 'Администратор'}</option>
+                  <option value="STAFF">{t('users.roleStaff') || 'Сотрудник'}</option>
+                  <option value="HOTEL_ADMIN">{t('users.roleAdmin') || 'Администратор отеля'}</option>
                 </select>
               </div>
 

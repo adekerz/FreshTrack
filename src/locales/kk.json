@@ -42,6 +42,7 @@
     "of": "ішінен",
     "actions": "Әрекеттер",
     "viewDetails": "Толығырақ",
+    "category": "Санат",
     "justNow": "Жаңа ғана",
     "minutesAgo": "мин бұрын",
     "hoursAgo": "сағ бұрын",
@@ -149,6 +150,8 @@
     "noProducts": "Тауарлар табылмады",
     "batches": "партия",
     "noBatches": "Партиялар жоқ",
+    "expiringSoon": "Мерзімі жақын",
+    "hasExpired": "Мерзімі өткен партиялар бар",
     "changeDepartment": "Бөлімді ауыстыру",
     "addCustomProduct": "Тауар қосу",
     "backToDepartments": "Бөлімдерге қайту",
@@ -223,6 +226,7 @@
     "selectDepartment": "Бөлімді таңдаңыз",
     "selectCategory": "Санатты таңдаңыз",
     "selectProduct": "Тауарды таңдаңыз",
+    "selectedProduct": "Таңдалған тауар",
     "enterDetails": "Деректерді енгізіңіз",
     "pieces": "дана"
   },
@@ -246,7 +250,11 @@
     "collectedAt": "Жиналған уақыты",
     "noBatches": "Партиялар жоқ",
     "addFirstBatch": "Бұл тауар үшін бірінші партияны қосыңыз",
-    "moreBatches": "тағы партия"
+    "moreBatches": "тағы партия",
+    "delete": "Тауарды жою",
+    "deleteConfirmTitle": "Тауарды жою керек пе?",
+    "deleteConfirmMessage": "Бұл әрекетті қайтару мүмкін емес. Бұл тауардың барлық партиялары да жойылады.",
+    "deleteError": "Тауарды жоюда қате"
   },
   "customProduct": {
     "title": "Жаңа тауар қосу",
@@ -255,7 +263,9 @@
     "productName": "Тауар атауы",
     "productNamePlaceholder": "Тауар атауын енгізіңіз",
     "addToCatalog": "Каталогқа қосу",
-    "errorSelectDepartment": "Бөлімді таңдаңыз"
+    "errorSelectDepartment": "Бөлімді таңдаңыз",
+    "errorSelectCategory": "Санатты таңдаңыз",
+    "errorEnterName": "Тауар атауын енгізіңіз"
   },
   "modal": {
     "batchManagement": "Партияларды басқару",
@@ -344,12 +354,17 @@
       "quantity": "Саны",
       "expiryDate": "Жарамдылық мерзімі",
       "reason": "Себеп",
+      "comment": "Түсініктеме",
       "collectedBy": "Кім жинады"
     },
     "reasons": {
       "manual": "Қолмен жинау",
       "expired": "Мерзімі өткен",
       "damaged": "Зақымдалған",
+      "kitchen": "Ас үйде қолданылды",
+      "disposed": "Жойылды",
+      "staff": "Қызметкерлерге берілді",
+      "returned": "Жеткізушіге қайтарылды",
       "other": "Басқа"
     }
   },
@@ -454,18 +469,32 @@
     },
     "users": {
       "title": "Пайдаланушыларды басқару",
+      "description": "Жүйе пайдаланушыларын басқару",
       "addUser": "Пайдаланушы қосу",
+      "create": "Пайдаланушы жасау",
       "editUser": "Пайдаланушыны өңдеу",
       "username": "Пайдаланушы аты",
+      "login": "Логин",
+      "name": "Аты",
       "email": "Email",
       "role": "Рөлі",
       "status": "Күйі",
       "lastLogin": "Соңғы кіру",
       "createdAt": "Құрылған",
+      "hotel": "Қонақ үй",
+      "department": "Бөлім",
+      "active": "Белсенді",
+      "block": "Бұғаттау",
+      "roleAdmin": "Әкімші",
+      "roleManager": "Менеджер",
+      "roleStaff": "Қызметкер",
       "roles": {
         "admin": "Әкімші",
         "manager": "Менеджер",
-        "staff": "Қызметкер"
+        "staff": "Қызметкер",
+        "SUPER_ADMIN": "Бас әкімші",
+        "HOTEL_ADMIN": "Қонақ үй әкімшісі",
+        "STAFF": "Қызметкер"
       },
       "statuses": {
         "active": "Белсенді",
@@ -483,13 +512,21 @@
     },
     "categories": {
       "title": "Санаттарды басқару",
+      "description": "Өнім санаттарын басқару",
       "addCategory": "Санат қосу",
       "editCategory": "Санатты өңдеу",
       "name": "Атауы",
       "color": "Түсі",
+      "selectColor": "Түсті таңдаңыз",
+      "quickColors": "Жылдам таңдау",
       "productsCount": "Өнімдер",
       "noCategories": "Санаттар жоқ",
-      "confirmDelete": "Санатты жою?"
+      "confirmDelete": "Санатты жою?",
+      "food": "Тамақ өнімдері",
+      "beverages": "Сусындар",
+      "snacks": "Тағамдар",
+      "alcohol": "Алкоголь",
+      "other": "Басқа"
     },
     "templates": {
       "title": "Жеткізу шаблондары",
@@ -581,8 +618,13 @@
     }
   },
   "export": {
+    "title": "Деректерді экспорттау",
     "button": "Экспорт",
     "selectFormat": "Форматты таңдаңыз",
+    "inventory": "Инвентарь",
+    "batches": "Барлық партиялар",
+    "collections": "Жинау тарихы",
+    "auditLog": "Әрекеттер журналы",
     "csv": "CSV файл",
     "csvDescription": "Excel және Google Sheets-пен үйлесімді",
     "excel": "Excel файл",
@@ -607,6 +649,17 @@
       "reason": "Себебі",
       "collectedBy": "Жинаған"
     }
+  },
+  "import": {
+    "title": "Деректерді импорттау",
+    "description": "Жаппай деректер операциялары",
+    "selectFile": "Импорттау үшін файлды таңдаңыз",
+    "formats": "Қолдау көрсетілетін форматтар",
+    "downloadTemplate": "Импорт үлгісін жүктеп алу",
+    "processing": "Өңдеу...",
+    "imported": "Импортталды",
+    "error": "Импорт қатесі",
+    "success": "Импорт сәтті аяқталды"
   },
   "calendar": {
     "title": "Күнтізбе",
@@ -872,5 +925,133 @@
     "email": "Email",
     "enabled": "Қосылған",
     "disabled": "Өшірілген"
+  },
+  "writeOff": {
+    "title": "Есептен шығару",
+    "collect": "Жинау",
+    "collected": "Жиналды",
+    "expired": "Мерзімі өтті",
+    "damaged": "Зақымдалған",
+    "other": "Басқа",
+    "reason": "Есептен шығару себебі",
+    "notes": "Ескертпелер",
+    "quantity": "Саны",
+    "value": "Құны",
+    "date": "Есептен шығару күні",
+    "performedBy": "Орындаған",
+    "confirmCollect": "Жинауды растау?",
+    "confirmWriteOff": "Есептен шығаруды растау?",
+    "selectReason": "Себепті таңдаңыз"
+  },
+  "reports": {
+    "title": "Есептер",
+    "pilotSummary": "Пилоттық жиынтық",
+    "dailyReport": "Күнделікті есеп",
+    "inventorySnapshot": "Қор суреті",
+    "auditLog": "Әрекеттер журналы",
+    "export": "Деректерді экспорттау",
+    "period": "Кезең",
+    "startDate": "Басталу күні",
+    "endDate": "Аяқталу күні",
+    "summary": {
+      "totalWriteOffs": "Барлық есептен шығарулар",
+      "totalQuantity": "Жалпы саны",
+      "totalValue": "Жалпы құны",
+      "savedValue": "Сақталған құн",
+      "efficiency": "Тиімділік",
+      "atRisk": "Қауіп астында"
+    },
+    "categories": {
+      "byReason": "Себеп бойынша",
+      "byCategory": "Санат бойынша",
+      "byDepartment": "Бөлім бойынша",
+      "topProducts": "Үздік өнімдер"
+    },
+    "trend": {
+      "daily": "Күнделікті",
+      "weekly": "Апта сайын",
+      "monthly": "Ай сайын"
+    }
+  },
+  "pilot": {
+    "title": "Пилоттық жоба",
+    "hotel": "Honor Bar, Ritz-Carlton Астана",
+    "description": "Минибар жарамдылық мерзімін бақылау",
+    "metrics": {
+      "before": "Енгізуге дейін",
+      "after": "Енгізуден кейін",
+      "savings": "Үнемдеу",
+      "efficiency": "Жинау тиімділігі"
+    }
+  },
+  "users": {
+    "title": "Пайдаланушыларды басқару",
+    "description": "Жүйе пайдаланушыларын басқару",
+    "addUser": "Пайдаланушы қосу",
+    "create": "Пайдаланушы жасау",
+    "editUser": "Пайдаланушыны өңдеу",
+    "username": "Пайдаланушы аты",
+    "login": "Логин",
+    "name": "Аты",
+    "email": "Email",
+    "role": "Рөлі",
+    "status": "Күйі",
+    "lastLogin": "Соңғы кіру",
+    "active": "Белсенді",
+    "block": "Бұғаттау",
+    "roleAdmin": "Әкімші",
+    "roleManager": "Менеджер",
+    "roleStaff": "Қызметкер",
+    "fillRequired": "Міндетті өрістерді толтырыңыз"
+  },
+  "categorySettings": {
+    "title": "Санаттарды басқару",
+    "description": "Өнім санаттарын басқару",
+    "addCategory": "Санат қосу",
+    "name": "Атауы",
+    "color": "Түсі",
+    "selectColor": "Түсті таңдаңыз",
+    "quickColors": "Жылдам таңдау"
+  },
+  "templates": {
+    "title": "Жеткізу шаблондары",
+    "description": "Өнімдерді жылдам қосу үшін шаблондарды басқару",
+    "create": "Шаблон жасау",
+    "noTemplates": "Шаблондар жоқ",
+    "createFirst": "Бірінші шаблонды жасаңыз",
+    "name": "Шаблон атауы",
+    "namePlaceholder": "Мысалы: Күнделікті жеткізу",
+    "descriptionLabel": "Сипаттама",
+    "descriptionPlaceholder": "Шаблон сипаттамасы (қосымша)",
+    "selectProducts": "Өнімдерді таңдаңыз",
+    "selectedProducts": "Таңдалған өнімдер",
+    "quantity": "Саны",
+    "shelfLife": "Сақтау мерзімі",
+    "products": "өнімдер",
+    "editTemplate": "Шаблонды өңдеу",
+    "confirmDelete": "Шаблонды жою?"
+  },
+  "telegram": {
+    "title": "Telegram параметрлері",
+    "description": "Хабарламалар үшін Telegram бот параметрлері",
+    "connection": "Қосылу",
+    "botToken": "Бот токені",
+    "chatId": "Чат ID",
+    "enabled": "Хабарламалар қосулы",
+    "test": "Сынақ жіберу",
+    "testSuccess": "Сынақ хабарлама жіберілді!",
+    "testError": "Жіберу қатесі",
+    "schedule": "Кесте",
+    "scheduleTime": "Күнделікті есеп уақыты",
+    "messageTemplates": "Хабарлама үлгілері",
+    "templatesHint": "Жүйелі жақшаларда айнымалыларды қолданыңыз",
+    "dailyReport": "Күнделікті есеп",
+    "expiryWarning": "Мерзім ескертуі",
+    "expiredAlert": "Мерзімі өткен ескерту",
+    "collectionConfirm": "Жинау растауы",
+    "variables": "Айнымалылар",
+    "save": "Сақтау",
+    "saving": "Сақталуда...",
+    "saved": "Параметрлер сақталды"
   }
 }
