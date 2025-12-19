@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Upload, Image, Loader2, RotateCcw, Edit3, Check, X } from 'lucide-react'
 import { useTranslation } from '../context/LanguageContext'
 
-const API_URL = 'http://localhost:3001/api'
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 
 const apiFetch = async (url, options = {}) => {
   const token = localStorage.getItem('freshtrack_token')

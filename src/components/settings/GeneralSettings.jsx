@@ -8,7 +8,7 @@ import { useTranslation } from '../../context/LanguageContext'
 import { useToast } from '../../context/ToastContext'
 import { Save, Check, AlertCircle, RefreshCw } from 'lucide-react'
 
-const API_URL = 'http://localhost:3001/api'
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 
 const apiFetch = async (url, options = {}) => {
   const token = localStorage.getItem('freshtrack_token')

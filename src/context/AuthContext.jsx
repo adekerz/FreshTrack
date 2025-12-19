@@ -84,10 +84,11 @@ export function AuthProvider({ children }) {
    */
   const logout = async () => {
     // Log logout on server
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
     try {
       const currentToken = token || localStorage.getItem('freshtrack_token')
       if (currentToken) {
-        await fetch('http://localhost:3001/api/auth/logout', {
+        await fetch(`${API_URL}/auth/logout`, {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${currentToken}`
