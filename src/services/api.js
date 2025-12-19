@@ -3,8 +3,8 @@
  * Клиент для взаимодействия с backend API
  */
 
-// Базовый URL API
-const API_BASE_URL = 'http://localhost:3001/api'
+// Базовый URL API - использует переменную окружения или localhost для разработки
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 
 /**
  * Обработка ответа от сервера

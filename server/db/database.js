@@ -1,308 +1,78 @@
 /**
- * FreshTrack Pilot Database
+ * FreshTrack PostgreSQL Database
  * Multi-hotel architecture for Ritz-Carlton Astana Honor Bar pilot
- * Version: 2.0.0
+ * Version: 2.0.0 - PostgreSQL Migration
  */
 
-import Database from 'better-sqlite3'
-import path from 'path'
-import { fileURLToPath } from 'url'
+import { query, getClient, testConnection } from './postgres.js'
 import bcrypt from 'bcryptjs'
 import { v4 as uuidv4 } from 'uuid'
+import fs from 'fs'
+import path from 'path'
+import { fileURLToPath } from 'url'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-const dbPath = process.env.DATABASE_PATH || path.join(__dirname, 'freshtrack.db')
-
-// Database instance - exported for direct queries
-export let db = null
-
 /**
- * Get database instance
+ * Initialize database - run migrations and seed data
  */
-export function getDb() {
-  if (!db) {
-    throw new Error('Database not initialized. Call initDatabase() first.')
-  }
-  return db
-}
-
-/**
- * Initialize database and create tables
- */
-export function initDatabase() {
-  db = new Database(dbPath)
-  db.pragma('journal_mode = WAL')
-  db.pragma('foreign_keys = ON')
-
-  console.log('📦 Initializing FreshTrack Pilot Database...')
+export async function initDatabase() {
+  console.log('📦 Initializing FreshTrack PostgreSQL Database...')
   console.log('   Multi-hotel architecture ready')
 
-  // ═══════════════════════════════════════════════════════════════
-  // CORE TABLES - MULTI-HOTEL ARCHITECTURE
-  // ═══════════════════════════════════════════════════════════════
+  try {
+    // Test connection first
+    const connected = await testConnection()
+    if (!connected) {
+      throw new Error('Failed to connect to PostgreSQL')
+    }
 
-  // 1. Hotels (отели)
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS hotels (
-      id TEXT PRIMARY KEY,
-      name TEXT NOT NULL,
-      code TEXT UNIQUE NOT NULL,
-      address TEXT,
-      city TEXT,
-      country TEXT DEFAULT 'Kazakhstan',
-      timezone TEXT DEFAULT 'Asia/Almaty',
-      is_active INTEGER DEFAULT 1,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )
-  `)
+    // Run schema migration
+    const schemaPath = path.join(__dirname, 'migrations', '001_initial_schema.sql')
+    if (fs.existsSync(schemaPath)) {
+      const schema = fs.readFileSync(schemaPath, 'utf8')
+      await query(schema)
+      console.log('✅ Schema migration completed')
+    }
 
-  // 2. Departments (отделы отеля)
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS departments (
-      id TEXT PRIMARY KEY,
-      hotel_id TEXT NOT NULL,
-      name TEXT NOT NULL,
-      name_en TEXT,
-      name_kk TEXT,
-      type TEXT DEFAULT 'other',
-      color TEXT DEFAULT '#FF8D6B',
-      icon TEXT DEFAULT 'package',
-      is_active INTEGER DEFAULT 1,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (hotel_id) REFERENCES hotels(id)
-    )
-  `)
+    // Check if pilot data exists
+    const hotelsResult = await query("SELECT id FROM hotels WHERE code = $1", ['RC-ASTANA'])
+    if (hotelsResult.rows.length === 0) {
+      await initializePilotData()
+    } else {
+      console.log('   Pilot data already exists')
+    }
 
-  // 3. Users (пользователи с hotel_id)
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS users (
-      id TEXT PRIMARY KEY,
-      login TEXT UNIQUE NOT NULL,
-      password TEXT NOT NULL,
-      name TEXT NOT NULL,
-      email TEXT,
-      role TEXT DEFAULT 'STAFF',
-      hotel_id TEXT,
-      department_id TEXT,
-      telegram_chat_id TEXT,
-      is_active INTEGER DEFAULT 1,
-      last_login DATETIME,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (hotel_id) REFERENCES hotels(id),
-      FOREIGN KEY (department_id) REFERENCES departments(id)
-    )
-  `)
-
-  // 4. Categories (категории продуктов)
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS categories (
-      id TEXT PRIMARY KEY,
-      hotel_id TEXT NOT NULL,
-      name TEXT NOT NULL,
-      name_en TEXT,
-      name_kk TEXT,
-      color TEXT DEFAULT '#6B6560',
-      icon TEXT,
-      sort_order INTEGER DEFAULT 0,
-      is_active INTEGER DEFAULT 1,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (hotel_id) REFERENCES hotels(id)
-    )
-  `)
-
-  // 5. Products (справочник продуктов)
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS products (
-      id TEXT PRIMARY KEY,
-      hotel_id TEXT NOT NULL,
-      category_id TEXT,
-      name TEXT NOT NULL,
-      name_en TEXT,
-      name_kk TEXT,
-      barcode TEXT,
-      default_shelf_life INTEGER DEFAULT 30,
-      unit TEXT DEFAULT 'pcs',
-      is_active INTEGER DEFAULT 1,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (hotel_id) REFERENCES hotels(id),
-      FOREIGN KEY (category_id) REFERENCES categories(id)
-    )
-  `)
-
-  // 6. Batches (партии товаров с датами)
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS batches (
-      id TEXT PRIMARY KEY,
-      hotel_id TEXT NOT NULL,
-      department_id TEXT NOT NULL,
-      product_id TEXT NOT NULL,
-      quantity INTEGER DEFAULT 1,
-      expiry_date DATE NOT NULL,
-      batch_number TEXT,
-      status TEXT DEFAULT 'active',
-      added_by TEXT,
-      added_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      collected_at DATETIME,
-      collected_by TEXT,
-      FOREIGN KEY (hotel_id) REFERENCES hotels(id),
-      FOREIGN KEY (department_id) REFERENCES departments(id),
-      FOREIGN KEY (product_id) REFERENCES products(id),
-      FOREIGN KEY (added_by) REFERENCES users(id),
-      FOREIGN KEY (collected_by) REFERENCES users(id)
-    )
-  `)
-
-  // 7. Write-offs (списания - журнал)
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS write_offs (
-      id TEXT PRIMARY KEY,
-      hotel_id TEXT NOT NULL,
-      department_id TEXT NOT NULL,
-      batch_id TEXT NOT NULL,
-      product_id TEXT NOT NULL,
-      product_name TEXT NOT NULL,
-      quantity INTEGER NOT NULL,
-      reason TEXT DEFAULT 'expired',
-      comment TEXT,
-      written_off_by TEXT NOT NULL,
-      written_off_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (hotel_id) REFERENCES hotels(id),
-      FOREIGN KEY (department_id) REFERENCES departments(id),
-      FOREIGN KEY (batch_id) REFERENCES batches(id),
-      FOREIGN KEY (product_id) REFERENCES products(id),
-      FOREIGN KEY (written_off_by) REFERENCES users(id)
-    )
-  `)
-
-  // 8. Notifications (уведомления)
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS notifications (
-      id TEXT PRIMARY KEY,
-      hotel_id TEXT NOT NULL,
-      department_id TEXT,
-      type TEXT DEFAULT 'expiry',
-      title TEXT NOT NULL,
-      message TEXT,
-      batch_id TEXT,
-      is_read INTEGER DEFAULT 0,
-      sent_telegram INTEGER DEFAULT 0,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (hotel_id) REFERENCES hotels(id),
-      FOREIGN KEY (department_id) REFERENCES departments(id),
-      FOREIGN KEY (batch_id) REFERENCES batches(id)
-    )
-  `)
-
-  // 9. Audit Logs (журнал действий)
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS audit_logs (
-      id TEXT PRIMARY KEY,
-      hotel_id TEXT,
-      user_id TEXT,
-      user_name TEXT NOT NULL,
-      action TEXT NOT NULL,
-      entity_type TEXT,
-      entity_id TEXT,
-      details TEXT,
-      ip_address TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (hotel_id) REFERENCES hotels(id),
-      FOREIGN KEY (user_id) REFERENCES users(id)
-    )
-  `)
-
-  // 10. Settings (настройки отеля)
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS settings (
-      id TEXT PRIMARY KEY,
-      hotel_id TEXT NOT NULL,
-      key TEXT NOT NULL,
-      value TEXT,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      UNIQUE(hotel_id, key),
-      FOREIGN KEY (hotel_id) REFERENCES hotels(id)
-    )
-  `)
-
-  // 11. Delivery Templates (шаблоны поставок)
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS delivery_templates (
-      id TEXT PRIMARY KEY,
-      hotel_id TEXT NOT NULL,
-      department_id TEXT,
-      name TEXT NOT NULL,
-      items TEXT NOT NULL,
-      created_by TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (hotel_id) REFERENCES hotels(id),
-      FOREIGN KEY (department_id) REFERENCES departments(id),
-      FOREIGN KEY (created_by) REFERENCES users(id)
-    )
-  `)
-
-  // ═══════════════════════════════════════════════════════════════
-  // INDEXES
-  // ═══════════════════════════════════════════════════════════════
-
-  db.exec(`
-    CREATE INDEX IF NOT EXISTS idx_departments_hotel ON departments(hotel_id);
-    CREATE INDEX IF NOT EXISTS idx_users_hotel ON users(hotel_id);
-    CREATE INDEX IF NOT EXISTS idx_users_login ON users(login);
-    CREATE INDEX IF NOT EXISTS idx_categories_hotel ON categories(hotel_id);
-    CREATE INDEX IF NOT EXISTS idx_products_hotel ON products(hotel_id);
-    CREATE INDEX IF NOT EXISTS idx_products_category ON products(category_id);
-    CREATE INDEX IF NOT EXISTS idx_batches_hotel ON batches(hotel_id);
-    CREATE INDEX IF NOT EXISTS idx_batches_department ON batches(department_id);
-    CREATE INDEX IF NOT EXISTS idx_batches_expiry ON batches(expiry_date);
-    CREATE INDEX IF NOT EXISTS idx_batches_status ON batches(status);
-    CREATE INDEX IF NOT EXISTS idx_write_offs_hotel ON write_offs(hotel_id);
-    CREATE INDEX IF NOT EXISTS idx_write_offs_date ON write_offs(written_off_at);
-    CREATE INDEX IF NOT EXISTS idx_notifications_hotel ON notifications(hotel_id);
-    CREATE INDEX IF NOT EXISTS idx_audit_logs_hotel ON audit_logs(hotel_id);
-    CREATE INDEX IF NOT EXISTS idx_audit_logs_date ON audit_logs(created_at);
-    CREATE INDEX IF NOT EXISTS idx_settings_hotel ON settings(hotel_id);
-  `)
-
-  // ═══════════════════════════════════════════════════════════════
-  // PILOT DATA INITIALIZATION
-  // ═══════════════════════════════════════════════════════════════
-
-  initializePilotData()
-
-  console.log('✅ Database initialized successfully')
-  console.log('   Pilot: Ritz-Carlton Astana Honor Bar')
-  
-  return db
+    console.log('✅ Database initialized successfully')
+    console.log('   Pilot: Ritz-Carlton Astana Honor Bar')
+    
+    return true
+  } catch (error) {
+    console.error('❌ Database initialization error:', error)
+    throw error
+  }
 }
 
 /**
  * Initialize pilot data for Ritz-Carlton Astana Honor Bar
  */
-function initializePilotData() {
-  // Check if pilot data already exists
-  const hotelExists = db.prepare('SELECT id FROM hotels WHERE code = ?').get('RC-ASTANA')
-  if (hotelExists) {
-    console.log('   Pilot data already exists')
-    return
-  }
-
+async function initializePilotData() {
   console.log('🏨 Creating pilot data for Ritz-Carlton Astana...')
 
   // 1. Create Hotel
   const hotelId = uuidv4()
-  db.prepare(`
+  await query(`
     INSERT INTO hotels (id, name, code, city, country, timezone) 
-    VALUES (?, ?, ?, ?, ?, ?)
-  `).run(hotelId, 'The Ritz-Carlton, Astana', 'RC-ASTANA', 'Astana', 'Kazakhstan', 'Asia/Almaty')
+    VALUES ($1, $2, $3, $4, $5, $6)
+  `, [hotelId, 'The Ritz-Carlton, Astana', 'RC-ASTANA', 'Astana', 'Kazakhstan', 'Asia/Almaty'])
 
   // 2. Create Honor Bar Department
   const deptId = uuidv4()
-  db.prepare(`
+  await query(`
     INSERT INTO departments (id, hotel_id, name, name_en, name_kk, type, color, icon) 
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(deptId, hotelId, 'Хонор Бар', 'Honor Bar', 'Хонор Бар', 'minibar', '#FF8D6B', 'wine')
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+  `, [deptId, hotelId, 'Хонор Бар', 'Honor Bar', 'Хонор Бар', 'minibar', '#FF8D6B', 'wine'])
 
   // 3. Create Users
   const superAdminId = uuidv4()
@@ -310,22 +80,22 @@ function initializePilotData() {
   const staffId = uuidv4()
 
   // Super Admin (no hotel restriction)
-  db.prepare(`
+  await query(`
     INSERT INTO users (id, login, password, name, role, hotel_id, department_id, is_active) 
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(superAdminId, 'superadmin', bcrypt.hashSync('SuperAdmin123!', 10), 'Супер Администратор', 'SUPER_ADMIN', null, null, 1)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+  `, [superAdminId, 'superadmin', bcrypt.hashSync('SuperAdmin123!', 10), 'Супер Администратор', 'SUPER_ADMIN', null, null, true])
 
   // Hotel Admin (Ritz-Carlton)
-  db.prepare(`
+  await query(`
     INSERT INTO users (id, login, password, name, role, hotel_id, department_id, is_active) 
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(hotelAdminId, 'hoteladmin', bcrypt.hashSync('HotelAdmin123!', 10), 'Администратор Отеля', 'HOTEL_ADMIN', hotelId, null, 1)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+  `, [hotelAdminId, 'hoteladmin', bcrypt.hashSync('HotelAdmin123!', 10), 'Администратор Отеля', 'HOTEL_ADMIN', hotelId, null, true])
 
   // Staff (Honor Bar)
-  db.prepare(`
+  await query(`
     INSERT INTO users (id, login, password, name, role, hotel_id, department_id, is_active) 
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(staffId, 'honorbar', bcrypt.hashSync('Staff123!', 10), 'Сотрудник Honor Bar', 'STAFF', hotelId, deptId, 1)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+  `, [staffId, 'honorbar', bcrypt.hashSync('Staff123!', 10), 'Сотрудник Honor Bar', 'STAFF', hotelId, deptId, true])
 
   // 4. Create Categories for Honor Bar
   const categories = [
@@ -338,16 +108,15 @@ function initializePilotData() {
   const categoryMap = {}
   for (let i = 0; i < categories.length; i++) {
     const cat = categories[i]
-    db.prepare(`
+    await query(`
       INSERT INTO categories (id, hotel_id, name, name_en, name_kk, color, icon, sort_order) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(cat.id, hotelId, cat.name, cat.name_en, cat.name_kk, cat.color, cat.icon, i)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    `, [cat.id, hotelId, cat.name, cat.name_en, cat.name_kk, cat.color, cat.icon, i])
     categoryMap[cat.name_en] = cat.id
   }
 
   // 5. Create Products for Honor Bar
   const products = [
-    // Soft Drinks
     { name: 'Pepsi', name_en: 'Pepsi', category: 'Soft Drinks', unit: 'шт', shelf_life: 180 },
     { name: 'Coca-Cola Original', name_en: 'Coca-Cola Original', category: 'Soft Drinks', unit: 'шт', shelf_life: 180 },
     { name: 'Fanta', name_en: 'Fanta', category: 'Soft Drinks', unit: 'шт', shelf_life: 180 },
@@ -360,10 +129,8 @@ function initializePilotData() {
     { name: 'San Pellegrino Sparkling', name_en: 'San Pellegrino Sparkling', category: 'Soft Drinks', unit: 'шт', shelf_life: 730 },
     { name: 'Acqua Panna Still', name_en: 'Acqua Panna Still', category: 'Soft Drinks', unit: 'шт', shelf_life: 730 },
     { name: 'Coca-Cola Zero', name_en: 'Coca-Cola Zero', category: 'Soft Drinks', unit: 'шт', shelf_life: 180 },
-    // Alcohol Drinks
     { name: 'Budweiser', name_en: 'Budweiser', category: 'Alcohol Drinks', unit: 'шт', shelf_life: 180 },
     { name: 'Corona', name_en: 'Corona', category: 'Alcohol Drinks', unit: 'шт', shelf_life: 180 },
-    // Food
     { name: 'Kazakhstan Chocolate', name_en: 'Kazakhstan Chocolate', category: 'Food', unit: 'шт', shelf_life: 365 },
     { name: 'Snickers', name_en: 'Snickers', category: 'Food', unit: 'шт', shelf_life: 365 },
     { name: 'Mars', name_en: 'Mars', category: 'Food', unit: 'шт', shelf_life: 365 },
@@ -375,16 +142,15 @@ function initializePilotData() {
     { name: 'Gummy Bears', name_en: 'Gummy Bears', category: 'Food', unit: 'шт', shelf_life: 365 },
     { name: 'Potato Chips', name_en: 'Potato Chips', category: 'Food', unit: 'шт', shelf_life: 90 },
     { name: 'Fruit Chips', name_en: 'Fruit Chips', category: 'Food', unit: 'шт', shelf_life: 90 },
-    // Other
     { name: 'Feminine Pack', name_en: 'Feminine Pack', category: 'Other', unit: 'шт', shelf_life: 1095 }
   ]
 
   for (const product of products) {
     const catId = categoryMap[product.category]
-    db.prepare(`
+    await query(`
       INSERT INTO products (id, hotel_id, category_id, name, name_en, default_shelf_life, unit) 
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(uuidv4(), hotelId, catId, product.name, product.name_en, product.shelf_life, product.unit)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+    `, [uuidv4(), hotelId, catId, product.name, product.name_en, product.shelf_life, product.unit])
   }
 
   // 6. Create Default Settings
@@ -397,10 +163,10 @@ function initializePilotData() {
   ]
 
   for (const setting of defaultSettings) {
-    db.prepare(`
+    await query(`
       INSERT INTO settings (id, hotel_id, key, value) 
-      VALUES (?, ?, ?, ?)
-    `).run(uuidv4(), hotelId, setting.key, setting.value)
+      VALUES ($1, $2, $3, $4)
+    `, [uuidv4(), hotelId, setting.key, setting.value])
   }
 
   console.log('')
@@ -426,641 +192,602 @@ function initializePilotData() {
 /**
  * Log audit action
  */
-export function logAudit(data) {
+export async function logAudit(data) {
   const { hotel_id, user_id, user_name, action, entity_type, entity_id, details, ip_address } = data
-  db.prepare(`
+  await query(`
     INSERT INTO audit_logs (id, hotel_id, user_id, user_name, action, entity_type, entity_id, details, ip_address) 
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(uuidv4(), hotel_id, user_id, user_name, action, entity_type, entity_id, 
-    details ? JSON.stringify(details) : null, ip_address)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+  `, [
+    uuidv4(), 
+    hotel_id || null, 
+    user_id || null, 
+    user_name, 
+    action, 
+    entity_type || null, 
+    entity_id || null,
+    details ? JSON.stringify(details) : null, 
+    ip_address || null
+  ])
 }
 
 // ═══════════════════════════════════════════════════════════════
 // USER FUNCTIONS
 // ═══════════════════════════════════════════════════════════════
 
-export function getUserByLogin(login) {
-  return db.prepare('SELECT * FROM users WHERE login = ? AND is_active = 1').get(login)
+export async function getUserByLogin(login) {
+  const result = await query('SELECT * FROM users WHERE login = $1 AND is_active = TRUE', [login])
+  return result.rows[0] || null
 }
 
-export function getUserById(id) {
-  return db.prepare('SELECT * FROM users WHERE id = ? AND is_active = 1').get(id)
+export async function getUserById(id) {
+  const result = await query('SELECT * FROM users WHERE id = $1 AND is_active = TRUE', [id])
+  return result.rows[0] || null
 }
 
-export function getUserByLoginOrEmail(identifier) {
+export async function getUserByLoginOrEmail(identifier) {
   const isEmail = identifier.includes('@')
   if (isEmail) {
-    return db.prepare('SELECT * FROM users WHERE email = ? AND is_active = 1').get(identifier)
+    const result = await query('SELECT * FROM users WHERE email = $1 AND is_active = TRUE', [identifier])
+    return result.rows[0] || null
   }
-  return db.prepare('SELECT * FROM users WHERE login = ? AND is_active = 1').get(identifier)
+  const result = await query('SELECT * FROM users WHERE login = $1 AND is_active = TRUE', [identifier])
+  return result.rows[0] || null
 }
 
-export function getAllUsers(hotelId = null) {
+export async function getAllUsers(hotelId = null) {
   if (hotelId) {
-    return db.prepare(`
+    const result = await query(`
       SELECT id, login, name, email, role, hotel_id, department_id, telegram_chat_id, is_active, created_at 
       FROM users 
-      WHERE hotel_id = ? OR hotel_id IS NULL
+      WHERE hotel_id = $1 OR hotel_id IS NULL
       ORDER BY created_at DESC
-    `).all(hotelId)
+    `, [hotelId])
+    return result.rows
   }
-  return db.prepare(`
+  const result = await query(`
     SELECT id, login, name, email, role, hotel_id, department_id, telegram_chat_id, is_active, created_at 
     FROM users 
     ORDER BY created_at DESC
-  `).all()
+  `)
+  return result.rows
 }
 
-export function createUser(user) {
+export async function createUser(user) {
   const { login, name, email, password, role, hotel_id, department_id } = user
   const id = uuidv4()
   const hashedPassword = bcrypt.hashSync(password, 10)
   
-  db.prepare(`
+  await query(`
     INSERT INTO users (id, login, name, email, password, role, hotel_id, department_id, is_active) 
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)
-  `).run(id, login, name, email, hashedPassword, role || 'STAFF', hotel_id, department_id)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, TRUE)
+  `, [id, login, name, email, hashedPassword, role || 'STAFF', hotel_id, department_id])
   
   return { id, login, name, email, role: role || 'STAFF', hotel_id, department_id }
 }
 
-export function updateUser(id, updates) {
+export async function updateUser(id, updates) {
   const fields = []
   const values = []
+  let paramIndex = 1
   
-  if (updates.name !== undefined) { fields.push('name = ?'); values.push(updates.name) }
-  if (updates.email !== undefined) { fields.push('email = ?'); values.push(updates.email) }
-  if (updates.role !== undefined) { fields.push('role = ?'); values.push(updates.role) }
-  if (updates.department_id !== undefined) { fields.push('department_id = ?'); values.push(updates.department_id) }
+  if (updates.name !== undefined) { fields.push(`name = $${paramIndex++}`); values.push(updates.name) }
+  if (updates.email !== undefined) { fields.push(`email = $${paramIndex++}`); values.push(updates.email) }
+  if (updates.role !== undefined) { fields.push(`role = $${paramIndex++}`); values.push(updates.role) }
+  if (updates.department_id !== undefined) { fields.push(`department_id = $${paramIndex++}`); values.push(updates.department_id) }
   if (updates.password !== undefined) { 
-    fields.push('password = ?')
+    fields.push(`password = $${paramIndex++}`)
     values.push(bcrypt.hashSync(updates.password, 10))
   }
-  if (updates.is_active !== undefined) { fields.push('is_active = ?'); values.push(updates.is_active) }
-  if (updates.telegram_chat_id !== undefined) { fields.push('telegram_chat_id = ?'); values.push(updates.telegram_chat_id) }
+  if (updates.is_active !== undefined) { fields.push(`is_active = $${paramIndex++}`); values.push(updates.is_active) }
+  if (updates.telegram_chat_id !== undefined) { fields.push(`telegram_chat_id = $${paramIndex++}`); values.push(updates.telegram_chat_id) }
   
   if (fields.length === 0) return false
   
   values.push(id)
-  const result = db.prepare(`UPDATE users SET ${fields.join(', ')} WHERE id = ?`).run(...values)
-  return result.changes > 0
+  const result = await query(`UPDATE users SET ${fields.join(', ')} WHERE id = $${paramIndex}`, values)
+  return result.rowCount > 0
 }
 
 export function verifyPassword(plainPassword, hashedPassword) {
   return bcrypt.compareSync(plainPassword, hashedPassword)
 }
 
-export function updateLastLogin(userId) {
-  db.prepare('UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?').run(userId)
+export async function updateLastLogin(userId) {
+  await query('UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = $1', [userId])
 }
 
 // ═══════════════════════════════════════════════════════════════
 // HOTEL FUNCTIONS
 // ═══════════════════════════════════════════════════════════════
 
-export function getAllHotels() {
-  return db.prepare('SELECT * FROM hotels WHERE is_active = 1 ORDER BY name ASC').all()
+export async function getAllHotels() {
+  const result = await query('SELECT * FROM hotels WHERE is_active = TRUE ORDER BY name ASC')
+  return result.rows
 }
 
-export function getHotelById(id) {
-  return db.prepare('SELECT * FROM hotels WHERE id = ?').get(id)
+export async function getHotelById(id) {
+  const result = await query('SELECT * FROM hotels WHERE id = $1', [id])
+  return result.rows[0] || null
 }
 
-export function getHotelByCode(code) {
-  return db.prepare('SELECT * FROM hotels WHERE code = ?').get(code)
+export async function getHotelByCode(code) {
+  const result = await query('SELECT * FROM hotels WHERE code = $1', [code])
+  return result.rows[0] || null
 }
 
-export function createHotel(hotel) {
+export async function createHotel(hotel) {
   const { name, code, address, city, country, timezone } = hotel
   const id = uuidv4()
   
-  db.prepare(`
+  await query(`
     INSERT INTO hotels (id, name, code, address, city, country, timezone) 
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `).run(id, name, code, address, city, country || 'Kazakhstan', timezone || 'Asia/Almaty')
+    VALUES ($1, $2, $3, $4, $5, $6, $7)
+  `, [id, name, code, address, city, country || 'Kazakhstan', timezone || 'Asia/Almaty'])
   
   return { id, name, code, address, city, country, timezone }
 }
 
-export function updateHotel(id, updates) {
+export async function updateHotel(id, updates) {
   const fields = []
   const values = []
+  let paramIndex = 1
   
-  if (updates.name !== undefined) { fields.push('name = ?'); values.push(updates.name) }
-  if (updates.address !== undefined) { fields.push('address = ?'); values.push(updates.address) }
-  if (updates.city !== undefined) { fields.push('city = ?'); values.push(updates.city) }
-  if (updates.country !== undefined) { fields.push('country = ?'); values.push(updates.country) }
-  if (updates.timezone !== undefined) { fields.push('timezone = ?'); values.push(updates.timezone) }
-  if (updates.is_active !== undefined) { fields.push('is_active = ?'); values.push(updates.is_active) }
+  if (updates.name !== undefined) { fields.push(`name = $${paramIndex++}`); values.push(updates.name) }
+  if (updates.address !== undefined) { fields.push(`address = $${paramIndex++}`); values.push(updates.address) }
+  if (updates.city !== undefined) { fields.push(`city = $${paramIndex++}`); values.push(updates.city) }
+  if (updates.country !== undefined) { fields.push(`country = $${paramIndex++}`); values.push(updates.country) }
+  if (updates.timezone !== undefined) { fields.push(`timezone = $${paramIndex++}`); values.push(updates.timezone) }
+  if (updates.is_active !== undefined) { fields.push(`is_active = $${paramIndex++}`); values.push(updates.is_active) }
   
   if (fields.length === 0) return false
   
   values.push(id)
-  const result = db.prepare(`UPDATE hotels SET ${fields.join(', ')} WHERE id = ?`).run(...values)
-  return result.changes > 0
+  const result = await query(`UPDATE hotels SET ${fields.join(', ')} WHERE id = $${paramIndex}`, values)
+  return result.rowCount > 0
 }
 
 // ═══════════════════════════════════════════════════════════════
 // DEPARTMENT FUNCTIONS
 // ═══════════════════════════════════════════════════════════════
 
-export function getAllDepartments(hotelId = null) {
+export async function getAllDepartments(hotelId = null) {
   if (hotelId) {
-    return db.prepare('SELECT * FROM departments WHERE hotel_id = ? AND is_active = 1 ORDER BY name ASC').all(hotelId)
+    const result = await query('SELECT * FROM departments WHERE hotel_id = $1 AND is_active = TRUE ORDER BY name ASC', [hotelId])
+    return result.rows
   }
-  return db.prepare('SELECT * FROM departments WHERE is_active = 1 ORDER BY name ASC').all()
+  const result = await query('SELECT * FROM departments WHERE is_active = TRUE ORDER BY name ASC')
+  return result.rows
 }
 
-export function getDepartmentById(id) {
-  return db.prepare('SELECT * FROM departments WHERE id = ?').get(id)
+export async function getDepartmentById(id) {
+  const result = await query('SELECT * FROM departments WHERE id = $1', [id])
+  return result.rows[0] || null
 }
 
-export function createDepartment(dept) {
+export async function createDepartment(dept) {
   const { hotel_id, name, name_en, name_kk, type, color, icon } = dept
   const id = uuidv4()
   
-  db.prepare(`
+  await query(`
     INSERT INTO departments (id, hotel_id, name, name_en, name_kk, type, color, icon) 
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(id, hotel_id, name, name_en, name_kk, type || 'other', color || '#FF8D6B', icon || 'package')
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+  `, [id, hotel_id, name, name_en, name_kk, type || 'other', color || '#FF8D6B', icon || 'package'])
   
   return { id, hotel_id, name, name_en, name_kk, type, color, icon }
 }
 
-export function updateDepartment(id, updates) {
+export async function updateDepartment(id, updates) {
   const fields = []
   const values = []
+  let paramIndex = 1
   
-  if (updates.name !== undefined) { fields.push('name = ?'); values.push(updates.name) }
-  if (updates.name_en !== undefined) { fields.push('name_en = ?'); values.push(updates.name_en) }
-  if (updates.name_kk !== undefined) { fields.push('name_kk = ?'); values.push(updates.name_kk) }
-  if (updates.type !== undefined) { fields.push('type = ?'); values.push(updates.type) }
-  if (updates.color !== undefined) { fields.push('color = ?'); values.push(updates.color) }
-  if (updates.icon !== undefined) { fields.push('icon = ?'); values.push(updates.icon) }
-  if (updates.is_active !== undefined) { fields.push('is_active = ?'); values.push(updates.is_active) }
+  if (updates.name !== undefined) { fields.push(`name = $${paramIndex++}`); values.push(updates.name) }
+  if (updates.name_en !== undefined) { fields.push(`name_en = $${paramIndex++}`); values.push(updates.name_en) }
+  if (updates.name_kk !== undefined) { fields.push(`name_kk = $${paramIndex++}`); values.push(updates.name_kk) }
+  if (updates.type !== undefined) { fields.push(`type = $${paramIndex++}`); values.push(updates.type) }
+  if (updates.color !== undefined) { fields.push(`color = $${paramIndex++}`); values.push(updates.color) }
+  if (updates.icon !== undefined) { fields.push(`icon = $${paramIndex++}`); values.push(updates.icon) }
+  if (updates.is_active !== undefined) { fields.push(`is_active = $${paramIndex++}`); values.push(updates.is_active) }
   
   if (fields.length === 0) return false
   
   values.push(id)
-  const result = db.prepare(`UPDATE departments SET ${fields.join(', ')} WHERE id = ?`).run(...values)
-  return result.changes > 0
+  const result = await query(`UPDATE departments SET ${fields.join(', ')} WHERE id = $${paramIndex}`, values)
+  return result.rowCount > 0
 }
 
-export function deleteDepartment(id) {
-  const result = db.prepare('UPDATE departments SET is_active = 0 WHERE id = ?').run(id)
-  return result.changes > 0
+export async function deleteDepartment(id) {
+  const result = await query('UPDATE departments SET is_active = FALSE WHERE id = $1', [id])
+  return result.rowCount > 0
 }
 
 // ═══════════════════════════════════════════════════════════════
 // CATEGORY FUNCTIONS
 // ═══════════════════════════════════════════════════════════════
 
-export function getAllCategories(hotelId = null) {
+export async function getAllCategories(hotelId = null) {
   if (hotelId) {
-    return db.prepare('SELECT * FROM categories WHERE hotel_id = ? AND is_active = 1 ORDER BY sort_order ASC').all(hotelId)
+    const result = await query('SELECT * FROM categories WHERE hotel_id = $1 AND is_active = TRUE ORDER BY sort_order ASC', [hotelId])
+    return result.rows
   }
-  return db.prepare('SELECT * FROM categories WHERE is_active = 1 ORDER BY sort_order ASC').all()
+  const result = await query('SELECT * FROM categories WHERE is_active = TRUE ORDER BY sort_order ASC')
+  return result.rows
 }
 
-export function getCategoryById(id) {
-  return db.prepare('SELECT * FROM categories WHERE id = ?').get(id)
+export async function getCategoryById(id) {
+  const result = await query('SELECT * FROM categories WHERE id = $1', [id])
+  return result.rows[0] || null
 }
 
-export function createCategory(cat) {
+export async function createCategory(cat) {
   const { hotel_id, name, name_en, name_kk, color, icon, sort_order } = cat
   const id = uuidv4()
   
-  db.prepare(`
+  await query(`
     INSERT INTO categories (id, hotel_id, name, name_en, name_kk, color, icon, sort_order) 
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(id, hotel_id, name, name_en, name_kk, color || '#6B6560', icon, sort_order || 0)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+  `, [id, hotel_id, name, name_en, name_kk, color || '#6B6560', icon, sort_order || 0])
   
   return { id, hotel_id, name, name_en, name_kk, color, icon, sort_order }
 }
 
-export function updateCategory(id, updates) {
+export async function updateCategory(id, updates) {
   const fields = []
   const values = []
+  let paramIndex = 1
   
-  if (updates.name !== undefined) { fields.push('name = ?'); values.push(updates.name) }
-  if (updates.name_en !== undefined) { fields.push('name_en = ?'); values.push(updates.name_en) }
-  if (updates.name_kk !== undefined) { fields.push('name_kk = ?'); values.push(updates.name_kk) }
-  if (updates.color !== undefined) { fields.push('color = ?'); values.push(updates.color) }
-  if (updates.icon !== undefined) { fields.push('icon = ?'); values.push(updates.icon) }
-  if (updates.sort_order !== undefined) { fields.push('sort_order = ?'); values.push(updates.sort_order) }
-  if (updates.is_active !== undefined) { fields.push('is_active = ?'); values.push(updates.is_active) }
+  if (updates.name !== undefined) { fields.push(`name = $${paramIndex++}`); values.push(updates.name) }
+  if (updates.name_en !== undefined) { fields.push(`name_en = $${paramIndex++}`); values.push(updates.name_en) }
+  if (updates.name_kk !== undefined) { fields.push(`name_kk = $${paramIndex++}`); values.push(updates.name_kk) }
+  if (updates.color !== undefined) { fields.push(`color = $${paramIndex++}`); values.push(updates.color) }
+  if (updates.icon !== undefined) { fields.push(`icon = $${paramIndex++}`); values.push(updates.icon) }
+  if (updates.sort_order !== undefined) { fields.push(`sort_order = $${paramIndex++}`); values.push(updates.sort_order) }
+  if (updates.is_active !== undefined) { fields.push(`is_active = $${paramIndex++}`); values.push(updates.is_active) }
   
   if (fields.length === 0) return false
   
   values.push(id)
-  const result = db.prepare(`UPDATE categories SET ${fields.join(', ')} WHERE id = ?`).run(...values)
-  return result.changes > 0
+  const result = await query(`UPDATE categories SET ${fields.join(', ')} WHERE id = $${paramIndex}`, values)
+  return result.rowCount > 0
 }
 
-export function deleteCategory(id) {
-  const result = db.prepare('UPDATE categories SET is_active = 0 WHERE id = ?').run(id)
-  return result.changes > 0
+export async function deleteCategory(id) {
+  const result = await query('UPDATE categories SET is_active = FALSE WHERE id = $1', [id])
+  return result.rowCount > 0
 }
 
 // ═══════════════════════════════════════════════════════════════
 // PRODUCT FUNCTIONS
 // ═══════════════════════════════════════════════════════════════
 
-export function getAllProducts(hotelId = null) {
+export async function getAllProducts(hotelId = null) {
   if (hotelId) {
-    return db.prepare(`
+    const result = await query(`
       SELECT p.*, c.name as category_name 
       FROM products p 
       LEFT JOIN categories c ON p.category_id = c.id
-      WHERE p.hotel_id = ? AND p.is_active = 1 
+      WHERE p.hotel_id = $1 AND p.is_active = TRUE 
       ORDER BY p.name ASC
-    `).all(hotelId)
+    `, [hotelId])
+    return result.rows
   }
-  return db.prepare(`
+  const result = await query(`
     SELECT p.*, c.name as category_name 
     FROM products p 
     LEFT JOIN categories c ON p.category_id = c.id
-    WHERE p.is_active = 1 
+    WHERE p.is_active = TRUE 
     ORDER BY p.name ASC
-  `).all()
+  `)
+  return result.rows
 }
 
-export function getProductById(id) {
-  return db.prepare('SELECT * FROM products WHERE id = ?').get(id)
+export async function getProductById(id) {
+  const result = await query('SELECT * FROM products WHERE id = $1', [id])
+  return result.rows[0] || null
 }
 
-export function getProductByName(name, hotelId = null) {
+export async function getProductByName(name, hotelId = null) {
   if (hotelId) {
-    return db.prepare('SELECT * FROM products WHERE name = ? AND hotel_id = ? AND is_active = 1').get(name, hotelId)
+    const result = await query('SELECT * FROM products WHERE name = $1 AND hotel_id = $2 AND is_active = TRUE', [name, hotelId])
+    return result.rows[0] || null
   }
-  return db.prepare('SELECT * FROM products WHERE name = ? AND is_active = 1').get(name)
+  const result = await query('SELECT * FROM products WHERE name = $1 AND is_active = TRUE', [name])
+  return result.rows[0] || null
 }
 
-export function createProduct(product) {
+export async function createProduct(product) {
   const { hotel_id, category_id, name, name_en, name_kk, barcode, default_shelf_life, unit } = product
   const id = uuidv4()
   
-  db.prepare(`
+  await query(`
     INSERT INTO products (id, hotel_id, category_id, name, name_en, name_kk, barcode, default_shelf_life, unit) 
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(id, hotel_id, category_id, name, name_en, name_kk, barcode, default_shelf_life || 30, unit || 'pcs')
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+  `, [id, hotel_id, category_id, name, name_en, name_kk, barcode, default_shelf_life || 30, unit || 'pcs'])
   
   return { id, hotel_id, category_id, name, name_en, name_kk, barcode, default_shelf_life, unit }
 }
 
-export function updateProduct(id, updates) {
+export async function updateProduct(id, updates) {
   const fields = []
   const values = []
+  let paramIndex = 1
   
-  if (updates.category_id !== undefined) { fields.push('category_id = ?'); values.push(updates.category_id) }
-  if (updates.name !== undefined) { fields.push('name = ?'); values.push(updates.name) }
-  if (updates.name_en !== undefined) { fields.push('name_en = ?'); values.push(updates.name_en) }
-  if (updates.name_kk !== undefined) { fields.push('name_kk = ?'); values.push(updates.name_kk) }
-  if (updates.barcode !== undefined) { fields.push('barcode = ?'); values.push(updates.barcode) }
-  if (updates.default_shelf_life !== undefined) { fields.push('default_shelf_life = ?'); values.push(updates.default_shelf_life) }
-  if (updates.unit !== undefined) { fields.push('unit = ?'); values.push(updates.unit) }
-  if (updates.is_active !== undefined) { fields.push('is_active = ?'); values.push(updates.is_active) }
+  if (updates.category_id !== undefined) { fields.push(`category_id = $${paramIndex++}`); values.push(updates.category_id) }
+  if (updates.name !== undefined) { fields.push(`name = $${paramIndex++}`); values.push(updates.name) }
+  if (updates.name_en !== undefined) { fields.push(`name_en = $${paramIndex++}`); values.push(updates.name_en) }
+  if (updates.name_kk !== undefined) { fields.push(`name_kk = $${paramIndex++}`); values.push(updates.name_kk) }
+  if (updates.barcode !== undefined) { fields.push(`barcode = $${paramIndex++}`); values.push(updates.barcode) }
+  if (updates.default_shelf_life !== undefined) { fields.push(`default_shelf_life = $${paramIndex++}`); values.push(updates.default_shelf_life) }
+  if (updates.unit !== undefined) { fields.push(`unit = $${paramIndex++}`); values.push(updates.unit) }
+  if (updates.is_active !== undefined) { fields.push(`is_active = $${paramIndex++}`); values.push(updates.is_active) }
   
   if (fields.length === 0) return false
   
   values.push(id)
-  const result = db.prepare(`UPDATE products SET ${fields.join(', ')} WHERE id = ?`).run(...values)
-  return result.changes > 0
+  const result = await query(`UPDATE products SET ${fields.join(', ')} WHERE id = $${paramIndex}`, values)
+  return result.rowCount > 0
 }
 
-export function deleteProduct(id) {
-  const result = db.prepare('UPDATE products SET is_active = 0 WHERE id = ?').run(id)
-  return result.changes > 0
+export async function deleteProduct(id) {
+  const result = await query('UPDATE products SET is_active = FALSE WHERE id = $1', [id])
+  return result.rowCount > 0
 }
 
 // ═══════════════════════════════════════════════════════════════
 // BATCH FUNCTIONS
 // ═══════════════════════════════════════════════════════════════
 
-export function getAllBatches(hotelId, departmentId = null, status = null) {
-  let query = `
+export async function getAllBatches(hotelId, departmentId = null, status = null) {
+  let queryText = `
     SELECT b.*, p.name as product_name, p.barcode, c.name as category_name, d.name as department_name
     FROM batches b
     JOIN products p ON b.product_id = p.id
     LEFT JOIN categories c ON p.category_id = c.id
     JOIN departments d ON b.department_id = d.id
-    WHERE b.hotel_id = ?
+    WHERE b.hotel_id = $1
   `
   const params = [hotelId]
+  let paramIndex = 2
   
   if (departmentId) {
-    query += ' AND b.department_id = ?'
+    queryText += ` AND b.department_id = $${paramIndex++}`
     params.push(departmentId)
   }
   
   if (status) {
-    query += ' AND b.status = ?'
+    queryText += ` AND b.status = $${paramIndex++}`
     params.push(status)
   }
   
-  query += ' ORDER BY b.expiry_date ASC'
+  queryText += ' ORDER BY b.expiry_date ASC'
   
-  return db.prepare(query).all(...params)
+  const result = await query(queryText, params)
+  return result.rows
 }
 
-export function getBatchById(id) {
-  return db.prepare(`
+export async function getBatchById(id) {
+  const result = await query(`
     SELECT b.*, p.name as product_name, d.name as department_name
     FROM batches b
     JOIN products p ON b.product_id = p.id
     JOIN departments d ON b.department_id = d.id
-    WHERE b.id = ?
-  `).get(id)
+    WHERE b.id = $1
+  `, [id])
+  return result.rows[0] || null
 }
 
-export function createBatch(batch) {
+export async function createBatch(batch) {
   const { hotel_id, department_id, product_id, quantity, expiry_date, batch_number, added_by } = batch
   const id = uuidv4()
   
-  db.prepare(`
+  await query(`
     INSERT INTO batches (id, hotel_id, department_id, product_id, quantity, expiry_date, batch_number, added_by, status) 
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active')
-  `).run(id, hotel_id, department_id, product_id, quantity || 1, expiry_date, batch_number, added_by)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'active')
+  `, [id, hotel_id, department_id, product_id, quantity || 1, expiry_date, batch_number, added_by])
   
   return { id, hotel_id, department_id, product_id, quantity, expiry_date, batch_number, status: 'active' }
 }
 
-export function updateBatch(id, updates) {
+export async function updateBatch(id, updates) {
   const fields = []
   const values = []
+  let paramIndex = 1
   
-  if (updates.quantity !== undefined) { fields.push('quantity = ?'); values.push(updates.quantity) }
-  if (updates.expiry_date !== undefined) { fields.push('expiry_date = ?'); values.push(updates.expiry_date) }
-  if (updates.batch_number !== undefined) { fields.push('batch_number = ?'); values.push(updates.batch_number) }
-  if (updates.status !== undefined) { fields.push('status = ?'); values.push(updates.status) }
-  if (updates.collected_at !== undefined) { fields.push('collected_at = ?'); values.push(updates.collected_at) }
-  if (updates.collected_by !== undefined) { fields.push('collected_by = ?'); values.push(updates.collected_by) }
+  if (updates.quantity !== undefined) { fields.push(`quantity = $${paramIndex++}`); values.push(updates.quantity) }
+  if (updates.expiry_date !== undefined) { fields.push(`expiry_date = $${paramIndex++}`); values.push(updates.expiry_date) }
+  if (updates.batch_number !== undefined) { fields.push(`batch_number = $${paramIndex++}`); values.push(updates.batch_number) }
+  if (updates.status !== undefined) { fields.push(`status = $${paramIndex++}`); values.push(updates.status) }
+  if (updates.collected_at !== undefined) { fields.push(`collected_at = $${paramIndex++}`); values.push(updates.collected_at) }
+  if (updates.collected_by !== undefined) { fields.push(`collected_by = $${paramIndex++}`); values.push(updates.collected_by) }
   
   if (fields.length === 0) return false
   
   values.push(id)
-  const result = db.prepare(`UPDATE batches SET ${fields.join(', ')} WHERE id = ?`).run(...values)
-  return result.changes > 0
+  const result = await query(`UPDATE batches SET ${fields.join(', ')} WHERE id = $${paramIndex}`, values)
+  return result.rowCount > 0
 }
 
-export function collectBatch(batchId, userId, reason = 'expired', comment = null) {
-  const batch = getBatchById(batchId)
+export async function collectBatch(batchId, userId, reason = 'expired', comment = null) {
+  const batch = await getBatchById(batchId)
   if (!batch) return null
   
-  const product = getProductById(batch.product_id)
+  const product = await getProductById(batch.product_id)
   
-  // Create write-off record
   const writeOffId = uuidv4()
-  db.prepare(`
+  await query(`
     INSERT INTO write_offs (id, hotel_id, department_id, batch_id, product_id, product_name, quantity, reason, comment, written_off_by) 
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(writeOffId, batch.hotel_id, batch.department_id, batchId, batch.product_id, 
-    product?.name || batch.product_name, batch.quantity, reason, comment, userId)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+  `, [writeOffId, batch.hotel_id, batch.department_id, batchId, batch.product_id, 
+    product?.name || batch.product_name, batch.quantity, reason, comment, userId])
   
-  // Update batch status
-  db.prepare(`
-    UPDATE batches SET status = 'collected', collected_at = CURRENT_TIMESTAMP, collected_by = ? WHERE id = ?
-  `).run(userId, batchId)
+  await query(`
+    UPDATE batches SET status = 'collected', collected_at = CURRENT_TIMESTAMP, collected_by = $1 WHERE id = $2
+  `, [userId, batchId])
   
   return { writeOffId, batchId }
 }
 
-export function getExpiringBatches(hotelId, days = 7) {
-  const today = new Date().toISOString().split('T')[0]
-  const futureDate = new Date()
-  futureDate.setDate(futureDate.getDate() + days)
-  const futureDateStr = futureDate.toISOString().split('T')[0]
-  
-  return db.prepare(`
+export async function getExpiringBatches(hotelId, days = 7) {
+  const result = await query(`
     SELECT b.*, p.name as product_name, d.name as department_name
     FROM batches b
     JOIN products p ON b.product_id = p.id
     JOIN departments d ON b.department_id = d.id
-    WHERE b.hotel_id = ? AND b.status = 'active' 
-    AND b.expiry_date >= ? AND b.expiry_date <= ?
+    WHERE b.hotel_id = $1 AND b.status = 'active' 
+    AND b.expiry_date >= CURRENT_DATE AND b.expiry_date <= CURRENT_DATE + $2::INTEGER
     ORDER BY b.expiry_date ASC
-  `).all(hotelId, today, futureDateStr)
+  `, [hotelId, days])
+  return result.rows
 }
 
-export function getExpiredBatches(hotelId) {
-  const today = new Date().toISOString().split('T')[0]
-  
-  return db.prepare(`
+export async function getExpiredBatches(hotelId) {
+  const result = await query(`
     SELECT b.*, p.name as product_name, d.name as department_name
     FROM batches b
     JOIN products p ON b.product_id = p.id
     JOIN departments d ON b.department_id = d.id
-    WHERE b.hotel_id = ? AND b.status = 'active' AND b.expiry_date < ?
+    WHERE b.hotel_id = $1 AND b.status = 'active' AND b.expiry_date < CURRENT_DATE
     ORDER BY b.expiry_date ASC
-  `).all(hotelId, today)
+  `, [hotelId])
+  return result.rows
 }
 
-export function getBatchStats(hotelId, departmentId = null) {
-  const today = new Date().toISOString().split('T')[0]
-  
-  const threeDaysLater = new Date()
-  threeDaysLater.setDate(threeDaysLater.getDate() + 3)
-  const threeDaysStr = threeDaysLater.toISOString().split('T')[0]
-  
-  const sevenDaysLater = new Date()
-  sevenDaysLater.setDate(sevenDaysLater.getDate() + 7)
-  const sevenDaysStr = sevenDaysLater.toISOString().split('T')[0]
-  
-  let whereClause = 'hotel_id = ? AND status = \'active\''
+export async function getBatchStats(hotelId, departmentId = null) {
+  let whereClause = 'hotel_id = $1 AND status = \'active\''
   const params = [hotelId]
+  let paramIndex = 2
   
   if (departmentId) {
-    whereClause += ' AND department_id = ?'
+    whereClause += ` AND department_id = $${paramIndex++}`
     params.push(departmentId)
   }
   
-  const total = db.prepare(`SELECT COUNT(*) as count FROM batches WHERE ${whereClause}`).get(...params).count
-  const expired = db.prepare(`SELECT COUNT(*) as count FROM batches WHERE ${whereClause} AND expiry_date < ?`).get(...params, today).count
-  const critical = db.prepare(`SELECT COUNT(*) as count FROM batches WHERE ${whereClause} AND expiry_date >= ? AND expiry_date <= ?`).get(...params, today, threeDaysStr).count
-  const warning = db.prepare(`SELECT COUNT(*) as count FROM batches WHERE ${whereClause} AND expiry_date > ? AND expiry_date <= ?`).get(...params, threeDaysStr, sevenDaysStr).count
+  const totalResult = await query(`SELECT COUNT(*) as count FROM batches WHERE ${whereClause}`, params)
+  const expiredResult = await query(`SELECT COUNT(*) as count FROM batches WHERE ${whereClause} AND expiry_date < CURRENT_DATE`, params)
+  const criticalResult = await query(`SELECT COUNT(*) as count FROM batches WHERE ${whereClause} AND expiry_date >= CURRENT_DATE AND expiry_date <= CURRENT_DATE + 3`, params)
+  const warningResult = await query(`SELECT COUNT(*) as count FROM batches WHERE ${whereClause} AND expiry_date > CURRENT_DATE + 3 AND expiry_date <= CURRENT_DATE + 7`, params)
   
-  return {
-    total,
-    expired,
-    critical,
-    warning,
-    good: total - expired - critical - warning
-  }
+  const total = parseInt(totalResult.rows[0].count)
+  const expired = parseInt(expiredResult.rows[0].count)
+  const critical = parseInt(criticalResult.rows[0].count)
+  const warning = parseInt(warningResult.rows[0].count)
+  
+  return { total, expired, critical, warning, good: total - expired - critical - warning }
 }
 
 // ═══════════════════════════════════════════════════════════════
 // WRITE-OFF FUNCTIONS
 // ═══════════════════════════════════════════════════════════════
 
-export function getWriteOffs(hotelId, filters = {}) {
-  let query = `
+export async function getWriteOffs(hotelId, filters = {}) {
+  let queryText = `
     SELECT wo.*, u.name as written_off_by_name, d.name as department_name
     FROM write_offs wo
     LEFT JOIN users u ON wo.written_off_by = u.id
     JOIN departments d ON wo.department_id = d.id
-    WHERE wo.hotel_id = ?
+    WHERE wo.hotel_id = $1
   `
   const params = [hotelId]
+  let paramIndex = 2
   
-  if (filters.departmentId) {
-    query += ' AND wo.department_id = ?'
-    params.push(filters.departmentId)
-  }
+  if (filters.departmentId) { queryText += ` AND wo.department_id = $${paramIndex++}`; params.push(filters.departmentId) }
+  if (filters.startDate) { queryText += ` AND DATE(wo.written_off_at) >= $${paramIndex++}`; params.push(filters.startDate) }
+  if (filters.endDate) { queryText += ` AND DATE(wo.written_off_at) <= $${paramIndex++}`; params.push(filters.endDate) }
+  if (filters.reason) { queryText += ` AND wo.reason = $${paramIndex++}`; params.push(filters.reason) }
   
-  if (filters.startDate) {
-    query += ' AND DATE(wo.written_off_at) >= ?'
-    params.push(filters.startDate)
-  }
+  queryText += ' ORDER BY wo.written_off_at DESC'
+  if (filters.limit) { queryText += ` LIMIT $${paramIndex++}`; params.push(filters.limit) }
   
-  if (filters.endDate) {
-    query += ' AND DATE(wo.written_off_at) <= ?'
-    params.push(filters.endDate)
-  }
-  
-  if (filters.reason) {
-    query += ' AND wo.reason = ?'
-    params.push(filters.reason)
-  }
-  
-  query += ' ORDER BY wo.written_off_at DESC'
-  
-  if (filters.limit) {
-    query += ' LIMIT ?'
-    params.push(filters.limit)
-  }
-  
-  return db.prepare(query).all(...params)
+  const result = await query(queryText, params)
+  return result.rows
 }
 
-export function getWriteOffStats(hotelId, startDate = null, endDate = null) {
-  let query = `
-    SELECT 
-      COUNT(*) as total_count,
-      SUM(quantity) as total_quantity,
-      reason,
-      DATE(written_off_at) as date
-    FROM write_offs
-    WHERE hotel_id = ?
+export async function getWriteOffStats(hotelId, startDate = null, endDate = null) {
+  let queryText = `
+    SELECT COUNT(*) as total_count, SUM(quantity) as total_quantity, reason, DATE(written_off_at) as date
+    FROM write_offs WHERE hotel_id = $1
   `
   const params = [hotelId]
+  let paramIndex = 2
   
-  if (startDate) {
-    query += ' AND DATE(written_off_at) >= ?'
-    params.push(startDate)
-  }
+  if (startDate) { queryText += ` AND DATE(written_off_at) >= $${paramIndex++}`; params.push(startDate) }
+  if (endDate) { queryText += ` AND DATE(written_off_at) <= $${paramIndex++}`; params.push(endDate) }
   
-  if (endDate) {
-    query += ' AND DATE(written_off_at) <= ?'
-    params.push(endDate)
-  }
-  
-  query += ' GROUP BY DATE(written_off_at), reason ORDER BY date DESC'
-  
-  return db.prepare(query).all(...params)
+  queryText += ' GROUP BY DATE(written_off_at), reason ORDER BY date DESC'
+  const result = await query(queryText, params)
+  return result.rows
 }
 
 // ═══════════════════════════════════════════════════════════════
 // NOTIFICATION FUNCTIONS
 // ═══════════════════════════════════════════════════════════════
 
-export function createNotification(data) {
+export async function createNotification(data) {
   const { hotel_id, department_id, type, title, message, batch_id } = data
   const id = uuidv4()
-  
-  db.prepare(`
-    INSERT INTO notifications (id, hotel_id, department_id, type, title, message, batch_id) 
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `).run(id, hotel_id, department_id, type || 'expiry', title, message, batch_id)
-  
+  await query(`INSERT INTO notifications (id, hotel_id, department_id, type, title, message, batch_id) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+    [id, hotel_id, department_id, type || 'expiry', title, message, batch_id])
   return { id, hotel_id, department_id, type, title, message, batch_id }
 }
 
-export function getNotifications(hotelId, filters = {}) {
-  let query = 'SELECT * FROM notifications WHERE hotel_id = ?'
+export async function getNotifications(hotelId, filters = {}) {
+  let queryText = 'SELECT * FROM notifications WHERE hotel_id = $1'
   const params = [hotelId]
+  let paramIndex = 2
   
-  if (filters.departmentId) {
-    query += ' AND (department_id = ? OR department_id IS NULL)'
-    params.push(filters.departmentId)
-  }
+  if (filters.departmentId) { queryText += ` AND (department_id = $${paramIndex++} OR department_id IS NULL)`; params.push(filters.departmentId) }
+  if (filters.isRead !== undefined) { queryText += ` AND is_read = $${paramIndex++}`; params.push(filters.isRead) }
+  if (filters.type) { queryText += ` AND type = $${paramIndex++}`; params.push(filters.type) }
+  queryText += ' ORDER BY created_at DESC'
+  if (filters.limit) { queryText += ` LIMIT $${paramIndex++}`; params.push(filters.limit) }
   
-  if (filters.isRead !== undefined) {
-    query += ' AND is_read = ?'
-    params.push(filters.isRead ? 1 : 0)
-  }
-  
-  if (filters.type) {
-    query += ' AND type = ?'
-    params.push(filters.type)
-  }
-  
-  query += ' ORDER BY created_at DESC'
-  
-  if (filters.limit) {
-    query += ' LIMIT ?'
-    params.push(filters.limit)
-  }
-  
-  return db.prepare(query).all(...params)
+  const result = await query(queryText, params)
+  return result.rows
 }
 
-export function markNotificationRead(id) {
-  const result = db.prepare('UPDATE notifications SET is_read = 1 WHERE id = ?').run(id)
-  return result.changes > 0
+export async function markNotificationRead(id) {
+  const result = await query('UPDATE notifications SET is_read = TRUE WHERE id = $1', [id])
+  return result.rowCount > 0
 }
 
-export function markAllNotificationsRead(hotelId, departmentId = null) {
-  let query = 'UPDATE notifications SET is_read = 1 WHERE hotel_id = ?'
+export async function markAllNotificationsRead(hotelId, departmentId = null) {
+  let queryText = 'UPDATE notifications SET is_read = TRUE WHERE hotel_id = $1'
   const params = [hotelId]
-  
-  if (departmentId) {
-    query += ' AND (department_id = ? OR department_id IS NULL)'
-    params.push(departmentId)
-  }
-  
-  const result = db.prepare(query).run(...params)
-  return result.changes
+  if (departmentId) { queryText += ` AND (department_id = $2 OR department_id IS NULL)`; params.push(departmentId) }
+  const result = await query(queryText, params)
+  return result.rowCount
 }
 
-export function getUnreadNotificationCount(hotelId, departmentId = null) {
-  let query = 'SELECT COUNT(*) as count FROM notifications WHERE hotel_id = ? AND is_read = 0'
+export async function getUnreadNotificationCount(hotelId, departmentId = null) {
+  let queryText = 'SELECT COUNT(*) as count FROM notifications WHERE hotel_id = $1 AND is_read = FALSE'
   const params = [hotelId]
-  
-  if (departmentId) {
-    query += ' AND (department_id = ? OR department_id IS NULL)'
-    params.push(departmentId)
-  }
-  
-  return db.prepare(query).get(...params).count
+  if (departmentId) { queryText += ` AND (department_id = $2 OR department_id IS NULL)`; params.push(departmentId) }
+  const result = await query(queryText, params)
+  return parseInt(result.rows[0].count)
 }
 
 // ═══════════════════════════════════════════════════════════════
 // SETTINGS FUNCTIONS
 // ═══════════════════════════════════════════════════════════════
 
-export function getSetting(hotelId, key) {
-  const row = db.prepare('SELECT value FROM settings WHERE hotel_id = ? AND key = ?').get(hotelId, key)
-  return row ? row.value : null
+export async function getSetting(hotelId, key) {
+  const result = await query('SELECT value FROM settings WHERE hotel_id = $1 AND key = $2', [hotelId, key])
+  return result.rows[0]?.value || null
 }
 
-export function setSetting(hotelId, key, value) {
-  const exists = db.prepare('SELECT id FROM settings WHERE hotel_id = ? AND key = ?').get(hotelId, key)
-  
-  if (exists) {
-    db.prepare('UPDATE settings SET value = ?, updated_at = CURRENT_TIMESTAMP WHERE hotel_id = ? AND key = ?')
-      .run(value, hotelId, key)
+export async function setSetting(hotelId, key, value) {
+  const exists = await query('SELECT id FROM settings WHERE hotel_id = $1 AND key = $2', [hotelId, key])
+  if (exists.rows.length > 0) {
+    await query('UPDATE settings SET value = $3, updated_at = CURRENT_TIMESTAMP WHERE hotel_id = $1 AND key = $2', [hotelId, key, value])
   } else {
-    db.prepare('INSERT INTO settings (id, hotel_id, key, value) VALUES (?, ?, ?, ?)')
-      .run(uuidv4(), hotelId, key, value)
+    await query('INSERT INTO settings (id, hotel_id, key, value) VALUES ($1, $2, $3, $4)', [uuidv4(), hotelId, key, value])
   }
 }
 
-export function getAllSettings(hotelId) {
-  const rows = db.prepare('SELECT key, value FROM settings WHERE hotel_id = ?').all(hotelId)
+export async function getAllSettings(hotelId) {
+  const result = await query('SELECT key, value FROM settings WHERE hotel_id = $1', [hotelId])
   const settings = {}
-  for (const row of rows) {
-    settings[row.key] = row.value
-  }
+  for (const row of result.rows) { settings[row.key] = row.value }
   return settings
 }
 
@@ -1068,143 +795,210 @@ export function getAllSettings(hotelId) {
 // DELIVERY TEMPLATE FUNCTIONS
 // ═══════════════════════════════════════════════════════════════
 
-export function getDeliveryTemplates(hotelId, departmentId = null) {
-  let query = 'SELECT * FROM delivery_templates WHERE hotel_id = ?'
+export async function getDeliveryTemplates(hotelId, departmentId = null) {
+  let queryText = 'SELECT * FROM delivery_templates WHERE hotel_id = $1'
   const params = [hotelId]
-  
-  if (departmentId) {
-    query += ' AND (department_id = ? OR department_id IS NULL)'
-    params.push(departmentId)
-  }
-  
-  query += ' ORDER BY name ASC'
-  
-  const templates = db.prepare(query).all(...params)
-  return templates.map(t => ({
-    ...t,
-    items: JSON.parse(t.items || '[]')
-  }))
+  if (departmentId) { queryText += ` AND (department_id = $2 OR department_id IS NULL)`; params.push(departmentId) }
+  queryText += ' ORDER BY name ASC'
+  const result = await query(queryText, params)
+  return result.rows.map(t => ({ ...t, items: typeof t.items === 'string' ? JSON.parse(t.items) : t.items }))
 }
 
-export function createDeliveryTemplate(template) {
+export async function createDeliveryTemplate(template) {
   const { hotel_id, department_id, name, items, created_by } = template
   const id = uuidv4()
-  
-  db.prepare(`
-    INSERT INTO delivery_templates (id, hotel_id, department_id, name, items, created_by) 
-    VALUES (?, ?, ?, ?, ?, ?)
-  `).run(id, hotel_id, department_id, name, JSON.stringify(items), created_by)
-  
+  await query(`INSERT INTO delivery_templates (id, hotel_id, department_id, name, items, created_by) VALUES ($1, $2, $3, $4, $5, $6)`,
+    [id, hotel_id, department_id, name, JSON.stringify(items), created_by])
   return { id, hotel_id, department_id, name, items }
 }
 
-export function updateDeliveryTemplate(id, updates) {
-  const fields = []
-  const values = []
-  
-  if (updates.name !== undefined) { fields.push('name = ?'); values.push(updates.name) }
-  if (updates.items !== undefined) { fields.push('items = ?'); values.push(JSON.stringify(updates.items)) }
-  
+export async function updateDeliveryTemplate(id, updates) {
+  const fields = []; const values = []; let paramIndex = 1
+  if (updates.name !== undefined) { fields.push(`name = $${paramIndex++}`); values.push(updates.name) }
+  if (updates.items !== undefined) { fields.push(`items = $${paramIndex++}`); values.push(JSON.stringify(updates.items)) }
   if (fields.length === 0) return false
-  
   values.push(id)
-  const result = db.prepare(`UPDATE delivery_templates SET ${fields.join(', ')} WHERE id = ?`).run(...values)
-  return result.changes > 0
+  const result = await query(`UPDATE delivery_templates SET ${fields.join(', ')} WHERE id = $${paramIndex}`, values)
+  return result.rowCount > 0
 }
 
-export function deleteDeliveryTemplate(id) {
-  const result = db.prepare('DELETE FROM delivery_templates WHERE id = ?').run(id)
-  return result.changes > 0
+export async function deleteDeliveryTemplate(id) {
+  const result = await query('DELETE FROM delivery_templates WHERE id = $1', [id])
+  return result.rowCount > 0
 }
 
 // ═══════════════════════════════════════════════════════════════
 // AUDIT LOG FUNCTIONS
 // ═══════════════════════════════════════════════════════════════
 
-export function getAuditLogs(hotelId, filters = {}) {
-  let query = 'SELECT * FROM audit_logs WHERE hotel_id = ?'
+export async function getAuditLogs(hotelId, filters = {}) {
+  let queryText = 'SELECT * FROM audit_logs WHERE hotel_id = $1'
   const params = [hotelId]
+  let paramIndex = 2
   
-  if (filters.userId) {
-    query += ' AND user_id = ?'
-    params.push(filters.userId)
-  }
+  if (filters.userId) { queryText += ` AND user_id = $${paramIndex++}`; params.push(filters.userId) }
+  if (filters.action) { queryText += ` AND action = $${paramIndex++}`; params.push(filters.action) }
+  if (filters.entityType) { queryText += ` AND entity_type = $${paramIndex++}`; params.push(filters.entityType) }
+  if (filters.startDate) { queryText += ` AND DATE(created_at) >= $${paramIndex++}`; params.push(filters.startDate) }
+  if (filters.endDate) { queryText += ` AND DATE(created_at) <= $${paramIndex++}`; params.push(filters.endDate) }
+  queryText += ' ORDER BY created_at DESC'
+  if (filters.limit) { queryText += ` LIMIT $${paramIndex++}`; params.push(filters.limit) }
+  if (filters.offset) { queryText += ` OFFSET $${paramIndex++}`; params.push(filters.offset) }
   
-  if (filters.action) {
-    query += ' AND action = ?'
-    params.push(filters.action)
-  }
-  
-  if (filters.entityType) {
-    query += ' AND entity_type = ?'
-    params.push(filters.entityType)
-  }
-  
-  if (filters.startDate) {
-    query += ' AND DATE(created_at) >= ?'
-    params.push(filters.startDate)
-  }
-  
-  if (filters.endDate) {
-    query += ' AND DATE(created_at) <= ?'
-    params.push(filters.endDate)
-  }
-  
-  query += ' ORDER BY created_at DESC'
-  
-  if (filters.limit) {
-    query += ' LIMIT ?'
-    params.push(filters.limit)
-  }
-  
-  if (filters.offset) {
-    query += ' OFFSET ?'
-    params.push(filters.offset)
-  }
-  
-  const logs = db.prepare(query).all(...params)
-  return logs.map(log => ({
-    ...log,
-    details: log.details ? JSON.parse(log.details) : null
-  }))
+  const result = await query(queryText, params)
+  return result.rows.map(log => ({ ...log, details: typeof log.details === 'string' ? JSON.parse(log.details) : log.details }))
 }
 
 // ═══════════════════════════════════════════════════════════════
 // PILOT REPORT FUNCTIONS
 // ═══════════════════════════════════════════════════════════════
 
-export function getPilotSummary(hotelId) {
-  const totalBatches = db.prepare('SELECT COUNT(*) as count FROM batches WHERE hotel_id = ?').get(hotelId).count
-  const activeBatches = db.prepare('SELECT COUNT(*) as count FROM batches WHERE hotel_id = ? AND status = \'active\'').get(hotelId).count
-  const collectedBatches = db.prepare('SELECT COUNT(*) as count FROM batches WHERE hotel_id = ? AND status = \'collected\'').get(hotelId).count
-  
-  const totalWriteOffs = db.prepare('SELECT COUNT(*) as count FROM write_offs WHERE hotel_id = ?').get(hotelId).count
-  const writeOffQuantity = db.prepare('SELECT COALESCE(SUM(quantity), 0) as total FROM write_offs WHERE hotel_id = ?').get(hotelId).total
-  
-  const writeOffsByReason = db.prepare(`
-    SELECT reason, COUNT(*) as count, SUM(quantity) as quantity
-    FROM write_offs WHERE hotel_id = ?
-    GROUP BY reason
-  `).all(hotelId)
-  
-  const notificationsSent = db.prepare('SELECT COUNT(*) as count FROM notifications WHERE hotel_id = ?').get(hotelId).count
+export async function getPilotSummary(hotelId) {
+  const totalBatches = (await query('SELECT COUNT(*) as count FROM batches WHERE hotel_id = $1', [hotelId])).rows[0].count
+  const activeBatches = (await query("SELECT COUNT(*) as count FROM batches WHERE hotel_id = $1 AND status = 'active'", [hotelId])).rows[0].count
+  const collectedBatches = (await query("SELECT COUNT(*) as count FROM batches WHERE hotel_id = $1 AND status = 'collected'", [hotelId])).rows[0].count
+  const totalWriteOffs = (await query('SELECT COUNT(*) as count FROM write_offs WHERE hotel_id = $1', [hotelId])).rows[0].count
+  const writeOffQuantity = (await query('SELECT COALESCE(SUM(quantity), 0) as total FROM write_offs WHERE hotel_id = $1', [hotelId])).rows[0].total
+  const writeOffsByReason = (await query(`SELECT reason, COUNT(*) as count, SUM(quantity) as quantity FROM write_offs WHERE hotel_id = $1 GROUP BY reason`, [hotelId])).rows
+  const notificationsSent = (await query('SELECT COUNT(*) as count FROM notifications WHERE hotel_id = $1', [hotelId])).rows[0].count
   
   return {
-    batches: {
-      total: totalBatches,
-      active: activeBatches,
-      collected: collectedBatches
-    },
-    writeOffs: {
-      total: totalWriteOffs,
-      quantity: writeOffQuantity,
-      byReason: writeOffsByReason
-    },
-    notifications: {
-      total: notificationsSent
-    }
+    batches: { total: parseInt(totalBatches), active: parseInt(activeBatches), collected: parseInt(collectedBatches) },
+    writeOffs: { total: parseInt(totalWriteOffs), quantity: parseInt(writeOffQuantity), byReason: writeOffsByReason },
+    notifications: { total: parseInt(notificationsSent) }
   }
 }
 
-// All functions are exported inline with 'export function'
-// db is exported as 'export let db'
+// ═══════════════════════════════════════════════════════════════
+// ADDITIONAL WRITE-OFF FUNCTIONS
+// ═══════════════════════════════════════════════════════════════
+
+// Alias for getWriteOffs
+export const getAllWriteOffs = getWriteOffs
+
+export async function getWriteOffById(id) {
+  const result = await query('SELECT * FROM write_offs WHERE id = $1', [id])
+  return result.rows[0] || null
+}
+
+export async function createWriteOff(data) {
+  const id = uuidv4()
+  await query(`
+    INSERT INTO write_offs (id, hotel_id, batch_id, product_id, quantity, reason, notes, user_id)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+  `, [id, data.hotel_id, data.batch_id, data.product_id, data.quantity, data.reason, data.notes, data.user_id])
+  return { id, ...data }
+}
+
+export async function updateWriteOff(id, updates) {
+  const fields = Object.keys(updates).filter(k => updates[k] !== undefined)
+  if (fields.length === 0) return false
+  const setClauses = fields.map((f, i) => `${f} = $${i + 2}`).join(', ')
+  const values = fields.map(f => updates[f])
+  const result = await query(`UPDATE write_offs SET ${setClauses} WHERE id = $1`, [id, ...values])
+  return result.rowCount > 0
+}
+
+export async function deleteWriteOff(id) {
+  const result = await query('DELETE FROM write_offs WHERE id = $1', [id])
+  return result.rowCount > 0
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ADDITIONAL NOTIFICATION FUNCTIONS  
+// ═══════════════════════════════════════════════════════════════
+
+// Aliases for notifications
+export const getAllNotifications = getNotifications
+export const getNotificationById = async (id) => {
+  const result = await query('SELECT * FROM notifications WHERE id = $1', [id])
+  return result.rows[0] || null
+}
+export const updateNotification = async (id, updates) => {
+  const fields = Object.keys(updates).filter(k => updates[k] !== undefined)
+  if (fields.length === 0) return false
+  const setClauses = fields.map((f, i) => `${f} = $${i + 2}`).join(', ')
+  const values = fields.map(f => updates[f])
+  const result = await query(`UPDATE notifications SET ${setClauses} WHERE id = $1`, [id, ...values])
+  return result.rowCount > 0
+}
+export const deleteNotification = async (id) => {
+  const result = await query('DELETE FROM notifications WHERE id = $1', [id])
+  return result.rowCount > 0
+}
+export const markNotificationAsRead = markNotificationRead
+export const markAllNotificationsAsRead = markAllNotificationsRead
+export const getUnreadNotificationsCount = getUnreadNotificationCount
+
+// ═══════════════════════════════════════════════════════════════
+// COLLECTION FUNCTIONS (Product groups/collections)
+// ═══════════════════════════════════════════════════════════════
+
+export async function getAllCollections(hotelId, filters = {}) {
+  // Collections are stored as a product grouping - return empty for now
+  // This can be implemented later with a collections table
+  return []
+}
+
+export async function getCollectionById(id) {
+  return null
+}
+
+export async function createCollection(data) {
+  // Placeholder - can be implemented with collections table
+  return { id: uuidv4(), ...data }
+}
+
+export async function updateCollection(id, updates) {
+  return false
+}
+
+export async function deleteCollection(id) {
+  return false
+}
+
+export async function getCollectionProducts(collectionId) {
+  return []
+}
+
+export async function addProductToCollection(collectionId, productId) {
+  return false
+}
+
+export async function removeProductFromCollection(collectionId, productId) {
+  return false
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DELIVERY TEMPLATE ALIASES
+// ═══════════════════════════════════════════════════════════════
+
+export const getAllDeliveryTemplates = getDeliveryTemplates
+export async function getDeliveryTemplateById(id) {
+  const result = await query('SELECT * FROM delivery_templates WHERE id = $1', [id])
+  return result.rows[0] || null
+}
+
+// ═══════════════════════════════════════════════════════════════
+// HOTEL DELETE FUNCTION
+// ═══════════════════════════════════════════════════════════════
+
+export async function deleteHotel(id) {
+  const result = await query('DELETE FROM hotels WHERE id = $1', [id])
+  return result.rowCount > 0
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SETTINGS ALIASES
+// ═══════════════════════════════════════════════════════════════
+
+export const getSettings = getAllSettings
+
+export async function updateSettings(hotelId, settings) {
+  for (const [key, value] of Object.entries(settings)) {
+    await setSetting(hotelId, key, typeof value === 'object' ? JSON.stringify(value) : value)
+  }
+  return true
+}
+
+export { query }

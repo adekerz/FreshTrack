@@ -1,29 +1,31 @@
 {
   "name": "freshtrack-server",
-  "version": "1.0.0",
-  "description": "FreshTrack Enterprise Backend Server",
+  "version": "2.0.0",
+  "description": "FreshTrack Backend Server - PostgreSQL Edition",
   "main": "index.js",
   "type": "module",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
     "start": "node index.js",
-    "dev": "node --watch index.js"
+    "dev": "node --watch index.js",
+    "migrate": "node db/migrate.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
-    "better-sqlite3": "^9.2.2",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
     "jsonwebtoken": "^9.0.2",
-    "multer": "^2.0.2",
-    "node-cron": "^3.0.3",
-    "node-telegram-bot-api": "^0.64.0"
+    "pg": "^8.11.3",
+    "uuid": "^9.0.0"
   },
   "keywords": [
     "freshtrack",
     "inventory",
-    "telegram",
-    "enterprise"
+    "postgresql",
+    "hotel"
   ],
   "author": "Adilet Y.",
   "license": "ISC"

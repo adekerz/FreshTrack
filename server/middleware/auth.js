@@ -1,15 +1,11 @@
 /**
  * FreshTrack Auth Middleware
  * Multi-hotel role-based access control
- * 
- * Roles:
- * - SUPER_ADMIN: Full system access, all hotels
- * - HOTEL_ADMIN: Full access to own hotel
- * - STAFF: Access to own department only
+ * PostgreSQL async version
  */
 
 import jwt from 'jsonwebtoken'
-import { getUserById, getHotelById, getDepartmentById, db } from '../db/database.js'
+import { getUserById, getHotelById, getDepartmentById, query } from '../db/database.js'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'freshtrack_pilot_secret_2024'
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '24h'
@@ -43,10 +39,9 @@ export function verifyToken(token) {
 }
 
 /**
- * Main auth middleware
- * Validates JWT and loads user data
+ * Main auth middleware - ASYNC
  */
-export const authMiddleware = (req, res, next) => {
+export const authMiddleware = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization
     
@@ -67,8 +62,8 @@ export const authMiddleware = (req, res, next) => {
       })
     }
     
-    // Load fresh user data
-    const user = getUserById(decoded.id)
+    // Load fresh user data (async)
+    const user = await getUserById(decoded.id)
     if (!user) {
       return res.status(401).json({ 
         success: false, 
@@ -96,7 +91,7 @@ export const authMiddleware = (req, res, next) => {
     
     // Load hotel info if user has hotel_id
     if (user.hotel_id) {
-      const hotel = getHotelById(user.hotel_id)
+      const hotel = await getHotelById(user.hotel_id)
       if (hotel) {
         req.user.hotel = hotel
       }
@@ -104,7 +99,7 @@ export const authMiddleware = (req, res, next) => {
     
     // Load department info if user has department_id
     if (user.department_id) {
-      const department = getDepartmentById(user.department_id)
+      const department = await getDepartmentById(user.department_id)
       if (department) {
         req.user.department = department
       }
@@ -122,7 +117,6 @@ export const authMiddleware = (req, res, next) => {
 
 /**
  * Super Admin only middleware
- * Only SUPER_ADMIN can access
  */
 export const superAdminOnly = (req, res, next) => {
   if (req.user?.role !== 'SUPER_ADMIN') {
@@ -136,7 +130,6 @@ export const superAdminOnly = (req, res, next) => {
 
 /**
  * Hotel Admin or higher middleware
- * SUPER_ADMIN or HOTEL_ADMIN can access
  */
 export const hotelAdminOnly = (req, res, next) => {
   const allowedRoles = ['SUPER_ADMIN', 'HOTEL_ADMIN']
@@ -151,29 +144,23 @@ export const hotelAdminOnly = (req, res, next) => {
 
 /**
  * Admin middleware (for backward compatibility)
- * SUPER_ADMIN or HOTEL_ADMIN can access
  */
 export const adminMiddleware = hotelAdminOnly
 
 /**
- * Hotel isolation middleware
- * Ensures user can only access data from their hotel
- * SUPER_ADMIN bypasses this check
- * 
- * Sets req.hotelId for use in route handlers
+ * Hotel isolation middleware - ASYNC
  */
-export const hotelIsolation = (req, res, next) => {
+export const hotelIsolation = async (req, res, next) => {
   // Super Admin can access any hotel
   if (req.user?.role === 'SUPER_ADMIN') {
-    // If hotel_id is specified in query/body/params, use it
     req.hotelId = req.query.hotel_id || req.body?.hotel_id || req.params?.hotelId || null
     
     // If no hotel specified, auto-select first active hotel
     if (!req.hotelId) {
       try {
-        const firstHotel = db.prepare('SELECT id FROM hotels WHERE is_active = 1 LIMIT 1').get()
-        if (firstHotel) {
-          req.hotelId = firstHotel.id
+        const result = await query('SELECT id FROM hotels WHERE is_active = TRUE LIMIT 1')
+        if (result.rows.length > 0) {
+          req.hotelId = result.rows[0].id
         }
       } catch (error) {
         console.error('Error auto-selecting hotel for SUPER_ADMIN:', error)
@@ -190,10 +177,8 @@ export const hotelIsolation = (req, res, next) => {
     })
   }
   
-  // Set hotel_id for route handlers
   req.hotelId = req.user.hotel_id
   
-  // Validate that requested hotel_id matches user's hotel
   const requestedHotelId = req.query.hotel_id || req.body?.hotel_id || req.params?.hotelId
   if (requestedHotelId && requestedHotelId !== req.user.hotel_id) {
     return res.status(403).json({ 
@@ -207,10 +192,6 @@ export const hotelIsolation = (req, res, next) => {
 
 /**
  * Department isolation middleware
- * Ensures STAFF can only access data from their department
- * SUPER_ADMIN and HOTEL_ADMIN bypass this check
- * 
- * Sets req.departmentId for use in route handlers
  */
 export const departmentIsolation = (req, res, next) => {
   // Super Admin and Hotel Admin can access any department within hotel
@@ -227,10 +208,8 @@ export const departmentIsolation = (req, res, next) => {
     })
   }
   
-  // Set department_id for route handlers
   req.departmentId = req.user.department_id
   
-  // Validate that requested department_id matches user's department
   const requestedDeptId = req.query.department_id || req.body?.department_id || req.params?.departmentId
   if (requestedDeptId && requestedDeptId !== req.user.department_id) {
     return res.status(403).json({ 
@@ -248,12 +227,10 @@ export const departmentIsolation = (req, res, next) => {
 export const departmentAccessMiddleware = (req, res, next) => {
   const { departmentId } = req.params
   
-  // Admins can access any department
   if (['SUPER_ADMIN', 'HOTEL_ADMIN'].includes(req.user?.role)) {
     return next()
   }
   
-  // Staff can only access their own department
   if (req.user?.department_id !== departmentId) {
     return res.status(403).json({ 
       success: false, 
