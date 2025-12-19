@@ -1,277 +1,449 @@
-# 🏨 FreshTrack Enterprise
+# 🍃 FreshTrack - Система управления сроками годности продуктов
 
-**Enterprise Inventory & Expiration Date Management System**
+<div align="center">
 
-Modern multi-property inventory management platform for hospitality, food service, and retail industries.  
-*Designed with "Quiet Luxury" aesthetics for premium establishments.*
+![FreshTrack Logo](https://img.shields.io/badge/FreshTrack-v2.0.0-green?style=for-the-badge&logo=leaflet&logoColor=white)
+![React](https://img.shields.io/badge/React-18.2-61DAFB?style=flat-square&logo=react)
+![Vite](https://img.shields.io/badge/Vite-5.0-646CFF?style=flat-square&logo=vite)
+![Express](https://img.shields.io/badge/Express-4.18-000000?style=flat-square&logo=express)
+![SQLite](https://img.shields.io/badge/SQLite-3-003B57?style=flat-square&logo=sqlite)
+![TailwindCSS](https://img.shields.io/badge/Tailwind-3.4-38B2AC?style=flat-square&logo=tailwind-css)
 
-![FreshTrack](https://img.shields.io/badge/version-2.0.0_Enterprise-blue.svg)
-![React](https://img.shields.io/badge/React-18.2.0-61dafb.svg)
-![Node.js](https://img.shields.io/badge/Node.js-18+-339933.svg)
-![SQLite](https://img.shields.io/badge/SQLite-3-003B57.svg)
-![License](https://img.shields.io/badge/license-Commercial-red.svg)
+**Полнофункциональная система контроля сроков годности продуктов для отелей и предприятий HoReCa**
 
----
+[Демо](#быстрый-старт) • [Документация](#архитектура) • [API](#api-эндпоинты) • [Лицензия](#лицензия)
 
-## ✨ Key Features
-
-### Inventory Management
-- 📦 **Multi-Department Tracking** — organize products by dynamically created departments
-- ⏰ **Expiration Monitoring** — automatic alerts for expiring and expired products
-- 📋 **Batch Management** — track individual batches with manufacturing and expiry dates
-- 🔄 **Delivery Templates** — streamline recurring deliveries with reusable templates
-
-### Enterprise Features
-- 🏢 **Multi-Property Support** — manage multiple locations from a single dashboard
-- 👥 **Role-Based Access Control (RBAC)** — granular permissions by role and department
-- 📊 **Global Analytics** — cross-property reporting and insights
-- 🏷️ **White-Label Ready** — customizable branding per organization
-- 🔌 **REST API** — comprehensive API with webhook support
-
-### Communication & Alerts
-- 📱 **Telegram Integration** — daily notifications and on-demand reports
-- 🔔 **Smart Notifications** — configurable alert rules and schedules
-- 📧 **Email Support** — integration-ready notification system
-
-### User Experience
-- 🌐 **Multilingual** — Russian, English, Kazakh (easily extensible)
-- 📱 **Progressive Web App (PWA)** — works offline, installable on mobile
-- 🎨 **Quiet Luxury Design** — minimalist, elegant interface
-- 📅 **Visual Calendar** — expiration date visualization
-
-### Compliance & Audit
-- 📝 **Audit Logs** — comprehensive action logging
-- 📋 **Collection History** — track disposed/collected items
-- 📊 **Export Reports** — Excel, PDF export capabilities
+</div>
 
 ---
 
-## 🛠️ Technology Stack
+## 📋 Содержание
+
+- [О проекте](#-о-проекте)
+- [Основные возможности](#-основные-возможности)
+- [Технологический стек](#-технологический-стек)
+- [Быстрый старт](#-быстрый-старт)
+- [Структура проекта](#-структура-проекта)
+- [Каталог продуктов](#-каталог-продуктов-honor-bar)
+- [Роли и права доступа](#-роли-и-права-доступа)
+- [Система статусов](#-система-статусов-продуктов)
+- [API Эндпоинты](#-api-эндпоинты)
+- [Экспорт данных](#-экспорт-данных)
+- [Локализация](#-локализация)
+
+---
+
+## 🎯 О проекте
+
+**FreshTrack** — это современная веб-система для контроля сроков годности продуктов, разработанная специально для отелей, ресторанов и предприятий сферы HoReCa. Система позволяет отслеживать продукты в мини-барах, кухнях и складах, предупреждая о приближающемся истечении срока годности.
+
+### Ключевые преимущества:
+
+- 🏨 **Мультиотельная архитектура** — управление несколькими отелями из единой панели
+- 📊 **Визуальная аналитика** — наглядные графики и статистика по продуктам
+- ⚠️ **Умные уведомления** — автоматические предупреждения о просроченных продуктах
+- 📱 **Адаптивный дизайн** — работа на любых устройствах
+- 🌍 **Мультиязычность** — поддержка русского, английского и казахского языков
+
+---
+
+## ✨ Основные возможности
+
+### Управление продуктами
+- ➕ Добавление продуктов из готового каталога или создание пользовательских
+- 📝 Редактирование информации о продуктах
+- 🗑️ Удаление продуктов (для администраторов)
+- 📦 Отслеживание партий продуктов с датами производства и годности
+- ✅ Списание продуктов с указанием причины
+
+### Мониторинг и аналитика
+- 📈 Панель управления с ключевыми показателями
+- 🔔 Система уведомлений о просроченных продуктах
+- 📊 Статистика по категориям и отделам
+- 📅 История списаний с фильтрацией
+
+### Экспорт и отчеты
+- 📑 Экспорт в Excel (XML формат)
+- 📄 Экспорт в PDF
+- 🎨 Цветная маркировка статусов в отчетах
+
+### Безопасность
+- 🔐 JWT аутентификация
+- 👥 Ролевая модель доступа (RBAC)
+- 🔒 Хэширование паролей (bcrypt)
+
+---
+
+## 🛠 Технологический стек
 
 ### Frontend
-- **React 18** + **Vite** — fast, modern build tooling
-- **Tailwind CSS** — utility-first CSS with custom theme
-- **Lucide React** — premium icon set
-- **React Router v6** — client-side routing
-- **PWA** — Service Worker for offline capability
+| Технология | Версия | Назначение |
+|------------|--------|------------|
+| React | 18.2 | UI библиотека |
+| Vite | 5.0 | Сборщик и dev-сервер |
+| TailwindCSS | 3.4 | CSS фреймворк |
+| React Router | 6.x | Маршрутизация |
+| i18next | 23.x | Интернационализация |
+| Lucide React | - | Иконки |
+| Chart.js | 4.x | Графики и диаграммы |
+| jsPDF | 2.x | Генерация PDF |
 
 ### Backend
-- **Node.js** + **Express** — REST API server
-- **SQLite** (better-sqlite3) — lightweight embedded database
-- **JWT** — secure token-based authentication
-- **bcryptjs** — password hashing
-- **node-telegram-bot-api** — Telegram bot integration
-- **node-cron** — task scheduling
-
-### Database Schema
-- `users` — user accounts with roles
-- `departments` — dynamically created departments
-- `categories` — product categories
-- `products` — product catalog
-- `batches` — inventory batches with expiry tracking
-- `collections` — collection/disposal history
-- `audit_logs` — comprehensive audit trail
-- `notification_rules` — configurable notifications
-- `delivery_templates` — reusable delivery templates
-- `settings` — system configuration
+| Технология | Версия | Назначение |
+|------------|--------|------------|
+| Node.js | 18+ | Runtime |
+| Express.js | 4.18 | Web-фреймворк |
+| better-sqlite3 | 9.x | База данных SQLite |
+| JWT | - | Токены аутентификации |
+| bcrypt | 5.x | Хэширование паролей |
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Быстрый старт
 
-### Prerequisites
-- Node.js 18+
-- npm or yarn
+### Требования
+- Node.js 18.0 или выше
+- npm 9.0 или выше
 
-### 1. Clone Repository
-
-```bash
-git clone https://github.com/your-org/freshtrack.git
-cd freshtrack
-```
-
-### 2. Install Dependencies
+### Установка
 
 ```bash
-# Install all dependencies
+# 1. Клонирование репозитория
+git clone https://github.com/adekerz/FreshTrack.git
+cd FreshTrack
+
+# 2. Установка зависимостей
 npm install
 
-# Install server dependencies
-cd server && npm install && cd ..
+# 3. Запуск в режиме разработки (frontend + backend)
+npm run dev:full
 ```
 
-### 3. Environment Setup
+### Альтернативный запуск
 
 ```bash
-# Copy example environment file
-cp .env.example .env
+# Только frontend
+npm run dev
 
-# Edit with your settings
-nano .env
+# Только backend
+npm run server
+
+# Параллельный запуск
+npm run dev:full
 ```
 
-Required environment variables:
+### Тестовые учетные записи
+
+| Роль | Логин | Пароль |
+|------|-------|--------|
+| Супер-администратор | `superadmin` | `SuperAdmin123!` |
+| Администратор отеля | `hoteladmin` | `HotelAdmin123!` |
+
+### Доступ к системе
+
+- **Frontend:** http://localhost:5173
+- **Backend API:** http://localhost:3001/api
+
+---
+
+## 📁 Структура проекта
+
+```
+freshtrack-project/
+├── 📁 public/                    # Статические файлы
+├── 📁 server/                    # Backend сервер
+│   ├── 📁 db/
+│   │   └── database.js          # Инициализация БД и пилотные данные
+│   ├── 📁 middleware/
+│   │   └── auth.js              # JWT middleware
+│   ├── 📁 routes/
+│   │   ├── auth.js              # Аутентификация
+│   │   ├── batches.js           # Партии продуктов
+│   │   ├── categories.js        # Категории
+│   │   ├── collections.js       # Списания
+│   │   ├── departments.js       # Отделы
+│   │   ├── export.js            # Экспорт Excel/PDF
+│   │   ├── hotels.js            # Отели
+│   │   ├── notifications.js     # Уведомления
+│   │   ├── products.js          # Продукты
+│   │   ├── stats.js             # Статистика
+│   │   └── users.js             # Пользователи
+│   └── index.js                 # Точка входа сервера
+├── 📁 src/                       # Frontend приложение
+│   ├── 📁 components/           # React компоненты
+│   │   ├── AddProductModal.jsx  # Модалка добавления продукта
+│   │   ├── AlertCard.jsx        # Карточка предупреждения
+│   │   ├── DepartmentCard.jsx   # Карточка отдела
+│   │   ├── Header.jsx           # Шапка приложения
+│   │   ├── Layout.jsx           # Основной layout
+│   │   ├── ProductTable.jsx     # Таблица продуктов
+│   │   ├── Sidebar.jsx          # Боковое меню
+│   │   └── StatCard.jsx         # Карточка статистики
+│   ├── 📁 context/              # React Context
+│   │   ├── AuthContext.jsx      # Контекст авторизации
+│   │   └── ProductContext.jsx   # Контекст продуктов
+│   ├── 📁 hooks/                # Кастомные хуки
+│   ├── 📁 locales/              # Файлы локализации
+│   │   ├── en.json              # Английский
+│   │   ├── kk.json              # Казахский
+│   │   └── ru.json              # Русский
+│   ├── 📁 pages/                # Страницы приложения
+│   │   ├── DashboardPage.jsx    # Главная панель
+│   │   ├── InventoryPage.jsx    # Инвентарь
+│   │   ├── LoginPage.jsx        # Вход
+│   │   ├── NotificationsPage.jsx# Уведомления
+│   │   └── RegisterPage.jsx     # Регистрация
+│   ├── 📁 styles/               # Стили
+│   │   └── index.css            # Основные стили + Tailwind
+│   ├── 📁 utils/                # Утилиты
+│   │   ├── classNames.js        # Хелпер для классов
+│   │   └── dateUtils.js         # Работа с датами
+│   ├── App.jsx                  # Корневой компонент
+│   └── main.jsx                 # Точка входа React
+├── index.html                   # HTML шаблон
+├── package.json                 # Зависимости и скрипты
+├── tailwind.config.js           # Конфигурация Tailwind
+├── vite.config.js               # Конфигурация Vite
+└── README.md                    # Документация
+```
+
+---
+
+## 🍹 Каталог продуктов (Honor Bar)
+
+Система поставляется с предустановленным каталогом продуктов для мини-баров отелей, содержащим **26 продуктов** в **4 категориях**:
+
+### 🥤 Безалкогольные напитки (Soft Drinks)
+| Продукт | Срок годности |
+|---------|---------------|
+| Coca-Cola 0.33L | 180 дней |
+| Pepsi 0.33L | 180 дней |
+| Sprite 0.33L | 180 дней |
+| Fanta 0.33L | 180 дней |
+| Red Bull 0.25L | 365 дней |
+| Evian Water 0.5L | 730 дней |
+| Orange Juice 0.25L | 30 дней |
+| Apple Juice 0.25L | 30 дней |
+
+### 🍷 Алкогольные напитки (Alcohol Drinks)
+| Продукт | Срок годности |
+|---------|---------------|
+| Heineken Beer 0.33L | 180 дней |
+| Corona Beer 0.33L | 180 дней |
+| Mini Vodka 50ml | 1825 дней |
+| Mini Whiskey 50ml | 1825 дней |
+| Mini Gin 50ml | 1825 дней |
+| Red Wine 187ml | 730 дней |
+| White Wine 187ml | 730 дней |
+| Champagne Mini 200ml | 1095 дней |
+
+### 🍫 Еда (Food)
+| Продукт | Срок годности |
+|---------|---------------|
+| Pringles Original 40g | 365 дней |
+| Mixed Nuts 50g | 180 дней |
+| Chocolate Bar | 365 дней |
+| Snickers Bar | 270 дней |
+| KitKat Bar | 365 дней |
+| Gummy Bears 100g | 365 дней |
+| Beef Jerky 25g | 180 дней |
+| Cheese Crackers 30g | 270 дней |
+
+### 📦 Прочее (Other)
+| Продукт | Срок годности |
+|---------|---------------|
+| Premium Tea Set | 730 дней |
+| Instant Coffee Sachets | 540 дней |
+
+---
+
+## 👥 Роли и права доступа
+
+Система использует ролевую модель доступа (RBAC) с тремя уровнями:
+
+### 🔴 SUPER_ADMIN (Супер-администратор)
+- Полный доступ ко всем функциям
+- Управление всеми отелями
+- Создание и удаление пользователей
+- Удаление продуктов из каталога
+- Просмотр глобальной статистики
+
+### 🟠 HOTEL_ADMIN (Администратор отеля)
+- Управление одним отелем
+- Управление отделами и сотрудниками
+- Удаление продуктов в рамках отеля
+- Экспорт данных
+- Просмотр статистики отеля
+
+### 🟢 STAFF (Сотрудник)
+- Работа только в назначенном отделе
+- Добавление и редактирование продуктов
+- Списание продуктов
+- Просмотр статистики отдела
+
+---
+
+## 🚦 Система статусов продуктов
+
+Продукты автоматически получают статус в зависимости от оставшегося срока годности:
+
+| Статус | Дней до истечения | Цвет | Описание |
+|--------|-------------------|------|----------|
+| 🔴 **expired** | < 0 | Красный | Срок годности истёк |
+| 🟠 **today** | = 0 | Оранжевый | Истекает сегодня |
+| 🟡 **critical** | 1-3 | Жёлтый | Критический срок |
+| 🔵 **warning** | 4-7 | Синий | Требует внимания |
+| 🟢 **good** | > 7 | Зелёный | В порядке |
+
+### Алгоритм расчёта статуса
+
+```javascript
+function getStatus(expiryDate) {
+  const today = new Date();
+  const expiry = new Date(expiryDate);
+  const daysUntilExpiry = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
+  
+  if (daysUntilExpiry < 0) return 'expired';
+  if (daysUntilExpiry === 0) return 'today';
+  if (daysUntilExpiry <= 3) return 'critical';
+  if (daysUntilExpiry <= 7) return 'warning';
+  return 'good';
+}
+```
+
+---
+
+## 🔌 API Эндпоинты
+
+### Аутентификация
+| Метод | Эндпоинт | Описание |
+|-------|----------|----------|
+| POST | `/api/auth/register` | Регистрация |
+| POST | `/api/auth/login` | Вход в систему |
+| GET | `/api/auth/me` | Текущий пользователь |
+
+### Продукты
+| Метод | Эндпоинт | Описание |
+|-------|----------|----------|
+| GET | `/api/products` | Все продукты |
+| GET | `/api/products/:id` | Продукт по ID |
+| POST | `/api/products` | Создать продукт |
+| PUT | `/api/products/:id` | Обновить продукт |
+| DELETE | `/api/products/:id` | Удалить продукт |
+
+### Партии
+| Метод | Эндпоинт | Описание |
+|-------|----------|----------|
+| GET | `/api/batches` | Все партии |
+| POST | `/api/batches` | Создать партию |
+| PUT | `/api/batches/:id` | Обновить партию |
+| DELETE | `/api/batches/:id` | Удалить партию |
+
+### Категории
+| Метод | Эндпоинт | Описание |
+|-------|----------|----------|
+| GET | `/api/categories` | Все категории |
+| POST | `/api/categories` | Создать категорию |
+
+### Отделы
+| Метод | Эндпоинт | Описание |
+|-------|----------|----------|
+| GET | `/api/departments` | Все отделы |
+| POST | `/api/departments` | Создать отдел |
+
+### Списания
+| Метод | Эндпоинт | Описание |
+|-------|----------|----------|
+| GET | `/api/collections` | История списаний |
+| POST | `/api/collections` | Создать списание |
+
+### Статистика
+| Метод | Эндпоинт | Описание |
+|-------|----------|----------|
+| GET | `/api/stats` | Общая статистика |
+| GET | `/api/stats/dashboard` | Данные для дашборда |
+
+### Экспорт
+| Метод | Эндпоинт | Описание |
+|-------|----------|----------|
+| GET | `/api/export/excel` | Экспорт в Excel |
+| GET | `/api/export/pdf` | Экспорт в PDF |
+
+---
+
+## 📊 Экспорт данных
+
+### Excel Export
+- Формат: Excel XML (совместим с Microsoft Excel, LibreOffice)
+- Цветная маркировка статусов в ячейках
+- Поддержка кириллицы
+- Автоматическая ширина столбцов
+
+### PDF Export
+- Формат: PDF с поддержкой UTF-8
+- Таблицы с границами
+- Логотип и заголовок отчета
+- Дата генерации
+
+---
+
+## 🌍 Локализация
+
+Система поддерживает три языка:
+
+| Язык | Код | Файл |
+|------|-----|------|
+| Русский | `ru` | `src/locales/ru.json` |
+| English | `en` | `src/locales/en.json` |
+| Қазақша | `kk` | `src/locales/kk.json` |
+
+Переключение языка доступно в шапке приложения.
+
+---
+
+## 📝 Скрипты npm
+
+```bash
+# Разработка
+npm run dev          # Запуск frontend (Vite)
+npm run server       # Запуск backend (Express)
+npm run dev:full     # Параллельный запуск frontend + backend
+
+# Сборка
+npm run build        # Production сборка
+npm run preview      # Превью production сборки
+
+# Линтинг
+npm run lint         # Проверка ESLint
+```
+
+---
+
+## 🔧 Переменные окружения
+
+Создайте файл `.env` в корне проекта:
+
 ```env
 # Server
 PORT=3001
-JWT_SECRET=your-secure-secret-key
+JWT_SECRET=your-secret-key
 
-# Telegram (optional)
-TELEGRAM_BOT_TOKEN=your-bot-token
-TELEGRAM_CHAT_ID=your-chat-id
-```
-
-### 4. Start Development
-
-```bash
-# Start both frontend and backend
-npm run dev
-```
-
-Frontend: http://localhost:5173  
-API: http://localhost:3001
-
-### 5. Default Login
-
-```
-Login: admin
-Password:
-```
-
-> ⚠️ **Important**: Change the default admin password immediately after first login!
-
----
-
-## 📁 Project Structure
-
-```
-freshtrack/
-├── src/                    # Frontend React application
-│   ├── components/         # Reusable UI components
-│   ├── pages/              # Page components
-│   ├── context/            # React contexts (Auth, Products, Language)
-│   ├── locales/            # i18n translation files
-│   ├── utils/              # Utility functions
-│   └── styles/             # CSS styles
-├── server/                 # Backend Express application
-│   ├── routes/             # API route handlers
-│   ├── db/                 # Database schema and queries
-│   ├── services/           # Business logic (Telegram, Scheduler)
-│   └── middleware/         # Express middleware (Auth, Permissions)
-├── public/                 # Static assets
-└── docs/                   # Documentation
+# Database
+DB_PATH=./server/db/freshtrack.db
 ```
 
 ---
 
-## 🔐 API Authentication
+## 📄 Лицензия
 
-All API endpoints require JWT authentication:
-
-```bash
-# Login to get token
-curl -X POST http://localhost:3001/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"login":"admin","password":""}'
-
-# Use token in subsequent requests
-curl http://localhost:3001/api/batches \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN"
-```
+MIT License © 2024 FreshTrack Team
 
 ---
 
-## 🔒 Role-Based Access
+<div align="center">
 
-| Role | Permissions |
-|------|-------------|
-| `super_admin` | Full system access, multi-property management |
-| `admin` | Property-level admin, user management |
-| `manager` | Department management, reports |
-| `user` | View and manage assigned departments |
+**Разработано с ❤️ для индустрии HoReCa**
 
----
+[⬆ Вернуться к началу](#-freshtrack---система-управления-сроками-годности-продуктов)
 
-## 📊 API Endpoints
-
-### Authentication
-- `POST /api/auth/login` — User login
-- `POST /api/auth/register` — User registration
-- `GET /api/auth/me` — Current user info
-
-### Batches
-- `GET /api/batches` — List all batches
-- `POST /api/batches` — Create batch
-- `PATCH /api/batches/:id/collect` — Mark as collected
-- `GET /api/batches/stats` — Batch statistics
-
-### Departments
-- `GET /api/department-settings` — List departments
-- `POST /api/department-settings` — Create department
-
-### Categories
-- `GET /api/categories` — List categories
-- `POST /api/categories` — Create category
-
-### Settings
-- `GET /api/settings` — Get system settings
-- `PUT /api/settings` — Update settings
-
----
-
-## 🌍 Localization
-
-Add new languages by creating translation files in `src/locales/`:
-
-```
-src/locales/
-├── en.json     # English
-├── ru.json     # Russian
-├── kk.json     # Kazakh
-└── es.json     # Spanish (add new)
-```
-
----
-
-## 📦 Building for Production
-
-```bash
-# Build frontend
-npm run build
-
-# Build creates dist/ folder
-# Serve with any static file server
-```
-
----
-
-## 🐳 Docker Deployment
-
-```dockerfile
-# Example Dockerfile
-FROM node:18-alpine
-WORKDIR /app
-COPY . .
-RUN npm install
-RUN npm run build
-EXPOSE 3001
-CMD ["npm", "run", "start:server"]
-```
-
----
-
-## 📄 License
-
-Commercial License. Contact sales@freshtrack.io for licensing information.
-
----
-
-## 🤝 Support
-
-- 📧 Email: support@freshtrack.io
-- 📖 Documentation: https://docs.freshtrack.io
-- 🐛 Issues: https://github.com/your-org/freshtrack/issues
-
----
-
-**Built with ❤️ for the hospitality industry**
+</div>
