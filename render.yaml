@@ -1,0 +1,18 @@
+# FreshTrack - Render Blueprint
+# https://render.com/docs/blueprint-spec
+
+services:
+  # Frontend - Static Site (SPA)
+  - type: web
+    name: freshtrack
+    runtime: static
+    buildCommand: npm install && npm run build:render
+    staticPublishPath: ./dist
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: no-cache
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
