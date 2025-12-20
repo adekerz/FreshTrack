@@ -111,7 +111,8 @@
     "analytics": "Аналитика",
     "departments": "Отделы",
     "settings": "Настройки",
-    "auditLogs": "Журнал действий"
+    "auditLogs": "Журнал действий",
+    "more": "Ещё"
   },
   "sidebar": {
     "collapse": "Свернуть меню",

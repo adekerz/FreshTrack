@@ -111,7 +111,8 @@
     "analytics": "Analytics",
     "departments": "Departments",
     "settings": "Settings",
-    "auditLogs": "Audit Logs"
+    "auditLogs": "Audit Logs",
+    "more": "More"
   },
   "sidebar": {
     "collapse": "Collapse menu",
