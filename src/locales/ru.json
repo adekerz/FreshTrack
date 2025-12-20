@@ -132,7 +132,8 @@
     "newProduct": "Новый товар в каталог",
     "newProductDesc": "Добавить новый товар в каталог",
     "signOut": "Выйти",
-    "testTelegram": "Тест Telegram"
+    "testTelegram": "Тест Telegram",
+    "language": "Язык"
   },
   "auth": {
     "welcomeBack": "С возвращением",

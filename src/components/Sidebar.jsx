@@ -11,19 +11,22 @@ import {
   Settings,
   Calendar,
   FileText,
-  X
+  X,
+  LogOut,
+  Globe
 } from 'lucide-react'
 import { useProducts } from '../context/ProductContext'
 import { useAuth } from '../context/AuthContext'
-import { useTranslation } from '../context/LanguageContext'
+import { useTranslation, useLanguage } from '../context/LanguageContext'
 import { cn } from '../utils/classNames'
 
 export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose }) {
   const location = useLocation()
   const navigate = useNavigate()
   const { getStats, getUnreadNotificationsCount } = useProducts()
-  const { user } = useAuth()
+  const { user, logout } = useAuth()
   const { t } = useTranslation()
+  const { language, changeLanguage } = useLanguage()
   const stats = getStats()
 
   // Количество непрочитанных уведомлений (или критичных + просроченных)
@@ -182,6 +185,28 @@ export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose })
         {/* User info (мобильная версия) */}
         {isMobile && user && (
           <div className="px-4 py-4 border-t border-white/10">
+            {/* Переключатель языка */}
+            <div className="flex items-center gap-2 px-4 py-2 mb-2">
+              <Globe className="w-4 h-4 text-warmgray" />
+              <div className="flex gap-1">
+                {['ru', 'en', 'kk'].map((lang) => (
+                  <button
+                    key={lang}
+                    onClick={() => changeLanguage(lang)}
+                    className={cn(
+                      'px-2 py-1 text-xs rounded transition-colors',
+                      language === lang
+                        ? 'bg-accent text-charcoal font-medium'
+                        : 'text-warmgray hover:text-cream'
+                    )}
+                  >
+                    {lang.toUpperCase()}
+                  </button>
+                ))}
+              </div>
+            </div>
+            
+            {/* Информация о пользователе */}
             <div className="flex items-center gap-3 px-4 py-2">
               <div className="w-10 h-10 bg-accent/20 rounded-full flex items-center justify-center">
                 <span className="text-accent font-medium">{user.name?.charAt(0) || 'U'}</span>
@@ -191,6 +216,18 @@ export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose })
                 <p className="text-xs text-warmgray truncate">{user.role}</p>
               </div>
             </div>
+            
+            {/* Кнопка выхода */}
+            <button
+              onClick={() => {
+                logout()
+                if (onClose) onClose()
+              }}
+              className="w-full flex items-center gap-3 px-4 py-3 mt-2 text-warmgray hover:text-danger hover:bg-white/5 rounded transition-colors"
+            >
+              <LogOut className="w-5 h-5" />
+              <span>{t('header.signOut')}</span>
+            </button>
           </div>
         )}
 

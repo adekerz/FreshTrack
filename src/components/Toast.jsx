@@ -45,7 +45,7 @@ function ToastItem({ toast, onRemove }) {
     <div
       className={`
         relative flex items-start gap-3 p-4 rounded-xl border shadow-lg backdrop-blur-sm
-        animate-toast-in min-w-[300px] max-w-[400px]
+        animate-toast-in w-full sm:min-w-[300px] sm:max-w-[400px]
         ${color.bg}
       `}
       role="alert"
@@ -96,7 +96,7 @@ export default function ToastContainer() {
 
   return (
     <div
-      className="fixed bottom-4 right-4 z-[100] flex flex-col gap-2"
+      className="fixed bottom-20 sm:bottom-4 right-4 left-4 sm:left-auto z-[100] flex flex-col gap-2"
       aria-live="polite"
       aria-label="Уведомления"
     >

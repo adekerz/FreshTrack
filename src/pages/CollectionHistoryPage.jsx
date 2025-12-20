@@ -52,14 +52,16 @@ export default function CollectionHistoryPage() {
   // Загрузка статистики
   const fetchStats = useCallback(async () => {
     try {
-      const response = await fetch(`${API_URL}/collections/stats`, {
+      const response = await fetch(`${API_URL}/write-offs/stats`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('freshtrack_token')}`
         }
       })
       if (response.ok) {
         const data = await response.json()
-        setStats(data)
+        if (data.success) {
+          setStats({ today: data.today, week: data.week, month: data.month, total: data.total })
+        }
       }
     } catch (err) {
       console.error('Error fetching stats:', err)
@@ -74,16 +76,16 @@ export default function CollectionHistoryPage() {
 
       try {
         const params = new URLSearchParams({
-          page: page.toString(),
-          limit: pagination.limit.toString()
+          limit: pagination.limit.toString(),
+          offset: ((page - 1) * pagination.limit).toString()
         })
 
-        if (appliedFilters.departmentId) params.append('departmentId', appliedFilters.departmentId)
+        if (appliedFilters.departmentId) params.append('department_id', appliedFilters.departmentId)
         if (appliedFilters.reason) params.append('reason', appliedFilters.reason)
-        if (appliedFilters.startDate) params.append('startDate', appliedFilters.startDate)
-        if (appliedFilters.endDate) params.append('endDate', appliedFilters.endDate)
+        if (appliedFilters.startDate) params.append('start_date', appliedFilters.startDate)
+        if (appliedFilters.endDate) params.append('end_date', appliedFilters.endDate)
 
-        const response = await fetch(`${API_URL}/collections?${params}`, {
+        const response = await fetch(`${API_URL}/write-offs?${params}`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('freshtrack_token')}`
           }
@@ -92,11 +94,29 @@ export default function CollectionHistoryPage() {
         if (!response.ok) throw new Error('Failed to fetch logs')
 
         const data = await response.json()
-        setLogs(data.logs)
-        setPagination(data.pagination)
+        // Transform write_offs to expected log format
+        const writeOffs = data.write_offs || []
+        const transformedLogs = writeOffs.map(wo => ({
+          id: wo.id,
+          productName: wo.product_name || wo.productName || 'Неизвестный товар',
+          departmentId: wo.department_id || wo.departmentId,
+          quantity: wo.quantity,
+          expiryDate: wo.expiry_date || wo.expiryDate,
+          reason: wo.reason,
+          comment: wo.notes || wo.comment,
+          collectedAt: wo.created_at || wo.createdAt,
+          collectedByName: wo.user_name || wo.userName
+        }))
+        
+        setLogs(transformedLogs)
+        // Calculate pagination from response or estimate
+        const total = data.total || writeOffs.length
+        const totalPages = Math.ceil(total / pagination.limit)
+        setPagination(prev => ({ ...prev, page, total, totalPages }))
       } catch (err) {
         console.error('Error fetching logs:', err)
         setError(err.message)
+        setLogs([])
       } finally {
         setLoading(false)
       }
@@ -168,26 +188,26 @@ export default function CollectionHistoryPage() {
     appliedFilters.endDate
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Заголовок */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         <div>
-          <h1 className="text-2xl font-light text-charcoal">{t('collectionHistory.title')}</h1>
-          <p className="text-warmgray text-sm mt-1">{t('collectionHistory.subtitle')}</p>
+          <h1 className="text-xl sm:text-2xl font-light text-charcoal">{t('collectionHistory.title')}</h1>
+          <p className="text-warmgray text-xs sm:text-sm mt-1">{t('collectionHistory.subtitle')}</p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           {/* Кнопка фильтров */}
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className={`flex items-center gap-2 px-4 py-2 border rounded-lg text-sm transition-colors ${
+            className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 border rounded-lg text-xs sm:text-sm transition-colors ${
               hasActiveFilters
                 ? 'border-accent text-accent bg-accent/5'
                 : 'border-sand text-warmgray hover:bg-sand/50'
             }`}
           >
             <Filter className="w-4 h-4" />
-            {t('collectionHistory.filters')}
+            <span className="hidden sm:inline">{t('collectionHistory.filters')}</span>
             {hasActiveFilters && <span className="w-2 h-2 bg-accent rounded-full" />}
           </button>
 
@@ -198,31 +218,31 @@ export default function CollectionHistoryPage() {
               fetchStats()
             }}
             disabled={loading}
-            className="flex items-center gap-2 px-4 py-2 bg-charcoal text-white rounded-lg text-sm hover:bg-charcoal/90 transition-colors disabled:opacity-50"
+            className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-charcoal text-white rounded-lg text-xs sm:text-sm hover:bg-charcoal/90 transition-colors disabled:opacity-50"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-            {t('common.refresh')}
+            <span className="hidden sm:inline">{t('common.refresh')}</span>
           </button>
         </div>
       </div>
 
-      {/* Статистика */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl border border-sand p-4">
-          <p className="text-sm text-warmgray">{t('collectionHistory.stats.today')}</p>
-          <p className="text-2xl font-light text-charcoal">{stats.today}</p>
+      {/* Статистика - Bento Grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="bg-white rounded-xl border border-sand p-3 sm:p-4">
+          <p className="text-xs sm:text-sm text-warmgray">{t('collectionHistory.stats.today')}</p>
+          <p className="text-xl sm:text-2xl font-light text-charcoal">{stats.today}</p>
         </div>
-        <div className="bg-white rounded-xl border border-sand p-4">
-          <p className="text-sm text-warmgray">{t('collectionHistory.stats.week')}</p>
-          <p className="text-2xl font-light text-charcoal">{stats.week}</p>
+        <div className="bg-white rounded-xl border border-sand p-3 sm:p-4">
+          <p className="text-xs sm:text-sm text-warmgray">{t('collectionHistory.stats.week')}</p>
+          <p className="text-xl sm:text-2xl font-light text-charcoal">{stats.week}</p>
         </div>
-        <div className="bg-white rounded-xl border border-sand p-4">
-          <p className="text-sm text-warmgray">{t('collectionHistory.stats.month')}</p>
-          <p className="text-2xl font-light text-charcoal">{stats.month}</p>
+        <div className="bg-white rounded-xl border border-sand p-3 sm:p-4">
+          <p className="text-xs sm:text-sm text-warmgray">{t('collectionHistory.stats.month')}</p>
+          <p className="text-xl sm:text-2xl font-light text-charcoal">{stats.month}</p>
         </div>
-        <div className="bg-white rounded-xl border border-sand p-4">
-          <p className="text-sm text-warmgray">{t('collectionHistory.stats.total')}</p>
-          <p className="text-2xl font-light text-charcoal">{stats.total}</p>
+        <div className="bg-white rounded-xl border border-sand p-3 sm:p-4">
+          <p className="text-xs sm:text-sm text-warmgray">{t('collectionHistory.stats.total')}</p>
+          <p className="text-xl sm:text-2xl font-light text-charcoal">{stats.total}</p>
         </div>
       </div>
 
@@ -319,46 +339,88 @@ export default function CollectionHistoryPage() {
         <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-600">{error}</div>
       )}
 
-      {/* Таблица сборов */}
+      {/* Таблица сборов / Карточки на мобильных */}
       <div className="bg-white rounded-xl border border-sand overflow-hidden">
         {loading && logs.length === 0 ? (
           <div className="flex items-center justify-center py-12">
             <RefreshCw className="w-8 h-8 text-warmgray animate-spin" />
           </div>
         ) : logs.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-warmgray">
-            <ArchiveX className="w-12 h-12 mb-4 opacity-50" />
-            <p className="text-lg">{t('collectionHistory.noLogs')}</p>
-            <p className="text-sm">{t('collectionHistory.noLogsHint')}</p>
+          <div className="flex flex-col items-center justify-center py-8 sm:py-12 text-warmgray">
+            <ArchiveX className="w-10 h-10 sm:w-12 sm:h-12 mb-3 sm:mb-4 opacity-50" />
+            <p className="text-base sm:text-lg">{t('collectionHistory.noLogs')}</p>
+            <p className="text-xs sm:text-sm">{t('collectionHistory.noLogsHint')}</p>
           </div>
         ) : (
           <>
-            <div className="overflow-x-auto">
+            {/* Мобильный вид - карточки */}
+            <div className="sm:hidden divide-y divide-sand/50">
+              {logs.map((log) => {
+                const reasonInfo = getReason(log.reason)
+                const dept = departments.find(d => d.id === log.departmentId)
+                const department = dept || { name: log.departmentId || 'N/A', color: '#C4A35A' }
+
+                return (
+                  <div key={log.id} className="p-4 space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Package className="w-4 h-4 text-warmgray flex-shrink-0" />
+                        <span className="text-sm font-medium text-charcoal truncate">{log.productName}</span>
+                      </div>
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium flex-shrink-0 ${reasonInfo.color}`}>
+                        {t(reasonInfo.label)}
+                      </span>
+                    </div>
+                    
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-warmgray">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full" style={{ backgroundColor: `${department.color}20`, color: department.color }}>
+                        {department.name}
+                      </span>
+                      <span>{log.quantity} {t('inventory.units')}</span>
+                      <span>•</span>
+                      <span>{formatDate(log.collectedAt)}</span>
+                    </div>
+                    
+                    {log.comment && (
+                      <p className="text-xs text-warmgray line-clamp-2">{log.comment}</p>
+                    )}
+                    
+                    <div className="flex items-center gap-1 text-xs text-warmgray">
+                      <User className="w-3 h-3" />
+                      {log.collectedByName || t('collectionHistory.system')}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Десктопный вид - таблица */}
+            <div className="hidden sm:block overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-cream/50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-warmgray uppercase tracking-wider">
+                    <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-warmgray uppercase tracking-wider">
                       {t('collectionHistory.columns.date')}
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-warmgray uppercase tracking-wider">
+                    <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-warmgray uppercase tracking-wider">
                       {t('collectionHistory.columns.product')}
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-warmgray uppercase tracking-wider">
+                    <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-warmgray uppercase tracking-wider hidden md:table-cell">
                       {t('collectionHistory.columns.department')}
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-warmgray uppercase tracking-wider">
+                    <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-warmgray uppercase tracking-wider">
                       {t('collectionHistory.columns.quantity')}
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-warmgray uppercase tracking-wider">
+                    <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-warmgray uppercase tracking-wider hidden lg:table-cell">
                       {t('collectionHistory.columns.expiryDate')}
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-warmgray uppercase tracking-wider">
+                    <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-warmgray uppercase tracking-wider">
                       {t('collectionHistory.columns.reason')}
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-warmgray uppercase tracking-wider">
+                    <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-warmgray uppercase tracking-wider hidden xl:table-cell">
                       {t('collectionHistory.columns.comment')}
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-warmgray uppercase tracking-wider">
+                    <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-warmgray uppercase tracking-wider hidden lg:table-cell">
                       {t('collectionHistory.columns.collectedBy')}
                     </th>
                   </tr>
@@ -367,53 +429,40 @@ export default function CollectionHistoryPage() {
                   {logs.map((log) => {
                     const reasonInfo = getReason(log.reason)
                     const dept = departments.find(d => d.id === log.departmentId)
-                    const department = dept || {
-                      name: log.departmentId,
-                      color: '#C4A35A'
-                    }
+                    const department = dept || { name: log.departmentId || 'N/A', color: '#C4A35A' }
 
                     return (
                       <tr key={log.id} className="hover:bg-cream/30 transition-colors">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-charcoal">
+                        <td className="px-4 lg:px-6 py-3 lg:py-4 whitespace-nowrap text-xs lg:text-sm text-charcoal">
                           {formatDate(log.collectedAt)}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-4 lg:px-6 py-3 lg:py-4 whitespace-nowrap">
                           <div className="flex items-center gap-2">
                             <Package className="w-4 h-4 text-warmgray" />
-                            <span className="text-sm text-charcoal font-medium">
-                              {log.productName}
-                            </span>
+                            <span className="text-xs lg:text-sm text-charcoal font-medium">{log.productName}</span>
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span
-                            className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium"
-                            style={{
-                              backgroundColor: `${department.color}20`,
-                              color: department.color
-                            }}
-                          >
+                        <td className="px-4 lg:px-6 py-3 lg:py-4 whitespace-nowrap hidden md:table-cell">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: `${department.color}20`, color: department.color }}>
                             {department.name}
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-charcoal">
+                        <td className="px-4 lg:px-6 py-3 lg:py-4 whitespace-nowrap text-xs lg:text-sm text-charcoal">
                           {log.quantity} {t('inventory.units')}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-charcoal">
+                        <td className="px-4 lg:px-6 py-3 lg:py-4 whitespace-nowrap text-xs lg:text-sm text-charcoal hidden lg:table-cell">
                           {formatDateOnly(log.expiryDate)}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span
-                            className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${reasonInfo.color}`}
-                          >
+                        <td className="px-4 lg:px-6 py-3 lg:py-4 whitespace-nowrap">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${reasonInfo.color}`}>
                             {t(reasonInfo.label)}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-sm text-warmgray max-w-xs truncate" title={log.comment || ''}>
+                        <td className="px-4 lg:px-6 py-3 lg:py-4 text-xs lg:text-sm text-warmgray max-w-xs truncate hidden xl:table-cell" title={log.comment || ''}>
                           {log.comment || '-'}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center gap-2 text-sm text-warmgray">
+                        <td className="px-4 lg:px-6 py-3 lg:py-4 whitespace-nowrap hidden lg:table-cell">
+                          <div className="flex items-center gap-2 text-xs lg:text-sm text-warmgray">
                             <User className="w-4 h-4" />
                             {log.collectedByName || t('collectionHistory.system')}
                           </div>
@@ -427,13 +476,16 @@ export default function CollectionHistoryPage() {
 
             {/* Пагинация */}
             {pagination.totalPages > 1 && (
-              <div className="flex items-center justify-between px-6 py-4 border-t border-sand/50">
-                <p className="text-sm text-warmgray">
+              <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-t border-sand/50">
+                <p className="text-xs sm:text-sm text-warmgray hidden sm:block">
                   {t('collectionHistory.showing', {
                     from: (pagination.page - 1) * pagination.limit + 1,
                     to: Math.min(pagination.page * pagination.limit, pagination.total),
                     total: pagination.total
                   })}
+                </p>
+                <p className="text-xs text-warmgray sm:hidden">
+                  {pagination.page} / {pagination.totalPages}
                 </p>
 
                 <div className="flex items-center gap-2">
@@ -445,7 +497,7 @@ export default function CollectionHistoryPage() {
                     <ChevronLeft className="w-5 h-5" />
                   </button>
 
-                  <span className="text-sm text-charcoal">
+                  <span className="text-sm text-charcoal hidden sm:inline">
                     {pagination.page} / {pagination.totalPages}
                   </span>
 

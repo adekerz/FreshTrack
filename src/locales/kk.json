@@ -132,7 +132,8 @@
     "newProduct": "Каталогқа жаңа тауар",
     "newProductDesc": "Каталогқа жаңа тауар қосу",
     "signOut": "Шығу",
-    "testTelegram": "Telegram тест"
+    "testTelegram": "Telegram тест",
+    "language": "Тіл"
   },
   "auth": {
     "welcomeBack": "Қош келдіңіз",

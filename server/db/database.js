@@ -686,22 +686,30 @@ export async function getBatchStats(hotelId, departmentId = null) {
 
 export async function getWriteOffs(hotelId, filters = {}) {
   let queryText = `
-    SELECT wo.*, u.name as written_off_by_name, d.name as department_name
+    SELECT 
+      wo.id, wo.hotel_id, wo.batch_id, wo.product_id, wo.quantity, 
+      wo.reason, wo.notes, wo.user_id, wo.created_at,
+      p.name as product_name, p.department_id,
+      u.name as user_name,
+      b.expiry_date
     FROM write_offs wo
-    LEFT JOIN users u ON wo.written_off_by = u.id
-    JOIN departments d ON wo.department_id = d.id
+    LEFT JOIN products p ON wo.product_id = p.id
+    LEFT JOIN users u ON wo.user_id = u.id
+    LEFT JOIN batches b ON wo.batch_id = b.id
     WHERE wo.hotel_id = $1
   `
   const params = [hotelId]
   let paramIndex = 2
   
-  if (filters.departmentId) { queryText += ` AND wo.department_id = $${paramIndex++}`; params.push(filters.departmentId) }
-  if (filters.startDate) { queryText += ` AND DATE(wo.written_off_at) >= $${paramIndex++}`; params.push(filters.startDate) }
-  if (filters.endDate) { queryText += ` AND DATE(wo.written_off_at) <= $${paramIndex++}`; params.push(filters.endDate) }
+  if (filters.department_id) { queryText += ` AND p.department_id = $${paramIndex++}`; params.push(filters.department_id) }
+  if (filters.start_date) { queryText += ` AND DATE(wo.created_at) >= $${paramIndex++}`; params.push(filters.start_date) }
+  if (filters.end_date) { queryText += ` AND DATE(wo.created_at) <= $${paramIndex++}`; params.push(filters.end_date) }
   if (filters.reason) { queryText += ` AND wo.reason = $${paramIndex++}`; params.push(filters.reason) }
+  if (filters.product_id) { queryText += ` AND wo.product_id = $${paramIndex++}`; params.push(filters.product_id) }
   
-  queryText += ' ORDER BY wo.written_off_at DESC'
-  if (filters.limit) { queryText += ` LIMIT $${paramIndex++}`; params.push(filters.limit) }
+  queryText += ' ORDER BY wo.created_at DESC'
+  if (filters.limit) { queryText += ` LIMIT $${paramIndex++}`; params.push(parseInt(filters.limit)) }
+  if (filters.offset) { queryText += ` OFFSET $${paramIndex++}`; params.push(parseInt(filters.offset)) }
   
   const result = await query(queryText, params)
   return result.rows
@@ -907,6 +915,57 @@ export async function updateWriteOff(id, updates) {
 export async function deleteWriteOff(id) {
   const result = await query('DELETE FROM write_offs WHERE id = $1', [id])
   return result.rowCount > 0
+}
+
+export async function getWriteOffStats(hotelId, departmentId = null) {
+  const now = new Date()
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString()
+  const weekAgo = new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString()
+  const monthAgo = new Date(now - 30 * 24 * 60 * 60 * 1000).toISOString()
+
+  let baseWhere = 'w.hotel_id = $1'
+  const params = [hotelId]
+  let paramIndex = 2
+  
+  if (departmentId) {
+    baseWhere += ` AND p.department_id = $${paramIndex++}`
+    params.push(departmentId)
+  }
+
+  // Total count
+  const totalResult = await query(`
+    SELECT COUNT(*) as count FROM write_offs w
+    LEFT JOIN products p ON w.product_id = p.id
+    WHERE ${baseWhere}
+  `, params)
+  
+  // Today count
+  const todayResult = await query(`
+    SELECT COUNT(*) as count FROM write_offs w
+    LEFT JOIN products p ON w.product_id = p.id
+    WHERE ${baseWhere} AND w.created_at >= $${paramIndex}
+  `, [...params, todayStart])
+  
+  // Week count
+  const weekResult = await query(`
+    SELECT COUNT(*) as count FROM write_offs w
+    LEFT JOIN products p ON w.product_id = p.id
+    WHERE ${baseWhere} AND w.created_at >= $${paramIndex}
+  `, [...params, weekAgo])
+  
+  // Month count
+  const monthResult = await query(`
+    SELECT COUNT(*) as count FROM write_offs w
+    LEFT JOIN products p ON w.product_id = p.id
+    WHERE ${baseWhere} AND w.created_at >= $${paramIndex}
+  `, [...params, monthAgo])
+
+  return {
+    today: parseInt(todayResult.rows[0].count) || 0,
+    week: parseInt(weekResult.rows[0].count) || 0,
+    month: parseInt(monthResult.rows[0].count) || 0,
+    total: parseInt(totalResult.rows[0].count) || 0
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════

@@ -6,9 +6,24 @@ const ToastContext = createContext(null)
 export function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([])
 
-  // Добавить тост
-  const addToast = useCallback((options) => {
+  // Добавить тост - поддерживает два формата:
+  // 1. addToast({ type, title, message }) - объект с опциями
+  // 2. addToast(title, type) - простой формат (title: string, type: 'success'|'error'|etc)
+  const addToast = useCallback((optionsOrTitle, typeArg) => {
     const id = uuidv4()
+    
+    // Если первый аргумент - строка, используем простой формат
+    let options
+    if (typeof optionsOrTitle === 'string') {
+      options = {
+        title: optionsOrTitle,
+        type: typeArg || 'info',
+        message: ''
+      }
+    } else {
+      options = optionsOrTitle
+    }
+    
     const toast = {
       id,
       type: options.type || 'info', // success, error, warning, info, loading

@@ -138,24 +138,24 @@ export default function CalendarPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 p-1 sm:p-0">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         <div>
-          <h1 className="text-2xl font-playfair text-charcoal">
+          <h1 className="text-xl sm:text-2xl font-playfair text-charcoal">
             {t('nav.calendar') || 'Календарь'}
           </h1>
-          <p className="text-charcoal/60">
+          <p className="text-charcoal/60 text-xs sm:text-sm">
             {t('calendar.description') || 'Визуализация сроков годности'}
           </p>
         </div>
 
         {/* Фильтры */}
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <select
             value={filterDepartment}
             onChange={(e) => setFilterDepartment(e.target.value)}
-            className="px-3 py-2 border border-taupe/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-gold/50 bg-white"
+            className="px-2 sm:px-3 py-1.5 sm:py-2 border border-taupe/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-gold/50 bg-white text-xs sm:text-sm flex-1 sm:flex-none"
           >
             <option value="">{t('common.allDepartments') || 'Все отделы'}</option>
             {departments.map((dept) => (
@@ -167,100 +167,100 @@ export default function CalendarPage() {
 
           <button
             onClick={goToToday}
-            className="px-4 py-2 bg-gold text-white rounded-lg hover:bg-gold/90 transition-colors"
+            className="px-3 sm:px-4 py-1.5 sm:py-2 bg-gold text-white rounded-lg hover:bg-gold/90 transition-colors text-xs sm:text-sm"
           >
             {t('calendar.today') || 'Сегодня'}
           </button>
         </div>
       </div>
 
-      {/* Статистика месяца */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl p-4 shadow-card border border-taupe/10">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-danger/10 rounded-lg">
-              <AlertTriangle className="w-5 h-5 text-danger" />
+      {/* Статистика месяца - Bento Grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
+        <div className="bg-white rounded-xl p-3 sm:p-4 shadow-card border border-taupe/10">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="p-1.5 sm:p-2 bg-danger/10 rounded-lg">
+              <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-danger" />
             </div>
-            <div>
-              <p className="text-sm text-charcoal/60">
-                {t('calendar.expiredDays') || 'Дней с просрочкой'}
+            <div className="min-w-0">
+              <p className="text-xs sm:text-sm text-charcoal/60 truncate">
+                {t('calendar.expiredDays') || 'С просрочкой'}
               </p>
-              <p className="text-xl font-semibold text-danger">{monthStats.expired}</p>
+              <p className="text-lg sm:text-xl font-semibold text-danger">{monthStats.expired}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl p-4 shadow-card border border-taupe/10">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-warning/10 rounded-lg">
-              <Clock className="w-5 h-5 text-warning" />
+        <div className="bg-white rounded-xl p-3 sm:p-4 shadow-card border border-taupe/10">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="p-1.5 sm:p-2 bg-warning/10 rounded-lg">
+              <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-warning" />
             </div>
-            <div>
-              <p className="text-sm text-charcoal/60">
-                {t('calendar.criticalDays') || 'Критических дней'}
+            <div className="min-w-0">
+              <p className="text-xs sm:text-sm text-charcoal/60 truncate">
+                {t('calendar.criticalDays') || 'Критических'}
               </p>
-              <p className="text-xl font-semibold text-warning">{monthStats.critical}</p>
+              <p className="text-lg sm:text-xl font-semibold text-warning">{monthStats.critical}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl p-4 shadow-card border border-taupe/10">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-yellow-100 rounded-lg">
-              <Clock className="w-5 h-5 text-yellow-600" />
+        <div className="bg-white rounded-xl p-3 sm:p-4 shadow-card border border-taupe/10">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="p-1.5 sm:p-2 bg-yellow-100 rounded-lg">
+              <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600" />
             </div>
-            <div>
-              <p className="text-sm text-charcoal/60">
-                {t('calendar.warningDays') || 'Дней с предупреждением'}
+            <div className="min-w-0">
+              <p className="text-xs sm:text-sm text-charcoal/60 truncate">
+                {t('calendar.warningDays') || 'Внимание'}
               </p>
-              <p className="text-xl font-semibold text-yellow-600">{monthStats.warning}</p>
+              <p className="text-lg sm:text-xl font-semibold text-yellow-600">{monthStats.warning}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl p-4 shadow-card border border-taupe/10">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-success/10 rounded-lg">
-              <Package className="w-5 h-5 text-success" />
+        <div className="bg-white rounded-xl p-3 sm:p-4 shadow-card border border-taupe/10">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="p-1.5 sm:p-2 bg-success/10 rounded-lg">
+              <Package className="w-4 h-4 sm:w-5 sm:h-5 text-success" />
             </div>
-            <div>
-              <p className="text-sm text-charcoal/60">{t('calendar.goodDays') || 'Дней в норме'}</p>
-              <p className="text-xl font-semibold text-success">{monthStats.good}</p>
+            <div className="min-w-0">
+              <p className="text-xs sm:text-sm text-charcoal/60 truncate">{t('calendar.goodDays') || 'В норме'}</p>
+              <p className="text-lg sm:text-xl font-semibold text-success">{monthStats.good}</p>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Календарь */}
-        <div className="lg:col-span-2 bg-white rounded-xl shadow-card border border-taupe/10 p-6">
+        <div className="lg:col-span-2 bg-white rounded-xl shadow-card border border-taupe/10 p-3 sm:p-6">
           {/* Навигация месяца */}
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-4 sm:mb-6">
             <button
               onClick={goToPreviousMonth}
-              className="p-2 hover:bg-sand rounded-lg transition-colors"
+              className="p-1.5 sm:p-2 hover:bg-sand rounded-lg transition-colors"
             >
-              <ChevronLeft className="w-5 h-5 text-charcoal" />
+              <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 text-charcoal" />
             </button>
 
-            <h2 className="text-xl font-semibold text-charcoal capitalize">
+            <h2 className="text-base sm:text-xl font-semibold text-charcoal capitalize">
               {format(currentDate, 'LLLL yyyy', { locale })}
             </h2>
 
             <button
               onClick={goToNextMonth}
-              className="p-2 hover:bg-sand rounded-lg transition-colors"
+              className="p-1.5 sm:p-2 hover:bg-sand rounded-lg transition-colors"
             >
-              <ChevronRight className="w-5 h-5 text-charcoal" />
+              <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-charcoal" />
             </button>
           </div>
 
           {/* Дни недели */}
-          <div className="grid grid-cols-7 gap-1 mb-2">
+          <div className="grid grid-cols-7 gap-0.5 sm:gap-1 mb-1 sm:mb-2">
             {localizedWeekDays.map((day, index) => (
               <div
                 key={day}
-                className={`text-center text-sm font-medium py-2 ${index >= 5 ? 'text-charcoal/50' : 'text-charcoal'}`}
+                className={`text-center text-xs sm:text-sm font-medium py-1 sm:py-2 ${index >= 5 ? 'text-charcoal/50' : 'text-charcoal'}`}
               >
                 {day}
               </div>
@@ -268,7 +268,7 @@ export default function CalendarPage() {
           </div>
 
           {/* Дни месяца */}
-          <div className="grid grid-cols-7 gap-1">
+          <div className="grid grid-cols-7 gap-0.5 sm:gap-1">
             {/* Пустые ячейки до первого дня */}
             {Array.from({ length: startDayOfWeek }).map((_, index) => (
               <div key={`empty-${index}`} className="aspect-square" />
@@ -287,15 +287,15 @@ export default function CalendarPage() {
                   key={day.toISOString()}
                   onClick={() => setSelectedDate(day)}
                   className={`
-                    aspect-square p-1 rounded-lg relative transition-all
-                    ${isSelected ? 'ring-2 ring-gold ring-offset-2' : ''}
+                    aspect-square p-0.5 sm:p-1 rounded-lg relative transition-all
+                    ${isSelected ? 'ring-2 ring-gold ring-offset-1 sm:ring-offset-2' : ''}
                     ${isTodayDate ? 'bg-gold/20' : 'hover:bg-sand/50'}
                     ${status ? 'cursor-pointer' : 'cursor-default'}
                   `}
                 >
                   <span
                     className={`
-                    text-sm font-medium
+                    text-xs sm:text-sm font-medium
                     ${isTodayDate ? 'text-gold font-bold' : 'text-charcoal'}
                   `}
                   >
@@ -305,8 +305,8 @@ export default function CalendarPage() {
                   {dayBatches.length > 0 && (
                     <div
                       className={`
-                      absolute bottom-1 left-1/2 -translate-x-1/2
-                      text-xs px-1.5 py-0.5 rounded-full
+                      absolute bottom-0.5 sm:bottom-1 left-1/2 -translate-x-1/2
+                      text-[10px] sm:text-xs px-1 sm:px-1.5 py-0 sm:py-0.5 rounded-full
                       ${getStatusColor(status)}
                     `}
                     >
@@ -319,32 +319,32 @@ export default function CalendarPage() {
           </div>
 
           {/* Легенда */}
-          <div className="flex flex-wrap items-center gap-4 mt-6 pt-4 border-t border-taupe/10">
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded-full bg-danger" />
-              <span className="text-sm text-charcoal/70">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-4 sm:mt-6 pt-3 sm:pt-4 border-t border-taupe/10">
+            <div className="flex items-center gap-1 sm:gap-2">
+              <div className="w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-danger" />
+              <span className="text-xs sm:text-sm text-charcoal/70">
                 {t('status.expired') || 'Просрочено'}
               </span>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded-full bg-warning" />
-              <span className="text-sm text-charcoal/70">{t('status.critical') || 'Критично'}</span>
+            <div className="flex items-center gap-1 sm:gap-2">
+              <div className="w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-warning" />
+              <span className="text-xs sm:text-sm text-charcoal/70">{t('status.critical') || 'Критично'}</span>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded-full bg-yellow-400" />
-              <span className="text-sm text-charcoal/70">{t('status.warning') || 'Внимание'}</span>
+            <div className="flex items-center gap-1 sm:gap-2">
+              <div className="w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-yellow-400" />
+              <span className="text-xs sm:text-sm text-charcoal/70">{t('status.warning') || 'Внимание'}</span>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded-full bg-success" />
-              <span className="text-sm text-charcoal/70">{t('status.good') || 'Норма'}</span>
+            <div className="flex items-center gap-1 sm:gap-2">
+              <div className="w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-success" />
+              <span className="text-xs sm:text-sm text-charcoal/70">{t('status.good') || 'Норма'}</span>
             </div>
           </div>
         </div>
 
         {/* Детали выбранного дня */}
-        <div className="bg-white rounded-xl shadow-card border border-taupe/10 p-6">
-          <h3 className="text-lg font-semibold text-charcoal mb-4 flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-gold" />
+        <div className="bg-white rounded-xl shadow-card border border-taupe/10 p-3 sm:p-6">
+          <h3 className="text-base sm:text-lg font-semibold text-charcoal mb-3 sm:mb-4 flex items-center gap-2">
+            <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-gold" />
             {selectedDate
               ? format(selectedDate, 'd MMMM yyyy', { locale })
               : t('calendar.selectDate') || 'Выберите дату'}
@@ -352,12 +352,12 @@ export default function CalendarPage() {
 
           {selectedDate ? (
             selectedDayBatches.length > 0 ? (
-              <div className="space-y-3 max-h-[500px] overflow-y-auto">
+              <div className="space-y-2 sm:space-y-3 max-h-[300px] sm:max-h-[500px] overflow-y-auto">
                 {selectedDayBatches.map((batch) => (
                   <div
                     key={batch.id}
                     className={`
-                      p-4 rounded-lg border-l-4
+                      p-3 sm:p-4 rounded-lg border-l-4
                       ${
                         batch.status === 'expired'
                           ? 'border-danger bg-danger/5'
@@ -369,8 +369,8 @@ export default function CalendarPage() {
                       }
                     `}
                   >
-                    <h4 className="font-medium text-charcoal">{batch.productName}</h4>
-                    <div className="mt-2 space-y-1 text-sm text-charcoal/70">
+                    <h4 className="font-medium text-charcoal text-sm sm:text-base">{batch.productName}</h4>
+                    <div className="mt-1 sm:mt-2 space-y-0.5 sm:space-y-1 text-xs sm:text-sm text-charcoal/70">
                       <p>📍 {getDepartmentName(batch.department)}</p>
                       <p>
                         📦 {t('common.quantity')}: {batch.quantity} {t('common.units')}
@@ -383,15 +383,15 @@ export default function CalendarPage() {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-8 text-charcoal/50">
-                <Calendar className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                <p>{t('calendar.noProducts') || 'Нет товаров с истечением в этот день'}</p>
+              <div className="text-center py-6 sm:py-8 text-charcoal/50">
+                <Calendar className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-2 sm:mb-3 opacity-30" />
+                <p className="text-xs sm:text-sm">{t('calendar.noProducts') || 'Нет товаров с истечением в этот день'}</p>
               </div>
             )
           ) : (
-            <div className="text-center py-8 text-charcoal/50">
-              <Calendar className="w-12 h-12 mx-auto mb-3 opacity-30" />
-              <p>{t('calendar.clickToSelect') || 'Нажмите на дату для просмотра деталей'}</p>
+            <div className="text-center py-6 sm:py-8 text-charcoal/50">
+              <Calendar className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-2 sm:mb-3 opacity-30" />
+              <p className="text-xs sm:text-sm">{t('calendar.clickToSelect') || 'Нажмите на дату для просмотра деталей'}</p>
             </div>
           )}
         </div>

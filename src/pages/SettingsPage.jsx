@@ -354,54 +354,54 @@ export default function SettingsPage() {
   )
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 p-1 sm:p-0">
       {/* Заголовок */}
       <div>
-        <h1 className="text-2xl font-light text-charcoal">{t('settings.title')}</h1>
-        <p className="text-warmgray text-sm mt-1">{t('settings.subtitle')}</p>
+        <h1 className="text-xl sm:text-2xl font-light text-charcoal">{t('settings.title')}</h1>
+        <p className="text-warmgray text-xs sm:text-sm mt-1">{t('settings.subtitle')}</p>
       </div>
 
       {/* Сообщение */}
       {message && (
         <div
-          className={`flex items-center gap-2 p-4 rounded-lg ${
+          className={`flex items-center gap-2 p-3 sm:p-4 rounded-lg text-sm ${
             message.type === 'success'
               ? 'bg-green-50 text-green-800 border border-green-200'
               : 'bg-red-50 text-red-800 border border-red-200'
           }`}
         >
           {message.type === 'success' ? (
-            <Check className="w-5 h-5" />
+            <Check className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
           ) : (
-            <AlertCircle className="w-5 h-5" />
+            <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
           )}
-          {message.text}
+          <span className="truncate">{message.text}</span>
         </div>
       )}
 
-      <div className="flex flex-col lg:flex-row gap-6">
-        {/* Табы */}
+      <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
+        {/* Табы - горизонтальная прокрутка на мобильных */}
         <div className="lg:w-64 shrink-0">
-          <div className="bg-white rounded-xl border border-sand p-2 space-y-1">
+          <div className="bg-white rounded-xl border border-sand p-1.5 sm:p-2 flex lg:flex-col gap-1 overflow-x-auto lg:overflow-visible">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm transition-colors ${
+                className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-lg text-xs sm:text-sm transition-colors whitespace-nowrap flex-shrink-0 lg:w-full ${
                   activeTab === tab.id
                     ? 'bg-charcoal text-white'
                     : 'text-warmgray hover:bg-sand/50 hover:text-charcoal'
                 }`}
               >
-                <tab.icon className="w-5 h-5" />
-                {tab.label}
+                <tab.icon className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="hidden xs:inline lg:inline">{tab.label}</span>
               </button>
             ))}
           </div>
         </div>
 
         {/* Контент */}
-        <div className="flex-1 bg-white rounded-xl border border-sand p-6">
+        <div className="flex-1 bg-white rounded-xl border border-sand p-4 sm:p-6">
           {activeTab === 'profile' && renderProfile()}
           {activeTab === 'notifications' && renderNotifications()}
           {activeTab === 'language' && renderLanguage()}
@@ -417,11 +417,11 @@ export default function SettingsPage() {
 
           {/* Кнопка сохранения (только для вкладок уведомлений у обычных пользователей) */}
           {activeTab === 'notifications' && !userIsAdmin && (
-              <div className="flex justify-end pt-6 mt-6 border-t border-sand">
+              <div className="flex justify-end pt-4 sm:pt-6 mt-4 sm:mt-6 border-t border-sand">
                 <button
                   onClick={handleSave}
                   disabled={saving}
-                  className="flex items-center gap-2 px-6 py-2 bg-charcoal text-white rounded-lg text-sm hover:bg-charcoal/90 transition-colors disabled:opacity-50"
+                  className="flex items-center gap-2 px-4 sm:px-6 py-2 bg-charcoal text-white rounded-lg text-xs sm:text-sm hover:bg-charcoal/90 transition-colors disabled:opacity-50 w-full sm:w-auto justify-center"
                 >
                   {saving ? t('common.loading') : t('common.save')}
                 </button>

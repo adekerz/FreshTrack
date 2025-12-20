@@ -60,20 +60,20 @@ export default function NotificationsPage() {
     if (batches.length === 0) return null
 
     return (
-      <div className="mb-8 animate-fade-in">
-        <div className={`flex items-center gap-2 mb-4 ${colorClass}`}>
-          <Icon className="w-5 h-5" />
-          <h2 className="font-serif text-xl">{title}</h2>
-          <span className={`ml-2 px-2 py-0.5 text-sm rounded-full ${bgClass} ${colorClass}`}>
+      <div className="mb-6 sm:mb-8 animate-fade-in">
+        <div className={`flex items-center gap-2 mb-3 sm:mb-4 ${colorClass}`}>
+          <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
+          <h2 className="font-serif text-lg sm:text-xl">{title}</h2>
+          <span className={`ml-2 px-2 py-0.5 text-xs sm:text-sm rounded-full ${bgClass} ${colorClass}`}>
             {batches.length}
           </span>
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-2 sm:space-y-3">
           {batches.map((batch) => (
             <div
               key={batch.id}
-              className={`bg-white rounded-lg p-4 border-l-4 ${
+              className={`bg-white rounded-lg p-3 sm:p-4 border-l-4 ${
                 batch.daysLeft < 0
                   ? 'border-l-danger'
                   : batch.daysLeft <= 3
@@ -81,10 +81,10 @@ export default function NotificationsPage() {
                     : 'border-l-warning'
               } border border-sand`}
             >
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                <div className="flex-1 min-w-0">
                   {/* Название товара */}
-                  <h3 className="font-medium text-charcoal mb-1">{batch.productName}</h3>
+                  <h3 className="font-medium text-charcoal mb-1 text-sm sm:text-base truncate">{batch.productName}</h3>
 
                   {/* Отдел */}
                   <div
@@ -97,25 +97,25 @@ export default function NotificationsPage() {
                     {batch.departmentName}
                   </div>
 
-                  {/* Даты */}
-                  <div className="flex items-center gap-2 text-sm text-warmgray">
-                    <Calendar className="w-4 h-4" />
-                    <span>
-                      {formatDate(batch.manufacturingDate)} — {formatDate(batch.expiryDate)}
-                    </span>
-                  </div>
-
-                  {/* Количество */}
-                  <div className="flex items-center gap-2 text-sm text-warmgray mt-1">
-                    <Package className="w-4 h-4" />
-                    <span>
-                      {batch.quantity} {t('inventory.units')}
-                    </span>
+                  {/* Даты и количество - горизонтально на мобильных */}
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs sm:text-sm text-warmgray">
+                    <div className="flex items-center gap-1">
+                      <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
+                      <span>
+                        {formatDate(batch.manufacturingDate)} — {formatDate(batch.expiryDate)}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Package className="w-3 h-3 sm:w-4 sm:h-4" />
+                      <span>
+                        {batch.quantity} {t('inventory.units')}
+                      </span>
+                    </div>
                   </div>
 
                   {/* Статус */}
                   <div
-                    className={`mt-2 text-sm font-medium ${
+                    className={`mt-2 text-xs sm:text-sm font-medium ${
                       batch.daysLeft < 0
                         ? 'text-danger'
                         : batch.daysLeft <= 3
@@ -137,7 +137,7 @@ export default function NotificationsPage() {
                     setSelectedBatch(batch)
                     setCollectModalOpen(true)
                   }}
-                  className="flex items-center gap-1 px-4 py-2 text-sm border border-success text-success rounded-lg hover:bg-success hover:text-white transition-colors"
+                  className="flex items-center justify-center gap-1 px-3 sm:px-4 py-2 text-xs sm:text-sm border border-success text-success rounded-lg hover:bg-success hover:text-white transition-colors w-full sm:w-auto flex-shrink-0"
                 >
                   <Check className="w-4 h-4" />
                   {t('product.collect')}
@@ -155,32 +155,32 @@ export default function NotificationsPage() {
     expiredBatches.length > 0 || criticalBatches.length > 0 || warningBatches.length > 0
 
   return (
-    <div className="p-8">
+    <div className="p-3 sm:p-4 md:p-8">
       {/* Заголовок */}
-      <div className="mb-8 flex items-start justify-between">
+      <div className="mb-4 sm:mb-8 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="font-serif text-2xl text-charcoal mb-2">{t('notifications.title')}</h1>
-          <p className="text-warmgray">{t('notifications.description')}</p>
+          <h1 className="font-serif text-xl sm:text-2xl text-charcoal mb-1 sm:mb-2">{t('notifications.title')}</h1>
+          <p className="text-warmgray text-xs sm:text-sm">{t('notifications.description')}</p>
         </div>
 
         {/* Кнопка истории уведомлений */}
         <button
           onClick={() => navigate('/notifications/history')}
-          className="flex items-center gap-2 px-4 py-2 text-sm border border-sand text-warmgray rounded-lg hover:bg-sand/50 hover:text-charcoal transition-colors"
+          className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm border border-sand text-warmgray rounded-lg hover:bg-sand/50 hover:text-charcoal transition-colors w-full sm:w-auto"
         >
           <History className="w-4 h-4" />
-          <span className="hidden sm:inline">{t('notificationHistory.title')}</span>
+          <span>{t('notificationHistory.title')}</span>
         </button>
       </div>
 
       {!hasAnyAlerts ? (
         // Пустое состояние
-        <div className="text-center py-16 animate-fade-in">
-          <div className="w-20 h-20 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Bell className="w-10 h-10 text-success" />
+        <div className="text-center py-12 sm:py-16 animate-fade-in">
+          <div className="w-16 h-16 sm:w-20 sm:h-20 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
+            <Bell className="w-8 h-8 sm:w-10 sm:h-10 text-success" />
           </div>
-          <h2 className="font-serif text-2xl text-charcoal mb-2">{t('notifications.allGood')}</h2>
-          <p className="text-warmgray">{t('notifications.noAlerts')}</p>
+          <h2 className="font-serif text-xl sm:text-2xl text-charcoal mb-2">{t('notifications.allGood')}</h2>
+          <p className="text-warmgray text-sm">{t('notifications.noAlerts')}</p>
         </div>
       ) : (
         <>

@@ -1,23 +1,30 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search, Package, Store, X, Command } from 'lucide-react'
+import { Search, Package, Store, X } from 'lucide-react'
 import { useProducts, departments, categories } from '../context/ProductContext'
 import { useAuth } from '../context/AuthContext'
 import { useTranslation, useLanguage } from '../context/LanguageContext'
 import { cn } from '../utils/classNames'
 
-export default function GlobalSearch() {
+export default function GlobalSearch({ onSearch, autoFocus = false, fullWidth = false }) {
   const navigate = useNavigate()
   const { t } = useTranslation()
   const { language } = useLanguage()
-  const { getProductsByDepartment } = useProducts()
+  const { batches, getProductsByDepartment } = useProducts()
   const { hasAccessToDepartment, getAccessibleDepartments } = useAuth()
 
-  const [isOpen, setIsOpen] = useState(false)
+  const [isOpen, setIsOpen] = useState(autoFocus)
   const [query, setQuery] = useState('')
   const [results, setResults] = useState({ products: [], departments: [] })
   const inputRef = useRef(null)
   const containerRef = useRef(null)
+
+  // Автофокус при открытии
+  useEffect(() => {
+    if (autoFocus && inputRef.current) {
+      inputRef.current.focus()
+    }
+  }, [autoFocus])
 
   // Горячие клавиши Ctrl+K / Cmd+K
   useEffect(() => {
@@ -59,32 +66,33 @@ export default function GlobalSearch() {
     const searchQuery = query.toLowerCase()
     const accessibleDepts = getAccessibleDepartments()
 
-    // Поиск по товарам
+    // Поиск по партиям (batches) - это реальные данные
     const productResults = []
+    const seenProducts = new Set() // Чтобы избежать дубликатов
 
-    for (const deptId of accessibleDepts) {
-      if (!hasAccessToDepartment(deptId)) continue
-
-      const deptProducts = getProductsByDepartment(deptId)
-      for (const product of deptProducts) {
-        const productName = product.name.toLowerCase()
-        const categoryName = getCategoryName(product.categoryId).toLowerCase()
-        const deptName = getDepartmentName(deptId).toLowerCase()
-
-        if (
-          productName.includes(searchQuery) ||
-          categoryName.includes(searchQuery) ||
-          deptName.includes(searchQuery)
-        ) {
-          productResults.push({
-            ...product,
-            departmentId: deptId,
-            departmentName: getDepartmentName(deptId),
-            categoryName: getCategoryName(product.categoryId)
-          })
-        }
+    batches.forEach(batch => {
+      const deptId = batch.departmentId || batch.department
+      if (!deptId || !hasAccessToDepartment(deptId)) return
+      
+      const productName = (batch.productName || batch.product_name || '').toLowerCase()
+      const deptName = getDepartmentName(deptId).toLowerCase()
+      
+      // Уникальный ключ для товара
+      const productKey = `${productName}-${deptId}`
+      if (seenProducts.has(productKey)) return
+      
+      if (productName.includes(searchQuery) || deptName.includes(searchQuery)) {
+        seenProducts.add(productKey)
+        productResults.push({
+          id: batch.productId || batch.product_id || batch.id,
+          name: batch.productName || batch.product_name,
+          departmentId: deptId,
+          departmentName: getDepartmentName(deptId),
+          categoryId: batch.categoryId || batch.category_id,
+          categoryName: getCategoryName(batch.categoryId || batch.category_id)
+        })
       }
-    }
+    })
 
     // Поиск по отделам
     const departmentResults = departments
@@ -103,7 +111,7 @@ export default function GlobalSearch() {
       departments: departmentResults
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query])
+  }, [query, batches])
 
   // Получить название категории
   const getCategoryName = (categoryId) => {
@@ -141,6 +149,7 @@ export default function GlobalSearch() {
     navigate(`/inventory/${product.departmentId}`)
     setIsOpen(false)
     setQuery('')
+    onSearch?.()
   }
 
   // Переход к отделу
@@ -148,19 +157,22 @@ export default function GlobalSearch() {
     navigate(`/inventory/${dept.id}`)
     setIsOpen(false)
     setQuery('')
+    onSearch?.()
   }
 
   const hasResults = results.products.length > 0 || results.departments.length > 0
 
   return (
-    <div className="relative" ref={containerRef}>
+    <div className={cn("relative", fullWidth && "w-full")} ref={containerRef}>
       {/* Поле поиска */}
       <div
         className={cn(
           'flex items-center gap-2 px-4 py-2 rounded-lg border transition-all cursor-pointer',
-          isOpen
-            ? 'bg-white border-accent shadow-md w-80'
-            : 'bg-sand/50 border-transparent hover:bg-sand w-48'
+          fullWidth 
+            ? 'bg-white border-sand w-full'
+            : isOpen
+              ? 'bg-white border-accent shadow-md w-80'
+              : 'bg-sand/50 border-transparent hover:bg-sand w-48'
         )}
         onClick={() => {
           setIsOpen(true)
@@ -169,7 +181,7 @@ export default function GlobalSearch() {
       >
         <Search className="w-4 h-4 text-warmgray flex-shrink-0" />
 
-        {isOpen ? (
+        {(isOpen || fullWidth) ? (
           <input
             ref={inputRef}
             type="text"
@@ -177,13 +189,13 @@ export default function GlobalSearch() {
             onChange={(e) => setQuery(e.target.value)}
             className="flex-1 bg-transparent outline-none text-sm text-charcoal placeholder:text-warmgray"
             placeholder={t('search.placeholder')}
-            autoFocus
+            autoFocus={autoFocus || isOpen}
           />
         ) : (
           <span className="flex-1 text-sm text-warmgray truncate">{t('search.placeholder')}</span>
         )}
 
-        {isOpen && query && (
+        {(isOpen || fullWidth) && query && (
           <button
             onClick={(e) => {
               e.stopPropagation()
@@ -194,26 +206,17 @@ export default function GlobalSearch() {
             <X className="w-3 h-3 text-warmgray" />
           </button>
         )}
-
-        {!isOpen && (
-          <div className="flex items-center gap-0.5 text-xs text-warmgray">
-            <Command className="w-3 h-3" />
-            <span>K</span>
-          </div>
-        )}
       </div>
 
       {/* Dropdown с результатами */}
-      {isOpen && (
+      {(isOpen || fullWidth) && query.trim() && (
         <div
           className={cn(
             'absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-lg border border-sand overflow-hidden z-50',
             'animate-fade-in'
           )}
         >
-          {!query.trim() ? (
-            <div className="p-4 text-center text-warmgray text-sm">{t('search.hint')}</div>
-          ) : !hasResults ? (
+          {!hasResults ? (
             <div className="p-4 text-center text-warmgray text-sm">{t('search.noResults')}</div>
           ) : (
             <div className="max-h-96 overflow-y-auto">

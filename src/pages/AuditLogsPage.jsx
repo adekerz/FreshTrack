@@ -272,15 +272,15 @@ export default function AuditLogsPage() {
   }
 
   return (
-    <div className="space-y-6 p-4 md:p-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-            <FileText className="w-7 h-7 text-primary-500" />
+          <h1 className="text-xl sm:text-2xl font-light text-charcoal flex items-center gap-2">
+            <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-accent" />
             {t('auditLogs.title') || 'Журнал действий'}
           </h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">
+          <p className="text-warmgray mt-1 text-xs sm:text-sm">
             {t('auditLogs.subtitle') || 'История всех действий в системе'}
           </p>
         </div>
@@ -289,14 +289,14 @@ export default function AuditLogsPage() {
           <button
             onClick={loadLogs}
             disabled={loading}
-            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400"
+            className="p-2 rounded-lg hover:bg-sand text-warmgray transition-colors"
             title={t('common.refresh') || 'Обновить'}
           >
-            <RefreshCw className={cn('w-5 h-5', loading && 'animate-spin')} />
+            <RefreshCw className={cn('w-4 h-4 sm:w-5 sm:h-5', loading && 'animate-spin')} />
           </button>
           <button
             onClick={exportLogs}
-            className="flex items-center gap-2 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600"
+            className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent/90 text-sm transition-colors"
           >
             <Download className="w-4 h-4" />
             <span className="hidden sm:inline">{t('common.export') || 'Экспорт'}</span>
@@ -305,62 +305,64 @@ export default function AuditLogsPage() {
       </div>
 
       {/* Filters Bar */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4">
-        <div className="flex flex-col lg:flex-row gap-4">
+      <div className="bg-white rounded-xl border border-sand p-3 sm:p-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
           {/* Search */}
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-warmgray" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={t('common.search') || 'Поиск...'}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              className="w-full pl-9 sm:pl-10 pr-4 py-2 border border-sand rounded-lg bg-cream text-charcoal text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
             />
           </div>
 
-          {/* Toggle Filters Button */}
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className={cn(
-              'flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors',
-              showFilters || hasActiveFilters
-                ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400'
-                : 'border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400'
-            )}
-          >
-            <Filter className="w-4 h-4" />
-            {t('common.filters') || 'Фильтры'}
-            {hasActiveFilters && (
-              <span className="ml-1 w-5 h-5 bg-primary-500 text-white text-xs rounded-full flex items-center justify-center">
-                {[filters.actionType, filters.entityType, filters.dateFrom, filters.dateTo].filter(Boolean).length}
-              </span>
-            )}
-          </button>
-
-          {hasActiveFilters && (
+          <div className="flex items-center gap-2">
+            {/* Toggle Filters Button */}
             <button
-              onClick={resetFilters}
-              className="flex items-center gap-2 px-4 py-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
+              onClick={() => setShowFilters(!showFilters)}
+              className={cn(
+                'flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg border transition-colors text-sm flex-1 sm:flex-none justify-center',
+                showFilters || hasActiveFilters
+                  ? 'border-accent bg-accent/10 text-accent'
+                  : 'border-sand text-warmgray hover:bg-sand'
+              )}
             >
-              <X className="w-4 h-4" />
-              {t('common.reset') || 'Сбросить'}
+              <Filter className="w-4 h-4" />
+              <span className="hidden xs:inline">{t('common.filters') || 'Фильтры'}</span>
+              {hasActiveFilters && (
+                <span className="ml-1 w-5 h-5 bg-accent text-white text-xs rounded-full flex items-center justify-center">
+                  {[filters.actionType, filters.entityType, filters.dateFrom, filters.dateTo].filter(Boolean).length}
+                </span>
+              )}
             </button>
-          )}
+
+            {hasActiveFilters && (
+              <button
+                onClick={resetFilters}
+                className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 text-danger hover:bg-danger/10 rounded-lg text-sm transition-colors"
+              >
+                <X className="w-4 h-4" />
+                <span className="hidden sm:inline">{t('common.reset') || 'Сбросить'}</span>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Extended Filters */}
         {showFilters && (
-          <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="mt-4 pt-4 border-t border-sand grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Action Type */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-charcoal mb-1">
                 {t('auditLogs.filters.actionType') || 'Тип действия'}
               </label>
               <select
                 value={filters.actionType}
                 onChange={(e) => setFilters(prev => ({ ...prev, actionType: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                className="w-full px-3 py-2 border border-sand rounded-lg bg-cream text-charcoal focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
               >
                 <option value="">{t('common.all') || 'Все'}</option>
                 {actionTypes.map(type => (
@@ -371,13 +373,13 @@ export default function AuditLogsPage() {
 
             {/* Entity Type */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-charcoal mb-1">
                 {t('auditLogs.filters.entityType') || 'Тип объекта'}
               </label>
               <select
                 value={filters.entityType}
                 onChange={(e) => setFilters(prev => ({ ...prev, entityType: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                className="w-full px-3 py-2 border border-sand rounded-lg bg-cream text-charcoal focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
               >
                 <option value="">{t('common.all') || 'Все'}</option>
                 {entityTypes.map(type => (
@@ -388,32 +390,32 @@ export default function AuditLogsPage() {
 
             {/* Date From */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-charcoal mb-1">
                 {t('auditLogs.filters.dateFrom') || 'Дата от'}
               </label>
               <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-warmgray" />
                 <input
                   type="date"
                   value={filters.dateFrom}
                   onChange={(e) => setFilters(prev => ({ ...prev, dateFrom: e.target.value }))}
-                  className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  className="w-full pl-10 pr-3 py-2 border border-sand rounded-lg bg-cream text-charcoal focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
                 />
               </div>
             </div>
 
             {/* Date To */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-charcoal mb-1">
                 {t('auditLogs.filters.dateTo') || 'Дата до'}
               </label>
               <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-warmgray" />
                 <input
                   type="date"
                   value={filters.dateTo}
                   onChange={(e) => setFilters(prev => ({ ...prev, dateTo: e.target.value }))}
-                  className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  className="w-full pl-10 pr-3 py-2 border border-sand rounded-lg bg-cream text-charcoal focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
                 />
               </div>
             </div>
@@ -422,71 +424,71 @@ export default function AuditLogsPage() {
       </div>
 
       {/* Stats */}
-      <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
+      <div className="flex items-center gap-4 text-sm text-warmgray">
         <span>
-          {t('common.total') || 'Всего'}: <strong>{pagination.total}</strong> {t('auditLogs.records') || 'записей'}
+          {t('common.total') || 'Всего'}: <strong className="text-charcoal">{pagination.total}</strong> {t('auditLogs.records') || 'записей'}
         </span>
         {hasActiveFilters && (
           <span>
-            {t('common.filtered') || 'Отфильтровано'}: <strong>{filteredLogs.length}</strong>
+            {t('common.filtered') || 'Отфильтровано'}: <strong className="text-charcoal">{filteredLogs.length}</strong>
           </span>
         )}
       </div>
 
-      {/* Logs Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden">
+      {/* Logs List */}
+      <div className="bg-white rounded-xl border border-sand overflow-hidden">
         {filteredLogs.length === 0 ? (
           <div className="p-8 text-center">
-            <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-500 dark:text-gray-400">{t('auditLogs.noLogs') || 'Нет записей'}</p>
+            <FileText className="w-12 h-12 text-warmgray mx-auto mb-4" />
+            <p className="text-warmgray">{t('auditLogs.noLogs') || 'Журнал пуст'}</p>
           </div>
         ) : (
           <>
             {/* Desktop Table */}
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gray-50 dark:bg-gray-700/50">
+                <thead className="bg-sand/50">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-warmgray uppercase tracking-wider">
                       {t('auditLogs.timestamp') || 'Время'}
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-warmgray uppercase tracking-wider">
                       {t('auditLogs.user') || 'Пользователь'}
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-warmgray uppercase tracking-wider">
                       {t('auditLogs.action') || 'Действие'}
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-warmgray uppercase tracking-wider">
                       {t('auditLogs.entity') || 'Объект'}
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-warmgray uppercase tracking-wider">
                       {t('auditLogs.details') || 'Детали'}
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-warmgray uppercase tracking-wider">
                       {t('auditLogs.ipAddress') || 'IP'}
                     </th>
-                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-center text-xs font-medium text-warmgray uppercase tracking-wider">
                       {t('common.actions') || 'Действия'}
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                <tbody className="divide-y divide-sand">
                   {filteredLogs.map((log) => (
-                    <tr key={log.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30">
+                    <tr key={log.id} className="hover:bg-sand/30 transition-colors">
                       <td className="px-4 py-3 whitespace-nowrap">
                         <div className="flex items-center gap-2 text-sm">
-                          <Clock className="w-4 h-4 text-gray-400" />
-                          <span className="text-gray-600 dark:text-gray-300">
+                          <Clock className="w-4 h-4 text-warmgray" />
+                          <span className="text-charcoal">
                             {formatTimestamp(log.timestamp || log.created_at)}
                           </span>
                         </div>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
-                            <User className="w-4 h-4 text-primary-600 dark:text-primary-400" />
+                          <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center">
+                            <User className="w-4 h-4 text-accent" />
                           </div>
-                          <span className="font-medium text-gray-900 dark:text-white">
+                          <span className="font-medium text-charcoal">
                             {log.userName || log.user || 'Система'}
                           </span>
                         </div>
@@ -506,11 +508,11 @@ export default function AuditLogsPage() {
                         <div className="flex items-center gap-2">
                           {getEntityIcon(log.entity_type)}
                           <div>
-                            <span className="text-gray-900 dark:text-white">
+                            <span className="text-charcoal">
                               {log.entity_name || log.target || '—'}
                             </span>
                             {log.entity_type && (
-                              <span className="text-xs text-gray-500 dark:text-gray-400 block">
+                              <span className="text-xs text-warmgray block">
                                 {log.entity_type}
                               </span>
                             )}
@@ -518,19 +520,19 @@ export default function AuditLogsPage() {
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
+                        <span className="text-sm text-warmgray line-clamp-2">
                           {formatDetails(log.details)}
                         </span>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
-                        <span className="text-sm text-gray-500 dark:text-gray-400 font-mono">
+                        <span className="text-sm text-warmgray font-mono">
                           {log.ip_address || log.ipAddress || '—'}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-center">
                         <button
                           onClick={() => setSelectedLog(log)}
-                          className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400"
+                          className="p-1.5 rounded-lg hover:bg-sand text-warmgray transition-colors"
                           title={t('common.viewDetails') || 'Подробнее'}
                         >
                           <Eye className="w-4 h-4" />
@@ -543,11 +545,11 @@ export default function AuditLogsPage() {
             </div>
 
             {/* Mobile Cards */}
-            <div className="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+            <div className="md:hidden divide-y divide-sand">
               {filteredLogs.map((log) => (
                 <div 
                   key={log.id} 
-                  className="p-4 space-y-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/30"
+                  className="p-4 space-y-3 cursor-pointer hover:bg-sand/30 transition-colors"
                   onClick={() => setSelectedLog(log)}
                 >
                   <div className="flex items-center justify-between">
@@ -560,14 +562,14 @@ export default function AuditLogsPage() {
                       {getActionIcon(log.action_type || log.action)}
                       {getActionLabel(log.action_type || log.action)}
                     </span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                    <span className="text-xs text-warmgray">
                       {formatTimestamp(log.timestamp || log.created_at)}
                     </span>
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <User className="w-4 h-4 text-gray-400" />
-                    <span className="font-medium text-gray-900 dark:text-white">
+                    <User className="w-4 h-4 text-warmgray" />
+                    <span className="font-medium text-charcoal">
                       {log.userName || log.user || 'Система'}
                     </span>
                   </div>
@@ -575,14 +577,14 @@ export default function AuditLogsPage() {
                   {(log.entity_name || log.target) && (
                     <div className="flex items-center gap-2 text-sm">
                       {getEntityIcon(log.entity_type)}
-                      <span className="text-gray-700 dark:text-gray-300">
+                      <span className="text-charcoal">
                         {log.entity_name || log.target}
                       </span>
                     </div>
                   )}
 
                   {log.details && (
-                    <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
+                    <p className="text-sm text-warmgray line-clamp-2">
                       {formatDetails(log.details)}
                     </p>
                   )}
@@ -594,8 +596,8 @@ export default function AuditLogsPage() {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 dark:border-gray-700">
-            <div className="text-sm text-gray-500 dark:text-gray-400">
+          <div className="flex items-center justify-between px-4 py-3 border-t border-sand">
+            <div className="text-sm text-warmgray">
               {((pagination.page - 1) * pagination.limit) + 1}—
               {Math.min(pagination.page * pagination.limit, pagination.total)} {t('common.of') || 'из'}{' '}
               {pagination.total}
@@ -604,9 +606,9 @@ export default function AuditLogsPage() {
               <button
                 onClick={() => setPagination(prev => ({ ...prev, page: Math.max(1, prev.page - 1) }))}
                 disabled={pagination.page === 1}
-                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="p-2 rounded-lg hover:bg-sand disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                <ChevronLeft className="w-5 h-5" />
+                <ChevronLeft className="w-5 h-5 text-charcoal" />
               </button>
               
               <div className="flex items-center gap-1">
@@ -626,10 +628,10 @@ export default function AuditLogsPage() {
                       key={pageNum}
                       onClick={() => setPagination(prev => ({ ...prev, page: pageNum }))}
                       className={cn(
-                        'w-8 h-8 rounded-lg text-sm font-medium',
+                        'w-8 h-8 rounded-lg text-sm font-medium transition-colors',
                         pageNum === pagination.page
-                          ? 'bg-primary-500 text-white'
-                          : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
+                          ? 'bg-accent text-white'
+                          : 'hover:bg-sand text-charcoal'
                       )}
                     >
                       {pageNum}
@@ -641,9 +643,9 @@ export default function AuditLogsPage() {
               <button
                 onClick={() => setPagination(prev => ({ ...prev, page: Math.min(totalPages, prev.page + 1) }))}
                 disabled={pagination.page === totalPages}
-                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="p-2 rounded-lg hover:bg-sand disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                <ChevronRight className="w-5 h-5" />
+                <ChevronRight className="w-5 h-5 text-charcoal" />
               </button>
             </div>
           </div>
@@ -652,40 +654,40 @@ export default function AuditLogsPage() {
 
       {/* Details Modal */}
       {selectedLog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-charcoal/50">
+          <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+            <div className="p-6 border-b border-sand flex items-center justify-between">
+              <h2 className="text-xl font-light text-charcoal">
                 {t('auditLogs.logDetails') || 'Детали записи'}
               </h2>
               <button
                 onClick={() => setSelectedLog(null)}
-                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+                className="p-2 rounded-lg hover:bg-sand transition-colors"
               >
-                <X className="w-5 h-5" />
+                <X className="w-5 h-5 text-charcoal" />
               </button>
             </div>
             
             <div className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm text-gray-500 dark:text-gray-400">
+                  <label className="text-sm text-warmgray">
                     {t('auditLogs.timestamp') || 'Время'}
                   </label>
-                  <p className="font-medium text-gray-900 dark:text-white">
+                  <p className="font-medium text-charcoal">
                     {formatDate(selectedLog.timestamp || selectedLog.created_at, true)}
                   </p>
                 </div>
                 <div>
-                  <label className="text-sm text-gray-500 dark:text-gray-400">
+                  <label className="text-sm text-warmgray">
                     {t('auditLogs.user') || 'Пользователь'}
                   </label>
-                  <p className="font-medium text-gray-900 dark:text-white">
+                  <p className="font-medium text-charcoal">
                     {selectedLog.userName || selectedLog.user || 'Система'}
                   </p>
                 </div>
                 <div>
-                  <label className="text-sm text-gray-500 dark:text-gray-400">
+                  <label className="text-sm text-warmgray">
                     {t('auditLogs.action') || 'Действие'}
                   </label>
                   <span
@@ -699,14 +701,14 @@ export default function AuditLogsPage() {
                   </span>
                 </div>
                 <div>
-                  <label className="text-sm text-gray-500 dark:text-gray-400">
+                  <label className="text-sm text-warmgray">
                     {t('auditLogs.entity') || 'Объект'}
                   </label>
-                  <p className="font-medium text-gray-900 dark:text-white">
+                  <p className="font-medium text-charcoal">
                     {selectedLog.entity_name || selectedLog.target || '—'}
                   </p>
                   {selectedLog.entity_type && (
-                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                    <span className="text-xs text-warmgray">
                       {selectedLog.entity_type} #{selectedLog.entity_id}
                     </span>
                   )}
@@ -715,10 +717,10 @@ export default function AuditLogsPage() {
 
               {selectedLog.details && (
                 <div>
-                  <label className="text-sm text-gray-500 dark:text-gray-400">
+                  <label className="text-sm text-warmgray">
                     {t('auditLogs.details') || 'Детали'}
                   </label>
-                  <pre className="mt-1 text-gray-900 dark:text-white whitespace-pre-wrap text-sm bg-gray-50 dark:bg-gray-700 p-2 rounded">
+                  <pre className="mt-1 text-charcoal whitespace-pre-wrap text-sm bg-sand/50 p-3 rounded-lg">
                     {formatDetails(selectedLog.details)}
                   </pre>
                 </div>
@@ -728,10 +730,10 @@ export default function AuditLogsPage() {
                 <div className="grid grid-cols-2 gap-4">
                   {selectedLog.old_value && (
                     <div>
-                      <label className="text-sm text-gray-500 dark:text-gray-400">
+                      <label className="text-sm text-warmgray">
                         {t('auditLogs.oldValue') || 'Старое значение'}
                       </label>
-                      <pre className="mt-1 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg text-sm text-red-700 dark:text-red-300 overflow-x-auto">
+                      <pre className="mt-1 p-3 bg-danger/10 rounded-lg text-sm text-danger overflow-x-auto">
                         {typeof selectedLog.old_value === 'object' 
                           ? JSON.stringify(selectedLog.old_value, null, 2)
                           : selectedLog.old_value}
@@ -740,10 +742,10 @@ export default function AuditLogsPage() {
                   )}
                   {selectedLog.new_value && (
                     <div>
-                      <label className="text-sm text-gray-500 dark:text-gray-400">
+                      <label className="text-sm text-warmgray">
                         {t('auditLogs.newValue') || 'Новое значение'}
                       </label>
-                      <pre className="mt-1 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg text-sm text-green-700 dark:text-green-300 overflow-x-auto">
+                      <pre className="mt-1 p-3 bg-success/10 rounded-lg text-sm text-success overflow-x-auto">
                         {typeof selectedLog.new_value === 'object' 
                           ? JSON.stringify(selectedLog.new_value, null, 2)
                           : selectedLog.new_value}
@@ -753,21 +755,21 @@ export default function AuditLogsPage() {
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <div className="grid grid-cols-2 gap-4 pt-4 border-t border-sand">
                 <div>
-                  <label className="text-sm text-gray-500 dark:text-gray-400">
+                  <label className="text-sm text-warmgray">
                     {t('auditLogs.ipAddress') || 'IP-адрес'}
                   </label>
-                  <p className="font-mono text-gray-900 dark:text-white">
+                  <p className="font-mono text-charcoal">
                     {selectedLog.ip_address || selectedLog.ipAddress || '—'}
                   </p>
                 </div>
                 {selectedLog.user_agent && (
                   <div>
-                    <label className="text-sm text-gray-500 dark:text-gray-400">
+                    <label className="text-sm text-warmgray">
                       {t('auditLogs.userAgent') || 'User Agent'}
                     </label>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 truncate" title={selectedLog.user_agent}>
+                    <p className="text-sm text-warmgray truncate" title={selectedLog.user_agent}>
                       {selectedLog.user_agent}
                     </p>
                   </div>
@@ -775,10 +777,10 @@ export default function AuditLogsPage() {
               </div>
             </div>
 
-            <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end">
+            <div className="p-6 border-t border-sand flex justify-end">
               <button
                 onClick={() => setSelectedLog(null)}
-                className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600"
+                className="px-4 py-2 bg-sand text-charcoal rounded-lg hover:bg-taupe/30 transition-colors"
               >
                 {t('common.close') || 'Закрыть'}
               </button>

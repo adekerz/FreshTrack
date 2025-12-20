@@ -132,7 +132,8 @@
     "newProduct": "New Product to Catalog",
     "newProductDesc": "Add a new product to catalog",
     "signOut": "Sign out",
-    "testTelegram": "Test Telegram"
+    "testTelegram": "Test Telegram",
+    "language": "Language"
   },
   "auth": {
     "welcomeBack": "Welcome Back",

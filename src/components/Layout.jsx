@@ -8,8 +8,8 @@ export default function Layout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(true)
 
   return (
-    <div className="min-h-screen bg-cream flex">
-      {/* Sidebar - скрыт на мобильных */}
+    <div className="min-h-screen bg-cream flex overflow-x-hidden max-w-full">
+      {/* Desktop Sidebar - скрыт на мобильных */}
       <div className="hidden sm:block">
         <Sidebar isOpen={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} />
       </div>

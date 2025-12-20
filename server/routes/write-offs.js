@@ -9,6 +9,7 @@ import {
   createWriteOff,
   updateWriteOff,
   deleteWriteOff,
+  getWriteOffStats,
   getBatchById,
   updateBatch,
   getProductById,
@@ -17,6 +18,18 @@ import {
 import { authMiddleware, hotelIsolation, hotelAdminOnly } from '../middleware/auth.js'
 
 const router = express.Router()
+
+// GET /api/write-offs/stats - MUST be before /:id
+router.get('/stats', authMiddleware, hotelIsolation, async (req, res) => {
+  try {
+    const { department_id } = req.query
+    const stats = await getWriteOffStats(req.hotelId, department_id || null)
+    res.json({ success: true, ...stats })
+  } catch (error) {
+    console.error('Get write-off stats error:', error)
+    res.status(500).json({ success: false, error: 'Failed to get write-off stats' })
+  }
+})
 
 // GET /api/write-offs
 router.get('/', authMiddleware, hotelIsolation, async (req, res) => {

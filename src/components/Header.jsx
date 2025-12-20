@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
-import { Plus, LogOut, Send, ChevronDown, Package, FolderPlus, Menu } from 'lucide-react'
+import { Plus, LogOut, Send, ChevronDown, Package, FolderPlus, Leaf, Search } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useTranslation, useLanguage } from '../context/LanguageContext'
 import AddBatchModal from './AddBatchModal'
@@ -9,7 +9,7 @@ import LanguageSwitcher from './LanguageSwitcher'
 import GlobalSearch from './GlobalSearch'
 import { sendTestTelegramNotification } from '../services/api'
 
-export default function Header({ onMenuClick }) {
+export default function Header() {
   const location = useLocation()
   const { user, logout } = useAuth()
   const { t } = useTranslation()
@@ -18,6 +18,7 @@ export default function Header({ onMenuClick }) {
   const [showAddBatchModal, setShowAddBatchModal] = useState(false)
   const [showAddProductModal, setShowAddProductModal] = useState(false)
   const [telegramStatus, setTelegramStatus] = useState(null)
+  const [showMobileSearch, setShowMobileSearch] = useState(false)
   const dropdownRef = useRef(null)
 
   // Закрытие dropdown при клике вне его
@@ -73,26 +74,34 @@ export default function Header({ onMenuClick }) {
 
   return (
     <>
-      <header className="bg-cream border-b border-sand px-4 lg:px-8 py-4 flex items-center justify-between sticky top-0 z-10">
-        {/* Левая часть: гамбургер меню (мобильный) + заголовок */}
-        <div className="flex items-center gap-4">
-          {/* Гамбургер меню для мобильных */}
-          <button
-            onClick={onMenuClick}
-            className="lg:hidden p-2 -ml-2 hover:bg-sand rounded-lg transition-colors"
-          >
-            <Menu className="w-5 h-5 text-charcoal" />
-          </button>
-
-          <div>
-            <h1 className="font-serif text-xl lg:text-2xl">{getPageTitle()}</h1>
-            <p className="text-xs lg:text-sm text-warmgray hidden sm:block">{getLocalizedDate()}</p>
+      <header className="bg-cream border-b border-sand px-4 lg:px-8 py-3 sm:py-4 flex items-center justify-between sticky top-0 z-10">
+        {/* Левая часть: лого на мобилке + заголовок */}
+        <div className="flex items-center gap-3">
+          {/* Лого - только на мобильных */}
+          <div className="sm:hidden flex items-center gap-2">
+            <div className="w-8 h-8 border border-accent flex items-center justify-center flex-shrink-0">
+              <Leaf className="w-4 h-4 text-accent" />
+            </div>
+          </div>
+          
+          <div className="hidden sm:block">
+            <h1 className="font-serif text-lg sm:text-xl lg:text-2xl">{getPageTitle()}</h1>
+            <p className="text-xs lg:text-sm text-warmgray">{getLocalizedDate()}</p>
           </div>
         </div>
 
         <div className="flex items-center gap-2 lg:gap-4">
-          {/* Глобальный поиск (скрыт на маленьких экранах) */}
-          <div className="hidden md:block">
+          {/* Кнопка поиска - только на мобильных */}
+          <button
+            onClick={() => setShowMobileSearch(!showMobileSearch)}
+            className="sm:hidden p-2 hover:bg-sand rounded transition-colors"
+            aria-label={t('search.placeholder')}
+          >
+            <Search className={`w-5 h-5 ${showMobileSearch ? 'text-accent' : 'text-charcoal'}`} />
+          </button>
+
+          {/* Глобальный поиск - только на десктопе */}
+          <div className="hidden sm:block">
             <GlobalSearch />
           </div>
 
@@ -100,10 +109,10 @@ export default function Header({ onMenuClick }) {
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setShowDropdown(!showDropdown)}
-              className="flex items-center gap-2 text-sm text-charcoal hover:text-accent transition-colors"
+              className="flex items-center gap-1 sm:gap-2 text-sm text-charcoal hover:text-accent transition-colors"
             >
               <Plus className="w-4 h-4" />
-              {t('header.addBatch')}
+              <span className="hidden sm:inline">{t('header.addBatch')}</span>
               <ChevronDown
                 className={`w-3 h-3 transition-transform ${showDropdown ? 'rotate-180' : ''}`}
               />
@@ -142,10 +151,11 @@ export default function Header({ onMenuClick }) {
             )}
           </div>
 
+          {/* Telegram test */}
           <button
             onClick={handleTestTelegram}
             disabled={telegramStatus === 'sending'}
-            className={`flex items-center gap-2 text-sm transition-colors ${
+            className={`flex items-center gap-1 sm:gap-2 text-sm transition-colors ${
               telegramStatus === 'success'
                 ? 'text-success'
                 : telegramStatus === 'error'
@@ -155,16 +165,20 @@ export default function Header({ onMenuClick }) {
             title={t('header.testTelegram')}
           >
             <Send className="w-4 h-4" />
-            {telegramStatus === 'sending' ? '...' : t('header.testTelegram')}
+            <span className="hidden lg:inline">{telegramStatus === 'sending' ? '...' : t('header.testTelegram')}</span>
           </button>
 
-          <div className="h-8 w-px bg-sand" />
+          <div className="hidden sm:block h-8 w-px bg-sand" />
 
-          <LanguageSwitcher />
+          {/* Language switcher - только на десктопе */}
+          <div className="hidden sm:block">
+            <LanguageSwitcher />
+          </div>
 
-          <div className="h-8 w-px bg-sand" />
+          <div className="hidden sm:block h-8 w-px bg-sand" />
 
-          <div className="flex items-center gap-3">
+          {/* User info - скрыто на мобильных, доступно через More меню */}
+          <div className="hidden sm:flex items-center gap-3">
             <div className="text-right">
               <p className="text-sm font-medium">{user?.name}</p>
               <p className="text-xs text-warmgray">{user?.role}</p>
@@ -179,6 +193,17 @@ export default function Header({ onMenuClick }) {
           </div>
         </div>
       </header>
+
+      {/* Мобильный поиск - раскрывается под хедером */}
+      {showMobileSearch && (
+        <div className="sm:hidden bg-cream border-b border-sand px-4 py-3 sticky top-[57px] z-10">
+          <GlobalSearch 
+            onSearch={() => setShowMobileSearch(false)} 
+            autoFocus 
+            fullWidth 
+          />
+        </div>
+      )}
 
       {showAddBatchModal && <AddBatchModal onClose={() => setShowAddBatchModal(false)} />}
 

@@ -177,15 +177,15 @@ export default function StatisticsPage() {
   ]
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Заголовок */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         <div>
-          <h1 className="text-2xl font-light text-charcoal">{t('statistics.title')}</h1>
-          <p className="text-warmgray text-sm mt-1">{t('statistics.subtitle')}</p>
+          <h1 className="text-xl sm:text-2xl font-light text-charcoal">{t('statistics.title')}</h1>
+          <p className="text-warmgray text-xs sm:text-sm mt-1">{t('statistics.subtitle')}</p>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
           {/* Кнопка экспорта */}
           <ExportButton
             data={exportData}
@@ -202,12 +202,12 @@ export default function StatisticsPage() {
           />
 
           {/* Переключатель периода */}
-          <div className="flex items-center gap-2 bg-white rounded-lg border border-sand p-1">
+          <div className="flex items-center gap-1 sm:gap-2 bg-white rounded-lg border border-sand p-1">
             {['week', 'month', 'all'].map((period) => (
               <button
                 key={period}
                 onClick={() => setSelectedPeriod(period)}
-                className={`px-4 py-1.5 text-sm rounded-md transition-colors ${
+                className={`px-2 sm:px-4 py-1 sm:py-1.5 text-xs sm:text-sm rounded-md transition-colors ${
                   selectedPeriod === period
                     ? 'bg-charcoal text-white'
                     : 'text-warmgray hover:text-charcoal'
@@ -220,16 +220,16 @@ export default function StatisticsPage() {
         </div>
       </div>
 
-      {/* Карточки статистики */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+      {/* Карточки статистики - Bento Grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
         {statCards.map((card, index) => (
           <div
             key={index}
-            className="bg-white rounded-xl border border-sand p-4 hover:shadow-md transition-shadow"
+            className="bg-white rounded-xl border border-sand p-3 sm:p-4 hover:shadow-md transition-shadow"
           >
-            <div className="flex items-center justify-between mb-3">
-              <div className={`p-2 rounded-lg ${card.bgColor}`}>
-                <card.icon className={`w-5 h-5 ${card.color}`} />
+            <div className="flex items-center justify-between mb-2 sm:mb-3">
+              <div className={`p-1.5 sm:p-2 rounded-lg ${card.bgColor}`}>
+                <card.icon className={`w-4 h-4 sm:w-5 sm:h-5 ${card.color}`} />
               </div>
               {card.trend !== undefined && (
                 <span
@@ -240,14 +240,14 @@ export default function StatisticsPage() {
                 </span>
               )}
             </div>
-            <p className="text-2xl font-light text-charcoal">{card.value}</p>
-            <p className="text-sm text-warmgray">{card.title}</p>
+            <p className="text-xl sm:text-2xl font-light text-charcoal">{card.value}</p>
+            <p className="text-xs sm:text-sm text-warmgray line-clamp-1">{card.title}</p>
           </div>
         ))}
       </div>
 
       {/* Статистика по отделам */}
-      <div className="bg-white rounded-xl border border-sand p-6">
+      <div className="bg-white rounded-xl border border-sand p-4 sm:p-6">
         <h2 className="text-lg font-medium text-charcoal mb-4">{t('statistics.byDepartment')}</h2>
 
         <div className="space-y-4">
@@ -260,12 +260,12 @@ export default function StatisticsPage() {
 
             return (
               <div key={dept.id}>
-                <div className="flex items-center justify-between mb-2">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2 gap-1">
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: dept.color }} />
+                    <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: dept.color }} />
                     <span className="text-sm font-medium text-charcoal">{dept.name}</span>
                   </div>
-                  <div className="flex items-center gap-4 text-sm text-warmgray">
+                  <div className="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm text-warmgray ml-5 sm:ml-0">
                     <span>
                       {dept.total} {t('statistics.batches')}
                     </span>
@@ -292,22 +292,22 @@ export default function StatisticsPage() {
                   />
                 </div>
 
-                {/* Legend */}
-                <div className="flex items-center gap-4 mt-2 text-xs text-warmgray">
-                  <span className="flex items-center gap-1">
-                    <div className="w-2 h-2 rounded-full bg-success" />
+                {/* Legend - scrollable on mobile */}
+                <div className="flex items-center gap-2 sm:gap-4 mt-2 text-xs text-warmgray overflow-x-auto pb-1">
+                  <span className="flex items-center gap-1 whitespace-nowrap">
+                    <div className="w-2 h-2 rounded-full bg-success flex-shrink-0" />
                     {dept.good} {t('status.good')}
                   </span>
-                  <span className="flex items-center gap-1">
-                    <div className="w-2 h-2 rounded-full bg-warning" />
+                  <span className="flex items-center gap-1 whitespace-nowrap">
+                    <div className="w-2 h-2 rounded-full bg-warning flex-shrink-0" />
                     {dept.warning} {t('status.warning')}
                   </span>
-                  <span className="flex items-center gap-1">
-                    <div className="w-2 h-2 rounded-full bg-danger" />
+                  <span className="flex items-center gap-1 whitespace-nowrap">
+                    <div className="w-2 h-2 rounded-full bg-danger flex-shrink-0" />
                     {dept.critical} {t('status.urgent')}
                   </span>
-                  <span className="flex items-center gap-1">
-                    <div className="w-2 h-2 rounded-full bg-red-800" />
+                  <span className="flex items-center gap-1 whitespace-nowrap">
+                    <div className="w-2 h-2 rounded-full bg-red-800 flex-shrink-0" />
                     {dept.expired} {t('status.expired')}
                   </span>
                 </div>
@@ -318,21 +318,21 @@ export default function StatisticsPage() {
       </div>
 
       {/* Статистика по категориям + Топ товары */}
-      <div className="grid md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
         {/* По категориям */}
-        <div className="bg-white rounded-xl border border-sand p-6">
-          <h2 className="text-lg font-medium text-charcoal mb-4">{t('statistics.byCategory')}</h2>
+        <div className="bg-white rounded-xl border border-sand p-4 sm:p-6">
+          <h2 className="text-base sm:text-lg font-medium text-charcoal mb-3 sm:mb-4">{t('statistics.byCategory')}</h2>
 
-          <div className="space-y-3">
+          <div className="space-y-2 sm:space-y-3">
             {categoryStats.map((cat) => (
-              <div key={cat.id} className="flex items-center justify-between">
-                <span className="text-sm text-charcoal">{cat.name}</span>
-                <div className="flex items-center gap-4">
-                  <span className="text-sm text-warmgray">
+              <div key={cat.id} className="flex items-center justify-between gap-2">
+                <span className="text-xs sm:text-sm text-charcoal truncate flex-1">{cat.name}</span>
+                <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
+                  <span className="text-xs sm:text-sm text-warmgray whitespace-nowrap">
                     {cat.total} {t('statistics.batches')}
                   </span>
                   {cat.expired > 0 && (
-                    <span className="text-xs text-danger">
+                    <span className="text-xs text-danger whitespace-nowrap">
                       {cat.expired} {t('status.expired')}
                     </span>
                   )}
@@ -341,32 +341,32 @@ export default function StatisticsPage() {
             ))}
 
             {categoryStats.length === 0 && (
-              <p className="text-sm text-warmgray text-center py-4">{t('statistics.noData')}</p>
+              <p className="text-xs sm:text-sm text-warmgray text-center py-4">{t('statistics.noData')}</p>
             )}
           </div>
         </div>
 
         {/* Товары, требующие внимания */}
-        <div className="bg-white rounded-xl border border-sand p-6">
-          <h2 className="text-lg font-medium text-charcoal mb-4">{t('statistics.topAlerts')}</h2>
+        <div className="bg-white rounded-xl border border-sand p-4 sm:p-6">
+          <h2 className="text-base sm:text-lg font-medium text-charcoal mb-3 sm:mb-4">{t('statistics.topAlerts')}</h2>
 
-          <div className="space-y-3">
+          <div className="space-y-2 sm:space-y-3">
             {topAlertProducts.map((batch, index) => {
               const dept = departments.find((d) => d.id === batch.departmentId)
 
               return (
-                <div key={batch.id} className="flex items-center gap-3">
-                  <span className="w-5 h-5 rounded-full bg-danger/10 text-danger text-xs flex items-center justify-center font-medium">
+                <div key={batch.id} className="flex items-center gap-2 sm:gap-3">
+                  <span className="w-5 h-5 rounded-full bg-danger/10 text-danger text-xs flex items-center justify-center font-medium flex-shrink-0">
                     {index + 1}
                   </span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm text-charcoal truncate">
+                    <p className="text-xs sm:text-sm text-charcoal truncate">
                       {batch.productName || batch.name}
                     </p>
-                    <p className="text-xs text-warmgray">{dept?.name}</p>
+                    <p className="text-xs text-warmgray truncate">{dept?.name}</p>
                   </div>
                   <span
-                    className={`text-xs font-medium ${
+                    className={`text-xs font-medium whitespace-nowrap flex-shrink-0 ${
                       batch.daysLeft < 0 ? 'text-danger' : 'text-warning'
                     }`}
                   >
@@ -382,8 +382,8 @@ export default function StatisticsPage() {
 
             {topAlertProducts.length === 0 && (
               <div className="text-center py-4">
-                <CheckCircle className="w-8 h-8 text-success mx-auto mb-2" />
-                <p className="text-sm text-warmgray">{t('statistics.allGood')}</p>
+                <CheckCircle className="w-6 h-6 sm:w-8 sm:h-8 text-success mx-auto mb-2" />
+                <p className="text-xs sm:text-sm text-warmgray">{t('statistics.allGood')}</p>
               </div>
             )}
           </div>

@@ -168,33 +168,33 @@ export default function InventoryPage() {
   // Если нет выбранного отдела, показываем сообщение
   if (!selectedDepartment && departments.length === 0) {
     return (
-      <div className="p-8 animate-fade-in">
+      <div className="p-4 sm:p-8 animate-fade-in">
         <div className="text-center py-12">
-          <Package className="w-16 h-16 text-warmgray mx-auto mb-4" />
-          <h2 className="font-serif text-xl text-charcoal mb-2">{t('inventory.noDepartments') || 'No departments configured'}</h2>
-          <p className="text-warmgray">{t('inventory.createDepartment') || 'Please create a department in Settings first.'}</p>
+          <Package className="w-12 h-12 sm:w-16 sm:h-16 text-warmgray mx-auto mb-4" />
+          <h2 className="font-serif text-lg sm:text-xl text-charcoal mb-2">{t('inventory.noDepartments') || 'No departments configured'}</h2>
+          <p className="text-warmgray text-sm">{t('inventory.createDepartment') || 'Please create a department in Settings first.'}</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="p-8 animate-fade-in">
+    <div className="p-3 sm:p-4 md:p-8 animate-fade-in">
       {/* Заголовок */}
-      <div className="flex items-center justify-between mb-8">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-8">
+        <div className="flex items-center gap-2 sm:gap-4">
+          <div className="flex items-center gap-2 sm:gap-3">
             <div
-              className="w-10 h-10 rounded-full flex items-center justify-center"
+              className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center flex-shrink-0"
               style={{ backgroundColor: `${department?.color || '#C4A35A'}20` }}
             >
-              {DeptIcon && <DeptIcon className="w-5 h-5" style={{ color: department?.color || '#C4A35A' }} />}
+              {DeptIcon && <DeptIcon className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: department?.color || '#C4A35A' }} />}
             </div>
-            <h1 className="font-serif text-2xl">{t('inventory.title')} — {department?.name || selectedDepartment}</h1>
+            <h1 className="font-serif text-lg sm:text-2xl truncate">{t('inventory.title')} — {department?.name || selectedDepartment}</h1>
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
           <ExportButton
             data={exportData}
             columns={EXPORT_COLUMNS.inventory(t)}
@@ -208,26 +208,26 @@ export default function InventoryPage() {
           />
           <button
             onClick={() => setShowTemplateModal(true)}
-            className="flex items-center gap-2 text-sm text-warmgray hover:text-accent transition-colors"
+            className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-warmgray hover:text-accent transition-colors"
           >
             <FileBox className="w-4 h-4" />
-            {t('inventory.applyTemplate')}
+            <span className="hidden xs:inline">{t('inventory.applyTemplate')}</span>
           </button>
           <button
             onClick={() => setShowAddCustomModal(true)}
-            className="flex items-center gap-2 text-sm text-warmgray hover:text-accent transition-colors"
+            className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-warmgray hover:text-accent transition-colors"
           >
             <Plus className="w-4 h-4" />
-            {t('inventory.addNewProduct')}
+            <span className="hidden xs:inline">{t('inventory.addNewProduct')}</span>
           </button>
         </div>
       </div>
 
       {/* Фильтры категорий */}
-      <div className="flex gap-2 mb-8 flex-wrap">
+      <div className="flex gap-2 mb-4 sm:mb-8 flex-wrap overflow-x-auto pb-2">
         <button
           onClick={() => setSelectedCategory('all')}
-          className={`px-4 py-2 rounded-full text-sm transition-all ${
+          className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm transition-all whitespace-nowrap flex-shrink-0 ${
             selectedCategory === 'all'
               ? 'bg-charcoal text-white'
               : 'bg-transparent border border-sand text-warmgray hover:border-charcoal hover:text-charcoal'
@@ -239,7 +239,7 @@ export default function InventoryPage() {
           <button
             key={cat.id}
             onClick={() => setSelectedCategory(cat.id)}
-            className={`px-4 py-2 rounded-full text-sm transition-all ${
+            className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm transition-all whitespace-nowrap flex-shrink-0 ${
               selectedCategory === cat.id
                 ? 'bg-charcoal text-white'
                 : 'bg-transparent border border-sand text-warmgray hover:border-charcoal hover:text-charcoal'
@@ -252,66 +252,65 @@ export default function InventoryPage() {
 
       {/* Сетка товаров */}
       {products.length === 0 ? (
-        <div className="text-center py-16">
-          <Package className="w-16 h-16 text-sand mx-auto mb-4" />
-          <p className="text-warmgray text-lg">{t('inventory.noProducts')}</p>
-          <p className="text-warmgray/70 text-sm mt-2">{t('inventory.addBatchToStart')}</p>
+        <div className="text-center py-12 sm:py-16">
+          <Package className="w-12 h-12 sm:w-16 sm:h-16 text-sand mx-auto mb-4" />
+          <p className="text-warmgray text-base sm:text-lg">{t('inventory.noProducts')}</p>
+          <p className="text-warmgray/70 text-xs sm:text-sm mt-2">{t('inventory.addBatchToStart')}</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
           {products.map((product) => {
             const category = categories.find((c) => c.id === product.categoryId)
             return (
               <button
                 key={product.id}
                 onClick={() => handleProductClick(product)}
-                className="bg-white border border-sand rounded-lg p-4 text-left transition-all hover:shadow-md hover:border-accent group"
+                className="bg-white border border-sand rounded-lg p-3 sm:p-4 text-left transition-all hover:shadow-md hover:border-accent group"
               >
                 {/* Статус индикатор */}
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex-1">
-                    <h3 className="font-medium text-charcoal group-hover:text-accent transition-colors">
+                <div className="flex items-start justify-between mb-2 sm:mb-3">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-medium text-charcoal group-hover:text-accent transition-colors text-sm sm:text-base truncate">
                       {product.name}
                     </h3>
                     {category && (
-                      <span className="text-xs text-warmgray bg-sand/50 px-2 py-0.5 rounded mt-1 inline-block">
+                      <span className="text-xs text-warmgray bg-sand/50 px-1.5 sm:px-2 py-0.5 rounded mt-1 inline-block truncate max-w-full">
                         {getCategoryName(category)}
                       </span>
                     )}
                   </div>
                   {product.totalBatches > 0 && (
                     <div
-                      className={`w-3 h-3 rounded-full ${statusColors[product.overallStatus]}`}
+                      className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full flex-shrink-0 ml-2 ${statusColors[product.overallStatus]}`}
                       title={product.overallStatus}
                     />
                   )}
                 </div>
 
                 {/* Информация о партиях */}
-                <div className="text-sm text-warmgray">
+                <div className="text-xs sm:text-sm text-warmgray">
                   {product.totalBatches === 0 ? (
                     <span className="text-warmgray/50">{t('inventory.noBatches')}</span>
                   ) : (
-                    <>
-                      <span className="font-medium text-charcoal">{product.totalBatches}</span>{' '}
-                      {t('inventory.batches')} •{' '}
-                      <span className="font-medium text-charcoal">{product.totalQuantity}</span>{' '}
-                      {t('inventory.units')}
-                    </>
+                    <div className="flex flex-wrap gap-x-1">
+                      <span><span className="font-medium text-charcoal">{product.totalBatches}</span> {t('inventory.batches')}</span>
+                      <span>•</span>
+                      <span><span className="font-medium text-charcoal">{product.totalQuantity}</span> {t('inventory.units')}</span>
+                    </div>
                   )}
                 </div>
 
                 {/* Предупреждения */}
                 {product.hasExpired && (
                   <div className="mt-2 text-xs text-danger flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-danger" />
-                    {t('inventory.hasExpired')}
+                    <span className="w-1.5 h-1.5 rounded-full bg-danger flex-shrink-0" />
+                    <span className="truncate">{t('inventory.hasExpired')}</span>
                   </div>
                 )}
                 {!product.hasExpired && product.hasExpiringSoon && (
                   <div className="mt-2 text-xs text-warning flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-warning" />
-                    {t('inventory.expiringSoon')}
+                    <span className="w-1.5 h-1.5 rounded-full bg-warning flex-shrink-0" />
+                    <span className="truncate">{t('inventory.expiringSoon')}</span>
                   </div>
                 )}
               </button>
