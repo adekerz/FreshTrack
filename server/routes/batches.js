@@ -9,6 +9,7 @@ import {
   createBatch,
   updateBatch,
   deleteBatch,
+  getBatchStats,
   getProductById,
   logAudit
 } from '../db/database.js'
@@ -19,16 +20,25 @@ const router = express.Router()
 // GET /api/batches
 router.get('/', authMiddleware, hotelIsolation, async (req, res) => {
   try {
-    const { department_id, category_id, status, search, sort_by, sort_order, product_id } = req.query
-    const filters = {
-      department_id: department_id || req.departmentId,
-      category_id, status, search, sort_by, sort_order, product_id
-    }
-    const batches = await getAllBatches(req.hotelId, filters)
+    const { department_id, status } = req.query
+    const deptId = department_id || req.departmentId || null
+    const batches = await getAllBatches(req.hotelId, deptId, status || null)
     res.json({ success: true, batches })
   } catch (error) {
     console.error('Get batches error:', error)
     res.status(500).json({ success: false, error: 'Failed to get batches' })
+  }
+})
+
+// GET /api/batches/stats - MUST be before /:id
+router.get('/stats', authMiddleware, hotelIsolation, async (req, res) => {
+  try {
+    const { department_id } = req.query
+    const stats = await getBatchStats(req.hotelId, department_id || null)
+    res.json({ success: true, stats })
+  } catch (error) {
+    console.error('Get batch stats error:', error)
+    res.status(500).json({ success: false, error: 'Failed to get batch stats' })
   }
 })
 
