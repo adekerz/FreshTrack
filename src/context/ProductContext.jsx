@@ -111,8 +111,13 @@ export function ProductProvider({ children }) {
         apiFetch('/products').catch(() => [])
       ])
 
-      setBatches(batchesRes)
-      setStats(statsRes)
+      // API возвращает { success: true, batches: [...] } или массив
+      const batchesData = Array.isArray(batchesRes) ? batchesRes : (batchesRes.batches || [])
+      setBatches(batchesData)
+      
+      // API возвращает { success: true, stats: {...} } или объект
+      const statsData = statsRes.stats || statsRes || {}
+      setStats(statsData)
       
       // Обновляем динамические отделы (API возвращает { departments: [...] } или массив)
       const deptData = Array.isArray(departmentsRes) ? departmentsRes : (departmentsRes.departments || [])
