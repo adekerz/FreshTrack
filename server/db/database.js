@@ -715,22 +715,6 @@ export async function getWriteOffs(hotelId, filters = {}) {
   return result.rows
 }
 
-export async function getWriteOffStats(hotelId, startDate = null, endDate = null) {
-  let queryText = `
-    SELECT COUNT(*) as total_count, SUM(quantity) as total_quantity, reason, DATE(written_off_at) as date
-    FROM write_offs WHERE hotel_id = $1
-  `
-  const params = [hotelId]
-  let paramIndex = 2
-  
-  if (startDate) { queryText += ` AND DATE(written_off_at) >= $${paramIndex++}`; params.push(startDate) }
-  if (endDate) { queryText += ` AND DATE(written_off_at) <= $${paramIndex++}`; params.push(endDate) }
-  
-  queryText += ' GROUP BY DATE(written_off_at), reason ORDER BY date DESC'
-  const result = await query(queryText, params)
-  return result.rows
-}
-
 // ═══════════════════════════════════════════════════════════════
 // NOTIFICATION FUNCTIONS
 // ═══════════════════════════════════════════════════════════════
