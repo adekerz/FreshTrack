@@ -11,6 +11,8 @@ import {
   deleteBatch,
   getBatchStats,
   getProductById,
+  getProductByName,
+  createProduct,
   logAudit
 } from '../db/database.js'
 import { authMiddleware, hotelIsolation } from '../middleware/auth.js'
@@ -63,20 +65,51 @@ router.get('/:id', authMiddleware, hotelIsolation, async (req, res) => {
 // POST /api/batches
 router.post('/', authMiddleware, hotelIsolation, async (req, res) => {
   try {
-    const { product_id, quantity, production_date, expiry_date, supplier, notes, batch_code } = req.body
-    if (!product_id || quantity === undefined) {
-      return res.status(400).json({ success: false, error: 'Product ID and quantity are required' })
+    const { 
+      product_id, productName, department, category,
+      quantity, production_date, expiry_date, manufacturingDate, expiryDate,
+      supplier, notes, batch_code 
+    } = req.body
+    
+    let productId = product_id
+    let product = null
+    
+    // Если передано имя продукта вместо ID - найти или создать продукт
+    if (!productId && productName) {
+      product = await getProductByName(productName, req.hotelId)
+      
+      if (!product) {
+        // Создать новый продукт
+        product = await createProduct({
+          name: productName,
+          hotel_id: req.hotelId,
+          department_id: department || null,
+          category_id: category || 'other',
+          unit: 'шт'
+        })
+      }
+      productId = product.id
+    } else if (productId) {
+      product = await getProductById(productId)
     }
     
-    const product = await getProductById(product_id)
+    if (!productId) {
+      return res.status(400).json({ success: false, error: 'Product ID or product name is required' })
+    }
+    
     if (!product || product.hotel_id !== req.hotelId) {
       return res.status(403).json({ success: false, error: 'Product access denied' })
     }
     
+    // Поддержка обоих форматов дат
+    const prodDate = production_date || manufacturingDate || null
+    const expDate = expiry_date || expiryDate || null
+    
     const batch = await createBatch({
-      product_id, quantity: parseFloat(quantity),
-      production_date: production_date || null,
-      expiry_date: expiry_date || null,
+      product_id: productId, 
+      quantity: quantity === null || quantity === undefined ? null : parseFloat(quantity),
+      production_date: prodDate,
+      expiry_date: expDate,
       supplier: supplier || null,
       notes: notes || null,
       batch_code: batch_code || null
@@ -85,10 +118,22 @@ router.post('/', authMiddleware, hotelIsolation, async (req, res) => {
     await logAudit({
       hotel_id: req.hotelId, user_id: req.user.id, user_name: req.user.name,
       action: 'create', entity_type: 'batch', entity_id: batch.id,
-      details: { product_id, product_name: product.name, quantity }, ip_address: req.ip
+      details: { product_id: productId, product_name: product.name, quantity }, ip_address: req.ip
     })
     
-    res.status(201).json({ success: true, batch })
+    // Вернуть данные в формате, ожидаемом фронтендом
+    res.status(201).json({ 
+      success: true, 
+      batch,
+      // Дополнительные поля для совместимости
+      id: batch.id,
+      productId: productId,
+      productName: product.name,
+      departmentId: department || product.department_id,
+      expiryDate: expDate,
+      manufacturingDate: prodDate,
+      quantity: batch.quantity
+    })
   } catch (error) {
     console.error('Create batch error:', error)
     res.status(500).json({ success: false, error: 'Failed to create batch' })

@@ -21,7 +21,7 @@ export default function ProductModal({ product, onClose }) {
   const { language } = useLanguage()
   const { user } = useAuth()
   const { getBatchesByProduct, collectBatch, deleteBatch, addBatch, deleteProduct } = useProducts()
-  const toast = useToast()
+  const { addToast } = useToast()
 
   const [showAddForm, setShowAddForm] = useState(false)
   const [collectModalOpen, setCollectModalOpen] = useState(false)
