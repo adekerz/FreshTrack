@@ -7,7 +7,6 @@
   "scripts": {
     "dev": "vite",
     "build": "cd server && npm install",
-    "build:render": "echo 'Server only - no build needed'",
     "start": "cd server && node index.js",
     "dev:server": "cd server && node --watch index.js",
     "dev:client": "vite",
