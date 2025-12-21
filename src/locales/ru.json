@@ -46,7 +46,8 @@
     "justNow": "Только что",
     "minutesAgo": "мин. назад",
     "hoursAgo": "ч. назад",
-    "daysAgo": "дн. назад"
+    "daysAgo": "дн. назад",
+    "today": "Сегодня"
   },
   "toast": {
     "success": "Успешно",
@@ -100,6 +101,7 @@
     "somethingWentWrong": "Что-то пошло не так"
   },
   "nav": {
+    "home": "Главная",
     "dashboard": "Главная",
     "inventory": "Инвентарь",
     "alerts": "Оповещения",
@@ -112,6 +114,7 @@
     "departments": "Отделы",
     "settings": "Настройки",
     "auditLogs": "Журнал действий",
+    "history": "История",
     "more": "Ещё"
   },
   "sidebar": {
@@ -263,7 +266,8 @@
     "Spirits": "Крепкие напитки",
     "Beverages": "Напитки",
     "Mixers": "Миксеры",
-    "snacks": "Закуски"
+    "snacks": "Закуски",
+    "quickColors": "Быстрые цвета"
   },
   "batch": {
     "manufacturingDate": "Дата производства",
@@ -515,6 +519,10 @@
     "subtitle": "Управление профилем и системой",
     "saved": "Настройки сохранены",
     "saveError": "Ошибка сохранения настроек",
+    "profile": "Профиль",
+    "departments": "Отделы",
+    "categories": "Категории",
+    "export": "Экспорт",
     "tabs": {
       "profile": "Профиль",
       "notifications": "Уведомления",

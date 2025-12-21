@@ -25,6 +25,30 @@ router.get('/', authMiddleware, hotelIsolation, async (req, res) => {
   }
 })
 
+// GET /api/settings/general - Get general settings
+router.get('/general', authMiddleware, hotelIsolation, async (req, res) => {
+  try {
+    const settings = await getSettings(req.hotelId)
+    // Return general settings with default values
+    res.json({ 
+      success: true, 
+      settings: {
+        siteName: settings.siteName || 'FreshTrack',
+        departmentName: settings.departmentName || '',
+        warningDays: settings.warningDays || 7,
+        criticalDays: settings.criticalDays || 3,
+        dateFormat: settings.dateFormat || 'DD.MM.YYYY',
+        timezone: settings.timezone || 'UTC',
+        defaultLanguage: settings.defaultLanguage || 'en',
+        ...settings
+      }
+    })
+  } catch (error) {
+    console.error('Get general settings error:', error)
+    res.status(500).json({ success: false, error: 'Failed to get general settings' })
+  }
+})
+
 // GET /api/settings/:key
 router.get('/:key', authMiddleware, hotelIsolation, async (req, res) => {
   try {

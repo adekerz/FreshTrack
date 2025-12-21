@@ -46,7 +46,8 @@
     "justNow": "Just now",
     "minutesAgo": "min ago",
     "hoursAgo": "hours ago",
-    "daysAgo": "days ago"
+    "daysAgo": "days ago",
+    "today": "Today"
   },
   "toast": {
     "success": "Success",
@@ -100,6 +101,7 @@
     "somethingWentWrong": "Something went wrong"
   },
   "nav": {
+    "home": "Home",
     "dashboard": "Dashboard",
     "inventory": "Inventory",
     "alerts": "Alerts",
@@ -112,6 +114,7 @@
     "departments": "Departments",
     "settings": "Settings",
     "auditLogs": "Audit Logs",
+    "history": "History",
     "more": "More"
   },
   "sidebar": {
@@ -263,7 +266,8 @@
     "Spirits": "Spirits",
     "Beverages": "Beverages",
     "Mixers": "Mixers",
-    "snacks": "Snacks"
+    "snacks": "Snacks",
+    "quickColors": "Quick Colors"
   },
   "batch": {
     "manufacturingDate": "Manufacturing Date",
@@ -515,6 +519,10 @@
     "subtitle": "Manage profile and system",
     "saved": "Settings saved",
     "saveError": "Error saving settings",
+    "profile": "Profile",
+    "departments": "Departments",
+    "categories": "Categories",
+    "export": "Export",
     "tabs": {
       "profile": "Profile",
       "notifications": "Notifications",

@@ -23,6 +23,7 @@ import collectionsRouter from './routes/collections.js'
 import auditRouter from './routes/audit.js'
 import settingsRouter from './routes/settings.js'
 import deliveryTemplatesRouter from './routes/delivery-templates.js'
+import writeOffsRouter from './routes/write-offs.js'
 import importRouter from './routes/import.js'
 import exportRouter from './routes/export.js'
 import healthRouter from './routes/health.js'
@@ -71,6 +72,7 @@ app.use('/api/collections', collectionsRouter)
 app.use('/api/audit-logs', auditRouter)
 app.use('/api/settings', settingsRouter)
 app.use('/api/delivery-templates', deliveryTemplatesRouter)
+app.use('/api/write-offs', writeOffsRouter)
 app.use('/api/import', importRouter)
 app.use('/api/export', exportRouter)
 app.use('/api/health', healthRouter)

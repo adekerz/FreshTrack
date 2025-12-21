@@ -46,7 +46,8 @@
     "justNow": "Жаңа ғана",
     "minutesAgo": "мин бұрын",
     "hoursAgo": "сағ бұрын",
-    "daysAgo": "күн бұрын"
+    "daysAgo": "күн бұрын",
+    "today": "Бүгін"
   },
   "toast": {
     "success": "Сәтті",
@@ -100,6 +101,7 @@
     "somethingWentWrong": "Бірдеңе дұрыс болмады"
   },
   "nav": {
+    "home": "Басты бет",
     "dashboard": "Басты бет",
     "inventory": "Қор",
     "alerts": "Ескертулер",
@@ -112,6 +114,7 @@
     "departments": "Бөлімдер",
     "settings": "Баптаулар",
     "auditLogs": "Әрекеттер журналы",
+    "history": "Тарих",
     "more": "Тағы"
   },
   "sidebar": {
@@ -263,7 +266,8 @@
     "Spirits": "Арақ",
     "Beverages": "Сусындар",
     "Mixers": "Миксерлер",
-    "snacks": "Тұздықтар"
+    "snacks": "Тұздықтар",
+    "quickColors": "Жылдам түстер"
   },
   "batch": {
     "manufacturingDate": "Өндіріс күні",
@@ -483,6 +487,10 @@
     "subtitle": "Профиль мен жүйені басқару",
     "saved": "Баптаулар сақталды",
     "saveError": "Баптауларды сақтау қатесі",
+    "profile": "Профиль",
+    "departments": "Бөлімдер",
+    "categories": "Санаттар",
+    "export": "Экспорт",
     "tabs": {
       "profile": "Профиль",
       "notifications": "Хабарламалар",
