@@ -9,8 +9,8 @@ import { Loader2 } from 'lucide-react'
 
 const variants = {
   primary: 'bg-accent text-white hover:bg-accent/90 active:bg-accent/80 focus:ring-accent/50',
-  secondary: 'bg-white text-charcoal border border-sand hover:bg-sand/50 active:bg-sand focus:ring-warmgray/30',
-  ghost: 'text-charcoal hover:bg-sand/50 active:bg-sand focus:ring-warmgray/30',
+  secondary: 'bg-white dark:bg-dark-surface text-charcoal dark:text-cream border border-sand dark:border-dark-border hover:bg-sand/50 dark:hover:bg-white/10 active:bg-sand dark:active:bg-white/20 focus:ring-warmgray/30',
+  ghost: 'text-charcoal dark:text-cream hover:bg-sand/50 dark:hover:bg-white/10 active:bg-sand dark:active:bg-white/20 focus:ring-warmgray/30',
   danger: 'bg-danger text-white hover:bg-danger/90 active:bg-danger/80 focus:ring-danger/50',
   success: 'bg-success text-white hover:bg-success/90 active:bg-success/80 focus:ring-success/50',
   outline: 'border border-accent text-accent hover:bg-accent/5 active:bg-accent/10 focus:ring-accent/50',

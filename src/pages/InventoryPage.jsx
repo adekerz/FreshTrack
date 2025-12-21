@@ -193,8 +193,8 @@ export default function InventoryPage() {
       <div className="p-4 sm:p-8 animate-fade-in">
         <div className="text-center py-12">
           <Package className="w-12 h-12 sm:w-16 sm:h-16 text-warmgray mx-auto mb-4" />
-          <h2 className="font-serif text-lg sm:text-xl text-charcoal mb-2">{t('inventory.noDepartments') || 'No departments configured'}</h2>
-          <p className="text-warmgray text-sm">{t('inventory.createDepartment') || 'Please create a department in Settings first.'}</p>
+          <h2 className="font-serif text-lg sm:text-xl text-charcoal dark:text-cream mb-2">{t('inventory.noDepartments') || 'No departments configured'}</h2>
+          <p className="text-warmgray dark:text-warmgray/80 text-sm">{t('inventory.createDepartment') || 'Please create a department in Settings first.'}</p>
         </div>
       </div>
     )
@@ -287,16 +287,16 @@ export default function InventoryPage() {
               <button
                 key={product.id}
                 onClick={() => handleProductClick(product)}
-                className="bg-white border border-sand rounded-lg p-3 sm:p-4 text-left transition-all hover:shadow-md hover:border-accent group"
+                className="bg-white dark:bg-dark-surface border border-sand dark:border-dark-border rounded-lg p-3 sm:p-4 text-left transition-all hover:shadow-md hover:border-accent group"
               >
                 {/* Статус индикатор */}
                 <div className="flex items-start justify-between mb-2 sm:mb-3">
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-medium text-charcoal group-hover:text-accent transition-colors text-sm sm:text-base truncate">
+                    <h3 className="font-medium text-charcoal dark:text-cream group-hover:text-accent transition-colors text-sm sm:text-base truncate">
                       {product.name}
                     </h3>
                     {category && (
-                      <span className="text-xs text-warmgray bg-sand/50 px-1.5 sm:px-2 py-0.5 rounded mt-1 inline-block truncate max-w-full">
+                      <span className="text-xs text-warmgray bg-sand/50 dark:bg-white/10 px-1.5 sm:px-2 py-0.5 rounded mt-1 inline-block truncate max-w-full">
                         {getCategoryName(category)}
                       </span>
                     )}
@@ -310,14 +310,14 @@ export default function InventoryPage() {
                 </div>
 
                 {/* Информация о партиях */}
-                <div className="text-xs sm:text-sm text-warmgray">
+                <div className="text-xs sm:text-sm text-warmgray dark:text-warmgray/80">
                   {product.totalBatches === 0 ? (
                     <span className="text-warmgray/50">{t('inventory.noBatches')}</span>
                   ) : (
                     <div className="flex flex-wrap gap-x-1">
-                      <span><span className="font-medium text-charcoal">{product.totalBatches}</span> {t('inventory.batches')}</span>
+                      <span><span className="font-medium text-charcoal dark:text-cream">{product.totalBatches}</span> {t('inventory.batches')}</span>
                       <span>•</span>
-                      <span><span className="font-medium text-charcoal">{product.totalQuantity}</span> {t('inventory.units')}</span>
+                      <span><span className="font-medium text-charcoal dark:text-cream">{product.totalQuantity}</span> {t('inventory.units')}</span>
                     </div>
                   )}
                 </div>

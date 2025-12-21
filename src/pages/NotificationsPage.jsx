@@ -87,18 +87,18 @@ export default function NotificationsPage() {
           {batches.map((batch) => (
             <div
               key={batch.id}
-              className={`bg-white rounded-lg p-3 sm:p-4 border-l-4 ${
+              className={`bg-white dark:bg-dark-surface rounded-lg p-3 sm:p-4 border-l-4 ${
                 batch.daysLeft < 0
                   ? 'border-l-danger'
                   : batch.daysLeft <= 3
                     ? 'border-l-danger'
                     : 'border-l-warning'
-              } border border-sand`}
+              } border border-sand dark:border-dark-border`}
             >
               <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                 <div className="flex-1 min-w-0">
                   {/* Название товара */}
-                  <h3 className="font-medium text-charcoal mb-1 text-sm sm:text-base truncate">{batch.productName}</h3>
+                  <h3 className="font-medium text-charcoal dark:text-cream mb-1 text-sm sm:text-base truncate">{batch.productName}</h3>
 
                   {/* Отдел */}
                   <div
@@ -173,14 +173,14 @@ export default function NotificationsPage() {
       {/* Заголовок */}
       <div className="mb-4 sm:mb-8 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="font-serif text-xl sm:text-2xl text-charcoal mb-1 sm:mb-2">{t('notifications.title')}</h1>
-          <p className="text-warmgray text-xs sm:text-sm">{t('notifications.description')}</p>
+          <h1 className="font-serif text-xl sm:text-2xl text-charcoal dark:text-cream mb-1 sm:mb-2">{t('notifications.title')}</h1>
+          <p className="text-warmgray dark:text-warmgray/80 text-xs sm:text-sm">{t('notifications.description')}</p>
         </div>
 
         {/* Кнопка истории уведомлений */}
         <button
           onClick={() => navigate('/notifications/history')}
-          className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm border border-sand text-warmgray rounded-lg hover:bg-sand/50 hover:text-charcoal transition-colors w-full sm:w-auto"
+          className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm border border-sand dark:border-dark-border text-warmgray dark:text-cream/70 rounded-lg hover:bg-sand/50 dark:hover:bg-dark-border hover:text-charcoal dark:hover:text-cream transition-colors w-full sm:w-auto"
         >
           <History className="w-4 h-4" />
           <span>{t('notificationHistory.title')}</span>
@@ -193,8 +193,8 @@ export default function NotificationsPage() {
           <div className="w-16 h-16 sm:w-20 sm:h-20 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
             <Bell className="w-8 h-8 sm:w-10 sm:h-10 text-success" />
           </div>
-          <h2 className="font-serif text-xl sm:text-2xl text-charcoal mb-2">{t('notifications.allGood')}</h2>
-          <p className="text-warmgray text-sm">{t('notifications.noAlerts')}</p>
+          <h2 className="font-serif text-xl sm:text-2xl text-charcoal dark:text-cream mb-2">{t('notifications.allGood')}</h2>
+          <p className="text-warmgray dark:text-warmgray/80 text-sm">{t('notifications.noAlerts')}</p>
         </div>
       ) : (
         <>

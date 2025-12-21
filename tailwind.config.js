@@ -4,6 +4,7 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
@@ -16,6 +17,10 @@ export default {
         success: '#4A7C59',
         warning: '#D4A853',
         danger: '#C4554D',
+        // Dark mode variants
+        'dark-bg': '#121212',
+        'dark-surface': '#1E1E1E',
+        'dark-border': '#2D2D2D',
       },
       fontFamily: {
         serif: ['Cormorant Garamond', 'serif'],

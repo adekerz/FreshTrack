@@ -44,20 +44,23 @@ export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose })
           path: '/',
           icon: LayoutDashboard,
           label: t('nav.dashboard'),
-          roles: ['SUPER_ADMIN', 'HOTEL_ADMIN', 'STAFF']
+          roles: ['SUPER_ADMIN', 'HOTEL_ADMIN', 'STAFF'],
+          onboardingId: 'dashboard'
         },
         {
           path: '/inventory',
           icon: Package,
           label: t('nav.inventory'),
-          roles: ['SUPER_ADMIN', 'HOTEL_ADMIN', 'STAFF']
+          roles: ['SUPER_ADMIN', 'HOTEL_ADMIN', 'STAFF'],
+          onboardingId: 'inventory'
         },
         {
           path: '/notifications',
           icon: Bell,
           label: t('nav.notifications'),
           badge: unreadCount > 0 ? unreadCount : null,
-          roles: ['SUPER_ADMIN', 'HOTEL_ADMIN', 'STAFF']
+          roles: ['SUPER_ADMIN', 'HOTEL_ADMIN', 'STAFF'],
+          onboardingId: 'notifications'
         },
         {
           path: '/calendar',
@@ -74,7 +77,8 @@ export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose })
           path: '/statistics',
           icon: BarChart3,
           label: t('nav.statistics'),
-          roles: ['SUPER_ADMIN', 'HOTEL_ADMIN']
+          roles: ['SUPER_ADMIN', 'HOTEL_ADMIN'],
+          onboardingId: 'statistics'
         },
         {
           path: '/collection-history',
@@ -159,8 +163,12 @@ export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose })
 
           {/* Кнопка закрытия для мобильной версии */}
           {isMobile && (
-            <button onClick={onClose} className="p-2 hover:bg-white/10 rounded transition-colors">
-              <X className="w-5 h-5" />
+            <button 
+              onClick={onClose} 
+              className="p-2 hover:bg-white/10 rounded transition-colors"
+              aria-label={t('common.close') || 'Close menu'}
+            >
+              <X className="w-5 h-5" aria-hidden="true" />
             </button>
           )}
         </div>
@@ -196,6 +204,7 @@ export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose })
                         )}
                         title={!isOpen && !isMobile ? item.label : undefined}
                         aria-current={isActive(item.path) ? 'page' : undefined}
+                        data-onboarding={item.onboardingId || undefined}
                       >
                         <item.icon className={cn(
                           'w-5 h-5 flex-shrink-0 transition-transform duration-200',

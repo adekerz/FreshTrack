@@ -9,7 +9,7 @@ export function Skeleton({ className = '', animate = true }) {
   return (
     <div 
       className={`
-        bg-sand rounded
+        bg-sand dark:bg-white/10 rounded
         ${animate ? 'animate-pulse' : ''}
         ${className}
       `}
@@ -46,7 +46,7 @@ export function SkeletonAvatar({ size = 'md', className = '' }) {
 // Card skeleton
 export function SkeletonCard({ className = '' }) {
   return (
-    <div className={`bg-white rounded-xl border border-sand p-4 md:p-6 ${className}`}>
+    <div className={`bg-white dark:bg-dark-surface rounded-xl border border-sand dark:border-dark-border p-4 md:p-6 ${className}`}>
       <div className="flex items-center gap-4 mb-4">
         <SkeletonAvatar />
         <div className="flex-1">

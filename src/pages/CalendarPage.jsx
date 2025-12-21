@@ -142,10 +142,10 @@ export default function CalendarPage() {
       {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-playfair text-charcoal">
+          <h1 className="text-xl sm:text-2xl font-playfair text-charcoal dark:text-cream">
             {t('nav.calendar') || 'Календарь'}
           </h1>
-          <p className="text-charcoal/60 text-xs sm:text-sm">
+          <p className="text-charcoal/60 dark:text-cream/60 text-xs sm:text-sm">
             {t('calendar.description') || 'Визуализация сроков годности'}
           </p>
         </div>
@@ -155,7 +155,7 @@ export default function CalendarPage() {
           <select
             value={filterDepartment}
             onChange={(e) => setFilterDepartment(e.target.value)}
-            className="px-2 sm:px-3 py-1.5 sm:py-2 border border-taupe/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-gold/50 bg-white text-xs sm:text-sm flex-1 sm:flex-none"
+            className="px-2 sm:px-3 py-1.5 sm:py-2 border border-taupe/30 dark:border-dark-border rounded-lg focus:outline-none focus:ring-2 focus:ring-gold/50 bg-white dark:bg-dark-surface dark:text-cream text-xs sm:text-sm flex-1 sm:flex-none"
           >
             <option value="">{t('common.allDepartments') || 'Все отделы'}</option>
             {departments.map((dept) => (
@@ -176,13 +176,13 @@ export default function CalendarPage() {
 
       {/* Статистика месяца - Bento Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
-        <div className="bg-white rounded-xl p-3 sm:p-4 shadow-card border border-taupe/10">
+        <div className="bg-white dark:bg-dark-surface rounded-xl p-3 sm:p-4 shadow-card border border-taupe/10 dark:border-dark-border">
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="p-1.5 sm:p-2 bg-danger/10 rounded-lg">
               <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-danger" />
             </div>
             <div className="min-w-0">
-              <p className="text-xs sm:text-sm text-charcoal/60 truncate">
+              <p className="text-xs sm:text-sm text-charcoal/60 dark:text-cream/60 truncate">
                 {t('calendar.expiredDays') || 'С просрочкой'}
               </p>
               <p className="text-lg sm:text-xl font-semibold text-danger">{monthStats.expired}</p>
@@ -190,13 +190,13 @@ export default function CalendarPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl p-3 sm:p-4 shadow-card border border-taupe/10">
+        <div className="bg-white dark:bg-dark-surface rounded-xl p-3 sm:p-4 shadow-card border border-taupe/10 dark:border-dark-border">
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="p-1.5 sm:p-2 bg-warning/10 rounded-lg">
               <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-warning" />
             </div>
             <div className="min-w-0">
-              <p className="text-xs sm:text-sm text-charcoal/60 truncate">
+              <p className="text-xs sm:text-sm text-charcoal/60 dark:text-cream/60 truncate">
                 {t('calendar.criticalDays') || 'Критических'}
               </p>
               <p className="text-lg sm:text-xl font-semibold text-warning">{monthStats.critical}</p>
@@ -204,13 +204,13 @@ export default function CalendarPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl p-3 sm:p-4 shadow-card border border-taupe/10">
+        <div className="bg-white dark:bg-dark-surface rounded-xl p-3 sm:p-4 shadow-card border border-taupe/10 dark:border-dark-border">
           <div className="flex items-center gap-2 sm:gap-3">
-            <div className="p-1.5 sm:p-2 bg-yellow-100 rounded-lg">
+            <div className="p-1.5 sm:p-2 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg">
               <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600" />
             </div>
             <div className="min-w-0">
-              <p className="text-xs sm:text-sm text-charcoal/60 truncate">
+              <p className="text-xs sm:text-sm text-charcoal/60 dark:text-cream/60 truncate">
                 {t('calendar.warningDays') || 'Внимание'}
               </p>
               <p className="text-lg sm:text-xl font-semibold text-yellow-600">{monthStats.warning}</p>
@@ -218,13 +218,13 @@ export default function CalendarPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl p-3 sm:p-4 shadow-card border border-taupe/10">
+        <div className="bg-white dark:bg-dark-surface rounded-xl p-3 sm:p-4 shadow-card border border-taupe/10 dark:border-dark-border">
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="p-1.5 sm:p-2 bg-success/10 rounded-lg">
               <Package className="w-4 h-4 sm:w-5 sm:h-5 text-success" />
             </div>
             <div className="min-w-0">
-              <p className="text-xs sm:text-sm text-charcoal/60 truncate">{t('calendar.goodDays') || 'В норме'}</p>
+              <p className="text-xs sm:text-sm text-charcoal/60 dark:text-cream/60 truncate">{t('calendar.goodDays') || 'В норме'}</p>
               <p className="text-lg sm:text-xl font-semibold text-success">{monthStats.good}</p>
             </div>
           </div>
@@ -233,25 +233,25 @@ export default function CalendarPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Календарь */}
-        <div className="lg:col-span-2 bg-white rounded-xl shadow-card border border-taupe/10 p-3 sm:p-6">
+        <div className="lg:col-span-2 bg-white dark:bg-dark-surface rounded-xl shadow-card border border-taupe/10 dark:border-dark-border p-3 sm:p-6">
           {/* Навигация месяца */}
           <div className="flex items-center justify-between mb-4 sm:mb-6">
             <button
               onClick={goToPreviousMonth}
-              className="p-1.5 sm:p-2 hover:bg-sand rounded-lg transition-colors"
+              className="p-1.5 sm:p-2 hover:bg-sand dark:hover:bg-dark-border rounded-lg transition-colors"
             >
-              <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 text-charcoal" />
+              <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 text-charcoal dark:text-cream" />
             </button>
 
-            <h2 className="text-base sm:text-xl font-semibold text-charcoal capitalize">
+            <h2 className="text-base sm:text-xl font-semibold text-charcoal dark:text-cream capitalize">
               {format(currentDate, 'LLLL yyyy', { locale })}
             </h2>
 
             <button
               onClick={goToNextMonth}
-              className="p-1.5 sm:p-2 hover:bg-sand rounded-lg transition-colors"
+              className="p-1.5 sm:p-2 hover:bg-sand dark:hover:bg-dark-border rounded-lg transition-colors"
             >
-              <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-charcoal" />
+              <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-charcoal dark:text-cream" />
             </button>
           </div>
 
@@ -260,7 +260,7 @@ export default function CalendarPage() {
             {localizedWeekDays.map((day, index) => (
               <div
                 key={day}
-                className={`text-center text-xs sm:text-sm font-medium py-1 sm:py-2 ${index >= 5 ? 'text-charcoal/50' : 'text-charcoal'}`}
+                className={`text-center text-xs sm:text-sm font-medium py-1 sm:py-2 ${index >= 5 ? 'text-charcoal/50 dark:text-cream/50' : 'text-charcoal dark:text-cream'}`}
               >
                 {day}
               </div>
@@ -289,14 +289,14 @@ export default function CalendarPage() {
                   className={`
                     aspect-square p-0.5 sm:p-1 rounded-lg relative transition-all
                     ${isSelected ? 'ring-2 ring-gold ring-offset-1 sm:ring-offset-2' : ''}
-                    ${isTodayDate ? 'bg-gold/20' : 'hover:bg-sand/50'}
+                    ${isTodayDate ? 'bg-gold/20' : 'hover:bg-sand/50 dark:hover:bg-dark-border'}
                     ${status ? 'cursor-pointer' : 'cursor-default'}
                   `}
                 >
                   <span
                     className={`
                     text-xs sm:text-sm font-medium
-                    ${isTodayDate ? 'text-gold font-bold' : 'text-charcoal'}
+                    ${isTodayDate ? 'text-gold font-bold' : 'text-charcoal dark:text-cream'}
                   `}
                   >
                     {format(day, 'd')}
@@ -319,31 +319,31 @@ export default function CalendarPage() {
           </div>
 
           {/* Легенда */}
-          <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-4 sm:mt-6 pt-3 sm:pt-4 border-t border-taupe/10">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-4 sm:mt-6 pt-3 sm:pt-4 border-t border-taupe/10 dark:border-dark-border">
             <div className="flex items-center gap-1 sm:gap-2">
               <div className="w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-danger" />
-              <span className="text-xs sm:text-sm text-charcoal/70">
+              <span className="text-xs sm:text-sm text-charcoal/70 dark:text-cream/70">
                 {t('status.expired') || 'Просрочено'}
               </span>
             </div>
             <div className="flex items-center gap-1 sm:gap-2">
               <div className="w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-warning" />
-              <span className="text-xs sm:text-sm text-charcoal/70">{t('status.critical') || 'Критично'}</span>
+              <span className="text-xs sm:text-sm text-charcoal/70 dark:text-cream/70">{t('status.critical') || 'Критично'}</span>
             </div>
             <div className="flex items-center gap-1 sm:gap-2">
               <div className="w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-yellow-400" />
-              <span className="text-xs sm:text-sm text-charcoal/70">{t('status.warning') || 'Внимание'}</span>
+              <span className="text-xs sm:text-sm text-charcoal/70 dark:text-cream/70">{t('status.warning') || 'Внимание'}</span>
             </div>
             <div className="flex items-center gap-1 sm:gap-2">
               <div className="w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-success" />
-              <span className="text-xs sm:text-sm text-charcoal/70">{t('status.good') || 'Норма'}</span>
+              <span className="text-xs sm:text-sm text-charcoal/70 dark:text-cream/70">{t('status.good') || 'Норма'}</span>
             </div>
           </div>
         </div>
 
         {/* Детали выбранного дня */}
-        <div className="bg-white rounded-xl shadow-card border border-taupe/10 p-3 sm:p-6">
-          <h3 className="text-base sm:text-lg font-semibold text-charcoal mb-3 sm:mb-4 flex items-center gap-2">
+        <div className="bg-white dark:bg-dark-surface rounded-xl shadow-card border border-taupe/10 dark:border-dark-border p-3 sm:p-6">
+          <h3 className="text-base sm:text-lg font-semibold text-charcoal dark:text-cream mb-3 sm:mb-4 flex items-center gap-2">
             <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-gold" />
             {selectedDate
               ? format(selectedDate, 'd MMMM yyyy', { locale })

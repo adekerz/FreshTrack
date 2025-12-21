@@ -276,11 +276,11 @@ export default function AuditLogsPage() {
       {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-xl sm:text-2xl font-light text-charcoal flex items-center gap-2">
+          <h1 className="text-xl sm:text-2xl font-light text-charcoal dark:text-cream flex items-center gap-2">
             <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-accent" />
             {t('auditLogs.title') || 'Журнал действий'}
           </h1>
-          <p className="text-warmgray mt-1 text-xs sm:text-sm">
+          <p className="text-warmgray dark:text-warmgray/80 mt-1 text-xs sm:text-sm">
             {t('auditLogs.subtitle') || 'История всех действий в системе'}
           </p>
         </div>
@@ -305,7 +305,7 @@ export default function AuditLogsPage() {
       </div>
 
       {/* Filters Bar */}
-      <div className="bg-white rounded-xl border border-sand p-3 sm:p-4">
+      <div className="bg-white dark:bg-dark-surface rounded-xl border border-sand dark:border-dark-border p-3 sm:p-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
           {/* Search */}
           <div className="relative flex-1">
@@ -315,7 +315,7 @@ export default function AuditLogsPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={t('common.search') || 'Поиск...'}
-              className="w-full pl-9 sm:pl-10 pr-4 py-2 border border-sand rounded-lg bg-cream text-charcoal text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
+              className="w-full pl-9 sm:pl-10 pr-4 py-2 border border-sand dark:border-dark-border rounded-lg bg-cream dark:bg-dark-bg text-charcoal dark:text-cream text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
             />
           </div>
 
@@ -353,16 +353,16 @@ export default function AuditLogsPage() {
 
         {/* Extended Filters */}
         {showFilters && (
-          <div className="mt-4 pt-4 border-t border-sand grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="mt-4 pt-4 border-t border-sand dark:border-dark-border grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Action Type */}
             <div>
-              <label className="block text-sm font-medium text-charcoal mb-1">
+              <label className="block text-sm font-medium text-charcoal dark:text-cream mb-1">
                 {t('auditLogs.filters.actionType') || 'Тип действия'}
               </label>
               <select
                 value={filters.actionType}
                 onChange={(e) => setFilters(prev => ({ ...prev, actionType: e.target.value }))}
-                className="w-full px-3 py-2 border border-sand rounded-lg bg-cream text-charcoal focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+                className="w-full px-3 py-2 border border-sand dark:border-dark-border rounded-lg bg-cream dark:bg-dark-bg text-charcoal dark:text-cream focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
               >
                 <option value="">{t('common.all') || 'Все'}</option>
                 {actionTypes.map(type => (
@@ -373,13 +373,13 @@ export default function AuditLogsPage() {
 
             {/* Entity Type */}
             <div>
-              <label className="block text-sm font-medium text-charcoal mb-1">
+              <label className="block text-sm font-medium text-charcoal dark:text-cream mb-1">
                 {t('auditLogs.filters.entityType') || 'Тип объекта'}
               </label>
               <select
                 value={filters.entityType}
                 onChange={(e) => setFilters(prev => ({ ...prev, entityType: e.target.value }))}
-                className="w-full px-3 py-2 border border-sand rounded-lg bg-cream text-charcoal focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+                className="w-full px-3 py-2 border border-sand dark:border-dark-border rounded-lg bg-cream dark:bg-dark-bg text-charcoal dark:text-cream focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
               >
                 <option value="">{t('common.all') || 'Все'}</option>
                 {entityTypes.map(type => (
@@ -390,7 +390,7 @@ export default function AuditLogsPage() {
 
             {/* Date From */}
             <div>
-              <label className="block text-sm font-medium text-charcoal mb-1">
+              <label className="block text-sm font-medium text-charcoal dark:text-cream mb-1">
                 {t('auditLogs.filters.dateFrom') || 'Дата от'}
               </label>
               <div className="relative">
@@ -399,14 +399,14 @@ export default function AuditLogsPage() {
                   type="date"
                   value={filters.dateFrom}
                   onChange={(e) => setFilters(prev => ({ ...prev, dateFrom: e.target.value }))}
-                  className="w-full pl-10 pr-3 py-2 border border-sand rounded-lg bg-cream text-charcoal focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+                  className="w-full pl-10 pr-3 py-2 border border-sand dark:border-dark-border rounded-lg bg-cream dark:bg-dark-bg text-charcoal dark:text-cream focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
                 />
               </div>
             </div>
 
             {/* Date To */}
             <div>
-              <label className="block text-sm font-medium text-charcoal mb-1">
+              <label className="block text-sm font-medium text-charcoal dark:text-cream mb-1">
                 {t('auditLogs.filters.dateTo') || 'Дата до'}
               </label>
               <div className="relative">
@@ -415,7 +415,7 @@ export default function AuditLogsPage() {
                   type="date"
                   value={filters.dateTo}
                   onChange={(e) => setFilters(prev => ({ ...prev, dateTo: e.target.value }))}
-                  className="w-full pl-10 pr-3 py-2 border border-sand rounded-lg bg-cream text-charcoal focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+                  className="w-full pl-10 pr-3 py-2 border border-sand dark:border-dark-border rounded-lg bg-cream dark:bg-dark-bg text-charcoal dark:text-cream focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
                 />
               </div>
             </div>
@@ -426,17 +426,17 @@ export default function AuditLogsPage() {
       {/* Stats */}
       <div className="flex items-center gap-4 text-sm text-warmgray">
         <span>
-          {t('common.total') || 'Всего'}: <strong className="text-charcoal">{pagination.total}</strong> {t('auditLogs.records') || 'записей'}
+          {t('common.total') || 'Всего'}: <strong className="text-charcoal dark:text-cream">{pagination.total}</strong> {t('auditLogs.records') || 'записей'}
         </span>
         {hasActiveFilters && (
           <span>
-            {t('common.filtered') || 'Отфильтровано'}: <strong className="text-charcoal">{filteredLogs.length}</strong>
+            {t('common.filtered') || 'Отфильтровано'}: <strong className="text-charcoal dark:text-cream">{filteredLogs.length}</strong>
           </span>
         )}
       </div>
 
       {/* Logs List */}
-      <div className="bg-white rounded-xl border border-sand overflow-hidden">
+      <div className="bg-white dark:bg-dark-surface rounded-xl border border-sand dark:border-dark-border overflow-hidden">
         {filteredLogs.length === 0 ? (
           <div className="p-8 text-center">
             <FileText className="w-12 h-12 text-warmgray mx-auto mb-4" />
@@ -447,7 +447,7 @@ export default function AuditLogsPage() {
             {/* Desktop Table */}
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-sand/50">
+                <thead className="bg-sand/50 dark:bg-dark-border/30">
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-medium text-warmgray uppercase tracking-wider">
                       {t('auditLogs.timestamp') || 'Время'}
@@ -472,13 +472,13 @@ export default function AuditLogsPage() {
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-sand">
+                <tbody className="divide-y divide-sand dark:divide-dark-border">
                   {filteredLogs.map((log) => (
-                    <tr key={log.id} className="hover:bg-sand/30 transition-colors">
+                    <tr key={log.id} className="hover:bg-sand/30 dark:hover:bg-dark-border/30 transition-colors">
                       <td className="px-4 py-3 whitespace-nowrap">
                         <div className="flex items-center gap-2 text-sm">
                           <Clock className="w-4 h-4 text-warmgray" />
-                          <span className="text-charcoal">
+                          <span className="text-charcoal dark:text-cream">
                             {formatTimestamp(log.timestamp || log.created_at)}
                           </span>
                         </div>
@@ -488,7 +488,7 @@ export default function AuditLogsPage() {
                           <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center">
                             <User className="w-4 h-4 text-accent" />
                           </div>
-                          <span className="font-medium text-charcoal">
+                          <span className="font-medium text-charcoal dark:text-cream">
                             {log.userName || log.user || 'Система'}
                           </span>
                         </div>
@@ -508,7 +508,7 @@ export default function AuditLogsPage() {
                         <div className="flex items-center gap-2">
                           {getEntityIcon(log.entity_type)}
                           <div>
-                            <span className="text-charcoal">
+                            <span className="text-charcoal dark:text-cream">
                               {log.entity_name || log.target || '—'}
                             </span>
                             {log.entity_type && (
@@ -545,11 +545,11 @@ export default function AuditLogsPage() {
             </div>
 
             {/* Mobile Cards */}
-            <div className="md:hidden divide-y divide-sand">
+            <div className="md:hidden divide-y divide-sand dark:divide-dark-border">
               {filteredLogs.map((log) => (
                 <div 
                   key={log.id} 
-                  className="p-4 space-y-3 cursor-pointer hover:bg-sand/30 transition-colors"
+                  className="p-4 space-y-3 cursor-pointer hover:bg-sand/30 dark:hover:bg-dark-border/30 transition-colors"
                   onClick={() => setSelectedLog(log)}
                 >
                   <div className="flex items-center justify-between">
@@ -569,7 +569,7 @@ export default function AuditLogsPage() {
 
                   <div className="flex items-center gap-2">
                     <User className="w-4 h-4 text-warmgray" />
-                    <span className="font-medium text-charcoal">
+                    <span className="font-medium text-charcoal dark:text-cream">
                       {log.userName || log.user || 'Система'}
                     </span>
                   </div>
@@ -577,7 +577,7 @@ export default function AuditLogsPage() {
                   {(log.entity_name || log.target) && (
                     <div className="flex items-center gap-2 text-sm">
                       {getEntityIcon(log.entity_type)}
-                      <span className="text-charcoal">
+                      <span className="text-charcoal dark:text-cream">
                         {log.entity_name || log.target}
                       </span>
                     </div>
@@ -596,7 +596,7 @@ export default function AuditLogsPage() {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-sand">
+          <div className="flex items-center justify-between px-4 py-3 border-t border-sand dark:border-dark-border">
             <div className="text-sm text-warmgray">
               {((pagination.page - 1) * pagination.limit) + 1}—
               {Math.min(pagination.page * pagination.limit, pagination.total)} {t('common.of') || 'из'}{' '}

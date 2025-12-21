@@ -72,28 +72,28 @@ export default function CollectModal({ isOpen, onClose, batch, onConfirm }) {
 
       {/* Modal */}
       <div className="flex min-h-full items-center justify-center p-4">
-        <div className="relative bg-white rounded-2xl shadow-elevated w-full max-w-md transform transition-all">
+        <div className="relative bg-white dark:bg-dark-surface rounded-2xl shadow-elevated w-full max-w-md transform transition-all">
           {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-taupe/10">
+          <div className="flex items-center justify-between p-6 border-b border-taupe/10 dark:border-dark-border">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-warning/10 rounded-lg">
                 <Package className="w-5 h-5 text-warning" />
               </div>
-              <h2 className="text-lg font-semibold text-charcoal">
+              <h2 className="text-lg font-semibold text-charcoal dark:text-cream">
                 {t('collect.title') || 'Сбор товара'}
               </h2>
             </div>
-            <button onClick={onClose} className="p-2 hover:bg-sand rounded-lg transition-colors">
-              <X className="w-5 h-5 text-charcoal/60" />
+            <button onClick={onClose} className="p-2 hover:bg-sand dark:hover:bg-dark-border rounded-lg transition-colors">
+              <X className="w-5 h-5 text-charcoal/60 dark:text-cream/60" />
             </button>
           </div>
 
           {/* Content */}
           <form onSubmit={handleSubmit} className="p-6 space-y-6">
             {/* Информация о товаре */}
-            <div className="bg-sand/30 rounded-xl p-4">
-              <h3 className="font-medium text-charcoal">{batch.productName}</h3>
-              <div className="mt-2 space-y-1 text-sm text-charcoal/70">
+            <div className="bg-sand/30 dark:bg-dark-border/50 rounded-xl p-4">
+              <h3 className="font-medium text-charcoal dark:text-cream">{batch.productName}</h3>
+              <div className="mt-2 space-y-1 text-sm text-charcoal/70 dark:text-cream/70">
                 <p>📍 {getDepartmentName(batch.department)}</p>
                 <p>
                   📦 {t('common.quantity')}: {batch.quantity} {t('common.units')}
@@ -120,7 +120,7 @@ export default function CollectModal({ isOpen, onClose, batch, onConfirm }) {
 
             {/* Причина сбора */}
             <div>
-              <label className="block text-sm font-medium text-charcoal mb-3">
+              <label className="block text-sm font-medium text-charcoal dark:text-cream mb-3">
                 {t('collect.reason') || 'Причина сбора'}
               </label>
               <div className="grid grid-cols-2 gap-2">
@@ -136,12 +136,12 @@ export default function CollectModal({ isOpen, onClose, batch, onConfirm }) {
                         ${
                           reason === r.id
                             ? 'border-gold bg-gold/10 ring-2 ring-gold/30'
-                            : 'border-taupe/20 hover:border-gold/50 hover:bg-sand/30'
+                            : 'border-taupe/20 dark:border-dark-border hover:border-gold/50 hover:bg-sand/30 dark:hover:bg-dark-border'
                         }
                       `}
                     >
                       <Icon className={`w-4 h-4 ${r.color}`} />
-                      <span className="text-sm text-charcoal">
+                      <span className="text-sm text-charcoal dark:text-cream">
                         {t(`collect.reasons.${r.id}`) || r.id}
                       </span>
                     </button>
@@ -152,9 +152,9 @@ export default function CollectModal({ isOpen, onClose, batch, onConfirm }) {
 
             {/* Комментарий */}
             <div>
-              <label className="block text-sm font-medium text-charcoal mb-2">
+              <label className="block text-sm font-medium text-charcoal dark:text-cream mb-2">
                 {t('collect.comment') || 'Комментарий'}
-                <span className="text-charcoal/40 font-normal ml-1">
+                <span className="text-charcoal/40 dark:text-cream/40 font-normal ml-1">
                   ({t('common.optional') || 'необязательно'})
                 </span>
               </label>
@@ -164,7 +164,7 @@ export default function CollectModal({ isOpen, onClose, batch, onConfirm }) {
                 placeholder={
                   t('collect.commentPlaceholder') || 'Добавьте заметку о причине сбора...'
                 }
-                className="w-full px-4 py-3 border border-taupe/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-gold/50 resize-none h-24"
+                className="w-full px-4 py-3 border border-taupe/30 dark:border-dark-border rounded-xl focus:outline-none focus:ring-2 focus:ring-gold/50 resize-none h-24 bg-white dark:bg-dark-bg dark:text-cream dark:placeholder-cream/40"
               />
             </div>
 
@@ -173,7 +173,7 @@ export default function CollectModal({ isOpen, onClose, batch, onConfirm }) {
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 px-4 py-3 border border-taupe/30 text-charcoal rounded-xl hover:bg-sand/50 transition-colors"
+                className="flex-1 px-4 py-3 border border-taupe/30 dark:border-dark-border text-charcoal dark:text-cream rounded-xl hover:bg-sand/50 dark:hover:bg-dark-border transition-colors"
               >
                 {t('common.cancel')}
               </button>

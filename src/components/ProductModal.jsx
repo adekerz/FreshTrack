@@ -124,12 +124,12 @@ export default function ProductModal({ product, onClose }) {
       className="fixed inset-0 bg-charcoal/50 flex items-center justify-center z-50 p-4"
       onClick={handleOverlayClick}
     >
-      <div className="bg-cream rounded-lg w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col animate-slide-up">
+      <div className="bg-cream dark:bg-dark-surface rounded-lg w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col animate-slide-up">
         {/* Заголовок */}
-        <div className="flex items-center justify-between p-6 border-b border-sand">
+        <div className="flex items-center justify-between p-6 border-b border-sand dark:border-dark-border">
           <div>
-            <h2 className="font-serif text-2xl text-charcoal">{product.name}</h2>
-            <span className="text-sm text-warmgray bg-sand/50 px-2 py-0.5 rounded mt-1 inline-block">
+            <h2 className="font-serif text-2xl text-charcoal dark:text-cream">{product.name}</h2>
+            <span className="text-sm text-warmgray bg-sand/50 dark:bg-dark-border px-2 py-0.5 rounded mt-1 inline-block">
               {getCategoryName()}
             </span>
           </div>
@@ -145,7 +145,7 @@ export default function ProductModal({ product, onClose }) {
             )}
             <button
               onClick={onClose}
-              className="text-warmgray hover:text-charcoal transition-colors p-2"
+              className="text-warmgray hover:text-charcoal dark:hover:text-cream transition-colors p-2"
             >
               <X className="w-5 h-5" />
             </button>
@@ -156,12 +156,12 @@ export default function ProductModal({ product, onClose }) {
         <div className="flex-1 overflow-y-auto p-6">
           {/* Статистика */}
           <div className="flex gap-4 mb-6">
-            <div className="bg-white rounded-lg p-4 flex-1 border border-sand">
-              <div className="text-2xl font-medium text-charcoal">{activeBatches.length}</div>
+            <div className="bg-white dark:bg-dark-bg rounded-lg p-4 flex-1 border border-sand dark:border-dark-border">
+              <div className="text-2xl font-medium text-charcoal dark:text-cream">{activeBatches.length}</div>
               <div className="text-sm text-warmgray">{t('product.activeBatches')}</div>
             </div>
-            <div className="bg-white rounded-lg p-4 flex-1 border border-sand">
-              <div className="text-2xl font-medium text-charcoal">
+            <div className="bg-white dark:bg-dark-bg rounded-lg p-4 flex-1 border border-sand dark:border-dark-border">
+              <div className="text-2xl font-medium text-charcoal dark:text-cream">
                 {activeBatches.reduce((sum, b) => sum + b.quantity, 0)}
               </div>
               <div className="text-sm text-warmgray">{t('product.totalUnits')}</div>
@@ -178,12 +178,12 @@ export default function ProductModal({ product, onClose }) {
                 {activeBatches.map((batch) => (
                   <div
                     key={batch.id}
-                    className={`bg-white rounded-lg p-4 border-l-4 ${statusBorderColors[batch.status.status]} border border-sand`}
+                    className={`bg-white dark:bg-dark-bg rounded-lg p-4 border-l-4 ${statusBorderColors[batch.status.status]} border border-sand dark:border-dark-border`}
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         {/* Дата истечения срока */}
-                        <div className="flex items-center gap-2 text-charcoal mb-1">
+                        <div className="flex items-center gap-2 text-charcoal dark:text-cream mb-1">
                           <Calendar className="w-4 h-4 text-warmgray" />
                           <span className="font-medium">
                             {formatDateDisplay(batch.expiryDate)}
@@ -209,7 +209,7 @@ export default function ProductModal({ product, onClose }) {
                             <User className="w-4 h-4" />
                             <span>
                               {t('product.addedBy') || 'Добавил'}:{' '}
-                              <strong className="text-charcoal">{batch.addedBy}</strong>
+                              <strong className="text-charcoal dark:text-cream">{batch.addedBy}</strong>
                             </span>
                           </div>
                         )}
@@ -272,7 +272,7 @@ export default function ProductModal({ product, onClose }) {
                 {collectedBatches.slice(0, 5).map((batch) => (
                   <div
                     key={batch.id}
-                    className="bg-sand/30 rounded-lg p-3 border border-sand/50 opacity-60"
+                    className="bg-sand/30 dark:bg-dark-border/30 rounded-lg p-3 border border-sand/50 dark:border-dark-border opacity-60"
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2 text-sm text-warmgray">
@@ -311,8 +311,8 @@ export default function ProductModal({ product, onClose }) {
 
           {/* Форма добавления партии */}
           {showAddForm && (
-            <div className="bg-white rounded-lg p-4 border border-accent mb-4">
-              <h4 className="font-medium text-charcoal mb-4">{t('product.addNewBatch')}</h4>
+            <div className="bg-white dark:bg-dark-bg rounded-lg p-4 border border-accent mb-4">
+              <h4 className="font-medium text-charcoal dark:text-cream mb-4">{t('product.addNewBatch')}</h4>
               <form onSubmit={handleAddBatch} className="space-y-4">
                 <div>
                   <label className="block text-sm text-warmgray mb-1">
@@ -324,7 +324,7 @@ export default function ProductModal({ product, onClose }) {
                     onChange={(e) =>
                       setNewBatch((prev) => ({ ...prev, expiryDate: e.target.value }))
                     }
-                    className="w-full px-3 py-2 border border-sand rounded focus:outline-none focus:border-accent"
+                    className="w-full px-3 py-2 border border-sand dark:border-dark-border rounded focus:outline-none focus:border-accent bg-white dark:bg-dark-surface dark:text-cream"
                     required
                   />
                 </div>
@@ -371,7 +371,7 @@ export default function ProductModal({ product, onClose }) {
                   <button
                     type="button"
                     onClick={() => setShowAddForm(false)}
-                    className="px-4 py-2 text-sm text-warmgray hover:text-charcoal transition-colors"
+                    className="px-4 py-2 text-sm text-warmgray hover:text-charcoal dark:hover:text-cream transition-colors"
                   >
                     {t('common.cancel')}
                   </button>
@@ -388,7 +388,7 @@ export default function ProductModal({ product, onClose }) {
         </div>
 
         {/* Футер */}
-        <div className="p-6 border-t border-sand bg-sand/30">
+        <div className="p-6 border-t border-sand dark:border-dark-border bg-sand/30 dark:bg-dark-border/30">
           {!showAddForm && (
             <button
               onClick={() => setShowAddForm(true)}

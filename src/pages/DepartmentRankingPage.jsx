@@ -82,11 +82,11 @@ export default function DepartmentRankingPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-playfair text-charcoal flex items-center gap-2">
+          <h1 className="text-xl sm:text-2xl font-playfair text-charcoal dark:text-cream flex items-center gap-2">
             <Trophy className="w-6 h-6 text-gold" />
             {t('ranking.title') || 'Рейтинг отделов'}
           </h1>
-          <p className="text-charcoal/60">
+          <p className="text-charcoal/60 dark:text-warmgray">
             {t('ranking.description') || 'Сравнение эффективности отделов'}
           </p>
         </div>
@@ -107,27 +107,27 @@ export default function DepartmentRankingPage() {
 
       {/* Общая статистика */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl p-4 shadow-card border border-taupe/10">
+        <div className="bg-white dark:bg-dark-surface rounded-xl p-4 shadow-card border border-taupe/10 dark:border-dark-border">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-charcoal/10 rounded-lg">
-              <Package className="w-5 h-5 text-charcoal" />
+            <div className="p-2 bg-charcoal/10 dark:bg-charcoal/20 rounded-lg">
+              <Package className="w-5 h-5 text-charcoal dark:text-cream" />
             </div>
             <div>
-              <p className="text-sm text-charcoal/60">
+              <p className="text-sm text-charcoal/60 dark:text-warmgray">
                 {t('ranking.totalBatches') || 'Всего партий'}
               </p>
-              <p className="text-xl font-semibold text-charcoal">{totalStats.totalBatches}</p>
+              <p className="text-xl font-semibold text-charcoal dark:text-cream">{totalStats.totalBatches}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl p-4 shadow-card border border-taupe/10">
+        <div className="bg-white dark:bg-dark-surface rounded-xl p-4 shadow-card border border-taupe/10 dark:border-dark-border">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-danger/10 rounded-lg">
               <AlertTriangle className="w-5 h-5 text-danger" />
             </div>
             <div>
-              <p className="text-sm text-charcoal/60">
+              <p className="text-sm text-charcoal/60 dark:text-warmgray">
                 {t('ranking.totalExpired') || 'Просрочено'}
               </p>
               <p className="text-xl font-semibold text-danger">{totalStats.totalExpired}</p>
@@ -135,13 +135,13 @@ export default function DepartmentRankingPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl p-4 shadow-card border border-taupe/10">
+        <div className="bg-white dark:bg-dark-surface rounded-xl p-4 shadow-card border border-taupe/10 dark:border-dark-border">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-success/10 rounded-lg">
               <Target className="w-5 h-5 text-success" />
             </div>
             <div>
-              <p className="text-sm text-charcoal/60">
+              <p className="text-sm text-charcoal/60 dark:text-warmgray">
                 {t('ranking.avgEfficiency') || 'Ср. эффективность'}
               </p>
               <p className="text-xl font-semibold text-success">{totalStats.avgEfficiency}%</p>
@@ -149,14 +149,14 @@ export default function DepartmentRankingPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl p-4 shadow-card border border-taupe/10">
+        <div className="bg-white dark:bg-dark-surface rounded-xl p-4 shadow-card border border-taupe/10 dark:border-dark-border">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-gold/10 rounded-lg">
               <Award className="w-5 h-5 text-gold" />
             </div>
             <div>
-              <p className="text-sm text-charcoal/60">{t('ranking.leader') || 'Лидер'}</p>
-              <p className="text-lg font-semibold text-charcoal truncate">
+              <p className="text-sm text-charcoal/60 dark:text-warmgray">{t('ranking.leader') || 'Лидер'}</p>
+              <p className="text-lg font-semibold text-charcoal dark:text-cream truncate">
                 {totalStats.bestDepartment}
               </p>
             </div>
@@ -165,15 +165,15 @@ export default function DepartmentRankingPage() {
       </div>
 
       {/* Список отделов */}
-      <div className="bg-white rounded-xl shadow-card border border-taupe/10 overflow-hidden">
-        <div className="p-4 border-b border-taupe/10">
-          <h3 className="font-semibold text-charcoal flex items-center gap-2">
+      <div className="bg-white dark:bg-dark-surface rounded-xl shadow-card border border-taupe/10 dark:border-dark-border overflow-hidden">
+        <div className="p-4 border-b border-taupe/10 dark:border-dark-border">
+          <h3 className="font-semibold text-charcoal dark:text-cream flex items-center gap-2">
             <BarChart3 className="w-5 h-5 text-gold" />
             {t('ranking.departments') || 'Отделы'}
           </h3>
         </div>
 
-        <div className="divide-y divide-taupe/10">
+        <div className="divide-y divide-taupe/10 dark:divide-dark-border">
           {sortedDepartments.map((dept, index) => {
             const medal = getMedal(index)
 
@@ -181,7 +181,7 @@ export default function DepartmentRankingPage() {
               <Link
                 key={dept.id}
                 to={`/department/${dept.id}`}
-                className="flex items-center justify-between p-4 hover:bg-sand/30 transition-colors"
+                className="flex items-center justify-between p-4 hover:bg-sand/30 dark:hover:bg-dark-border/30 transition-colors"
               >
                 <div className="flex items-center gap-4">
                   {/* Позиция */}
@@ -189,7 +189,7 @@ export default function DepartmentRankingPage() {
                     {medal ? (
                       <span className="text-2xl">{medal.icon}</span>
                     ) : (
-                      <span className="text-lg font-bold text-charcoal/40">#{index + 1}</span>
+                      <span className="text-lg font-bold text-charcoal/40 dark:text-warmgray/60">#{index + 1}</span>
                     )}
                   </div>
 
@@ -197,10 +197,10 @@ export default function DepartmentRankingPage() {
                   <div className="flex items-center gap-3">
                     <div className="w-3 h-3 rounded-full" style={{ backgroundColor: dept.color }} />
                     <div>
-                      <p className="font-medium text-charcoal">
+                      <p className="font-medium text-charcoal dark:text-cream">
                         {dept.name}
                       </p>
-                      <p className="text-sm text-charcoal/60">
+                      <p className="text-sm text-charcoal/60 dark:text-warmgray">
                         {dept.total} {t('common.items')}
                       </p>
                     </div>
@@ -257,11 +257,11 @@ export default function DepartmentRankingPage() {
       </div>
 
       {/* Легенда */}
-      <div className="bg-sand/30 rounded-xl p-4">
-        <h4 className="font-medium text-charcoal mb-2">
+      <div className="bg-sand/30 dark:bg-dark-border/30 rounded-xl p-4">
+        <h4 className="font-medium text-charcoal dark:text-cream mb-2">
           {t('ranking.howCalculated') || 'Как рассчитывается:'}
         </h4>
-        <p className="text-sm text-charcoal/70">
+        <p className="text-sm text-charcoal/70 dark:text-warmgray">
           {t('ranking.efficiencyFormula') ||
             'Эффективность = процент товаров с нормальным сроком годности. Чем выше процент, тем лучше отдел контролирует сроки.'}
         </p>

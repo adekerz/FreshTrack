@@ -69,10 +69,10 @@ export default function DepartmentDashboardPage() {
         <div className="flex items-center gap-3">
           <div className="w-4 h-4 rounded-full" style={{ backgroundColor: department.color }} />
           <div>
-            <h1 className="text-xl sm:text-2xl font-playfair text-charcoal">
+            <h1 className="text-xl sm:text-2xl font-playfair text-charcoal dark:text-cream">
               {department.name}
             </h1>
-            <p className="text-sm text-charcoal/60">
+            <p className="text-sm text-charcoal/60 dark:text-warmgray">
               {t('department.dashboard') || 'Дашборд отдела'}
             </p>
           </div>
@@ -81,37 +81,37 @@ export default function DepartmentDashboardPage() {
 
       {/* Статистические карточки */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl p-4 shadow-card border border-taupe/10">
+        <div className="bg-white dark:bg-dark-surface rounded-xl p-4 shadow-card border border-taupe/10 dark:border-dark-border">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-charcoal/10 rounded-lg">
-              <Package className="w-5 h-5 text-charcoal" />
+            <div className="p-2 bg-charcoal/10 dark:bg-charcoal/20 rounded-lg">
+              <Package className="w-5 h-5 text-charcoal dark:text-cream" />
             </div>
             <div>
-              <p className="text-sm text-charcoal/60">{t('dashboard.totalBatches')}</p>
-              <p className="text-2xl font-semibold text-charcoal">{stats.total}</p>
+              <p className="text-sm text-charcoal/60 dark:text-warmgray">{t('dashboard.totalBatches')}</p>
+              <p className="text-2xl font-semibold text-charcoal dark:text-cream">{stats.total}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl p-4 shadow-card border border-taupe/10">
+        <div className="bg-white dark:bg-dark-surface rounded-xl p-4 shadow-card border border-taupe/10 dark:border-dark-border">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-danger/10 rounded-lg">
               <AlertTriangle className="w-5 h-5 text-danger" />
             </div>
             <div>
-              <p className="text-sm text-charcoal/60">{t('dashboard.expired')}</p>
+              <p className="text-sm text-charcoal/60 dark:text-warmgray">{t('dashboard.expired')}</p>
               <p className="text-2xl font-semibold text-danger">{stats.expired}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl p-4 shadow-card border border-taupe/10">
+        <div className="bg-white dark:bg-dark-surface rounded-xl p-4 shadow-card border border-taupe/10 dark:border-dark-border">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-warning/10 rounded-lg">
               <Clock className="w-5 h-5 text-warning" />
             </div>
             <div>
-              <p className="text-sm text-charcoal/60">{t('dashboard.expiringSoon')}</p>
+              <p className="text-sm text-charcoal/60 dark:text-warmgray">{t('dashboard.expiringSoon')}</p>
               <p className="text-2xl font-semibold text-warning">
                 {stats.critical + stats.warning}
               </p>
@@ -119,13 +119,13 @@ export default function DepartmentDashboardPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl p-4 shadow-card border border-taupe/10">
+        <div className="bg-white dark:bg-dark-surface rounded-xl p-4 shadow-card border border-taupe/10 dark:border-dark-border">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-success/10 rounded-lg">
               <Check className="w-5 h-5 text-success" />
             </div>
             <div>
-              <p className="text-sm text-charcoal/60">{t('dashboard.goodStatus')}</p>
+              <p className="text-sm text-charcoal/60 dark:text-warmgray">{t('dashboard.goodStatus')}</p>
               <p className="text-2xl font-semibold text-success">{stats.good}</p>
             </div>
           </div>
@@ -134,8 +134,8 @@ export default function DepartmentDashboardPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Ближайшие истекающие */}
-        <div className="bg-white rounded-xl shadow-card border border-taupe/10 p-6">
-          <h3 className="text-lg font-semibold text-charcoal mb-4 flex items-center gap-2">
+        <div className="bg-white dark:bg-dark-surface rounded-xl shadow-card border border-taupe/10 dark:border-dark-border p-6">
+          <h3 className="text-lg font-semibold text-charcoal dark:text-cream mb-4 flex items-center gap-2">
             <Clock className="w-5 h-5 text-warning" />
             {t('department.upcomingExpiry') || 'Скоро истекают'}
           </h3>
@@ -153,8 +153,8 @@ export default function DepartmentDashboardPage() {
                 >
                   <div className="flex justify-between items-start">
                     <div>
-                      <p className="font-medium text-charcoal">{batch.productName}</p>
-                      <p className="text-sm text-charcoal/60">
+                      <p className="font-medium text-charcoal dark:text-cream">{batch.productName}</p>
+                      <p className="text-sm text-charcoal/60 dark:text-warmgray">
                         {batch.quantity} {t('common.units')} • {batch.category}
                       </p>
                     </div>
@@ -180,8 +180,8 @@ export default function DepartmentDashboardPage() {
         </div>
 
         {/* По категориям */}
-        <div className="bg-white rounded-xl shadow-card border border-taupe/10 p-6">
-          <h3 className="text-lg font-semibold text-charcoal mb-4 flex items-center gap-2">
+        <div className="bg-white dark:bg-dark-surface rounded-xl shadow-card border border-taupe/10 dark:border-dark-border p-6">
+          <h3 className="text-lg font-semibold text-charcoal dark:text-cream mb-4 flex items-center gap-2">
             <PieChart className="w-5 h-5 text-gold" />
             {t('department.byCategory') || 'По категориям'}
           </h3>
@@ -191,11 +191,11 @@ export default function DepartmentDashboardPage() {
               {Object.entries(byCategory).map(([category, data]) => (
                 <div
                   key={category}
-                  className="flex items-center justify-between p-3 bg-sand/30 rounded-lg"
+                  className="flex items-center justify-between p-3 bg-sand/30 dark:bg-dark-border/30 rounded-lg"
                 >
                   <div>
-                    <p className="font-medium text-charcoal">{category}</p>
-                    <p className="text-sm text-charcoal/60">
+                    <p className="font-medium text-charcoal dark:text-cream">{category}</p>
+                    <p className="text-sm text-charcoal/60 dark:text-warmgray">
                       {data.count} {t('common.items')}
                     </p>
                   </div>
@@ -225,7 +225,7 @@ export default function DepartmentDashboardPage() {
 
       {/* Просроченные товары */}
       {expiredItems.length > 0 && (
-        <div className="bg-white rounded-xl shadow-card border border-taupe/10 p-6">
+        <div className="bg-white dark:bg-dark-surface rounded-xl shadow-card border border-taupe/10 dark:border-dark-border p-6">
           <h3 className="text-lg font-semibold text-danger mb-4 flex items-center gap-2">
             <AlertTriangle className="w-5 h-5" />
             {t('department.expiredItems') || 'Просроченные товары'}
@@ -236,7 +236,7 @@ export default function DepartmentDashboardPage() {
 
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-sand/30">
+              <thead className="bg-sand/30 dark:bg-dark-border/30">
                 <tr>
                   <th className="text-left text-xs uppercase text-charcoal/60 p-3">
                     {t('inventory.product')}
@@ -257,9 +257,9 @@ export default function DepartmentDashboardPage() {
               </thead>
               <tbody>
                 {expiredItems.map((batch) => (
-                  <tr key={batch.id} className="border-t border-sand">
-                    <td className="p-3 font-medium text-charcoal">{batch.productName}</td>
-                    <td className="p-3 text-charcoal/70">{batch.category}</td>
+                  <tr key={batch.id} className="border-t border-sand dark:border-dark-border">
+                    <td className="p-3 font-medium text-charcoal dark:text-cream">{batch.productName}</td>
+                    <td className="p-3 text-charcoal/70 dark:text-warmgray">{batch.category}</td>
                     <td className="p-3">{batch.quantity}</td>
                     <td className="p-3">{batch.expiryDate}</td>
                     <td className="p-3">

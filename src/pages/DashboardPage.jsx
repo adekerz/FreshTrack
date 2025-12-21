@@ -116,13 +116,13 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6 sm:space-y-8">
       {/* Greeting Section - Peak-End Rule: Start with positive experience */}
-      <div className="bg-gradient-to-r from-accent/5 to-transparent rounded-xl p-4 sm:p-6 animate-fade-in">
+      <div className="bg-gradient-to-r from-accent/5 to-transparent dark:from-accent/10 dark:to-transparent rounded-xl p-4 sm:p-6 animate-fade-in">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-xl sm:text-2xl font-serif text-charcoal">
+            <h1 className="text-xl sm:text-2xl font-serif text-charcoal dark:text-cream">
               {getGreeting()}, {user?.name?.split(' ')[0] || t('common.user')}
             </h1>
-            <p className="text-sm text-warmgray mt-1">
+            <p className="text-sm text-warmgray dark:text-warmgray/80 mt-1">
               {t('dashboard.summary') || 'Here is your inventory overview'}
             </p>
           </div>
@@ -132,6 +132,7 @@ export default function DashboardPage() {
             <button
               onClick={() => setShowAddBatchModal(true)}
               className="flex items-center gap-2 px-4 py-2.5 bg-accent text-white rounded-lg hover:bg-accent/90 active:scale-[0.98] transition-all text-sm font-medium min-h-[44px]"
+              data-onboarding="add-batch"
             >
               <Plus className="w-4 h-4" />
               <span className="hidden sm:inline">{t('header.addBatch')}</span>
@@ -159,7 +160,7 @@ export default function DashboardPage() {
           return (
             <div
               key={card.title}
-              className={`bg-white rounded-xl sm:rounded-lg p-4 sm:p-6 border border-sand animate-slide-up hover-lift ${isCritical ? 'critical-highlight' : ''}`}
+              className={`bg-white dark:bg-dark-surface rounded-xl sm:rounded-lg p-4 sm:p-6 border border-sand dark:border-dark-border animate-slide-up hover-lift ${isCritical ? 'critical-highlight' : ''}`}
               style={{ animationDelay: `${index * 0.1}s`, animationFillMode: 'backwards' }}
             >
               <div className="flex items-center justify-between mb-2 sm:mb-4">
@@ -179,7 +180,7 @@ export default function DashboardPage() {
       {/* Отделы - адаптивный Bento Grid */}
       <div>
         <div className="flex items-center justify-between mb-4 sm:mb-6">
-          <h2 className="font-serif text-lg sm:text-xl text-charcoal">{t('dashboard.departments')}</h2>
+          <h2 className="font-serif text-lg sm:text-xl text-charcoal dark:text-cream">{t('dashboard.departments')}</h2>
           <Link
             to="/inventory"
             className="text-xs sm:text-sm text-warmgray hover:text-accent transition-colors flex items-center gap-1"
@@ -196,7 +197,7 @@ export default function DashboardPage() {
               <Link
                 key={dept.id}
                 to={`/inventory/${dept.id}`}
-                className="interactive-card bg-white rounded-xl sm:rounded-lg p-4 sm:p-6 border border-sand group animate-slide-up focus-ring"
+                className="interactive-card bg-white dark:bg-dark-surface rounded-xl sm:rounded-lg p-4 sm:p-6 border border-sand dark:border-dark-border group animate-slide-up focus-ring"
                 style={{ animationDelay: `${(index + 4) * 0.1}s`, animationFillMode: 'backwards' }}
               >
                 <div className="flex items-center gap-3 sm:gap-4">
@@ -207,7 +208,7 @@ export default function DashboardPage() {
                     <Icon className="w-6 h-6 sm:w-7 sm:h-7" style={{ color: dept.color || '#C4A35A' }} />
                   </div>
                   <div className="min-w-0">
-                    <h3 className="font-medium text-charcoal group-hover:text-accent transition-colors truncate">
+                    <h3 className="font-medium text-charcoal dark:text-cream group-hover:text-accent transition-colors truncate">
                       {dept.name}
                     </h3>
                     <p className="text-xs sm:text-sm text-warmgray">{t('dashboard.viewInventory')}</p>
@@ -223,7 +224,7 @@ export default function DashboardPage() {
       {/* Требуют внимания - компактный вид на мобильных */}
       <div>
         <div className="flex items-center justify-between mb-4 sm:mb-6">
-          <h2 className="font-serif text-lg sm:text-xl text-charcoal">{t('dashboard.needsAttention')}</h2>
+          <h2 className="font-serif text-lg sm:text-xl text-charcoal dark:text-cream">{t('dashboard.needsAttention')}</h2>
           {alerts.length > 0 && (
             <Link
               to="/notifications"
@@ -238,7 +239,7 @@ export default function DashboardPage() {
         {alerts.length === 0 ? (
           <div className="bg-success/5 border border-success/20 rounded-xl sm:rounded-lg p-6 sm:p-8 text-center animate-fade-in">
             <Check className="w-10 h-10 sm:w-12 sm:h-12 text-success mx-auto mb-3 sm:mb-4" />
-            <h3 className="font-serif text-base sm:text-lg text-charcoal mb-1 sm:mb-2">{t('dashboard.allGood')}</h3>
+            <h3 className="font-serif text-base sm:text-lg text-charcoal dark:text-cream mb-1 sm:mb-2">{t('dashboard.allGood')}</h3>
             <p className="text-sm text-warmgray">{t('dashboard.noExpiring')}</p>
           </div>
         ) : (
@@ -246,19 +247,19 @@ export default function DashboardPage() {
             {alerts.slice(0, 5).map((alert, index) => (
               <div
                 key={alert.id}
-                className={`bg-white rounded-xl sm:rounded-lg p-3 sm:p-4 border-l-4 ${
+                className={`bg-white dark:bg-dark-surface rounded-xl sm:rounded-lg p-3 sm:p-4 border-l-4 ${
                   alert.daysLeft < 0
                     ? 'border-l-danger'
                     : alert.daysLeft <= 3
                       ? 'border-l-danger'
                       : 'border-l-warning'
-                } border border-sand animate-slide-up`}
+                } border border-sand dark:border-dark-border animate-slide-up`}
                 style={{ animationDelay: `${index * 0.05}s`, animationFillMode: 'backwards' }}
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-2 flex-wrap">
-                      <h3 className="font-medium text-charcoal text-sm sm:text-base truncate">{alert.productName}</h3>
+                      <h3 className="font-medium text-charcoal dark:text-cream text-sm sm:text-base truncate">{alert.productName}</h3>
                       {alert.department && (
                         <span
                           className="text-xs px-2 py-0.5 rounded flex-shrink-0"

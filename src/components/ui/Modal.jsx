@@ -103,23 +103,24 @@ export default function Modal({
         ref={modalRef}
         className={`
           relative w-full ${sizes[size]}
-          bg-white rounded-2xl shadow-soft-lg
+          bg-white dark:bg-dark-surface rounded-2xl shadow-soft-lg
           ${reducedMotion ? '' : 'animate-scale-in'}
           max-h-[calc(100vh-2rem)] flex flex-col
+          transition-colors duration-300
           ${className}
         `}
       >
         {/* Header */}
         {(title || showCloseButton) && (
-          <div className="flex items-start justify-between p-4 md:p-6 border-b border-sand flex-shrink-0">
+          <div className="flex items-start justify-between p-4 md:p-6 border-b border-sand dark:border-dark-border flex-shrink-0">
             <div>
               {title && (
-                <h2 id={titleId} className="text-xl font-semibold text-charcoal">
+                <h2 id={titleId} className="text-xl font-semibold text-charcoal dark:text-cream">
                   {title}
                 </h2>
               )}
               {description && (
-                <p id={descId} className="mt-1 text-sm text-warmgray">
+                <p id={descId} className="mt-1 text-sm text-warmgray dark:text-warmgray/80">
                   {description}
                 </p>
               )}
@@ -127,7 +128,7 @@ export default function Modal({
             {showCloseButton && (
               <button
                 onClick={onClose}
-                className="p-2 -m-2 text-warmgray hover:text-charcoal hover:bg-sand/50 rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-accent"
+                className="p-2 -m-2 text-warmgray hover:text-charcoal dark:hover:text-cream hover:bg-sand/50 dark:hover:bg-white/10 rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-accent"
                 aria-label="Close dialog"
                 type="button"
               >
@@ -144,7 +145,7 @@ export default function Modal({
 
         {/* Footer */}
         {footer && (
-          <div className="flex items-center justify-end gap-3 p-4 md:p-6 border-t border-sand flex-shrink-0">
+          <div className="flex items-center justify-end gap-3 p-4 md:p-6 border-t border-sand dark:border-dark-border flex-shrink-0">
             {footer}
           </div>
         )}

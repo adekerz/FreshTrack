@@ -1,4 +1,12 @@
 {
+  "theme": {
+    "label": "Theme",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System",
+    "switchToLight": "Switch to light mode",
+    "switchToDark": "Switch to dark mode"
+  },
   "a11y": {
     "skipToContent": "Skip to main content",
     "loading": "Loading, please wait",
@@ -135,7 +143,9 @@
     "settings": "Settings",
     "auditLogs": "Audit Logs",
     "history": "History",
-    "more": "More"
+    "more": "More",
+    "reports": "Reports",
+    "mobileNav": "Navigation"
   },
   "sidebar": {
     "collapse": "Collapse menu",
@@ -252,6 +262,7 @@
   "notifications": {
     "title": "Notifications",
     "description": "Product batches requiring attention",
+    "new": "New",
     "activeAlerts": "Active Alerts",
     "needAttention": "{{count}} batches need attention",
     "allClear": "All Clear",
@@ -546,6 +557,35 @@
       }
     }
   },
+  "onboarding": {
+    "skip": "Skip tour",
+    "getStarted": "Get Started",
+    "restartTour": "Restart tour",
+    "welcome": {
+      "title": "Welcome to FreshTrack!",
+      "description": "Let us show you around. This quick tour will help you understand the main features of our inventory management system."
+    },
+    "dashboard": {
+      "title": "Your Dashboard",
+      "description": "This is your command center. View key statistics, quick actions, and important alerts at a glance."
+    },
+    "addBatch": {
+      "title": "Add New Batches",
+      "description": "Click here to add new product batches to your inventory. Track expiration dates and quantities easily."
+    },
+    "inventory": {
+      "title": "Inventory Management",
+      "description": "Browse and manage all your products. Filter by status, search, and keep everything organized."
+    },
+    "notifications": {
+      "title": "Stay Informed",
+      "description": "Get alerts about expiring products and important updates. Never miss a critical deadline."
+    },
+    "complete": {
+      "title": "You're All Set!",
+      "description": "You now know the basics of FreshTrack. Start managing your inventory with confidence!"
+    }
+  },
   "settings": {
     "title": "Settings",
     "subtitle": "Manage profile and system",
@@ -736,6 +776,12 @@
     },
     "language": {
       "title": "Language Selection"
+    },
+    "onboarding": {
+      "title": "Guided Tour",
+      "description": "Restart the guided tour to learn about the app features.",
+      "restart": "Restart Tour",
+      "restarted": "Tour restarted"
     },
     "system": {
       "title": "System Settings",

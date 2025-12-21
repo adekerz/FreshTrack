@@ -8,6 +8,7 @@
 import { useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useTranslation, useLanguage } from '../context/LanguageContext'
+import { useOnboarding } from '../context/OnboardingContext'
 import { departments } from '../context/ProductContext'
 import { useToast } from '../context/ToastContext'
 import {
@@ -25,7 +26,8 @@ import {
   FileBox,
   Send,
   Palette,
-  Database
+  Database,
+  RefreshCw
 } from 'lucide-react'
 import NotificationRulesSettings from '../components/NotificationRulesSettings'
 import CustomContentSettings from '../components/CustomContentSettings'
@@ -40,6 +42,7 @@ export default function SettingsPage() {
   const { t } = useTranslation()
   const { user } = useAuth()
   const { language, changeLanguage } = useLanguage()
+  const { startOnboarding, resetOnboarding } = useOnboarding()
   const { addToast } = useToast()
   const [activeTab, setActiveTab] = useState('profile')
   const [saving, setSaving] = useState(false)
@@ -114,17 +117,17 @@ export default function SettingsPage() {
   const renderProfile = () => (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-medium text-charcoal mb-4">{t('settings.profile.title')}</h3>
+        <h3 className="text-lg font-medium text-charcoal dark:text-cream mb-4">{t('settings.profile.title')}</h3>
 
         <div className="space-y-4">
           {/* Аватар */}
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 bg-charcoal rounded-full flex items-center justify-center text-white text-xl font-light">
+            <div className="w-16 h-16 bg-charcoal dark:bg-accent rounded-full flex items-center justify-center text-white text-xl font-light">
               {user?.name?.[0] || 'U'}
             </div>
             <div>
-              <p className="font-medium text-charcoal">{user?.name}</p>
-              <p className="text-sm text-warmgray">{user?.email}</p>
+              <p className="font-medium text-charcoal dark:text-cream">{user?.name}</p>
+              <p className="text-sm text-warmgray dark:text-warmgray/80">{user?.email}</p>
             </div>
           </div>
 
@@ -186,7 +189,7 @@ export default function SettingsPage() {
   const renderNotifications = () => (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-medium text-charcoal mb-4">
+        <h3 className="text-lg font-medium text-charcoal dark:text-cream mb-4">
           {t('settings.notifications.title')}
         </h3>
 
@@ -282,7 +285,7 @@ export default function SettingsPage() {
   const renderLanguage = () => (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-medium text-charcoal mb-4">{t('settings.language.title')}</h3>
+        <h3 className="text-lg font-medium text-charcoal dark:text-cream mb-4">{t('settings.language.title')}</h3>
 
         <div className="grid sm:grid-cols-3 gap-3">
           {languages.map((lang) => (
@@ -308,6 +311,27 @@ export default function SettingsPage() {
           ))}
         </div>
       </div>
+
+      {/* Onboarding Tour Reset */}
+      <div className="pt-6 border-t border-sand">
+        <h3 className="text-lg font-medium text-charcoal dark:text-cream mb-4">
+          {t('settings.onboarding.title') || 'Guided Tour'}
+        </h3>
+        <p className="text-sm text-warmgray mb-4">
+          {t('settings.onboarding.description') || 'Restart the guided tour to learn about the app features.'}
+        </p>
+        <button
+          onClick={() => {
+            resetOnboarding()
+            startOnboarding()
+            addToast(t('settings.onboarding.restarted') || 'Tour restarted', 'success')
+          }}
+          className="flex items-center gap-2 px-4 py-2.5 bg-accent/10 text-accent border border-accent/20 rounded-lg hover:bg-accent/20 transition-colors text-sm font-medium"
+        >
+          <RefreshCw className="w-4 h-4" />
+          {t('settings.onboarding.restart') || 'Restart Tour'}
+        </button>
+      </div>
     </div>
   )
 
@@ -315,7 +339,7 @@ export default function SettingsPage() {
   const renderSystem = () => (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-medium text-charcoal mb-4">{t('settings.system.title')}</h3>
+        <h3 className="text-lg font-medium text-charcoal dark:text-cream mb-4">{t('settings.system.title')}</h3>
 
         <div className="space-y-4">
           {/* Telegram настройки */}
@@ -357,8 +381,8 @@ export default function SettingsPage() {
     <div className="space-y-4 sm:space-y-6 p-1 sm:p-0">
       {/* Заголовок */}
       <div>
-        <h1 className="text-xl sm:text-2xl font-light text-charcoal">{t('settings.title')}</h1>
-        <p className="text-warmgray text-xs sm:text-sm mt-1">{t('settings.subtitle')}</p>
+        <h1 className="text-xl sm:text-2xl font-light text-charcoal dark:text-cream">{t('settings.title')}</h1>
+        <p className="text-warmgray dark:text-warmgray/80 text-xs sm:text-sm mt-1">{t('settings.subtitle')}</p>
       </div>
 
       {/* Сообщение */}
@@ -382,15 +406,15 @@ export default function SettingsPage() {
       <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
         {/* Табы - горизонтальная прокрутка на мобильных */}
         <div className="lg:w-64 shrink-0">
-          <div className="bg-white rounded-xl border border-sand p-1.5 sm:p-2 flex lg:flex-col gap-1 overflow-x-auto lg:overflow-visible">
+          <div className="bg-white dark:bg-dark-surface rounded-xl border border-sand dark:border-dark-border p-1.5 sm:p-2 flex lg:flex-col gap-1 overflow-x-auto lg:overflow-visible">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-lg text-xs sm:text-sm transition-colors whitespace-nowrap flex-shrink-0 lg:w-full ${
                   activeTab === tab.id
-                    ? 'bg-charcoal text-white'
-                    : 'text-warmgray hover:bg-sand/50 hover:text-charcoal'
+                    ? 'bg-charcoal dark:bg-accent text-white'
+                    : 'text-warmgray hover:bg-sand/50 dark:hover:bg-white/10 hover:text-charcoal dark:hover:text-cream'
                 }`}
               >
                 <tab.icon className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -401,7 +425,7 @@ export default function SettingsPage() {
         </div>
 
         {/* Контент */}
-        <div className="flex-1 bg-white rounded-xl border border-sand p-4 sm:p-6">
+        <div className="flex-1 bg-white dark:bg-dark-surface rounded-xl border border-sand dark:border-dark-border p-4 sm:p-6">
           {activeTab === 'profile' && renderProfile()}
           {activeTab === 'notifications' && renderNotifications()}
           {activeTab === 'language' && renderLanguage()}

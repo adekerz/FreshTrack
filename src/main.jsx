@@ -5,9 +5,18 @@ import App from './App'
 import { AuthProvider } from './context/AuthContext'
 import { ProductProvider } from './context/ProductContext'
 import { LanguageProvider } from './context/LanguageContext'
+import { ThemeProvider } from './context/ThemeContext'
 import { ToastProvider } from './context/ToastContext'
+import { OnboardingProvider } from './context/OnboardingContext'
 import ToastContainer from './components/Toast'
 import './styles/index.css'
+
+// Initialize Axe accessibility testing in development
+if (import.meta.env.MODE === 'development') {
+  import('./utils/axeAccessibility').then(({ initAxe }) => {
+    initAxe()
+  })
+}
 
 // Определяем базовый путь для GitHub Pages
 const basename = import.meta.env.BASE_URL
@@ -21,16 +30,20 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         v7_relativeSplatPath: true,
       }}
     >
-      <LanguageProvider>
-        <ToastProvider>
-          <AuthProvider>
-            <ProductProvider>
-              <App />
-              <ToastContainer />
-            </ProductProvider>
-          </AuthProvider>
-        </ToastProvider>
-      </LanguageProvider>
+      <ThemeProvider>
+        <LanguageProvider>
+          <ToastProvider>
+            <AuthProvider>
+              <ProductProvider>
+                <OnboardingProvider>
+                  <App />
+                  <ToastContainer />
+                </OnboardingProvider>
+              </ProductProvider>
+            </AuthProvider>
+          </ToastProvider>
+        </LanguageProvider>
+      </ThemeProvider>
     </BrowserRouter>
   </React.StrictMode>
 )

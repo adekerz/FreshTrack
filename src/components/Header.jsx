@@ -1,12 +1,13 @@
 import { useState, useRef, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { Plus, LogOut, Send, ChevronDown, Package, FolderPlus, Leaf, Search, Bell, Command } from 'lucide-react'
+import { Plus, LogOut, Send, ChevronDown, Package, FolderPlus, Leaf, Search, Bell } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useProducts } from '../context/ProductContext'
 import { useTranslation, useLanguage } from '../context/LanguageContext'
 import AddBatchModal from './AddBatchModal'
 import AddCustomProductModal from './AddCustomProductModal'
 import LanguageSwitcher from './LanguageSwitcher'
+import ThemeSwitcher from './ThemeSwitcher'
 import GlobalSearch from './GlobalSearch'
 import { sendTestTelegramNotification } from '../services/api'
 
@@ -80,7 +81,7 @@ export default function Header() {
 
   return (
     <>
-      <header className="bg-cream border-b border-sand px-4 lg:px-8 py-3 sm:py-4 flex items-center justify-between sticky top-0 z-10">
+      <header className="bg-cream dark:bg-dark-surface border-b border-sand dark:border-dark-border px-4 lg:px-8 py-3 sm:py-4 flex items-center justify-between sticky top-0 z-10 transition-colors duration-300">
         {/* Left side: logo on mobile + title */}
         <div className="flex items-center gap-3">
           {/* Logo - mobile only */}
@@ -107,27 +108,27 @@ export default function Header() {
           {/* Mobile search button */}
           <button
             onClick={() => setShowMobileSearch(!showMobileSearch)}
-            className="sm:hidden p-2 hover:bg-sand rounded-lg transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+            className="sm:hidden p-2 hover:bg-sand dark:hover:bg-white/10 rounded-lg transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
             aria-label={t('search.placeholder')}
           >
-            <Search className={`w-5 h-5 ${showMobileSearch ? 'text-accent' : 'text-charcoal'}`} />
+            <Search className={`w-5 h-5 ${showMobileSearch ? 'text-accent' : 'text-charcoal dark:text-cream'}`} />
           </button>
 
-          {/* Global search with keyboard hint - desktop only */}
+          {/* Global search - desktop only */}
           <div className="hidden sm:flex items-center">
             <GlobalSearch />
-            <kbd className="hidden lg:inline-flex items-center gap-0.5 ml-2 px-1.5 py-0.5 text-xs text-warmgray bg-sand/50 rounded border border-sand">
-              <Command className="w-3 h-3" />K
-            </kbd>
           </div>
+
+          {/* Theme switcher */}
+          <ThemeSwitcher variant="toggle" />
 
           {/* Notification bell */}
           <button
             onClick={() => navigate('/notifications')}
-            className="relative p-2 hover:bg-sand rounded-lg transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+            className="relative p-2 hover:bg-sand dark:hover:bg-white/10 rounded-lg transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
             aria-label={t('nav.notifications')}
           >
-            <Bell className="w-5 h-5 text-charcoal" />
+            <Bell className="w-5 h-5 text-charcoal dark:text-cream" />
             {expiringCount > 0 && (
               <span className="absolute top-1 right-1 min-w-[18px] h-[18px] flex items-center justify-center text-xs font-medium text-white bg-danger rounded-full px-1">
                 {expiringCount > 99 ? '99+' : expiringCount}
@@ -149,32 +150,32 @@ export default function Header() {
             </button>
 
             {showDropdown && (
-              <div className="absolute right-0 top-full mt-2 w-56 bg-cream border border-sand rounded-lg shadow-lg py-2 z-50">
+              <div className="absolute right-0 top-full mt-2 w-56 bg-cream dark:bg-dark-surface border border-sand dark:border-dark-border rounded-lg shadow-lg py-2 z-50">
                 <button
                   onClick={() => {
                     setShowAddBatchModal(true)
                     setShowDropdown(false)
                   }}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-charcoal hover:bg-sand/50 transition-colors text-left"
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-charcoal dark:text-cream hover:bg-sand/50 dark:hover:bg-white/10 transition-colors text-left"
                 >
                   <Package className="w-4 h-4 text-accent" />
                   <div>
                     <p className="font-medium">{t('header.addBatch')}</p>
-                    <p className="text-xs text-warmgray">{t('header.addBatchDesc')}</p>
+                    <p className="text-xs text-warmgray dark:text-warmgray/80">{t('header.addBatchDesc')}</p>
                   </div>
                 </button>
-                <div className="h-px bg-sand mx-3 my-1" />
+                <div className="h-px bg-sand dark:bg-dark-border mx-3 my-1" />
                 <button
                   onClick={() => {
                     setShowAddProductModal(true)
                     setShowDropdown(false)
                   }}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-charcoal hover:bg-sand/50 transition-colors text-left"
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-charcoal dark:text-cream hover:bg-sand/50 dark:hover:bg-white/10 transition-colors text-left"
                 >
                   <FolderPlus className="w-4 h-4 text-success" />
                   <div>
                     <p className="font-medium">{t('header.newProduct')}</p>
-                    <p className="text-xs text-warmgray">{t('header.newProductDesc')}</p>
+                    <p className="text-xs text-warmgray dark:text-warmgray/80">{t('header.newProductDesc')}</p>
                   </div>
                 </button>
               </div>
@@ -198,27 +199,27 @@ export default function Header() {
             <span className="hidden lg:inline">{telegramStatus === 'sending' ? '...' : t('header.testTelegram')}</span>
           </button>
 
-          <div className="hidden sm:block h-8 w-px bg-sand" />
+          <div className="hidden sm:block h-8 w-px bg-sand dark:bg-dark-border" />
 
           {/* Language switcher - только на десктопе */}
           <div className="hidden sm:block">
             <LanguageSwitcher />
           </div>
 
-          <div className="hidden sm:block h-8 w-px bg-sand" />
+          <div className="hidden sm:block h-8 w-px bg-sand dark:bg-dark-border" />
 
           {/* User info - скрыто на мобильных, доступно через More меню */}
           <div className="hidden sm:flex items-center gap-3">
             <div className="text-right">
-              <p className="text-sm font-medium">{user?.name}</p>
-              <p className="text-xs text-warmgray">{user?.role}</p>
+              <p className="text-sm font-medium text-charcoal dark:text-cream">{user?.name}</p>
+              <p className="text-xs text-warmgray dark:text-warmgray/80">{user?.role}</p>
             </div>
             <button
               onClick={logout}
-              className="p-2 hover:bg-sand rounded transition-colors"
+              className="p-2 hover:bg-sand dark:hover:bg-white/10 rounded transition-colors"
               title={t('header.signOut')}
             >
-              <LogOut className="w-4 h-4 text-warmgray" />
+              <LogOut className="w-4 h-4 text-warmgray dark:text-warmgray/80" />
             </button>
           </div>
         </div>
@@ -226,7 +227,7 @@ export default function Header() {
 
       {/* Мобильный поиск - раскрывается под хедером */}
       {showMobileSearch && (
-        <div className="sm:hidden bg-cream border-b border-sand px-4 py-3 sticky top-[57px] z-10">
+        <div className="sm:hidden bg-cream dark:bg-dark-surface border-b border-sand dark:border-dark-border px-4 py-3 sticky top-[57px] z-10">
           <GlobalSearch 
             onSearch={() => setShowMobileSearch(false)} 
             autoFocus 

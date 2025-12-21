@@ -81,7 +81,7 @@ export default function Breadcrumbs({ className, customItems }) {
               
               {isLast ? (
                 <span 
-                  className="text-charcoal font-medium flex items-center gap-1.5"
+                  className="text-charcoal dark:text-cream font-medium flex items-center gap-1.5"
                   aria-current="page"
                 >
                   {Icon && <Icon className="w-4 h-4" />}

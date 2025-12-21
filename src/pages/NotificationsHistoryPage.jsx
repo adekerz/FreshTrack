@@ -156,8 +156,8 @@ export default function NotificationsHistoryPage() {
       {/* Заголовок и кнопки */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-light text-charcoal">{t('notificationHistory.title')}</h1>
-          <p className="text-warmgray text-xs sm:text-sm mt-1">{t('notificationHistory.subtitle')}</p>
+          <h1 className="text-xl sm:text-2xl font-light text-charcoal dark:text-cream">{t('notificationHistory.title')}</h1>
+          <p className="text-warmgray dark:text-warmgray/80 text-xs sm:text-sm mt-1">{t('notificationHistory.subtitle')}</p>
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3">
@@ -189,8 +189,8 @@ export default function NotificationsHistoryPage() {
 
       {/* Панель фильтров */}
       {showFilters && (
-        <div className="bg-white rounded-xl border border-sand p-4 sm:p-6 space-y-4">
-          <h3 className="font-medium text-charcoal text-sm sm:text-base">{t('notificationHistory.filterOptions')}</h3>
+        <div className="bg-white dark:bg-dark-surface rounded-xl border border-sand dark:border-dark-border p-4 sm:p-6 space-y-4">
+          <h3 className="font-medium text-charcoal dark:text-cream text-sm sm:text-base">{t('notificationHistory.filterOptions')}</h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
             {/* Тип уведомления */}
@@ -262,7 +262,7 @@ export default function NotificationsHistoryPage() {
       )}
 
       {/* Таблица/Карточки уведомлений */}
-      <div className="bg-white rounded-xl border border-sand overflow-hidden">
+      <div className="bg-white dark:bg-dark-surface rounded-xl border border-sand dark:border-dark-border overflow-hidden">
         {loading && logs.length === 0 ? (
           <div className="flex items-center justify-center py-12">
             <RefreshCw className="w-6 h-6 sm:w-8 sm:h-8 text-warmgray animate-spin" />
@@ -278,7 +278,7 @@ export default function NotificationsHistoryPage() {
             {/* Desktop Table */}
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-cream/50">
+                <thead className="bg-cream/50 dark:bg-dark-border/30">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-warmgray uppercase tracking-wider">
                       {t('notificationHistory.columns.date')}
@@ -300,14 +300,14 @@ export default function NotificationsHistoryPage() {
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-sand/50">
+                <tbody className="divide-y divide-sand/50 dark:divide-dark-border">
                   {logs.map((log) => {
                     const typeInfo = getNotificationType(log.type)
                     const TypeIcon = typeInfo.icon
 
                     return (
-                      <tr key={log.id} className="hover:bg-cream/30 transition-colors">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-charcoal">
+                      <tr key={log.id} className="hover:bg-cream/30 dark:hover:bg-dark-border/30 transition-colors">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-charcoal dark:text-cream">
                           {formatDate(log.sent_at)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -318,10 +318,10 @@ export default function NotificationsHistoryPage() {
                             {t(typeInfo.label)}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-sm text-charcoal max-w-md">
+                        <td className="px-6 py-4 text-sm text-charcoal dark:text-cream max-w-md">
                           <p className="truncate">{log.message}</p>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-charcoal">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-charcoal dark:text-cream">
                           {log.products_count > 0 ? log.products_count : '-'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -353,7 +353,7 @@ export default function NotificationsHistoryPage() {
             </div>
 
             {/* Mobile Cards */}
-            <div className="md:hidden divide-y divide-sand/50">
+            <div className="md:hidden divide-y divide-sand/50 dark:divide-dark-border">
               {logs.map((log) => {
                 const typeInfo = getNotificationType(log.type)
                 const TypeIcon = typeInfo.icon
@@ -372,7 +372,7 @@ export default function NotificationsHistoryPage() {
                       </span>
                     </div>
 
-                    <p className="text-sm text-charcoal line-clamp-2">{log.message}</p>
+                    <p className="text-sm text-charcoal dark:text-cream line-clamp-2">{log.message}</p>
 
                     <div className="flex items-center justify-between text-xs">
                       <span
@@ -404,7 +404,7 @@ export default function NotificationsHistoryPage() {
 
             {/* Пагинация */}
             {pagination.totalPages > 1 && (
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 sm:px-6 py-3 sm:py-4 border-t border-sand/50">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 sm:px-6 py-3 sm:py-4 border-t border-sand/50 dark:border-dark-border">
                 <p className="text-xs sm:text-sm text-warmgray text-center sm:text-left">
                   {t('notificationHistory.showing', {
                     from: (pagination.page - 1) * pagination.limit + 1,
@@ -422,7 +422,7 @@ export default function NotificationsHistoryPage() {
                     <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
                   </button>
 
-                  <span className="text-xs sm:text-sm text-charcoal">
+                  <span className="text-xs sm:text-sm text-charcoal dark:text-cream">
                     {pagination.page} / {pagination.totalPages}
                   </span>
 

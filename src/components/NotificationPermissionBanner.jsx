@@ -55,7 +55,7 @@ export default function NotificationPermissionBanner() {
 
   return (
     <div className="fixed bottom-4 right-4 z-50 max-w-sm animate-slide-up">
-      <div className="bg-white rounded-xl shadow-lg border border-sand overflow-hidden">
+      <div className="bg-white dark:bg-dark-surface rounded-xl shadow-lg border border-sand dark:border-dark-border overflow-hidden">
         {/* Header */}
         <div className="bg-gradient-to-r from-charcoal to-charcoal/90 px-4 py-3">
           <div className="flex items-center justify-between">

@@ -4,6 +4,7 @@ import Header from './Header'
 import BottomNavigation from './BottomNavigation'
 import NotificationPermissionBanner from './NotificationPermissionBanner'
 import Breadcrumbs from './Breadcrumbs'
+import OnboardingTour from './OnboardingTour'
 import { useTranslation } from '../context/LanguageContext'
 
 export default function Layout({ children }) {
@@ -11,7 +12,7 @@ export default function Layout({ children }) {
   const { t } = useTranslation()
 
   return (
-    <div className="min-h-screen bg-cream flex overflow-x-hidden max-w-full">
+    <div className="min-h-screen bg-cream dark:bg-dark-bg flex overflow-x-hidden max-w-full transition-colors duration-300">
       {/* Skip Link for Keyboard Navigation (A11Y) */}
       <a 
         href="#main-content" 
@@ -39,6 +40,9 @@ export default function Layout({ children }) {
 
       {/* Push Notification Permission Banner */}
       <NotificationPermissionBanner />
+
+      {/* Onboarding Tour for New Users */}
+      <OnboardingTour />
 
       {/* ARIA Live Region for dynamic announcements */}
       <div 

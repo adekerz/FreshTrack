@@ -137,3 +137,131 @@ export function getContrastRatio(foreground, background) {
 export function meetsWCAGAA(ratio, textSize = 'normal') {
   return textSize === 'large' ? ratio >= 3 : ratio >= 4.5
 }
+
+/**
+ * Format number for screen readers in Russian
+ * @param {number} num - Number to format
+ * @param {string} unit - Unit label
+ * @returns {string} Formatted string
+ */
+export function formatNumberForSR(num, unit = '') {
+  if (num === 0) return `ноль ${unit}`.trim()
+  if (num === 1) return `один ${unit}`.trim()
+  return `${num} ${unit}`.trim()
+}
+
+/**
+ * Get status announcement for screen readers
+ * @param {string} status - Status type
+ * @param {number} daysLeft - Days until expiry
+ * @returns {string} Announcement text
+ */
+export function getStatusAnnouncement(status, daysLeft) {
+  switch (status) {
+    case 'expired':
+      return `Просрочено ${Math.abs(daysLeft)} дней назад`
+    case 'critical':
+      return `Критично: истекает через ${daysLeft} дней`
+    case 'warning':
+      return `Внимание: истекает через ${daysLeft} дней`
+    case 'good':
+      return `В норме: ${daysLeft} дней до истечения`
+    default:
+      return ''
+  }
+}
+
+/**
+ * Create accessible button attributes
+ * @param {Object} options - Button options
+ * @returns {Object} Accessibility attributes
+ */
+export function getButtonA11yProps({ disabled, loading, label }) {
+  return {
+    'aria-disabled': disabled || loading,
+    'aria-busy': loading,
+    'aria-label': label,
+    tabIndex: disabled ? -1 : 0,
+  }
+}
+
+/**
+ * Log accessibility audit to console
+ * Use in development to check for common issues
+ */
+export function runA11yAudit() {
+  if (typeof document === 'undefined') return
+
+  const issues = []
+
+  // Check for images without alt text
+  document.querySelectorAll('img:not([alt])').forEach(img => {
+    issues.push({
+      type: 'error',
+      element: img,
+      message: 'Image missing alt attribute',
+      wcag: '1.1.1 Non-text Content'
+    })
+  })
+
+  // Check for buttons without accessible name
+  document.querySelectorAll('button').forEach(btn => {
+    if (!btn.textContent?.trim() && !btn.getAttribute('aria-label') && !btn.getAttribute('aria-labelledby')) {
+      issues.push({
+        type: 'error',
+        element: btn,
+        message: 'Button missing accessible name',
+        wcag: '4.1.2 Name, Role, Value'
+      })
+    }
+  })
+
+  // Check for form inputs without labels
+  document.querySelectorAll('input:not([type="hidden"]):not([type="submit"]):not([type="button"])').forEach(input => {
+    const hasLabel = input.id && document.querySelector(`label[for="${input.id}"]`)
+    const hasAriaLabel = input.getAttribute('aria-label') || input.getAttribute('aria-labelledby')
+    
+    if (!hasLabel && !hasAriaLabel) {
+      issues.push({
+        type: 'error',
+        element: input,
+        message: 'Form input missing label',
+        wcag: '1.3.1 Info and Relationships'
+      })
+    }
+  })
+
+  // Check for links without accessible name
+  document.querySelectorAll('a[href]').forEach(link => {
+    if (!link.textContent?.trim() && !link.getAttribute('aria-label')) {
+      issues.push({
+        type: 'error',
+        element: link,
+        message: 'Link missing accessible name',
+        wcag: '2.4.4 Link Purpose'
+      })
+    }
+  })
+
+  // Log results
+  console.group('🔍 A11y Quick Audit')
+  if (issues.length === 0) {
+    console.log('✅ No common accessibility issues found')
+  } else {
+    console.error(`❌ Found ${issues.length} potential issues:`)
+    issues.forEach((issue, i) => {
+      console.group(`${i + 1}. ${issue.message}`)
+      console.log('WCAG:', issue.wcag)
+      console.log('Element:', issue.element)
+      console.groupEnd()
+    })
+  }
+  console.groupEnd()
+
+  return issues
+}
+
+// Expose to window for development testing
+if (typeof window !== 'undefined' && import.meta.env?.MODE === 'development') {
+  window.runA11yAudit = runA11yAudit
+}

@@ -105,29 +105,29 @@ export default function BottomNavigation() {
 
       {/* Меню "Ещё" */}
       {showMore && (
-        <div className="fixed bottom-16 left-4 right-4 bg-white rounded-xl shadow-xl z-50 sm:hidden overflow-hidden animate-slide-up safe-bottom">
+        <div className="fixed bottom-16 left-4 right-4 bg-white dark:bg-dark-surface rounded-xl shadow-xl z-50 sm:hidden overflow-hidden animate-slide-up safe-bottom transition-colors duration-300">
           <div className="p-2">
             {/* Профиль пользователя */}
-            <div className="flex items-center gap-3 px-4 py-3 border-b border-sand mb-2">
+            <div className="flex items-center gap-3 px-4 py-3 border-b border-sand dark:border-dark-border mb-2">
               <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center">
                 <User className="w-5 h-5 text-accent" />
               </div>
               <div className="flex-1">
-                <p className="text-sm font-medium text-charcoal">{user?.name}</p>
-                <p className="text-xs text-warmgray">{user?.role}</p>
+                <p className="text-sm font-medium text-charcoal dark:text-cream">{user?.name}</p>
+                <p className="text-xs text-warmgray dark:text-warmgray/80">{user?.role}</p>
               </div>
             </div>
 
             {/* Переключатель языка */}
             <div className="flex items-center gap-3 px-4 py-3 mb-2">
-              <Globe className="w-5 h-5 text-charcoal" />
-              <span className="text-sm font-medium text-charcoal flex-1">{t('header.language') || 'Язык'}</span>
-              <div className="flex gap-1 bg-sand rounded-lg p-1">
+              <Globe className="w-5 h-5 text-charcoal dark:text-cream" />
+              <span className="text-sm font-medium text-charcoal dark:text-cream flex-1">{t('header.language') || 'Язык'}</span>
+              <div className="flex gap-1 bg-sand dark:bg-white/10 rounded-lg p-1">
                 <button
                   onClick={() => changeLanguage('ru')}
                   className={cn(
                     'px-2 py-1 text-xs font-medium rounded-md transition-colors',
-                    language === 'ru' ? 'bg-white text-accent shadow-sm' : 'text-charcoal/60'
+                    language === 'ru' ? 'bg-white dark:bg-dark-surface text-accent shadow-sm' : 'text-charcoal/60 dark:text-warmgray'
                   )}
                 >
                   RU
@@ -136,7 +136,7 @@ export default function BottomNavigation() {
                   onClick={() => changeLanguage('kk')}
                   className={cn(
                     'px-2 py-1 text-xs font-medium rounded-md transition-colors',
-                    language === 'kk' ? 'bg-white text-accent shadow-sm' : 'text-charcoal/60'
+                    language === 'kk' ? 'bg-white dark:bg-dark-surface text-accent shadow-sm' : 'text-charcoal/60 dark:text-warmgray'
                   )}
                 >
                   KZ
@@ -145,7 +145,7 @@ export default function BottomNavigation() {
                   onClick={() => changeLanguage('en')}
                   className={cn(
                     'px-2 py-1 text-xs font-medium rounded-md transition-colors',
-                    language === 'en' ? 'bg-white text-accent shadow-sm' : 'text-charcoal/60'
+                    language === 'en' ? 'bg-white dark:bg-dark-surface text-accent shadow-sm' : 'text-charcoal/60 dark:text-warmgray'
                   )}
                 >
                   EN
@@ -164,7 +164,7 @@ export default function BottomNavigation() {
                   onClick={() => handleNavClick(path)}
                   className={cn(
                     'w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors',
-                    isActive ? 'bg-accent/10 text-accent' : 'text-charcoal hover:bg-sand/50'
+                    isActive ? 'bg-accent/10 text-accent' : 'text-charcoal dark:text-cream hover:bg-sand/50 dark:hover:bg-white/10'
                   )}
                 >
                   <Icon className="w-5 h-5" />
@@ -179,7 +179,7 @@ export default function BottomNavigation() {
                 setShowMore(false)
                 logout()
               }}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-danger hover:bg-danger/10 mt-2 border-t border-sand pt-4"
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-danger hover:bg-danger/10 mt-2 border-t border-sand dark:border-dark-border pt-4"
             >
               <LogOut className="w-5 h-5" />
               <span className="text-sm font-medium">{t('header.signOut') || 'Выйти'}</span>
@@ -189,7 +189,7 @@ export default function BottomNavigation() {
       )}
 
       <nav 
-        className="fixed bottom-0 left-0 right-0 bg-white border-t border-sand shadow-soft z-40 sm:hidden"
+        className="fixed bottom-0 left-0 right-0 bg-white dark:bg-dark-surface border-t border-sand dark:border-dark-border shadow-soft z-40 sm:hidden transition-colors duration-300"
         role="navigation"
         aria-label={t('nav.mobileNav') || 'Mobile navigation'}
       >

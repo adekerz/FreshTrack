@@ -192,8 +192,8 @@ export default function CollectionHistoryPage() {
       {/* Заголовок */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-light text-charcoal">{t('collectionHistory.title')}</h1>
-          <p className="text-warmgray text-xs sm:text-sm mt-1">{t('collectionHistory.subtitle')}</p>
+          <h1 className="text-xl sm:text-2xl font-light text-charcoal dark:text-cream">{t('collectionHistory.title')}</h1>
+          <p className="text-warmgray dark:text-warmgray/80 text-xs sm:text-sm mt-1">{t('collectionHistory.subtitle')}</p>
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3">
@@ -203,7 +203,7 @@ export default function CollectionHistoryPage() {
             className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 border rounded-lg text-xs sm:text-sm transition-colors ${
               hasActiveFilters
                 ? 'border-accent text-accent bg-accent/5'
-                : 'border-sand text-warmgray hover:bg-sand/50'
+                : 'border-sand dark:border-dark-border text-warmgray dark:text-cream/70 hover:bg-sand/50 dark:hover:bg-dark-border'
             }`}
           >
             <Filter className="w-4 h-4" />
@@ -228,28 +228,28 @@ export default function CollectionHistoryPage() {
 
       {/* Статистика - Bento Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <div className="bg-white rounded-xl border border-sand p-3 sm:p-4">
-          <p className="text-xs sm:text-sm text-warmgray">{t('collectionHistory.stats.today')}</p>
-          <p className="text-xl sm:text-2xl font-light text-charcoal">{stats.today}</p>
+        <div className="bg-white dark:bg-dark-surface rounded-xl border border-sand dark:border-dark-border p-3 sm:p-4">
+          <p className="text-xs sm:text-sm text-warmgray dark:text-warmgray/80">{t('collectionHistory.stats.today')}</p>
+          <p className="text-xl sm:text-2xl font-light text-charcoal dark:text-cream">{stats.today}</p>
         </div>
-        <div className="bg-white rounded-xl border border-sand p-3 sm:p-4">
-          <p className="text-xs sm:text-sm text-warmgray">{t('collectionHistory.stats.week')}</p>
-          <p className="text-xl sm:text-2xl font-light text-charcoal">{stats.week}</p>
+        <div className="bg-white dark:bg-dark-surface rounded-xl border border-sand dark:border-dark-border p-3 sm:p-4">
+          <p className="text-xs sm:text-sm text-warmgray dark:text-warmgray/80">{t('collectionHistory.stats.week')}</p>
+          <p className="text-xl sm:text-2xl font-light text-charcoal dark:text-cream">{stats.week}</p>
         </div>
-        <div className="bg-white rounded-xl border border-sand p-3 sm:p-4">
-          <p className="text-xs sm:text-sm text-warmgray">{t('collectionHistory.stats.month')}</p>
-          <p className="text-xl sm:text-2xl font-light text-charcoal">{stats.month}</p>
+        <div className="bg-white dark:bg-dark-surface rounded-xl border border-sand dark:border-dark-border p-3 sm:p-4">
+          <p className="text-xs sm:text-sm text-warmgray dark:text-warmgray/80">{t('collectionHistory.stats.month')}</p>
+          <p className="text-xl sm:text-2xl font-light text-charcoal dark:text-cream">{stats.month}</p>
         </div>
-        <div className="bg-white rounded-xl border border-sand p-3 sm:p-4">
-          <p className="text-xs sm:text-sm text-warmgray">{t('collectionHistory.stats.total')}</p>
-          <p className="text-xl sm:text-2xl font-light text-charcoal">{stats.total}</p>
+        <div className="bg-white dark:bg-dark-surface rounded-xl border border-sand dark:border-dark-border p-3 sm:p-4">
+          <p className="text-xs sm:text-sm text-warmgray dark:text-warmgray/80">{t('collectionHistory.stats.total')}</p>
+          <p className="text-xl sm:text-2xl font-light text-charcoal dark:text-cream">{stats.total}</p>
         </div>
       </div>
 
       {/* Панель фильтров */}
       {showFilters && (
-        <div className="bg-white rounded-xl border border-sand p-6 space-y-4">
-          <h3 className="font-medium text-charcoal">{t('collectionHistory.filterOptions')}</h3>
+        <div className="bg-white dark:bg-dark-surface rounded-xl border border-sand dark:border-dark-border p-6 space-y-4">
+          <h3 className="font-medium text-charcoal dark:text-cream">{t('collectionHistory.filterOptions')}</h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Отдел */}
@@ -260,7 +260,7 @@ export default function CollectionHistoryPage() {
               <select
                 value={filters.departmentId}
                 onChange={(e) => setFilters((prev) => ({ ...prev, departmentId: e.target.value }))}
-                className="w-full px-3 py-2 border border-sand rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+                className="w-full px-3 py-2 border border-sand dark:border-dark-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-white dark:bg-dark-bg dark:text-cream"
               >
                 <option value="">{t('collectionHistory.allDepartments')}</option>
                 {departments.map((dept) => (
@@ -279,7 +279,7 @@ export default function CollectionHistoryPage() {
               <select
                 value={filters.reason}
                 onChange={(e) => setFilters((prev) => ({ ...prev, reason: e.target.value }))}
-                className="w-full px-3 py-2 border border-sand rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+                className="w-full px-3 py-2 border border-sand dark:border-dark-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-white dark:bg-dark-bg dark:text-cream"
               >
                 <option value="">{t('collectionHistory.allReasons')}</option>
                 {Object.entries(REASONS).map(([key, { label }]) => (
@@ -299,7 +299,7 @@ export default function CollectionHistoryPage() {
                 type="date"
                 value={filters.startDate}
                 onChange={(e) => setFilters((prev) => ({ ...prev, startDate: e.target.value }))}
-                className="w-full px-3 py-2 border border-sand rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+                className="w-full px-3 py-2 border border-sand dark:border-dark-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-white dark:bg-dark-bg dark:text-cream"
               />
             </div>
 
@@ -312,7 +312,7 @@ export default function CollectionHistoryPage() {
                 type="date"
                 value={filters.endDate}
                 onChange={(e) => setFilters((prev) => ({ ...prev, endDate: e.target.value }))}
-                className="w-full px-3 py-2 border border-sand rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+                className="w-full px-3 py-2 border border-sand dark:border-dark-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-white dark:bg-dark-bg dark:text-cream"
               />
             </div>
           </div>
@@ -340,7 +340,7 @@ export default function CollectionHistoryPage() {
       )}
 
       {/* Таблица сборов / Карточки на мобильных */}
-      <div className="bg-white rounded-xl border border-sand overflow-hidden">
+      <div className="bg-white dark:bg-dark-surface rounded-xl border border-sand dark:border-dark-border overflow-hidden">
         {loading && logs.length === 0 ? (
           <div className="flex items-center justify-center py-12">
             <RefreshCw className="w-8 h-8 text-warmgray animate-spin" />

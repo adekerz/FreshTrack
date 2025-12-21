@@ -92,19 +92,19 @@ export default function LoginPage() {
       </div>
 
       {/* Right Panel - Login Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 lg:p-16 bg-cream">
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 lg:p-16 bg-cream dark:bg-dark-bg transition-colors duration-300">
         <div className="w-full max-w-md animate-fade-in">
           {/* Mobile Logo */}
           <div className="lg:hidden flex items-center gap-3 mb-12">
-            <div className="w-10 h-10 border border-charcoal flex items-center justify-center">
+            <div className="w-10 h-10 border border-charcoal dark:border-accent flex items-center justify-center">
               <Leaf className="w-5 h-5 text-accent" />
             </div>
-            <span className="font-serif text-2xl tracking-wide">{t('common.appName')}</span>
+            <span className="font-serif text-2xl tracking-wide text-charcoal dark:text-cream">{t('common.appName')}</span>
           </div>
 
           <div className="mb-10">
-            <h2 className="font-serif text-3xl mb-2">{t('auth.welcomeBack')}</h2>
-            <p className="text-warmgray">{t('auth.signInSubtitle')}</p>
+            <h2 className="font-serif text-3xl mb-2 text-charcoal dark:text-cream">{t('auth.welcomeBack')}</h2>
+            <p className="text-warmgray dark:text-warmgray/80">{t('auth.signInSubtitle')}</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -161,18 +161,18 @@ export default function LoginPage() {
             </div>
 
             <div className="animate-fade-in-up text-center pt-2" style={{ animationDelay: '400ms' }}>
-              <span className="text-warmgray text-sm">{t('auth.noAccount')} </span>
+              <span className="text-warmgray dark:text-warmgray/80 text-sm">{t('auth.noAccount')} </span>
               <Link
                 to="/register"
-                className="text-charcoal text-sm font-medium hover:text-accent transition-colors underline-offset-4 hover:underline"
+                className="text-charcoal dark:text-cream text-sm font-medium hover:text-accent transition-colors underline-offset-4 hover:underline"
               >
                 {t('auth.createAccount')}
               </Link>
             </div>
           </form>
 
-          <div className="mt-12 pt-6 border-t border-sand">
-            <p className="text-xs text-warmgray text-center">{t('auth.demoCredentials')}</p>
+          <div className="mt-12 pt-6 border-t border-sand dark:border-dark-border">
+            <p className="text-xs text-warmgray dark:text-warmgray/80 text-center">{t('auth.demoCredentials')}</p>
           </div>
         </div>
       </div>
