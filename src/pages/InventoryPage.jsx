@@ -8,6 +8,7 @@ import AddCustomProductModal from '../components/AddCustomProductModal'
 import DeliveryTemplateModal from '../components/DeliveryTemplateModal'
 import ExportButton from '../components/ExportButton'
 import { EXPORT_COLUMNS } from '../utils/exportUtils'
+import { SkeletonInventory, Skeleton } from '../components/Skeleton'
 
 // Иконки для отделов - универсальный маппинг
 const ICON_MAP = {
@@ -43,7 +44,7 @@ export default function InventoryPage() {
   const { t } = useTranslation()
   const { language } = useLanguage()
   const { departmentId } = useParams()
-  const { getProductsByDepartment, catalog, refresh, departments, categories } = useProducts()
+  const { getProductsByDepartment, catalog, refresh, departments, categories, loading } = useProducts()
 
   // Используем отдел из URL или первый доступный
   const selectedDepartment = departmentId || (departments.length > 0 ? departments[0].id : null)
@@ -164,6 +165,27 @@ export default function InventoryPage() {
   const DeptIcon = getDeptIcon(department)
   const products = getFilteredProducts()
   const availableCategories = getAvailableCategories()
+
+  // Показываем скелетон при загрузке
+  if (loading) {
+    return (
+      <div className="p-4 sm:p-6 animate-fade-in">
+        <div className="flex items-center gap-3 mb-6">
+          <Skeleton className="w-12 h-12 rounded-xl" />
+          <div>
+            <Skeleton className="h-6 w-40 mb-2" />
+            <Skeleton className="h-4 w-24" />
+          </div>
+        </div>
+        <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="h-8 w-24 rounded-full flex-shrink-0" />
+          ))}
+        </div>
+        <SkeletonInventory rows={6} />
+      </div>
+    )
+  }
 
   // Если нет выбранного отдела, показываем сообщение
   if (!selectedDepartment && departments.length === 0) {

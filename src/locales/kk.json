@@ -294,6 +294,7 @@
     "activeBatches": "Белсенді партиялар",
     "totalUnits": "Барлық бірліктер",
     "quantity": "Саны",
+    "noQuantity": "Есепсіз",
     "addedAt": "Қосылған уақыты",
     "collect": "Жинау",
     "collected": "Жиналды",

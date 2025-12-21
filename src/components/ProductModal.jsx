@@ -29,7 +29,6 @@ export default function ProductModal({ product, onClose }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [newBatch, setNewBatch] = useState({
-    manufacturingDate: '',
     expiryDate: '',
     quantity: '',
     noQuantity: false
@@ -72,19 +71,18 @@ export default function ProductModal({ product, onClose }) {
   // Обработка добавления партии
   const handleAddBatch = async (e) => {
     e.preventDefault()
-    if (!newBatch.manufacturingDate || !newBatch.expiryDate) return
+    if (!newBatch.expiryDate) return
     if (!newBatch.noQuantity && (!newBatch.quantity || parseInt(newBatch.quantity) <= 0)) return
 
     try {
       await addBatch(
         product.id || product.name, // productId или имя
         product.departmentId,
-        newBatch.manufacturingDate,
         newBatch.expiryDate,
         newBatch.noQuantity ? null : parseInt(newBatch.quantity)
       )
 
-      setNewBatch({ manufacturingDate: '', expiryDate: '', quantity: '', noQuantity: false })
+      setNewBatch({ expiryDate: '', quantity: '', noQuantity: false })
       setShowAddForm(false)
       addToast(t('toast.batchAdded'), 'success')
     } catch (error) {
@@ -184,11 +182,10 @@ export default function ProductModal({ product, onClose }) {
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        {/* Даты */}
+                        {/* Дата истечения срока */}
                         <div className="flex items-center gap-2 text-charcoal mb-1">
                           <Calendar className="w-4 h-4 text-warmgray" />
                           <span className="font-medium">
-                            {formatDateDisplay(batch.manufacturingDate)} —{' '}
                             {formatDateDisplay(batch.expiryDate)}
                           </span>
                         </div>
@@ -200,17 +197,9 @@ export default function ProductModal({ product, onClose }) {
                             {t('product.quantity')}:{' '}
                             <strong className="text-charcoal">
                               {batch.quantity === null || batch.quantity === undefined 
-                                ? '—' 
-                                : batch.quantity}
+                                ? t('product.noQuantity') || 'Без учёта'
+                                : `${batch.quantity} ${t('inventory.units')}`}
                             </strong>
-                          </span>
-                        </div>
-
-                        {/* Добавлено */}
-                        <div className="flex items-center gap-2 text-xs text-warmgray">
-                          <User className="w-3 h-3" />
-                          <span>
-                            {t('product.addedAt')}: {formatDateTime(batch.addedAt)}, {batch.addedBy}
                           </span>
                         </div>
 
@@ -278,12 +267,11 @@ export default function ProductModal({ product, onClose }) {
                       <div className="flex items-center gap-2 text-sm text-warmgray">
                         <Check className="w-4 h-4 text-success" />
                         <span>
-                          {formatDateDisplay(batch.manufacturingDate)} —{' '}
                           {formatDateDisplay(batch.expiryDate)}
                         </span>
                         <span>•</span>
                         <span>
-                          {batch.quantity} {t('inventory.units')}
+                          {batch.quantity === null ? t('product.noQuantity') || 'Без учёта' : `${batch.quantity} ${t('inventory.units')}`}
                         </span>
                       </div>
                       <div className="text-xs text-warmgray">
@@ -315,35 +303,19 @@ export default function ProductModal({ product, onClose }) {
             <div className="bg-white rounded-lg p-4 border border-accent mb-4">
               <h4 className="font-medium text-charcoal mb-4">{t('product.addNewBatch')}</h4>
               <form onSubmit={handleAddBatch} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm text-warmgray mb-1">
-                      {t('product.manufacturingDate')}
-                    </label>
-                    <input
-                      type="date"
-                      value={newBatch.manufacturingDate}
-                      onChange={(e) =>
-                        setNewBatch((prev) => ({ ...prev, manufacturingDate: e.target.value }))
-                      }
-                      className="w-full px-3 py-2 border border-sand rounded focus:outline-none focus:border-accent"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm text-warmgray mb-1">
-                      {t('product.expiryDate')}
-                    </label>
-                    <input
-                      type="date"
-                      value={newBatch.expiryDate}
-                      onChange={(e) =>
-                        setNewBatch((prev) => ({ ...prev, expiryDate: e.target.value }))
-                      }
-                      className="w-full px-3 py-2 border border-sand rounded focus:outline-none focus:border-accent"
-                      required
-                    />
-                  </div>
+                <div>
+                  <label className="block text-sm text-warmgray mb-1">
+                    {t('product.expiryDate')} *
+                  </label>
+                  <input
+                    type="date"
+                    value={newBatch.expiryDate}
+                    onChange={(e) =>
+                      setNewBatch((prev) => ({ ...prev, expiryDate: e.target.value }))
+                    }
+                    className="w-full px-3 py-2 border border-sand rounded focus:outline-none focus:border-accent"
+                    required
+                  />
                 </div>
                 <div>
                   <label className="block text-sm text-warmgray mb-1">

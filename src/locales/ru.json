@@ -294,6 +294,7 @@
     "activeBatches": "Активные партии",
     "totalUnits": "Всего единиц",
     "quantity": "Количество",
+    "noQuantity": "Без учёта",
     "addedAt": "Добавлено",
     "collect": "Собрать",
     "collected": "Собрано",

@@ -61,7 +61,6 @@ export default function DeliveryTemplateModal({ isOpen, onClose, onApply, depart
       return {
         ...item,
         quantity: item.defaultQuantity || 1,
-        manufacturingDate: today.toISOString().split('T')[0],
         expiryDate: expiryDate.toISOString().split('T')[0],
         shelfLife: item.defaultShelfLife || 30
       }
@@ -72,15 +71,6 @@ export default function DeliveryTemplateModal({ isOpen, onClose, onApply, depart
   const updateItem = (index, field, value) => {
     const newItems = [...items]
     newItems[index] = { ...newItems[index], [field]: value }
-
-    // Если меняется дата производства, пересчитываем срок годности
-    if (field === 'manufacturingDate' && newItems[index].shelfLife) {
-      const mfgDate = new Date(value)
-      const expDate = new Date(mfgDate)
-      expDate.setDate(expDate.getDate() + newItems[index].shelfLife)
-      newItems[index].expiryDate = expDate.toISOString().split('T')[0]
-    }
-
     setItems(newItems)
   }
 
@@ -260,20 +250,9 @@ export default function DeliveryTemplateModal({ isOpen, onClose, onApply, depart
                         </button>
                       </div>
 
-                      {/* Manufacturing Date */}
-                      <div className="flex items-center gap-1">
-                        <Calendar className="w-4 h-4 text-gray-400" />
-                        <input
-                          type="date"
-                          value={item.manufacturingDate}
-                          onChange={(e) => updateItem(index, 'manufacturingDate', e.target.value)}
-                          className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
-                        />
-                      </div>
-
                       {/* Expiry Date */}
                       <div className="flex items-center gap-1">
-                        <span className="text-xs text-gray-500">→</span>
+                        <Calendar className="w-4 h-4 text-gray-400" />
                         <input
                           type="date"
                           value={item.expiryDate}

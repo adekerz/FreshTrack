@@ -34,7 +34,6 @@ export default function AddBatchModal({ onClose, preselectedProduct = null }) {
 
   // Данные партии
   const [batchData, setBatchData] = useState({
-    manufacturingDate: '',
     expiryDate: '',
     quantity: '',
     noQuantity: false
@@ -89,7 +88,7 @@ export default function AddBatchModal({ onClose, preselectedProduct = null }) {
   // Отправка формы
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!selectedProduct || !batchData.manufacturingDate || !batchData.expiryDate) return
+    if (!selectedProduct || !batchData.expiryDate) return
     
     // Если не "нет количества" и количество пустое или <= 0
     if (!batchData.noQuantity && (!batchData.quantity || parseInt(batchData.quantity) <= 0)) return
@@ -100,10 +99,8 @@ export default function AddBatchModal({ onClose, preselectedProduct = null }) {
       await addBatch(
         selectedProduct.id,
         selectedDepartment,
-        batchData.manufacturingDate,
         batchData.expiryDate,
-        batchData.noQuantity ? null : parseInt(batchData.quantity),
-        'User'
+        batchData.noQuantity ? null : parseInt(batchData.quantity)
       )
       toast.success(t('toast.batchAdded'), selectedProduct.name)
       onClose()
@@ -243,21 +240,6 @@ export default function AddBatchModal({ onClose, preselectedProduct = null }) {
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-sm text-warmgray mb-1">
-                    {t('product.manufacturingDate')} *
-                  </label>
-                  <input
-                    type="date"
-                    value={batchData.manufacturingDate}
-                    onChange={(e) =>
-                      setBatchData((prev) => ({ ...prev, manufacturingDate: e.target.value }))
-                    }
-                    className="w-full px-4 py-3 border border-sand rounded-lg focus:outline-none focus:border-accent"
-                    required
-                  />
-                </div>
-
                 <div>
                   <label className="block text-sm text-warmgray mb-1">
                     {t('product.expiryDate')} *

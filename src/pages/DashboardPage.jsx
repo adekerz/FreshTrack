@@ -15,6 +15,7 @@ import {
 import { useProducts } from '../context/ProductContext'
 import { useTranslation } from '../context/LanguageContext'
 import { format, parseISO } from 'date-fns'
+import { SkeletonDashboard } from '../components/Skeleton'
 
 // Иконки для отделов - универсальный маппинг
 const ICON_MAP = {
@@ -41,7 +42,16 @@ const getDeptIcon = (dept) => {
 
 export default function DashboardPage() {
   const { t } = useTranslation()
-  const { getStats, getAlerts, collectBatch, departments } = useProducts()
+  const { getStats, getAlerts, collectBatch, departments, loading } = useProducts()
+
+  // Показываем скелетон при загрузке
+  if (loading) {
+    return (
+      <div className="p-4 sm:p-6">
+        <SkeletonDashboard />
+      </div>
+    )
+  }
 
   const stats = getStats()
   const alerts = getAlerts()
@@ -94,10 +104,12 @@ export default function DashboardPage() {
       <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
         {statCards.map((card, index) => {
           const Icon = card.icon
+          // Von Restorff Effect - выделяем критические элементы
+          const isCritical = card.title === t('dashboard.expired') && card.value > 0
           return (
             <div
               key={card.title}
-              className={`bg-white rounded-xl sm:rounded-lg p-4 sm:p-6 border border-sand animate-slide-up`}
+              className={`bg-white rounded-xl sm:rounded-lg p-4 sm:p-6 border border-sand animate-slide-up hover-lift ${isCritical ? 'critical-highlight' : ''}`}
               style={{ animationDelay: `${index * 0.1}s`, animationFillMode: 'backwards' }}
             >
               <div className="flex items-center justify-between mb-2 sm:mb-4">
@@ -134,12 +146,12 @@ export default function DashboardPage() {
               <Link
                 key={dept.id}
                 to={`/inventory/${dept.id}`}
-                className={`bg-white rounded-xl sm:rounded-lg p-4 sm:p-6 border border-sand hover:border-accent hover:shadow-md transition-all group animate-slide-up`}
+                className="interactive-card bg-white rounded-xl sm:rounded-lg p-4 sm:p-6 border border-sand group animate-slide-up focus-ring"
                 style={{ animationDelay: `${(index + 4) * 0.1}s`, animationFillMode: 'backwards' }}
               >
                 <div className="flex items-center gap-3 sm:gap-4">
                   <div
-                    className="w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center flex-shrink-0"
+                    className="w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform"
                     style={{ backgroundColor: `${dept.color || '#C4A35A'}20` }}
                   >
                     <Icon className="w-6 h-6 sm:w-7 sm:h-7" style={{ color: dept.color || '#C4A35A' }} />
@@ -150,6 +162,7 @@ export default function DashboardPage() {
                     </h3>
                     <p className="text-xs sm:text-sm text-warmgray">{t('dashboard.viewInventory')}</p>
                   </div>
+                  <ArrowRight className="w-5 h-5 text-warmgray/50 group-hover:text-accent group-hover:translate-x-1 transition-all ml-auto" />
                 </div>
               </Link>
             )
@@ -216,7 +229,7 @@ export default function DashboardPage() {
                       </div>
                       <div className="flex items-center gap-1">
                         <Package className="w-3 h-3 sm:w-4 sm:h-4" />
-                        {alert.quantity} {t('inventory.units')}
+                        {alert.quantity === null ? t('product.noQuantity') : `${alert.quantity} ${t('inventory.units')}`}
                       </div>
                     </div>
 

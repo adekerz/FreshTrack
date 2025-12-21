@@ -14,11 +14,12 @@ import { useProducts, departments } from '../context/ProductContext'
 import { useTranslation } from '../context/LanguageContext'
 import { format, parseISO } from 'date-fns'
 import CollectModal from '../components/CollectModal'
+import { SkeletonNotifications, Skeleton } from '../components/Skeleton'
 
 export default function NotificationsPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const { getActiveBatches, collectBatch, findProduct } = useProducts()
+  const { getActiveBatches, collectBatch, findProduct, loading } = useProducts()
 
   // Состояние для модала сбора
   const [collectModalOpen, setCollectModalOpen] = useState(false)
@@ -53,6 +54,19 @@ export default function NotificationsPage() {
     } catch {
       return 'Invalid'
     }
+  }
+
+  // Показываем скелетон при загрузке
+  if (loading) {
+    return (
+      <div className="p-4 sm:p-6 animate-fade-in">
+        <div className="flex items-center gap-3 mb-6">
+          <Skeleton className="w-10 h-10 rounded-full" />
+          <Skeleton className="h-7 w-48" />
+        </div>
+        <SkeletonNotifications count={5} />
+      </div>
+    )
   }
 
   // Компонент секции
@@ -102,7 +116,7 @@ export default function NotificationsPage() {
                     <div className="flex items-center gap-1">
                       <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
                       <span>
-                        {formatDate(batch.manufacturingDate)} — {formatDate(batch.expiryDate)}
+                        {formatDate(batch.expiryDate)}
                       </span>
                     </div>
                     <div className="flex items-center gap-1">

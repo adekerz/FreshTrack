@@ -47,12 +47,13 @@ function ToastItem({ toast, onRemove }) {
         relative flex items-start gap-3 p-4 rounded-xl border shadow-lg backdrop-blur-sm
         animate-toast-in w-full sm:min-w-[300px] sm:max-w-[400px]
         ${color.bg}
+        ${toast.type === 'success' ? 'animate-success-pop' : ''}
       `}
       role="alert"
     >
       {/* Иконка */}
       <div className={`flex-shrink-0 ${color.icon}`}>
-        <Icon className={`w-5 h-5 ${toast.type === 'loading' ? 'animate-spin' : ''}`} />
+        <Icon className={`w-5 h-5 ${toast.type === 'loading' ? 'animate-spin' : ''} ${toast.type === 'success' ? 'animate-success-pop' : ''}`} />
       </div>
 
       {/* Контент */}

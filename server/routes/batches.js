@@ -67,7 +67,7 @@ router.post('/', authMiddleware, hotelIsolation, async (req, res) => {
   try {
     const { 
       product_id, productName, department, category,
-      quantity, production_date, expiry_date, manufacturingDate, expiryDate,
+      quantity, expiry_date, expiryDate,
       supplier, notes, batch_code 
     } = req.body
     
@@ -102,17 +102,18 @@ router.post('/', authMiddleware, hotelIsolation, async (req, res) => {
     }
     
     // Поддержка обоих форматов дат
-    const prodDate = production_date || manufacturingDate || null
     const expDate = expiry_date || expiryDate || null
     
+    // Определить department_id из продукта или запроса
+    const departmentId = department || product.department_id || null
+    
     const batch = await createBatch({
+      hotel_id: req.hotelId,
+      department_id: departmentId,
       product_id: productId, 
       quantity: quantity === null || quantity === undefined ? null : parseFloat(quantity),
-      production_date: prodDate,
       expiry_date: expDate,
-      supplier: supplier || null,
-      notes: notes || null,
-      batch_code: batch_code || null
+      added_by: req.user.id
     })
     
     await logAudit({
@@ -131,7 +132,6 @@ router.post('/', authMiddleware, hotelIsolation, async (req, res) => {
       productName: product.name,
       departmentId: department || product.department_id,
       expiryDate: expDate,
-      manufacturingDate: prodDate,
       quantity: batch.quantity
     })
   } catch (error) {

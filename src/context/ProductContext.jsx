@@ -112,7 +112,28 @@ export function ProductProvider({ children }) {
       ])
 
       // API возвращает { success: true, batches: [...] } или массив
-      const batchesData = Array.isArray(batchesRes) ? batchesRes : (batchesRes.batches || [])
+      const batchesRaw = Array.isArray(batchesRes) ? batchesRes : (batchesRes.batches || [])
+      // Нормализация snake_case → camelCase для совместимости
+      const batchesData = batchesRaw.map(b => {
+        const expiryDate = b.expiry_date || b.expiryDate
+        const daysLeft = getDaysUntilExpiry(expiryDate)
+        return {
+          ...b,
+          productId: b.product_id || b.productId,
+          productName: b.product_name || b.productName,
+          departmentId: b.department_id || b.departmentId,
+          departmentName: b.department_name || b.departmentName,
+          categoryName: b.category_name || b.categoryName,
+          expiryDate,
+          addedBy: b.added_by_name || b.added_by || b.addedBy,
+          collectedAt: b.collected_at || b.collectedAt,
+          collectedBy: b.collected_by || b.collectedBy,
+          hotelId: b.hotel_id || b.hotelId,
+          batchNumber: b.batch_number || b.batchNumber,
+          daysLeft,
+          status: getExpiryStatus(daysLeft)
+        }
+      })
       setBatches(batchesData)
       
       // API возвращает { success: true, stats: {...} } или объект
@@ -188,7 +209,7 @@ export function ProductProvider({ children }) {
    * Добавить партию товара
    */
   const addBatch = useCallback(
-    async (productIdOrName, departmentId, manufacturingDate, expiryDate, quantity) => {
+    async (productIdOrName, departmentId, expiryDate, quantity) => {
       try {
         // Найти название продукта в каталоге (если передан id) или использовать напрямую
         let productName = productIdOrName
@@ -204,25 +225,34 @@ export function ProductProvider({ children }) {
           }
         }
 
-        const newBatch = await apiFetch('/batches', {
+        const newBatchRes = await apiFetch('/batches', {
           method: 'POST',
           body: JSON.stringify({
             productName,
             department: departmentId,
             category,
             quantity: quantity === null || quantity === undefined ? null : parseInt(quantity),
-            expiryDate,
-            manufacturingDate
+            expiryDate
           })
         })
+
+        // Нормализация ответа сервера
+        const batchData = newBatchRes.batch || newBatchRes
+        const newBatch = {
+          ...batchData,
+          productId: batchData.product_id || batchData.productId,
+          productName: batchData.product_name || batchData.productName || productName,
+          departmentId: batchData.department_id || batchData.departmentId || departmentId,
+          expiryDate: batchData.expiry_date || batchData.expiryDate || expiryDate
+        }
 
         // Обновить локальные данные
         setBatches((prev) => [
           ...prev,
           {
             ...newBatch,
-            daysLeft: getDaysUntilExpiry(expiryDate),
-            status: getExpiryStatus(getDaysUntilExpiry(expiryDate)).status
+            daysLeft: getDaysUntilExpiry(newBatch.expiryDate),
+            status: getExpiryStatus(getDaysUntilExpiry(newBatch.expiryDate)).status
           }
         ])
 

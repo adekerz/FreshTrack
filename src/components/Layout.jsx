@@ -3,6 +3,7 @@ import Sidebar from './Sidebar'
 import Header from './Header'
 import BottomNavigation from './BottomNavigation'
 import NotificationPermissionBanner from './NotificationPermissionBanner'
+import Breadcrumbs from './Breadcrumbs'
 
 export default function Layout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(true)
@@ -16,7 +17,10 @@ export default function Layout({ children }) {
 
       <main className="flex-1 overflow-auto pb-20 sm:pb-0">
         <Header />
-        <div className="p-4 sm:p-8">{children}</div>
+        <div className="p-4 sm:p-8">
+          <Breadcrumbs />
+          {children}
+        </div>
       </main>
 
       {/* Bottom Navigation - только на мобильных */}

@@ -294,6 +294,7 @@
     "activeBatches": "Active Batches",
     "totalUnits": "Total Units",
     "quantity": "Quantity",
+    "noQuantity": "No tracking",
     "addedAt": "Added at",
     "collect": "Collect",
     "collected": "Collected",

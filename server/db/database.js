@@ -539,11 +539,13 @@ export async function deleteProduct(id) {
 
 export async function getAllBatches(hotelId, departmentId = null, status = null) {
   let queryText = `
-    SELECT b.*, p.name as product_name, p.barcode, c.name as category_name, d.name as department_name
+    SELECT b.*, p.name as product_name, p.barcode, c.name as category_name, d.name as department_name,
+           u.name as added_by_name
     FROM batches b
     JOIN products p ON b.product_id = p.id
     LEFT JOIN categories c ON p.category_id = c.id
     JOIN departments d ON b.department_id = d.id
+    LEFT JOIN users u ON b.added_by = u.id
     WHERE b.hotel_id = $1
   `
   const params = [hotelId]
@@ -567,10 +569,11 @@ export async function getAllBatches(hotelId, departmentId = null, status = null)
 
 export async function getBatchById(id) {
   const result = await query(`
-    SELECT b.*, p.name as product_name, d.name as department_name
+    SELECT b.*, p.name as product_name, d.name as department_name, u.name as added_by_name
     FROM batches b
     JOIN products p ON b.product_id = p.id
     JOIN departments d ON b.department_id = d.id
+    LEFT JOIN users u ON b.added_by = u.id
     WHERE b.id = $1
   `, [id])
   return result.rows[0] || null
@@ -580,12 +583,15 @@ export async function createBatch(batch) {
   const { hotel_id, department_id, product_id, quantity, expiry_date, batch_number, added_by } = batch
   const id = uuidv4()
   
+  // quantity может быть null для "без учёта количества"
+  const batchQuantity = quantity === null || quantity === undefined ? null : quantity
+  
   await query(`
     INSERT INTO batches (id, hotel_id, department_id, product_id, quantity, expiry_date, batch_number, added_by, status) 
     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'active')
-  `, [id, hotel_id, department_id, product_id, quantity || 1, expiry_date, batch_number, added_by])
+  `, [id, hotel_id, department_id, product_id, batchQuantity, expiry_date, batch_number, added_by])
   
-  return { id, hotel_id, department_id, product_id, quantity, expiry_date, batch_number, status: 'active' }
+  return { id, hotel_id, department_id, product_id, quantity: batchQuantity, expiry_date, batch_number, status: 'active' }
 }
 
 export async function updateBatch(id, updates) {
