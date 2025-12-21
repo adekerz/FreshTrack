@@ -693,27 +693,26 @@ export async function getBatchStats(hotelId, departmentId = null) {
 export async function getWriteOffs(hotelId, filters = {}) {
   let queryText = `
     SELECT 
-      wo.id, wo.hotel_id, wo.batch_id, wo.product_id, wo.quantity, 
-      wo.reason, wo.notes, wo.user_id, wo.created_at,
-      p.name as product_name, p.department_id,
+      wo.id, wo.hotel_id, wo.department_id, wo.batch_id, wo.product_id, wo.quantity, 
+      wo.reason, wo.comment as notes, wo.written_off_by as user_id, wo.written_off_at as created_at,
+      wo.product_name,
       u.name as user_name,
       b.expiry_date
     FROM write_offs wo
-    LEFT JOIN products p ON wo.product_id = p.id
-    LEFT JOIN users u ON wo.user_id = u.id
+    LEFT JOIN users u ON wo.written_off_by = u.id
     LEFT JOIN batches b ON wo.batch_id = b.id
     WHERE wo.hotel_id = $1
   `
   const params = [hotelId]
   let paramIndex = 2
   
-  if (filters.department_id) { queryText += ` AND p.department_id = $${paramIndex++}`; params.push(filters.department_id) }
-  if (filters.start_date) { queryText += ` AND DATE(wo.created_at) >= $${paramIndex++}`; params.push(filters.start_date) }
-  if (filters.end_date) { queryText += ` AND DATE(wo.created_at) <= $${paramIndex++}`; params.push(filters.end_date) }
+  if (filters.department_id) { queryText += ` AND wo.department_id = $${paramIndex++}`; params.push(filters.department_id) }
+  if (filters.start_date) { queryText += ` AND DATE(wo.written_off_at) >= $${paramIndex++}`; params.push(filters.start_date) }
+  if (filters.end_date) { queryText += ` AND DATE(wo.written_off_at) <= $${paramIndex++}`; params.push(filters.end_date) }
   if (filters.reason) { queryText += ` AND wo.reason = $${paramIndex++}`; params.push(filters.reason) }
   if (filters.product_id) { queryText += ` AND wo.product_id = $${paramIndex++}`; params.push(filters.product_id) }
   
-  queryText += ' ORDER BY wo.created_at DESC'
+  queryText += ' ORDER BY wo.written_off_at DESC'
   if (filters.limit) { queryText += ` LIMIT $${paramIndex++}`; params.push(parseInt(filters.limit)) }
   if (filters.offset) { queryText += ` OFFSET $${paramIndex++}`; params.push(parseInt(filters.offset)) }
   
@@ -889,9 +888,9 @@ export async function getWriteOffById(id) {
 export async function createWriteOff(data) {
   const id = uuidv4()
   await query(`
-    INSERT INTO write_offs (id, hotel_id, batch_id, product_id, quantity, reason, notes, user_id)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-  `, [id, data.hotel_id, data.batch_id, data.product_id, data.quantity, data.reason, data.notes, data.user_id])
+    INSERT INTO write_offs (id, hotel_id, department_id, batch_id, product_id, product_name, quantity, reason, comment, written_off_by)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+  `, [id, data.hotel_id, data.department_id, data.batch_id, data.product_id, data.product_name || 'Unknown', data.quantity, data.reason, data.notes || data.comment, data.user_id || data.written_off_by])
   return { id, ...data }
 }
 
@@ -920,43 +919,39 @@ export async function getWriteOffStats(hotelId, departmentId = null) {
   let paramIndex = 2
   
   if (departmentId) {
-    baseWhere += ` AND p.department_id = $${paramIndex++}`
+    baseWhere += ` AND w.department_id = $${paramIndex++}`
     params.push(departmentId)
   }
 
   // Total count
   const totalResult = await query(`
     SELECT COUNT(*) as count FROM write_offs w
-    LEFT JOIN products p ON w.product_id = p.id
     WHERE ${baseWhere}
   `, params)
   
   // Today count
   const todayResult = await query(`
     SELECT COUNT(*) as count FROM write_offs w
-    LEFT JOIN products p ON w.product_id = p.id
-    WHERE ${baseWhere} AND w.created_at >= $${paramIndex}
+    WHERE ${baseWhere} AND w.written_off_at >= $${paramIndex}
   `, [...params, todayStart])
   
   // Week count
   const weekResult = await query(`
     SELECT COUNT(*) as count FROM write_offs w
-    LEFT JOIN products p ON w.product_id = p.id
-    WHERE ${baseWhere} AND w.created_at >= $${paramIndex}
+    WHERE ${baseWhere} AND w.written_off_at >= $${paramIndex}
   `, [...params, weekAgo])
   
   // Month count
   const monthResult = await query(`
     SELECT COUNT(*) as count FROM write_offs w
-    LEFT JOIN products p ON w.product_id = p.id
-    WHERE ${baseWhere} AND w.created_at >= $${paramIndex}
+    WHERE ${baseWhere} AND w.written_off_at >= $${paramIndex}
   `, [...params, monthAgo])
 
   return {
-    today: parseInt(todayResult.rows[0].count) || 0,
-    week: parseInt(weekResult.rows[0].count) || 0,
-    month: parseInt(monthResult.rows[0].count) || 0,
-    total: parseInt(totalResult.rows[0].count) || 0
+    today: parseInt(totalResult.rows[0]?.count) || 0,
+    week: parseInt(weekResult.rows[0]?.count) || 0,
+    month: parseInt(monthResult.rows[0]?.count) || 0,
+    total: parseInt(totalResult.rows[0]?.count) || 0
   }
 }
 

@@ -188,7 +188,11 @@ export default function BottomNavigation() {
         </div>
       )}
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-taupe/10 shadow-elevated z-40 sm:hidden safe-bottom">
+      <nav 
+        className="fixed bottom-0 left-0 right-0 bg-white border-t border-sand shadow-soft z-40 sm:hidden"
+        role="navigation"
+        aria-label={t('nav.mobileNav') || 'Mobile navigation'}
+      >
         {/* Анимированный индикатор сверху */}
         {activeIndex >= 0 && !isMoreActive && (
           <div 
@@ -209,7 +213,11 @@ export default function BottomNavigation() {
           />
         )}
         
-        <div className="flex items-center justify-around py-2">
+        {/* Safe area padding for iOS - using env() */}
+        <div 
+          className="flex items-center justify-around"
+          style={{ paddingBottom: 'env(safe-area-inset-bottom, 8px)' }}
+        >
           {navItems.map(({ path, icon: Icon, label, badge }, index) => {
             const isActive = index === activeIndex && !isMoreActive
 
@@ -217,19 +225,33 @@ export default function BottomNavigation() {
               <button
                 key={path}
                 onClick={() => handleNavClick(path)}
+                aria-current={isActive ? 'page' : undefined}
+                aria-label={badge ? `${label}, ${badge} ${t('notifications.new') || 'new'}` : label}
                 className={cn(
-                  'flex flex-col items-center justify-center min-w-[60px] py-2 px-3 rounded-lg transition-all no-select relative',
-                  isActive ? 'text-accent' : 'text-charcoal/60 active:bg-sand/50'
+                  'flex flex-col items-center justify-center',
+                  'min-w-[64px] min-h-[56px] py-2 px-3', // Fitts's Law: large touch targets
+                  'rounded-lg transition-all',
+                  'active:scale-95 tap-highlight-transparent',
+                  isActive ? 'text-accent' : 'text-warmgray active:bg-sand/50'
                 )}
               >
                 <div className="relative">
-                  <Icon className={cn(
-                    'w-6 h-6 transition-all duration-300', 
-                    isActive && 'scale-110 -translate-y-0.5'
-                  )} />
+                  <Icon 
+                    className={cn(
+                      'w-6 h-6 transition-all duration-200', 
+                      isActive && 'scale-110'
+                    )}
+                    strokeWidth={isActive ? 2.5 : 2}
+                  />
 
                   {badge && (
-                    <span className="absolute -top-1 -right-1 min-w-[16px] h-4 flex items-center justify-center bg-danger text-white text-[10px] font-bold rounded-full px-1">
+                    <span 
+                      className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] 
+                        flex items-center justify-center 
+                        bg-danger text-white text-[10px] font-bold 
+                        rounded-full px-1 animate-pulse-soft"
+                      aria-hidden="true"
+                    >
                       {badge > 99 ? '99+' : badge}
                     </span>
                   )}
@@ -237,8 +259,8 @@ export default function BottomNavigation() {
 
                 <span
                   className={cn(
-                    'text-[10px] mt-1 font-medium transition-all',
-                    isActive ? 'opacity-100' : 'opacity-70'
+                    'text-[10px] mt-1 font-medium transition-colors',
+                    isActive ? 'text-accent' : 'text-warmgray'
                   )}
                 >
                   {label}
@@ -250,25 +272,34 @@ export default function BottomNavigation() {
           {/* Кнопка "Ещё" */}
           <button
             onClick={() => setShowMore(!showMore)}
+            aria-expanded={showMore}
+            aria-haspopup="true"
+            aria-label={t('nav.more') || 'More options'}
             className={cn(
-              'flex flex-col items-center justify-center min-w-[60px] py-2 px-3 rounded-lg transition-all no-select relative',
-              (showMore || isMoreActive) ? 'text-accent' : 'text-charcoal/60 active:bg-sand/50'
+              'flex flex-col items-center justify-center',
+              'min-w-[64px] min-h-[56px] py-2 px-3',
+              'rounded-lg transition-all',
+              'active:scale-95 tap-highlight-transparent',
+              (showMore || isMoreActive) ? 'text-accent' : 'text-warmgray active:bg-sand/50'
             )}
           >
             <div className="relative">
               {showMore ? (
-                <X className="w-6 h-6 transition-all duration-300" />
+                <X className="w-6 h-6 transition-all duration-200" strokeWidth={2.5} />
               ) : (
-                <MoreHorizontal className={cn(
-                  'w-6 h-6 transition-all duration-300',
-                  isMoreActive && 'scale-110 -translate-y-0.5'
-                )} />
+                <MoreHorizontal 
+                  className={cn(
+                    'w-6 h-6 transition-all duration-200',
+                    isMoreActive && 'scale-110'
+                  )}
+                  strokeWidth={isMoreActive ? 2.5 : 2}
+                />
               )}
             </div>
             <span
               className={cn(
-                'text-[10px] mt-1 font-medium transition-all',
-                (showMore || isMoreActive) ? 'opacity-100' : 'opacity-70'
+                'text-[10px] mt-1 font-medium transition-colors',
+                (showMore || isMoreActive) ? 'text-accent' : 'text-warmgray'
               )}
             >
               {t('nav.more') || 'Ещё'}

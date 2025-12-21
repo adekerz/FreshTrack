@@ -178,6 +178,16 @@ body {
   .touch-target {
     @apply min-h-[44px] min-w-[44px];
   }
+
+  /* Touch-friendly large target (Fitts's Law) */
+  .touch-target-lg {
+    @apply min-h-[48px] min-w-[48px];
+  }
+
+  /* Remove tap highlight on mobile */
+  .tap-highlight-transparent {
+    -webkit-tap-highlight-color: transparent;
+  }
   
   /* Mobile-optimized text */
   .text-mobile-h1 {
@@ -190,6 +200,16 @@ body {
   
   .text-mobile-body {
     @apply text-sm sm:text-base;
+  }
+
+  /* Hide scrollbar but allow scrolling */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
   }
 }
 
@@ -446,4 +466,101 @@ body {
 .interactive-card:active {
   @apply translate-y-0 shadow-md;
 }
+
+/* ===== ACCESSIBILITY IMPROVEMENTS ===== */
+
+/* Respect user's motion preferences (A11Y) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Skip link for keyboard navigation */
+.skip-link {
+  @apply absolute left-4 z-[100] bg-charcoal text-cream px-4 py-2 rounded-b-lg font-medium;
+  transform: translateY(-100%);
+  transition: transform 0.2s ease-in-out;
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+/* Enhanced focus indicators (WCAG 2.4.7) */
+.focus-visible-ring:focus-visible {
+  @apply outline-none ring-2 ring-accent ring-offset-2 ring-offset-cream;
+}
+
+/* Focus style for all interactive elements */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  @apply outline-none ring-2 ring-accent/50 ring-offset-1;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .btn-primary {
+    @apply border-2 border-charcoal;
+  }
+  
+  .card {
+    @apply border border-charcoal/20;
+  }
+  
+  input, select, textarea {
+    @apply border-2;
+  }
+}
+
+/* Screen reader only content */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Not sr-only when focused (for skip links) */
+.sr-only-focusable:focus,
+.sr-only-focusable:focus-within {
+  position: static;
+  width: auto;
+  height: auto;
+  padding: inherit;
+  margin: inherit;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+}
+
+/* Error states should not be color-only (A11Y) */
+.input-error {
+  @apply border-danger;
+  box-shadow: inset 3px 0 0 theme('colors.danger');
+}
+
+/* ARIA live region for announcements */
+.aria-live-polite {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
 

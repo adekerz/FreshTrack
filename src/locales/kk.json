@@ -1,4 +1,24 @@
 {
+  "a11y": {
+    "skipToContent": "Негізгі мазмұнға өту",
+    "loading": "Жүктелуде, күтіңіз",
+    "menuOpen": "Мәзір ашық",
+    "menuClosed": "Мәзір жабық",
+    "newNotifications": "Сізде жаңа хабарламалар бар",
+    "closeModal": "Диалогты жабу",
+    "required": "Міндетті өріс",
+    "error": "Қате",
+    "success": "Сәтті"
+  },
+  "validation": {
+    "required": "Бұл өріс міндетті",
+    "invalidEmail": "Жарамды email енгізіңіз",
+    "minLength": "Кемінде {{min}} таңба",
+    "maxLength": "Ең көбі {{max}} таңба",
+    "passwordMismatch": "Құпия сөздер сәйкес келмейді",
+    "invalidDate": "Жарамды күн енгізіңіз",
+    "positiveNumber": "Оң сан болуы керек"
+  },
   "common": {
     "appName": "FreshTrack",
     "tagline": "Тауар есебінің жүйесі",
@@ -169,7 +189,13 @@
     "analytics": "Аналитика",
     "passwordMismatch": "Құпия сөздер сәйкес келмейді",
     "passwordTooShort": "Құпия сөз кемінде 6 таңбадан тұруы керек",
-    "invalidCredentials": "Қате деректер"
+    "invalidCredentials": "Қате деректер",
+    "weak": "Әлсіз",
+    "fair": "Орташа",
+    "good": "Жақсы",
+    "strong": "Күшті",
+    "veryStrong": "Өте күшті",
+    "passwordsMatch": "Құпия сөздер сәйкес келеді"
   },
   "dashboard": {
     "title": "Басты бет",
@@ -189,7 +215,12 @@
     "viewInventory": "Қорды көру",
     "allGood": "Бәрі жақсы",
     "noExpiring": "Мерзімі аяқталатын тауарлар жоқ",
-    "showMore": "Тағы {{count}} көрсету"
+    "showMore": "Тағы {{count}} көрсету",
+    "goodMorning": "Қайырлы таң",
+    "goodAfternoon": "Қайырлы күн",
+    "goodEvening": "Қайырлы кеш",
+    "summary": "Қорыңызға шолу",
+    "urgent": "шұғыл"
   },
   "inventory": {
     "title": "Қор",
@@ -300,6 +331,7 @@
     "quantity": "Саны",
     "noQuantity": "Есепсіз",
     "addedAt": "Қосылған уақыты",
+    "addedBy": "Қосқан",
     "collect": "Жинау",
     "collected": "Жиналды",
     "collectedBatches": "Жиналған партиялар",
@@ -487,9 +519,9 @@
     "subtitle": "Профиль мен жүйені басқару",
     "saved": "Баптаулар сақталды",
     "saveError": "Баптауларды сақтау қатесі",
-    "profile": "Профиль",
+    "profileLabel": "Профиль",
     "departments": "Бөлімдер",
-    "categories": "Санаттар",
+    "categoriesLabel": "Санаттар",
     "export": "Экспорт",
     "tabs": {
       "profile": "Профиль",

@@ -34,10 +34,12 @@ router.get('/stats', authMiddleware, hotelIsolation, async (req, res) => {
 // GET /api/write-offs
 router.get('/', authMiddleware, hotelIsolation, async (req, res) => {
   try {
-    const { department_id, start_date, end_date, reason, product_id } = req.query
+    const { department_id, start_date, end_date, reason, product_id, limit, offset } = req.query
     const filters = {
       department_id: department_id || req.departmentId,
-      start_date, end_date, reason, product_id
+      start_date, end_date, reason, product_id,
+      limit: limit ? parseInt(limit) : undefined,
+      offset: offset ? parseInt(offset) : undefined
     }
     const writeOffs = await getAllWriteOffs(req.hotelId, filters)
     res.json({ success: true, write_offs: writeOffs })

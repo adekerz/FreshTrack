@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
-import { useLocation } from 'react-router-dom'
-import { Plus, LogOut, Send, ChevronDown, Package, FolderPlus, Leaf, Search } from 'lucide-react'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { Plus, LogOut, Send, ChevronDown, Package, FolderPlus, Leaf, Search, Bell, Command } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import { useProducts } from '../context/ProductContext'
 import { useTranslation, useLanguage } from '../context/LanguageContext'
 import AddBatchModal from './AddBatchModal'
 import AddCustomProductModal from './AddCustomProductModal'
@@ -11,7 +12,9 @@ import { sendTestTelegramNotification } from '../services/api'
 
 export default function Header() {
   const location = useLocation()
-  const { user, logout } = useAuth()
+  const navigate = useNavigate()
+  const { user, logout, hotelName } = useAuth()
+  const { getExpiringBatches } = useProducts()
   const { t } = useTranslation()
   const { language } = useLanguage()
   const [showDropdown, setShowDropdown] = useState(false)
@@ -20,6 +23,9 @@ export default function Header() {
   const [telegramStatus, setTelegramStatus] = useState(null)
   const [showMobileSearch, setShowMobileSearch] = useState(false)
   const dropdownRef = useRef(null)
+
+  // Count of expiring items for notification badge
+  const expiringCount = getExpiringBatches?.()?.length || 0
 
   // Закрытие dropdown при клике вне его
   useEffect(() => {
@@ -75,9 +81,9 @@ export default function Header() {
   return (
     <>
       <header className="bg-cream border-b border-sand px-4 lg:px-8 py-3 sm:py-4 flex items-center justify-between sticky top-0 z-10">
-        {/* Левая часть: лого на мобилке + заголовок */}
+        {/* Left side: logo on mobile + title */}
         <div className="flex items-center gap-3">
-          {/* Лого - только на мобильных */}
+          {/* Logo - mobile only */}
           <div className="sm:hidden flex items-center gap-2">
             <div className="w-8 h-8 border border-accent flex items-center justify-center flex-shrink-0">
               <Leaf className="w-4 h-4 text-accent" />
@@ -85,27 +91,51 @@ export default function Header() {
           </div>
           
           <div className="hidden sm:block">
-            <h1 className="font-serif text-lg sm:text-xl lg:text-2xl">{getPageTitle()}</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="font-serif text-lg sm:text-xl lg:text-2xl">{getPageTitle()}</h1>
+              {hotelName && (
+                <span className="text-sm text-warmgray bg-sand/50 px-2 py-0.5 rounded-full hidden lg:inline-block">
+                  {hotelName}
+                </span>
+              )}
+            </div>
             <p className="text-xs lg:text-sm text-warmgray">{getLocalizedDate()}</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 lg:gap-4">
-          {/* Кнопка поиска - только на мобильных */}
+        <div className="flex items-center gap-2 lg:gap-3">
+          {/* Mobile search button */}
           <button
             onClick={() => setShowMobileSearch(!showMobileSearch)}
-            className="sm:hidden p-2 hover:bg-sand rounded transition-colors"
+            className="sm:hidden p-2 hover:bg-sand rounded-lg transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
             aria-label={t('search.placeholder')}
           >
             <Search className={`w-5 h-5 ${showMobileSearch ? 'text-accent' : 'text-charcoal'}`} />
           </button>
 
-          {/* Глобальный поиск - только на десктопе */}
-          <div className="hidden sm:block">
+          {/* Global search with keyboard hint - desktop only */}
+          <div className="hidden sm:flex items-center">
             <GlobalSearch />
+            <kbd className="hidden lg:inline-flex items-center gap-0.5 ml-2 px-1.5 py-0.5 text-xs text-warmgray bg-sand/50 rounded border border-sand">
+              <Command className="w-3 h-3" />K
+            </kbd>
           </div>
 
-          {/* Dropdown меню для добавления */}
+          {/* Notification bell */}
+          <button
+            onClick={() => navigate('/notifications')}
+            className="relative p-2 hover:bg-sand rounded-lg transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+            aria-label={t('nav.notifications')}
+          >
+            <Bell className="w-5 h-5 text-charcoal" />
+            {expiringCount > 0 && (
+              <span className="absolute top-1 right-1 min-w-[18px] h-[18px] flex items-center justify-center text-xs font-medium text-white bg-danger rounded-full px-1">
+                {expiringCount > 99 ? '99+' : expiringCount}
+              </span>
+            )}
+          </button>
+
+          {/* Add dropdown menu */}
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setShowDropdown(!showDropdown)}

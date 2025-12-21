@@ -35,65 +35,80 @@ export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose })
       ? getUnreadNotificationsCount()
       : stats.critical + stats.expired
 
-  // Основные пункты меню (убраны пункты связанные с отделами)
-  const navItems = [
+  // Menu items grouped by category (Miller's Law - chunking)
+  const navGroups = [
     {
-      path: '/',
-      icon: LayoutDashboard,
-      label: t('nav.dashboard'),
-      roles: ['SUPER_ADMIN', 'HOTEL_ADMIN', 'STAFF']
+      label: null, // Main navigation - no label
+      items: [
+        {
+          path: '/',
+          icon: LayoutDashboard,
+          label: t('nav.dashboard'),
+          roles: ['SUPER_ADMIN', 'HOTEL_ADMIN', 'STAFF']
+        },
+        {
+          path: '/inventory',
+          icon: Package,
+          label: t('nav.inventory'),
+          roles: ['SUPER_ADMIN', 'HOTEL_ADMIN', 'STAFF']
+        },
+        {
+          path: '/notifications',
+          icon: Bell,
+          label: t('nav.notifications'),
+          badge: unreadCount > 0 ? unreadCount : null,
+          roles: ['SUPER_ADMIN', 'HOTEL_ADMIN', 'STAFF']
+        },
+        {
+          path: '/calendar',
+          icon: Calendar,
+          label: t('nav.calendar') || 'Calendar',
+          roles: ['SUPER_ADMIN', 'HOTEL_ADMIN', 'STAFF']
+        }
+      ]
     },
     {
-      path: '/inventory',
-      icon: Package,
-      label: t('nav.inventory'),
-      roles: ['SUPER_ADMIN', 'HOTEL_ADMIN', 'STAFF']
+      label: t('nav.reports') || 'Reports',
+      items: [
+        {
+          path: '/statistics',
+          icon: BarChart3,
+          label: t('nav.statistics'),
+          roles: ['SUPER_ADMIN', 'HOTEL_ADMIN']
+        },
+        {
+          path: '/collection-history',
+          icon: ClipboardList,
+          label: t('nav.collectionHistory'),
+          roles: ['SUPER_ADMIN', 'HOTEL_ADMIN']
+        },
+        {
+          path: '/audit-logs',
+          icon: FileText,
+          label: t('nav.auditLogs') || 'Audit Log',
+          roles: ['SUPER_ADMIN', 'HOTEL_ADMIN']
+        }
+      ]
     },
     {
-      path: '/notifications',
-      icon: Bell,
-      label: t('nav.notifications'),
-      badge: unreadCount > 0 ? unreadCount : null,
-      roles: ['SUPER_ADMIN', 'HOTEL_ADMIN', 'STAFF']
-    },
-    {
-      path: '/calendar',
-      icon: Calendar,
-      label: t('nav.calendar') || 'Календарь',
-      roles: ['SUPER_ADMIN', 'HOTEL_ADMIN', 'STAFF']
-    },
-    {
-      path: '/statistics',
-      icon: BarChart3,
-      label: t('nav.statistics'),
-      roles: ['SUPER_ADMIN', 'HOTEL_ADMIN']
-    },
-    {
-      path: '/collection-history',
-      icon: ClipboardList,
-      label: t('nav.collectionHistory'),
-      roles: ['SUPER_ADMIN', 'HOTEL_ADMIN']
-    },
-    {
-      path: '/audit-logs',
-      icon: FileText,
-      label: t('nav.auditLogs') || 'Журнал действий',
-      roles: ['SUPER_ADMIN', 'HOTEL_ADMIN']
-    },
-    {
-      path: '/settings',
-      icon: Settings,
-      label: t('nav.settings'),
-      roles: ['SUPER_ADMIN', 'HOTEL_ADMIN']
+      label: null,
+      items: [
+        {
+          path: '/settings',
+          icon: Settings,
+          label: t('nav.settings'),
+          roles: ['SUPER_ADMIN', 'HOTEL_ADMIN']
+        }
+      ]
     }
   ]
 
-  // Фильтруем пункты меню по роли пользователя
-  const filteredNavItems = navItems.filter((item) => {
-    if (!user) return false
+  // Filter menu items by user role
+  const filterByRole = (items) => {
+    if (!user) return []
     const userRole = user.role?.toUpperCase()
-    return item.roles.includes(userRole)
-  })
+    return items.filter(item => item.roles.includes(userRole))
+  }
 
   const isActive = (path) => {
     if (path === '/') return location.pathname === '/'
@@ -150,36 +165,65 @@ export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose })
           )}
         </div>
 
-        {/* Main Navigation */}
-        <nav className="flex-1 px-4 py-6 overflow-y-auto">
-          <ul className="space-y-1">
-            {filteredNavItems.map((item) => (
-              <li key={item.path}>
-                <button
-                  onClick={() => handleNavClick(item.path)}
-                  className={cn(
-                    'w-full flex items-center gap-3 px-4 py-3 rounded transition-colors relative',
-                    isActive(item.path) ? 'bg-white/10 text-accent' : 'hover:bg-white/5'
-                  )}
-                  title={!isOpen && !isMobile ? item.label : undefined}
-                >
-                  <item.icon className="w-5 h-5 flex-shrink-0" />
-                  {(isOpen || isMobile) && <span className="flex-1 text-left">{item.label}</span>}
-                  {/* Бейдж для уведомлений */}
-                  {item.badge && (
-                    <span
-                      className={cn(
-                        'bg-danger text-white text-xs font-medium px-2 py-0.5 rounded-full min-w-[20px] text-center',
-                        !isOpen && !isMobile && 'absolute -top-1 -right-1 text-[10px] px-1.5'
-                      )}
-                    >
-                      {item.badge > 99 ? '99+' : item.badge}
-                    </span>
-                  )}
-                </button>
-              </li>
-            ))}
-          </ul>
+        {/* Main Navigation - Grouped */}
+        <nav className="flex-1 px-3 py-4 overflow-y-auto">
+          {navGroups.map((group, groupIndex) => {
+            const items = filterByRole(group.items)
+            if (items.length === 0) return null
+            
+            return (
+              <div key={groupIndex} className={groupIndex > 0 ? 'mt-6' : ''}>
+                {/* Group label */}
+                {group.label && (isOpen || isMobile) && (
+                  <p className="px-4 mb-2 text-xs font-medium text-warmgray uppercase tracking-wider">
+                    {group.label}
+                  </p>
+                )}
+                {group.label && !isOpen && !isMobile && (
+                  <div className="h-px bg-white/10 mx-4 my-2" />
+                )}
+                
+                <ul className="space-y-1">
+                  {items.map((item) => (
+                    <li key={item.path}>
+                      <button
+                        onClick={() => handleNavClick(item.path)}
+                        className={cn(
+                          'w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 relative group',
+                          isActive(item.path) 
+                            ? 'bg-accent/10 text-accent border-l-4 border-accent -ml-px pl-[15px]' 
+                            : 'hover:bg-white/5 text-cream/80 hover:text-cream'
+                        )}
+                        title={!isOpen && !isMobile ? item.label : undefined}
+                        aria-current={isActive(item.path) ? 'page' : undefined}
+                      >
+                        <item.icon className={cn(
+                          'w-5 h-5 flex-shrink-0 transition-transform duration-200',
+                          isActive(item.path) ? '' : 'group-hover:scale-110'
+                        )} />
+                        {(isOpen || isMobile) && (
+                          <span className="flex-1 text-left font-medium">{item.label}</span>
+                        )}
+                        {/* Badge for notifications */}
+                        {item.badge && (
+                          <span
+                            className={cn(
+                              'bg-danger text-white text-xs font-medium rounded-full min-w-[20px] text-center',
+                              isOpen || isMobile 
+                                ? 'px-2 py-0.5' 
+                                : 'absolute -top-1 -right-1 text-[10px] px-1.5 py-0.5'
+                            )}
+                          >
+                            {item.badge > 99 ? '99+' : item.badge}
+                          </span>
+                        )}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )
+          })}
         </nav>
 
         {/* User info (мобильная версия) */}

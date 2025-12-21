@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { Leaf, ShieldCheck, Bell, BarChart3, ArrowRight } from 'lucide-react'
+import { Leaf, ShieldCheck, Bell, BarChart3, ArrowRight, User, Lock, AlertCircle } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useTranslation } from '../context/LanguageContext'
 import { useToast } from '../context/ToastContext'
+import { Input, Button } from '../components/ui'
 
 export default function LoginPage() {
   const navigate = useNavigate()
@@ -14,6 +15,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [touched, setTouched] = useState({ identifier: false, password: false })
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -32,6 +34,14 @@ export default function LoginPage() {
 
     setIsLoading(false)
   }
+
+  const handleBlur = (field) => {
+    setTouched(prev => ({ ...prev, [field]: true }))
+  }
+
+  // Inline validation
+  const identifierError = touched.identifier && !identifier ? t('validation.required') : ''
+  const passwordError = touched.password && !password ? t('validation.required') : ''
 
   return (
     <div className="min-h-screen flex">
@@ -92,71 +102,76 @@ export default function LoginPage() {
             <span className="font-serif text-2xl tracking-wide">{t('common.appName')}</span>
           </div>
 
-          <div className="mb-12">
+          <div className="mb-10">
             <h2 className="font-serif text-3xl mb-2">{t('auth.welcomeBack')}</h2>
             <p className="text-warmgray">{t('auth.signInSubtitle')}</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-8">
-            <div className="animate-slide-up stagger-1" style={{ opacity: 0 }}>
-              <label className="text-xs uppercase tracking-wider text-warmgray mb-2 block">
-                {t('auth.loginOrEmail')}
-              </label>
-              <input
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Server error */}
+            {error && (
+              <div className="flex items-start gap-3 text-danger text-sm bg-danger/10 p-4 rounded-lg animate-fade-in">
+                <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                <span>{error}</span>
+              </div>
+            )}
+
+            <div className="animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+              <Input
                 type="text"
+                label={t('auth.loginOrEmail')}
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
-                className="elegant-input"
-                placeholder={t('auth.loginOrEmailPlaceholder')}
-                required
+                onBlur={() => handleBlur('identifier')}
+                icon={User}
+                error={identifierError}
+                autoComplete="username"
+                autoFocus
               />
             </div>
 
-            <div className="animate-slide-up stagger-2" style={{ opacity: 0 }}>
-              <label className="text-xs uppercase tracking-wider text-warmgray mb-2 block">
-                {t('auth.password')}
-              </label>
-              <input
+            <div className="animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+              <Input
                 type="password"
+                label={t('auth.password')}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="elegant-input"
-                placeholder={t('auth.passwordPlaceholder')}
-                required
+                onBlur={() => handleBlur('password')}
+                icon={Lock}
+                error={passwordError}
+                autoComplete="current-password"
               />
             </div>
 
-            {error && <div className="text-danger text-sm bg-danger/10 p-4 rounded">{error}</div>}
-
-            <div className="animate-slide-up stagger-3 pt-4" style={{ opacity: 0 }}>
-              <button
+            <div className="animate-fade-in-up pt-2" style={{ animationDelay: '300ms' }}>
+              <Button
                 type="submit"
-                disabled={isLoading}
-                className="btn-primary w-full flex items-center justify-center gap-2"
+                variant="primary"
+                size="lg"
+                loading={isLoading}
+                className="w-full"
               >
-                {isLoading ? (
-                  <span>{t('auth.signingIn')}</span>
-                ) : (
+                {!isLoading && (
                   <>
                     <span>{t('auth.signIn')}</span>
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}
-              </button>
+              </Button>
             </div>
 
-            <div className="animate-slide-up stagger-4 text-center" style={{ opacity: 0 }}>
+            <div className="animate-fade-in-up text-center pt-2" style={{ animationDelay: '400ms' }}>
               <span className="text-warmgray text-sm">{t('auth.noAccount')} </span>
               <Link
                 to="/register"
-                className="text-charcoal text-sm font-medium hover:text-accent transition-colors"
+                className="text-charcoal text-sm font-medium hover:text-accent transition-colors underline-offset-4 hover:underline"
               >
                 {t('auth.createAccount')}
               </Link>
             </div>
           </form>
 
-          <div className="mt-16 pt-8 border-t border-sand">
+          <div className="mt-12 pt-6 border-t border-sand">
             <p className="text-xs text-warmgray text-center">{t('auth.demoCredentials')}</p>
           </div>
         </div>

@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { Leaf } from 'lucide-react'
+import { Leaf, User, Mail, Lock, Building, AlertCircle, ArrowRight, CheckCircle } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useProducts } from '../context/ProductContext'
 import { useTranslation } from '../context/LanguageContext'
 import { useToast } from '../context/ToastContext'
+import { Input, Button } from '../components/ui'
 
 export default function RegisterPage() {
   const navigate = useNavigate()
@@ -22,6 +23,22 @@ export default function RegisterPage() {
   })
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [touched, setTouched] = useState({})
+
+  // Password strength indicator
+  const getPasswordStrength = (password) => {
+    let strength = 0
+    if (password.length >= 6) strength++
+    if (password.length >= 8) strength++
+    if (/[A-Z]/.test(password)) strength++
+    if (/[0-9]/.test(password)) strength++
+    if (/[^A-Za-z0-9]/.test(password)) strength++
+    return strength
+  }
+
+  const passwordStrength = getPasswordStrength(formData.password)
+  const strengthLabels = ['', t('auth.weak'), t('auth.fair'), t('auth.good'), t('auth.strong'), t('auth.veryStrong')]
+  const strengthColors = ['bg-gray-200', 'bg-danger', 'bg-warning', 'bg-warning', 'bg-success', 'bg-success']
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -54,6 +71,22 @@ export default function RegisterPage() {
   const handleChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
     setError('')
+  }
+
+  const handleBlur = (field) => {
+    setTouched(prev => ({ ...prev, [field]: true }))
+  }
+
+  // Validation errors
+  const errors = {
+    name: touched.name && !formData.name ? t('validation.required') : '',
+    email: touched.email && !formData.email ? t('validation.required') : 
+           touched.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email) ? t('validation.invalidEmail') : '',
+    department: touched.department && !formData.department ? t('validation.required') : '',
+    password: touched.password && !formData.password ? t('validation.required') :
+              touched.password && formData.password.length < 6 ? t('auth.passwordTooShort') : '',
+    confirmPassword: touched.confirmPassword && !formData.confirmPassword ? t('validation.required') :
+                     touched.confirmPassword && formData.password !== formData.confirmPassword ? t('validation.passwordMismatch') : ''
   }
 
   return (
@@ -89,110 +122,161 @@ export default function RegisterPage() {
       </div>
 
       {/* Right Panel - Register Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 lg:p-16 bg-cream">
-        <div className="w-full max-w-md animate-fade-in">
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 lg:p-16 bg-cream overflow-y-auto">
+        <div className="w-full max-w-md animate-fade-in py-4">
           {/* Mobile Logo */}
-          <div className="lg:hidden flex items-center gap-3 mb-12">
+          <div className="lg:hidden flex items-center gap-3 mb-8">
             <div className="w-10 h-10 border border-charcoal flex items-center justify-center">
               <Leaf className="w-5 h-5 text-accent" />
             </div>
             <span className="font-serif text-2xl tracking-wide">{t('common.appName')}</span>
           </div>
 
-          <div className="mb-10">
+          <div className="mb-8">
             <h2 className="font-serif text-3xl mb-2">{t('auth.createAccount')}</h2>
             <p className="text-warmgray">{t('auth.joinSubtitle')}</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label className="text-xs uppercase tracking-wider text-warmgray mb-2 block">
-                {t('auth.fullName')}
-              </label>
-              <input
+          {/* Server error */}
+          {error && (
+            <div className="flex items-start gap-3 text-danger text-sm bg-danger/10 p-4 rounded-lg animate-fade-in mb-6">
+              <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="animate-fade-in-up" style={{ animationDelay: '50ms' }}>
+              <Input
                 type="text"
+                label={t('auth.fullName')}
                 value={formData.name}
                 onChange={(e) => handleChange('name', e.target.value)}
-                className="elegant-input"
-                placeholder={t('auth.fullNamePlaceholder')}
-                required
+                onBlur={() => handleBlur('name')}
+                icon={User}
+                error={errors.name}
+                autoComplete="name"
               />
             </div>
 
-            <div>
-              <label className="text-xs uppercase tracking-wider text-warmgray mb-2 block">
-                {t('auth.email')}
-              </label>
-              <input
+            <div className="animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+              <Input
                 type="email"
+                label={t('auth.email')}
                 value={formData.email}
                 onChange={(e) => handleChange('email', e.target.value)}
-                className="elegant-input"
-                placeholder={t('auth.emailPlaceholder')}
-                required
+                onBlur={() => handleBlur('email')}
+                icon={Mail}
+                error={errors.email}
+                autoComplete="email"
               />
             </div>
 
-            <div>
-              <label className="text-xs uppercase tracking-wider text-warmgray mb-2 block">
+            <div className="animate-fade-in-up" style={{ animationDelay: '150ms' }}>
+              <label className="text-xs uppercase tracking-wider text-warmgray mb-2 block font-medium">
                 {t('auth.department')}
               </label>
-              <select
-                value={formData.department}
-                onChange={(e) => handleChange('department', e.target.value)}
-                className="elegant-input bg-transparent cursor-pointer"
-                required
-              >
-                <option value="">{t('auth.selectDepartment')}</option>
-                {departments.map((dept) => (
-                  <option key={dept.id} value={dept.id}>
-                    {dept.name}
-                  </option>
-                ))}
-              </select>
+              <div className="relative">
+                <Building className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-warmgray pointer-events-none" />
+                <select
+                  value={formData.department}
+                  onChange={(e) => handleChange('department', e.target.value)}
+                  onBlur={() => handleBlur('department')}
+                  className={`w-full h-12 pl-12 pr-4 bg-white border rounded-lg appearance-none cursor-pointer
+                    focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all
+                    ${errors.department ? 'border-danger' : 'border-sand hover:border-warmgray'}`}
+                  required
+                >
+                  <option value="">{t('auth.selectDepartment')}</option>
+                  {departments.map((dept) => (
+                    <option key={dept.id} value={dept.id}>
+                      {dept.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {errors.department && (
+                <p className="text-danger text-xs mt-1 flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3" />
+                  {errors.department}
+                </p>
+              )}
             </div>
 
-            <div>
-              <label className="text-xs uppercase tracking-wider text-warmgray mb-2 block">
-                {t('auth.password')}
-              </label>
-              <input
+            <div className="animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+              <Input
                 type="password"
+                label={t('auth.password')}
                 value={formData.password}
                 onChange={(e) => handleChange('password', e.target.value)}
-                className="elegant-input"
-                placeholder={t('auth.passwordPlaceholder')}
-                required
+                onBlur={() => handleBlur('password')}
+                icon={Lock}
+                error={errors.password}
+                autoComplete="new-password"
               />
+              {/* Password strength indicator */}
+              {formData.password && (
+                <div className="mt-2 animate-fade-in">
+                  <div className="flex gap-1 mb-1">
+                    {[1, 2, 3, 4, 5].map((level) => (
+                      <div
+                        key={level}
+                        className={`h-1 flex-1 rounded-full transition-colors ${
+                          passwordStrength >= level ? strengthColors[passwordStrength] : 'bg-gray-200'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  <p className="text-xs text-warmgray flex items-center gap-1">
+                    {passwordStrength >= 4 && <CheckCircle className="w-3 h-3 text-success" />}
+                    {strengthLabels[passwordStrength]}
+                  </p>
+                </div>
+              )}
             </div>
 
-            <div>
-              <label className="text-xs uppercase tracking-wider text-warmgray mb-2 block">
-                {t('auth.confirmPassword')}
-              </label>
-              <input
+            <div className="animate-fade-in-up" style={{ animationDelay: '250ms' }}>
+              <Input
                 type="password"
+                label={t('auth.confirmPassword')}
                 value={formData.confirmPassword}
                 onChange={(e) => handleChange('confirmPassword', e.target.value)}
-                className="elegant-input"
-                placeholder={t('auth.passwordPlaceholder')}
-                required
+                onBlur={() => handleBlur('confirmPassword')}
+                icon={Lock}
+                error={errors.confirmPassword}
+                autoComplete="new-password"
               />
+              {/* Match indicator */}
+              {formData.confirmPassword && formData.password === formData.confirmPassword && (
+                <p className="text-success text-xs mt-1 flex items-center gap-1 animate-fade-in">
+                  <CheckCircle className="w-3 h-3" />
+                  {t('auth.passwordsMatch')}
+                </p>
+              )}
             </div>
 
-            {error && <div className="text-danger text-sm bg-danger/10 p-4 rounded">{error}</div>}
-
-            <div className="pt-4">
-              <button type="submit" className="btn-primary w-full" disabled={isLoading}>
-                {isLoading ? t('auth.creatingAccount') : t('auth.createAccount')}
-              </button>
+            <div className="pt-4 animate-fade-in-up" style={{ animationDelay: '300ms' }}>
+              <Button
+                type="submit"
+                variant="primary"
+                size="lg"
+                loading={isLoading}
+                className="w-full"
+              >
+                {!isLoading && (
+                  <>
+                    <span>{t('auth.createAccount')}</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
+              </Button>
             </div>
 
-            <div className="text-center">
+            <div className="text-center animate-fade-in-up" style={{ animationDelay: '350ms' }}>
               <span className="text-warmgray text-sm">{t('auth.haveAccount')} </span>
               <Link
                 to="/login"
-                className="text-charcoal text-sm font-medium hover:text-accent transition-colors"
+                className="text-charcoal text-sm font-medium hover:text-accent transition-colors underline-offset-4 hover:underline"
               >
                 {t('auth.signIn')}
               </Link>

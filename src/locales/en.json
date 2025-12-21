@@ -1,4 +1,24 @@
 {
+  "a11y": {
+    "skipToContent": "Skip to main content",
+    "loading": "Loading, please wait",
+    "menuOpen": "Menu is open",
+    "menuClosed": "Menu is closed",
+    "newNotifications": "You have new notifications",
+    "closeModal": "Close dialog",
+    "required": "Required field",
+    "error": "Error",
+    "success": "Success"
+  },
+  "validation": {
+    "required": "This field is required",
+    "invalidEmail": "Please enter a valid email address",
+    "minLength": "Must be at least {{min}} characters",
+    "maxLength": "Must be no more than {{max}} characters",
+    "passwordMismatch": "Passwords do not match",
+    "invalidDate": "Please enter a valid date",
+    "positiveNumber": "Must be a positive number"
+  },
   "common": {
     "appName": "FreshTrack",
     "tagline": "Inventory Excellence",
@@ -169,7 +189,13 @@
     "analytics": "Analytics",
     "passwordMismatch": "Passwords do not match",
     "passwordTooShort": "Password must be at least 6 characters",
-    "invalidCredentials": "Invalid credentials"
+    "invalidCredentials": "Invalid credentials",
+    "weak": "Weak",
+    "fair": "Fair",
+    "good": "Good",
+    "strong": "Strong",
+    "veryStrong": "Very strong",
+    "passwordsMatch": "Passwords match"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -189,7 +215,12 @@
     "viewInventory": "View inventory",
     "allGood": "All Good",
     "noExpiring": "No items with expiring dates",
-    "showMore": "Show {{count}} more"
+    "showMore": "Show {{count}} more",
+    "goodMorning": "Good morning",
+    "goodAfternoon": "Good afternoon",
+    "goodEvening": "Good evening",
+    "summary": "Here is your inventory overview",
+    "urgent": "urgent"
   },
   "inventory": {
     "title": "Inventory",
@@ -300,6 +331,7 @@
     "quantity": "Quantity",
     "noQuantity": "No tracking",
     "addedAt": "Added at",
+    "addedBy": "Added by",
     "collect": "Collect",
     "collected": "Collected",
     "collectedBatches": "Collected Batches",
@@ -519,9 +551,9 @@
     "subtitle": "Manage profile and system",
     "saved": "Settings saved",
     "saveError": "Error saving settings",
-    "profile": "Profile",
+    "profileLabel": "Profile",
     "departments": "Departments",
-    "categories": "Categories",
+    "categoriesLabel": "Categories",
     "export": "Export",
     "tabs": {
       "profile": "Profile",

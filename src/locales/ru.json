@@ -1,4 +1,24 @@
 {
+  "a11y": {
+    "skipToContent": "Перейти к основному содержимому",
+    "loading": "Загрузка, подождите",
+    "menuOpen": "Меню открыто",
+    "menuClosed": "Меню закрыто",
+    "newNotifications": "У вас новые уведомления",
+    "closeModal": "Закрыть диалог",
+    "required": "Обязательное поле",
+    "error": "Ошибка",
+    "success": "Успех"
+  },
+  "validation": {
+    "required": "Это поле обязательно",
+    "invalidEmail": "Введите корректный email",
+    "minLength": "Минимум {{min}} символов",
+    "maxLength": "Максимум {{max}} символов",
+    "passwordMismatch": "Пароли не совпадают",
+    "invalidDate": "Введите корректную дату",
+    "positiveNumber": "Должно быть положительным числом"
+  },
   "common": {
     "appName": "FreshTrack",
     "tagline": "Совершенство управления",
@@ -169,7 +189,13 @@
     "analytics": "Аналитика",
     "passwordMismatch": "Пароли не совпадают",
     "passwordTooShort": "Пароль должен быть не менее 6 символов",
-    "invalidCredentials": "Неверные учётные данные"
+    "invalidCredentials": "Неверные учётные данные",
+    "weak": "Слабый",
+    "fair": "Средний",
+    "good": "Хороший",
+    "strong": "Надёжный",
+    "veryStrong": "Очень надёжный",
+    "passwordsMatch": "Пароли совпадают"
   },
   "dashboard": {
     "title": "Главная",
@@ -189,7 +215,12 @@
     "viewInventory": "Смотреть инвентарь",
     "allGood": "Всё в порядке",
     "noExpiring": "Нет товаров с истекающим сроком годности",
-    "showMore": "Показать ещё {{count}}"
+    "showMore": "Показать ещё {{count}}",
+    "goodMorning": "Доброе утро",
+    "goodAfternoon": "Добрый день",
+    "goodEvening": "Добрый вечер",
+    "summary": "Обзор вашего инвентаря",
+    "urgent": "срочно"
   },
   "inventory": {
     "title": "Инвентарь",
@@ -300,6 +331,7 @@
     "quantity": "Количество",
     "noQuantity": "Без учёта",
     "addedAt": "Добавлено",
+    "addedBy": "Добавил",
     "collect": "Собрать",
     "collected": "Собрано",
     "collectedBatches": "Собранные партии",
@@ -519,9 +551,9 @@
     "subtitle": "Управление профилем и системой",
     "saved": "Настройки сохранены",
     "saveError": "Ошибка сохранения настроек",
-    "profile": "Профиль",
+    "profileLabel": "Профиль",
     "departments": "Отделы",
-    "categories": "Категории",
+    "categoriesLabel": "Категории",
     "export": "Экспорт",
     "tabs": {
       "profile": "Профиль",

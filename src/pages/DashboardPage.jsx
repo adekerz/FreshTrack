@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Package,
@@ -10,12 +11,16 @@ import {
   ChefHat,
   Warehouse,
   Calendar,
-  ArrowRight
+  ArrowRight,
+  Plus,
+  Zap
 } from 'lucide-react'
 import { useProducts } from '../context/ProductContext'
+import { useAuth } from '../context/AuthContext'
 import { useTranslation } from '../context/LanguageContext'
 import { format, parseISO } from 'date-fns'
 import { SkeletonDashboard } from '../components/Skeleton'
+import AddBatchModal from '../components/AddBatchModal'
 
 // Иконки для отделов - универсальный маппинг
 const ICON_MAP = {
@@ -42,9 +47,19 @@ const getDeptIcon = (dept) => {
 
 export default function DashboardPage() {
   const { t } = useTranslation()
+  const { user } = useAuth()
   const { getStats, getAlerts, collectBatch, departments, loading } = useProducts()
+  const [showAddBatchModal, setShowAddBatchModal] = useState(false)
 
-  // Показываем скелетон при загрузке
+  // Get greeting based on time of day
+  const getGreeting = () => {
+    const hour = new Date().getHours()
+    if (hour < 12) return t('dashboard.goodMorning') || 'Good morning'
+    if (hour < 18) return t('dashboard.goodAfternoon') || 'Good afternoon'
+    return t('dashboard.goodEvening') || 'Good evening'
+  }
+
+  // Show skeleton while loading
   if (loading) {
     return (
       <div className="p-4 sm:p-6">
@@ -100,7 +115,42 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6 sm:space-y-8">
-      {/* Статистика - Bento Grid на мобильных */}
+      {/* Greeting Section - Peak-End Rule: Start with positive experience */}
+      <div className="bg-gradient-to-r from-accent/5 to-transparent rounded-xl p-4 sm:p-6 animate-fade-in">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-serif text-charcoal">
+              {getGreeting()}, {user?.name?.split(' ')[0] || t('common.user')}
+            </h1>
+            <p className="text-sm text-warmgray mt-1">
+              {t('dashboard.summary') || 'Here is your inventory overview'}
+            </p>
+          </div>
+          
+          {/* Quick Actions - Fitts Law: Large targets for common actions */}
+          <div className="flex gap-2 sm:gap-3">
+            <button
+              onClick={() => setShowAddBatchModal(true)}
+              className="flex items-center gap-2 px-4 py-2.5 bg-accent text-white rounded-lg hover:bg-accent/90 active:scale-[0.98] transition-all text-sm font-medium min-h-[44px]"
+            >
+              <Plus className="w-4 h-4" />
+              <span className="hidden sm:inline">{t('header.addBatch')}</span>
+              <span className="sm:hidden">{t('common.add') || 'Add'}</span>
+            </button>
+            {alerts.length > 0 && (
+              <Link
+                to="/notifications"
+                className="flex items-center gap-2 px-4 py-2.5 bg-danger/10 text-danger border border-danger/20 rounded-lg hover:bg-danger/20 transition-all text-sm font-medium min-h-[44px]"
+              >
+                <Zap className="w-4 h-4" />
+                <span>{alerts.length} {t('dashboard.urgent') || 'urgent'}</span>
+              </Link>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Statistics - Bento Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
         {statCards.map((card, index) => {
           const Icon = card.icon
@@ -272,6 +322,11 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
+
+      {/* Add Batch Modal */}
+      {showAddBatchModal && (
+        <AddBatchModal onClose={() => setShowAddBatchModal(false)} />
+      )}
     </div>
   )
 }

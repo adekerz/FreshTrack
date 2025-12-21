@@ -203,6 +203,17 @@ export default function ProductModal({ product, onClose }) {
                           </span>
                         </div>
 
+                        {/* Кто добавил */}
+                        {batch.addedBy && (
+                          <div className="flex items-center gap-2 text-sm text-warmgray mb-2">
+                            <User className="w-4 h-4" />
+                            <span>
+                              {t('product.addedBy') || 'Добавил'}:{' '}
+                              <strong className="text-charcoal">{batch.addedBy}</strong>
+                            </span>
+                          </div>
+                        )}
+
                         {/* Статус */}
                         <div
                           className={`mt-2 text-xs font-medium ${
