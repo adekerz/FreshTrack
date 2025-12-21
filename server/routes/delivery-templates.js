@@ -18,13 +18,9 @@ const router = express.Router()
 // GET /api/delivery-templates
 router.get('/', authMiddleware, hotelIsolation, async (req, res) => {
   try {
-    const { department_id, supplier, is_active } = req.query
-    const filters = {
-      department_id: department_id || req.departmentId,
-      supplier,
-      is_active: is_active !== undefined ? is_active === 'true' : undefined
-    }
-    const templates = await getAllDeliveryTemplates(req.hotelId, filters)
+    const { department_id } = req.query
+    const deptId = department_id || req.departmentId || null
+    const templates = await getAllDeliveryTemplates(req.hotelId, deptId)
     res.json({ success: true, templates })
   } catch (error) {
     console.error('Get delivery templates error:', error)

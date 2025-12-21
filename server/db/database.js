@@ -801,7 +801,9 @@ export async function getAllSettings(hotelId) {
 export async function getDeliveryTemplates(hotelId, departmentId = null) {
   let queryText = 'SELECT * FROM delivery_templates WHERE hotel_id = $1'
   const params = [hotelId]
-  if (departmentId) { queryText += ` AND (department_id = $2 OR department_id IS NULL)`; params.push(departmentId) }
+  // Validate departmentId - must be valid UUID string, not object or empty
+  const validDeptId = departmentId && typeof departmentId === 'string' && departmentId.length > 0 ? departmentId : null
+  if (validDeptId) { queryText += ` AND (department_id = $2 OR department_id IS NULL)`; params.push(validDeptId) }
   queryText += ' ORDER BY name ASC'
   const result = await query(queryText, params)
   return result.rows.map(t => ({ ...t, items: typeof t.items === 'string' ? JSON.parse(t.items) : t.items }))

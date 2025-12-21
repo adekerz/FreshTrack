@@ -71,6 +71,12 @@ router.post('/', authMiddleware, hotelIsolation, async (req, res) => {
       supplier, notes, batch_code 
     } = req.body
     
+    // Validate hotel_id is available
+    if (!req.hotelId) {
+      console.error('Create batch error: No hotel_id in request', { user: req.user?.id })
+      return res.status(400).json({ success: false, error: 'Hotel ID is required' })
+    }
+    
     let productId = product_id
     let product = null
     

@@ -64,6 +64,17 @@ router.get('/low-stock', authMiddleware, hotelIsolation, async (req, res) => {
   }
 })
 
+// GET /api/products/catalog - Get all products for catalog view
+router.get('/catalog', authMiddleware, hotelIsolation, async (req, res) => {
+  try {
+    const products = await getAllProducts(req.hotelId)
+    res.json({ success: true, products })
+  } catch (error) {
+    console.error('Get product catalog error:', error)
+    res.status(500).json({ success: false, error: 'Failed to get product catalog' })
+  }
+})
+
 // GET /api/products/:id
 router.get('/:id', authMiddleware, hotelIsolation, async (req, res) => {
   try {
