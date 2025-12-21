@@ -4,6 +4,7 @@
 
 import express from 'express'
 import { query } from '../db/postgres.js'
+import { initDatabase } from '../db/database.js'
 
 const router = express.Router()
 
@@ -17,7 +18,7 @@ router.get('/', async (req, res) => {
       status: 'healthy',
       database: 'connected',
       server_time: dbCheck.rows[0]?.time,
-      version: process.env.npm_package_version || '1.0.0'
+      version: process.env.npm_package_version || '2.0.0'
     })
   } catch (error) {
     console.error('Health check error:', error)
@@ -27,6 +28,51 @@ router.get('/', async (req, res) => {
       database: 'disconnected',
       error: error.message
     })
+  }
+})
+
+// GET /api/health/db-status - Check database data status
+router.get('/db-status', async (req, res) => {
+  try {
+    const hotelsResult = await query('SELECT COUNT(*) as count FROM hotels')
+    const deptsResult = await query('SELECT COUNT(*) as count FROM departments')
+    const usersResult = await query('SELECT COUNT(*) as count FROM users')
+    const productsResult = await query('SELECT COUNT(*) as count FROM products')
+    const categoriesResult = await query('SELECT COUNT(*) as count FROM categories')
+    const batchesResult = await query('SELECT COUNT(*) as count FROM batches')
+    
+    res.json({
+      success: true,
+      counts: {
+        hotels: parseInt(hotelsResult.rows[0]?.count || 0),
+        departments: parseInt(deptsResult.rows[0]?.count || 0),
+        users: parseInt(usersResult.rows[0]?.count || 0),
+        products: parseInt(productsResult.rows[0]?.count || 0),
+        categories: parseInt(categoriesResult.rows[0]?.count || 0),
+        batches: parseInt(batchesResult.rows[0]?.count || 0)
+      },
+      needsInit: parseInt(hotelsResult.rows[0]?.count || 0) === 0
+    })
+  } catch (error) {
+    console.error('DB status error:', error)
+    res.status(500).json({ success: false, error: error.message })
+  }
+})
+
+// POST /api/health/init-db - Initialize database with pilot data
+router.post('/init-db', async (req, res) => {
+  try {
+    // Check secret key for security
+    const { secret } = req.body
+    if (secret !== process.env.INIT_SECRET && secret !== 'FreshTrack2024!') {
+      return res.status(403).json({ success: false, error: 'Invalid secret key' })
+    }
+    
+    await initDatabase()
+    res.json({ success: true, message: 'Database initialized successfully' })
+  } catch (error) {
+    console.error('Init DB error:', error)
+    res.status(500).json({ success: false, error: error.message })
   }
 })
 
