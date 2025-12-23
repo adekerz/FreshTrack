@@ -13,6 +13,7 @@ import {
   getProductById,
   getProductByName,
   createProduct,
+  createWriteOff,
   logAudit
 } from '../db/database.js'
 import { authMiddleware, hotelIsolation } from '../middleware/auth.js'
@@ -207,6 +208,68 @@ router.delete('/:id', authMiddleware, hotelIsolation, async (req, res) => {
   } catch (error) {
     console.error('Delete batch error:', error)
     res.status(500).json({ success: false, error: 'Failed to delete batch' })
+  }
+})
+
+// POST /api/batches/:id/collect - Сбор/списание партии
+router.post('/:id/collect', authMiddleware, hotelIsolation, async (req, res) => {
+  try {
+    const { reason, comment } = req.body
+    
+    const batch = await getBatchById(req.params.id)
+    if (!batch) {
+      return res.status(404).json({ success: false, error: 'Batch not found' })
+    }
+    
+    const product = await getProductById(batch.product_id)
+    if (!product || product.hotel_id !== req.hotelId) {
+      return res.status(403).json({ success: false, error: 'Access denied' })
+    }
+    
+    // Создать запись о списании
+    const writeOff = await createWriteOff({
+      hotel_id: req.hotelId,
+      batch_id: batch.id,
+      product_id: product.id,
+      quantity: batch.quantity,
+      reason: reason || 'manual',
+      notes: comment || null,
+      user_id: req.user.id
+    })
+    
+    // Обновить статус партии на "collected"
+    await updateBatch(req.params.id, { 
+      quantity: 0,
+      status: 'collected'
+    })
+    
+    // Удалить партию после сбора
+    await deleteBatch(req.params.id)
+    
+    await logAudit({
+      hotel_id: req.hotelId, 
+      user_id: req.user.id, 
+      user_name: req.user.name,
+      action: 'collect', 
+      entity_type: 'batch', 
+      entity_id: req.params.id,
+      details: { 
+        product_name: product.name, 
+        quantity: batch.quantity,
+        reason: reason || 'manual',
+        comment: comment || null
+      }, 
+      ip_address: req.ip
+    })
+    
+    res.json({ 
+      success: true, 
+      message: 'Batch collected successfully',
+      write_off: writeOff 
+    })
+  } catch (error) {
+    console.error('Collect batch error:', error)
+    res.status(500).json({ success: false, error: 'Failed to collect batch' })
   }
 })
 
