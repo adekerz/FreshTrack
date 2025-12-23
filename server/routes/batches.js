@@ -229,11 +229,13 @@ router.post('/:id/collect', authMiddleware, hotelIsolation, async (req, res) => 
     // Создать запись о списании
     const writeOff = await createWriteOff({
       hotel_id: req.hotelId,
+      department_id: batch.department_id || product.department_id || null,
       batch_id: batch.id,
       product_id: product.id,
+      product_name: product.name,
       quantity: batch.quantity,
       reason: reason || 'manual',
-      notes: comment || null,
+      comment: comment || null,
       user_id: req.user.id
     })
     
