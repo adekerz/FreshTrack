@@ -19,15 +19,10 @@ const router = express.Router()
 // GET /api/export/products
 router.get('/products', authMiddleware, hotelIsolation, departmentIsolation, async (req, res) => {
   try {
-    const { department_id, category_id, format = 'json' } = req.query
-    // Use department from isolation middleware unless user can access all departments
-    const deptId = req.canAccessAllDepartments ? (department_id || null) : req.departmentId
-    const filters = {
-      department_id: deptId,
-      category_id
-    }
+    const { format = 'json' } = req.query
     
-    const products = await getAllProducts(req.hotelId, filters)
+    // getAllProducts only accepts hotelId
+    const products = await getAllProducts(req.hotelId)
     
     await logAudit({
       hotel_id: req.hotelId, user_id: req.user.id, user_name: req.user.name,
@@ -60,12 +55,9 @@ router.get('/batches', authMiddleware, hotelIsolation, departmentIsolation, asyn
     const { department_id, product_id, status, format = 'json' } = req.query
     // Use department from isolation middleware unless user can access all departments
     const deptId = req.canAccessAllDepartments ? (department_id || null) : req.departmentId
-    const filters = {
-      department_id: deptId,
-      product_id, status
-    }
     
-    const batches = await getAllBatches(req.hotelId, filters)
+    // getAllBatches signature: (hotelId, departmentId, status)
+    const batches = await getAllBatches(req.hotelId, deptId, status)
     
     await logAudit({
       hotel_id: req.hotelId, user_id: req.user.id, user_name: req.user.name,
@@ -95,10 +87,7 @@ router.get('/batches', authMiddleware, hotelIsolation, departmentIsolation, asyn
 // GET /api/export/categories
 router.get('/categories', authMiddleware, hotelIsolation, departmentIsolation, async (req, res) => {
   try {
-    const { department_id } = req.query
-    // Use department from isolation middleware unless user can access all departments
-    const deptId = req.canAccessAllDepartments ? (department_id || null) : req.departmentId
-    const categories = await getAllCategories(req.hotelId, { department_id: deptId })
+    const categories = await getAllCategories(req.hotelId)
     res.json({ success: true, categories, count: categories.length })
   } catch (error) {
     console.error('Export categories error:', error)
@@ -109,7 +98,7 @@ router.get('/categories', authMiddleware, hotelIsolation, departmentIsolation, a
 // GET /api/export/departments
 router.get('/departments', authMiddleware, hotelIsolation, async (req, res) => {
   try {
-    const departments = await getAllDepartments(req.hotelId, {})
+    const departments = await getAllDepartments(req.hotelId)
     res.json({ success: true, departments, count: departments.length })
   } catch (error) {
     console.error('Export departments error:', error)
@@ -147,8 +136,8 @@ router.get('/inventory', authMiddleware, hotelIsolation, departmentIsolation, as
     const deptId = req.canAccessAllDepartments ? (department_id || null) : req.departmentId
     
     const [products, batches] = await Promise.all([
-      getAllProducts(req.hotelId, { department_id: deptId }),
-      getAllBatches(req.hotelId, { department_id: deptId })
+      getAllProducts(req.hotelId),
+      getAllBatches(req.hotelId, deptId, null)
     ])
     
     // Merge products with their batch quantities
