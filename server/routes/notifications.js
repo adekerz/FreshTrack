@@ -60,6 +60,51 @@ router.get('/unread-count', authMiddleware, hotelIsolation, departmentIsolation,
   }
 })
 
+// GET /api/notifications/logs - Get notification logs/history
+router.get('/logs', authMiddleware, hotelIsolation, departmentIsolation, async (req, res) => {
+  try {
+    const { page = 1, limit = 20, type, status } = req.query
+    const offset = (parseInt(page) - 1) * parseInt(limit)
+    
+    const deptId = req.canAccessAllDepartments ? null : req.departmentId
+    
+    // Get notifications as logs
+    const filters = {
+      department_id: deptId,
+      type,
+      limit: parseInt(limit),
+      offset
+    }
+    
+    const notifications = await getAllNotifications(req.hotelId, filters)
+    
+    // Transform to log format
+    const logs = notifications.map(n => ({
+      id: n.id,
+      type: n.type,
+      title: n.title,
+      message: n.message,
+      status: n.is_read ? 'read' : 'unread',
+      priority: n.priority || 'normal',
+      created_at: n.created_at,
+      read_at: n.read_at
+    }))
+    
+    res.json({ 
+      success: true, 
+      logs,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total: logs.length
+      }
+    })
+  } catch (error) {
+    console.error('Get notification logs error:', error)
+    res.status(500).json({ success: false, error: 'Failed to fetch logs' })
+  }
+})
+
 // GET /api/notifications/:id
 router.get('/:id', authMiddleware, hotelIsolation, departmentIsolation, async (req, res) => {
   try {
@@ -196,51 +241,6 @@ router.post('/test', authMiddleware, hotelIsolation, async (req, res) => {
   } catch (error) {
     console.error('Test notification error:', error)
     res.status(500).json({ success: false, error: 'Failed to send test notification' })
-  }
-})
-
-// GET /api/notifications/logs - Get notification logs/history
-router.get('/logs', authMiddleware, hotelIsolation, departmentIsolation, async (req, res) => {
-  try {
-    const { page = 1, limit = 20, type, status } = req.query
-    const offset = (parseInt(page) - 1) * parseInt(limit)
-    
-    const deptId = req.canAccessAllDepartments ? null : req.departmentId
-    
-    // Get notifications as logs
-    const filters = {
-      department_id: deptId,
-      type,
-      limit: parseInt(limit),
-      offset
-    }
-    
-    const notifications = await getAllNotifications(req.hotelId, filters)
-    
-    // Transform to log format
-    const logs = notifications.map(n => ({
-      id: n.id,
-      type: n.type,
-      title: n.title,
-      message: n.message,
-      status: n.is_read ? 'read' : 'unread',
-      priority: n.priority || 'normal',
-      created_at: n.created_at,
-      read_at: n.read_at
-    }))
-    
-    res.json({ 
-      success: true, 
-      logs,
-      pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total: logs.length
-      }
-    })
-  } catch (error) {
-    console.error('Get notification logs error:', error)
-    res.status(500).json({ success: false, error: 'Failed to fetch logs' })
   }
 })
 

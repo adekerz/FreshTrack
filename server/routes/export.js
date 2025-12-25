@@ -193,7 +193,7 @@ router.get('/collections', authMiddleware, hotelIsolation, departmentIsolation, 
       SELECT ch.*, 
              u.name as collected_by_name
       FROM collection_history ch
-      LEFT JOIN users u ON ch.collected_by = u.id
+      LEFT JOIN users u ON ch.user_id = u.id
       WHERE ch.hotel_id = $1
     `
     const params = [req.hotelId]

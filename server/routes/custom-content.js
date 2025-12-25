@@ -125,7 +125,7 @@ router.put('/:key', requirePermission(PermissionResource.SETTINGS, PermissionAct
       user_name: req.user.name,
       action: 'update',
       entity_type: 'custom_content',
-      entity_id: key,
+      entity_id: null,
       details: { key, value }
     })
     
