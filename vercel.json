@@ -2,7 +2,7 @@
   "framework": "vite",
   "buildCommand": "vite build",
   "outputDirectory": "dist",
-  "installCommand": "npm install",
+  "installCommand": "npm install --include=dev",
   "env": {
     "VITE_API_URL": "https://freshtrack-production-41bb.up.railway.app/api"
   },
