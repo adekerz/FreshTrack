@@ -10,18 +10,35 @@ import {
   updateProduct,
   deleteProduct,
   getAllBatches,
+  getBatchesByProductForFIFO,
+  updateBatch,
+  deleteBatch,
+  createWriteOff,
   logAudit
 } from '../db/database.js'
-import { authMiddleware, hotelIsolation, hotelAdminOnly } from '../middleware/auth.js'
+import { 
+  authMiddleware, 
+  hotelIsolation, 
+  departmentIsolation, 
+  hotelAdminOnly,
+  requirePermission,
+  PermissionResource,
+  PermissionAction
+} from '../middleware/auth.js'
+import { enrichBatchWithExpiryData } from '../services/ExpiryService.js'
 
 const router = express.Router()
 
 // GET /api/products
-router.get('/', authMiddleware, hotelIsolation, async (req, res) => {
+router.get('/', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.PRODUCTS, PermissionAction.READ), async (req, res) => {
   try {
     const { department_id, category_id, status, search, sort_by, sort_order, low_stock } = req.query
+    // Use department from isolation middleware if user can't access all departments
+    const deptId = req.canAccessAllDepartments 
+      ? (department_id || null) 
+      : req.departmentId
     const filters = {
-      department_id: department_id || req.departmentId,
+      department_id: deptId,
       category_id, status, search, sort_by, sort_order, low_stock: low_stock === 'true'
     }
     const products = await getAllProducts(req.hotelId, filters)
@@ -33,11 +50,14 @@ router.get('/', authMiddleware, hotelIsolation, async (req, res) => {
 })
 
 // GET /api/products/expiring
-router.get('/expiring', authMiddleware, hotelIsolation, async (req, res) => {
+router.get('/expiring', authMiddleware, hotelIsolation, departmentIsolation, async (req, res) => {
   try {
     const { days = 7, department_id } = req.query
+    const deptId = req.canAccessAllDepartments 
+      ? (department_id || null) 
+      : req.departmentId
     const filters = {
-      department_id: department_id || req.departmentId,
+      department_id: deptId,
       expiring_days: parseInt(days)
     }
     const products = await getAllProducts(req.hotelId, filters)
@@ -49,11 +69,14 @@ router.get('/expiring', authMiddleware, hotelIsolation, async (req, res) => {
 })
 
 // GET /api/products/low-stock
-router.get('/low-stock', authMiddleware, hotelIsolation, async (req, res) => {
+router.get('/low-stock', authMiddleware, hotelIsolation, departmentIsolation, async (req, res) => {
   try {
     const { department_id } = req.query
+    const deptId = req.canAccessAllDepartments 
+      ? (department_id || null) 
+      : req.departmentId
     const filters = {
-      department_id: department_id || req.departmentId,
+      department_id: deptId,
       low_stock: true
     }
     const products = await getAllProducts(req.hotelId, filters)
@@ -65,9 +88,11 @@ router.get('/low-stock', authMiddleware, hotelIsolation, async (req, res) => {
 })
 
 // GET /api/products/catalog - Get all products for catalog view
-router.get('/catalog', authMiddleware, hotelIsolation, async (req, res) => {
+router.get('/catalog', authMiddleware, hotelIsolation, departmentIsolation, async (req, res) => {
   try {
-    const products = await getAllProducts(req.hotelId)
+    // Catalog shows all products for the hotel (admins) or department (staff)
+    const deptId = req.canAccessAllDepartments ? null : req.departmentId
+    const products = await getAllProducts(req.hotelId, { department_id: deptId })
     res.json({ success: true, products })
   } catch (error) {
     console.error('Get product catalog error:', error)
@@ -76,7 +101,7 @@ router.get('/catalog', authMiddleware, hotelIsolation, async (req, res) => {
 })
 
 // GET /api/products/:id
-router.get('/:id', authMiddleware, hotelIsolation, async (req, res) => {
+router.get('/:id', authMiddleware, hotelIsolation, departmentIsolation, async (req, res) => {
   try {
     const product = await getProductById(req.params.id)
     if (!product) {
@@ -85,10 +110,16 @@ router.get('/:id', authMiddleware, hotelIsolation, async (req, res) => {
     if (product.hotel_id !== req.hotelId) {
       return res.status(403).json({ success: false, error: 'Access denied' })
     }
+    // Check department access for products with department_id
+    if (!req.canAccessAllDepartments && product.department_id && product.department_id !== req.departmentId) {
+      return res.status(403).json({ success: false, error: 'Access denied to this department' })
+    }
     
-    // Get product batches
-    const batches = await getAllBatches(req.hotelId, { product_id: req.params.id })
-    res.json({ success: true, product: { ...product, batches } })
+    // Get product batches (filtered by department for non-admins)
+    const deptId = req.canAccessAllDepartments ? null : req.departmentId
+    const batches = await getAllBatches(req.hotelId, deptId, null)
+    const productBatches = batches.filter(b => b.product_id === req.params.id)
+    res.json({ success: true, product: { ...product, batches: productBatches } })
   } catch (error) {
     console.error('Get product error:', error)
     res.status(500).json({ success: false, error: 'Failed to get product' })
@@ -96,7 +127,7 @@ router.get('/:id', authMiddleware, hotelIsolation, async (req, res) => {
 })
 
 // POST /api/products
-router.post('/', authMiddleware, hotelIsolation, async (req, res) => {
+router.post('/', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.PRODUCTS, PermissionAction.CREATE), async (req, res) => {
   try {
     const {
       name, description, sku, barcode, category_id, department_id,
@@ -108,10 +139,18 @@ router.post('/', authMiddleware, hotelIsolation, async (req, res) => {
       return res.status(400).json({ success: false, error: 'Product name is required' })
     }
     
+    // Validate department_id - use from request or user's department
+    const productDeptId = department_id || req.departmentId
+    
+    // Non-admin users can only create products in their own department
+    if (!req.canAccessAllDepartments && productDeptId && productDeptId !== req.departmentId) {
+      return res.status(403).json({ success: false, error: 'Cannot create product in other department' })
+    }
+    
     const product = await createProduct({
       hotel_id: req.hotelId,
       name, description, sku, barcode, category_id,
-      department_id: department_id || req.departmentId,
+      department_id: productDeptId,
       unit: unit || 'шт', min_quantity, max_quantity, reorder_point,
       storage_location, storage_conditions, default_expiry_days, notes
     })
@@ -119,7 +158,7 @@ router.post('/', authMiddleware, hotelIsolation, async (req, res) => {
     await logAudit({
       hotel_id: req.hotelId, user_id: req.user.id, user_name: req.user.name,
       action: 'create', entity_type: 'product', entity_id: product.id,
-      details: { name, sku }, ip_address: req.ip
+      details: { name, sku, department_id: productDeptId }, ip_address: req.ip
     })
     
     res.status(201).json({ success: true, product })
@@ -130,7 +169,7 @@ router.post('/', authMiddleware, hotelIsolation, async (req, res) => {
 })
 
 // PUT /api/products/:id
-router.put('/:id', authMiddleware, hotelIsolation, async (req, res) => {
+router.put('/:id', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.PRODUCTS, PermissionAction.UPDATE), async (req, res) => {
   try {
     const product = await getProductById(req.params.id)
     if (!product) {
@@ -139,12 +178,21 @@ router.put('/:id', authMiddleware, hotelIsolation, async (req, res) => {
     if (product.hotel_id !== req.hotelId) {
       return res.status(403).json({ success: false, error: 'Access denied' })
     }
+    // Check department access
+    if (!req.canAccessAllDepartments && product.department_id && product.department_id !== req.departmentId) {
+      return res.status(403).json({ success: false, error: 'Access denied to this department' })
+    }
     
     const {
       name, description, sku, barcode, category_id, department_id,
       unit, min_quantity, max_quantity, reorder_point,
       storage_location, storage_conditions, default_expiry_days, notes, is_active
     } = req.body
+    
+    // Non-admin users cannot change department_id to another department
+    if (!req.canAccessAllDepartments && department_id && department_id !== req.departmentId) {
+      return res.status(403).json({ success: false, error: 'Cannot move product to other department' })
+    }
     
     const updates = {}
     if (name !== undefined) updates.name = name
@@ -178,8 +226,172 @@ router.put('/:id', authMiddleware, hotelIsolation, async (req, res) => {
   }
 })
 
+/**
+ * POST /api/products/:id/collect - FIFO Collection
+ * User specifies only quantity, backend automatically collects from oldest batches first
+ * 
+ * @body {number} quantity - Amount to collect
+ * @body {string} reason - Collection reason (expired, damaged, manual, etc.)
+ * @body {string} comment - Optional comment
+ */
+router.post('/:id/collect', authMiddleware, hotelIsolation, departmentIsolation, async (req, res) => {
+  try {
+    const { quantity, reason = 'manual', comment } = req.body
+    const productId = req.params.id
+    
+    // Validate quantity
+    if (!quantity || quantity <= 0) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Quantity must be a positive number' 
+      })
+    }
+    
+    // Get product
+    const product = await getProductById(productId)
+    if (!product) {
+      return res.status(404).json({ success: false, error: 'Product not found' })
+    }
+    if (product.hotel_id !== req.hotelId) {
+      return res.status(403).json({ success: false, error: 'Access denied' })
+    }
+    
+    // Get batches sorted by FIFO (earliest expiry first)
+    const departmentId = req.canAccessAllDepartments ? null : req.departmentId
+    const batches = await getBatchesByProductForFIFO(productId, req.hotelId, departmentId)
+    
+    // Calculate total available
+    const totalAvailable = batches.reduce((sum, b) => sum + (b.quantity || 0), 0)
+    
+    if (totalAvailable === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'No available batches for this product' 
+      })
+    }
+    
+    if (quantity > totalAvailable) {
+      return res.status(400).json({ 
+        success: false, 
+        error: `Insufficient quantity. Available: ${totalAvailable}, Requested: ${quantity}` 
+      })
+    }
+    
+    // FIFO Collection: Process batches from oldest to newest
+    let remaining = quantity
+    const collectedBatches = []
+    const writeOffs = []
+    
+    for (const batch of batches) {
+      if (remaining <= 0) break
+      
+      const collectFromBatch = Math.min(batch.quantity, remaining)
+      const newQuantity = batch.quantity - collectFromBatch
+      
+      // Enrich batch with expiry data for snapshot
+      const enrichedBatch = await enrichBatchWithExpiryData(batch, {
+        hotelId: req.hotelId,
+        departmentId: batch.department_id,
+        locale: req.user?.locale || 'ru'
+      })
+      
+      // Create batch snapshot for historical consistency
+      const batchSnapshot = {
+        id: batch.id,
+        product_id: product.id,
+        product_name: product.name,
+        category_name: batch.category_name || product.category_name,
+        department_id: batch.department_id,
+        department_name: batch.department_name,
+        original_quantity: batch.quantity,
+        collected_quantity: collectFromBatch,
+        remaining_quantity: newQuantity,
+        expiry_date: batch.expiry_date,
+        batch_number: batch.batch_number,
+        // Enriched expiry data at collection time
+        daysLeft: enrichedBatch.daysLeft,
+        expiryStatus: enrichedBatch.expiryStatus,
+        statusColor: enrichedBatch.statusColor,
+        statusText: enrichedBatch.statusText,
+        isExpired: enrichedBatch.isExpired,
+        isUrgent: enrichedBatch.isUrgent,
+        snapshot_at: new Date().toISOString(),
+        collected_reason: reason
+      }
+      
+      // Create write-off record
+      const writeOff = await createWriteOff({
+        hotel_id: req.hotelId,
+        department_id: batch.department_id || product.department_id || req.departmentId,
+        batch_id: batch.id,
+        product_id: product.id,
+        product_name: product.name,
+        quantity: collectFromBatch,
+        reason,
+        comment: comment || null,
+        user_id: req.user.id,
+        batch_snapshot: batchSnapshot,
+        expiry_date: batch.expiry_date,
+        expiry_status: enrichedBatch.expiryStatus
+      })
+      
+      writeOffs.push(writeOff)
+      
+      // Update or delete batch based on remaining quantity
+      if (newQuantity === 0) {
+        // Zero quantity - delete batch (cleanup per spec)
+        await deleteBatch(batch.id)
+        collectedBatches.push({
+          ...batchSnapshot,
+          action: 'deleted'
+        })
+      } else {
+        // Partial collection - update quantity
+        await updateBatch(batch.id, { quantity: newQuantity })
+        collectedBatches.push({
+          ...batchSnapshot,
+          action: 'partial'
+        })
+      }
+      
+      remaining -= collectFromBatch
+    }
+    
+    // Log audit
+    await logAudit({
+      hotel_id: req.hotelId,
+      user_id: req.user.id,
+      user_name: req.user.name,
+      action: 'fifo_collect',
+      entity_type: 'product',
+      entity_id: productId,
+      details: {
+        product_name: product.name,
+        requested_quantity: quantity,
+        batches_affected: collectedBatches.length,
+        reason,
+        comment: comment || null
+      },
+      ip_address: req.ip
+    })
+    
+    res.json({
+      success: true,
+      message: `Collected ${quantity} units using FIFO from ${collectedBatches.length} batch(es)`,
+      collected: {
+        quantity,
+        batches: collectedBatches,
+        write_offs: writeOffs
+      }
+    })
+  } catch (error) {
+    console.error('FIFO collect error:', error)
+    res.status(500).json({ success: false, error: 'Failed to collect product' })
+  }
+})
+
 // DELETE /api/products/:id
-router.delete('/:id', authMiddleware, hotelIsolation, hotelAdminOnly, async (req, res) => {
+router.delete('/:id', authMiddleware, hotelIsolation, requirePermission(PermissionResource.PRODUCTS, PermissionAction.DELETE), async (req, res) => {
   try {
     const product = await getProductById(req.params.id)
     if (!product) {

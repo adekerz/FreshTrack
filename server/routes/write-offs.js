@@ -15,15 +15,27 @@ import {
   getProductById,
   logAudit
 } from '../db/database.js'
-import { authMiddleware, hotelIsolation, hotelAdminOnly } from '../middleware/auth.js'
+import { 
+  authMiddleware, 
+  hotelIsolation, 
+  departmentIsolation, 
+  hotelAdminOnly,
+  requirePermission,
+  PermissionResource,
+  PermissionAction
+} from '../middleware/auth.js'
 
 const router = express.Router()
 
 // GET /api/write-offs/stats - MUST be before /:id
-router.get('/stats', authMiddleware, hotelIsolation, async (req, res) => {
+router.get('/stats', authMiddleware, hotelIsolation, departmentIsolation, async (req, res) => {
   try {
     const { department_id } = req.query
-    const stats = await getWriteOffStats(req.hotelId, department_id || null)
+    // Use department from isolation middleware if user can't access all departments
+    const deptId = req.canAccessAllDepartments 
+      ? (department_id || null) 
+      : req.departmentId
+    const stats = await getWriteOffStats(req.hotelId, deptId)
     res.json({ success: true, ...stats })
   } catch (error) {
     console.error('Get write-off stats error:', error)
@@ -32,11 +44,15 @@ router.get('/stats', authMiddleware, hotelIsolation, async (req, res) => {
 })
 
 // GET /api/write-offs
-router.get('/', authMiddleware, hotelIsolation, async (req, res) => {
+router.get('/', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.WRITE_OFFS, PermissionAction.READ), async (req, res) => {
   try {
     const { department_id, start_date, end_date, reason, product_id, limit, offset } = req.query
+    // Use department from isolation middleware if user can't access all departments
+    const deptId = req.canAccessAllDepartments 
+      ? (department_id || null) 
+      : req.departmentId
     const filters = {
-      department_id: department_id || req.departmentId,
+      department_id: deptId,
       start_date, end_date, reason, product_id,
       limit: limit ? parseInt(limit) : undefined,
       offset: offset ? parseInt(offset) : undefined
@@ -50,7 +66,7 @@ router.get('/', authMiddleware, hotelIsolation, async (req, res) => {
 })
 
 // GET /api/write-offs/:id
-router.get('/:id', authMiddleware, hotelIsolation, async (req, res) => {
+router.get('/:id', authMiddleware, hotelIsolation, departmentIsolation, async (req, res) => {
   try {
     const writeOff = await getWriteOffById(req.params.id)
     if (!writeOff) {
@@ -58,6 +74,10 @@ router.get('/:id', authMiddleware, hotelIsolation, async (req, res) => {
     }
     if (writeOff.hotel_id !== req.hotelId) {
       return res.status(403).json({ success: false, error: 'Access denied' })
+    }
+    // Check department access
+    if (!req.canAccessAllDepartments && writeOff.department_id && writeOff.department_id !== req.departmentId) {
+      return res.status(403).json({ success: false, error: 'Access denied to this department' })
     }
     res.json({ success: true, write_off: writeOff })
   } catch (error) {
@@ -67,7 +87,7 @@ router.get('/:id', authMiddleware, hotelIsolation, async (req, res) => {
 })
 
 // POST /api/write-offs
-router.post('/', authMiddleware, hotelIsolation, async (req, res) => {
+router.post('/', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.WRITE_OFFS, PermissionAction.CREATE), async (req, res) => {
   try {
     const { batch_id, product_id, quantity, reason, notes } = req.body
     
@@ -87,6 +107,10 @@ router.post('/', authMiddleware, hotelIsolation, async (req, res) => {
       if (!productInfo || productInfo.hotel_id !== req.hotelId) {
         return res.status(403).json({ success: false, error: 'Access denied' })
       }
+      // Check department access for batch
+      if (!req.canAccessAllDepartments && batchInfo.department_id !== req.departmentId) {
+        return res.status(403).json({ success: false, error: 'Access denied to this department' })
+      }
       if (quantity > batchInfo.quantity) {
         return res.status(400).json({ success: false, error: 'Write-off quantity exceeds batch quantity' })
       }
@@ -95,14 +119,23 @@ router.post('/', authMiddleware, hotelIsolation, async (req, res) => {
       if (!productInfo || productInfo.hotel_id !== req.hotelId) {
         return res.status(403).json({ success: false, error: 'Product access denied' })
       }
+      // Check department access for product
+      if (!req.canAccessAllDepartments && productInfo.department_id && productInfo.department_id !== req.departmentId) {
+        return res.status(403).json({ success: false, error: 'Access denied to this department' })
+      }
     } else {
       return res.status(400).json({ success: false, error: 'Either batch_id or product_id is required' })
     }
     
+    // Use department from batch, product, or user's department
+    const deptId = batchInfo?.department_id || productInfo?.department_id || req.departmentId
+    
     const writeOff = await createWriteOff({
       hotel_id: req.hotelId,
+      department_id: deptId,
       batch_id: batch_id || null,
       product_id: productInfo.id,
+      product_name: productInfo.name,
       quantity: parseFloat(quantity),
       reason,
       notes: notes || null,

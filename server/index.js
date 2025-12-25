@@ -20,6 +20,7 @@ import batchesRouter from './routes/batches.js'
 import notificationsRouter from './routes/notifications.js'
 import reportsRouter from './routes/reports.js'
 import collectionsRouter from './routes/collections.js'
+import fifoCollectRouter from './routes/fifo-collect.js'
 import auditRouter from './routes/audit.js'
 import settingsRouter from './routes/settings.js'
 import deliveryTemplatesRouter from './routes/delivery-templates.js'
@@ -27,6 +28,10 @@ import writeOffsRouter from './routes/write-offs.js'
 import importRouter from './routes/import.js'
 import exportRouter from './routes/export.js'
 import healthRouter from './routes/health.js'
+import notificationRulesRouter from './routes/notification-rules.js'
+
+// Import notification jobs
+import { startNotificationJobs } from './jobs/notificationJobs.js'
 
 // Import database
 import { initDatabase, getAllHotels } from './db/database.js'
@@ -69,6 +74,7 @@ app.use('/api/batches', batchesRouter)
 app.use('/api/notifications', notificationsRouter)
 app.use('/api/reports', reportsRouter)
 app.use('/api/collections', collectionsRouter)
+app.use('/api/fifo-collect', fifoCollectRouter)
 app.use('/api/audit-logs', auditRouter)
 app.use('/api/settings', settingsRouter)
 app.use('/api/delivery-templates', deliveryTemplatesRouter)
@@ -76,6 +82,7 @@ app.use('/api/write-offs', writeOffsRouter)
 app.use('/api/import', importRouter)
 app.use('/api/export', exportRouter)
 app.use('/api/health', healthRouter)
+app.use('/api/notification-rules', notificationRulesRouter)
 
 // Root health check
 app.get('/', async (req, res) => {
@@ -151,7 +158,19 @@ Available endpoints:
   - GET  /api/batches
   - GET  /api/notifications
   - GET  /api/reports/dashboard
+  - GET  /api/notification-rules
       `)
+      
+      // Start notification jobs (Phase 5)
+      try {
+        startNotificationJobs({
+          enableExpiryCheck: true,
+          enableQueueProcess: true,
+          enableTelegramPolling: process.env.TELEGRAM_POLLING === 'true'
+        })
+      } catch (error) {
+        console.error('⚠️ Failed to start notification jobs:', error.message)
+      }
     })
   } catch (error) {
     console.error('❌ Failed to start server:', error)

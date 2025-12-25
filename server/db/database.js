@@ -33,7 +33,37 @@ export async function initDatabase() {
     if (fs.existsSync(schemaPath)) {
       const schema = fs.readFileSync(schemaPath, 'utf8')
       await query(schema)
-      console.log('✅ Schema migration completed')
+      console.log('✅ Schema migration 001 completed')
+    }
+
+    // Run migration 002 - relax department constraints
+    const migration002Path = path.join(__dirname, 'migrations', '002_relax_department_constraints.sql')
+    if (fs.existsSync(migration002Path)) {
+      try {
+        const migration002 = fs.readFileSync(migration002Path, 'utf8')
+        await query(migration002)
+        console.log('✅ Schema migration 002 completed')
+      } catch (err) {
+        // Ignore if already applied
+        if (!err.message.includes('already exists') && !err.message.includes('does not exist')) {
+          console.log('   Migration 002 already applied or skipped')
+        }
+      }
+    }
+
+    // Run migration 003 - department isolation
+    const migration003Path = path.join(__dirname, 'migrations', '003_department_isolation.sql')
+    if (fs.existsSync(migration003Path)) {
+      try {
+        const migration003 = fs.readFileSync(migration003Path, 'utf8')
+        await query(migration003)
+        console.log('✅ Schema migration 003 completed (department isolation)')
+      } catch (err) {
+        // Ignore if already applied
+        if (!err.message.includes('already exists')) {
+          console.log('   Migration 003 already applied or skipped:', err.message?.substring(0, 50))
+        }
+      }
     }
 
     // Check if pilot data exists
@@ -189,25 +219,181 @@ async function initializePilotData() {
   console.log('')
 }
 
+// ═══════════════════════════════════════════════════════════════
+// CONTEXT-AWARE QUERY HELPERS
+// ═══════════════════════════════════════════════════════════════
+
 /**
- * Log audit action
+ * Build WHERE clause based on user context (hotelId, departmentId)
+ * Automatically applies data isolation based on user role
+ * 
+ * @param {Object} context - { hotelId, departmentId, role }
+ * @param {string} tableAlias - Table alias (e.g., 'b' for batches)
+ * @param {number} startParamIndex - Starting parameter index for SQL
+ * @returns {{ where: string, params: any[], nextParamIndex: number }}
+ */
+export function buildContextWhere(context, tableAlias = '', startParamIndex = 1) {
+  const { hotelId, departmentId, role } = context
+  const prefix = tableAlias ? `${tableAlias}.` : ''
+  const conditions = []
+  const params = []
+  let paramIndex = startParamIndex
+
+  // SUPER_ADMIN sees everything (no hotel filter)
+  // HOTEL_ADMIN and below are filtered by hotelId
+  if (role !== 'SUPER_ADMIN' && hotelId) {
+    conditions.push(`${prefix}hotel_id = $${paramIndex++}`)
+    params.push(hotelId)
+  } else if (hotelId) {
+    // Even SUPER_ADMIN can filter by hotel if specified
+    conditions.push(`${prefix}hotel_id = $${paramIndex++}`)
+    params.push(hotelId)
+  }
+
+  // STAFF users are filtered by departmentId
+  if (role === 'STAFF' && departmentId) {
+    conditions.push(`${prefix}department_id = $${paramIndex++}`)
+    params.push(departmentId)
+  } else if (departmentId) {
+    // Other roles can optionally filter by department
+    conditions.push(`${prefix}department_id = $${paramIndex++}`)
+    params.push(departmentId)
+  }
+
+  const where = conditions.length > 0 ? conditions.join(' AND ') : '1=1'
+  
+  return { where, params, nextParamIndex: paramIndex }
+}
+
+/**
+ * Check if user can access a specific resource
+ * Prevents manipulation via manually passed IDs that don't belong to user's context
+ * 
+ * @param {Object} user - User object with role, hotel_id, department_id
+ * @param {Object} resource - Resource with hotelId/hotel_id and departmentId/department_id
+ * @returns {boolean} - True if user can access the resource
+ */
+export function canAccessResource(user, resource) {
+  if (!user || !resource) return false
+  
+  const userHotelId = user.hotel_id || user.hotelId
+  const userDepartmentId = user.department_id || user.departmentId
+  const resourceHotelId = resource.hotel_id || resource.hotelId
+  const resourceDepartmentId = resource.department_id || resource.departmentId
+  
+  // SUPER_ADMIN can access everything
+  if (user.role === 'SUPER_ADMIN') {
+    return true
+  }
+  
+  // Must have hotel context
+  if (!userHotelId) return false
+  
+  // Hotel must match
+  if (resourceHotelId && resourceHotelId !== userHotelId) {
+    return false
+  }
+  
+  // HOTEL_ADMIN can access any resource in their hotel
+  if (user.role === 'HOTEL_ADMIN') {
+    return true
+  }
+  
+  // DEPARTMENT_MANAGER and STAFF can only access their department
+  if (userDepartmentId && resourceDepartmentId) {
+    return resourceDepartmentId === userDepartmentId
+  }
+  
+  // If resource has no department (global) or user has no department restriction
+  return true
+}
+
+/**
+ * Log audit action with optional snapshots
+ * @param {Object} data - Audit log data
+ * @param {string} data.hotel_id - Hotel ID
+ * @param {string} data.user_id - User ID who performed action
+ * @param {string} data.user_name - User name
+ * @param {string} data.action - Action type (create, update, delete, etc.)
+ * @param {string} data.entity_type - Entity type (batch, product, user, etc.)
+ * @param {string} data.entity_id - Entity ID
+ * @param {Object} data.details - Additional details
+ * @param {string} data.ip_address - IP address
+ * @param {Object} data.snapshot_before - Entity state before change (for update/delete)
+ * @param {Object} data.snapshot_after - Entity state after change (for create/update)
  */
 export async function logAudit(data) {
-  const { hotel_id, user_id, user_name, action, entity_type, entity_id, details, ip_address } = data
-  await query(`
-    INSERT INTO audit_logs (id, hotel_id, user_id, user_name, action, entity_type, entity_id, details, ip_address) 
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-  `, [
-    uuidv4(), 
-    hotel_id || null, 
-    user_id || null, 
-    user_name, 
-    action, 
-    entity_type || null, 
-    entity_id || null,
-    details ? JSON.stringify(details) : null, 
-    ip_address || null
-  ])
+  const { 
+    hotel_id, user_id, user_name, action, entity_type, entity_id, 
+    details, ip_address, snapshot_before, snapshot_after 
+  } = data
+  
+  // Check if snapshot columns exist (graceful degradation)
+  try {
+    await query(`
+      INSERT INTO audit_logs (
+        id, hotel_id, user_id, user_name, action, entity_type, entity_id, 
+        details, ip_address, snapshot_before, snapshot_after
+      ) 
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+    `, [
+      uuidv4(), 
+      hotel_id || null, 
+      user_id || null, 
+      user_name, 
+      action, 
+      entity_type || null, 
+      entity_id || null,
+      details ? JSON.stringify(details) : null, 
+      ip_address || null,
+      snapshot_before ? JSON.stringify(snapshot_before) : null,
+      snapshot_after ? JSON.stringify(snapshot_after) : null
+    ])
+  } catch (error) {
+    // Fallback if snapshot columns don't exist
+    if (error.message?.includes('snapshot_before') || error.message?.includes('snapshot_after')) {
+      await query(`
+        INSERT INTO audit_logs (id, hotel_id, user_id, user_name, action, entity_type, entity_id, details, ip_address) 
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      `, [
+        uuidv4(), 
+        hotel_id || null, 
+        user_id || null, 
+        user_name, 
+        action, 
+        entity_type || null, 
+        entity_id || null,
+        details ? JSON.stringify(details) : null, 
+        ip_address || null
+      ])
+    } else {
+      throw error
+    }
+  }
+}
+
+/**
+ * Create audit snapshot helper
+ * Strips sensitive fields and normalizes for comparison
+ */
+export function createAuditSnapshot(entity, entityType) {
+  if (!entity) return null
+  
+  // Fields to exclude from snapshots
+  const sensitiveFields = ['password', 'password_hash', 'token', 'refresh_token']
+  
+  const snapshot = { ...entity }
+  
+  // Remove sensitive fields
+  for (const field of sensitiveFields) {
+    delete snapshot[field]
+  }
+  
+  // Add metadata
+  snapshot._snapshot_type = entityType
+  snapshot._snapshot_time = new Date().toISOString()
+  
+  return snapshot
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -405,12 +591,27 @@ export async function deleteDepartment(id) {
 // CATEGORY FUNCTIONS
 // ═══════════════════════════════════════════════════════════════
 
+/**
+ * Get all categories for a hotel
+ * Includes both hotel-specific and system-wide categories (hotel_id IS NULL)
+ * 
+ * @param {string|null} hotelId - Hotel ID to filter by
+ * @returns {Promise<Array>} - Categories array
+ */
 export async function getAllCategories(hotelId = null) {
   if (hotelId) {
-    const result = await query('SELECT * FROM categories WHERE hotel_id = $1 AND is_active = TRUE ORDER BY sort_order ASC', [hotelId])
+    // Include both hotel-specific AND system-wide (global) categories
+    const result = await query(
+      `SELECT * FROM categories 
+       WHERE (hotel_id = $1 OR hotel_id IS NULL) 
+       AND is_active = TRUE 
+       ORDER BY hotel_id NULLS FIRST, sort_order ASC`, 
+      [hotelId]
+    )
     return result.rows
   }
-  const result = await query('SELECT * FROM categories WHERE is_active = TRUE ORDER BY sort_order ASC')
+  // SUPER_ADMIN without hotel filter - return all active categories
+  const result = await query('SELECT * FROM categories WHERE is_active = TRUE ORDER BY hotel_id NULLS FIRST, sort_order ASC')
   return result.rows
 }
 
@@ -539,7 +740,8 @@ export async function deleteProduct(id) {
 
 export async function getAllBatches(hotelId, departmentId = null, status = null) {
   let queryText = `
-    SELECT b.*, p.name as product_name, p.barcode, c.name as category_name, d.name as department_name,
+    SELECT b.*, p.name as product_name, p.barcode, p.category_id as category_id, 
+           c.name as category_name, c.color as category_color, d.name as department_name,
            u.name as added_by_name
     FROM batches b
     JOIN products p ON b.product_id = p.id
@@ -569,9 +771,11 @@ export async function getAllBatches(hotelId, departmentId = null, status = null)
 
 export async function getBatchById(id) {
   const result = await query(`
-    SELECT b.*, p.name as product_name, d.name as department_name, u.name as added_by_name
+    SELECT b.*, p.name as product_name, p.category_id as category_id, 
+           c.name as category_name, c.color as category_color, d.name as department_name, u.name as added_by_name
     FROM batches b
     JOIN products p ON b.product_id = p.id
+    LEFT JOIN categories c ON p.category_id = c.id
     JOIN departments d ON b.department_id = d.id
     LEFT JOIN users u ON b.added_by = u.id
     WHERE b.id = $1
@@ -638,12 +842,41 @@ export async function collectBatch(batchId, userId, reason = 'expired', comment 
   return { writeOffId, batchId }
 }
 
+/**
+ * Get active batches for a product sorted by FIFO (earliest expiry first)
+ * Used for automatic FIFO collection
+ */
+export async function getBatchesByProductForFIFO(productId, hotelId, departmentId = null) {
+  let queryText = `
+    SELECT b.*, p.name as product_name, d.name as department_name, c.name as category_name, c.color as category_color
+    FROM batches b
+    JOIN products p ON b.product_id = p.id
+    LEFT JOIN departments d ON b.department_id = d.id
+    LEFT JOIN categories c ON p.category_id = c.id
+    WHERE b.product_id = $1 AND b.hotel_id = $2 AND b.status = 'active' AND b.quantity > 0
+  `
+  const params = [productId, hotelId]
+  let paramIndex = 3
+  
+  if (departmentId) {
+    queryText += ` AND b.department_id = $${paramIndex++}`
+    params.push(departmentId)
+  }
+  
+  // FIFO: Sort by expiry_date ascending (earliest first)
+  queryText += ' ORDER BY b.expiry_date ASC, b.created_at ASC'
+  
+  const result = await query(queryText, params)
+  return result.rows
+}
+
 export async function getExpiringBatches(hotelId, days = 7) {
   const result = await query(`
-    SELECT b.*, p.name as product_name, d.name as department_name
+    SELECT b.*, p.name as product_name, d.name as department_name, c.name as category_name, c.color as category_color
     FROM batches b
     JOIN products p ON b.product_id = p.id
     JOIN departments d ON b.department_id = d.id
+    LEFT JOIN categories c ON p.category_id = c.id
     WHERE b.hotel_id = $1 AND b.status = 'active' 
     AND b.expiry_date >= CURRENT_DATE AND b.expiry_date <= CURRENT_DATE + $2::INTEGER
     ORDER BY b.expiry_date ASC
@@ -653,10 +886,11 @@ export async function getExpiringBatches(hotelId, days = 7) {
 
 export async function getExpiredBatches(hotelId) {
   const result = await query(`
-    SELECT b.*, p.name as product_name, d.name as department_name
+    SELECT b.*, p.name as product_name, d.name as department_name, c.name as category_name, c.color as category_color
     FROM batches b
     JOIN products p ON b.product_id = p.id
     JOIN departments d ON b.department_id = d.id
+    LEFT JOIN categories c ON p.category_id = c.id
     WHERE b.hotel_id = $1 AND b.status = 'active' AND b.expiry_date < CURRENT_DATE
     ORDER BY b.expiry_date ASC
   `, [hotelId])
@@ -772,9 +1006,119 @@ export async function getUnreadNotificationCount(hotelId, departmentId = null) {
 // SETTINGS FUNCTIONS
 // ═══════════════════════════════════════════════════════════════
 
+/**
+ * System default settings
+ */
+const SYSTEM_DEFAULT_SETTINGS = {
+  warningDays: 7,
+  criticalDays: 3,
+  dateFormat: 'DD.MM.YYYY',
+  timezone: 'Asia/Almaty',
+  defaultLanguage: 'ru',
+  lowStockThreshold: 10,
+  enableTelegramNotifications: false,
+  enableEmailNotifications: false
+}
+
 export async function getSetting(hotelId, key) {
   const result = await query('SELECT value FROM settings WHERE hotel_id = $1 AND key = $2', [hotelId, key])
   return result.rows[0]?.value || null
+}
+
+/**
+ * Get setting with hierarchical resolution
+ * Priority: User → Department → Hotel → System
+ * @param {Object} context - { userId, departmentId, hotelId }
+ * @param {string} key - Setting key
+ * @returns {any} Resolved setting value
+ */
+export async function getHierarchicalSetting(context, key) {
+  const { userId, departmentId, hotelId } = context
+
+  // 1. User scope (highest priority)
+  if (userId) {
+    const userResult = await query(
+      'SELECT value FROM user_settings WHERE user_id = $1 AND key = $2',
+      [userId, key]
+    )
+    if (userResult.rows.length > 0) {
+      return parseSettingValue(userResult.rows[0].value)
+    }
+  }
+
+  // 2. Department scope
+  if (departmentId) {
+    const deptResult = await query(
+      'SELECT value FROM department_settings WHERE department_id = $1 AND key = $2',
+      [departmentId, key]
+    )
+    if (deptResult.rows.length > 0) {
+      return parseSettingValue(deptResult.rows[0].value)
+    }
+  }
+
+  // 3. Hotel scope
+  if (hotelId) {
+    const hotelResult = await query(
+      'SELECT value FROM settings WHERE hotel_id = $1 AND key = $2',
+      [hotelId, key]
+    )
+    if (hotelResult.rows.length > 0) {
+      return parseSettingValue(hotelResult.rows[0].value)
+    }
+  }
+
+  // 4. System scope (default values)
+  return SYSTEM_DEFAULT_SETTINGS[key] ?? null
+}
+
+/**
+ * Get all settings with hierarchical resolution
+ * Returns merged settings with proper priority
+ */
+export async function getAllHierarchicalSettings(context) {
+  const { userId, departmentId, hotelId } = context
+  
+  // Start with system defaults
+  const settings = { ...SYSTEM_DEFAULT_SETTINGS }
+  
+  // 3. Merge hotel settings (lower priority)
+  if (hotelId) {
+    const hotelResult = await query('SELECT key, value FROM settings WHERE hotel_id = $1', [hotelId])
+    for (const row of hotelResult.rows) {
+      settings[row.key] = parseSettingValue(row.value)
+    }
+  }
+  
+  // 2. Merge department settings (medium priority)
+  if (departmentId) {
+    const deptResult = await query('SELECT key, value FROM department_settings WHERE department_id = $1', [departmentId])
+    for (const row of deptResult.rows) {
+      settings[row.key] = parseSettingValue(row.value)
+    }
+  }
+  
+  // 1. Merge user settings (highest priority)
+  if (userId) {
+    const userResult = await query('SELECT key, value FROM user_settings WHERE user_id = $1', [userId])
+    for (const row of userResult.rows) {
+      settings[row.key] = parseSettingValue(row.value)
+    }
+  }
+  
+  return settings
+}
+
+/**
+ * Parse setting value from database (handles JSON and primitives)
+ */
+function parseSettingValue(value) {
+  if (value === null || value === undefined) return null
+  try {
+    return JSON.parse(value)
+  } catch {
+    return value
+  }
 }
 
 export async function setSetting(hotelId, key, value) {
@@ -887,11 +1231,54 @@ export async function getWriteOffById(id) {
 
 export async function createWriteOff(data) {
   const id = uuidv4()
-  await query(`
-    INSERT INTO write_offs (id, hotel_id, department_id, batch_id, product_id, product_name, quantity, reason, comment, written_off_by)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-  `, [id, data.hotel_id, data.department_id, data.batch_id, data.product_id, data.product_name || 'Unknown', data.quantity, data.reason, data.notes || data.comment, data.user_id || data.written_off_by])
+  
+  // Check if batch_snapshot columns exist (migration 006)
+  const hasSnapshotColumns = await checkColumnExists('write_offs', 'batch_snapshot')
+  
+  if (hasSnapshotColumns && data.batch_snapshot) {
+    // Use new schema with batch_snapshot
+    await query(`
+      INSERT INTO write_offs (id, hotel_id, department_id, batch_id, product_id, product_name, quantity, reason, comment, written_off_by, batch_snapshot, expiry_date, expiry_status)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+    `, [
+      id, 
+      data.hotel_id, 
+      data.department_id, 
+      data.batch_id, 
+      data.product_id, 
+      data.product_name || 'Unknown', 
+      data.quantity, 
+      data.reason, 
+      data.notes || data.comment, 
+      data.user_id || data.written_off_by,
+      JSON.stringify(data.batch_snapshot),
+      data.expiry_date,
+      data.expiry_status
+    ])
+  } else {
+    // Fallback to old schema
+    await query(`
+      INSERT INTO write_offs (id, hotel_id, department_id, batch_id, product_id, product_name, quantity, reason, comment, written_off_by)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+    `, [id, data.hotel_id, data.department_id, data.batch_id, data.product_id, data.product_name || 'Unknown', data.quantity, data.reason, data.notes || data.comment, data.user_id || data.written_off_by])
+  }
+  
   return { id, ...data }
+}
+
+/**
+ * Helper to check if a column exists in a table
+ */
+async function checkColumnExists(tableName, columnName) {
+  try {
+    const result = await query(`
+      SELECT 1 FROM information_schema.columns 
+      WHERE table_name = $1 AND column_name = $2
+    `, [tableName, columnName])
+    return result.rows.length > 0
+  } catch {
+    return false
+  }
 }
 
 export async function updateWriteOff(id, updates) {

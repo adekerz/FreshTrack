@@ -10,8 +10,7 @@ import {
   isSameDay,
   addMonths,
   subMonths,
-  isToday,
-  parseISO
+  isToday
 } from 'date-fns'
 import { ru, enUS, kk } from 'date-fns/locale'
 
@@ -70,6 +69,7 @@ export default function CalendarPage() {
   }
 
   // Получить статус дня
+  // Uses backend enriched data (expiryStatus) for consistency
   const getDayStatus = useCallback(
     (date) => {
       const dateKey = format(date, 'yyyy-MM-dd')
@@ -77,10 +77,13 @@ export default function CalendarPage() {
 
       if (dayBatches.length === 0) return null
 
-      const today = new Date()
-      const hasExpired = dayBatches.some((b) => parseISO(b.expiryDate) < today)
-      const hasCritical = dayBatches.some((b) => b.status === 'critical')
-      const hasWarning = dayBatches.some((b) => b.status === 'warning')
+      // Use expiryStatus from backend (Single Source of Truth)
+      // Fallback to status.status for object format or direct status string
+      const getStatus = (b) => b.expiryStatus || b.status?.status || b.status
+      
+      const hasExpired = dayBatches.some((b) => getStatus(b) === 'expired')
+      const hasCritical = dayBatches.some((b) => getStatus(b) === 'critical' || getStatus(b) === 'today')
+      const hasWarning = dayBatches.some((b) => getStatus(b) === 'warning')
 
       if (hasExpired) return 'expired'
       if (hasCritical) return 'critical'
@@ -90,12 +93,13 @@ export default function CalendarPage() {
     [batchesByDate]
   )
 
-  // Получить цвет статуса
+  // Получить цвет статуса (matches backend StatusCssClass)
   const getStatusColor = (status) => {
     switch (status) {
       case 'expired':
         return 'bg-danger text-white'
       case 'critical':
+      case 'today':
         return 'bg-warning text-white'
       case 'warning':
         return 'bg-yellow-400 text-charcoal'

@@ -5,6 +5,7 @@
 
 import TelegramBot from 'node-telegram-bot-api'
 import { logNotification, getActiveProducts, getAllProducts, getNotificationLogs, getStats, getSetting, getAllDepartments } from '../db/database.js'
+import { calculateBatchStats, calculateDaysUntilExpiry, getExpiryStatus } from './ExpiryService.js'
 
 // Функции для получения настроек (сначала БД, потом .env)
 function getBotToken() {
@@ -408,17 +409,21 @@ Great work team! 🎉
 
 /**
  * Вычисление статистики по товарам
+ * @deprecated Use ExpiryService.calculateBatchStats instead for new code
+ * Kept for backwards compatibility
  */
 function calculateStats(products) {
+  // Use ExpiryService for consistent calculations
   const stats = { total: 0, good: 0, warning: 0, critical: 0, expired: 0 }
   
   products.forEach(p => {
     stats.total++
-    const daysLeft = Math.ceil((new Date(p.expiry_date) - new Date()) / (1000 * 60 * 60 * 24))
+    const daysLeft = calculateDaysUntilExpiry(p.expiry_date)
+    const status = getExpiryStatus(daysLeft)
     
-    if (daysLeft < 0) stats.expired++
-    else if (daysLeft <= 3) stats.critical++
-    else if (daysLeft <= 7) stats.warning++
+    if (status === 'expired' || status === 'today') stats.expired++
+    else if (status === 'critical') stats.critical++
+    else if (status === 'warning') stats.warning++
     else stats.good++
   })
   
@@ -442,11 +447,12 @@ function calculateDepartmentStats(products) {
     }
     
     departments[deptId].total++
-    const daysLeft = Math.ceil((new Date(p.expiry_date) - new Date()) / (1000 * 60 * 60 * 24))
+    const daysLeft = calculateDaysUntilExpiry(p.expiry_date)
+    const status = getExpiryStatus(daysLeft)
     
-    if (daysLeft < 0) departments[deptId].expired++
-    else if (daysLeft <= 3) departments[deptId].critical++
-    else if (daysLeft <= 7) departments[deptId].warning++
+    if (status === 'expired' || status === 'today') departments[deptId].expired++
+    else if (status === 'critical') departments[deptId].critical++
+    else if (status === 'warning') departments[deptId].warning++
     else departments[deptId].good++
   })
   

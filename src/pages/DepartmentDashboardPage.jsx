@@ -34,9 +34,9 @@ export default function DepartmentDashboardPage() {
     .filter((b) => b.status === 'expired')
     .sort((a, b) => a.daysLeft - b.daysLeft)
 
-  // По категориям
+  // По категориям - use categoryName from backend (properly resolved)
   const byCategory = departmentBatches.reduce((acc, batch) => {
-    const cat = batch.category || 'Другое'
+    const cat = batch.categoryName || batch.category_name || t('categories.other') || 'Другое'
     if (!acc[cat]) acc[cat] = { count: 0, expired: 0, warning: 0 }
     acc[cat].count++
     if (batch.status === 'expired') acc[cat].expired++

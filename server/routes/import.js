@@ -11,12 +11,12 @@ import {
   getAllProducts,
   logAudit
 } from '../db/database.js'
-import { authMiddleware, hotelIsolation, hotelAdminOnly } from '../middleware/auth.js'
+import { authMiddleware, hotelIsolation, hotelAdminOnly, departmentIsolation } from '../middleware/auth.js'
 
 const router = express.Router()
 
 // POST /api/import/products
-router.post('/products', authMiddleware, hotelIsolation, hotelAdminOnly, async (req, res) => {
+router.post('/products', authMiddleware, hotelIsolation, departmentIsolation, hotelAdminOnly, async (req, res) => {
   try {
     const { products, options = {} } = req.body
     
@@ -27,8 +27,11 @@ router.post('/products', authMiddleware, hotelIsolation, hotelAdminOnly, async (
     const { skip_duplicates = true, create_categories = false } = options
     const results = { imported: 0, skipped: 0, errors: [] }
     
+    // Use department from isolation middleware
+    const targetDeptId = req.departmentId
+    
     // Get existing products for duplicate check
-    const existingProducts = await getAllProducts(req.hotelId, {})
+    const existingProducts = await getAllProducts(req.hotelId, { department_id: targetDeptId })
     const existingNames = new Set(existingProducts.map(p => p.name.toLowerCase()))
     const existingSKUs = new Set(existingProducts.filter(p => p.sku).map(p => p.sku))
     
@@ -108,7 +111,7 @@ router.post('/products', authMiddleware, hotelIsolation, hotelAdminOnly, async (
 })
 
 // POST /api/import/batches
-router.post('/batches', authMiddleware, hotelIsolation, async (req, res) => {
+router.post('/batches', authMiddleware, hotelIsolation, departmentIsolation, async (req, res) => {
   try {
     const { batches } = req.body
     
@@ -118,8 +121,11 @@ router.post('/batches', authMiddleware, hotelIsolation, async (req, res) => {
     
     const results = { imported: 0, errors: [] }
     
-    // Get existing products for matching
-    const products = await getAllProducts(req.hotelId, {})
+    // Use department from isolation middleware
+    const targetDeptId = req.departmentId
+    
+    // Get existing products for matching (filtered by department)
+    const products = await getAllProducts(req.hotelId, { department_id: targetDeptId })
     const productMap = new Map()
     products.forEach(p => {
       productMap.set(p.id, p)

@@ -11,12 +11,19 @@ import {
   deleteDepartment,
   logAudit
 } from '../db/database.js'
-import { authMiddleware, hotelIsolation, hotelAdminOnly } from '../middleware/auth.js'
+import { 
+  authMiddleware, 
+  hotelIsolation, 
+  hotelAdminOnly,
+  requirePermission,
+  PermissionResource,
+  PermissionAction
+} from '../middleware/auth.js'
 
 const router = express.Router()
 
 // GET /api/departments
-router.get('/', authMiddleware, hotelIsolation, async (req, res) => {
+router.get('/', authMiddleware, hotelIsolation, requirePermission(PermissionResource.DEPARTMENTS, PermissionAction.READ), async (req, res) => {
   try {
     const { include_inactive } = req.query
     const filters = { include_inactive: include_inactive === 'true' }
@@ -46,7 +53,7 @@ router.get('/:id', authMiddleware, hotelIsolation, async (req, res) => {
 })
 
 // POST /api/departments
-router.post('/', authMiddleware, hotelIsolation, hotelAdminOnly, async (req, res) => {
+router.post('/', authMiddleware, hotelIsolation, requirePermission(PermissionResource.DEPARTMENTS, PermissionAction.CREATE), async (req, res) => {
   try {
     const { name, description, code, manager_id, settings } = req.body
     
@@ -73,7 +80,7 @@ router.post('/', authMiddleware, hotelIsolation, hotelAdminOnly, async (req, res
 })
 
 // PUT /api/departments/:id
-router.put('/:id', authMiddleware, hotelIsolation, hotelAdminOnly, async (req, res) => {
+router.put('/:id', authMiddleware, hotelIsolation, requirePermission(PermissionResource.DEPARTMENTS, PermissionAction.UPDATE), async (req, res) => {
   try {
     const department = await getDepartmentById(req.params.id)
     if (!department) {
@@ -108,7 +115,7 @@ router.put('/:id', authMiddleware, hotelIsolation, hotelAdminOnly, async (req, r
 })
 
 // DELETE /api/departments/:id
-router.delete('/:id', authMiddleware, hotelIsolation, hotelAdminOnly, async (req, res) => {
+router.delete('/:id', authMiddleware, hotelIsolation, requirePermission(PermissionResource.DEPARTMENTS, PermissionAction.DELETE), async (req, res) => {
   try {
     const department = await getDepartmentById(req.params.id)
     if (!department) {

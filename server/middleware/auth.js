@@ -11,6 +11,49 @@ const JWT_SECRET = process.env.JWT_SECRET || 'freshtrack_pilot_secret_2024'
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '24h'
 
 /**
+ * Permission Scopes - defines access boundaries
+ */
+export const PermissionScope = {
+  OWN: 'own',              // Only own records (created by user)
+  DEPARTMENT: 'department', // Within user's department
+  HOTEL: 'hotel',           // Within user's hotel
+  ALL: 'all'               // System-wide (no restrictions)
+}
+
+/**
+ * Role hierarchy with default permission scopes
+ */
+export const ROLES = {
+  SUPER_ADMIN: {
+    name: 'SUPER_ADMIN',
+    level: 100,
+    defaultScope: PermissionScope.ALL
+  },
+  HOTEL_ADMIN: {
+    name: 'HOTEL_ADMIN',
+    level: 80,
+    defaultScope: PermissionScope.HOTEL
+  },
+  DEPARTMENT_MANAGER: {
+    name: 'DEPARTMENT_MANAGER',
+    level: 50,
+    defaultScope: PermissionScope.DEPARTMENT
+  },
+  STAFF: {
+    name: 'STAFF',
+    level: 10,
+    defaultScope: PermissionScope.DEPARTMENT
+  }
+}
+
+/**
+ * Get permission scope for a role
+ */
+export function getRoleScope(role) {
+  return ROLES[role]?.defaultScope || PermissionScope.OWN
+}
+
+/**
  * Generate JWT token
  */
 export function generateToken(user) {
@@ -143,6 +186,20 @@ export const hotelAdminOnly = (req, res, next) => {
 }
 
 /**
+ * Department Manager or higher middleware
+ */
+export const departmentManagerOnly = (req, res, next) => {
+  const allowedRoles = ['SUPER_ADMIN', 'HOTEL_ADMIN', 'DEPARTMENT_MANAGER']
+  if (!allowedRoles.includes(req.user?.role)) {
+    return res.status(403).json({ 
+      success: false, 
+      error: 'Department Manager access required' 
+    })
+  }
+  next()
+}
+
+/**
  * Admin middleware (for backward compatibility)
  */
 export const adminMiddleware = hotelAdminOnly
@@ -192,15 +249,41 @@ export const hotelIsolation = async (req, res, next) => {
 
 /**
  * Department isolation middleware
+ * Enforces department-level data isolation based on user role
  */
 export const departmentIsolation = (req, res, next) => {
   // Super Admin and Hotel Admin can access any department within hotel
   if (['SUPER_ADMIN', 'HOTEL_ADMIN'].includes(req.user?.role)) {
     req.departmentId = req.query.department_id || req.body?.department_id || req.params?.departmentId || null
+    req.canAccessAllDepartments = true
     return next()
   }
   
-  // Staff can only access their own department
+  // DEPARTMENT_MANAGER can manage their own department
+  if (req.user?.role === 'DEPARTMENT_MANAGER') {
+    if (!req.user?.department_id) {
+      return res.status(403).json({ 
+        success: false, 
+        error: 'No department assigned to manager' 
+      })
+    }
+    
+    req.departmentId = req.user.department_id
+    req.canAccessAllDepartments = false
+    
+    // DEPARTMENT_MANAGER can only access their own department
+    const requestedDeptId = req.query.department_id || req.body?.department_id || req.params?.departmentId
+    if (requestedDeptId && requestedDeptId !== req.user.department_id) {
+      return res.status(403).json({ 
+        success: false, 
+        error: 'Access denied to this department' 
+      })
+    }
+    
+    return next()
+  }
+  
+  // STAFF can only access their own department (read-only for most operations)
   if (!req.user?.department_id) {
     return res.status(403).json({ 
       success: false, 
@@ -209,6 +292,7 @@ export const departmentIsolation = (req, res, next) => {
   }
   
   req.departmentId = req.user.department_id
+  req.canAccessAllDepartments = false
   
   const requestedDeptId = req.query.department_id || req.body?.department_id || req.params?.departmentId
   if (requestedDeptId && requestedDeptId !== req.user.department_id) {
@@ -264,7 +348,271 @@ export function canAccessHotel(user, hotelId) {
  */
 export function canAccessDepartment(user, departmentId) {
   if (['SUPER_ADMIN', 'HOTEL_ADMIN'].includes(user.role)) return true
+  if (user.role === 'DEPARTMENT_MANAGER') return user.department_id === departmentId
   return user.department_id === departmentId
+}
+
+/**
+ * Get user's access context for queries
+ */
+export function getUserContext(req) {
+  return {
+    hotelId: req.hotelId,
+    departmentId: req.departmentId,
+    role: req.user?.role,
+    userId: req.user?.id,
+    canAccessAllDepartments: req.canAccessAllDepartments || false
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PERMISSION-BASED ACCESS CONTROL
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Permission Resources
+ */
+export const PermissionResource = {
+  INVENTORY: 'inventory',
+  PRODUCTS: 'products',
+  BATCHES: 'batches',
+  CATEGORIES: 'categories',
+  USERS: 'users',
+  DEPARTMENTS: 'departments',
+  SETTINGS: 'settings',
+  REPORTS: 'reports',
+  NOTIFICATIONS: 'notifications',
+  WRITE_OFFS: 'write_offs',
+  AUDIT: 'audit',
+  HOTELS: 'hotels'
+}
+
+/**
+ * Permission Actions
+ */
+export const PermissionAction = {
+  READ: 'read',
+  CREATE: 'create',
+  UPDATE: 'update',
+  DELETE: 'delete',
+  EXPORT: 'export',
+  MANAGE: 'manage',
+  COLLECT: 'collect'
+}
+
+// Permission cache
+const permissionCache = new Map()
+const PERMISSION_CACHE_TTL = 5 * 60 * 1000 // 5 minutes
+
+/**
+ * Get permissions for role (with caching)
+ */
+async function getRolePermissions(role) {
+  const cacheKey = `role:${role}`
+  const cached = permissionCache.get(cacheKey)
+  
+  if (cached && Date.now() - cached.timestamp < PERMISSION_CACHE_TTL) {
+    return cached.permissions
+  }
+  
+  try {
+    const result = await query(`
+      SELECT p.resource, p.action, p.scope
+      FROM role_permissions rp
+      JOIN permissions p ON rp.permission_id = p.id
+      WHERE rp.role = $1
+    `, [role])
+    
+    const permissions = result.rows
+    permissionCache.set(cacheKey, { permissions, timestamp: Date.now() })
+    return permissions
+  } catch (error) {
+    // If permissions table doesn't exist yet, fall back to role-based check
+    console.warn('Permission table not found, using role-based fallback')
+    return null
+  }
+}
+
+/**
+ * Check scope validity
+ */
+function checkScopeValidity(user, scope, targetHotelId, targetDepartmentId, targetUserId) {
+  switch (scope) {
+    case PermissionScope.ALL:
+      return true
+    case PermissionScope.HOTEL:
+      if (!targetHotelId) return true
+      return user.hotel_id === targetHotelId
+    case PermissionScope.DEPARTMENT:
+      if (targetHotelId && user.hotel_id && user.hotel_id !== targetHotelId) return false
+      if (!targetDepartmentId) return true
+      if (!user.department_id) return true // User has hotel-level access without department restriction
+      return user.department_id === targetDepartmentId
+    case PermissionScope.OWN:
+      if (!targetUserId) return false
+      return user.id === targetUserId
+    default:
+      return false
+  }
+}
+
+/**
+ * Check if user has permission
+ */
+export async function hasPermission(user, resource, action, targets = {}) {
+  const { targetHotelId, targetDepartmentId, targetUserId } = targets
+  
+  // Ensure user object has required properties
+  if (!user || !user.role) {
+    return false
+  }
+  
+  // Get role permissions from DB
+  const permissions = await getRolePermissions(user.role)
+  
+  // Fallback to role-based if permissions not loaded
+  if (!permissions) {
+    // Legacy role-based fallback
+    if (user.role === 'SUPER_ADMIN') return true
+    
+    if (user.role === 'HOTEL_ADMIN') {
+      // Hotel admin can access anything in their hotel
+      if (targetHotelId && user.hotel_id !== targetHotelId) return false
+      return true
+    }
+    
+    if (user.role === 'DEPARTMENT_MANAGER') {
+      // Department manager: hotel and department scope check
+      if (targetHotelId && user.hotel_id !== targetHotelId) return false
+      if (targetDepartmentId && user.department_id && user.department_id !== targetDepartmentId) return false
+      // Cannot manage users or hotels
+      if (resource === 'users' && ['create', 'update', 'delete'].includes(action)) return false
+      if (resource === 'hotels') return false
+      return true
+    }
+    
+    if (user.role === 'STAFF') {
+      // Staff: limited permissions in their department
+      if (targetHotelId && user.hotel_id !== targetHotelId) return false
+      if (targetDepartmentId && user.department_id && user.department_id !== targetDepartmentId) return false
+      // Staff can only read inventory/products/batches/categories and create batches
+      const allowedResources = ['inventory', 'products', 'batches', 'categories', 'notifications']
+      if (!allowedResources.includes(resource)) return false
+      // Staff can only read (except batches - can create)
+      if (resource === 'batches' && ['read', 'create'].includes(action)) return true
+      if (action === 'read') return true
+      return false
+    }
+    
+    return false
+  }
+  
+  // Check for exact permission or manage permission
+  for (const perm of permissions) {
+    if (perm.resource === resource && (perm.action === action || perm.action === 'manage')) {
+      if (checkScopeValidity(user, perm.scope, targetHotelId, targetDepartmentId, targetUserId)) {
+        return true
+      }
+    }
+  }
+  
+  return false
+}
+
+/**
+ * Middleware factory: require specific permission
+ * @param {string} resource - Resource type (from PermissionResource)
+ * @param {string} action - Action type (from PermissionAction)
+ * @param {Object} options - { getTargetHotelId, getTargetDepartmentId, getTargetUserId }
+ */
+export function requirePermission(resource, action, options = {}) {
+  return async (req, res, next) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ 
+          success: false, 
+          error: 'Authentication required' 
+        })
+      }
+      
+      // Extract target IDs from request
+      const targetHotelId = options.getTargetHotelId 
+        ? options.getTargetHotelId(req) 
+        : req.hotelId || req.query?.hotel_id || req.body?.hotel_id || req.params?.hotelId
+      
+      const targetDepartmentId = options.getTargetDepartmentId 
+        ? options.getTargetDepartmentId(req) 
+        : req.departmentId || req.query?.department_id || req.body?.department_id || req.params?.departmentId
+      
+      const targetUserId = options.getTargetUserId 
+        ? options.getTargetUserId(req) 
+        : req.params?.userId || req.params?.id
+      
+      const allowed = await hasPermission(req.user, resource, action, {
+        targetHotelId,
+        targetDepartmentId,
+        targetUserId
+      })
+      
+      if (!allowed) {
+        return res.status(403).json({ 
+          success: false, 
+          error: `Permission denied: ${resource}:${action}`,
+          required: { resource, action }
+        })
+      }
+      
+      // Attach permission context to request
+      req.permissionContext = {
+        resource,
+        action,
+        targetHotelId,
+        targetDepartmentId,
+        targetUserId
+      }
+      
+      next()
+    } catch (error) {
+      console.error('Permission check error:', error)
+      return res.status(500).json({ 
+        success: false, 
+        error: 'Permission check failed' 
+      })
+    }
+  }
+}
+
+/**
+ * Helper: require any of the specified permissions
+ */
+export function requireAnyPermission(checks) {
+  return async (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ success: false, error: 'Authentication required' })
+    }
+    
+    for (const { resource, action, options = {} } of checks) {
+      const targetHotelId = options.getTargetHotelId?.(req) || req.hotelId
+      const targetDepartmentId = options.getTargetDepartmentId?.(req) || req.departmentId
+      const targetUserId = options.getTargetUserId?.(req)
+      
+      if (await hasPermission(req.user, resource, action, { targetHotelId, targetDepartmentId, targetUserId })) {
+        return next()
+      }
+    }
+    
+    return res.status(403).json({ 
+      success: false, 
+      error: 'Permission denied: none of required permissions granted' 
+    })
+  }
+}
+
+/**
+ * Clear permission cache (call after role/permission changes)
+ */
+export function clearPermissionCache() {
+  permissionCache.clear()
 }
 
 export default authMiddleware

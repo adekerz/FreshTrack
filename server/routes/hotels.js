@@ -11,12 +11,20 @@ import {
   deleteHotel,
   logAudit
 } from '../db/database.js'
-import { authMiddleware, superAdminOnly, hotelIsolation, hotelAdminOnly } from '../middleware/auth.js'
+import { 
+  authMiddleware, 
+  superAdminOnly, 
+  hotelIsolation, 
+  hotelAdminOnly,
+  requirePermission,
+  PermissionResource,
+  PermissionAction
+} from '../middleware/auth.js'
 
 const router = express.Router()
 
 // GET /api/hotels
-router.get('/', authMiddleware, async (req, res) => {
+router.get('/', authMiddleware, requirePermission(PermissionResource.HOTELS, PermissionAction.READ), async (req, res) => {
   try {
     if (req.user.role === 'SUPER_ADMIN') {
       const hotels = await getAllHotels()
@@ -51,7 +59,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
 })
 
 // POST /api/hotels
-router.post('/', authMiddleware, superAdminOnly, async (req, res) => {
+router.post('/', authMiddleware, requirePermission(PermissionResource.HOTELS, PermissionAction.CREATE), async (req, res) => {
   try {
     const { name, code, description, address, phone, email, settings, timezone } = req.body
     
@@ -77,7 +85,9 @@ router.post('/', authMiddleware, superAdminOnly, async (req, res) => {
 })
 
 // PUT /api/hotels/:id
-router.put('/:id', authMiddleware, async (req, res) => {
+router.put('/:id', authMiddleware, requirePermission(PermissionResource.HOTELS, PermissionAction.UPDATE, {
+  getTargetHotelId: (req) => req.params.id
+}), async (req, res) => {
   try {
     const hotel = await getHotelById(req.params.id)
     if (!hotel) {
@@ -118,7 +128,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
 })
 
 // DELETE /api/hotels/:id
-router.delete('/:id', authMiddleware, superAdminOnly, async (req, res) => {
+router.delete('/:id', authMiddleware, requirePermission(PermissionResource.HOTELS, PermissionAction.DELETE), async (req, res) => {
   try {
     const hotel = await getHotelById(req.params.id)
     if (!hotel) {

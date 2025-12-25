@@ -18,7 +18,10 @@ import {
   authMiddleware, 
   hotelAdminOnly, 
   hotelIsolation,
-  generateToken 
+  generateToken,
+  requirePermission,
+  PermissionResource,
+  PermissionAction
 } from '../middleware/auth.js'
 
 const router = express.Router()
@@ -135,7 +138,7 @@ router.get('/me', authMiddleware, async (req, res) => {
 })
 
 // GET /api/auth/users
-router.get('/users', authMiddleware, hotelAdminOnly, hotelIsolation, async (req, res) => {
+router.get('/users', authMiddleware, hotelIsolation, requirePermission(PermissionResource.USERS, PermissionAction.READ), async (req, res) => {
   try {
     const users = await getAllUsers(req.hotelId)
     const safeUsers = users.map(u => ({
@@ -151,7 +154,7 @@ router.get('/users', authMiddleware, hotelAdminOnly, hotelIsolation, async (req,
 })
 
 // POST /api/auth/users
-router.post('/users', authMiddleware, hotelAdminOnly, hotelIsolation, async (req, res) => {
+router.post('/users', authMiddleware, hotelIsolation, requirePermission(PermissionResource.USERS, PermissionAction.CREATE), async (req, res) => {
   try {
     const { login, name, email, password, role, department_id } = req.body
     
@@ -196,7 +199,12 @@ router.post('/users', authMiddleware, hotelAdminOnly, hotelIsolation, async (req
 })
 
 // PUT /api/auth/users/:id
-router.put('/users/:id', authMiddleware, hotelAdminOnly, async (req, res) => {
+router.put('/users/:id', authMiddleware, requirePermission(PermissionResource.USERS, PermissionAction.UPDATE, {
+  getTargetHotelId: async (req) => {
+    const user = await getUserById(req.params.id)
+    return user ? user.hotel_id : null
+  }
+}), async (req, res) => {
   try {
     const { id } = req.params
     const { name, email, password, role, department_id, is_active } = req.body
@@ -208,8 +216,12 @@ router.put('/users/:id', authMiddleware, hotelAdminOnly, async (req, res) => {
     if (req.user.role !== 'SUPER_ADMIN' && user.hotel_id !== req.user.hotel_id) {
       return res.status(403).json({ success: false, error: 'Access denied' })
     }
+    // canManageUser: prevent managing users at same or higher level
     if (req.user.role === 'HOTEL_ADMIN' && user.role === 'SUPER_ADMIN') {
       return res.status(403).json({ success: false, error: 'Cannot update Super Admin user' })
+    }
+    if (req.user.role === 'HOTEL_ADMIN' && user.role === 'HOTEL_ADMIN' && user.id !== req.user.id) {
+      return res.status(403).json({ success: false, error: 'Cannot manage other hotel admins' })
     }
     
     const updates = {}

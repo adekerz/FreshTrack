@@ -15,16 +15,18 @@ import {
   removeProductFromCollection,
   logAudit
 } from '../db/database.js'
-import { authMiddleware, hotelIsolation, hotelAdminOnly } from '../middleware/auth.js'
+import { authMiddleware, hotelIsolation, hotelAdminOnly, departmentIsolation } from '../middleware/auth.js'
 
 const router = express.Router()
 
 // GET /api/collections
-router.get('/', authMiddleware, hotelIsolation, async (req, res) => {
+router.get('/', authMiddleware, hotelIsolation, departmentIsolation, async (req, res) => {
   try {
     const { department_id, include_products } = req.query
+    // Use department from isolation middleware unless user can access all departments
+    const deptId = req.canAccessAllDepartments ? (department_id || null) : req.departmentId
     const filters = {
-      department_id: department_id || req.departmentId,
+      department_id: deptId,
       include_products: include_products === 'true'
     }
     const collections = await getAllCollections(req.hotelId, filters)
@@ -36,7 +38,7 @@ router.get('/', authMiddleware, hotelIsolation, async (req, res) => {
 })
 
 // GET /api/collections/:id
-router.get('/:id', authMiddleware, hotelIsolation, async (req, res) => {
+router.get('/:id', authMiddleware, hotelIsolation, departmentIsolation, async (req, res) => {
   try {
     const collection = await getCollectionById(req.params.id)
     if (!collection) {
@@ -44,6 +46,10 @@ router.get('/:id', authMiddleware, hotelIsolation, async (req, res) => {
     }
     if (collection.hotel_id !== req.hotelId) {
       return res.status(403).json({ success: false, error: 'Access denied' })
+    }
+    // Check department access
+    if (!req.canAccessAllDepartments && collection.department_id && collection.department_id !== req.departmentId) {
+      return res.status(403).json({ success: false, error: 'Access denied to this department' })
     }
     
     const products = await getCollectionProducts(req.params.id)
@@ -55,7 +61,7 @@ router.get('/:id', authMiddleware, hotelIsolation, async (req, res) => {
 })
 
 // POST /api/collections
-router.post('/', authMiddleware, hotelIsolation, hotelAdminOnly, async (req, res) => {
+router.post('/', authMiddleware, hotelIsolation, departmentIsolation, hotelAdminOnly, async (req, res) => {
   try {
     const { name, description, department_id, product_ids } = req.body
     
@@ -63,10 +69,18 @@ router.post('/', authMiddleware, hotelIsolation, hotelAdminOnly, async (req, res
       return res.status(400).json({ success: false, error: 'Collection name is required' })
     }
     
+    // Use provided department_id or fall back to user's department
+    const collectionDeptId = department_id || req.departmentId
+    
+    // Non-admin users can only create collections for their department
+    if (!req.canAccessAllDepartments && department_id && department_id !== req.departmentId) {
+      return res.status(403).json({ success: false, error: 'Cannot create collection for another department' })
+    }
+    
     const collection = await createCollection({
       hotel_id: req.hotelId,
       name, description,
-      department_id: department_id || req.departmentId
+      department_id: collectionDeptId
     })
     
     // Add products if provided
@@ -90,7 +104,7 @@ router.post('/', authMiddleware, hotelIsolation, hotelAdminOnly, async (req, res
 })
 
 // PUT /api/collections/:id
-router.put('/:id', authMiddleware, hotelIsolation, hotelAdminOnly, async (req, res) => {
+router.put('/:id', authMiddleware, hotelIsolation, departmentIsolation, hotelAdminOnly, async (req, res) => {
   try {
     const collection = await getCollectionById(req.params.id)
     if (!collection) {
@@ -99,8 +113,18 @@ router.put('/:id', authMiddleware, hotelIsolation, hotelAdminOnly, async (req, r
     if (collection.hotel_id !== req.hotelId) {
       return res.status(403).json({ success: false, error: 'Access denied' })
     }
+    // Check department access
+    if (!req.canAccessAllDepartments && collection.department_id && collection.department_id !== req.departmentId) {
+      return res.status(403).json({ success: false, error: 'Access denied to this department' })
+    }
     
     const { name, description, department_id, is_active } = req.body
+    
+    // Non-admin users cannot change department to another department
+    if (!req.canAccessAllDepartments && department_id && department_id !== req.departmentId) {
+      return res.status(403).json({ success: false, error: 'Cannot move collection to another department' })
+    }
+    
     const updates = {}
     if (name !== undefined) updates.name = name
     if (description !== undefined) updates.description = description
@@ -123,7 +147,7 @@ router.put('/:id', authMiddleware, hotelIsolation, hotelAdminOnly, async (req, r
 })
 
 // POST /api/collections/:id/products
-router.post('/:id/products', authMiddleware, hotelIsolation, hotelAdminOnly, async (req, res) => {
+router.post('/:id/products', authMiddleware, hotelIsolation, departmentIsolation, hotelAdminOnly, async (req, res) => {
   try {
     const collection = await getCollectionById(req.params.id)
     if (!collection) {
@@ -131,6 +155,10 @@ router.post('/:id/products', authMiddleware, hotelIsolation, hotelAdminOnly, asy
     }
     if (collection.hotel_id !== req.hotelId) {
       return res.status(403).json({ success: false, error: 'Access denied' })
+    }
+    // Check department access
+    if (!req.canAccessAllDepartments && collection.department_id && collection.department_id !== req.departmentId) {
+      return res.status(403).json({ success: false, error: 'Access denied to this department' })
     }
     
     const { product_id } = req.body
@@ -147,7 +175,7 @@ router.post('/:id/products', authMiddleware, hotelIsolation, hotelAdminOnly, asy
 })
 
 // DELETE /api/collections/:id/products/:productId
-router.delete('/:id/products/:productId', authMiddleware, hotelIsolation, hotelAdminOnly, async (req, res) => {
+router.delete('/:id/products/:productId', authMiddleware, hotelIsolation, departmentIsolation, hotelAdminOnly, async (req, res) => {
   try {
     const collection = await getCollectionById(req.params.id)
     if (!collection) {
@@ -155,6 +183,10 @@ router.delete('/:id/products/:productId', authMiddleware, hotelIsolation, hotelA
     }
     if (collection.hotel_id !== req.hotelId) {
       return res.status(403).json({ success: false, error: 'Access denied' })
+    }
+    // Check department access
+    if (!req.canAccessAllDepartments && collection.department_id && collection.department_id !== req.departmentId) {
+      return res.status(403).json({ success: false, error: 'Access denied to this department' })
     }
     
     const success = await removeProductFromCollection(req.params.id, req.params.productId)
@@ -166,7 +198,7 @@ router.delete('/:id/products/:productId', authMiddleware, hotelIsolation, hotelA
 })
 
 // DELETE /api/collections/:id
-router.delete('/:id', authMiddleware, hotelIsolation, hotelAdminOnly, async (req, res) => {
+router.delete('/:id', authMiddleware, hotelIsolation, departmentIsolation, hotelAdminOnly, async (req, res) => {
   try {
     const collection = await getCollectionById(req.params.id)
     if (!collection) {
@@ -174,6 +206,10 @@ router.delete('/:id', authMiddleware, hotelIsolation, hotelAdminOnly, async (req
     }
     if (collection.hotel_id !== req.hotelId) {
       return res.status(403).json({ success: false, error: 'Access denied' })
+    }
+    // Check department access
+    if (!req.canAccessAllDepartments && collection.department_id && collection.department_id !== req.departmentId) {
+      return res.status(403).json({ success: false, error: 'Access denied to this department' })
     }
     
     const success = await deleteCollection(req.params.id)

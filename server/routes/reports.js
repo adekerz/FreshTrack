@@ -1,5 +1,8 @@
 /**
  * FreshTrack Reports API - PostgreSQL Async Version
+ * Phase 6: Uses UnifiedFilterService for consistent filtering
+ * Uses ExpiryService as Single Source of Truth for expiry calculations
+ * Phase 3: StatisticsService for centralized statistics aggregation
  */
 
 import express from 'express'
@@ -10,34 +13,129 @@ import {
   getAuditLogs,
   logAudit
 } from '../db/database.js'
-import { authMiddleware, hotelIsolation, hotelAdminOnly } from '../middleware/auth.js'
+import { 
+  authMiddleware, 
+  hotelIsolation, 
+  hotelAdminOnly, 
+  departmentIsolation,
+  requirePermission,
+  PermissionResource,
+  PermissionAction
+} from '../middleware/auth.js'
+import {
+  enrichBatchesWithExpiryData,
+  calculateDaysUntilExpiry,
+  ExpiryStatus
+} from '../services/ExpiryService.js'
+import { UnifiedFilterService } from '../services/FilterService.js'
+import { StatisticsService } from '../services/StatisticsService.js'
 
 const router = express.Router()
 
-// GET /api/reports/inventory
-router.get('/inventory', authMiddleware, hotelIsolation, async (req, res) => {
+/**
+ * GET /api/reports/statistics - Centralized statistics (Phase 3)
+ * Returns: { byStatus, byCategory, trends, total, filters }
+ * No frontend calculations - backend is Single Source of Truth
+ */
+router.get('/statistics', authMiddleware, hotelIsolation, departmentIsolation, async (req, res) => {
   try {
-    const { department_id, category_id, as_of_date } = req.query
-    const filters = {
-      department_id: department_id || req.departmentId,
-      category_id
+    const { from, to, locale = 'ru', trend_days } = req.query
+    
+    // Build context from middleware
+    const context = {
+      hotelId: req.hotelId,
+      departmentId: req.departmentId,
+      canAccessAllDepartments: req.canAccessAllDepartments
     }
     
-    const products = await getAllProducts(req.hotelId, filters)
-    const batches = await getAllBatches(req.hotelId, filters)
+    // Build options
+    const options = { locale }
+    if (from || to) {
+      options.dateRange = {
+        from: from ? new Date(from) : null,
+        to: to ? new Date(to) : null
+      }
+    }
+    if (trend_days) {
+      options.trendDays = parseInt(trend_days, 10)
+    }
     
-    // Calculate totals
+    const statistics = await StatisticsService.getStatistics(context, options)
+    
+    await logAudit({
+      hotel_id: req.hotelId, user_id: req.user.id, user_name: req.user.name,
+      action: 'view_statistics', entity_type: 'statistics', entity_id: null,
+      details: { filters: statistics.filters }, ip_address: req.ip
+    })
+    
+    res.json({ success: true, ...statistics })
+  } catch (error) {
+    console.error('Get statistics error:', error)
+    res.status(500).json({ success: false, error: 'Failed to get statistics' })
+  }
+})
+
+/**
+ * GET /api/reports/statistics/quick - Quick summary for dashboard widgets
+ */
+router.get('/statistics/quick', authMiddleware, hotelIsolation, departmentIsolation, async (req, res) => {
+  try {
+    const context = {
+      hotelId: req.hotelId,
+      departmentId: req.departmentId,
+      canAccessAllDepartments: req.canAccessAllDepartments
+    }
+    
+    const quickStats = await StatisticsService.getQuickStats(context)
+    
+    res.json({ success: true, ...quickStats })
+  } catch (error) {
+    console.error('Get quick stats error:', error)
+    res.status(500).json({ success: false, error: 'Failed to get quick stats' })
+  }
+})
+
+// GET /api/reports/inventory - Phase 6: Unified filtering
+router.get('/inventory', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.REPORTS, PermissionAction.READ), async (req, res) => {
+  try {
+    // Phase 6: Parse filters using UnifiedFilterService
+    const filters = UnifiedFilterService.parseCommonFilters(req.query)
+    
+    // Use department from isolation middleware unless user can access all departments
+    const deptId = req.canAccessAllDepartments 
+      ? (filters.departmentIds?.[0] || null) 
+      : req.departmentId
+    const categoryId = filters.categoryIds?.[0] || null
+    
+    const dbFilters = {
+      department_id: deptId,
+      category_id: categoryId
+    }
+    
+    const products = await getAllProducts(req.hotelId, dbFilters)
+    const rawBatches = await getAllBatches(req.hotelId, dbFilters)
+    
+    // Enrich batches with expiry data using ExpiryService (Single Source of Truth)
+    let batches = await enrichBatchesWithExpiryData(rawBatches, {
+      hotelId: req.hotelId,
+      departmentId: deptId,
+      locale: filters.locale
+    })
+    
+    // Phase 6: Apply post-query filters (virtual status, search)
+    batches = UnifiedFilterService.applyPostQueryFilters(batches, filters, {
+      searchFields: ['product_name', 'batch_code', 'supplier']
+    })
+    
+    // Calculate totals using enriched data
     const summary = {
       total_products: products.length,
       total_batches: batches.length,
       total_quantity: batches.reduce((sum, b) => sum + (b.quantity || 0), 0),
-      expiring_soon: batches.filter(b => {
-        if (!b.expiry_date) return false
-        const expDate = new Date(b.expiry_date)
-        const daysUntilExpiry = Math.ceil((expDate - new Date()) / (1000 * 60 * 60 * 24))
-        return daysUntilExpiry > 0 && daysUntilExpiry <= 7
-      }).length,
-      expired: batches.filter(b => b.expiry_date && new Date(b.expiry_date) < new Date()).length,
+      expiring_soon: batches.filter(b => 
+        b.expiryStatus === ExpiryStatus.WARNING || b.expiryStatus === ExpiryStatus.CRITICAL
+      ).length,
+      expired: batches.filter(b => b.expiryStatus === ExpiryStatus.EXPIRED).length,
       low_stock: products.filter(p => p.current_quantity !== undefined && 
         p.min_quantity !== undefined && p.current_quantity < p.min_quantity).length
     }
@@ -45,45 +143,68 @@ router.get('/inventory', authMiddleware, hotelIsolation, async (req, res) => {
     await logAudit({
       hotel_id: req.hotelId, user_id: req.user.id, user_name: req.user.name,
       action: 'view_report', entity_type: 'report', entity_id: null,
-      details: { report_type: 'inventory', filters }, ip_address: req.ip
+      details: { report_type: 'inventory', filters: dbFilters }, ip_address: req.ip
     })
     
-    res.json({ success: true, summary, products, batches })
+    // Phase 6: Create paginated response
+    const total = batches.length
+    const paginatedBatches = batches.slice(filters.offset, filters.offset + filters.limit)
+    
+    res.json({ 
+      success: true, 
+      summary, 
+      products,
+      ...UnifiedFilterService.createPaginatedResponse(paginatedBatches, total, filters),
+      batches: paginatedBatches // Backward compatibility
+    })
   } catch (error) {
     console.error('Get inventory report error:', error)
     res.status(500).json({ success: false, error: 'Failed to generate inventory report' })
   }
 })
 
-// GET /api/reports/expiry
-router.get('/expiry', authMiddleware, hotelIsolation, async (req, res) => {
+// GET /api/reports/expiry - Phase 6: Unified filtering
+router.get('/expiry', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.REPORTS, PermissionAction.READ), async (req, res) => {
   try {
-    const { department_id, days = 30 } = req.query
-    const filters = {
-      department_id: department_id || req.departmentId,
+    // Phase 6: Parse filters
+    const filters = UnifiedFilterService.parseCommonFilters(req.query)
+    const { days = 30 } = req.query
+    
+    // Use department from isolation middleware unless user can access all departments
+    const deptId = req.canAccessAllDepartments 
+      ? (filters.departmentIds?.[0] || null) 
+      : req.departmentId
+    const dbFilters = {
+      department_id: deptId,
       status: 'active'
     }
     
-    const batches = await getAllBatches(req.hotelId, filters)
+    const rawBatches = await getAllBatches(req.hotelId, dbFilters)
     const now = new Date()
     const targetDate = new Date()
     targetDate.setDate(targetDate.getDate() + parseInt(days))
     
+    // Enrich batches with expiry data using ExpiryService (Single Source of Truth)
+    const batches = await enrichBatchesWithExpiryData(rawBatches, {
+      hotelId: req.hotelId,
+      departmentId: deptId
+    })
+    
+    // Use enriched daysLeft instead of manual calculation
     const expiringBatches = batches.filter(b => {
       if (!b.expiry_date) return false
       const expDate = new Date(b.expiry_date)
       return expDate >= now && expDate <= targetDate
     }).map(b => ({
       ...b,
-      days_until_expiry: Math.ceil((new Date(b.expiry_date) - now) / (1000 * 60 * 60 * 24))
+      days_until_expiry: b.daysLeft
     })).sort((a, b) => a.days_until_expiry - b.days_until_expiry)
     
     const expiredBatches = batches.filter(b => {
-      if (!b.expiry_date) return false
-      return new Date(b.expiry_date) < now
+      return b.expiryStatus === ExpiryStatus.EXPIRED
     }).map(b => ({
       ...b,
-      days_expired: Math.ceil((now - new Date(b.expiry_date)) / (1000 * 60 * 60 * 24))
+      days_expired: Math.abs(b.daysLeft)
     }))
     
     res.json({
@@ -102,11 +223,13 @@ router.get('/expiry', authMiddleware, hotelIsolation, async (req, res) => {
 })
 
 // GET /api/reports/write-offs
-router.get('/write-offs', authMiddleware, hotelIsolation, hotelAdminOnly, async (req, res) => {
+router.get('/write-offs', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.WRITE_OFFS, PermissionAction.READ), async (req, res) => {
   try {
     const { department_id, start_date, end_date, reason } = req.query
+    // Use department from isolation middleware unless user can access all departments
+    const deptId = req.canAccessAllDepartments ? (department_id || null) : req.departmentId
     const filters = {
-      department_id: department_id || req.departmentId,
+      department_id: deptId,
       start_date, end_date, reason
     }
     
@@ -135,7 +258,7 @@ router.get('/write-offs', authMiddleware, hotelIsolation, hotelAdminOnly, async 
 })
 
 // GET /api/reports/activity
-router.get('/activity', authMiddleware, hotelIsolation, hotelAdminOnly, async (req, res) => {
+router.get('/activity', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.AUDIT, PermissionAction.READ), async (req, res) => {
   try {
     const { start_date, end_date, user_id, action, entity_type, limit = 100 } = req.query
     const filters = { start_date, end_date, user_id, action, entity_type, limit: parseInt(limit) }
@@ -161,30 +284,144 @@ router.get('/activity', authMiddleware, hotelIsolation, hotelAdminOnly, async (r
   }
 })
 
+/**
+ * GET /api/reports/calendar - Calendar view data (Phase 3)
+ * Single Source of Truth: ExpiryService provides colors/statuses
+ * Optimized for calendar rendering with date-grouped batches
+ */
+router.get('/calendar', authMiddleware, hotelIsolation, departmentIsolation, async (req, res) => {
+  try {
+    const { start_date, end_date, department_id, category_id } = req.query
+    
+    // Use department from isolation middleware unless user can access all departments
+    const deptId = req.canAccessAllDepartments ? (department_id || null) : req.departmentId
+    const filters = { 
+      department_id: deptId,
+      category_id: category_id || null
+    }
+    
+    const rawBatches = await getAllBatches(req.hotelId, filters)
+    
+    // Enrich batches with expiry data using ExpiryService (Single Source of Truth)
+    let batches = await enrichBatchesWithExpiryData(rawBatches, {
+      hotelId: req.hotelId,
+      departmentId: deptId,
+      locale: req.query.locale || 'ru'
+    })
+    
+    // Filter by date range if provided
+    if (start_date || end_date) {
+      const startMs = start_date ? new Date(start_date).getTime() : 0
+      const endMs = end_date ? new Date(end_date).getTime() : Infinity
+      
+      batches = batches.filter(batch => {
+        const expiryMs = new Date(batch.expiry_date).getTime()
+        return expiryMs >= startMs && expiryMs <= endMs
+      })
+    }
+    
+    // Group batches by expiry date for calendar rendering
+    const calendarData = {}
+    for (const batch of batches) {
+      const dateKey = batch.expiry_date?.split('T')[0] || batch.expiry_date
+      if (!dateKey) continue
+      
+      if (!calendarData[dateKey]) {
+        calendarData[dateKey] = {
+          date: dateKey,
+          batches: [],
+          summary: { total: 0, expired: 0, critical: 0, warning: 0, good: 0 }
+        }
+      }
+      
+      // Add batch with calendar-ready metadata
+      calendarData[dateKey].batches.push({
+        id: batch.id,
+        productName: batch.product_name,
+        productId: batch.product_id,
+        batchCode: batch.batch_code,
+        quantity: batch.quantity,
+        unit: batch.unit,
+        expiryDate: batch.expiry_date,
+        // Calendar metadata from ExpiryService (Single Source of Truth)
+        calendarMeta: {
+          color: batch.statusColor,
+          status: batch.expiryStatus,
+          cssClass: batch.statusCssClass,
+          statusText: batch.statusText,
+          daysRemaining: batch.daysLeft,
+          isUrgent: batch.isUrgent
+        }
+      })
+      
+      // Update summary counts
+      calendarData[dateKey].summary.total++
+      if (batch.expiryStatus === ExpiryStatus.EXPIRED) calendarData[dateKey].summary.expired++
+      else if (batch.expiryStatus === ExpiryStatus.CRITICAL || batch.expiryStatus === 'today') calendarData[dateKey].summary.critical++
+      else if (batch.expiryStatus === ExpiryStatus.WARNING) calendarData[dateKey].summary.warning++
+      else calendarData[dateKey].summary.good++
+    }
+    
+    // Convert to sorted array
+    const calendarEntries = Object.values(calendarData).sort((a, b) => 
+      new Date(a.date).getTime() - new Date(b.date).getTime()
+    )
+    
+    // Calculate overall summary
+    const overallSummary = {
+      totalBatches: batches.length,
+      expired: batches.filter(b => b.expiryStatus === ExpiryStatus.EXPIRED).length,
+      critical: batches.filter(b => b.expiryStatus === ExpiryStatus.CRITICAL || b.expiryStatus === 'today').length,
+      warning: batches.filter(b => b.expiryStatus === ExpiryStatus.WARNING).length,
+      good: batches.filter(b => b.expiryStatus === ExpiryStatus.GOOD || b.expiryStatus === 'good').length,
+      uniqueDates: calendarEntries.length
+    }
+    
+    res.json({
+      success: true,
+      calendar: calendarEntries,
+      summary: overallSummary,
+      filters: {
+        hotelId: req.hotelId,
+        departmentId: deptId,
+        startDate: start_date || null,
+        endDate: end_date || null
+      }
+    })
+  } catch (error) {
+    console.error('Get calendar data error:', error)
+    res.status(500).json({ success: false, error: 'Failed to get calendar data' })
+  }
+})
+
 // GET /api/reports/dashboard
-router.get('/dashboard', authMiddleware, hotelIsolation, async (req, res) => {
+router.get('/dashboard', authMiddleware, hotelIsolation, departmentIsolation, async (req, res) => {
   try {
     const { department_id } = req.query
-    const filters = { department_id: department_id || req.departmentId }
+    // Use department from isolation middleware unless user can access all departments
+    const deptId = req.canAccessAllDepartments ? (department_id || null) : req.departmentId
+    const filters = { department_id: deptId }
     
     const products = await getAllProducts(req.hotelId, filters)
-    const batches = await getAllBatches(req.hotelId, filters)
+    const rawBatches = await getAllBatches(req.hotelId, filters)
     
-    const now = new Date()
-    const weekFromNow = new Date()
-    weekFromNow.setDate(weekFromNow.getDate() + 7)
+    // Enrich batches with expiry data using ExpiryService (Single Source of Truth)
+    const batches = await enrichBatchesWithExpiryData(rawBatches, {
+      hotelId: req.hotelId,
+      departmentId: deptId
+    })
     
     const dashboard = {
       total_products: products.length,
       active_products: products.filter(p => p.is_active).length,
       total_batches: batches.length,
       active_batches: batches.filter(b => b.status === 'active').length,
-      expiring_this_week: batches.filter(b => {
-        if (!b.expiry_date) return false
-        const expDate = new Date(b.expiry_date)
-        return expDate >= now && expDate <= weekFromNow
-      }).length,
-      expired: batches.filter(b => b.expiry_date && new Date(b.expiry_date) < now).length,
+      expiring_this_week: batches.filter(b => 
+        b.expiryStatus === ExpiryStatus.WARNING || 
+        b.expiryStatus === ExpiryStatus.CRITICAL ||
+        b.expiryStatus === ExpiryStatus.TODAY
+      ).length,
+      expired: batches.filter(b => b.expiryStatus === ExpiryStatus.EXPIRED).length,
       low_stock_products: products.filter(p => 
         p.current_quantity !== undefined && p.min_quantity !== undefined && 
         p.current_quantity < p.min_quantity

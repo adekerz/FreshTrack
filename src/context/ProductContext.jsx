@@ -4,7 +4,7 @@
  */
 
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
-import { getDaysUntilExpiry, getExpiryStatus } from '../utils/dateUtils'
+import { getBatchStatus } from '../utils/dateUtils'
 
 const ProductContext = createContext(null)
 
@@ -114,9 +114,11 @@ export function ProductProvider({ children }) {
       // API возвращает { success: true, batches: [...] } или массив
       const batchesRaw = Array.isArray(batchesRes) ? batchesRes : (batchesRes.batches || [])
       // Нормализация snake_case → camelCase для совместимости
+      // Backend enriches batches with expiryStatus, statusColor, daysLeft, statusText
       const batchesData = batchesRaw.map(b => {
         const expiryDate = b.expiry_date || b.expiryDate
-        const daysLeft = getDaysUntilExpiry(expiryDate)
+        // Use getBatchStatus which prefers backend data, falls back to local calculation
+        const statusInfo = getBatchStatus(b)
         return {
           ...b,
           productId: b.product_id || b.productId,
@@ -130,8 +132,14 @@ export function ProductProvider({ children }) {
           collectedBy: b.collected_by || b.collectedBy,
           hotelId: b.hotel_id || b.hotelId,
           batchNumber: b.batch_number || b.batchNumber,
-          daysLeft,
-          status: getExpiryStatus(daysLeft)
+          // Backend Single Source of Truth for expiry data
+          daysLeft: statusInfo.daysLeft,
+          status: statusInfo,
+          expiryStatus: statusInfo.status,
+          statusColor: statusInfo.color,
+          statusText: statusInfo.statusText,
+          isExpired: statusInfo.isExpired,
+          isUrgent: statusInfo.isUrgent
         }
       })
       setBatches(batchesData)
@@ -246,13 +254,19 @@ export function ProductProvider({ children }) {
           expiryDate: batchData.expiry_date || batchData.expiryDate || expiryDate
         }
 
-        // Обновить локальные данные
+        // Обновить локальные данные (используем getBatchStatus для временного отображения)
+        const statusInfo = getBatchStatus(newBatch)
         setBatches((prev) => [
           ...prev,
           {
             ...newBatch,
-            daysLeft: getDaysUntilExpiry(newBatch.expiryDate),
-            status: getExpiryStatus(getDaysUntilExpiry(newBatch.expiryDate)).status
+            daysLeft: statusInfo.daysLeft,
+            status: statusInfo,
+            expiryStatus: statusInfo.status,
+            statusColor: statusInfo.color,
+            statusText: statusInfo.statusText,
+            isExpired: statusInfo.isExpired,
+            isUrgent: statusInfo.isUrgent
           }
         ])
 
@@ -388,11 +402,14 @@ export function ProductProvider({ children }) {
             return nameMatch && deptMatch
           }
         )
-        .map((b) => ({
-          ...b,
-          daysLeft: b.daysLeft ?? getDaysUntilExpiry(b.expiryDate),
-          status: getExpiryStatus(b.daysLeft ?? getDaysUntilExpiry(b.expiryDate))
-        }))
+        .map((b) => {
+          const statusInfo = getBatchStatus(b)
+          return {
+            ...b,
+            daysLeft: statusInfo.daysLeft,
+            status: statusInfo
+          }
+        })
         .sort((a, b) => a.daysLeft - b.daysLeft)
     },
     [batches]
@@ -417,11 +434,14 @@ export function ProductProvider({ children }) {
               const deptMatch = batchDeptId === departmentId
               return nameMatch && deptMatch
             })
-            .map((b) => ({
-              ...b,
-              daysLeft: b.daysLeft ?? getDaysUntilExpiry(b.expiryDate),
-              status: getExpiryStatus(b.daysLeft ?? getDaysUntilExpiry(b.expiryDate))
-            }))
+            .map((b) => {
+              const statusInfo = getBatchStatus(b)
+              return {
+                ...b,
+                daysLeft: statusInfo.daysLeft,
+                status: statusInfo
+              }
+            })
 
           // Определяем общий статус товара
           let overallStatus = 'good'
@@ -487,11 +507,14 @@ export function ProductProvider({ children }) {
    */
   const getActiveBatches = useCallback(() => {
     return batches
-      .map((b) => ({
-        ...b,
-        daysLeft: b.daysLeft ?? getDaysUntilExpiry(b.expiryDate),
-        status: getExpiryStatus(b.daysLeft ?? getDaysUntilExpiry(b.expiryDate))
-      }))
+      .map((b) => {
+        const statusInfo = getBatchStatus(b)
+        return {
+          ...b,
+          daysLeft: statusInfo.daysLeft,
+          status: statusInfo
+        }
+      })
       .sort((a, b) => a.daysLeft - b.daysLeft)
   }, [batches])
 

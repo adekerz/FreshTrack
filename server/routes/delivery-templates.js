@@ -11,15 +11,16 @@ import {
   deleteDeliveryTemplate,
   logAudit
 } from '../db/database.js'
-import { authMiddleware, hotelIsolation, hotelAdminOnly } from '../middleware/auth.js'
+import { authMiddleware, hotelIsolation, hotelAdminOnly, departmentIsolation } from '../middleware/auth.js'
 
 const router = express.Router()
 
 // GET /api/delivery-templates
-router.get('/', authMiddleware, hotelIsolation, async (req, res) => {
+router.get('/', authMiddleware, hotelIsolation, departmentIsolation, async (req, res) => {
   try {
     const { department_id } = req.query
-    const deptId = department_id || req.departmentId || null
+    // Use department from isolation middleware unless user can access all departments
+    const deptId = req.canAccessAllDepartments ? (department_id || null) : req.departmentId
     const templates = await getAllDeliveryTemplates(req.hotelId, deptId)
     res.json({ success: true, templates })
   } catch (error) {
@@ -29,7 +30,7 @@ router.get('/', authMiddleware, hotelIsolation, async (req, res) => {
 })
 
 // GET /api/delivery-templates/:id
-router.get('/:id', authMiddleware, hotelIsolation, async (req, res) => {
+router.get('/:id', authMiddleware, hotelIsolation, departmentIsolation, async (req, res) => {
   try {
     const template = await getDeliveryTemplateById(req.params.id)
     if (!template) {
@@ -37,6 +38,10 @@ router.get('/:id', authMiddleware, hotelIsolation, async (req, res) => {
     }
     if (template.hotel_id !== req.hotelId) {
       return res.status(403).json({ success: false, error: 'Access denied' })
+    }
+    // Check department access
+    if (!req.canAccessAllDepartments && template.department_id && template.department_id !== req.departmentId) {
+      return res.status(403).json({ success: false, error: 'Access denied to this department' })
     }
     res.json({ success: true, template })
   } catch (error) {
@@ -46,7 +51,7 @@ router.get('/:id', authMiddleware, hotelIsolation, async (req, res) => {
 })
 
 // POST /api/delivery-templates
-router.post('/', authMiddleware, hotelIsolation, hotelAdminOnly, async (req, res) => {
+router.post('/', authMiddleware, hotelIsolation, departmentIsolation, hotelAdminOnly, async (req, res) => {
   try {
     const { name, description, supplier, department_id, items, schedule, notes } = req.body
     
@@ -54,10 +59,18 @@ router.post('/', authMiddleware, hotelIsolation, hotelAdminOnly, async (req, res
       return res.status(400).json({ success: false, error: 'Template name is required' })
     }
     
+    // Use provided department_id or fall back to user's department
+    const templateDeptId = department_id || req.departmentId
+    
+    // Non-admin users can only create templates for their department
+    if (!req.canAccessAllDepartments && department_id && department_id !== req.departmentId) {
+      return res.status(403).json({ success: false, error: 'Cannot create template for another department' })
+    }
+    
     const template = await createDeliveryTemplate({
       hotel_id: req.hotelId,
       name, description, supplier,
-      department_id: department_id || req.departmentId,
+      department_id: templateDeptId,
       items: items ? JSON.stringify(items) : null,
       schedule: schedule ? JSON.stringify(schedule) : null,
       notes
@@ -77,7 +90,7 @@ router.post('/', authMiddleware, hotelIsolation, hotelAdminOnly, async (req, res
 })
 
 // PUT /api/delivery-templates/:id
-router.put('/:id', authMiddleware, hotelIsolation, hotelAdminOnly, async (req, res) => {
+router.put('/:id', authMiddleware, hotelIsolation, departmentIsolation, hotelAdminOnly, async (req, res) => {
   try {
     const template = await getDeliveryTemplateById(req.params.id)
     if (!template) {
@@ -86,8 +99,18 @@ router.put('/:id', authMiddleware, hotelIsolation, hotelAdminOnly, async (req, r
     if (template.hotel_id !== req.hotelId) {
       return res.status(403).json({ success: false, error: 'Access denied' })
     }
+    // Check department access
+    if (!req.canAccessAllDepartments && template.department_id && template.department_id !== req.departmentId) {
+      return res.status(403).json({ success: false, error: 'Access denied to this department' })
+    }
     
     const { name, description, supplier, department_id, items, schedule, notes, is_active } = req.body
+    
+    // Non-admin users cannot change department to another department
+    if (!req.canAccessAllDepartments && department_id && department_id !== req.departmentId) {
+      return res.status(403).json({ success: false, error: 'Cannot move template to another department' })
+    }
+    
     const updates = {}
     if (name !== undefined) updates.name = name
     if (description !== undefined) updates.description = description
@@ -114,7 +137,7 @@ router.put('/:id', authMiddleware, hotelIsolation, hotelAdminOnly, async (req, r
 })
 
 // DELETE /api/delivery-templates/:id
-router.delete('/:id', authMiddleware, hotelIsolation, hotelAdminOnly, async (req, res) => {
+router.delete('/:id', authMiddleware, hotelIsolation, departmentIsolation, hotelAdminOnly, async (req, res) => {
   try {
     const template = await getDeliveryTemplateById(req.params.id)
     if (!template) {
@@ -122,6 +145,10 @@ router.delete('/:id', authMiddleware, hotelIsolation, hotelAdminOnly, async (req
     }
     if (template.hotel_id !== req.hotelId) {
       return res.status(403).json({ success: false, error: 'Access denied' })
+    }
+    // Check department access
+    if (!req.canAccessAllDepartments && template.department_id && template.department_id !== req.departmentId) {
+      return res.status(403).json({ success: false, error: 'Access denied to this department' })
     }
     
     const success = await deleteDeliveryTemplate(req.params.id)

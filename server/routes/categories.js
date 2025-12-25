@@ -11,16 +11,18 @@ import {
   deleteCategory,
   logAudit
 } from '../db/database.js'
-import { authMiddleware, hotelIsolation, hotelAdminOnly } from '../middleware/auth.js'
+import { authMiddleware, hotelIsolation, hotelAdminOnly, departmentIsolation } from '../middleware/auth.js'
 
 const router = express.Router()
 
 // GET /api/categories
-router.get('/', authMiddleware, hotelIsolation, async (req, res) => {
+router.get('/', authMiddleware, hotelIsolation, departmentIsolation, async (req, res) => {
   try {
     const { department_id, include_inactive } = req.query
+    // Use department from isolation middleware unless user can access all departments
+    const deptId = req.canAccessAllDepartments ? (department_id || null) : req.departmentId
     const filters = {
-      department_id: department_id || req.departmentId,
+      department_id: deptId,
       include_inactive: include_inactive === 'true'
     }
     const categories = await getAllCategories(req.hotelId, filters)
@@ -32,14 +34,19 @@ router.get('/', authMiddleware, hotelIsolation, async (req, res) => {
 })
 
 // GET /api/categories/:id
-router.get('/:id', authMiddleware, hotelIsolation, async (req, res) => {
+router.get('/:id', authMiddleware, hotelIsolation, departmentIsolation, async (req, res) => {
   try {
     const category = await getCategoryById(req.params.id)
     if (!category) {
       return res.status(404).json({ success: false, error: 'Category not found' })
     }
-    if (category.hotel_id !== req.hotelId) {
+    // Allow access to system categories (hotel_id = NULL) or own hotel categories
+    if (category.hotel_id !== null && category.hotel_id !== req.hotelId) {
       return res.status(403).json({ success: false, error: 'Access denied' })
+    }
+    // Check department access
+    if (!req.canAccessAllDepartments && category.department_id && category.department_id !== req.departmentId) {
+      return res.status(403).json({ success: false, error: 'Access denied to this department' })
     }
     res.json({ success: true, category })
   } catch (error) {
@@ -49,7 +56,7 @@ router.get('/:id', authMiddleware, hotelIsolation, async (req, res) => {
 })
 
 // POST /api/categories
-router.post('/', authMiddleware, hotelIsolation, hotelAdminOnly, async (req, res) => {
+router.post('/', authMiddleware, hotelIsolation, departmentIsolation, hotelAdminOnly, async (req, res) => {
   try {
     const { name, description, color, icon, department_id, parent_id, sort_order } = req.body
     
@@ -57,10 +64,18 @@ router.post('/', authMiddleware, hotelIsolation, hotelAdminOnly, async (req, res
       return res.status(400).json({ success: false, error: 'Category name is required' })
     }
     
+    // Use provided department_id or fall back to user's department
+    const categoryDeptId = department_id || req.departmentId
+    
+    // Non-admin users can only create categories for their department
+    if (!req.canAccessAllDepartments && department_id && department_id !== req.departmentId) {
+      return res.status(403).json({ success: false, error: 'Cannot create category for another department' })
+    }
+    
     const category = await createCategory({
       hotel_id: req.hotelId,
       name, description, color, icon,
-      department_id: department_id || req.departmentId,
+      department_id: categoryDeptId,
       parent_id, sort_order
     })
     
@@ -78,17 +93,32 @@ router.post('/', authMiddleware, hotelIsolation, hotelAdminOnly, async (req, res
 })
 
 // PUT /api/categories/:id
-router.put('/:id', authMiddleware, hotelIsolation, hotelAdminOnly, async (req, res) => {
+router.put('/:id', authMiddleware, hotelIsolation, departmentIsolation, hotelAdminOnly, async (req, res) => {
   try {
     const category = await getCategoryById(req.params.id)
     if (!category) {
       return res.status(404).json({ success: false, error: 'Category not found' })
     }
-    if (category.hotel_id !== req.hotelId) {
+    // System categories (hotel_id = NULL) can only be edited by SUPER_ADMIN
+    if (category.hotel_id === null && req.user?.role !== 'SUPER_ADMIN') {
+      return res.status(403).json({ success: false, error: 'System categories can only be edited by super admin' })
+    }
+    // Hotel-specific categories must belong to user's hotel
+    if (category.hotel_id !== null && category.hotel_id !== req.hotelId) {
       return res.status(403).json({ success: false, error: 'Access denied' })
+    }
+    // Check department access
+    if (!req.canAccessAllDepartments && category.department_id && category.department_id !== req.departmentId) {
+      return res.status(403).json({ success: false, error: 'Access denied to this department' })
     }
     
     const { name, description, color, icon, department_id, parent_id, sort_order, is_active } = req.body
+    
+    // Non-admin users cannot change department to another department
+    if (!req.canAccessAllDepartments && department_id && department_id !== req.departmentId) {
+      return res.status(403).json({ success: false, error: 'Cannot move category to another department' })
+    }
+    
     const updates = {}
     if (name !== undefined) updates.name = name
     if (description !== undefined) updates.description = description
@@ -115,14 +145,23 @@ router.put('/:id', authMiddleware, hotelIsolation, hotelAdminOnly, async (req, r
 })
 
 // DELETE /api/categories/:id
-router.delete('/:id', authMiddleware, hotelIsolation, hotelAdminOnly, async (req, res) => {
+router.delete('/:id', authMiddleware, hotelIsolation, departmentIsolation, hotelAdminOnly, async (req, res) => {
   try {
     const category = await getCategoryById(req.params.id)
     if (!category) {
       return res.status(404).json({ success: false, error: 'Category not found' })
     }
-    if (category.hotel_id !== req.hotelId) {
+    // System categories (hotel_id = NULL) can only be deleted by SUPER_ADMIN
+    if (category.hotel_id === null && req.user?.role !== 'SUPER_ADMIN') {
+      return res.status(403).json({ success: false, error: 'System categories can only be deleted by super admin' })
+    }
+    // Hotel-specific categories must belong to user's hotel
+    if (category.hotel_id !== null && category.hotel_id !== req.hotelId) {
       return res.status(403).json({ success: false, error: 'Access denied' })
+    }
+    // Check department access
+    if (!req.canAccessAllDepartments && category.department_id && category.department_id !== req.departmentId) {
+      return res.status(403).json({ success: false, error: 'Access denied to this department' })
     }
     
     const success = await deleteCategory(req.params.id)

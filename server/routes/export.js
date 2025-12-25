@@ -12,16 +12,18 @@ import {
   getAuditLogs,
   logAudit
 } from '../db/database.js'
-import { authMiddleware, hotelIsolation, hotelAdminOnly } from '../middleware/auth.js'
+import { authMiddleware, hotelIsolation, hotelAdminOnly, departmentIsolation } from '../middleware/auth.js'
 
 const router = express.Router()
 
 // GET /api/export/products
-router.get('/products', authMiddleware, hotelIsolation, async (req, res) => {
+router.get('/products', authMiddleware, hotelIsolation, departmentIsolation, async (req, res) => {
   try {
     const { department_id, category_id, format = 'json' } = req.query
+    // Use department from isolation middleware unless user can access all departments
+    const deptId = req.canAccessAllDepartments ? (department_id || null) : req.departmentId
     const filters = {
-      department_id: department_id || req.departmentId,
+      department_id: deptId,
       category_id
     }
     
@@ -53,11 +55,13 @@ router.get('/products', authMiddleware, hotelIsolation, async (req, res) => {
 })
 
 // GET /api/export/batches
-router.get('/batches', authMiddleware, hotelIsolation, async (req, res) => {
+router.get('/batches', authMiddleware, hotelIsolation, departmentIsolation, async (req, res) => {
   try {
     const { department_id, product_id, status, format = 'json' } = req.query
+    // Use department from isolation middleware unless user can access all departments
+    const deptId = req.canAccessAllDepartments ? (department_id || null) : req.departmentId
     const filters = {
-      department_id: department_id || req.departmentId,
+      department_id: deptId,
       product_id, status
     }
     
@@ -89,9 +93,12 @@ router.get('/batches', authMiddleware, hotelIsolation, async (req, res) => {
 })
 
 // GET /api/export/categories
-router.get('/categories', authMiddleware, hotelIsolation, async (req, res) => {
+router.get('/categories', authMiddleware, hotelIsolation, departmentIsolation, async (req, res) => {
   try {
-    const categories = await getAllCategories(req.hotelId, {})
+    const { department_id } = req.query
+    // Use department from isolation middleware unless user can access all departments
+    const deptId = req.canAccessAllDepartments ? (department_id || null) : req.departmentId
+    const categories = await getAllCategories(req.hotelId, { department_id: deptId })
     res.json({ success: true, categories, count: categories.length })
   } catch (error) {
     console.error('Export categories error:', error)
@@ -111,10 +118,12 @@ router.get('/departments', authMiddleware, hotelIsolation, async (req, res) => {
 })
 
 // GET /api/export/write-offs
-router.get('/write-offs', authMiddleware, hotelIsolation, hotelAdminOnly, async (req, res) => {
+router.get('/write-offs', authMiddleware, hotelIsolation, departmentIsolation, hotelAdminOnly, async (req, res) => {
   try {
-    const { start_date, end_date, format = 'json' } = req.query
-    const filters = { start_date, end_date }
+    const { department_id, start_date, end_date, format = 'json' } = req.query
+    // Use department from isolation middleware unless user can access all departments
+    const deptId = req.canAccessAllDepartments ? (department_id || null) : req.departmentId
+    const filters = { department_id: deptId, start_date, end_date }
     
     const writeOffs = await getAllWriteOffs(req.hotelId, filters)
     

@@ -59,7 +59,8 @@ export default function StatisticsPage() {
     batches.forEach((batch) => {
       if (!['SUPER_ADMIN', 'HOTEL_ADMIN'].includes(user?.role) && !user?.departments?.includes(batch.departmentId)) return
 
-      const cat = batch.category && batch.category !== 'undefined' ? batch.category : 'other'
+      // Use categoryName from backend (properly resolved from JOIN)
+      const cat = batch.categoryName || batch.category_name || 'other'
       if (!categories[cat]) {
         categories[cat] = { total: 0, expired: 0, quantity: 0 }
       }
