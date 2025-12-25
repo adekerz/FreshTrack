@@ -31,7 +31,20 @@ router.use(hotelIsolation)
 // ═══════════════════════════════════════════════════════════════
 
 /**
- * GET /api/notification-rules - Get notification rules
+ * GET /api/notification-rules - Get notification rules (root path)
+ */
+router.get('/', requirePermission(PermissionResource.SETTINGS, PermissionAction.READ), async (req, res) => {
+  try {
+    const rules = await NotificationEngine.getRules(req.hotelId)
+    res.json({ success: true, rules })
+  } catch (error) {
+    console.error('Get notification rules error:', error)
+    res.status(500).json({ success: false, error: 'Failed to get notification rules' })
+  }
+})
+
+/**
+ * GET /api/notification-rules/rules - Get notification rules (legacy path)
  */
 router.get('/rules', requirePermission(PermissionResource.SETTINGS, PermissionAction.READ), async (req, res) => {
   try {

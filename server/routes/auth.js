@@ -249,6 +249,48 @@ router.put('/users/:id', authMiddleware, requirePermission(PermissionResource.US
   }
 })
 
+// PATCH /api/auth/users/:id - Partial update (alias for PUT)
+router.patch('/users/:id', authMiddleware, requirePermission(PermissionResource.USERS, PermissionAction.UPDATE, {
+  getTargetHotelId: async (req) => {
+    const user = await getUserById(req.params.id)
+    return user ? user.hotel_id : null
+  }
+}), async (req, res) => {
+  try {
+    const { id } = req.params
+    const { name, email, password, role, department_id, is_active } = req.body
+    
+    const user = await getUserById(id)
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found' })
+    }
+    if (req.user.role !== 'SUPER_ADMIN' && user.hotel_id !== req.user.hotel_id) {
+      return res.status(403).json({ success: false, error: 'Access denied' })
+    }
+    
+    const updates = {}
+    if (name !== undefined) updates.name = name
+    if (email !== undefined) updates.email = email
+    if (password) updates.password = password
+    if (department_id !== undefined) updates.department_id = department_id
+    if (is_active !== undefined) updates.is_active = is_active
+    if (role !== undefined) updates.role = role
+    
+    const success = await updateUser(id, updates)
+    if (success) {
+      await logAudit({
+        hotel_id: user.hotel_id, user_id: req.user.id, user_name: req.user.name,
+        action: 'update', entity_type: 'user', entity_id: id,
+        details: { updates: Object.keys(updates) }, ip_address: req.ip
+      })
+    }
+    res.json({ success })
+  } catch (error) {
+    console.error('Patch user error:', error)
+    res.status(500).json({ success: false, error: 'Failed to update user' })
+  }
+})
+
 // PUT /api/auth/profile
 router.put('/profile', authMiddleware, async (req, res) => {
   try {

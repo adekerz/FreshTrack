@@ -171,4 +171,32 @@ router.delete('/:id', authMiddleware, hotelIsolation, departmentIsolation, async
   }
 })
 
+// POST /api/notifications/test - Send test notification
+router.post('/test', authMiddleware, hotelIsolation, async (req, res) => {
+  try {
+    const { type = 'test', channel = 'app' } = req.body
+    
+    // Create a test notification
+    const notification = await createNotification({
+      hotel_id: req.hotelId,
+      department_id: req.departmentId,
+      type: 'test',
+      title: 'Тестовое уведомление',
+      message: `Это тестовое уведомление. Канал: ${channel}`,
+      priority: 'normal',
+      user_id: req.user.id,
+      data: { test: true, channel }
+    })
+    
+    res.json({ 
+      success: true, 
+      notification,
+      message: 'Test notification sent successfully'
+    })
+  } catch (error) {
+    console.error('Test notification error:', error)
+    res.status(500).json({ success: false, error: 'Failed to send test notification' })
+  }
+})
+
 export default router

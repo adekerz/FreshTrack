@@ -140,6 +140,119 @@ router.get('/write-offs', authMiddleware, hotelIsolation, departmentIsolation, h
   }
 })
 
+// GET /api/export/inventory - Export inventory (products with current batches)
+router.get('/inventory', authMiddleware, hotelIsolation, departmentIsolation, async (req, res) => {
+  try {
+    const { department_id, format = 'json' } = req.query
+    const deptId = req.canAccessAllDepartments ? (department_id || null) : req.departmentId
+    
+    const [products, batches] = await Promise.all([
+      getAllProducts(req.hotelId, { department_id: deptId }),
+      getAllBatches(req.hotelId, { department_id: deptId })
+    ])
+    
+    // Merge products with their batch quantities
+    const inventory = products.map(product => {
+      const productBatches = batches.filter(b => b.product_id === product.id)
+      const totalQuantity = productBatches.reduce((sum, b) => sum + (b.quantity || 0), 0)
+      const nearestExpiry = productBatches
+        .filter(b => b.expiry_date)
+        .sort((a, b) => new Date(a.expiry_date) - new Date(b.expiry_date))[0]?.expiry_date || null
+      
+      return {
+        ...product,
+        total_quantity: totalQuantity,
+        batch_count: productBatches.length,
+        nearest_expiry: nearestExpiry
+      }
+    })
+    
+    await logAudit({
+      hotel_id: req.hotelId, user_id: req.user.id, user_name: req.user.name,
+      action: 'export', entity_type: 'inventory', entity_id: null,
+      details: { count: inventory.length, format }, ip_address: req.ip
+    })
+    
+    if (format === 'csv') {
+      const headers = ['id', 'name', 'sku', 'category_name', 'department_name', 'unit', 'total_quantity', 'batch_count', 'nearest_expiry']
+      const csv = [
+        headers.join(','),
+        ...inventory.map(p => headers.map(h => `"${(p[h] || '').toString().replace(/"/g, '""')}"`).join(','))
+      ].join('\n')
+      
+      res.setHeader('Content-Type', 'text/csv')
+      res.setHeader('Content-Disposition', 'attachment; filename=inventory.csv')
+      return res.send(csv)
+    }
+    
+    res.json({ success: true, inventory, count: inventory.length })
+  } catch (error) {
+    console.error('Export inventory error:', error)
+    res.status(500).json({ success: false, error: 'Failed to export inventory' })
+  }
+})
+
+// GET /api/export/collections - Export FIFO collection history
+router.get('/collections', authMiddleware, hotelIsolation, departmentIsolation, async (req, res) => {
+  try {
+    const { department_id, start_date, end_date, format = 'json' } = req.query
+    const deptId = req.canAccessAllDepartments ? (department_id || null) : req.departmentId
+    
+    // Query collection_history table
+    const { pool } = await import('../db/database.js')
+    
+    let query = `
+      SELECT ch.*, 
+             u.name as collected_by_name
+      FROM collection_history ch
+      LEFT JOIN users u ON ch.collected_by = u.id
+      WHERE ch.hotel_id = $1
+    `
+    const params = [req.hotelId]
+    let paramIndex = 2
+    
+    if (deptId) {
+      query += ` AND ch.department_id = $${paramIndex++}`
+      params.push(deptId)
+    }
+    if (start_date) {
+      query += ` AND ch.collected_at >= $${paramIndex++}`
+      params.push(start_date)
+    }
+    if (end_date) {
+      query += ` AND ch.collected_at <= $${paramIndex++}`
+      params.push(end_date)
+    }
+    
+    query += ' ORDER BY ch.collected_at DESC LIMIT 10000'
+    
+    const { rows: collections } = await pool.query(query, params)
+    
+    await logAudit({
+      hotel_id: req.hotelId, user_id: req.user.id, user_name: req.user.name,
+      action: 'export', entity_type: 'collections', entity_id: null,
+      details: { count: collections.length, format }, ip_address: req.ip
+    })
+    
+    if (format === 'csv') {
+      const headers = ['id', 'product_name', 'category_name', 'quantity', 'reason', 'collected_by_name', 'collected_at', 'expiry_date']
+      const csv = [
+        headers.join(','),
+        ...collections.map(c => headers.map(h => `"${(c[h] || '').toString().replace(/"/g, '""')}"`).join(','))
+      ].join('\n')
+      
+      res.setHeader('Content-Type', 'text/csv')
+      res.setHeader('Content-Disposition', 'attachment; filename=collections.csv')
+      return res.send(csv)
+    }
+    
+    res.json({ success: true, collections, count: collections.length })
+  } catch (error) {
+    console.error('Export collections error:', error)
+    res.status(500).json({ success: false, error: 'Failed to export collections' })
+  }
+})
+
 // GET /api/export/audit
 router.get('/audit', authMiddleware, hotelIsolation, hotelAdminOnly, async (req, res) => {
   try {

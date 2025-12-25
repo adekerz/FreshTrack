@@ -490,6 +490,123 @@ router.get('/general', authMiddleware, hotelIsolation, async (req, res) => {
   }
 })
 
+// PUT /api/settings/general - Save general settings
+router.put('/general', authMiddleware, hotelIsolation, requirePermission(PermissionResource.SETTINGS, PermissionAction.UPDATE), async (req, res) => {
+  try {
+    // Accept both { settings: {...} } and direct object
+    const settings = req.body.settings || req.body
+    
+    if (!settings || typeof settings !== 'object' || Object.keys(settings).length === 0) {
+      return res.status(400).json({ success: false, error: 'Settings object is required' })
+    }
+    
+    const context = {
+      hotelId: req.hotelId,
+      departmentId: null,
+      userId: null
+    }
+    
+    // Map general settings to hierarchical keys
+    const keyMapping = {
+      siteName: 'branding.siteName',
+      departmentName: 'branding.departmentName',
+      warningDays: 'expiry.warning.days',
+      criticalDays: 'expiry.critical.days',
+      dateFormat: 'display.dateFormat',
+      timezone: 'display.timezone',
+      defaultLanguage: 'display.locale'
+    }
+    
+    for (const [key, value] of Object.entries(settings)) {
+      const hierarchicalKey = keyMapping[key] || key
+      await setSetting(hierarchicalKey, value, 'hotel', context)
+    }
+    
+    await logAudit({
+      hotel_id: req.hotelId,
+      user_id: req.user.id,
+      user_name: req.user.name,
+      action: 'update',
+      entity_type: 'settings',
+      entity_id: null,
+      details: { scope: 'general', keys: Object.keys(settings) }
+    })
+    
+    res.json({ success: true })
+  } catch (error) {
+    console.error('Save general settings error:', error)
+    res.status(500).json({ success: false, error: 'Failed to save general settings' })
+  }
+})
+
+// GET /api/settings/telegram - Get Telegram settings
+router.get('/telegram', authMiddleware, hotelIsolation, async (req, res) => {
+  try {
+    const context = {
+      hotelId: req.hotelId,
+      departmentId: req.departmentId,
+      userId: req.user?.id
+    }
+    
+    const settings = await getHierarchicalSettings(context)
+    
+    res.json({
+      success: true,
+      settings: {
+        botToken: settings.raw?.['telegram.botToken'] || '',
+        botUsername: settings.raw?.['telegram.botUsername'] || '',
+        enabled: settings.raw?.['telegram.enabled'] ?? true,
+        channels: settings.notification?.channels || ['app', 'telegram']
+      }
+    })
+  } catch (error) {
+    console.error('Get telegram settings error:', error)
+    res.status(500).json({ success: false, error: 'Failed to get telegram settings' })
+  }
+})
+
+// PUT /api/settings/telegram - Save Telegram settings
+router.put('/telegram', authMiddleware, hotelIsolation, requirePermission(PermissionResource.SETTINGS, PermissionAction.UPDATE), async (req, res) => {
+  try {
+    const { settings } = req.body
+    
+    if (!settings || typeof settings !== 'object') {
+      return res.status(400).json({ success: false, error: 'Settings object is required' })
+    }
+    
+    const context = {
+      hotelId: req.hotelId,
+      departmentId: null,
+      userId: null
+    }
+    
+    if (settings.botToken !== undefined) {
+      await setSetting('telegram.botToken', settings.botToken, 'hotel', context)
+    }
+    if (settings.botUsername !== undefined) {
+      await setSetting('telegram.botUsername', settings.botUsername, 'hotel', context)
+    }
+    if (settings.enabled !== undefined) {
+      await setSetting('telegram.enabled', settings.enabled, 'hotel', context)
+    }
+    
+    await logAudit({
+      hotel_id: req.hotelId,
+      user_id: req.user.id,
+      user_name: req.user.name,
+      action: 'update',
+      entity_type: 'settings',
+      entity_id: null,
+      details: { scope: 'telegram', keys: Object.keys(settings) }
+    })
+    
+    res.json({ success: true })
+  } catch (error) {
+    console.error('Save telegram settings error:', error)
+    res.status(500).json({ success: false, error: 'Failed to save telegram settings' })
+  }
+})
+
 // GET /api/settings/:key (Legacy)
 router.get('/:key', authMiddleware, hotelIsolation, async (req, res) => {
   try {

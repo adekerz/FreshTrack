@@ -29,6 +29,7 @@ import importRouter from './routes/import.js'
 import exportRouter from './routes/export.js'
 import healthRouter from './routes/health.js'
 import notificationRulesRouter from './routes/notification-rules.js'
+import customContentRouter from './routes/custom-content.js'
 
 // Import notification jobs
 import { startNotificationJobs } from './jobs/notificationJobs.js'
@@ -83,6 +84,7 @@ app.use('/api/import', importRouter)
 app.use('/api/export', exportRouter)
 app.use('/api/health', healthRouter)
 app.use('/api/notification-rules', notificationRulesRouter)
+app.use('/api/custom-content', customContentRouter)
 
 // Root health check
 app.get('/', async (req, res) => {
