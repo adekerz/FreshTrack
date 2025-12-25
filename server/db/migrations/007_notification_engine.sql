@@ -48,12 +48,18 @@ CREATE TABLE IF NOT EXISTS notification_rules (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   created_by UUID REFERENCES users(id),
   
-  -- Ensure unique rule per context/type
-  CONSTRAINT notification_rules_unique 
-    UNIQUE (COALESCE(hotel_id, '00000000-0000-0000-0000-000000000000'), 
-            COALESCE(department_id, '00000000-0000-0000-0000-000000000000'), 
-            type)
+  -- Note: Unique constraint with COALESCE handled via unique index below
+  CONSTRAINT notification_rules_type_check 
+    CHECK (type IN ('expiry', 'low_stock', 'collection_reminder', 'custom'))
 );
+
+-- Unique index for rule per context/type (functional index instead of constraint)
+CREATE UNIQUE INDEX IF NOT EXISTS idx_notification_rules_unique 
+  ON notification_rules(
+    COALESCE(hotel_id, '00000000-0000-0000-0000-000000000000'), 
+    COALESCE(department_id, '00000000-0000-0000-0000-000000000000'), 
+    type
+  );
 
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_notification_rules_hotel ON notification_rules(hotel_id) WHERE hotel_id IS NOT NULL;
