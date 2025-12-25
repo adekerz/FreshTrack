@@ -92,24 +92,24 @@ CREATE TABLE IF NOT EXISTS settings (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Add unique constraint if not exists (may fail if old constraint exists)
+-- Add unique constraint via functional index (COALESCE not allowed in UNIQUE constraints)
 DO $$
 BEGIN
   -- Try to drop old constraint
   ALTER TABLE settings DROP CONSTRAINT IF EXISTS settings_hotel_id_key_key;
-  
-  -- Create new constraint
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_constraint WHERE conname = 'settings_unique_key_scope'
-  ) THEN
-    ALTER TABLE settings ADD CONSTRAINT settings_unique_key_scope 
-      UNIQUE (key, scope, COALESCE(hotel_id, '00000000-0000-0000-0000-000000000000'), 
-              COALESCE(department_id, '00000000-0000-0000-0000-000000000000'), 
-              COALESCE(user_id, '00000000-0000-0000-0000-000000000000'));
-  END IF;
 EXCEPTION WHEN OTHERS THEN
-  NULL; -- Ignore constraint errors
+  NULL; -- Ignore if doesn't exist
 END $$;
+
+-- Create unique functional index instead of constraint
+CREATE UNIQUE INDEX IF NOT EXISTS idx_settings_unique_key_scope
+  ON settings(
+    key, 
+    scope, 
+    COALESCE(hotel_id, '00000000-0000-0000-0000-000000000000'), 
+    COALESCE(department_id, '00000000-0000-0000-0000-000000000000'), 
+    COALESCE(user_id, '00000000-0000-0000-0000-000000000000')
+  );
 
 -- Indexes for fast lookups
 CREATE INDEX IF NOT EXISTS idx_settings_key ON settings(key);
@@ -152,7 +152,7 @@ INSERT INTO settings (key, value, scope, description) VALUES
 -- Export settings
 ('export.defaultFormat', '"xlsx"', 'system', 'Default export format')
 
-ON CONFLICT ON CONSTRAINT settings_unique_key_scope DO NOTHING;
+ON CONFLICT DO NOTHING;
 
 -- ═══════════════════════════════════════════════════════════════
 -- STEP 3: Enhance audit_logs table with snapshot support
