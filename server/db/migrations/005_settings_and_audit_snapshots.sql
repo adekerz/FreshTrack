@@ -3,7 +3,66 @@
 -- ═══════════════════════════════════════════════════════════════
 
 -- ═══════════════════════════════════════════════════════════════
--- STEP 1: Create settings table with hierarchical scope
+-- STEP 0: Upgrade existing settings table OR create new one
+-- ═══════════════════════════════════════════════════════════════
+
+-- If settings table exists from 001, add missing columns
+DO $$
+BEGIN
+  -- Add scope column if missing
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name = 'settings' AND column_name = 'scope'
+  ) THEN
+    ALTER TABLE settings ADD COLUMN scope VARCHAR(20) NOT NULL DEFAULT 'hotel';
+  END IF;
+  
+  -- Add department_id column if missing
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name = 'settings' AND column_name = 'department_id'
+  ) THEN
+    ALTER TABLE settings ADD COLUMN department_id UUID REFERENCES departments(id) ON DELETE CASCADE;
+  END IF;
+  
+  -- Add user_id column if missing
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name = 'settings' AND column_name = 'user_id'
+  ) THEN
+    ALTER TABLE settings ADD COLUMN user_id UUID REFERENCES users(id) ON DELETE CASCADE;
+  END IF;
+  
+  -- Add description column if missing
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name = 'settings' AND column_name = 'description'
+  ) THEN
+    ALTER TABLE settings ADD COLUMN description TEXT;
+  END IF;
+  
+  -- Add created_at column if missing
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name = 'settings' AND column_name = 'created_at'
+  ) THEN
+    ALTER TABLE settings ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+  END IF;
+  
+  -- Make hotel_id nullable (system settings have NULL hotel_id)
+  ALTER TABLE settings ALTER COLUMN hotel_id DROP NOT NULL;
+  
+  -- Change value type to JSONB if it's TEXT
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name = 'settings' AND column_name = 'value' AND data_type = 'text'
+  ) THEN
+    ALTER TABLE settings ALTER COLUMN value TYPE JSONB USING value::jsonb;
+  END IF;
+END $$;
+
+-- ═══════════════════════════════════════════════════════════════
+-- STEP 1: Create settings table if it doesn't exist (fresh install)
 -- ═══════════════════════════════════════════════════════════════
 
 CREATE TABLE IF NOT EXISTS settings (
@@ -16,14 +75,27 @@ CREATE TABLE IF NOT EXISTS settings (
   user_id UUID REFERENCES users(id) ON DELETE CASCADE,
   description TEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  
-  -- Unique constraint for hierarchical settings
-  CONSTRAINT settings_unique_key_scope 
-    UNIQUE (key, scope, COALESCE(hotel_id, '00000000-0000-0000-0000-000000000000'), 
-            COALESCE(department_id, '00000000-0000-0000-0000-000000000000'), 
-            COALESCE(user_id, '00000000-0000-0000-0000-000000000000'))
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Add unique constraint if not exists (may fail if old constraint exists)
+DO $$
+BEGIN
+  -- Try to drop old constraint
+  ALTER TABLE settings DROP CONSTRAINT IF EXISTS settings_hotel_id_key_key;
+  
+  -- Create new constraint
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'settings_unique_key_scope'
+  ) THEN
+    ALTER TABLE settings ADD CONSTRAINT settings_unique_key_scope 
+      UNIQUE (key, scope, COALESCE(hotel_id, '00000000-0000-0000-0000-000000000000'), 
+              COALESCE(department_id, '00000000-0000-0000-0000-000000000000'), 
+              COALESCE(user_id, '00000000-0000-0000-0000-000000000000'));
+  END IF;
+EXCEPTION WHEN OTHERS THEN
+  NULL; -- Ignore constraint errors
+END $$;
 
 -- Indexes for fast lookups
 CREATE INDEX IF NOT EXISTS idx_settings_key ON settings(key);
