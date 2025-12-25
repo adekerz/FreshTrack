@@ -66,6 +66,90 @@ export async function initDatabase() {
       }
     }
 
+    // Run migration 004 - permissions system
+    const migration004Path = path.join(__dirname, 'migrations', '004_permissions_system.sql')
+    if (fs.existsSync(migration004Path)) {
+      try {
+        const migration004 = fs.readFileSync(migration004Path, 'utf8')
+        await query(migration004)
+        console.log('✅ Schema migration 004 completed (permissions system)')
+      } catch (err) {
+        if (!err.message.includes('already exists') && !err.message.includes('duplicate key')) {
+          console.log('   Migration 004 already applied or skipped:', err.message?.substring(0, 50))
+        }
+      }
+    }
+
+    // Run migration 005 - settings and audit snapshots
+    const migration005Path = path.join(__dirname, 'migrations', '005_settings_and_audit_snapshots.sql')
+    if (fs.existsSync(migration005Path)) {
+      try {
+        const migration005 = fs.readFileSync(migration005Path, 'utf8')
+        await query(migration005)
+        console.log('✅ Schema migration 005 completed (settings + audit)')
+      } catch (err) {
+        if (!err.message.includes('already exists') && !err.message.includes('duplicate key')) {
+          console.log('   Migration 005 already applied or skipped:', err.message?.substring(0, 50))
+        }
+      }
+    }
+
+    // Run migration 006 - batch snapshot write-offs
+    const migration006Path = path.join(__dirname, 'migrations', '006_batch_snapshot_write_offs.sql')
+    if (fs.existsSync(migration006Path)) {
+      try {
+        const migration006 = fs.readFileSync(migration006Path, 'utf8')
+        await query(migration006)
+        console.log('✅ Schema migration 006 completed (batch snapshots)')
+      } catch (err) {
+        if (!err.message.includes('already exists') && !err.message.includes('duplicate key')) {
+          console.log('   Migration 006 already applied or skipped:', err.message?.substring(0, 50))
+        }
+      }
+    }
+
+    // Run migration 007 - notification engine
+    const migration007Path = path.join(__dirname, 'migrations', '007_notification_engine.sql')
+    if (fs.existsSync(migration007Path)) {
+      try {
+        const migration007 = fs.readFileSync(migration007Path, 'utf8')
+        await query(migration007)
+        console.log('✅ Schema migration 007 completed (notification engine)')
+      } catch (err) {
+        if (!err.message.includes('already exists') && !err.message.includes('duplicate key')) {
+          console.log('   Migration 007 already applied or skipped:', err.message?.substring(0, 50))
+        }
+      }
+    }
+
+    // Run migration 008 - collection history
+    const migration008Path = path.join(__dirname, 'migrations', '008_collection_history.sql')
+    if (fs.existsSync(migration008Path)) {
+      try {
+        const migration008 = fs.readFileSync(migration008Path, 'utf8')
+        await query(migration008)
+        console.log('✅ Schema migration 008 completed (collection history)')
+      } catch (err) {
+        if (!err.message.includes('already exists') && !err.message.includes('duplicate key')) {
+          console.log('   Migration 008 already applied or skipped:', err.message?.substring(0, 50))
+        }
+      }
+    }
+
+    // Run migration 009 - branding settings
+    const migration009Path = path.join(__dirname, 'migrations', '009_branding_settings.sql')
+    if (fs.existsSync(migration009Path)) {
+      try {
+        const migration009 = fs.readFileSync(migration009Path, 'utf8')
+        await query(migration009)
+        console.log('✅ Schema migration 009 completed (branding settings)')
+      } catch (err) {
+        if (!err.message.includes('already exists') && !err.message.includes('duplicate key')) {
+          console.log('   Migration 009 already applied or skipped:', err.message?.substring(0, 50))
+        }
+      }
+    }
+
     // Check if pilot data exists
     const hotelsResult = await query("SELECT id FROM hotels WHERE code = $1", ['RC-ASTANA'])
     if (hotelsResult.rows.length === 0) {
