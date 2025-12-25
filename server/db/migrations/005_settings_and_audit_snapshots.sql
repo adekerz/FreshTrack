@@ -101,6 +101,18 @@ EXCEPTION WHEN OTHERS THEN
   NULL; -- Ignore if doesn't exist
 END $$;
 
+-- Remove duplicate settings before creating unique index
+DELETE FROM settings a USING settings b
+WHERE a.id < b.id 
+  AND a.key = b.key 
+  AND COALESCE(a.scope, 'hotel') = COALESCE(b.scope, 'hotel')
+  AND COALESCE(a.hotel_id, '00000000-0000-0000-0000-000000000000') = COALESCE(b.hotel_id, '00000000-0000-0000-0000-000000000000')
+  AND COALESCE(a.department_id, '00000000-0000-0000-0000-000000000000') = COALESCE(b.department_id, '00000000-0000-0000-0000-000000000000')
+  AND COALESCE(a.user_id, '00000000-0000-0000-0000-000000000000') = COALESCE(b.user_id, '00000000-0000-0000-0000-000000000000');
+
+-- Drop old index if exists with different definition
+DROP INDEX IF EXISTS idx_settings_unique_key_scope;
+
 -- Create unique functional index instead of constraint
 CREATE UNIQUE INDEX IF NOT EXISTS idx_settings_unique_key_scope
   ON settings(
