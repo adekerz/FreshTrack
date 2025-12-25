@@ -53,12 +53,26 @@ BEGIN
   ALTER TABLE settings ALTER COLUMN hotel_id DROP NOT NULL;
   
   -- Change value type to JSONB if it's TEXT
+  -- First, wrap non-JSON text values in quotes to make them valid JSON strings
   IF EXISTS (
     SELECT 1 FROM information_schema.columns 
     WHERE table_name = 'settings' AND column_name = 'value' AND data_type = 'text'
   ) THEN
+    -- Update invalid JSON values to be wrapped in quotes
+    UPDATE settings 
+    SET value = '"' || REPLACE(value::text, '"', '\"') || '"'
+    WHERE value IS NOT NULL 
+      AND value::text NOT LIKE '{%' 
+      AND value::text NOT LIKE '[%' 
+      AND value::text NOT LIKE '"%'
+      AND value::text NOT SIMILAR TO '[0-9]+(\.[0-9]+)?'
+      AND value::text NOT IN ('true', 'false', 'null');
+    
+    -- Now safely convert to JSONB
     ALTER TABLE settings ALTER COLUMN value TYPE JSONB USING value::jsonb;
   END IF;
+EXCEPTION WHEN OTHERS THEN
+  RAISE NOTICE 'Migration 005 value conversion skipped: %', SQLERRM;
 END $$;
 
 -- ═══════════════════════════════════════════════════════════════

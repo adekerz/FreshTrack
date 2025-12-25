@@ -137,6 +137,14 @@ BEGIN
     ALTER TABLE notifications ADD COLUMN notification_hash VARCHAR(64);
   END IF;
   
+  -- Add user_id for recipient tracking
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name = 'notifications' AND column_name = 'user_id'
+  ) THEN
+    ALTER TABLE notifications ADD COLUMN user_id UUID REFERENCES users(id) ON DELETE SET NULL;
+  END IF;
+  
   -- Add batch_id for linking to batch
   IF NOT EXISTS (
     SELECT 1 FROM information_schema.columns 
@@ -168,6 +176,24 @@ BEGIN
   ) THEN
     ALTER TABLE notifications ADD COLUMN telegram_message_id BIGINT;
   END IF;
+  
+  -- Add priority for queue ordering
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name = 'notifications' AND column_name = 'priority'
+  ) THEN
+    ALTER TABLE notifications ADD COLUMN priority INTEGER DEFAULT 0;
+  END IF;
+  
+  -- Add status column if missing (for compatibility)
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name = 'notifications' AND column_name = 'status'
+  ) THEN
+    ALTER TABLE notifications ADD COLUMN status VARCHAR(20) DEFAULT 'pending';
+  END IF;
+EXCEPTION WHEN OTHERS THEN
+  RAISE NOTICE 'Migration 007 column additions skipped: %', SQLERRM;
 END $$;
 
 -- Indexes for retry queue processing
