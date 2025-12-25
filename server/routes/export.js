@@ -10,7 +10,8 @@ import {
   getAllDepartments,
   getAllWriteOffs,
   getAuditLogs,
-  logAudit
+  logAudit,
+  query
 } from '../db/database.js'
 import { authMiddleware, hotelIsolation, hotelAdminOnly, departmentIsolation } from '../middleware/auth.js'
 
@@ -187,10 +188,8 @@ router.get('/collections', authMiddleware, hotelIsolation, departmentIsolation, 
     const { department_id, start_date, end_date, format = 'json' } = req.query
     const deptId = req.canAccessAllDepartments ? (department_id || null) : req.departmentId
     
-    // Query collection_history table
-    const { pool } = await import('../db/database.js')
-    
-    let query = `
+    // Query collection_history table using imported query function
+    let queryText = `
       SELECT ch.*, 
              u.name as collected_by_name
       FROM collection_history ch
@@ -201,21 +200,22 @@ router.get('/collections', authMiddleware, hotelIsolation, departmentIsolation, 
     let paramIndex = 2
     
     if (deptId) {
-      query += ` AND ch.department_id = $${paramIndex++}`
+      queryText += ` AND ch.department_id = $${paramIndex++}`
       params.push(deptId)
     }
     if (start_date) {
-      query += ` AND ch.collected_at >= $${paramIndex++}`
+      queryText += ` AND ch.collected_at >= $${paramIndex++}`
       params.push(start_date)
     }
     if (end_date) {
-      query += ` AND ch.collected_at <= $${paramIndex++}`
+      queryText += ` AND ch.collected_at <= $${paramIndex++}`
       params.push(end_date)
     }
     
-    query += ' ORDER BY ch.collected_at DESC LIMIT 10000'
+    queryText += ' ORDER BY ch.collected_at DESC LIMIT 10000'
     
-    const { rows: collections } = await pool.query(query, params)
+    const result = await query(queryText, params)
+    const collections = result.rows || []
     
     await logAudit({
       hotel_id: req.hotelId, user_id: req.user.id, user_name: req.user.name,

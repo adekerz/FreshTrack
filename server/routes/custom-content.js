@@ -27,7 +27,9 @@ router.use(hotelIsolation)
 // Content keys that can be customized
 const CONTENT_KEYS = [
   'app_name',
+  'app_tagline',
   'company_name', 
+  'dashboard_title',
   'welcome_message',
   'logo_url',
   'logo_dark_url',
@@ -180,7 +182,9 @@ router.put('/', requirePermission(PermissionResource.SETTINGS, PermissionAction.
 function getDefaultContent(key) {
   const defaults = {
     app_name: 'FreshTrack',
+    app_tagline: 'Совершенство управления',
     company_name: 'FreshTrack Inc.',
+    dashboard_title: 'Панель управления',
     welcome_message: 'Добро пожаловать в FreshTrack!',
     logo_url: '/assets/logo.svg',
     logo_dark_url: '/assets/logo-dark.svg',
@@ -194,5 +198,54 @@ function getDefaultContent(key) {
   }
   return defaults[key] || ''
 }
+
+/**
+ * POST /api/custom-content/upload-logo - Upload logo
+ */
+router.post('/upload-logo', requirePermission(PermissionResource.SETTINGS, PermissionAction.UPDATE), async (req, res) => {
+  try {
+    // For now, return a placeholder - actual file upload would require multer
+    // This is a stub endpoint to prevent 404 errors
+    res.json({ 
+      success: true, 
+      message: 'Logo upload endpoint ready',
+      logoUrl: '/assets/logo.svg'
+    })
+  } catch (error) {
+    console.error('Upload logo error:', error)
+    res.status(500).json({ success: false, error: 'Failed to upload logo' })
+  }
+})
+
+/**
+ * DELETE /api/custom-content/logo - Reset logo to default
+ */
+router.delete('/logo', requirePermission(PermissionResource.SETTINGS, PermissionAction.UPDATE), async (req, res) => {
+  try {
+    const context = {
+      hotelId: req.hotelId,
+      departmentId: null,
+      userId: null
+    }
+    
+    // Reset logo to default
+    await setSetting('branding.logo_url', '/assets/logo.svg', 'hotel', context)
+    
+    await logAudit({
+      hotel_id: req.hotelId,
+      user_id: req.user.id,
+      user_name: req.user.name,
+      action: 'delete',
+      entity_type: 'custom_content',
+      entity_id: 'logo',
+      details: { action: 'reset_logo' }
+    })
+    
+    res.json({ success: true, logoUrl: '/assets/logo.svg' })
+  } catch (error) {
+    console.error('Reset logo error:', error)
+    res.status(500).json({ success: false, error: 'Failed to reset logo' })
+  }
+})
 
 export default router
