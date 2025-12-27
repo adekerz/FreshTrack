@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import {
   X,
   Package,
@@ -11,8 +11,9 @@ import {
   RotateCcw
 } from 'lucide-react'
 import { useTranslation } from '../context/LanguageContext'
-import { departments } from '../context/ProductContext'
+import { useProducts } from '../context/ProductContext'
 import { useToast } from '../context/ToastContext'
+import { logError } from '../utils/logger'
 
 const reasons = [
   { id: 'kitchen', icon: ChefHat, color: 'text-green-600' },
@@ -27,18 +28,17 @@ const reasons = [
 export default function CollectModal({ isOpen, onClose, batch, onConfirm }) {
   const { t } = useTranslation()
   const { addToast } = useToast()
+  const { departments } = useProducts()
   const [reason, setReason] = useState('expired')
   const [comment, setComment] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  if (!isOpen || !batch) return null
-
-  const getDepartmentName = (id) => {
+  const getDepartmentName = useCallback((id) => {
     const dept = departments.find((d) => d.id === id)
     return dept ? dept.name : id
-  }
+  }, [departments])
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = useCallback(async (e) => {
     e.preventDefault()
     setIsSubmitting(true)
 
@@ -55,12 +55,14 @@ export default function CollectModal({ isOpen, onClose, batch, onConfirm }) {
       addToast(t('toast.batchCollected'), 'success')
       onClose()
     } catch (error) {
-      console.error('Error collecting batch:', error)
+      logError('CollectModal.handleSubmit', error)
       addToast(t('toast.batchCollectError'), 'error')
     } finally {
       setIsSubmitting(false)
     }
-  }
+  }, [batch?.id, reason, comment, onConfirm, addToast, t, onClose])
+
+  if (!isOpen || !batch) return null
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">

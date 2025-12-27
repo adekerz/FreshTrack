@@ -188,8 +188,11 @@ router.post('/users', authMiddleware, hotelIsolation, requirePermission(Permissi
     if (!login || !name || !password) {
       return res.status(400).json({ success: false, error: 'Login, name and password are required' })
     }
-    if (password.length < 6) {
-      return res.status(400).json({ success: false, error: 'Password must be at least 6 characters' })
+    if (password.length < 8) {
+      return res.status(400).json({ success: false, error: 'Password must be at least 8 characters' })
+    }
+    if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)) {
+      return res.status(400).json({ success: false, error: 'Password must contain uppercase, lowercase and numbers' })
     }
     
     const existingUser = await getUserByLoginOrEmail(login)
@@ -357,8 +360,11 @@ router.post('/change-password', authMiddleware, async (req, res) => {
     if (!currentPassword || !newPassword) {
       return res.status(400).json({ success: false, error: 'Current and new password are required' })
     }
-    if (newPassword.length < 6) {
-      return res.status(400).json({ success: false, error: 'New password must be at least 6 characters' })
+    if (newPassword.length < 8) {
+      return res.status(400).json({ success: false, error: 'New password must be at least 8 characters' })
+    }
+    if (!/[A-Z]/.test(newPassword) || !/[a-z]/.test(newPassword) || !/[0-9]/.test(newPassword)) {
+      return res.status(400).json({ success: false, error: 'Password must contain uppercase, lowercase and numbers' })
     }
     
     const user = await getUserById(req.user.id)

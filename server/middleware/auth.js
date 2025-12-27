@@ -417,7 +417,7 @@ export const PermissionAction = {
 
 // Permission cache
 const permissionCache = new Map()
-const PERMISSION_CACHE_TTL = 5 * 60 * 1000 // 5 minutes
+const PERMISSION_CACHE_TTL = 30 * 1000 // 30 seconds - shorter TTL for faster permission updates
 
 /**
  * Get permissions for role (with caching)

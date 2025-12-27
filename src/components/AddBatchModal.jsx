@@ -1,21 +1,16 @@
-import { useState } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { X, ChevronRight, Wine, Coffee, Utensils, ChefHat, Warehouse, Package } from 'lucide-react'
 import { useProducts } from '../context/ProductContext'
 import { useTranslation, useLanguage } from '../context/LanguageContext'
 import { useToast } from '../context/ToastContext'
+import { getDepartmentIcon } from '../utils/departmentUtils'
 
 // Иконки для отделов - универсальный маппинг
 const ICON_MAP = { Wine, Coffee, Utensils, ChefHat, Warehouse, Package }
 
+// Using centralized getDepartmentIcon from utils
 const getDeptIcon = (dept) => {
-  if (dept?.icon && ICON_MAP[dept.icon]) return ICON_MAP[dept.icon]
-  const name = (dept?.name || dept?.code || '').toLowerCase()
-  if (name.includes('bar')) return Wine
-  if (name.includes('kitchen') || name.includes('кухня')) return ChefHat
-  if (name.includes('restaurant') || name.includes('ресторан')) return Utensils
-  if (name.includes('storage') || name.includes('склад')) return Warehouse
-  if (name.includes('cafe') || name.includes('кафе')) return Coffee
-  return Package
+  return getDepartmentIcon(dept)
 }
 
 export default function AddBatchModal({ onClose, preselectedProduct = null }) {
@@ -42,21 +37,21 @@ export default function AddBatchModal({ onClose, preselectedProduct = null }) {
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Получить название категории
-  const getCategoryName = (category) => {
+  const getCategoryName = useCallback((category) => {
     if (language === 'ru') return category.nameRu
     if (language === 'kk') return category.nameKz
     return category.name
-  }
+  }, [language])
 
   // Получить доступные категории для отдела
-  const getAvailableCategories = () => {
+  const availableCategories = useMemo(() => {
     if (!selectedDepartment) return []
     const deptCatalog = catalog[selectedDepartment] || {}
     return categories.filter((cat) => {
       const products = deptCatalog[cat.id] || []
       return products.length > 0
     })
-  }
+  }, [selectedDepartment, catalog, categories])
 
   // Получить товары категории
   const getProductsInCategory = () => {
@@ -197,7 +192,7 @@ export default function AddBatchModal({ onClose, preselectedProduct = null }) {
             <div className="animate-fade-in">
               <p className="text-warmgray mb-4">{t('batch.selectCategory')}</p>
               <div className="space-y-2">
-                {getAvailableCategories().map((cat) => (
+                {availableCategories.map((cat) => (
                   <button
                     key={cat.id}
                     onClick={() => handleCategorySelect(cat.id)}
