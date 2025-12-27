@@ -19,9 +19,7 @@ import {
   Settings,
   Check,
   AlertCircle,
-  Image,
   Users,
-  Package,
   Tags,
   FileBox,
   Send,
@@ -40,7 +38,7 @@ import ImportExportSettings from '../components/settings/ImportExportSettings'
 
 export default function SettingsPage() {
   const { t } = useTranslation()
-  const { user } = useAuth()
+  const { user, hasPermission, canManage } = useAuth()
   const { language, changeLanguage } = useLanguage()
   const { startOnboarding, resetOnboarding } = useOnboarding()
   const { addToast } = useToast()
@@ -63,13 +61,14 @@ export default function SettingsPage() {
     { code: 'kk', name: 'Қазақша', flag: '🇰🇿' }
   ]
 
-  // Проверка является ли пользователь админом
-  const isAdmin = () => {
-    const role = user?.role?.toUpperCase()
-    return role === 'SUPER_ADMIN' || role === 'HOTEL_ADMIN'
+  // Проверка прав доступа к настройкам (permission-based)
+  const canAccessSettings = () => {
+    return hasPermission('settings:read') || 
+           hasPermission('settings:manage') || 
+           canManage('settings')
   }
 
-  const userIsAdmin = isAdmin()
+  const userIsAdmin = canAccessSettings()
 
   // Табы для обычных пользователей
   const userTabs = [

@@ -1,0 +1,4003 @@
+FreshTrack Refactoring Notebook
+Навигация по разделам
+
+Фаза 0: Подготовка
+Фаза 1: Система разрешений
+Фаза 2: Контекст владения данными
+Фаза 3: Backend как источник логики
+Фаза 4: Централизованный аудит
+Фаза 5: Notification Engine
+Фаза 6: Унификация данных
+Фаза 7: Настройки как правила
+Checklist для проверки
+
+
+Фаза 0: Подготовка
+Цель
+Обезопасить процесс рефакторинга, создать точки отката, зафиксировать текущее состояние.
+Задачи
+0.1 Backup и версионирование
+bash# Создать полный backup базы данных
+pg_dump freshtrack_db > backup_$(date +%Y%m%d).sql
+
+# Создать git tag текущего состояния
+git tag -a v1.0-before-refactor -m "State before architecture refactor"
+git push origin v1.0-before-refactor
+
+# Создать ветку для рефакторинга
+git checkout -b refactor/architecture-v2
+0.2 Документация текущего состояния
+Создать файл CURRENT_STATE.md:
+markdown# Текущее состояние FreshTrack
+
+## Модели данных
+- User: имеет hotelId, НЕ имеет departmentId
+- Department: имеет hotelId
+- Product: НЕ имеет hotelId, НЕ имеет departmentId
+- Batch: имеет userId, НЕ имеет departmentId
+- ActivityLog: существует, но неполный
+
+## Роли
+- SUPER_ADMIN
+- HOTEL_ADMIN (проблема: права = SUPER_ADMIN)
+- USER
+
+## Известные проблемы
+[Вставить список из вашего initial документа]
+
+## Критичные endpoints
+- POST /api/users (создание пользователя)
+- POST /api/products (создание товара)
+- POST /api/batches (создание партии)
+- GET /api/inventory (список инвентаря)
+- GET /api/statistics (статистика)
+0.3 Создание тестового окружения
+bash# Клонировать production БД в test БД
+createdb freshtrack_test
+pg_dump freshtrack_db | psql freshtrack_test
+
+# Обновить .env.test
+DATABASE_URL=postgresql://user:pass@localhost:5432/freshtrack_test
+NODE_ENV=test
+0.4 Настройка миграций
+bash# Установить миграционный инструмент если нет
+npm install --save-dev db-migrate db-migrate-pg
+
+# Инициализировать систему миграций
+npx db-migrate init
+Создать database.json:
+json{
+  "dev": {
+    "driver": "pg",
+    "user": {"ENV": "DB_USER"},
+    "password": {"ENV": "DB_PASSWORD"},
+    "host": {"ENV": "DB_HOST"},
+    "database": {"ENV": "DB_NAME"}
+  },
+  "test": {
+    "driver": "pg",
+    "user": {"ENV": "DB_USER"},
+    "password": {"ENV": "DB_PASSWORD"},
+    "host": {"ENV": "DB_HOST"},
+    "database": "freshtrack_test"
+  }
+}
+Критерии завершения фазы 0
+
+ Backup базы данных создан и проверен
+ Git tag создан
+ Тестовая база развернута
+ Система миграций настроена
+ Документация текущего состояния написана
+
+
+Фаза 1: Система разрешений
+Цель
+Заменить проверку ролей на проверку разрешений (permissions). Решает проблему HOTEL_ADMIN = SUPER_ADMIN.
+Задачи
+1.1 Создать модель Permission
+Файл: backend/src/models/Permission.ts
+typescriptimport { DataTypes, Model } from 'sequelize';
+import sequelize from '../config/database';
+
+export enum PermissionResource {
+  INVENTORY = 'inventory',
+  PRODUCTS = 'products',
+  BATCHES = 'batches',
+  USERS = 'users',
+  SETTINGS = 'settings',
+  REPORTS = 'reports',
+  DEPARTMENTS = 'departments',
+  HOTELS = 'hotels'
+}
+
+export enum PermissionAction {
+  READ = 'read',
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  EXPORT = 'export',
+  MANAGE = 'manage'
+}
+
+export enum PermissionScope {
+  OWN = 'own',           // Только свои записи
+  DEPARTMENT = 'department', // В рамках департамента
+  HOTEL = 'hotel',       // В рамках отеля
+  ALL = 'all'            // Без ограничений
+}
+
+export interface PermissionAttributes {
+  id: string;
+  resource: PermissionResource;
+  action: PermissionAction;
+  scope: PermissionScope;
+  description?: string;
+}
+
+class Permission extends Model<PermissionAttributes> implements PermissionAttributes {
+  public id!: string;
+  public resource!: PermissionResource;
+  public action!: PermissionAction;
+  public scope!: PermissionScope;
+  public description?: string;
+
+  public readonly createdAt!: Date;
+  public readonly updatedAt!: Date;
+}
+
+Permission.init(
+  {
+    id: {
+      type: DataTypes.UUID,
+      defaultValue: DataTypes.UUIDV4,
+      primaryKey: true,
+    },
+    resource: {
+      type: DataTypes.ENUM(...Object.values(PermissionResource)),
+      allowNull: false,
+    },
+    action: {
+      type: DataTypes.ENUM(...Object.values(PermissionAction)),
+      allowNull: false,
+    },
+    scope: {
+      type: DataTypes.ENUM(...Object.values(PermissionScope)),
+      allowNull: false,
+    },
+    description: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+  },
+  {
+    sequelize,
+    tableName: 'permissions',
+    indexes: [
+      {
+        unique: true,
+        fields: ['resource', 'action', 'scope']
+      }
+    ]
+  }
+);
+
+export default Permission;
+1.2 Создать связующую таблицу RolePermission
+Файл: backend/src/models/RolePermission.ts
+typescriptimport { DataTypes, Model } from 'sequelize';
+import sequelize from '../config/database';
+import { UserRole } from './User';
+
+export interface RolePermissionAttributes {
+  id: string;
+  role: UserRole;
+  permissionId: string;
+}
+
+class RolePermission extends Model<RolePermissionAttributes> implements RolePermissionAttributes {
+  public id!: string;
+  public role!: UserRole;
+  public permissionId!: string;
+}
+
+RolePermission.init(
+  {
+    id: {
+      type: DataTypes.UUID,
+      defaultValue: DataTypes.UUIDV4,
+      primaryKey: true,
+    },
+    role: {
+      type: DataTypes.ENUM('SUPER_ADMIN', 'HOTEL_ADMIN', 'DEPARTMENT_MANAGER', 'USER'),
+      allowNull: false,
+    },
+    permissionId: {
+      type: DataTypes.UUID,
+      allowNull: false,
+      references: {
+        model: 'permissions',
+        key: 'id',
+      },
+    },
+  },
+  {
+    sequelize,
+    tableName: 'role_permissions',
+    indexes: [
+      {
+        unique: true,
+        fields: ['role', 'permissionId']
+      }
+    ]
+  }
+);
+
+export default RolePermission;
+1.3 Создать миграцию для permissions
+Файл: backend/migrations/20240101000001-create-permissions.js
+javascript'use strict';
+
+module.exports = {
+  up: async (queryInterface, Sequelize) => {
+    // Создать таблицу permissions
+    await queryInterface.createTable('permissions', {
+      id: {
+        type: Sequelize.UUID,
+        defaultValue: Sequelize.UUIDV4,
+        primaryKey: true,
+      },
+      resource: {
+        type: Sequelize.ENUM(
+          'inventory', 'products', 'batches', 'users', 
+          'settings', 'reports', 'departments', 'hotels'
+        ),
+        allowNull: false,
+      },
+      action: {
+        type: Sequelize.ENUM('read', 'create', 'update', 'delete', 'export', 'manage'),
+        allowNull: false,
+      },
+      scope: {
+        type: Sequelize.ENUM('own', 'department', 'hotel', 'all'),
+        allowNull: false,
+      },
+      description: {
+        type: Sequelize.STRING,
+        allowNull: true,
+      },
+      createdAt: {
+        type: Sequelize.DATE,
+        allowNull: false,
+      },
+      updatedAt: {
+        type: Sequelize.DATE,
+        allowNull: false,
+      },
+    });
+
+    // Создать индекс для уникальности permission
+    await queryInterface.addIndex('permissions', ['resource', 'action', 'scope'], {
+      unique: true,
+      name: 'permissions_unique_idx'
+    });
+
+    // Создать таблицу role_permissions
+    await queryInterface.createTable('role_permissions', {
+      id: {
+        type: Sequelize.UUID,
+        defaultValue: Sequelize.UUIDV4,
+        primaryKey: true,
+      },
+      role: {
+        type: Sequelize.ENUM('SUPER_ADMIN', 'HOTEL_ADMIN', 'DEPARTMENT_MANAGER', 'USER'),
+        allowNull: false,
+      },
+      permissionId: {
+        type: Sequelize.UUID,
+        allowNull: false,
+        references: {
+          model: 'permissions',
+          key: 'id',
+        },
+        onDelete: 'CASCADE',
+      },
+      createdAt: {
+        type: Sequelize.DATE,
+        allowNull: false,
+      },
+      updatedAt: {
+        type: Sequelize.DATE,
+        allowNull: false,
+      },
+    });
+
+    // Индекс для role_permissions
+    await queryInterface.addIndex('role_permissions', ['role', 'permissionId'], {
+      unique: true,
+      name: 'role_permissions_unique_idx'
+    });
+  },
+
+  down: async (queryInterface, Sequelize) => {
+    await queryInterface.dropTable('role_permissions');
+    await queryInterface.dropTable('permissions');
+  }
+};
+1.4 Создать seed для базовых permissions
+Файл: backend/src/seeds/seedPermissions.ts
+typescriptimport Permission, { PermissionResource, PermissionAction, PermissionScope } from '../models/Permission';
+import RolePermission from '../models/RolePermission';
+import { UserRole } from '../models/User';
+
+interface PermissionSeed {
+  resource: PermissionResource;
+  action: PermissionAction;
+  scope: PermissionScope;
+  description: string;
+  roles: UserRole[];
+}
+
+const permissionSeeds: PermissionSeed[] = [
+  // INVENTORY permissions
+  {
+    resource: PermissionResource.INVENTORY,
+    action: PermissionAction.READ,
+    scope: PermissionScope.DEPARTMENT,
+    description: 'View inventory in own department',
+    roles: ['USER', 'DEPARTMENT_MANAGER', 'HOTEL_ADMIN', 'SUPER_ADMIN']
+  },
+  {
+    resource: PermissionResource.INVENTORY,
+    action: PermissionAction.READ,
+    scope: PermissionScope.HOTEL,
+    description: 'View inventory across entire hotel',
+    roles: ['HOTEL_ADMIN', 'SUPER_ADMIN']
+  },
+  {
+    resource: PermissionResource.INVENTORY,
+    action: PermissionAction.READ,
+    scope: PermissionScope.ALL,
+    description: 'View all inventory system-wide',
+    roles: ['SUPER_ADMIN']
+  },
+  {
+    resource: PermissionResource.INVENTORY,
+    action: PermissionAction.UPDATE,
+    scope: PermissionScope.DEPARTMENT,
+    description: 'Update inventory in own department',
+    roles: ['DEPARTMENT_MANAGER', 'HOTEL_ADMIN', 'SUPER_ADMIN']
+  },
+  {
+    resource: PermissionResource.INVENTORY,
+    action: PermissionAction.EXPORT,
+    scope: PermissionScope.DEPARTMENT,
+    description: 'Export inventory data from own department',
+    roles: ['DEPARTMENT_MANAGER', 'HOTEL_ADMIN', 'SUPER_ADMIN']
+  },
+
+  // PRODUCTS permissions
+  {
+    resource: PermissionResource.PRODUCTS,
+    action: PermissionAction.CREATE,
+    scope: PermissionScope.DEPARTMENT,
+    description: 'Create products in own department',
+    roles: ['DEPARTMENT_MANAGER', 'HOTEL_ADMIN', 'SUPER_ADMIN']
+  },
+  {
+    resource: PermissionResource.PRODUCTS,
+    action: PermissionAction.DELETE,
+    scope: PermissionScope.DEPARTMENT,
+    description: 'Delete products from own department',
+    roles: ['DEPARTMENT_MANAGER', 'HOTEL_ADMIN', 'SUPER_ADMIN']
+  },
+
+  // BATCHES permissions
+  {
+    resource: PermissionResource.BATCHES,
+    action: PermissionAction.CREATE,
+    scope: PermissionScope.DEPARTMENT,
+    description: 'Create batches in own department',
+    roles: ['USER', 'DEPARTMENT_MANAGER', 'HOTEL_ADMIN', 'SUPER_ADMIN']
+  },
+
+  // USERS permissions
+  {
+    resource: PermissionResource.USERS,
+    action: PermissionAction.READ,
+    scope: PermissionScope.HOTEL,
+    description: 'View users in own hotel',
+    roles: ['HOTEL_ADMIN', 'SUPER_ADMIN']
+  },
+  {
+    resource: PermissionResource.USERS,
+    action: PermissionAction.CREATE,
+    scope: PermissionScope.HOTEL,
+    description: 'Create users in own hotel',
+    roles: ['HOTEL_ADMIN', 'SUPER_ADMIN']
+  },
+  {
+    resource: PermissionResource.USERS,
+    action: PermissionAction.UPDATE,
+    scope: PermissionScope.HOTEL,
+    description: 'Update users in own hotel (including block/unblock)',
+    roles: ['HOTEL_ADMIN', 'SUPER_ADMIN']
+  },
+  {
+    resource: PermissionResource.USERS,
+    action: PermissionAction.DELETE,
+    scope: PermissionScope.HOTEL,
+    description: 'Delete users from own hotel',
+    roles: ['HOTEL_ADMIN', 'SUPER_ADMIN']
+  },
+  {
+    resource: PermissionResource.USERS,
+    action: PermissionAction.MANAGE,
+    scope: PermissionScope.ALL,
+    description: 'Full user management across all hotels',
+    roles: ['SUPER_ADMIN']
+  },
+
+  // SETTINGS permissions
+  {
+    resource: PermissionResource.SETTINGS,
+    action: PermissionAction.READ,
+    scope: PermissionScope.HOTEL,
+    description: 'View hotel settings',
+    roles: ['HOTEL_ADMIN', 'SUPER_ADMIN']
+  },
+  {
+    resource: PermissionResource.SETTINGS,
+    action: PermissionAction.UPDATE,
+    scope: PermissionScope.HOTEL,
+    description: 'Update hotel settings (branding, notifications)',
+    roles: ['HOTEL_ADMIN', 'SUPER_ADMIN']
+  },
+  {
+    resource: PermissionResource.SETTINGS,
+    action: PermissionAction.MANAGE,
+    scope: PermissionScope.ALL,
+    description: 'Manage system-wide settings',
+    roles: ['SUPER_ADMIN']
+  },
+
+  // REPORTS permissions
+  {
+    resource: PermissionResource.REPORTS,
+    action: PermissionAction.READ,
+    scope: PermissionScope.DEPARTMENT,
+    description: 'View department reports',
+    roles: ['DEPARTMENT_MANAGER', 'HOTEL_ADMIN', 'SUPER_ADMIN']
+  },
+  {
+    resource: PermissionResource.REPORTS,
+    action: PermissionAction.READ,
+    scope: PermissionScope.HOTEL,
+    description: 'View hotel-wide reports',
+    roles: ['HOTEL_ADMIN', 'SUPER_ADMIN']
+  },
+
+  // DEPARTMENTS permissions
+  {
+    resource: PermissionResource.DEPARTMENTS,
+    action: PermissionAction.CREATE,
+    scope: PermissionScope.HOTEL,
+    description: 'Create departments in own hotel',
+    roles: ['HOTEL_ADMIN', 'SUPER_ADMIN']
+  },
+  {
+    resource: PermissionResource.DEPARTMENTS,
+    action: PermissionAction.UPDATE,
+    scope: PermissionScope.HOTEL,
+    description: 'Update departments in own hotel',
+    roles: ['HOTEL_ADMIN', 'SUPER_ADMIN']
+  },
+
+  // HOTELS permissions
+  {
+    resource: PermissionResource.HOTELS,
+    action: PermissionAction.MANAGE,
+    scope: PermissionScope.ALL,
+    description: 'Full hotel management',
+    roles: ['SUPER_ADMIN']
+  },
+];
+
+export async function seedPermissions() {
+  console.log('Seeding permissions...');
+
+  for (const seed of permissionSeeds) {
+    // Создать permission
+    const [permission] = await Permission.findOrCreate({
+      where: {
+        resource: seed.resource,
+        action: seed.action,
+        scope: seed.scope,
+      },
+      defaults: {
+        description: seed.description,
+      },
+    });
+
+    // Связать с ролями
+    for (const role of seed.roles) {
+      await RolePermission.findOrCreate({
+        where: {
+          role,
+          permissionId: permission.id,
+        },
+      });
+    }
+  }
+
+  console.log('Permissions seeded successfully');
+}
+
+// Запуск если вызван напрямую
+if (require.main === module) {
+  seedPermissions()
+    .then(() => process.exit(0))
+    .catch((err) => {
+      console.error('Error seeding permissions:', err);
+      process.exit(1);
+    });
+}
+1.5 Создать сервис проверки разрешений
+Файл: backend/src/services/permissionService.ts
+typescriptimport Permission, { PermissionResource, PermissionAction, PermissionScope } from '../models/Permission';
+import RolePermission from '../models/RolePermission';
+import User from '../models/User';
+
+export interface PermissionCheckContext {
+  user: User;
+  targetHotelId?: string;
+  targetDepartmentId?: string;
+  targetUserId?: string;
+}
+
+export class PermissionService {
+  /**
+   * Проверить имеет ли пользователь разрешение
+   */
+  static async hasPermission(
+    context: PermissionCheckContext,
+    resource: PermissionResource,
+    action: PermissionAction
+  ): Promise<boolean> {
+    const { user, targetHotelId, targetDepartmentId, targetUserId } = context;
+
+    // Получить все permissions для роли пользователя
+    const rolePermissions = await RolePermission.findAll({
+      where: { role: user.role },
+      include: [{ model: Permission }],
+    });
+
+    // Найти подходящие permissions
+    for (const rp of rolePermissions) {
+      const permission = rp.permission;
+      
+      if (permission.resource !== resource || permission.action !== action) {
+        continue;
+      }
+
+      // Проверить scope
+      const hasScope = await this.checkScope(user, permission.scope, {
+        targetHotelId,
+        targetDepartmentId,
+        targetUserId,
+      });
+
+      if (hasScope) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Проверить соответствует ли scope
+   */
+  private static async checkScope(
+    user: User,
+    scope: PermissionScope,
+    target: {
+      targetHotelId?: string;
+      targetDepartmentId?: string;
+      targetUserId?: string;
+    }
+  ): Promise<boolean> {
+    switch (scope) {
+      case PermissionScope.ALL:
+        // Доступ ко всему
+        return true;
+
+      case PermissionScope.HOTEL:
+        // Доступ только к своему отелю
+        if (!target.targetHotelId) return true; // Если не указан target, считаем что это свой отель
+        return user.hotelId === target.targetHotelId;
+
+      case PermissionScope.DEPARTMENT:
+        // Доступ только к своему департаменту
+        if (!target.targetDepartmentId) return true;
+        return user.departmentId === target.targetDepartmentId;
+
+      case PermissionScope.OWN:
+        // Доступ только к своим записям
+        if (!target.targetUserId) return true;
+        return user.id === target.targetUserId;
+
+      default:
+        return false;
+    }
+  }
+
+  /**
+   * Получить список доступных действий для ресурса
+   */
+  static async getAvailableActions(
+    user: User,
+    resource: PermissionResource
+  ): Promise<PermissionAction[]> {
+    const rolePermissions = await RolePermission.findAll({
+      where: { role: user.role },
+      include: [{ 
+        model: Permission,
+        where: { resource }
+      }],
+    });
+
+    return rolePermissions.map(rp => rp.permission.action);
+  }
+
+  /**
+   * Проверить может ли пользователь управлять другим пользователем
+   */
+  static async canManageUser(
+    actor: User,
+    targetUser: User
+  ): Promise<boolean> {
+    // Нельзя управлять самим собой через эту функцию
+    if (actor.id === targetUser.id) return false;
+
+    // SUPER_ADMIN может всех
+    if (actor.role === 'SUPER_ADMIN') return true;
+
+    // HOTEL_ADMIN может пользователей своего отеля
+    if (actor.role === 'HOTEL_ADMIN' && actor.hotelId === targetUser.hotelId) {
+      // Но не может управлять другими HOTEL_ADMIN или SUPER_ADMIN
+      if (targetUser.role === 'HOTEL_ADMIN' || targetUser.role === 'SUPER_ADMIN') {
+        return false;
+      }
+      return true;
+    }
+
+    return false;
+  }
+}
+1.6 Создать middleware для проверки permissions
+Файл: backend/src/middleware/permission.ts
+typescriptimport { Request, Response, NextFunction } from 'express';
+import { PermissionService } from '../services/permissionService';
+import { PermissionResource, PermissionAction } from '../models/Permission';
+
+/**
+ * Расширение Request для добавления user
+ */
+declare global {
+  namespace Express {
+    interface Request {
+      user?: any;
+    }
+  }
+}
+
+/**
+ * Middleware для проверки permissions
+ */
+export const requirePermission = (
+  resource: PermissionResource,
+  action: PermissionAction,
+  options?: {
+    getTargetHotelId?: (req: Request) => string | undefined;
+    getTargetDepartmentId?: (req: Request) => string | undefined;
+    getTargetUserId?: (req: Request) => string | undefined;
+  }
+) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+
+      const context = {
+        user: req.user,
+        targetHotelId: options?.getTargetHotelId?.(req),
+        targetDepartmentId: options?.getTargetDepartmentId?.(req),
+        targetUserId: options?.getTargetUserId?.(req),
+      };
+
+      const hasPermission = await PermissionService.hasPermission(
+        context,
+        resource,
+        action
+      );
+
+      if (!hasPermission) {
+        return res.status(403).json({ 
+          error: 'Forbidden',
+          message: `You don't have permission to ${action} ${resource}` 
+        });
+      }
+
+      next();
+    } catch (error) {
+      console.error('Permission check error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  };
+};
+
+/**
+ * Middleware для проверки может ли пользователь управлять другим пользователем
+ */
+export const requireCanManageUser = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const targetUserId = req.params.userId || req.body.userId;
+    if (!targetUserId) {
+      return res.status(400).json({ error: 'Target user ID required' });
+    }
+
+    const targetUser = await User.findByPk(targetUserId);
+    if (!targetUser) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const canManage = await PermissionService.canManageUser(req.user, targetUser);
+    if (!canManage) {
+      return res.status(403).json({ 
+        error: 'Forbidden',
+        message: 'You cannot manage this user' 
+      });
+    }
+
+    // Прикрепить targetUser к request для использования в контроллере
+    req.targetUser = targetUser;
+    next();
+  } catch (error) {
+    console.error('User management check error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+1.7 Обновить существующие routes с новым middleware
+Файл: backend/src/routes/user.ts (пример)
+typescriptimport express from 'express';
+import { requireAuth } from '../middleware/auth';
+import { requirePermission, requireCanManageUser } from '../middleware/permission';
+import { PermissionResource, PermissionAction } from '../models/Permission';
+import * as userController from '../controllers/user';
+
+const router = express.Router();
+
+// Просмотр пользователей - требует permission read users в рамках hotel
+router.get(
+  '/',
+  requireAuth,
+  requirePermission(PermissionResource.USERS, PermissionAction.READ, {
+    getTargetHotelId: (req) => req.query.hotelId as string || req.user.hotelId
+  }),
+  userController.listUsers
+);
+
+// Создание пользователя - требует permission create users в рамках hotel
+router.post(
+  '/',
+  requireAuth,
+  requirePermission(PermissionResource.USERS, PermissionAction.CREATE, {
+    getTargetHotelId: (req) => req.body.hotelId || req.user.hotelId
+  }),
+  userController.createUser
+);
+
+// Обновление пользователя - требует возможность управлять пользователем
+router.patch(
+  '/:userId',
+  requireAuth,
+  requireCanManageUser,
+  userController.updateUser
+);
+
+// Блокировка пользователя - требует update permission
+router.post(
+  '/:userId/block',
+  requireAuth,
+  requireCanManageUser,
+  userController.blockUser
+);
+
+// Удаление пользователя - требует delete permission
+router.delete(
+  '/:userId',
+  requireAuth,
+  requireCanManageUser,
+  userController.deleteUser
+);
+
+export default router;
+1.8 Тестирование permissions
+Создать файл: backend/src/__tests__/permission.test.ts
+typescriptimport { PermissionService } from '../services/permissionService';
+import { PermissionResource, PermissionAction } from '../models/Permission';
+import User from '../models/User';
+
+describe('PermissionService', () => {
+  let superAdmin: User;
+  let hotelAdmin: User;
+  let departmentManager: User;
+  let regularUser: User;
+
+  beforeAll(async () => {
+    // Setup test users
+    superAdmin = await User.create({
+      email: 'super@test.com',
+      role: 'SUPER_ADMIN',
+      hotelId: 'hotel-1',
+      departmentId: 'dept-1'
+    });
+
+    hotelAdmin = await User.create({
+      email: 'hotel@test.com',
+      role: 'HOTEL_ADMIN',
+      hotelId: 'hotel-1',
+      departmentId: 'dept-1'
+    });
+
+    departmentManager = await User.create({
+      email: 'dept@test.com',
+      role: 'DEPARTMENT_MANAGER',
+      hotelId: 'hotel-1',
+      departmentId: 'dept-1'
+    });
+
+    regularUser = await User.create({
+      email: 'user@test.com',
+      role: 'USER',
+      hotelId: 'hotel-1',
+      departmentId: 'dept-1'
+    });
+  });
+
+  describe('hasPermission', () => {
+    it('SUPER_ADMIN should have all permissions', async () => {
+      const hasPermission = await PermissionService.hasPermission(
+        { user: superAdmin },
+        PermissionResource.USERS,
+        PermissionAction.DELETE
+      );
+      expect(hasPermission).toBe(true);
+    });
+
+    it('HOTEL_ADMIN should manage users in own hotel', async () => {
+      const hasPermission = await PermissionService.hasPermission(
+        { user: hotelAdmin, targetHotelId: 'hotel-1' },
+        PermissionResource.USERS,
+        PermissionAction.UPDATE
+      );
+      expect(hasPermission).toBe(true);
+    });
+
+    it('HOTEL_ADMIN should NOT manage users in other hotel', async () => {
+      const hasPermission = await PermissionService.hasPermission(
+        { user: hotelAdmin, targetHotelId: 'hotel-2' },
+        PermissionResource.USERS,
+        PermissionAction.UPDATE
+      );
+  expect(hasPermission).toBe(false);
+});
+
+it('USER should read inventory in own department', async () => {
+  const hasPermission = await PermissionService.hasPermission(
+    { user: regularUser, targetDepartmentId: 'dept-1' },
+    PermissionResource.INVENTORY,
+    PermissionAction.READ
+  );
+  expect(hasPermission).toBe(true);
+});
+
+it('USER should NOT delete products', async () => {
+  const hasPermission = await PermissionService.hasPermission(
+    { user: regularUser },
+    PermissionResource.PRODUCTS,
+    PermissionAction.DELETE
+  );
+  expect(hasPermission).toBe(false);
+});
+});
+describe('canManageUser', () => {
+it('SUPER_ADMIN can manage HOTEL_ADMIN', async () => {
+const canManage = await PermissionService.canManageUser(superAdmin, hotelAdmin);
+expect(canManage).toBe(true);
+});
+it('HOTEL_ADMIN cannot manage another HOTEL_ADMIN', async () => {
+  const anotherHotelAdmin = await User.create({
+    email: 'hotel2@test.com',
+    role: 'HOTEL_ADMIN',
+    hotelId: 'hotel-1'
+  });
+  
+  const canManage = await PermissionService.canManageUser(hotelAdmin, anotherHotelAdmin);
+  expect(canManage).toBe(false);
+});
+
+it('HOTEL_ADMIN can manage USER in same hotel', async () => {
+  const canManage = await PermissionService.canManageUser(hotelAdmin, regularUser);
+  expect(canManage).toBe(true);
+});
+});
+});
+
+### Критерии завершения фазы 1
+- [ ] Модели Permission и RolePermission созданы
+- [ ] Миграции выполнены успешно
+- [ ] Seed данных загружен
+- [ ] PermissionService работает корректно
+- [ ] Middleware requirePermission создан
+- [ ] Минимум 3 роута обновлены с новым middleware
+- [ ] Тесты написаны и проходят
+- [ ] Блокировка пользователей работает (проверено вручную)
+
+---
+
+## Фаза 2: Контекст владения данными
+
+### Цель
+Добавить `hotelId` и `departmentId` ко всем сущностям. Решает проблемы с фильтрацией, статистикой, категориями.
+
+### Задачи
+
+#### 2.1 Добавить departmentId в User
+
+Файл: `backend/migrations/20240101000002-add-department-to-user.js`
+```javascript
+'use strict';
+
+module.exports = {
+  up: async (queryInterface, Sequelize) => {
+    // Добавить поле departmentId
+    await queryInterface.addColumn('users', 'departmentId', {
+      type: Sequelize.UUID,
+      allowNull: true, // Пока nullable для миграции
+      references: {
+        model: 'departments',
+        key: 'id',
+      },
+    });
+
+    // Создать индекс
+    await queryInterface.addIndex('users', ['departmentId']);
+
+    // Заполнить дефолтными значениями (берём первый департамент отеля)
+    await queryInterface.sequelize.query(`
+      UPDATE users u
+      SET "departmentId" = (
+        SELECT id FROM departments d
+        WHERE d."hotelId" = u."hotelId"
+        LIMIT 1
+      )
+      WHERE u."departmentId" IS NULL
+    `);
+
+    // Сделать NOT NULL после заполнения
+    await queryInterface.changeColumn('users', 'departmentId', {
+      type: Sequelize.UUID,
+      allowNull: false,
+    });
+  },
+
+  down: async (queryInterface, Sequelize) => {
+    await queryInterface.removeColumn('users', 'departmentId');
+  }
+};
+```
+
+#### 2.2 Добавить hotelId и departmentId в Product
+
+Файл: `backend/migrations/20240101000003-add-context-to-product.js`
+```javascript
+'use strict';
+
+module.exports = {
+  up: async (queryInterface, Sequelize) => {
+    // Добавить hotelId
+    await queryInterface.addColumn('products', 'hotelId', {
+      type: Sequelize.UUID,
+      allowNull: true,
+      references: {
+        model: 'hotels',
+        key: 'id',
+      },
+    });
+
+    // Добавить departmentId
+    await queryInterface.addColumn('products', 'departmentId', {
+      type: Sequelize.UUID,
+      allowNull: true,
+      references: {
+        model: 'departments',
+        key: 'id',
+      },
+    });
+
+    // Создать индексы
+    await queryInterface.addIndex('products', ['hotelId']);
+    await queryInterface.addIndex('products', ['departmentId']);
+
+    // Заполнить данными из первого пользователя (или дефолтного отеля)
+    await queryInterface.sequelize.query(`
+      UPDATE products p
+      SET 
+        "hotelId" = (SELECT "hotelId" FROM users LIMIT 1),
+        "departmentId" = (SELECT "departmentId" FROM users LIMIT 1)
+      WHERE p."hotelId" IS NULL
+    `);
+
+    // Сделать NOT NULL
+    await queryInterface.changeColumn('products', 'hotelId', {
+      type: Sequelize.UUID,
+      allowNull: false,
+    });
+
+    await queryInterface.changeColumn('products', 'departmentId', {
+      type: Sequelize.UUID,
+      allowNull: false,
+    });
+  },
+
+  down: async (queryInterface, Sequelize) => {
+    await queryInterface.removeColumn('products', 'departmentId');
+    await queryInterface.removeColumn('products', 'hotelId');
+  }
+};
+```
+
+#### 2.3 Добавить hotelId и departmentId в Batch
+
+Файл: `backend/migrations/20240101000004-add-context-to-batch.js`
+```javascript
+'use strict';
+
+module.exports = {
+  up: async (queryInterface, Sequelize) => {
+    await queryInterface.addColumn('batches', 'hotelId', {
+      type: Sequelize.UUID,
+      allowNull: true,
+      references: {
+        model: 'hotels',
+        key: 'id',
+      },
+    });
+
+    await queryInterface.addColumn('batches', 'departmentId', {
+      type: Sequelize.UUID,
+      allowNull: true,
+      references: {
+        model: 'departments',
+        key: 'id',
+      },
+    });
+
+    await queryInterface.addIndex('batches', ['hotelId']);
+    await queryInterface.addIndex('batches', ['departmentId']);
+
+    // Заполнить из связанного пользователя
+    await queryInterface.sequelize.query(`
+      UPDATE batches b
+      SET 
+        "hotelId" = u."hotelId",
+        "departmentId" = u."departmentId"
+      FROM users u
+      WHERE b."userId" = u.id
+        AND b."hotelId" IS NULL
+    `);
+
+    await queryInterface.changeColumn('batches', 'hotelId', {
+      type: Sequelize.UUID,
+      allowNull: false,
+    });
+
+    await queryInterface.changeColumn('batches', 'departmentId', {
+      type: Sequelize.UUID,
+      allowNull: false,
+    });
+  },
+
+  down: async (queryInterface, Sequelize) => {
+    await queryInterface.removeColumn('batches', 'departmentId');
+    await queryInterface.removeColumn('batches', 'hotelId');
+  }
+};
+```
+
+#### 2.4 Добавить контекст в Category
+
+Файл: `backend/migrations/20240101000005-add-context-to-category.js`
+```javascript
+'use strict';
+
+module.exports = {
+  up: async (queryInterface, Sequelize) => {
+    await queryInterface.addColumn('categories', 'hotelId', {
+      type: Sequelize.UUID,
+      allowNull: true,
+      references: {
+        model: 'hotels',
+        key: 'id',
+      },
+    });
+
+    await queryInterface.addColumn('categories', 'departmentId', {
+      type: Sequelize.UUID,
+      allowNull: true,
+      references: {
+        model: 'departments',
+        key: 'id',
+      },
+    });
+
+    await queryInterface.addIndex('categories', ['hotelId']);
+    await queryInterface.addIndex('categories', ['departmentId']);
+
+    // Категории могут быть глобальными (null) или специфичными для департамента
+    // Оставляем существующие как глобальные (NULL в обоих полях)
+    // Новые будут создаваться с контекстом
+  },
+
+  down: async (queryInterface, Sequelize) => {
+    await queryInterface.removeColumn('categories', 'departmentId');
+    await queryInterface.removeColumn('categories', 'hotelId');
+  }
+};
+```
+
+#### 2.5 Обновить модели Sequelize
+
+Файл: `backend/src/models/Product.ts`
+```typescript
+import { DataTypes, Model } from 'sequelize';
+import sequelize from '../config/database';
+
+export interface ProductAttributes {
+  id: string;
+  name: string;
+  categoryId: string;
+  hotelId: string;        // НОВОЕ
+  departmentId: string;   // НОВОЕ
+  minStock?: number;
+  unit?: string;
+  // ... остальные поля
+}
+
+class Product extends Model<ProductAttributes> implements ProductAttributes {
+  public id!: string;
+  public name!: string;
+  public categoryId!: string;
+  public hotelId!: string;
+  public departmentId!: string;
+  public minStock?: number;
+  public unit?: string;
+  // ... остальные поля
+}
+
+Product.init(
+  {
+    id: {
+      type: DataTypes.UUID,
+      defaultValue: DataTypes.UUIDV4,
+      primaryKey: true,
+    },
+    name: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    categoryId: {
+      type: DataTypes.UUID,
+      allowNull: false,
+    },
+    hotelId: {
+      type: DataTypes.UUID,
+      allowNull: false,
+      references: {
+        model: 'hotels',
+        key: 'id',
+      },
+    },
+    departmentId: {
+      type: DataTypes.UUID,
+      allowNull: false,
+      references: {
+        model: 'departments',
+        key: 'id',
+      },
+    },
+    // ... остальные поля
+  },
+  {
+    sequelize,
+    tableName: 'products',
+    indexes: [
+      { fields: ['hotelId'] },
+      { fields: ['departmentId'] },
+      { fields: ['categoryId'] },
+    ],
+  }
+);
+
+export default Product;
+```
+
+Аналогично обновить: `Batch.ts`, `User.ts`, `Category.ts`
+
+#### 2.6 Создать базовый query helper для фильтрации по контексту
+
+Файл: `backend/src/utils/contextQuery.ts`
+```typescript
+import { WhereOptions } from 'sequelize';
+import User from '../models/User';
+
+/**
+ * Создать where условие с учётом контекста пользователя
+ */
+export function buildContextWhere(
+  user: User,
+  additionalWhere?: WhereOptions
+): WhereOptions {
+  const baseWhere: WhereOptions = {};
+
+  // SUPER_ADMIN видит всё
+  if (user.role === 'SUPER_ADMIN') {
+    return { ...baseWhere, ...additionalWhere };
+  }
+
+  // HOTEL_ADMIN видит свой отель
+  if (user.role === 'HOTEL_ADMIN') {
+    baseWhere.hotelId = user.hotelId;
+    return { ...baseWhere, ...additionalWhere };
+  }
+
+  // DEPARTMENT_MANAGER и USER видят свой департамент
+  baseWhere.hotelId = user.hotelId;
+  baseWhere.departmentId = user.departmentId;
+
+  return { ...baseWhere, ...additionalWhere };
+}
+
+/**
+ * Проверить может ли пользователь получить доступ к ресурсу
+ */
+export function canAccessResource(
+  user: User,
+  resource: { hotelId: string; departmentId?: string }
+): boolean {
+  if (user.role === 'SUPER_ADMIN') return true;
+  if (user.hotelId !== resource.hotelId) return false;
+  if (user.role === 'HOTEL_ADMIN') return true;
+  if (resource.departmentId && user.departmentId !== resource.departmentId) {
+    return false;
+  }
+  return true;
+}
+```
+
+#### 2.7 Обновить контроллеры для использования контекста
+
+Файл: `backend/src/controllers/product.ts` (пример)
+```typescript
+import { Request, Response } from 'express';
+import Product from '../models/Product';
+import Category from '../models/Category';
+import { buildContextWhere } from '../utils/contextQuery';
+
+/**
+ * Получить список продуктов
+ */
+export async function listProducts(req: Request, res: Response) {
+  try {
+    const user = req.user;
+    
+    // Построить where с учётом контекста пользователя
+    const where = buildContextWhere(user, {
+      // Дополнительные фильтры из query
+      ...(req.query.categoryId && { categoryId: req.query.categoryId }),
+      ...(req.query.search && { 
+        name: { [Op.iLike]: `%${req.query.search}%` } 
+      }),
+    });
+
+    const products = await Product.findAll({
+      where,
+      include: [
+        {
+          model: Category,
+          as: 'category',
+          attributes: ['id', 'name', 'color'],
+        },
+      ],
+      order: [['name', 'ASC']],
+    });
+
+    res.json({ products });
+  } catch (error) {
+    console.error('Error fetching products:', error);
+    res.status(500).json({ error: 'Failed to fetch products' });
+  }
+}
+
+/**
+ * Создать продукт
+ */
+export async function createProduct(req: Request, res: Response) {
+  try {
+    const user = req.user;
+    const { name, categoryId, minStock, unit } = req.body;
+
+    // Автоматически добавить контекст из пользователя
+    const product = await Product.create({
+      name,
+      categoryId,
+      minStock,
+      unit,
+      hotelId: user.hotelId,
+      departmentId: user.departmentId,
+    });
+
+    res.status(201).json({ product });
+  } catch (error) {
+    console.error('Error creating product:', error);
+    res.status(500).json({ error: 'Failed to create product' });
+  }
+}
+
+/**
+ * Обновить продукт
+ */
+export async function updateProduct(req: Request, res: Response) {
+  try {
+    const user = req.user;
+    const { productId } = req.params;
+    const updates = req.body;
+
+    // Найти продукт с учётом контекста
+    const where = buildContextWhere(user, { id: productId });
+    const product = await Product.findOne({ where });
+
+    if (!product) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+
+    // Запретить изменение hotelId и departmentId
+    delete updates.hotelId;
+    delete updates.departmentId;
+
+    await product.update(updates);
+    res.json({ product });
+  } catch (error) {
+    console.error('Error updating product:', error);
+    res.status(500).json({ error: 'Failed to update product' });
+  }
+}
+
+/**
+ * Удалить продукт
+ */
+export async function deleteProduct(req: Request, res: Response) {
+  try {
+    const user = req.user;
+    const { productId } = req.params;
+
+    const where = buildContextWhere(user, { id: productId });
+    const product = await Product.findOne({ where });
+
+    if (!product) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+
+    await product.destroy();
+    res.json({ message: 'Product deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting product:', error);
+    res.status(500).json({ error: 'Failed to delete product' });
+  }
+}
+```
+
+Аналогично обновить: `batch.ts`, `inventory.ts`, `statistics.ts`
+
+#### 2.8 Тестирование контекста
+
+Файл: `backend/src/__tests__/contextQuery.test.ts`
+```typescript
+import { buildContextWhere, canAccessResource } from '../utils/contextQuery';
+import User from '../models/User';
+
+describe('Context Query Utils', () => {
+  let superAdmin: User;
+  let hotelAdmin: User;
+  let user: User;
+
+  beforeAll(async () => {
+    superAdmin = await User.create({
+      email: 'super@test.com',
+      role: 'SUPER_ADMIN',
+      hotelId: 'hotel-1',
+      departmentId: 'dept-1',
+    });
+
+    hotelAdmin = await User.create({
+      email: 'hotel@test.com',
+      role: 'HOTEL_ADMIN',
+      hotelId: 'hotel-1',
+      departmentId: 'dept-1',
+    });
+
+    user = await User.create({
+      email: 'user@test.com',
+      role: 'USER',
+      hotelId: 'hotel-1',
+      departmentId: 'dept-2',
+    });
+  });
+
+  describe('buildContextWhere', () => {
+    it('SUPER_ADMIN should have no restrictions', () => {
+      const where = buildContextWhere(superAdmin);
+      expect(where).toEqual({});
+    });
+
+    it('HOTEL_ADMIN should be restricted to hotel', () => {
+      const where = buildContextWhere(hotelAdmin);
+      expect(where).toEqual({ hotelId: 'hotel-1' });
+    });
+
+    it('USER should be restricted to department', () => {
+      const where = buildContextWhere(user);
+      expect(where).toEqual({ 
+        hotelId: 'hotel-1',
+        departmentId: 'dept-2'
+      });
+    });
+
+    it('should merge additional where conditions', () => {
+      const where = buildContextWhere(user, { categoryId: 'cat-1' });
+      expect(where).toEqual({
+        hotelId: 'hotel-1',
+        departmentId: 'dept-2',
+        categoryId: 'cat-1',
+      });
+    });
+  });
+
+  describe('canAccessResource', () => {
+    it('SUPER_ADMIN can access any resource', () => {
+      const canAccess = canAccessResource(superAdmin, {
+        hotelId: 'hotel-999',
+        departmentId: 'dept-999',
+      });
+      expect(canAccess).toBe(true);
+    });
+
+    it('HOTEL_ADMIN can access own hotel', () => {
+      const canAccess = canAccessResource(hotelAdmin, {
+        hotelId: 'hotel-1',
+        departmentId: 'dept-999',
+      });
+      expect(canAccess).toBe(true);
+    });
+
+    it('HOTEL_ADMIN cannot access other hotel', () => {
+      const canAccess = canAccessResource(hotelAdmin, {
+        hotelId: 'hotel-2',
+        departmentId: 'dept-1',
+      });
+      expect(canAccess).toBe(false);
+    });
+
+    it('USER can access own department', () => {
+      const canAccess = canAccessResource(user, {
+        hotelId: 'hotel-1',
+        departmentId: 'dept-2',
+      });
+      expect(canAccess).toBe(true);
+    });
+
+    it('USER cannot access other department', () => {
+      const canAccess = canAccessResource(user, {
+        hotelId: 'hotel-1',
+        departmentId: 'dept-1',
+      });
+      expect(canAccess).toBe(false);
+    });
+  });
+});
+```
+
+### Критерии завершения фазы 2
+- [ ] Все миграции выполнены
+- [ ] Модели обновлены с hotelId и departmentId
+- [ ] contextQuery utils созданы и протестированы
+- [ ] Минимум 3 контроллера обновлены (product, batch, inventory)
+- [ ] Тесты написаны и проходят
+- [ ] Вручную проверено что фильтрация работает корректно
+- [ ] Статистика показывает правильные данные (не "другое")
+- [ ] При добавлении категории она появляется в инвентаре
+
+---
+
+## Фаза 3: Backend как источник логики
+
+### Цель
+Перенести все вычисления статусов, цветов, агрегаций из frontend в backend. Решает проблемы с календарём, статистикой, некорректными индикаторами.
+
+### Задачи
+
+#### 3.1 Создать сервис для расчёта статусов срока годности
+
+Файл: `backend/src/services/expiryService.ts`
+```typescript
+import { differenceInDays, isPast, parseISO } from 'date-fns';
+
+export enum ExpiryStatus {
+  OK = 'OK',
+  WARNING = 'WARNING',
+  CRITICAL = 'CRITICAL',
+  EXPIRED = 'EXPIRED',
+}
+
+export interface ExpiryStatusColor {
+  status: ExpiryStatus;
+  color: string;
+  daysUntilExpiry: number;
+}
+
+/**
+ * Настройки порогов по умолчанию
+ * В будущем будут загружаться из settings
+ */
+const DEFAULT_THRESHOLDS = {
+  warning: 7,   // За 7 дней до истечения
+  critical: 3,  // За 3 дня до истечения
+};
+
+export class ExpiryService {
+  /**
+   * Рассчитать статус срока годности
+   */
+  static calculateStatus(
+    expiryDate: Date | string,
+    thresholds = DEFAULT_THRESHOLDS
+  ): ExpiryStatusColor {
+    const expiry = typeof expiryDate === 'string' ? parseISO(expiryDate) : expiryDate;
+    const now = new Date();
+    const daysUntilExpiry = differenceInDays(expiry, now);
+
+    // Уже истёк
+    if (isPast(expiry)) {
+      return {
+        status: ExpiryStatus.EXPIRED,
+        color: 'gray',
+        daysUntilExpiry,
+      };
+    }
+
+    // Критично (скоро истечёт)
+    if (daysUntilExpiry <= thresholds.critical) {
+      return {
+        status: ExpiryStatus.CRITICAL,
+        color: 'red',
+        daysUntilExpiry,
+      };
+    }
+
+    // Внимание
+    if (daysUntilExpiry <= thresholds.warning) {
+      return {
+        status: ExpiryStatus.WARNING,
+        color: 'yellow',
+        daysUntilExpiry,
+      };
+    }
+
+    // В норме
+    return {
+      status: ExpiryStatus.OK,
+      color: 'green',
+      daysUntilExpiry,
+    };
+  }
+
+  /**
+   * Получить текстовое описание статуса
+   */
+  static getStatusText(status: ExpiryStatus, daysUntilExpiry: number): string {
+    switch (status) {
+      case ExpiryStatus.EXPIRED:
+        return `Expired ${Math.abs(daysUntilExpiry)} days ago`;
+      case ExpiryStatus.CRITICAL:
+        return `Expires in ${daysUntilExpiry} days`;
+      case ExpiryStatus.WARNING:
+        return `Expires in ${daysUntilExpiry} days`;
+      case ExpiryStatus.OK:
+        return `${daysUntilExpiry} days remaining`;
+      default:
+        return 'Unknown status';
+    }
+  }
+
+  /**
+   * Получить порог для статуса
+   */
+  static getThresholdForStatus(status: ExpiryStatus): number {
+    switch (status) {
+      case ExpiryStatus.WARNING:
+        return DEFAULT_THRESHOLDS.warning;
+      case ExpiryStatus.CRITICAL:
+        return DEFAULT_THRESHOLDS.critical;
+      default:
+        return 0;
+    }
+  }
+}
+```
+
+#### 3.2 Обогатить Batch модель виртуальными полями
+
+Файл: `backend/src/models/Batch.ts`
+```typescript
+import { DataTypes, Model } from 'sequelize';
+import sequelize from '../config/database';
+import { ExpiryService, ExpiryStatus } from '../services/expiryService';
+import Product from './Product';
+import User from './User';
+
+export interface BatchAttributes {
+  id: string;
+  productId: string;
+  hotelId: string;
+  departmentId: string;
+  expiryDate: Date;
+  quantity: number;
+  userId: string;
+  // ... остальные поля
+}
+
+// Расширенный интерфейс с вычисляемыми полями
+export interface BatchWithStatus extends BatchAttributes {
+  status: ExpiryStatus;
+  color: string;
+  daysUntilExpiry: number;
+  statusText: string;
+  product?: any;
+  user?: any;
+}
+
+class Batch extends Model<BatchAttributes> implements BatchAttributes {
+  public id!: string;
+  public productId!: string;
+  public hotelId!: string;
+  public departmentId!: string;
+  public expiryDate!: Date;
+  public quantity!: number;
+  public userId!: string;
+
+  // Виртуальные поля (не хранятся в БД)
+  public get status(): ExpiryStatus {
+    const { status } = ExpiryService.calculateStatus(this.expiryDate);
+    return status;
+  }
+
+  public get color(): string {
+    const { color } = ExpiryService.calculateStatus(this.expiryDate);
+    return color;
+  }
+
+  public get daysUntilExpiry(): number {
+    const { daysUntilExpiry } = ExpiryService.calculateStatus(this.expiryDate);
+    return daysUntilExpiry;
+  }
+
+  public get statusText(): string {
+    const { status, daysUntilExpiry } = ExpiryService.calculateStatus(this.expiryDate);
+    return ExpiryService.getStatusText(status, daysUntilExpiry);
+  }
+
+  /**
+   * Serialize для отправки клиенту
+   */
+  public toJSON(): BatchWithStatus {
+    const values = super.toJSON() as BatchAttributes;
+    return {
+      ...values,
+      status: this.status,
+      color: this.color,
+      daysUntilExpiry: this.daysUntilExpiry,
+      statusText: this.statusText,
+    };
+  }
+}
+
+Batch.init(
+  {
+    id: {
+      type: DataTypes.UUID,
+      defaultValue: DataTypes.UUIDV4,
+      primaryKey: true,
+    },
+    productId: {
+      type: DataTypes.UUID,
+      allowNull: false,
+    },
+    hotelId: {
+      type: DataTypes.UUID,
+      allowNull: false,
+    },
+    departmentId: {
+      type: DataTypes.UUID,
+      allowNull: false,
+    },
+    expiryDate: {
+      type: DataTypes.DATE,
+      allowNull: false,
+    },
+    quantity: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+    },
+    userId: {
+      type: DataTypes.UUID,
+      allowNull: false,
+    },
+    // ... остальные поля
+  },
+  {
+    sequelize,
+    tableName: 'batches',
+    indexes: [
+      { fields: ['hotelId'] },
+      { fields: ['departmentId'] },
+      { fields: ['productId'] },
+      { fields: ['expiryDate'] },
+    ],
+  }
+);
+
+// Ассоциации
+Batch.belongsTo(Product, { foreignKey: 'productId', as: 'product' });
+Batch.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+
+export default Batch;
+```
+
+#### 3.3 Создать сервис для статистики
+
+Файл: `backend/src/services/statisticsService.ts`
+```typescript
+import { Op } from 'sequelize';
+import Batch from '../models/Batch';
+import Product from '../models/Product';
+import Category from '../models/Category';
+import { ExpiryStatus, ExpiryService } from './expiryService';
+import { buildContextWhere } from '../utils/contextQuery';
+import User from '../models/User';
+
+export interface StatisticsByStatus {
+  status: ExpiryStatus;
+  count: number;
+  percentage: number;
+  totalValue?: number;
+}
+
+export interface StatisticsByCategory {
+  categoryId: string;
+  categoryName: string;
+  categoryColor: string;
+  count: number;
+  totalQuantity: number;
+}
+
+export interface TrendData {
+  date: string;
+  ok: number;
+  warning: number;
+  critical: number;
+  expired: number;
+}
+
+export interface StatisticsResponse {
+  byStatus: StatisticsByStatus[];
+  byCategory: StatisticsByCategory[];
+  trends: TrendData[];
+  total: {
+    batches: number;
+    products: number;
+    categories: number;
+  };
+}
+
+export class StatisticsService {
+  /**
+   * Получить полную статистику
+   */
+  static async getStatistics(
+    user: User,
+    dateRange?: { from: Date; to: Date }
+  ): Promise<StatisticsResponse> {
+    const where = buildContextWhere(user);
+
+    if (dateRange) {
+      where.expiryDate = {
+        [Op.between]: [dateRange.from, dateRange.to],
+      };
+    }
+
+    // Получить все партии с продуктами и категориями
+    const batches = await Batch.findAll({
+      where,
+      include: [
+        {
+          model: Product,
+          as: 'product',
+          include: [
+            {
+              model: Category,
+              as: 'category',
+            },
+          ],
+        },
+      ],
+    });
+
+    // Рассчитать статистику по статусам
+    const byStatus = this.calculateStatusStatistics(batches);
+
+    // Рассчитать статистику по категориям
+    const byCategory = this.calculateCategoryStatistics(batches);
+
+    // Рассчитать тренды (если нужно)
+    const trends = this.calculateTrends(batches);
+
+    // Общие цифры
+    const total = {
+      batches: batches.length,
+      products: new Set(batches.map(b => b.productId)).size,
+      categories: new Set(batches.map(b => b.
+Logs
+);
+router.get(
+'/entity/:entityType/:entityId',
+requireAuth,
+activityLogController.getEntityHistory
+);
+router.get(
+'/export',
+requireAuth,
+requirePermission(PermissionResource.REPORTS, PermissionAction.EXPORT),
+activityLogController.exportActivityLogs
+);
+export default router;
+
+#### 4.10 Создать модель для истории сборов с полным snapshot
+
+Файл: `backend/src/models/CollectionHistory.ts`
+```typescript
+import { DataTypes, Model } from 'sequelize';
+import sequelize from '../config/database';
+
+export interface CollectionHistoryAttributes {
+  id: string;
+  batchId: string;
+  productId: string;
+  hotelId: string;
+  departmentId: string;
+  userId: string;
+  quantityCollected: number;
+  quantityRemaining: number;
+  expiryDate: Date;           // Snapshot на момент сбора
+  productName: string;        // Snapshot на момент сбора
+  categoryName: string;       // Snapshot на момент сбора
+  collectedAt: Date;
+}
+
+class CollectionHistory extends Model<CollectionHistoryAttributes> implements CollectionHistoryAttributes {
+  public id!: string;
+  public batchId!: string;
+  public productId!: string;
+  public hotelId!: string;
+  public departmentId!: string;
+  public userId!: string;
+  public quantityCollected!: number;
+  public quantityRemaining!: number;
+  public expiryDate!: Date;
+  public productName!: string;
+  public categoryName!: string;
+  public readonly collectedAt!: Date;
+}
+
+CollectionHistory.init(
+  {
+    id: {
+      type: DataTypes.UUID,
+      defaultValue: DataTypes.UUIDV4,
+      primaryKey: true,
+    },
+    batchId: {
+      type: DataTypes.UUID,
+      allowNull: false,
+    },
+    productId: {
+      type: DataTypes.UUID,
+      allowNull: false,
+    },
+    hotelId: {
+      type: DataTypes.UUID,
+      allowNull: false,
+    },
+    departmentId: {
+      type: DataTypes.UUID,
+      allowNull: false,
+    },
+    userId: {
+      type: DataTypes.UUID,
+      allowNull: false,
+    },
+    quantityCollected: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+    },
+    quantityRemaining: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+    },
+    expiryDate: {
+      type: DataTypes.DATE,
+      allowNull: false,
+    },
+    productName: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    categoryName: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    collectedAt: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW,
+    },
+  },
+  {
+    sequelize,
+    tableName: 'collection_history',
+    timestamps: false,
+    indexes: [
+      { fields: ['hotelId'] },
+      { fields: ['departmentId'] },
+      { fields: ['userId'] },
+      { fields: ['batchId'] },
+      { fields: ['collectedAt'] },
+    ],
+  }
+);
+
+export default CollectionHistory;
+```
+
+Миграция: `backend/migrations/20240101000006-create-collection-history.js`
+```javascript
+'use strict';
+
+module.exports = {
+  up: async (queryInterface, Sequelize) => {
+    await queryInterface.createTable('collection_history', {
+      id: {
+        type: Sequelize.UUID,
+        defaultValue: Sequelize.UUIDV4,
+        primaryKey: true,
+      },
+      batchId: {
+        type: Sequelize.UUID,
+        allowNull: false,
+      },
+      productId: {
+        type: Sequelize.UUID,
+        allowNull: false,
+      },
+      hotelId: {
+        type: Sequelize.UUID,
+        allowNull: false,
+      },
+      departmentId: {
+        type: Sequelize.UUID,
+        allowNull: false,
+      },
+      userId: {
+        type: Sequelize.UUID,
+        allowNull: false,
+      },
+      quantityCollected: {
+        type: Sequelize.INTEGER,
+        allowNull: false,
+      },
+      quantityRemaining: {
+        type: Sequelize.INTEGER,
+        allowNull: false,
+      },
+      expiryDate: {
+        type: Sequelize.DATE,
+        allowNull: false,
+      },
+      productName: {
+        type: Sequelize.STRING,
+        allowNull: false,
+      },
+      categoryName: {
+        type: Sequelize.STRING,
+        allowNull: false,
+      },
+      collectedAt: {
+        type: Sequelize.DATE,
+        allowNull: false,
+        defaultValue: Sequelize.NOW,
+      },
+    });
+
+    await queryInterface.addIndex('collection_history', ['hotelId']);
+    await queryInterface.addIndex('collection_history', ['departmentId']);
+    await queryInterface.addIndex('collection_history', ['userId']);
+    await queryInterface.addIndex('collection_history', ['batchId']);
+    await queryInterface.addIndex('collection_history', ['collectedAt']);
+  },
+
+  down: async (queryInterface, Sequelize) => {
+    await queryInterface.dropTable('collection_history');
+  }
+};
+```
+
+#### 4.11 Обновить контроллер сбора партии
+
+Файл: `backend/src/controllers/batch.ts`
+```typescript
+import { Request, Response } from 'express';
+import Batch from '../models/Batch';
+import Product from '../models/Product';
+import Category from '../models/Category';
+import CollectionHistory from '../models/CollectionHistory';
+import { AuditService } from '../services/auditService';
+import { ActivityAction, ActivityEntityType } from '../models/ActivityLog';
+
+/**
+ * Собрать партию (уменьшить quantity)
+ */
+export async function collectBatch(req: Request, res: Response) {
+  try {
+    const user = req.user;
+    const { batchId } = req.params;
+    const { quantity } = req.body;
+
+    // Найти партию с продуктом и категорией
+    const batch = await Batch.findByPk(batchId, {
+      include: [
+        {
+          model: Product,
+          as: 'product',
+          include: [
+            {
+              model: Category,
+              as: 'category',
+            },
+          ],
+        },
+      ],
+    });
+
+    if (!batch) {
+      return res.status(404).json({ error: 'Batch not found' });
+    }
+
+    // Проверка прав доступа
+    if (!canAccessResource(user, batch)) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    // Проверка quantity
+    if (quantity > batch.quantity) {
+      return res.status(400).json({ error: 'Quantity exceeds available stock' });
+    }
+
+    const snapshotBefore = batch.toJSON();
+
+    // Создать запись в истории сборов СО SNAPSHOT данных
+    await CollectionHistory.create({
+      batchId: batch.id,
+      productId: batch.productId,
+      hotelId: batch.hotelId,
+      departmentId: batch.departmentId,
+      userId: user.id,
+      quantityCollected: quantity,
+      quantityRemaining: batch.quantity - quantity,
+      expiryDate: batch.expiryDate,           // SNAPSHOT
+      productName: batch.product.name,        // SNAPSHOT
+      categoryName: batch.product.category.name, // SNAPSHOT
+    });
+
+    // Обновить партию
+    batch.quantity -= quantity;
+
+    // Если quantity = 0, можно удалить партию
+    if (batch.quantity === 0) {
+      await batch.destroy();
+    } else {
+      await batch.save();
+    }
+
+    // Логировать в audit log
+    await AuditService.log({
+      user,
+      action: ActivityAction.COLLECT,
+      entityType: ActivityEntityType.BATCH,
+      entityId: batch.id,
+      entityName: batch.product.name,
+      snapshotBefore,
+      snapshotAfter: batch.quantity === 0 ? null : batch.toJSON(),
+      request: req,
+    });
+
+    res.json({ 
+      message: 'Batch collected successfully',
+      batch: batch.quantity > 0 ? batch : null,
+    });
+  } catch (error) {
+    console.error('Error collecting batch:', error);
+    res.status(500).json({ error: 'Failed to collect batch' });
+  }
+}
+
+/**
+ * Получить историю сборов
+ */
+export async function getCollectionHistory(req: Request, res: Response) {
+  try {
+    const user = req.user;
+    
+    const where = buildContextWhere(user);
+
+    // Дополнительные фильтры
+    if (req.query.from || req.query.to) {
+      where.collectedAt = {};
+      if (req.query.from) where.collectedAt[Op.gte] = parseISO(req.query.from as string);
+      if (req.query.to) where.collectedAt[Op.lte] = parseISO(req.query.to as string);
+    }
+
+    const history = await CollectionHistory.findAll({
+      where,
+      include: [
+        {
+          model: User,
+          as: 'user',
+          attributes: ['id', 'email', 'firstName', 'lastName'],
+        },
+      ],
+      order: [['collectedAt', 'DESC']],
+      limit: req.query.limit ? parseInt(req.query.limit as string) : 100,
+    });
+
+    res.json({ history });
+  } catch (error) {
+    console.error('Error fetching collection history:', error);
+    res.status(500).json({ error: 'Failed to fetch collection history' });
+  }
+}
+```
+
+### Критерии завершения фазы 4
+- [ ] ActivityLog модель обновлена
+- [ ] AuditService создан и работает
+- [ ] Все контроллеры интегрированы с аудитом (user, product, batch, category, settings)
+- [ ] CollectionHistory модель создана
+- [ ] История сборов показывает правильный срок годности (из snapshot)
+- [ ] Журнал действий полный (включая создание пользователей)
+- [ ] "Подробности" в журнале читаемые (текстовое описание)
+- [ ] Экспорт журнала действий работает
+
+---
+
+## Фаза 5: Notification Engine
+
+### Цель
+Централизованная система уведомлений с настраиваемыми правилами и надёжной доставкой. Решает проблемы с Telegram, историей уведомлений, отсутствием настроек правил.
+
+### Задачи
+
+#### 5.1 Создать модель NotificationRule
+
+Файл: `backend/src/models/NotificationRule.ts`
+```typescript
+import { DataTypes, Model } from 'sequelize';
+import sequelize from '../config/database';
+
+export enum NotificationRuleType {
+  EXPIRY = 'expiry',
+  LOW_STOCK = 'low_stock',
+  SYSTEM = 'system',
+}
+
+export enum NotificationChannel {
+  APP = 'app',
+  TELEGRAM = 'telegram',
+  EMAIL = 'email',
+}
+
+export interface NotificationRuleAttributes {
+  id: string;
+  hotelId?: string;
+  departmentId?: string;
+  type: NotificationRuleType;
+  enabled: boolean;
+  // Для expiry
+  warningDays?: number;
+  criticalDays?: number;
+  // Для low_stock
+  minStockThreshold?: number;
+  // Каналы доставки
+  channels: NotificationChannel[];
+  // Кому отправлять
+  recipientRoles: string[];
+  recipientUserIds?: string[];
+}
+
+class NotificationRule extends Model<NotificationRuleAttributes> implements NotificationRuleAttributes {
+  public id!: string;
+  public hotelId?: string;
+  public departmentId?: string;
+  public type!: NotificationRuleType;
+  public enabled!: boolean;
+  public warningDays?: number;
+  public criticalDays?: number;
+  public minStockThreshold?: number;
+  public channels!: NotificationChannel[];
+  public recipientRoles!: string[];
+  public recipientUserIds?: string[];
+}
+
+NotificationRule.init(
+  {
+    id: {
+      type: DataTypes.UUID,
+      defaultValue: DataTypes.UUIDV4,
+      primaryKey: true,
+    },
+    hotelId: {
+      type: DataTypes.UUID,
+      allowNull: true, // null = глобальное правило
+    },
+    departmentId: {
+      type: DataTypes.UUID,
+      allowNull: true,
+    },
+    type: {
+      type: DataTypes.ENUM(...Object.values(NotificationRuleType)),
+      allowNull: false,
+    },
+    enabled: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: true,
+    },
+    warningDays: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
+    criticalDays: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
+    minStockThreshold: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
+    channels: {
+      type: DataTypes.ARRAY(DataTypes.ENUM(...Object.values(NotificationChannel))),
+      defaultValue: ['app'],
+    },
+    recipientRoles: {
+      type: DataTypes.ARRAY(DataTypes.STRING),
+      defaultValue: ['HOTEL_ADMIN', 'DEPARTMENT_MANAGER'],
+    },
+    recipientUserIds: {
+      type: DataTypes.ARRAY(DataTypes.UUID),
+      allowNull: true,
+    },
+  },
+  {
+    sequelize,
+    tableName: 'notification_rules',
+  }
+);
+
+export default NotificationRule;
+```
+
+#### 5.2 Создать модель Notification
+
+Файл: `backend/src/models/Notification.ts`
+```typescript
+import { DataTypes, Model } from 'sequelize';
+import sequelize from '../config/database';
+import { NotificationRuleType, NotificationChannel } from './NotificationRule';
+
+export enum NotificationPriority {
+  LOW = 'low',
+  MEDIUM = 'medium',
+  HIGH = 'high',
+  CRITICAL = 'critical',
+}
+
+export enum NotificationStatus {
+  PENDING = 'pending',
+  SENT = 'sent',
+  FAILED = 'failed',
+  READ = 'read',
+}
+
+export interface NotificationAttributes {
+  id: string;
+  hotelId: string;
+  departmentId?: string;
+  type: NotificationRuleType;
+  priority: NotificationPriority;
+  title: string;
+  message: string;
+  data?: any;
+  // Доставка
+  recipientUserId: string;
+  channel: NotificationChannel;
+  status: NotificationStatus;
+  sentAt?: Date;
+  readAt?: Date;
+  failureReason?: string;
+  retryCount: number;
+  nextRetryAt?: Date;
+}
+
+class Notification extends Model<NotificationAttributes> implements NotificationAttributes {
+  public id!: string;
+  public hotelId!: string;
+  public departmentId?: string;
+  public type!: NotificationRuleType;
+  public priority!: NotificationPriority;
+  public title!: string;
+  public message!: string;
+  public data?: any;
+  public recipientUserId!: string;
+  public channel!: NotificationChannel;
+  public status!: NotificationStatus;
+  public sentAt?: Date;
+  public readAt?: Date;
+  public failureReason?: string;
+  public retryCount!: number;
+  public nextRetryAt?: Date;
+}
+
+Notification.init(
+  {
+    id: {
+      type: DataTypes.UUID,
+      defaultValue: DataTypes.UUIDV4,
+      primaryKey: true,
+    },
+    hotelId: {
+      type: DataTypes.UUID,
+      allowNull: false,
+    },
+    departmentId: {
+      type: DataTypes.UUID,
+      allowNull: true,
+    },
+    type: {
+      type: DataTypes.ENUM(...Object.values(NotificationRuleType)),
+      allowNull: false,
+    },
+    priority: {
+      type: DataTypes.ENUM(...Object.values(NotificationPriority)),
+      allowNull: false,
+    },
+    title: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    message: {
+      type: DataTypes.TEXT,
+      allowNull: false,
+    },
+    data: {
+      type: DataTypes.JSONB,
+      allowNull: true,
+    },
+    recipientUserId: {
+      type: DataTypes.UUID,
+      allowNull: false,
+    },
+    channel: {
+      type: DataTypes.ENUM(...Object.values(NotificationChannel)),
+      allowNull: false,
+    },
+    status: {
+      type: DataTypes.ENUM(...Object.values(NotificationStatus)),
+      defaultValue: NotificationStatus.PENDING,
+    },
+    sentAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    readAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    failureReason: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    retryCount: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
+    },
+    nextRetryAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+  },
+  {
+    sequelize,
+    tableName: 'notifications',
+    indexes: [
+      { fields: ['recipientUserId'] },
+      { fields: ['hotelId'] },
+      { fields: ['status'] },
+      { fields: ['nextRetryAt'] },
+      { fields: ['createdAt'] },
+    ],
+  }
+);
+
+export default Notification;
+```
+
+#### 5.3 Создать NotificationService
+
+Файл: `backend/src/services/notificationService.ts`
+```typescript
+import Notification, { NotificationPriority, NotificationStatus } from '../models/Notification';
+import NotificationRule, { NotificationRuleType, NotificationChannel } from '../models/NotificationRule';
+import User from '../models/User';
+import Batch from '../models/Batch';
+import { ExpiryService, ExpiryStatus } from './expiryService';
+import { TelegramService } from './telegramService';
+import { addHours } from 'date-fns';
+
+export class NotificationService {
+  /**
+   * Проверить все партии и создать уведомления
+   */
+  static async checkExpiringBatches(): Promise<void> {
+    console.log('Checking expiring batches...');
+
+    // Получить все активные правила expiry
+    const rules = await NotificationRule.findAll({
+      where: {
+        type: NotificationRuleType.EXPIRY,
+        enabled: true,
+      },
+    });
+
+    for (const rule of rules) {
+      await this.processExpiryRule(rule);
+    }
+  }
+
+  /**
+   * Обработать правило expiry
+   */
+  private static async processExpiryRule(rule: NotificationRule): Promise<void> {
+    const { hotelId, departmentId, warningDays = 7, criticalDays = 3 } = rule;
+
+    // Получить партии в контексте правила
+    const where: any = {};
+    if (hotelId) where.hotelId = hotelId;
+    if (departmentId) where.departmentId = departmentId;
+
+    const batches = await Batch.findAll({
+      where,
+      include: [{ model: Product, as: 'product' }],
+    });
+
+    for (const batch of batches) {
+      const { status, daysUntilExpiry } = ExpiryService.calculateStatus(batch.expiryDate, {
+        warning: warningDays,
+        critical: criticalDays,
+      });
+
+      // Пропустить OK и EXPIRED
+      if (status === ExpiryStatus.OK || status === ExpiryStatus.EXPIRED) {
+        continue;
+      }
+
+      // Проверить не отправляли ли уже уведомление недавно
+      const recentNotification = await Notification.findOne({
+        where: {
+          type: NotificationRuleType.EXPIRY,
+          'data.batchId': batch.id,
+          createdAt: {
+            [Op.gte]: new Date(Date.now() - 24 * 60 * 60 * 1000), // За последние 24 часа
+          },
+        },
+      });
+
+      if (recentNotification) {
+        continue; // Уже отправляли
+      }
+
+      // Определить priority
+      const priority = status === ExpiryStatus.CRITICAL 
+        ? NotificationPriority.CRITICAL 
+        : NotificationPriority.MEDIUM;
+
+      // Создать уведомления для получателей
+      await this.createNotificationsForRecipients(rule, {
+        type: NotificationRuleType.EXPIRY,
+        priority,
+        title: `Product expiring soon: ${batch.product.name}`,
+        message: `${batch.product.name} will expire in ${daysUntilExpiry} days (${batch.expiryDate.toLocaleDateString()})`,
+        data: {
+          batchId: batch.id,
+          productId: batch.productId,
+          expiryDate: batch.expiryDate,
+          daysUntilExpiry,
+          status,
+        },
+        hotelId: batch.hotelId,
+        departmentId: batch.departmentId,
+      });
+    }
+  }
+
+  /**
+   * Создать уведомления для всех получателей по правилу
+   */
+  private static async createNotificationsForRecipients(
+    rule: NotificationRule,
+    notificationData: {
+      type: NotificationRuleType;
+      priority: NotificationPriority;
+      title: string;
+      message: string;
+      data: any;
+      hotelId: string;
+      departmentId?: string;
+    }
+  ): Promise<void> {
+    // Найти получателей
+    const recipients = await this.findRecipients(rule);
+
+    for (const user of recipients) {
+      for (const channel of rule.channels) {
+        await Notification.create({
+          ...notificationData,
+          recipientUserId: user.id,
+          channel,
+          status: NotificationStatus.PENDING,
+          retryCount: 0,
+        });
+      }
+    }
+  }
+
+  /**
+   * Найти получателей по правилу
+   */
+  private static async findRecipients(rule: NotificationRule): Promise<User[]> {
+    const where: any = {};
+
+    if (rule.hotelId) where.hotelId = rule.hotelId;
+    if (rule.departmentId) where.departmentId = rule.departmentId;
+
+    // Фильтр по ролям
+    if (rule.recipientRoles.length > 0) {
+      where.role = { [Op.in]: rule.recipientRoles };
+    }
+
+    // Конкретные пользователи
+    if (rule.recipientUserIds && rule.recipientUserIds.length > 0) {
+      where[Op.or] = [
+        { role: { [Op.in]: rule.recipientRoles } },
+        { id: { [Op.in]: rule.recipientUserIds } },
+      ];
+    }
+
+    return await User.findAll({ where });
+  }
+
+  /**
+   * Отправить pending уведомления
+   */
+  static async sendPendingNotifications(): Promise<void> {
+    console.log('Sending pending notifications...');
+
+    const notifications = await Notification.findAll({
+      where: {
+        status: NotificationStatus.PENDING,
+        [Op.or]: [
+          { nextRetryAt: null },
+          { nextRetryAt: { [Op.lte]: new Date() } },
+        ],
+      },
+      include: [{ model: User, as: 'recipient' }],
+      limit: 100, // Обрабатывать порциями
+    });
+
+    for (const notification of notifications) {
+      await this.sendNotification(notification);
+    }
+  }
+
+  /**
+   * Отправить конкретное уведомление
+   */
+  private static async sendNotification(notification: Notification): Promise<void> {
+    try {
+      switch (notification.channel) {
+        case NotificationChannel.APP:
+          // APP уведомления просто меняют статус на SENT
+          // Frontend будет их читать через API
+          await notification.update({
+            status: NotificationStatus.SENT,
+            sentAt: new Date(),
+          });
+          break;
+
+        case NotificationChannel.TELEGRAM:
+          await this.sendTelegramNotification(notification);
+          break;
+
+        case NotificationChannel.EMAIL:
+          await this.sendEmailNotification(notification);
+          break;
+      }
+
+      console.log(`Notification ${notification.id} sent successfully`);
+    } catch (error) {
+      console.error(`Failed to send notification ${notification.id}:`, error);
+
+      // Retry logic
+      const maxRetries = 3;
+      if (notification.retryCount < maxRetries) {
+        await notification.update({
+          status: NotificationStatus.PENDING,
+          retryCount: notification.retryCount + 1,
+          nextRetryAt: addHours(new Date(), Math.pow(2, notification.retryCount)), // Exponential backoff
+          failureReason: error.message,
+        });
+      } else {
+        await notification.update({
+          status: NotificationStatus.FAILED,
+          failureReason: error.message,
+        });
+      }
+    }
+  }
+
+  /**
+   * Отправить Telegram уведомление
+   */
+  private static async sendTelegramNotification(notification: Notification): Promise<void> {
+    const user = notification.recipient;
+    
+    if (!user.telegramChatId) {
+      throw new Error('User does not have Telegram chat ID');
+    }
+
+    await TelegramService.sendMessage(user.telegramChatId, {
+      title: notification.title,
+      message: notification.message,
+      priority: notification.priority,
+    });
+
+    await notification.update({
+      status: NotificationStatus.SENT,
+      sentAt: new Date(),
+    });
+  }
+
+  /**
+   * Отправить Email уведомление
+   */
+  private static async sendEmailNotification(notification: Notification): Promise<void> {
+    // TODO: Реализовать email отправку
+    throw new Error('Email notifications not implemented yet');
+  }
+
+  /**
+   * Получить уведомления пользователя
+   */
+  static async getUserNotifications(
+    userId: string,
+    options?: {
+      unreadOnly?: boolean;
+      limit?: number;
+      offset?: number;
+    }
+  ): Promise<{ notifications: Notification[]; total: number }> {
+    const where: any = {
+      recipientUserId: userId,
+      channel: NotificationChannel.APP, // Только APP уведомления
+    };
+
+    if (options?.unreadOnly) {
+      where.readAt = null;
+    }
+
+    const { count, rows } = await Notification.findAndCountAll({
+      where,
+      order: [['createdAt', 'DESC']],
+      limit: options?.limit || 50,
+      offset: options?.offset || 0,
+    });
+
+    return { notifications: rows, total: count };
+  }
+
+  /**
+   * Отметить уведомление как прочитанное
+   */
+  static async markAsRead(notificationId: string, userId: string): Promise<void> {
+    const notification = await Notification.findOne({
+      where: {
+        id: notificationId,
+        recipientUserId: userId,
+      },
+    });
+
+    if (!notification) {
+      throw new Error('Notification not found');
+    }
+
+    await notification.update({
+      status: NotificationStatus.READ,
+      readAt: new Date(),
+    });
+  }
+}
+```
+
+#### 5.4 Обновить TelegramService
+
+Файл: `backend/src/services/telegramService.ts`
+```typescript
+import axios from 'axios';
+import { NotificationPriority } from '../models/Notification';
+
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const TELEGRAM_API_URL = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
+
+export interface TelegramMessage {
+  title: string;
+  message: string;
+  priority: NotificationPriority;
+}
+
+export class TelegramService {
+  /**
+   * Отправить сообщение
+   */
+  static async sendMessage(chatId: string, message: TelegramMessage): Promise<void> {
+    if (!TELEGRAM_BOT_TOKEN) {
+      throw new Error('Telegram bot token not configured');
+    }
+
+    // Форматировать сообщение
+    const emoji = this.getPriorityEmoji(message.priority);
+    const text = `${emoji} *${message.title}*\n\n${message.message}`;
+
+    try {
+      await axios.post(`${TELEGRAM_API_URL}/sendMessage`, {
+        chat_id: chatId,
+        text,
+        parse_mode: 'Markdown',
+      });
+
+      console.log(`Telegram message sent to ${chatId}`);
+    } catch (error) {
+      console.error('Telegram API error:', error.response?.data || error.message);
+      throw new Error(`Failed to send Telegram message: ${error.response?.data?.description || error.message}`);
+    }
+  }
+
+  /**
+   * Получить emoji для priority
+   */
+  private static getPriorityEmoji(priority: NotificationPriority): string {
+    switch (priority) {
+      case NotificationPriority.CRITICAL:
+        return '🚨';
+      case NotificationPriority.HIGH:
+        return '⚠️';
+      case NotificationPriority.MEDIUM:
+        return 'ℹ️';
+      case NotificationPriority.LOW:
+        return '💬';
+      default:
+        return '';
+    }
+  }
+
+  /**
+   * Проверить валиден ли chat ID
+   */
+  static async validateChatId(chatId: string): Promise<boolean> {
+    try {
+      await axios.post(`${TELEGRAM_API_URL}/sendChatAction`, {
+        chat_id: chatId,
+        action: 'typing',
+      });
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+}
+```
+
+#### 5.5 Создать background job для уведомлений
+
+Файл: `backend/src/jobs/notificationJob.ts`
+```typescript
+import { NotificationService } from '../services/notificationService';
+
+/**
+ * Проверять партии каждый час
+ */
+export async function checkExpiringBatchesJob() {
+  console.log('[Job] Checking expiring batches...');
+  
+  try {
+    await NotificationService.checkExpiringBatches();
+    console.log('[Job] Expiring batches check completed');
+  } catch (error) {
+    console.error('[Job] Error checking expiring batches:', error);
+  }
+}
+
+/**
+ * Отправлять pending уведомления каждые 5 минут
+ */
+export async function sendPendingNotificationsJob() {
+  console.log('[Job] Sending pending notifications...');
+try {
+await NotificationService.sendPendingNotifications();
+console.log('[Job] Pending notifications sent');
+} catch (error) {
+console.error('[Job] Error sending notifications:', error);
+}
+}
+/**
+
+Настроить cron jobs
+*/
+export function setupNotificationJobs() {
+const cron = require('node-cron');
+
+// Каждый час проверять партии
+cron.schedule('0 * * * *', checkExpiringBatchesJob);
+// Каждые 5 минут отправлять pending
+cron.schedule('*/5 * * * *', sendPendingNotificationsJob);
+console.log('Notification jobs scheduled');
+}
+
+Добавить в `backend/src/server.ts`:
+```typescript
+import { setupNotificationJobs } from './jobs/notificationJob';
+
+// После инициализации БД
+setupNotificationJobs();
+```
+
+#### 5.6 Создать API для уведомлений
+
+Файл: `backend/src/controllers/notification.ts`
+```typescript
+import { Request, Response } from 'express';
+import { NotificationService } from '../services/notificationService';
+
+/**
+ * Получить уведомления пользователя
+ */
+export async function getUserNotifications(req: Request, res: Response) {
+  try {
+    const user = req.user;
+    const unreadOnly = req.query.unreadOnly === 'true';
+    const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
+    const offset = req.query.offset ? parseInt(req.query.offset as string) : 0;
+
+    const { notifications, total } = await NotificationService.getUserNotifications(
+      user.id,
+      { unreadOnly, limit, offset }
+    );
+
+    res.json({
+      notifications,
+      pagination: {
+        total,
+        limit,
+        offset,
+        hasNext: offset + limit < total,
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching notifications:', error);
+    res.status(500).json({ error: 'Failed to fetch notifications' });
+  }
+}
+
+/**
+ * Отметить уведомление как прочитанное
+ */
+export async function markNotificationAsRead(req: Request, res: Response) {
+  try {
+    const user = req.user;
+    const { notificationId } = req.params;
+
+    await NotificationService.markAsRead(notificationId, user.id);
+
+    res.json({ message: 'Notification marked as read' });
+  } catch (error) {
+    console.error('Error marking notification as read:', error);
+    res.status(500).json({ error: 'Failed to mark notification as read' });
+  }
+}
+
+/**
+ * Отметить все как прочитанные
+ */
+export async function markAllAsRead(req: Request, res: Response) {
+  try {
+    const user = req.user;
+
+    await Notification.update(
+      { status: NotificationStatus.READ, readAt: new Date() },
+      {
+        where: {
+          recipientUserId: user.id,
+          status: { [Op.ne]: NotificationStatus.READ },
+        },
+      }
+    );
+
+    res.json({ message: 'All notifications marked as read' });
+  } catch (error) {
+    console.error('Error marking all as read:', error);
+    res.status(500).json({ error: 'Failed to mark all as read' });
+  }
+}
+```
+
+Файл: `backend/src/routes/notification.ts`
+```typescript
+import express from 'express';
+import { requireAuth } from '../middleware/auth';
+import * as notificationController from '../controllers/notification';
+
+const router = express.Router();
+
+router.get('/', requireAuth, notificationController.getUserNotifications);
+router.post('/:notificationId/read', requireAuth, notificationController.markNotificationAsRead);
+router.post('/mark-all-read', requireAuth, notificationController.markAllAsRead);
+
+export default router;
+```
+
+#### 5.7 Создать API для управления правилами уведомлений
+
+Файл: `backend/src/controllers/notificationRule.ts`
+```typescript
+import { Request, Response } from 'express';
+import NotificationRule from '../models/NotificationRule';
+import { buildContextWhere } from '../utils/contextQuery';
+
+/**
+ * Получить правила уведомлений
+ */
+export async function getNotificationRules(req: Request, res: Response) {
+  try {
+    const user = req.user;
+    
+    const where = buildContextWhere(user);
+
+    const rules = await NotificationRule.findAll({ where });
+
+    res.json({ rules });
+  } catch (error) {
+    console.error('Error fetching notification rules:', error);
+    res.status(500).json({ error: 'Failed to fetch notification rules' });
+  }
+}
+
+/**
+ * Создать/обновить правило
+ */
+export async function upsertNotificationRule(req: Request, res: Response) {
+  try {
+    const user = req.user;
+    const ruleData = req.body;
+
+    // Добавить контекст
+    ruleData.hotelId = ruleData.hotelId || user.hotelId;
+    ruleData.departmentId = ruleData.departmentId || user.departmentId;
+
+    const [rule, created] = await NotificationRule.upsert(ruleData);
+
+    res.status(created ? 201 : 200).json({ rule });
+  } catch (error) {
+    console.error('Error upserting notification rule:', error);
+    res.status(500).json({ error: 'Failed to save notification rule' });
+  }
+}
+
+/**
+ * Удалить правило
+ */
+export async function deleteNotificationRule(req: Request, res: Response) {
+  try {
+    const { ruleId } = req.params;
+
+    await NotificationRule.destroy({ where: { id: ruleId } });
+
+    res.json({ message: 'Rule deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting notification rule:', error);
+    res.status(500).json({ error: 'Failed to delete notification rule' });
+  }
+}
+```
+
+### Критерии завершения фазы 5
+- [ ] NotificationRule и Notification модели созданы
+- [ ] NotificationService реализован
+- [ ] TelegramService обновлён с логированием
+- [ ] Background jobs настроены (cron)
+- [ ] API для уведомлений создано
+- [ ] API для правил создано
+- [ ] Telegram уведомления работают
+- [ ] История уведомлений доступна
+- [ ] Можно настраивать правила (warning/critical days)
+
+---
+
+## Фаза 6: Унификация данных
+
+### Цель
+Все разделы (календарь, статистика, инвентарь, экспорт) используют единый паттерн запроса данных. Решает проблемы с дублированием кода, частично работающим экспортом.
+
+### Задачи
+
+#### 6.1 Создать универсальный сервис фильтрации
+
+Файл: `backend/src/services/filterService.ts`
+```typescript
+import { Op, WhereOptions } from 'sequelize';
+import { parseISO } from 'date-fns';
+
+export interface CommonFilters {
+  hotelId?: string;
+  departmentIds?: string[];
+  dateFrom?: Date | string;
+  dateTo?: Date;
+  categoryIds?: string[];
+  status?: string[];
+  search?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export interface PaginationMeta {
+  total: number;
+  limit: number;
+  offset: number;
+  hasNext: boolean;
+  hasPrev: boolean;
+  page: number;
+  totalPages: number;
+}
+
+export class FilterService {
+  /**
+   * Парсинг фильтров из query params
+   */
+  static parseFilters(query: any): CommonFilters {
+    const filters: CommonFilters = {};
+
+    if (query.hotelId) filters.hotelId = query.hotelId;
+    
+    if (query.departmentIds) {
+      filters.departmentIds = Array.isArray(query.departmentIds) 
+        ? query.departmentIds 
+        : [query.departmentIds];
+    }
+
+    if (query.dateFrom) {
+      filters.dateFrom = typeof query.dateFrom === 'string' 
+        ? parseISO(query.dateFrom) 
+        : query.dateFrom;
+    }
+
+    if (query.dateTo) {
+      filters.dateTo = typeof query.dateTo === 'string' 
+        ? parseISO(query.dateTo) 
+        : query.dateTo;
+    }
+
+    if (query.categoryIds) {
+      filters.categoryIds = Array.isArray(query.categoryIds) 
+        ? query.categoryIds 
+        : [query.categoryIds];
+    }
+
+    if (query.status) {
+      filters.status = Array.isArray(query.status) 
+        ? query.status 
+        : [query.status];
+    }
+
+    if (query.search) filters.search = query.search;
+
+    filters.limit = query.limit ? parseInt(query.limit) : 50;
+    filters.offset = query.offset ? parseInt(query.offset) : 0;
+
+    return filters;
+  }
+
+  /**
+   * Построить where условие из фильтров
+   */
+  static buildWhere(filters: CommonFilters, baseWhere: WhereOptions = {}): WhereOptions {
+    const where: WhereOptions = { ...baseWhere };
+
+    if (filters.hotelId) {
+      where.hotelId = filters.hotelId;
+    }
+
+    if (filters.departmentIds && filters.departmentIds.length > 0) {
+      where.departmentId = { [Op.in]: filters.departmentIds };
+    }
+
+    if (filters.categoryIds && filters.categoryIds.length > 0) {
+      // Для фильтрации по категориям нужен join с Product
+      // Обрабатывается отдельно в каждом контроллере
+    }
+
+    if (filters.dateFrom || filters.dateTo) {
+      where.expiryDate = {};
+      if (filters.dateFrom) where.expiryDate[Op.gte] = filters.dateFrom;
+      if (filters.dateTo) where.expiryDate[Op.lte] = filters.dateTo;
+    }
+
+    if (filters.search) {
+      // Поиск обрабатывается отдельно через include
+    }
+
+    return where;
+  }
+
+  /**
+   * Создать объект pagination
+   */
+  static buildPagination(total: number, limit: number, offset: number): PaginationMeta {
+    const page = Math.floor(offset / limit) + 1;
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      total,
+      limit,
+      offset,
+      hasNext: offset + limit < total,
+      hasPrev: offset > 0,
+      page,
+      totalPages,
+    };
+  }
+}
+```
+
+#### 6.2 Создать универсальный сервис экспорта
+
+Файл: `backend/src/services/exportService.ts`
+```typescript
+import { Parser } from 'json2csv';
+import ExcelJS from 'exceljs';
+
+export enum ExportFormat {
+  CSV = 'csv',
+  EXCEL = 'excel',
+  JSON = 'json',
+}
+
+export class ExportService {
+  /**
+   * Экспорт в CSV
+   */
+  static toCSV(data: any[], fields?: string[]): string {
+    const parser = new Parser({ fields });
+    return parser.parse(data);
+  }
+
+  /**
+   * Экспорт в Excel
+   */
+  static async toExcel(data: any[], sheetName: string = 'Sheet1'): Promise<Buffer> {
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet(sheetName);
+
+    if (data.length === 0) {
+      return await workbook.xlsx.writeBuffer();
+    }
+
+    // Заголовки из первого объекта
+    const headers = Object.keys(data[0]);
+    worksheet.columns = headers.map(key => ({
+      header: key,
+      key,
+      width: 20,
+    }));
+
+    // Данные
+    data.forEach(row => worksheet.addRow(row));
+
+    // Стилизация заголовков
+    worksheet.getRow(1).font = { bold: true };
+    worksheet.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFE0E0E0' },
+    };
+
+    return await workbook.xlsx.writeBuffer();
+  }
+
+  /**
+   * Экспорт в JSON
+   */
+  static toJSON(data: any[]): string {
+    return JSON.stringify(data, null, 2);
+  }
+
+  /**
+   * Универсальная функция экспорта
+   */
+  static async export(data: any[], format: ExportFormat, sheetName?: string): Promise<Buffer | string> {
+    switch (format) {
+      case ExportFormat.CSV:
+        return this.toCSV(data);
+      case ExportFormat.EXCEL:
+        return await this.toExcel(data, sheetName);
+      case ExportFormat.JSON:
+        return this.toJSON(data);
+      default:
+        throw new Error(`Unsupported export format: ${format}`);
+    }
+  }
+
+  /**
+   * Получить MIME type для формата
+   */
+  static getMimeType(format: ExportFormat): string {
+    switch (format) {
+      case ExportFormat.CSV:
+        return 'text/csv';
+      case ExportFormat.EXCEL:
+        return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      case ExportFormat.JSON:
+        return 'application/json';
+      default:
+        return 'application/octet-stream';
+    }
+  }
+
+  /**
+   * Получить расширение файла
+   */
+  static getFileExtension(format: ExportFormat): string {
+    switch (format) {
+      case ExportFormat.CSV:
+        return 'csv';
+      case ExportFormat.EXCEL:
+        return 'xlsx';
+      case ExportFormat.JSON:
+        return 'json';
+      default:
+        return 'txt';
+    }
+  }
+}
+```
+
+#### 6.3 Обновить контроллеры для использования единого паттерна
+
+Пример: `backend/src/controllers/inventory.ts`
+```typescript
+import { Request, Response } from 'express';
+import Batch from '../models/Batch';
+import Product from '../models/Product';
+import Category from '../models/Category';
+import { buildContextWhere } from '../utils/contextQuery';
+import { FilterService } from '../services/filterService';
+import { ExportService, ExportFormat } from '../services/exportService';
+import { AuditService } from '../services/auditService';
+import { ActivityAction, ActivityEntityType } from '../models/ActivityLog';
+
+/**
+ * Получить инвентарь
+ */
+export async function getInventory(req: Request, res: Response) {
+  try {
+    const user = req.user;
+    
+    // Парсинг фильтров
+    const filters = FilterService.parseFilters(req.query);
+
+    // Базовый where с контекстом пользователя
+    const baseWhere = buildContextWhere(user);
+    const where = FilterService.buildWhere(filters, baseWhere);
+
+    // Получить данные
+    const { count, rows: batches } = await Batch.findAndCountAll({
+      where,
+      include: [
+        {
+          model: Product,
+          as: 'product',
+          include: [
+            {
+              model: Category,
+              as: 'category',
+            },
+          ],
+          ...(filters.categoryIds && {
+            where: { categoryId: { [Op.in]: filters.categoryIds } },
+          }),
+          ...(filters.search && {
+            where: { name: { [Op.iLike]: `%${filters.search}%` } },
+          }),
+        },
+      ],
+      order: [['expiryDate', 'ASC']],
+      limit: filters.limit,
+      offset: filters.offset,
+    });
+
+    // Фильтр по status (виртуальное поле)
+    let filteredBatches = batches;
+    if (filters.status && filters.status.length > 0) {
+      filteredBatches = batches.filter(b => filters.status.includes(b.status));
+    }
+
+    // Группировать по продуктам
+    const inventory = groupBatchesByProduct(filteredBatches);
+
+    // Pagination
+    const pagination = FilterService.buildPagination(count, filters.limit, filters.offset);
+
+    res.json({ inventory, pagination, filters });
+  } catch (error) {
+    console.error('Error fetching inventory:', error);
+    res.status(500).json({ error: 'Failed to fetch inventory' });
+  }
+}
+
+/**
+ * Экспорт инвентаря
+ */
+export async function exportInventory(req: Request, res: Response) {
+  try {
+    const user = req.user;
+    const format = (req.query.format as ExportFormat) || ExportFormat.CSV;
+
+    // Те же фильтры что и в getInventory
+    const filters = FilterService.parseFilters(req.query);
+    const baseWhere = buildContextWhere(user);
+    const where = FilterService.buildWhere(filters, baseWhere);
+
+    filters.limit = 10000; // Для экспорта берём всё
+
+    const batches = await Batch.findAll({
+      where,
+      include: [
+        {
+          model: Product,
+          as: 'product',
+          include: [{ model: Category, as: 'category' }],
+        },
+      ],
+      order: [['expiryDate', 'ASC']],
+    });
+
+    // Форматировать данные для экспорта
+    const exportData = batches.map(b => ({
+      Product: b.product.name,
+      Category: b.product.category.name,
+      'Expiry Date': b.expiryDate.toLocaleDateString(),
+      'Days Until Expiry': b.daysUntilExpiry,
+      Status: b.status,
+      Quantity: b.quantity,
+      Department: b.departmentId,
+    }));
+
+    // Экспорт
+    const result = await ExportService.export(exportData, format, 'Inventory');
+
+    // Логировать
+    await AuditService.log({
+      user,
+      action: ActivityAction.EXPORT,
+      entityType: ActivityEntityType.BATCH,
+      entityId: 'inventory',
+      entityName: 'Inventory Export',
+      request: req,
+    });
+
+    // Отправить файл
+    res.setHeader('Content-Type', ExportService.getMimeType(format));
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename=inventory.${ExportService.getFileExtension(format)}`
+    );
+    res.send(result);
+  } catch (error) {
+    console.error('Error exporting inventory:', error);
+    res.status(500).json({ error: 'Failed to export inventory' });
+  }
+}
+```
+
+Аналогично обновить экспорт в: `statistics.ts`, `activityLog.ts`, `batch.ts`
+
+### Критерии завершения фазы 6
+- [ ] FilterService создан
+- [ ] ExportService создан
+- [ ] Минимум 3 контроллера обновлены (inventory, statistics, activityLog)
+- [ ] Экспорт работает единообразно везде (CSV, Excel, JSON)
+- [ ] Фильтры работают одинаково во всех разделах
+- [ ] Pagination работает корректно
+- [ ] Нет дублирования кода между контроллерами
+
+---
+
+## Фаза 7: Настройки как правила
+
+### Цель
+Настройки становятся источником правил работы системы и применяются в реальном времени. Решает проблемы с несохранением настроек, неприменением брендинга.
+
+### Задачи
+
+#### 7.1 Создать модель Settings
+
+Файл: `backend/src/models/Settings.ts`
+```typescript
+import { DataTypes, Model } from 'sequelize';
+import sequelize from '../config/database';
+
+export enum SettingsScope {
+  SYSTEM = 'system',
+  HOTEL = 'hotel',
+  DEPARTMENT = 'department',
+  USER = 'user',
+}
+
+export interface SettingsAttributes {
+  id: string;
+  scope: SettingsScope;
+  scopeId?: string; // hotelId, departmentId, или userId
+  key: string;
+  value: any;
+  description?: string;
+}
+
+class Settings extends Model<SettingsAttributes> implements SettingsAttributes {
+  public id!: string;
+  public scope!: SettingsScope;
+  public scopeId?: string;
+  public key!: string;
+  public value!: any;
+  public description?: string;
+}
+
+Settings.init(
+  {
+    id: {
+      type: DataTypes.UUID,
+      defaultValue: DataTypes.UUIDV4,
+      primaryKey: true,
+    },
+    scope: {
+      type: DataTypes.ENUM(...Object.values(SettingsScope)),
+      allowNull: false,
+    },
+    scopeId: {
+      type: DataTypes.UUID,
+      allowNull: true,
+    },
+    key: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    value: {
+      type: DataTypes.JSONB,
+      allowNull: false,
+    },
+    description: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+  },
+  {
+    sequelize,
+    tableName: 'settings',
+    indexes: [
+      {
+        unique: true,
+        fields: ['scope', 'scopeId', 'key'],
+      },
+      { fields: ['key'] },
+    ],
+  }
+);
+
+export default Settings;
+```
+
+#### 7.2 Создать сервис настроек
+
+Файл: `backend/src/services/settingsService.ts`
+```typescript
+import Settings, { SettingsScope } from '../models/Settings';
+import User from '../models/User';
+
+export class SettingsService {
+  /**
+   * Получить настройку с учётом иерархии
+   * Приоритет: user > department > hotel > system
+   */
+  static async get(key: string, context: {
+    userId?: string;
+    departmentId?: string;
+    hotelId?: string;
+  }): Promise<any> {
+    // Попробовать user scope
+    if (context.userId) {
+      const userSetting = await Settings.findOne({
+        where: { scope: SettingsScope.USER, scopeId: context.userId, key },
+      });
+      if (userSetting) return userSetting.value;
+    }
+
+    // Попробовать department scope
+    if (context.departmentId) {
+      const deptSetting = await Settings.findOne({
+        where: { scope: SettingsScope.DEPARTMENT, scopeId: context.departmentId, key },
+      });
+      if (deptSetting) return deptSetting.value;
+    }
+
+    // Попробовать hotel scope
+    if (context.hotelId) {
+      const hotelSetting = await Settings.findOne({
+        where: { scope: SettingsScope.HOTEL, scopeId: context.hotelId, key },
+      });
+      if (hotelSetting) return hotelSetting.value;
+    }
+
+    // Fallback на system scope
+    const systemSetting = await Settings.findOne({
+      where: { scope: SettingsScope.SYSTEM, scopeId: null, key },
+    });
+
+    return systemSetting?.value || null;
+  }
+
+  /**
+   * Установить настройку
+   */
+  static async set(
+    key: string,
+    value: any,
+    scope: SettingsScope,
+    scopeId?: string
+  ): Promise<Settings> {
+    const [setting] = await Settings.upsert({
+      scope,
+      scopeId,
+      key,
+      value,
+    });
+
+    return setting;
+  }
+
+  /**
+   * Получить все настройки для scope
+   */
+  static async getAll(scope: SettingsScope, scopeId?: string): Promise<Record<string, any>> {
+    const settings = await Settings.findAll({
+      where: { scope, scopeId },
+    });
+
+    return settings.reduce((acc, s) => {
+      acc[s.key] = s.value;
+      return acc;
+    }, {} as Record<string, any>);
+  }
+
+  /**
+   * Получить настройки для пользователя (с учётом иерархии)
+   */
+  static async getUserSettings(user: User): Promise<Record<string, any>> {
+    const keys = [
+      'branding.logo',
+      'branding.primaryColor',
+      'branding.secondaryColor',
+      'branding.companyName',
+      'locale.language',
+      'locale.timezone',
+      'locale.dateFormat',
+      'notifications.email',
+      'notifications.telegram',
+      'notifications.warningDays',
+      'notifications.criticalDays',
+    ];
+
+    const settings: Record<string, any> = {};
+
+    for (const key of keys) {
+      settings[key] = await this.get(key, {
+        userId: user.id,
+        departmentId: user.departmentId,
+        hotelId: user.hotelId,
+      });
+    }
+
+    return settings;
+  }
+
+  /**
+   * Удалить настройку
+   */
+  static async delete(key: string, scope: SettingsScope, scopeId?: string): Promise<void> {
+    await Settings.destroy({
+      where: { scope, scopeId, key },
+    });
+  }
+}
+```
+
+#### 7.3 Создать контроллер настроек
+
+Файл: `backend/src/controllers/settings.ts`
+```typescript
+import { Request, Response } from 'express';
+import { SettingsService } from '../services/settingsService';
+import { SettingsScope } from '../models/Settings';
+import { AuditService } from '../services/auditService';
+import { ActivityAction, ActivityEntityType } from '../models/ActivityLog';
+
+/**
+ * Получить настройки пользователя
+ */
+export async function getUserSettings(req: Request, res: Response) {
+  try {
+    const user = req.user;
+    const settings = await SettingsService.getUserSettings(user);
+
+    res.json({ settings });
+  } catch (error) {
+    console.error('Error fetching user settings:', error);
+    res.status(500).json({ error: 'Failed to fetch settings' });
+  }
+}
+
+/**
+ * Обновить настройку
+ */
+export async function updateSetting(req: Request, res: Response) {
+  try {
+    const user = req.user;
+    const { key, value, scope } = req.body;
+
+    // Определить scopeId
+    let scopeId;
+    if (scope === SettingsScope.USER) {
+      scopeId = user.id;
+    } else if (scope === SettingsScope.DEPARTMENT) {
+      scopeId = user.departmentId;
+    } else if (scope === SettingsScope.HOTEL) {
+      scopeId = user.hotelId;
+    }
+
+    const setting = await SettingsService.set(key, value, scope, scopeId);
+
+    // Логировать
+    await AuditService.log({
+      user,
+      action: ActivityAction.UPDATE,
+      entityType: ActivityEntityType.SETTINGS,
+      entityId: setting.id,
+      entityName: key,
+      snapshotAfter: { key, value, scope, scopeId },
+      request: req,
+    });
+
+    res.json({ setting });
+  } catch (error) {
+    console.error('Error updating setting:', error);
+    res.status(500).json({ error: 'Failed to update setting' });
+  }
+}
+
+/**
+ * Получить все настройки hotel
+ */
+export async function getHotelSettings(req: Request, res: Response) {
+  try {
+    const user = req.user;
+    const settings = await SettingsService.getAll(SettingsScope.HOTEL, user.hotelId);
+
+    res.json({ settings });
+  } catch (error) {
+    console.error('Error fetching hotel settings:', error);
+    res.status(500).json({ error: 'Failed to fetch hotel settings' });
+  }
+}
+
+/**
+ * Batch update настроек
+ */
+export async function batchUpdateSettings(req: Request, res: Response) {
+  try {
+    const user = req.user;
+    const { settings, scope } = req.body;
+
+    // Определить scopeId
+    let scopeId;
+    if (scope === SettingsScope.USER) {
+      scopeId = user.id;
+    } else if (scope === SettingsScope.DEPARTMENT) {
+      scopeId = user.departmentId;
+    } else if (scope === SettingsScope.HOTEL) {
+      scopeId = user.hotelId;
+    }
+
+    // Обновить каждую настройку
+    const updatedSettings = [];
+    for (const [key, value] of Object.entries(settings)) {
+      const setting = await SettingsService.set(key, value, scope, scopeId);
+      updatedSettings.push(setting);
+    }
+
+    // Логировать
+    await AuditService.log({
+      user,
+      action: ActivityAction.UPDATE,
+      entityType: ActivityEntityType.SETTINGS,
+      entityId: 'batch',
+      entityName: 'Batch Settings Update',
+      snapshotAfter: { settings, scope, scopeId },
+      request: req,
+    });
+
+    res.json({ settings: updatedSettings });
+  } catch (error) {
+    console.error('Error batch updating settings:', error);
+    res.status(500).json({ error: 'Failed to batch update settings' });
+  }
+}
+```
+
+Файл: `backend/src/routes/settings.ts`
+```typescript
+import express from 'express';
+import { requireAuth } from '../middleware/auth';
+import { requirePermission } from '../middleware/permission';
+import { PermissionResource, PermissionAction } from '../models/Permission';
+import * as settingsController from '../controllers/settings';
+
+const router = express.Router();
+
+router.get(
+  '/user',
+  requireAuth,
+  settingsController.getUserSettings
+);
+
+router.get(
+  '/hotel',
+  requireAuth,
+  requirePermission(PermissionResource.SETTINGS, PermissionAction.READ),
+  settingsController.getHotelSettings
+);
+
+router.put(
+  '/',
+  requireAuth,
+  requirePermission(PermissionResource.SETTINGS, PermissionAction.UPDATE),
+  settingsController.updateSetting
+);
+
+router.post(
+  '/batch',
+  requireAuth,
+  requirePermission(PermissionResource.SETTINGS, PermissionAction.UPDATE),
+  settingsController.batchUpdateSettings
+);
+
+export default router;
+```
+
+#### 7.4 Seed дефолтных настроек
+
+Файл: `backend/src/seeds/seedSettings.ts`
+```typescript
+import Settings, { SettingsScope } from '../models/Settings';
+
+const defaultSettings = [
+  // Branding
+  {
+    scope: SettingsScope.SYSTEM,
+    key: 'branding.logo',
+    value: '/assets/logo.png',
+    description: 'Company logo URL',
+  },
+  {
+    scope: SettingsScope.SYSTEM
+,
+key: 'branding.primaryColor',
+value: '#3B82F6',
+description: 'Primary brand color',
+},
+{
+scope: SettingsScope.SYSTEM,
+key: 'branding.secondaryColor',
+value: '#10B981',
+description: 'Secondary brand color',
+},
+{
+scope: SettingsScope.SYSTEM,
+key: 'branding.companyName',
+value: 'FreshTrack',
+description: 'Company name',
+},
+// Locale
+{
+scope: SettingsScope.SYSTEM,
+key: 'locale.language',
+value: 'en',
+description: 'Default language',
+},
+{
+scope: SettingsScope.SYSTEM,
+key: 'locale.timezone',
+value: 'UTC',
+description: 'Default timezone',
+},
+{
+scope: SettingsScope.SYSTEM,
+key: 'locale.dateFormat',
+value: 'MM/DD/YYYY',
+description: 'Date format',
+},
+// Notifications
+{
+scope: SettingsScope.SYSTEM,
+key: 'notifications.warningDays',
+value: 7,
+description: 'Days before expiry to show warning',
+},
+{
+scope: SettingsScope.SYSTEM,
+key: 'notifications.criticalDays',
+value: 3,
+description: 'Days before expiry to show critical',
+},
+];
+export async function seedSettings() {
+console.log('Seeding default settings...');
+for (const setting of defaultSettings) {
+await Settings.findOrCreate({
+where: {
+scope: setting.scope,
+scopeId: null,
+key: setting.key,
+},
+defaults: setting,
+});
+}
+console.log('Settings seeded successfully');
+}
+if (require.main === module) {
+seedSettings()
+.then(() => process.exit(0))
+.catch((err) => {
+console.error('Error seeding settings:', err);
+process.exit(1);
+});
+}
+
+### Критерии завершения фазы 7
+- [ ] Settings модель создана
+- [ ] SettingsService реализован с иерархией
+- [ ] API для настроек создано
+- [ ] Seed дефолтных настроек загружен
+- [ ] Сохранение настроек работает
+- [ ] Брендинг применяется корректно
+- [ ] Можно настраивать правила уведомлений через настройки
+
+---
+
+## Checklist для проверки
+
+### После каждой фазы проверять:
+- [ ] Миграции выполнены без ошибок
+- [ ] Тесты (если есть) проходят
+- [ ] Ручное тестирование основного функционала прошло успешно
+- [ ] Нет console.error в логах
+- [ ] Git commit сделан с понятным сообщением
+
+### После завершения всех фаз:
+
+#### Безопасность:
+- [ ] Блокировка пользователей работает
+- [ ] HOTEL_ADMIN не может управлять SUPER_ADMIN
+- [ ] Каждый пользователь видит только свои данные
+- [ ] Permissions проверяются на каждом endpoint
+
+#### Функциональность:
+- [ ] Календарь показывает правильные цвета
+- [ ] Статистика "по категориям" не показывает "другое"
+- [ ] История сборов показывает правильный срок годности
+- [ ] Журнал действий полный и читаемый
+- [ ] Telegram уведомления работают
+- [ ] Экспорт работает во всех разделах
+- [ ] Настройки сохраняются и применяются
+
+#### Производительность:
+- [ ] Запросы выполняются < 500ms
+- [ ] Индексы созданы на всех foreign keys
+- [ ] Нет N+1 queries
+
+#### Документация:
+- [ ] README обновлён
+- [ ] API endpoints задокументированы
+- [ ] Переменные окружения описаны
+
+---
+
+## Следующие шаги после завершения
+
+1. **Добавление новой роли Department Manager** - теперь тривиально через permissions
+2. **Сканирование чеков** - можно добавлять как независимую фичу
+3. **Учёт продаж** - аналогично
+4. **Тесты** - написать полное покрытие
+5. **Monitoring** - добавить Sentry/LogRocket
+6. **Performance optimization** - кеширование, CDN

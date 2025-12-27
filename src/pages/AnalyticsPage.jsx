@@ -20,17 +20,17 @@ import {
 
 export default function AnalyticsPage() {
   const { t } = useTranslation()
-  const { user } = useAuth()
+  const { user, isHotelAdmin } = useAuth()
   const { getActiveBatches, getStats } = useProducts()
 
   const stats = getStats()
   const batches = getActiveBatches()
 
-  // Фильтрация по доступным отделам
+  // Фильтрация по доступным отделам (permission-based)
   const filteredBatches = useMemo(() => {
-    if (['SUPER_ADMIN', 'HOTEL_ADMIN'].includes(user?.role)) return batches
+    if (isHotelAdmin()) return batches
     return batches.filter((b) => user?.departments?.includes(b.departmentId))
-  }, [batches, user])
+  }, [batches, user, isHotelAdmin])
 
   // Расчет прогноза на следующую неделю
   const weekForecast = useMemo(() => {
@@ -120,10 +120,9 @@ export default function AnalyticsPage() {
 
   // Статистика по отделам для сравнения
   const departmentComparison = useMemo(() => {
-    const userDepts =
-      ['SUPER_ADMIN', 'HOTEL_ADMIN'].includes(user?.role)
-        ? departments
-        : departments.filter((d) => user?.departments?.includes(d.id))
+    const userDepts = isHotelAdmin()
+      ? departments
+      : departments.filter((d) => user?.departments?.includes(d.id))
 
     return userDepts
       .map((dept) => {
@@ -144,7 +143,7 @@ export default function AnalyticsPage() {
         }
       })
       .sort((a, b) => b.healthScore - a.healthScore)
-  }, [filteredBatches, user])
+  }, [filteredBatches, user, isHotelAdmin])
 
   return (
     <div className="space-y-6">

@@ -34,9 +34,10 @@ const isSuperAdmin = (role) => {
  * ProtectedRoute - обёртка для защищённых маршрутов
  * @param {Object} props
  * @param {React.ReactNode} props.children - Дочерние компоненты
- * @param {string[]} props.allowedRoles - Массив разрешённых ролей (если не указан - доступно всем авторизованным)
+ * @param {string[]} props.allowedRoles - Массив разрешённых ролей (deprecated - use requiredPermission)
  * @param {string[]} props.allowedDepartments - Массив разрешённых отделов
- * @param {boolean} props.requireAdmin - Требуется роль admin
+ * @param {boolean} props.requireAdmin - Требуется роль admin (deprecated - use requiredPermission)
+ * @param {string} props.requiredPermission - Требуемый permission (e.g., 'settings:read')
  * @param {string} props.redirectTo - Путь для редиректа при отказе доступа
  */
 export default function ProtectedRoute({
@@ -44,9 +45,10 @@ export default function ProtectedRoute({
   allowedRoles = null,
   allowedDepartments = null,
   requireAdmin = false,
+  requiredPermission = null,
   redirectTo = '/login'
 }) {
-  const { user, isAuthenticated, loading } = useAuth()
+  const { user, isAuthenticated, loading, hasPermission } = useAuth()
   const location = useLocation()
 
   // Показываем загрузку пока проверяется авторизация
@@ -66,7 +68,15 @@ export default function ProtectedRoute({
     return <Navigate to={redirectTo} state={{ from: location }} replace />
   }
 
-  // Проверка роли admin если требуется
+  // Permission-based access check (preferred method)
+  if (requiredPermission && !hasPermission(requiredPermission)) {
+    // Fallback: allow admins for backward compatibility
+    if (!isAdmin(user?.role)) {
+      return <Navigate to="/" state={{ accessDenied: true }} replace />
+    }
+  }
+
+  // Проверка роли admin если требуется (deprecated - use requiredPermission)
   if (requireAdmin && !isAdmin(user?.role)) {
     return <Navigate to="/" state={{ accessDenied: true }} replace />
   }
@@ -117,6 +127,7 @@ export function DepartmentRoute({ children, departments, redirectTo = '/' }) {
 
 /**
  * RoleRoute - обёртка для маршрутов с доступом к определённым ролям
+ * @deprecated Prefer using PermissionRoute for granular access control
  */
 export function RoleRoute({ children, roles, redirectTo = '/' }) {
   return (
@@ -127,10 +138,23 @@ export function RoleRoute({ children, roles, redirectTo = '/' }) {
 }
 
 /**
+ * PermissionRoute - обёртка для маршрутов с проверкой permission
+ * @param {string} permission - Required permission (e.g., 'settings:read', 'audit:read')
+ */
+export function PermissionRoute({ children, permission, redirectTo = '/' }) {
+  return (
+    <ProtectedRoute requiredPermission={permission} redirectTo={redirectTo}>
+      {children}
+    </ProtectedRoute>
+  )
+}
+
+/**
  * Хук для проверки прав доступа
+ * Updated to use permission-based checks from AuthContext
  */
 export function useAccessControl() {
-  const { user, isAuthenticated } = useAuth()
+  const { user, isAuthenticated, hasPermission, canManage, canPerformAction } = useAuth()
 
   const hasRole = (role) => {
     if (!isAuthenticated || !user) return false
@@ -166,13 +190,17 @@ export function useAccessControl() {
     hasAnyRole,
     hasDepartmentAccess,
     hasAnyDepartmentAccess,
+    hasPermission,
+    canManage,
+    canPerformAction,
     isSuperAdmin: checkIsSuperAdmin,
     isAdmin: checkIsAdmin,
     isHotelAdmin: () => normalizeRole(user?.role) === 'HOTEL_ADMIN',
     isStaff: checkIsStaff,
-    canManageUsers: checkIsAdmin(),
-    canViewAllDepartments: checkIsAdmin(),
-    canExportData: checkIsAdmin(),
-    canManageSettings: checkIsAdmin()
+    // Permission-based access checks (preferred)
+    canManageUsers: hasPermission?.('users:manage') || checkIsAdmin(),
+    canViewAllDepartments: hasPermission?.('departments:read') || checkIsAdmin(),
+    canExportData: hasPermission?.('export:read') || checkIsAdmin(),
+    canManageSettings: hasPermission?.('settings:manage') || checkIsAdmin()
   }
 }

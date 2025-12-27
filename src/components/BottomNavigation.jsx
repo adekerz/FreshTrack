@@ -10,14 +10,14 @@ export default function BottomNavigation() {
   const location = useLocation()
   const navigate = useNavigate()
   const { getStats } = useProducts()
-  const { user, logout } = useAuth()
+  const { user, logout, isHotelAdmin } = useAuth()
   const { t } = useTranslation()
   const { language, changeLanguage } = useLanguage()
   const stats = getStats()
   const [showMore, setShowMore] = useState(false)
 
   const unreadCount = stats.critical + stats.expired
-  const isAdmin = ['SUPER_ADMIN', 'HOTEL_ADMIN'].includes(user?.role?.toUpperCase())
+  const isAdmin = isHotelAdmin()
 
   // Основные пункты навигации (4 пункта + "Ещё")
   const navItems = [

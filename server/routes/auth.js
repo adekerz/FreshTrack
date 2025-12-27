@@ -22,8 +22,28 @@ import {
   PermissionResource,
   PermissionAction
 } from '../middleware/auth.js'
+import { PermissionService } from '../services/PermissionService.js'
 
 const router = express.Router()
+
+/**
+ * Helper: Get user permissions as string array
+ * Format: 'resource:action' (e.g., 'products:delete', 'batches:read')
+ */
+async function getUserPermissionsArray(user) {
+  try {
+    const permissions = await PermissionService.getUserPermissions(user)
+    // Convert to 'resource:action' format
+    return permissions.map(p => `${p.resource}:${p.action}`)
+  } catch (error) {
+    console.error('Error loading permissions:', error)
+    // Fallback based on role for resilience
+    const role = user.role?.toUpperCase()
+    if (role === 'SUPER_ADMIN') return ['*']
+    if (role === 'HOTEL_ADMIN') return ['*']
+    return []
+  }
+}
 
 // POST /api/auth/login
 router.post('/login', async (req, res) => {
@@ -63,6 +83,9 @@ router.post('/login', async (req, res) => {
       ip_address: req.ip
     })
     
+    // Get user permissions from database
+    const permissions = await getUserPermissionsArray(user)
+    
     res.json({
       success: true,
       user: {
@@ -74,7 +97,8 @@ router.post('/login', async (req, res) => {
         hotel_id: user.hotel_id,
         department_id: user.department_id,
         hotel: hotel ? { id: hotel.id, name: hotel.name, code: hotel.code } : null,
-        telegram_chat_id: user.telegram_chat_id
+        telegram_chat_id: user.telegram_chat_id,
+        permissions // NEW: Array of 'resource:action' strings
       },
       token
     })
@@ -116,6 +140,9 @@ router.get('/me', authMiddleware, async (req, res) => {
       hotel = await getHotelById(user.hotel_id)
     }
     
+    // Get user permissions from database
+    const permissions = await getUserPermissionsArray(user)
+    
     res.json({
       success: true,
       user: {
@@ -127,7 +154,8 @@ router.get('/me', authMiddleware, async (req, res) => {
         hotel_id: user.hotel_id,
         department_id: user.department_id,
         hotel: hotel ? { id: hotel.id, name: hotel.name, code: hotel.code } : null,
-        telegram_chat_id: user.telegram_chat_id
+        telegram_chat_id: user.telegram_chat_id,
+        permissions // NEW: Array of 'resource:action' strings
       }
     })
   } catch (error) {

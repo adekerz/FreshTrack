@@ -14,18 +14,20 @@ import { Package, AlertTriangle, CheckCircle, Clock } from 'lucide-react'
 export default function StatisticsPage() {
   const { t } = useTranslation()
   const { language } = useLanguage()
-  const { user } = useAuth()
+  const { user, isHotelAdmin } = useAuth()
   const { getActiveBatches, getStats, departments, categories } = useProducts()
   const [selectedPeriod, setSelectedPeriod] = useState('week')
 
   const stats = getStats()
   const batches = getActiveBatches()
 
-  // Фильтрация доступных отделов для пользователя
+  // Фильтрация доступных отделов для пользователя (permission-based)
   const userDepartments = useMemo(() => {
-    if (['SUPER_ADMIN', 'HOTEL_ADMIN'].includes(user?.role)) return departments
+    // Hotel admins and super admins see all departments
+    if (isHotelAdmin()) return departments
+    // Other users see only their assigned departments
     return departments.filter((d) => user?.departments?.includes(d.id))
-  }, [user])
+  }, [user, departments, isHotelAdmin])
 
   // Статистика по отделам
   const departmentStats = useMemo(() => {
@@ -57,7 +59,8 @@ export default function StatisticsPage() {
     const categories = {}
 
     batches.forEach((batch) => {
-      if (!['SUPER_ADMIN', 'HOTEL_ADMIN'].includes(user?.role) && !user?.departments?.includes(batch.departmentId)) return
+      // Filter by user's department access (permission-based via isHotelAdmin)
+      if (!isHotelAdmin() && !user?.departments?.includes(batch.departmentId)) return
 
       // Use categoryName from backend (properly resolved from JOIN)
       const cat = batch.categoryName || batch.category_name || 'other'
@@ -77,18 +80,19 @@ export default function StatisticsPage() {
         ...data
       }
     })
-  }, [batches, user, t])
+  }, [batches, user, t, isHotelAdmin])
 
   // Топ товаров, требующих внимания
   const topAlertProducts = useMemo(() => {
     return batches
       .filter((b) => {
-        if (!['SUPER_ADMIN', 'HOTEL_ADMIN'].includes(user?.role) && !user?.departments?.includes(b.departmentId)) return false
+        // Filter by user's department access (permission-based)
+        if (!isHotelAdmin() && !user?.departments?.includes(b.departmentId)) return false
         return b.daysLeft <= 7
       })
       .sort((a, b) => a.daysLeft - b.daysLeft)
       .slice(0, 5)
-  }, [batches, user])
+  }, [batches, user, isHotelAdmin])
 
   // Подготовка данных для экспорта (синхронизировано с InventoryPage)
   const exportData = useMemo(() => {

@@ -36,6 +36,7 @@ export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose })
       : stats.critical + stats.expired
 
   // Menu items grouped by category (Miller's Law - chunking)
+  // Uses permission-based access control instead of hardcoded roles
   const navGroups = [
     {
       label: null, // Main navigation - no label
@@ -44,14 +45,14 @@ export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose })
           path: '/',
           icon: LayoutDashboard,
           label: t('nav.dashboard'),
-          roles: ['SUPER_ADMIN', 'HOTEL_ADMIN', 'STAFF'],
+          permission: 'dashboard:read', // All authenticated users
           onboardingId: 'dashboard'
         },
         {
           path: '/inventory',
           icon: Package,
           label: t('nav.inventory'),
-          roles: ['SUPER_ADMIN', 'HOTEL_ADMIN', 'STAFF'],
+          permission: 'batches:read',
           onboardingId: 'inventory'
         },
         {
@@ -59,14 +60,14 @@ export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose })
           icon: Bell,
           label: t('nav.notifications'),
           badge: unreadCount > 0 ? unreadCount : null,
-          roles: ['SUPER_ADMIN', 'HOTEL_ADMIN', 'STAFF'],
+          permission: 'notifications:read',
           onboardingId: 'notifications'
         },
         {
           path: '/calendar',
           icon: Calendar,
           label: t('nav.calendar') || 'Calendar',
-          roles: ['SUPER_ADMIN', 'HOTEL_ADMIN', 'STAFF']
+          permission: 'batches:read'
         }
       ]
     },
@@ -77,20 +78,20 @@ export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose })
           path: '/statistics',
           icon: BarChart3,
           label: t('nav.statistics'),
-          roles: ['SUPER_ADMIN', 'HOTEL_ADMIN'],
+          permission: 'reports:read',
           onboardingId: 'statistics'
         },
         {
           path: '/collection-history',
           icon: ClipboardList,
           label: t('nav.collectionHistory'),
-          roles: ['SUPER_ADMIN', 'HOTEL_ADMIN']
+          permission: 'collections:read'
         },
         {
           path: '/audit-logs',
           icon: FileText,
           label: t('nav.auditLogs') || 'Audit Log',
-          roles: ['SUPER_ADMIN', 'HOTEL_ADMIN']
+          permission: 'audit:read'
         }
       ]
     },
@@ -101,17 +102,27 @@ export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose })
           path: '/settings',
           icon: Settings,
           label: t('nav.settings'),
-          roles: ['SUPER_ADMIN', 'HOTEL_ADMIN']
+          permission: 'settings:read'
         }
       ]
     }
   ]
 
-  // Filter menu items by user role
-  const filterByRole = (items) => {
+  // Filter menu items by permission (permission-based access control)
+  const { hasPermission, isHotelAdmin } = useAuth()
+  
+  const filterByPermission = (items) => {
     if (!user) return []
-    const userRole = user.role?.toUpperCase()
-    return items.filter(item => item.roles.includes(userRole))
+    return items.filter(item => {
+      // Dashboard is accessible to all authenticated users
+      if (item.path === '/') return true
+      // Check permission or fallback to isHotelAdmin for reports/settings
+      return hasPermission(item.permission) || 
+             (item.permission?.includes('reports:') && isHotelAdmin()) ||
+             (item.permission?.includes('audit:') && isHotelAdmin()) ||
+             (item.permission?.includes('settings:') && isHotelAdmin()) ||
+             (item.permission?.includes('collections:') && isHotelAdmin())
+    })
   }
 
   const isActive = (path) => {
@@ -176,7 +187,7 @@ export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose })
         {/* Main Navigation - Grouped */}
         <nav className="flex-1 px-3 py-4 overflow-y-auto">
           {navGroups.map((group, groupIndex) => {
-            const items = filterByRole(group.items)
+            const items = filterByPermission(group.items)
             if (items.length === 0) return null
             
             return (

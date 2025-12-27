@@ -106,7 +106,36 @@ export function AuthProvider({ children }) {
   }
 
   /**
-   * Check if user is admin
+   * Check if user has a specific permission
+   * Permission format: 'resource:action' (e.g., 'products:delete', 'settings:manage')
+   * Supports wildcard permissions: '*' for full access, 'resource:*' for all actions on resource
+   */
+  const hasPermission = (permission) => {
+    if (!user) return false
+    
+    const role = user?.role?.toUpperCase()
+    // SUPER_ADMIN has all permissions (implicit wildcard)
+    if (role === 'SUPER_ADMIN') return true
+    
+    const userPermissions = user.permissions || []
+    
+    // Check for explicit wildcard
+    if (userPermissions.includes('*')) return true
+    
+    // Check for exact match
+    if (userPermissions.includes(permission)) return true
+    
+    // Check for resource wildcard (e.g., 'products:*' grants 'products:delete')
+    const [resource] = permission.split(':')
+    if (userPermissions.includes(`${resource}:*`)) return true
+    if (userPermissions.includes(`${resource}:manage`)) return true
+    
+    return false
+  }
+
+  /**
+   * Check if user is admin (HOTEL_ADMIN or SUPER_ADMIN)
+   * @deprecated Prefer using hasPermission() for granular checks
    */
   const isAdmin = () => {
     const role = user?.role?.toUpperCase()
@@ -115,17 +144,33 @@ export function AuthProvider({ children }) {
 
   /**
    * Check if user is super admin
+   * @deprecated Prefer using hasPermission() for granular checks
    */
   const isSuperAdmin = () => {
     return user?.role?.toUpperCase() === 'SUPER_ADMIN'
   }
 
   /**
-   * Check if user is hotel admin
+   * Check if user is hotel admin or super admin
+   * @deprecated Prefer using hasPermission() for granular checks
    */
   const isHotelAdmin = () => {
     const role = user?.role?.toUpperCase()
     return role === 'SUPER_ADMIN' || role === 'HOTEL_ADMIN'
+  }
+  
+  /**
+   * Check if user can manage a resource (has manage or specific action permission)
+   */
+  const canManage = (resource) => {
+    return hasPermission(`${resource}:manage`) || isAdmin()
+  }
+
+  /**
+   * Check if user can perform action on resource
+   */
+  const canPerformAction = (resource, action) => {
+    return hasPermission(`${resource}:${action}`)
   }
 
   /**
@@ -154,26 +199,6 @@ export function AuthProvider({ children }) {
     localStorage.setItem('freshtrack_user', JSON.stringify(updatedUser))
   }
 
-  /**
-   * Check permission
-   */
-  const hasPermission = (permission) => {
-    if (!user) return false
-    if (isAdmin()) return true
-    
-    const userPermissions = user.permissions || []
-    if (userPermissions.includes('*')) return true
-    
-    return userPermissions.some(p => {
-      if (p === permission) return true
-      if (p.endsWith('.*')) {
-        const prefix = p.slice(0, -2)
-        return permission.startsWith(prefix)
-      }
-      return false
-    })
-  }
-
   const value = {
     user,
     token,
@@ -188,7 +213,9 @@ export function AuthProvider({ children }) {
     hasAccessToDepartment,
     getAccessibleDepartments,
     updateUser,
-    hasPermission
+    hasPermission,
+    canManage,
+    canPerformAction
   }
 
   return <AuthContext.Provider value={value}>{!loading && children}</AuthContext.Provider>

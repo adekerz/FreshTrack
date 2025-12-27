@@ -19,7 +19,7 @@ const statusBorderColors = {
 export default function ProductModal({ product, onClose }) {
   const { t } = useTranslation()
   const { language } = useLanguage()
-  const { user } = useAuth()
+  const { hasPermission } = useAuth()
   const { getBatchesByProduct, collectBatch, deleteBatch, addBatch, deleteProduct } = useProducts()
   const { addToast } = useToast()
 
@@ -98,8 +98,8 @@ export default function ProductModal({ product, onClose }) {
     }
   }
 
-  // Проверка прав на удаление (SUPER_ADMIN или HOTEL_ADMIN)
-  const canDeleteProduct = user?.role === 'SUPER_ADMIN' || user?.role === 'HOTEL_ADMIN'
+  // Проверка прав на удаление (permission-based, не hardcoded roles)
+  const canDeleteProduct = hasPermission('products:delete')
 
   // Удаление товара
   const handleDeleteProduct = async () => {

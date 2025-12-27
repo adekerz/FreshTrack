@@ -26,7 +26,7 @@ const REASONS = {
 
 export default function CollectionHistoryPage() {
   const { t } = useTranslation()
-  const { user } = useAuth()
+  const { isHotelAdmin, hasPermission } = useAuth()
   const { departments } = useProducts()
   const [logs, setLogs] = useState([])
   const [stats, setStats] = useState({ today: 0, week: 0, month: 0, total: 0 })
@@ -125,14 +125,16 @@ export default function CollectionHistoryPage() {
   )
 
   useEffect(() => {
-    if (['SUPER_ADMIN', 'HOTEL_ADMIN'].includes(user?.role)) {
+    // Permission-based access check
+    if (isHotelAdmin() || hasPermission('collections:read')) {
       fetchLogs(pagination.page)
       fetchStats()
     }
-  }, [fetchLogs, fetchStats, pagination.page, user?.role])
+  }, [fetchLogs, fetchStats, pagination.page, isHotelAdmin, hasPermission])
 
-  // Проверка роли - только SUPER_ADMIN и HOTEL_ADMIN
-  if (!['SUPER_ADMIN', 'HOTEL_ADMIN'].includes(user?.role)) {
+  // Проверка прав доступа (permission-based)
+  const canAccessPage = isHotelAdmin() || hasPermission('collections:read')
+  if (!canAccessPage) {
     return <Navigate to="/" replace />
   }
 

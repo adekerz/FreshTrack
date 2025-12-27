@@ -113,10 +113,25 @@ export function ProductProvider({ children }) {
 
       // API возвращает { success: true, batches: [...] } или массив
       const batchesRaw = Array.isArray(batchesRes) ? batchesRes : (batchesRes.batches || [])
+      
+      // Contract validation: проверяем что backend возвращает enriched данные
+      const validateBatchContract = (batch) => {
+        const requiredFields = ['expiryStatus', 'statusColor', 'daysLeft']
+        const missingFields = requiredFields.filter(field => batch[field] === undefined)
+        if (missingFields.length > 0 && batch.expiry_date) {
+          console.warn(`⚠️ Backend contract warning: Missing enriched fields [${missingFields.join(', ')}] for batch ${batch.id}. Falling back to local calculation.`)
+        }
+        return missingFields.length === 0
+      }
+      
       // Нормализация snake_case → camelCase для совместимости
       // Backend enriches batches with expiryStatus, statusColor, daysLeft, statusText
       const batchesData = batchesRaw.map(b => {
         const expiryDate = b.expiry_date || b.expiryDate
+        
+        // Validate contract (warning only, not blocking)
+        const hasEnrichedData = validateBatchContract(b)
+        
         // Use getBatchStatus which prefers backend data, falls back to local calculation
         const statusInfo = getBatchStatus(b)
         return {
@@ -139,7 +154,9 @@ export function ProductProvider({ children }) {
           statusColor: statusInfo.color,
           statusText: statusInfo.statusText,
           isExpired: statusInfo.isExpired,
-          isUrgent: statusInfo.isUrgent
+          isUrgent: statusInfo.isUrgent,
+          // Flag for debugging
+          _hasEnrichedData: hasEnrichedData
         }
       })
       setBatches(batchesData)
