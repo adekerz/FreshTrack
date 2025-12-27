@@ -16,7 +16,6 @@ import {
 import { 
   authMiddleware, 
   hotelIsolation, 
-  hotelAdminOnly, 
   departmentIsolation,
   requirePermission,
   PermissionResource,
@@ -37,7 +36,7 @@ const router = express.Router()
  * Returns: { byStatus, byCategory, trends, total, filters }
  * No frontend calculations - backend is Single Source of Truth
  */
-router.get('/statistics', authMiddleware, hotelIsolation, departmentIsolation, async (req, res) => {
+router.get('/statistics', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.REPORTS, PermissionAction.READ), async (req, res) => {
   try {
     const { from, to, locale = 'ru', trend_days } = req.query
     
@@ -78,7 +77,7 @@ router.get('/statistics', authMiddleware, hotelIsolation, departmentIsolation, a
 /**
  * GET /api/reports/statistics/quick - Quick summary for dashboard widgets
  */
-router.get('/statistics/quick', authMiddleware, hotelIsolation, departmentIsolation, async (req, res) => {
+router.get('/statistics/quick', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.REPORTS, PermissionAction.READ), async (req, res) => {
   try {
     const context = {
       hotelId: req.hotelId,
@@ -289,7 +288,7 @@ router.get('/activity', authMiddleware, hotelIsolation, departmentIsolation, req
  * Single Source of Truth: ExpiryService provides colors/statuses
  * Optimized for calendar rendering with date-grouped batches
  */
-router.get('/calendar', authMiddleware, hotelIsolation, departmentIsolation, async (req, res) => {
+router.get('/calendar', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.REPORTS, PermissionAction.READ), async (req, res) => {
   try {
     const { start_date, end_date, department_id, category_id } = req.query
     

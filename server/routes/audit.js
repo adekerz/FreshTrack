@@ -8,8 +8,7 @@ import express from 'express'
 import { getAuditLogs } from '../db/database.js'
 import { 
   authMiddleware, 
-  hotelIsolation, 
-  hotelAdminOnly,
+  hotelIsolation,
   requirePermission,
   PermissionResource,
   PermissionAction

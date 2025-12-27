@@ -467,7 +467,9 @@
     "status": {
       "sent": "Отправлено",
       "failed": "Ошибка",
-      "pending": "В ожидании"
+      "pending": "В ожидании",
+      "read": "Прочитано",
+      "unread": "Не прочитано"
     }
   },
   "collectionHistory": {

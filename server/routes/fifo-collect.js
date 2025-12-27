@@ -33,7 +33,7 @@ const router = express.Router()
  * - affectedBatches: Array of batches that will be collected from
  * - totalAvailable: Total available quantity
  */
-router.get('/preview', authMiddleware, hotelIsolation, departmentIsolation, async (req, res) => {
+router.get('/preview', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.BATCHES, PermissionAction.READ), async (req, res) => {
   try {
     const { productId, quantity } = req.query
 
@@ -165,6 +165,7 @@ router.get('/history',
   authMiddleware, 
   hotelIsolation, 
   departmentIsolation,
+  requirePermission(PermissionResource.BATCHES, PermissionAction.READ),
   async (req, res) => {
     try {
       const { productId, userId, startDate, endDate, limit, offset } = req.query

@@ -11,12 +11,19 @@ import {
   deleteDeliveryTemplate,
   logAudit
 } from '../db/database.js'
-import { authMiddleware, hotelIsolation, hotelAdminOnly, departmentIsolation } from '../middleware/auth.js'
+import { 
+  authMiddleware, 
+  hotelIsolation, 
+  departmentIsolation,
+  requirePermission,
+  PermissionResource,
+  PermissionAction
+} from '../middleware/auth.js'
 
 const router = express.Router()
 
 // GET /api/delivery-templates
-router.get('/', authMiddleware, hotelIsolation, departmentIsolation, async (req, res) => {
+router.get('/', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.DELIVERY_TEMPLATES, PermissionAction.READ), async (req, res) => {
   try {
     const { department_id } = req.query
     // Use department from isolation middleware unless user can access all departments
@@ -30,7 +37,7 @@ router.get('/', authMiddleware, hotelIsolation, departmentIsolation, async (req,
 })
 
 // GET /api/delivery-templates/:id
-router.get('/:id', authMiddleware, hotelIsolation, departmentIsolation, async (req, res) => {
+router.get('/:id', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.DELIVERY_TEMPLATES, PermissionAction.READ), async (req, res) => {
   try {
     const template = await getDeliveryTemplateById(req.params.id)
     if (!template) {
@@ -51,7 +58,7 @@ router.get('/:id', authMiddleware, hotelIsolation, departmentIsolation, async (r
 })
 
 // POST /api/delivery-templates
-router.post('/', authMiddleware, hotelIsolation, departmentIsolation, hotelAdminOnly, async (req, res) => {
+router.post('/', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.DELIVERY_TEMPLATES, PermissionAction.CREATE), async (req, res) => {
   try {
     const { name, description, supplier, department_id, items, schedule, notes } = req.body
     
@@ -90,7 +97,7 @@ router.post('/', authMiddleware, hotelIsolation, departmentIsolation, hotelAdmin
 })
 
 // PUT /api/delivery-templates/:id
-router.put('/:id', authMiddleware, hotelIsolation, departmentIsolation, hotelAdminOnly, async (req, res) => {
+router.put('/:id', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.DELIVERY_TEMPLATES, PermissionAction.UPDATE), async (req, res) => {
   try {
     const template = await getDeliveryTemplateById(req.params.id)
     if (!template) {
@@ -137,7 +144,7 @@ router.put('/:id', authMiddleware, hotelIsolation, departmentIsolation, hotelAdm
 })
 
 // DELETE /api/delivery-templates/:id
-router.delete('/:id', authMiddleware, hotelIsolation, departmentIsolation, hotelAdminOnly, async (req, res) => {
+router.delete('/:id', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.DELIVERY_TEMPLATES, PermissionAction.DELETE), async (req, res) => {
   try {
     const template = await getDeliveryTemplateById(req.params.id)
     if (!template) {

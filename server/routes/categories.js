@@ -11,12 +11,19 @@ import {
   deleteCategory,
   logAudit
 } from '../db/database.js'
-import { authMiddleware, hotelIsolation, hotelAdminOnly, departmentIsolation } from '../middleware/auth.js'
+import { 
+  authMiddleware, 
+  hotelIsolation, 
+  departmentIsolation,
+  requirePermission,
+  PermissionResource,
+  PermissionAction
+} from '../middleware/auth.js'
 
 const router = express.Router()
 
 // GET /api/categories
-router.get('/', authMiddleware, hotelIsolation, departmentIsolation, async (req, res) => {
+router.get('/', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.CATEGORIES, PermissionAction.READ), async (req, res) => {
   try {
     const { department_id, include_inactive } = req.query
     // Use department from isolation middleware unless user can access all departments
@@ -34,7 +41,7 @@ router.get('/', authMiddleware, hotelIsolation, departmentIsolation, async (req,
 })
 
 // GET /api/categories/:id
-router.get('/:id', authMiddleware, hotelIsolation, departmentIsolation, async (req, res) => {
+router.get('/:id', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.CATEGORIES, PermissionAction.READ), async (req, res) => {
   try {
     const category = await getCategoryById(req.params.id)
     if (!category) {
@@ -56,7 +63,7 @@ router.get('/:id', authMiddleware, hotelIsolation, departmentIsolation, async (r
 })
 
 // POST /api/categories
-router.post('/', authMiddleware, hotelIsolation, departmentIsolation, hotelAdminOnly, async (req, res) => {
+router.post('/', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.CATEGORIES, PermissionAction.CREATE), async (req, res) => {
   try {
     const { name, description, color, icon, department_id, parent_id, sort_order } = req.body
     
@@ -93,7 +100,7 @@ router.post('/', authMiddleware, hotelIsolation, departmentIsolation, hotelAdmin
 })
 
 // PUT /api/categories/:id
-router.put('/:id', authMiddleware, hotelIsolation, departmentIsolation, hotelAdminOnly, async (req, res) => {
+router.put('/:id', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.CATEGORIES, PermissionAction.UPDATE), async (req, res) => {
   try {
     const category = await getCategoryById(req.params.id)
     if (!category) {
@@ -145,7 +152,7 @@ router.put('/:id', authMiddleware, hotelIsolation, departmentIsolation, hotelAdm
 })
 
 // DELETE /api/categories/:id
-router.delete('/:id', authMiddleware, hotelIsolation, departmentIsolation, hotelAdminOnly, async (req, res) => {
+router.delete('/:id', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.CATEGORIES, PermissionAction.DELETE), async (req, res) => {
   try {
     const category = await getCategoryById(req.params.id)
     if (!category) {

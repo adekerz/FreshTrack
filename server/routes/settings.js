@@ -24,8 +24,7 @@ import {
 } from '../services/SettingsService.js'
 import { 
   authMiddleware, 
-  hotelIsolation, 
-  hotelAdminOnly,
+  hotelIsolation,
   requirePermission,
   PermissionResource,
   PermissionAction
@@ -307,7 +306,7 @@ router.put('/department/:key', authMiddleware, hotelIsolation, requirePermission
  * GET /api/settings/hotel - Get hotel-level settings (Phase 7)
  * Requires HOTEL_ADMIN or higher
  */
-router.get('/hotel', authMiddleware, hotelIsolation, hotelAdminOnly, async (req, res) => {
+router.get('/hotel', authMiddleware, hotelIsolation, requirePermission(PermissionResource.SETTINGS, PermissionAction.READ), async (req, res) => {
   try {
     const settings = await getAllSettingsForScope('hotel', {
       hotelId: req.hotelId
@@ -324,7 +323,7 @@ router.get('/hotel', authMiddleware, hotelIsolation, hotelAdminOnly, async (req,
  * PUT /api/settings/hotel/:key - Set hotel-level setting (Phase 7)
  * Requires settings:update:hotel permission (HOTEL_ADMIN)
  */
-router.put('/hotel/:key', authMiddleware, hotelIsolation, hotelAdminOnly, async (req, res) => {
+router.put('/hotel/:key', authMiddleware, hotelIsolation, requirePermission(PermissionResource.SETTINGS, PermissionAction.UPDATE), async (req, res) => {
   try {
     const { key } = req.params
     const { value } = req.body
@@ -426,7 +425,7 @@ router.put('/system/:key', authMiddleware, async (req, res) => {
  * POST /api/settings/cache/clear - Clear settings cache (Phase 7)
  * For admin use during debugging
  */
-router.post('/cache/clear', authMiddleware, hotelAdminOnly, (req, res) => {
+router.post('/cache/clear', authMiddleware, hotelIsolation, requirePermission(PermissionResource.SETTINGS, PermissionAction.UPDATE), (req, res) => {
   try {
     clearSettingsCache()
     res.json({ success: true, message: 'Settings cache cleared' })

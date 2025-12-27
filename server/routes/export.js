@@ -13,12 +13,19 @@ import {
   logAudit,
   query
 } from '../db/database.js'
-import { authMiddleware, hotelIsolation, hotelAdminOnly, departmentIsolation } from '../middleware/auth.js'
+import { 
+  authMiddleware, 
+  hotelIsolation, 
+  departmentIsolation,
+  requirePermission,
+  PermissionResource,
+  PermissionAction
+} from '../middleware/auth.js'
 
 const router = express.Router()
 
 // GET /api/export/products
-router.get('/products', authMiddleware, hotelIsolation, departmentIsolation, async (req, res) => {
+router.get('/products', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.EXPORT, PermissionAction.READ), async (req, res) => {
   try {
     const { format = 'json' } = req.query
     
@@ -51,7 +58,7 @@ router.get('/products', authMiddleware, hotelIsolation, departmentIsolation, asy
 })
 
 // GET /api/export/batches
-router.get('/batches', authMiddleware, hotelIsolation, departmentIsolation, async (req, res) => {
+router.get('/batches', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.EXPORT, PermissionAction.READ), async (req, res) => {
   try {
     const { department_id, product_id, status, format = 'json' } = req.query
     // Use department from isolation middleware unless user can access all departments
@@ -86,7 +93,7 @@ router.get('/batches', authMiddleware, hotelIsolation, departmentIsolation, asyn
 })
 
 // GET /api/export/categories
-router.get('/categories', authMiddleware, hotelIsolation, departmentIsolation, async (req, res) => {
+router.get('/categories', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.EXPORT, PermissionAction.READ), async (req, res) => {
   try {
     const categories = await getAllCategories(req.hotelId)
     res.json({ success: true, categories, count: categories.length })
@@ -97,7 +104,7 @@ router.get('/categories', authMiddleware, hotelIsolation, departmentIsolation, a
 })
 
 // GET /api/export/departments
-router.get('/departments', authMiddleware, hotelIsolation, async (req, res) => {
+router.get('/departments', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.EXPORT, PermissionAction.READ), async (req, res) => {
   try {
     const departments = await getAllDepartments(req.hotelId)
     res.json({ success: true, departments, count: departments.length })
@@ -108,7 +115,7 @@ router.get('/departments', authMiddleware, hotelIsolation, async (req, res) => {
 })
 
 // GET /api/export/write-offs
-router.get('/write-offs', authMiddleware, hotelIsolation, departmentIsolation, hotelAdminOnly, async (req, res) => {
+router.get('/write-offs', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.EXPORT, PermissionAction.READ), async (req, res) => {
   try {
     const { department_id, start_date, end_date, format = 'json' } = req.query
     // Use department from isolation middleware unless user can access all departments
@@ -131,7 +138,7 @@ router.get('/write-offs', authMiddleware, hotelIsolation, departmentIsolation, h
 })
 
 // GET /api/export/inventory - Export inventory (products with current batches)
-router.get('/inventory', authMiddleware, hotelIsolation, departmentIsolation, async (req, res) => {
+router.get('/inventory', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.EXPORT, PermissionAction.READ), async (req, res) => {
   try {
     const { department_id, format = 'json' } = req.query
     const deptId = req.canAccessAllDepartments ? (department_id || null) : req.departmentId
@@ -183,7 +190,7 @@ router.get('/inventory', authMiddleware, hotelIsolation, departmentIsolation, as
 })
 
 // GET /api/export/collections - Export FIFO collection history
-router.get('/collections', authMiddleware, hotelIsolation, departmentIsolation, async (req, res) => {
+router.get('/collections', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.EXPORT, PermissionAction.READ), async (req, res) => {
   try {
     const { department_id, start_date, end_date, format = 'json' } = req.query
     const deptId = req.canAccessAllDepartments ? (department_id || null) : req.departmentId
@@ -243,7 +250,7 @@ router.get('/collections', authMiddleware, hotelIsolation, departmentIsolation, 
 })
 
 // GET /api/export/audit
-router.get('/audit', authMiddleware, hotelIsolation, hotelAdminOnly, async (req, res) => {
+router.get('/audit', authMiddleware, hotelIsolation, requirePermission(PermissionResource.EXPORT, PermissionAction.READ), async (req, res) => {
   try {
     const { start_date, end_date, limit = 1000 } = req.query
     const filters = { start_date, end_date, limit: parseInt(limit) }
@@ -258,7 +265,7 @@ router.get('/audit', authMiddleware, hotelIsolation, hotelAdminOnly, async (req,
 })
 
 // GET /api/export/all
-router.get('/all', authMiddleware, hotelIsolation, hotelAdminOnly, async (req, res) => {
+router.get('/all', authMiddleware, hotelIsolation, requirePermission(PermissionResource.EXPORT, PermissionAction.READ), async (req, res) => {
   try {
     const [products, batches, categories, departments, writeOffs] = await Promise.all([
       getAllProducts(req.hotelId, {}),

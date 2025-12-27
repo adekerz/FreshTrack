@@ -49,7 +49,7 @@ router.get('/', authMiddleware, hotelIsolation, departmentIsolation, requirePerm
 })
 
 // GET /api/notifications/unread-count
-router.get('/unread-count', authMiddleware, hotelIsolation, departmentIsolation, async (req, res) => {
+router.get('/unread-count', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.NOTIFICATIONS, PermissionAction.READ), async (req, res) => {
   try {
     const deptId = req.canAccessAllDepartments ? null : req.departmentId
     const count = await getUnreadNotificationsCount(req.hotelId, req.user.id, deptId)
@@ -61,7 +61,7 @@ router.get('/unread-count', authMiddleware, hotelIsolation, departmentIsolation,
 })
 
 // GET /api/notifications/logs - Get notification logs/history
-router.get('/logs', authMiddleware, hotelIsolation, departmentIsolation, async (req, res) => {
+router.get('/logs', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.NOTIFICATIONS, PermissionAction.READ), async (req, res) => {
   try {
     const { page = 1, limit = 20, type, status } = req.query
     const offset = (parseInt(page) - 1) * parseInt(limit)
@@ -106,7 +106,7 @@ router.get('/logs', authMiddleware, hotelIsolation, departmentIsolation, async (
 })
 
 // GET /api/notifications/:id
-router.get('/:id', authMiddleware, hotelIsolation, departmentIsolation, async (req, res) => {
+router.get('/:id', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.NOTIFICATIONS, PermissionAction.READ), async (req, res) => {
   try {
     const notification = await getNotificationById(req.params.id)
     if (!notification) {
@@ -127,7 +127,7 @@ router.get('/:id', authMiddleware, hotelIsolation, departmentIsolation, async (r
 })
 
 // POST /api/notifications
-router.post('/', authMiddleware, hotelIsolation, departmentIsolation, async (req, res) => {
+router.post('/', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.NOTIFICATIONS, PermissionAction.CREATE), async (req, res) => {
   try {
     const { type, title, message, priority, user_id, entity_type, entity_id, data, department_id } = req.body
     
@@ -159,7 +159,7 @@ router.post('/', authMiddleware, hotelIsolation, departmentIsolation, async (req
 })
 
 // PUT /api/notifications/:id/read
-router.put('/:id/read', authMiddleware, hotelIsolation, departmentIsolation, async (req, res) => {
+router.put('/:id/read', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.NOTIFICATIONS, PermissionAction.UPDATE), async (req, res) => {
   try {
     const notification = await getNotificationById(req.params.id)
     if (!notification) {
@@ -182,7 +182,7 @@ router.put('/:id/read', authMiddleware, hotelIsolation, departmentIsolation, asy
 })
 
 // PUT /api/notifications/read-all
-router.put('/read-all', authMiddleware, hotelIsolation, departmentIsolation, async (req, res) => {
+router.put('/read-all', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.NOTIFICATIONS, PermissionAction.UPDATE), async (req, res) => {
   try {
     const deptId = req.canAccessAllDepartments ? null : req.departmentId
     const count = await markAllNotificationsAsRead(req.hotelId, deptId)
@@ -194,7 +194,7 @@ router.put('/read-all', authMiddleware, hotelIsolation, departmentIsolation, asy
 })
 
 // DELETE /api/notifications/:id
-router.delete('/:id', authMiddleware, hotelIsolation, departmentIsolation, async (req, res) => {
+router.delete('/:id', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.NOTIFICATIONS, PermissionAction.DELETE), async (req, res) => {
   try {
     const notification = await getNotificationById(req.params.id)
     if (!notification) {
@@ -217,7 +217,7 @@ router.delete('/:id', authMiddleware, hotelIsolation, departmentIsolation, async
 })
 
 // POST /api/notifications/test - Send test notification
-router.post('/test', authMiddleware, hotelIsolation, async (req, res) => {
+router.post('/test', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.NOTIFICATIONS, PermissionAction.CREATE), async (req, res) => {
   try {
     const { type = 'test', channel = 'app' } = req.body
     

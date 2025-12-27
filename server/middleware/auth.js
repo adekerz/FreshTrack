@@ -173,8 +173,10 @@ export const superAdminOnly = (req, res, next) => {
 
 /**
  * Hotel Admin or higher middleware
+ * @deprecated Use requirePermission() instead. This middleware uses hardcoded role checks.
  */
 export const hotelAdminOnly = (req, res, next) => {
+  console.warn('DEPRECATED: hotelAdminOnly middleware used. Migrate to requirePermission()')
   const allowedRoles = ['SUPER_ADMIN', 'HOTEL_ADMIN']
   if (!allowedRoles.includes(req.user?.role)) {
     return res.status(403).json({ 
@@ -187,8 +189,10 @@ export const hotelAdminOnly = (req, res, next) => {
 
 /**
  * Department Manager or higher middleware
+ * @deprecated Use requirePermission() instead. This middleware uses hardcoded role checks.
  */
 export const departmentManagerOnly = (req, res, next) => {
+  console.warn('DEPRECATED: departmentManagerOnly middleware used. Migrate to requirePermission()')
   const allowedRoles = ['SUPER_ADMIN', 'HOTEL_ADMIN', 'DEPARTMENT_MANAGER']
   if (!allowedRoles.includes(req.user?.role)) {
     return res.status(403).json({ 
@@ -377,6 +381,7 @@ export const PermissionResource = {
   PRODUCTS: 'products',
   BATCHES: 'batches',
   CATEGORIES: 'categories',
+  COLLECTIONS: 'collections',
   USERS: 'users',
   DEPARTMENTS: 'departments',
   SETTINGS: 'settings',
@@ -384,7 +389,9 @@ export const PermissionResource = {
   NOTIFICATIONS: 'notifications',
   WRITE_OFFS: 'write_offs',
   AUDIT: 'audit',
-  HOTELS: 'hotels'
+  HOTELS: 'hotels',
+  EXPORT: 'export',
+  DELIVERY_TEMPLATES: 'delivery_templates'
 }
 
 /**
@@ -470,40 +477,16 @@ export async function hasPermission(user, resource, action, targets = {}) {
   // Get role permissions from DB
   const permissions = await getRolePermissions(user.role)
   
-  // Fallback to role-based if permissions not loaded
+  // Fallback to strict deny if permissions not loaded
   if (!permissions) {
-    // Legacy role-based fallback
-    if (user.role === 'SUPER_ADMIN') return true
-    
-    if (user.role === 'HOTEL_ADMIN') {
-      // Hotel admin can access anything in their hotel
-      if (targetHotelId && user.hotel_id !== targetHotelId) return false
+    // SUPER_ADMIN always has full access as a safety net
+    if (user.role === 'SUPER_ADMIN') {
+      console.warn('Permission DB unavailable, SUPER_ADMIN granted fallback access')
       return true
     }
     
-    if (user.role === 'DEPARTMENT_MANAGER') {
-      // Department manager: hotel and department scope check
-      if (targetHotelId && user.hotel_id !== targetHotelId) return false
-      if (targetDepartmentId && user.department_id && user.department_id !== targetDepartmentId) return false
-      // Cannot manage users or hotels
-      if (resource === 'users' && ['create', 'update', 'delete'].includes(action)) return false
-      if (resource === 'hotels') return false
-      return true
-    }
-    
-    if (user.role === 'STAFF') {
-      // Staff: limited permissions in their department
-      if (targetHotelId && user.hotel_id !== targetHotelId) return false
-      if (targetDepartmentId && user.department_id && user.department_id !== targetDepartmentId) return false
-      // Staff can only read inventory/products/batches/categories and create batches
-      const allowedResources = ['inventory', 'products', 'batches', 'categories', 'notifications']
-      if (!allowedResources.includes(resource)) return false
-      // Staff can only read (except batches - can create)
-      if (resource === 'batches' && ['read', 'create'].includes(action)) return true
-      if (action === 'read') return true
-      return false
-    }
-    
+    // All other roles: deny access when permission DB is unavailable
+    console.error(`Permission DB unavailable, denying access for ${user.role} to ${resource}:${action}`)
     return false
   }
   

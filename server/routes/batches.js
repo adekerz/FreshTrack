@@ -81,7 +81,7 @@ router.get('/', authMiddleware, hotelIsolation, departmentIsolation, requirePerm
 })
 
 // GET /api/batches/stats - MUST be before /:id
-router.get('/stats', authMiddleware, hotelIsolation, departmentIsolation, async (req, res) => {
+router.get('/stats', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.BATCHES, PermissionAction.READ), async (req, res) => {
   try {
     const { department_id } = req.query
     // Use department from isolation middleware if user can't access all departments
@@ -104,7 +104,7 @@ router.get('/stats', authMiddleware, hotelIsolation, departmentIsolation, async 
 })
 
 // GET /api/batches/:id
-router.get('/:id', authMiddleware, hotelIsolation, departmentIsolation, async (req, res) => {
+router.get('/:id', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.BATCHES, PermissionAction.READ), async (req, res) => {
   try {
     const { locale } = req.query
     const rawBatch = await getBatchById(req.params.id)
@@ -333,7 +333,7 @@ router.delete('/:id', authMiddleware, hotelIsolation, departmentIsolation, requi
 })
 
 // POST /api/batches/:id/collect - Сбор/списание партии
-router.post('/:id/collect', authMiddleware, hotelIsolation, departmentIsolation, async (req, res) => {
+router.post('/:id/collect', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.INVENTORY, PermissionAction.COLLECT), async (req, res) => {
   try {
     const { reason, comment } = req.body
     

@@ -19,8 +19,7 @@ import {
 import { 
   authMiddleware, 
   hotelIsolation, 
-  departmentIsolation, 
-  hotelAdminOnly,
+  departmentIsolation,
   requirePermission,
   PermissionResource,
   PermissionAction
@@ -50,7 +49,7 @@ router.get('/', authMiddleware, hotelIsolation, departmentIsolation, requirePerm
 })
 
 // GET /api/products/expiring
-router.get('/expiring', authMiddleware, hotelIsolation, departmentIsolation, async (req, res) => {
+router.get('/expiring', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.PRODUCTS, PermissionAction.READ), async (req, res) => {
   try {
     const { days = 7, department_id } = req.query
     const deptId = req.canAccessAllDepartments 
@@ -69,7 +68,7 @@ router.get('/expiring', authMiddleware, hotelIsolation, departmentIsolation, asy
 })
 
 // GET /api/products/low-stock
-router.get('/low-stock', authMiddleware, hotelIsolation, departmentIsolation, async (req, res) => {
+router.get('/low-stock', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.PRODUCTS, PermissionAction.READ), async (req, res) => {
   try {
     const { department_id } = req.query
     const deptId = req.canAccessAllDepartments 
@@ -88,7 +87,7 @@ router.get('/low-stock', authMiddleware, hotelIsolation, departmentIsolation, as
 })
 
 // GET /api/products/catalog - Get all products for catalog view
-router.get('/catalog', authMiddleware, hotelIsolation, departmentIsolation, async (req, res) => {
+router.get('/catalog', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.PRODUCTS, PermissionAction.READ), async (req, res) => {
   try {
     // Catalog shows all products for the hotel (admins) or department (staff)
     const deptId = req.canAccessAllDepartments ? null : req.departmentId
@@ -101,7 +100,7 @@ router.get('/catalog', authMiddleware, hotelIsolation, departmentIsolation, asyn
 })
 
 // GET /api/products/:id
-router.get('/:id', authMiddleware, hotelIsolation, departmentIsolation, async (req, res) => {
+router.get('/:id', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.PRODUCTS, PermissionAction.READ), async (req, res) => {
   try {
     const product = await getProductById(req.params.id)
     if (!product) {
@@ -234,7 +233,7 @@ router.put('/:id', authMiddleware, hotelIsolation, departmentIsolation, requireP
  * @body {string} reason - Collection reason (expired, damaged, manual, etc.)
  * @body {string} comment - Optional comment
  */
-router.post('/:id/collect', authMiddleware, hotelIsolation, departmentIsolation, async (req, res) => {
+router.post('/:id/collect', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.INVENTORY, PermissionAction.COLLECT), async (req, res) => {
   try {
     const { quantity, reason = 'manual', comment } = req.body
     const productId = req.params.id

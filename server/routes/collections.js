@@ -15,12 +15,19 @@ import {
   removeProductFromCollection,
   logAudit
 } from '../db/database.js'
-import { authMiddleware, hotelIsolation, hotelAdminOnly, departmentIsolation } from '../middleware/auth.js'
+import { 
+  authMiddleware, 
+  hotelIsolation, 
+  departmentIsolation,
+  requirePermission,
+  PermissionResource,
+  PermissionAction
+} from '../middleware/auth.js'
 
 const router = express.Router()
 
 // GET /api/collections
-router.get('/', authMiddleware, hotelIsolation, departmentIsolation, async (req, res) => {
+router.get('/', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.COLLECTIONS, PermissionAction.READ), async (req, res) => {
   try {
     const { department_id, include_products } = req.query
     // Use department from isolation middleware unless user can access all departments
@@ -38,7 +45,7 @@ router.get('/', authMiddleware, hotelIsolation, departmentIsolation, async (req,
 })
 
 // GET /api/collections/:id
-router.get('/:id', authMiddleware, hotelIsolation, departmentIsolation, async (req, res) => {
+router.get('/:id', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.COLLECTIONS, PermissionAction.READ), async (req, res) => {
   try {
     const collection = await getCollectionById(req.params.id)
     if (!collection) {
@@ -61,7 +68,7 @@ router.get('/:id', authMiddleware, hotelIsolation, departmentIsolation, async (r
 })
 
 // POST /api/collections
-router.post('/', authMiddleware, hotelIsolation, departmentIsolation, hotelAdminOnly, async (req, res) => {
+router.post('/', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.COLLECTIONS, PermissionAction.CREATE), async (req, res) => {
   try {
     const { name, description, department_id, product_ids } = req.body
     
@@ -104,7 +111,7 @@ router.post('/', authMiddleware, hotelIsolation, departmentIsolation, hotelAdmin
 })
 
 // PUT /api/collections/:id
-router.put('/:id', authMiddleware, hotelIsolation, departmentIsolation, hotelAdminOnly, async (req, res) => {
+router.put('/:id', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.COLLECTIONS, PermissionAction.UPDATE), async (req, res) => {
   try {
     const collection = await getCollectionById(req.params.id)
     if (!collection) {
@@ -147,7 +154,7 @@ router.put('/:id', authMiddleware, hotelIsolation, departmentIsolation, hotelAdm
 })
 
 // POST /api/collections/:id/products
-router.post('/:id/products', authMiddleware, hotelIsolation, departmentIsolation, hotelAdminOnly, async (req, res) => {
+router.post('/:id/products', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.COLLECTIONS, PermissionAction.UPDATE), async (req, res) => {
   try {
     const collection = await getCollectionById(req.params.id)
     if (!collection) {
@@ -175,7 +182,7 @@ router.post('/:id/products', authMiddleware, hotelIsolation, departmentIsolation
 })
 
 // DELETE /api/collections/:id/products/:productId
-router.delete('/:id/products/:productId', authMiddleware, hotelIsolation, departmentIsolation, hotelAdminOnly, async (req, res) => {
+router.delete('/:id/products/:productId', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.COLLECTIONS, PermissionAction.UPDATE), async (req, res) => {
   try {
     const collection = await getCollectionById(req.params.id)
     if (!collection) {
@@ -198,7 +205,7 @@ router.delete('/:id/products/:productId', authMiddleware, hotelIsolation, depart
 })
 
 // DELETE /api/collections/:id
-router.delete('/:id', authMiddleware, hotelIsolation, departmentIsolation, hotelAdminOnly, async (req, res) => {
+router.delete('/:id', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.COLLECTIONS, PermissionAction.DELETE), async (req, res) => {
   try {
     const collection = await getCollectionById(req.params.id)
     if (!collection) {

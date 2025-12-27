@@ -60,14 +60,29 @@ router.get('/db-status', async (req, res) => {
 })
 
 // POST /api/health/init-db - Initialize database with pilot data
+// ⚠️ SECURITY: Only available in development mode or with valid INIT_SECRET
 router.post('/init-db', async (req, res) => {
-  try {
-    // Check secret key for security
-    const { secret } = req.body
-    if (secret !== process.env.INIT_SECRET && secret !== 'FreshTrack2024!') {
+  // Block in production unless INIT_SECRET is explicitly set and matches
+  const initSecret = process.env.INIT_SECRET
+  const { secret } = req.body
+  
+  // In production: require INIT_SECRET env var to be set and matched
+  if (process.env.NODE_ENV === 'production') {
+    if (!initSecret) {
+      return res.status(404).json({ success: false, error: 'Not found' })
+    }
+    if (secret !== initSecret) {
       return res.status(403).json({ success: false, error: 'Invalid secret key' })
     }
-    
+  } else {
+    // In development: allow with default secret or env secret
+    const validSecret = initSecret || 'FreshTrack2024!'
+    if (secret !== validSecret) {
+      return res.status(403).json({ success: false, error: 'Invalid secret key' })
+    }
+  }
+  
+  try {
     await initDatabase()
     res.json({ success: true, message: 'Database initialized successfully' })
   } catch (error) {

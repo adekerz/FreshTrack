@@ -16,7 +16,6 @@ import {
 } from '../db/database.js'
 import { 
   authMiddleware, 
-  hotelAdminOnly, 
   hotelIsolation,
   generateToken,
   requirePermission,

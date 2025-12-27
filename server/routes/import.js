@@ -11,12 +11,19 @@ import {
   getAllProducts,
   logAudit
 } from '../db/database.js'
-import { authMiddleware, hotelIsolation, hotelAdminOnly, departmentIsolation } from '../middleware/auth.js'
+import { 
+  authMiddleware, 
+  hotelIsolation, 
+  departmentIsolation,
+  requirePermission,
+  PermissionResource,
+  PermissionAction
+} from '../middleware/auth.js'
 
 const router = express.Router()
 
 // POST /api/import/products
-router.post('/products', authMiddleware, hotelIsolation, departmentIsolation, hotelAdminOnly, async (req, res) => {
+router.post('/products', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.PRODUCTS, PermissionAction.CREATE), async (req, res) => {
   try {
     const { products, options = {} } = req.body
     
@@ -111,7 +118,7 @@ router.post('/products', authMiddleware, hotelIsolation, departmentIsolation, ho
 })
 
 // POST /api/import/batches
-router.post('/batches', authMiddleware, hotelIsolation, departmentIsolation, async (req, res) => {
+router.post('/batches', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.BATCHES, PermissionAction.CREATE), async (req, res) => {
   try {
     const { batches } = req.body
     

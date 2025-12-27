@@ -14,8 +14,7 @@ import {
 import { 
   authMiddleware, 
   superAdminOnly, 
-  hotelIsolation, 
-  hotelAdminOnly,
+  hotelIsolation,
   requirePermission,
   PermissionResource,
   PermissionAction

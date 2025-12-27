@@ -18,8 +18,7 @@ import {
 import { 
   authMiddleware, 
   hotelIsolation, 
-  departmentIsolation, 
-  hotelAdminOnly,
+  departmentIsolation,
   requirePermission,
   PermissionResource,
   PermissionAction
@@ -28,7 +27,7 @@ import {
 const router = express.Router()
 
 // GET /api/write-offs/stats - MUST be before /:id
-router.get('/stats', authMiddleware, hotelIsolation, departmentIsolation, async (req, res) => {
+router.get('/stats', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.WRITE_OFFS, PermissionAction.READ), async (req, res) => {
   try {
     const { department_id } = req.query
     // Use department from isolation middleware if user can't access all departments
@@ -66,7 +65,7 @@ router.get('/', authMiddleware, hotelIsolation, departmentIsolation, requirePerm
 })
 
 // GET /api/write-offs/:id
-router.get('/:id', authMiddleware, hotelIsolation, departmentIsolation, async (req, res) => {
+router.get('/:id', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.WRITE_OFFS, PermissionAction.READ), async (req, res) => {
   try {
     const writeOff = await getWriteOffById(req.params.id)
     if (!writeOff) {
@@ -165,7 +164,7 @@ router.post('/', authMiddleware, hotelIsolation, departmentIsolation, requirePer
 })
 
 // PUT /api/write-offs/:id
-router.put('/:id', authMiddleware, hotelIsolation, hotelAdminOnly, async (req, res) => {
+router.put('/:id', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.WRITE_OFFS, PermissionAction.UPDATE), async (req, res) => {
   try {
     const writeOff = await getWriteOffById(req.params.id)
     if (!writeOff) {
@@ -196,7 +195,7 @@ router.put('/:id', authMiddleware, hotelIsolation, hotelAdminOnly, async (req, r
 })
 
 // DELETE /api/write-offs/:id
-router.delete('/:id', authMiddleware, hotelIsolation, hotelAdminOnly, async (req, res) => {
+router.delete('/:id', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.WRITE_OFFS, PermissionAction.DELETE), async (req, res) => {
   try {
     const writeOff = await getWriteOffById(req.params.id)
     if (!writeOff) {

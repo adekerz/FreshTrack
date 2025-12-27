@@ -13,8 +13,7 @@ import {
 } from '../db/database.js'
 import { 
   authMiddleware, 
-  hotelIsolation, 
-  hotelAdminOnly,
+  hotelIsolation,
   requirePermission,
   PermissionResource,
   PermissionAction
@@ -36,7 +35,7 @@ router.get('/', authMiddleware, hotelIsolation, requirePermission(PermissionReso
 })
 
 // GET /api/departments/:id
-router.get('/:id', authMiddleware, hotelIsolation, async (req, res) => {
+router.get('/:id', authMiddleware, hotelIsolation, requirePermission(PermissionResource.DEPARTMENTS, PermissionAction.READ), async (req, res) => {
   try {
     const department = await getDepartmentById(req.params.id)
     if (!department) {
