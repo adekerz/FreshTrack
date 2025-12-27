@@ -3,8 +3,10 @@
  * Клиент для взаимодействия с backend API
  */
 
+import { logError } from '../utils/logger'
+
 // Базовый URL API - использует переменную окружения или localhost для разработки
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
+export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 
 /**
  * Обработка ответа от сервера
@@ -19,8 +21,11 @@ async function handleResponse(response) {
 
 /**
  * Базовый fetch с обработкой ошибок
+ * @param {string} endpoint - API endpoint (e.g., '/products')
+ * @param {object} options - fetch options
+ * @returns {Promise<any>} - response data
  */
-async function apiFetch(endpoint, options = {}) {
+export async function apiFetch(endpoint, options = {}) {
   const url = `${API_BASE_URL}${endpoint}`
 
   const defaultOptions = {
@@ -39,7 +44,7 @@ async function apiFetch(endpoint, options = {}) {
     const response = await fetch(url, { ...defaultOptions, ...options })
     return handleResponse(response)
   } catch (error) {
-    console.error(`API Error [${endpoint}]:`, error)
+    logError(`API [${endpoint}]`, error)
     throw error
   }
 }

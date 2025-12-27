@@ -7,7 +7,15 @@
 import jwt from 'jsonwebtoken'
 import { getUserById, getHotelById, getDepartmentById, query } from '../db/database.js'
 
-const JWT_SECRET = process.env.JWT_SECRET || 'freshtrack_pilot_secret_2024'
+// SECURITY: JWT_SECRET must be set in environment variables
+const JWT_SECRET = process.env.JWT_SECRET
+if (!JWT_SECRET) {
+  console.error('CRITICAL: JWT_SECRET environment variable is required!')
+  // In production, throw error. In development, use fallback with warning
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('JWT_SECRET environment variable is required in production')
+  }
+}
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '24h'
 
 /**

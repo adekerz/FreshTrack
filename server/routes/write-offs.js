@@ -173,6 +173,10 @@ router.put('/:id', authMiddleware, hotelIsolation, departmentIsolation, requireP
     if (writeOff.hotel_id !== req.hotelId) {
       return res.status(403).json({ success: false, error: 'Access denied' })
     }
+    // SECURITY: Check department access
+    if (!req.canAccessAllDepartments && writeOff.department_id && writeOff.department_id !== req.departmentId) {
+      return res.status(403).json({ success: false, error: 'Access denied to this department' })
+    }
     
     const { reason, notes } = req.body
     const updates = {}
@@ -203,6 +207,10 @@ router.delete('/:id', authMiddleware, hotelIsolation, departmentIsolation, requi
     }
     if (writeOff.hotel_id !== req.hotelId) {
       return res.status(403).json({ success: false, error: 'Access denied' })
+    }
+    // SECURITY: Check department access
+    if (!req.canAccessAllDepartments && writeOff.department_id && writeOff.department_id !== req.departmentId) {
+      return res.status(403).json({ success: false, error: 'Access denied to this department' })
     }
     
     const success = await deleteWriteOff(req.params.id)

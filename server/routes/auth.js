@@ -294,6 +294,13 @@ router.patch('/users/:id', authMiddleware, requirePermission(PermissionResource.
     if (req.user.role !== 'SUPER_ADMIN' && user.hotel_id !== req.user.hotel_id) {
       return res.status(403).json({ success: false, error: 'Access denied' })
     }
+    // SECURITY: HOTEL_ADMIN cannot manage SUPER_ADMIN or other HOTEL_ADMINs
+    if (req.user.role === 'HOTEL_ADMIN' && user.role === 'SUPER_ADMIN') {
+      return res.status(403).json({ success: false, error: 'Cannot update Super Admin user' })
+    }
+    if (req.user.role === 'HOTEL_ADMIN' && user.role === 'HOTEL_ADMIN' && user.id !== req.user.id) {
+      return res.status(403).json({ success: false, error: 'Cannot manage other hotel admins' })
+    }
     
     const updates = {}
     if (name !== undefined) updates.name = name

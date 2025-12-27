@@ -25,8 +25,7 @@ import {
 } from 'lucide-react'
 import { useTranslation } from '../context/LanguageContext'
 import { useToast } from '../context/ToastContext'
-
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
+import { apiFetch } from '../services/api'
 
 // Причины списания (соответствуют backend CollectionReason)
 const REASONS = [
@@ -39,22 +38,6 @@ const REASONS = [
 
 // Быстрые кнопки количества
 const QUICK_AMOUNTS = [1, 5, 10, 25]
-
-async function apiFetch(endpoint, options = {}) {
-  const token = localStorage.getItem('token')
-  const response = await fetch(`${API_BASE}${endpoint}`, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {})
-    },
-    ...options
-  })
-  const data = await response.json()
-  if (!response.ok) {
-    throw new Error(data.message || data.error || 'API Error')
-  }
-  return data
-}
 
 export default function FIFOCollectModal({ 
   isOpen, 

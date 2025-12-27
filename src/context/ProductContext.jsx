@@ -5,6 +5,7 @@
 
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import { getBatchStatus } from '../utils/dateUtils'
+import { logDebug, logWarn, logError } from '../utils/logger'
 
 const ProductContext = createContext(null)
 
@@ -182,9 +183,9 @@ export function ProductProvider({ children }) {
 
       // Обновляем каталог продуктов из API
       const productsData = Array.isArray(productsRes) ? productsRes : (productsRes.products || [])
-      console.log('📦 Products from API:', productsData.length, productsData)
-      console.log('🏢 Departments:', deptData.length, deptData)
-      console.log('📂 Categories:', catData.length, catData)
+      logDebug('📦 Products from API:', productsData.length)
+      logDebug('🏢 Departments:', deptData.length)
+      logDebug('📂 Categories:', catData.length)
       
       if (productsData.length > 0 && deptData.length > 0) {
         // Строим каталог: department -> category -> products
@@ -210,13 +211,13 @@ export function ProductProvider({ children }) {
           })
         })
 
-        console.log('📋 New catalog built:', newCatalog)
+        logDebug('📋 New catalog built')
         setCatalog(newCatalog)
       } else {
-        console.log('⚠️ No products or departments loaded')
+        logWarn('⚠️ No products or departments loaded')
       }
     } catch (err) {
-      console.error('Error fetching data:', err)
+      logError('fetchAllData', err)
       setError(err.message)
     } finally {
       setLoading(false)
