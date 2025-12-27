@@ -10,6 +10,7 @@
  * - Multi-channel: App, Telegram, Email
  */
 
+import crypto from 'crypto'
 import { query } from '../db/database.js'
 import { v4 as uuidv4 } from 'uuid'
 import { TelegramService } from './TelegramService.js'
@@ -277,7 +278,6 @@ export class NotificationEngine {
    * Generate deduplication hash
    */
   static generateHash(batchId, userId, channel) {
-    const crypto = require('crypto')
     const date = new Date().toISOString().split('T')[0]
     return crypto.createHash('md5')
       .update(`${batchId}:${userId}:${channel}:${date}`)
