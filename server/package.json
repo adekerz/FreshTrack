@@ -1,0 +1,40 @@
+{
+  "name": "freshtrack-server",
+  "version": "2.0.0",
+  "description": "FreshTrack Backend Server - PostgreSQL Edition",
+  "main": "index.js",
+  "type": "module",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js",
+    "migrate": "node db/migrate.js",
+    "migrate:status": "node db/migrate.js --status",
+    "migrate:rollback": "node db/migrate.js --rollback",
+    "backup": "node db/backup.js",
+    "backup:gzip": "node db/backup.js --gzip",
+    "backup:schema": "node db/backup.js --format=schema-only",
+    "backup:data": "node db/backup.js --format=data-only"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "exceljs": "^4.4.0",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "node-cron": "^4.2.1",
+    "pg": "^8.11.3",
+    "uuid": "^9.0.0"
+  },
+  "keywords": [
+    "freshtrack",
+    "inventory",
+    "postgresql",
+    "hotel"
+  ],
+  "author": "Adilet Y.",
+  "license": "ISC"
+}

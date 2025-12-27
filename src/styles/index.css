@@ -1,0 +1,694 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100vw;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: #FAF8F5;
+  color: #1A1A1A;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Dark mode body styles */
+.dark body,
+html.dark body {
+  background-color: #121212;
+  color: #F5F0E8;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #F5F0E8;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #D4D0C8;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #B8B4AC;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { 
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideIn {
+  from { 
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to { 
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.6s ease forwards;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.5s ease forwards;
+}
+
+.animate-slide-in {
+  animation: slideIn 0.4s ease forwards;
+}
+
+/* Stagger delays */
+.stagger-1 { animation-delay: 0.1s; }
+.stagger-2 { animation-delay: 0.2s; }
+.stagger-3 { animation-delay: 0.3s; }
+.stagger-4 { animation-delay: 0.4s; }
+.stagger-5 { animation-delay: 0.5s; }
+
+/* Components */
+@layer components {
+  .elegant-input {
+    @apply bg-transparent border-0 border-b border-gray-300 py-3 w-full text-base outline-none transition-colors duration-300;
+  }
+  
+  .elegant-input:focus {
+    @apply border-b-accent;
+  }
+  
+  .elegant-input::placeholder {
+    @apply text-warmgray/60;
+  }
+
+  .btn-primary {
+    @apply bg-charcoal text-cream py-3.5 px-8 text-sm uppercase tracking-wider transition-all duration-300 border border-charcoal;
+  }
+  
+  .btn-primary:hover {
+    @apply bg-transparent text-charcoal;
+  }
+  
+  .btn-primary:disabled {
+    @apply opacity-50 cursor-not-allowed;
+  }
+
+  .btn-secondary {
+    @apply bg-transparent text-charcoal py-3.5 px-8 text-sm uppercase tracking-wider transition-all duration-300 border border-gray-300;
+  }
+  
+  .btn-secondary:hover {
+    @apply border-charcoal;
+  }
+
+  .card {
+    @apply bg-white p-6 rounded-lg shadow-sm transition-all duration-300;
+  }
+  
+  .card-hover:hover {
+    @apply -translate-y-1 shadow-lg;
+  }
+
+  .status-badge {
+    @apply inline-flex items-center gap-1.5 py-1 px-3 rounded-full text-xs font-medium;
+  }
+
+  .line-accent {
+    @apply relative;
+  }
+  
+  .line-accent::after {
+    content: '';
+    @apply absolute -bottom-2 left-0 w-10 h-0.5 bg-accent;
+  }
+
+  .nav-link {
+    @apply relative pb-1;
+  }
+  
+  .nav-link::after {
+    content: '';
+    @apply absolute bottom-0 left-0 w-0 h-px bg-accent transition-all duration-300;
+  }
+  
+  .nav-link:hover::after,
+  .nav-link.active::after {
+    @apply w-full;
+  }
+}
+
+/* Mobile adaptations */
+@layer utilities {
+  /* Safe area for iOS */
+  .safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+  
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  .safe-left {
+    padding-left: env(safe-area-inset-left);
+  }
+  
+  .safe-right {
+    padding-right: env(safe-area-inset-right);
+  }
+  
+  /* Touch-friendly targets */
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
+
+  /* Touch-friendly large target (Fitts's Law) */
+  .touch-target-lg {
+    @apply min-h-[48px] min-w-[48px];
+  }
+
+  /* Remove tap highlight on mobile */
+  .tap-highlight-transparent {
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  /* Mobile-optimized text */
+  .text-mobile-h1 {
+    @apply text-xl sm:text-2xl;
+  }
+  
+  .text-mobile-h2 {
+    @apply text-lg sm:text-xl;
+  }
+  
+  .text-mobile-body {
+    @apply text-sm sm:text-base;
+  }
+
+  /* Hide scrollbar but allow scrolling */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Mobile-specific styles */
+@media (max-width: 640px) {
+  /* Larger touch targets */
+  button, a, [role="button"] {
+    min-height: 44px;
+  }
+  
+  /* Prevent zoom on input focus (iOS) */
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+  
+  /* Better spacing on mobile */
+  .mobile-p {
+    padding: 1rem;
+  }
+  
+  /* Full-width cards on mobile */
+  .card {
+    @apply rounded-lg;
+  }
+  
+  /* Mobile table scrolling */
+  .table-container {
+    @apply overflow-x-auto -mx-4 px-4;
+  }
+  
+  /* Bottom navigation safe area */
+  .bottom-nav {
+    padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
+  }
+}
+
+/* Tablet styles */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .tablet-grid {
+    @apply grid-cols-2;
+  }
+}
+
+/* Pull-to-refresh area (for PWA) */
+.pull-to-refresh {
+  overscroll-behavior-y: contain;
+}
+
+/* Prevent text selection on interactive elements */
+.no-select {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Smooth scrolling */
+.smooth-scroll {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* Mobile-optimized modal */
+@media (max-width: 640px) {
+  .modal-mobile {
+    @apply fixed inset-x-0 bottom-0 top-auto max-h-[90vh] rounded-t-2xl rounded-b-none;
+  }
+}
+
+/* Hide scrollbar but keep functionality */
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Toggle switch for "No quantity" */
+.quantity-toggle {
+  --toggle-size: 14px;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  width: 3.5em;
+  height: 1.75em;
+  background: linear-gradient(to right, #e5e7eb 50%, #D4A574 50%) no-repeat;
+  background-size: 205%;
+  background-position: 0;
+  transition: 0.3s ease;
+  border-radius: 99em;
+  position: relative;
+  cursor: pointer;
+  font-size: var(--toggle-size);
+  flex-shrink: 0;
+}
+
+.quantity-toggle::before {
+  content: "";
+  width: 1.35em;
+  height: 1.35em;
+  position: absolute;
+  top: 0.2em;
+  left: 0.2em;
+  background: linear-gradient(to right, #ffffff 50%, #ffffff 50%) no-repeat;
+  background-size: 205%;
+  background-position: 100%;
+  border-radius: 50%;
+  transition: 0.3s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.quantity-toggle:checked::before {
+  left: calc(100% - 1.35em - 0.2em);
+  background-position: 0;
+}
+
+.quantity-toggle:checked {
+  background-position: 100%;
+}
+
+/* Toast animations */
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes toastProgress {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}
+
+.animate-toast-in {
+  animation: toastIn 0.3s ease-out forwards;
+}
+
+.animate-toast-progress {
+  animation: toastProgress linear forwards;
+}
+
+/* UX Enhancements - Laws of UX */
+
+/* Fitts's Law - Larger hit areas for important actions */
+.btn-action {
+  @apply min-h-[48px] min-w-[48px] rounded-xl;
+}
+
+/* Von Restorff Effect - Critical items stand out */
+.critical-highlight {
+  @apply relative;
+}
+
+.critical-highlight::before {
+  content: '';
+  @apply absolute -inset-1 bg-danger/10 rounded-xl blur-sm -z-10;
+  animation: criticalPulse 2s ease-in-out infinite;
+}
+
+@keyframes criticalPulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+/* Peak-End Rule - Success celebration */
+@keyframes successPop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+.animate-success-pop {
+  animation: successPop 0.4s ease-out;
+}
+
+@keyframes checkmark {
+  0% { stroke-dashoffset: 100; }
+  100% { stroke-dashoffset: 0; }
+}
+
+.animate-checkmark {
+  stroke-dasharray: 100;
+  animation: checkmark 0.5s ease-out forwards;
+}
+
+/* Goal-Gradient Effect - Progress indication */
+.progress-bar {
+  @apply h-1 bg-sand/50 rounded-full overflow-hidden;
+}
+
+.progress-bar-fill {
+  @apply h-full bg-accent transition-all duration-300 ease-out;
+}
+
+/* Miller's Law - Grouped items container */
+.info-chunk {
+  @apply bg-white/50 rounded-xl p-4 space-y-2;
+}
+
+/* Doherty Threshold - Fast feedback */
+@keyframes loadingShimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.loading-shimmer {
+  background: linear-gradient(90deg, 
+    rgba(255,255,255,0) 0%, 
+    rgba(255,255,255,0.5) 50%, 
+    rgba(255,255,255,0) 100%
+  );
+  background-size: 200% 100%;
+  animation: loadingShimmer 1.5s infinite;
+}
+
+/* Haptic feedback simulation for click */
+.haptic-click:active {
+  transform: scale(0.97);
+  transition: transform 0.1s ease-out;
+}
+
+/* Focus visible for accessibility */
+.focus-ring:focus-visible {
+  @apply outline-none ring-2 ring-accent ring-offset-2 ring-offset-cream;
+}
+
+/* Smooth hover transitions */
+.hover-lift {
+  @apply transition-transform duration-200;
+}
+
+.hover-lift:hover {
+  @apply -translate-y-0.5;
+}
+
+/* Interactive card feedback */
+.interactive-card {
+  @apply transition-all duration-200 cursor-pointer;
+}
+
+.interactive-card:hover {
+  @apply -translate-y-1 shadow-lg;
+}
+
+.interactive-card:active {
+  @apply translate-y-0 shadow-md;
+}
+
+/* ===== ACCESSIBILITY IMPROVEMENTS ===== */
+
+/* Respect user's motion preferences (A11Y) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Skip link for keyboard navigation */
+.skip-link {
+  @apply absolute left-4 z-[100] bg-charcoal text-cream px-4 py-2 rounded-b-lg font-medium;
+  transform: translateY(-100%);
+  transition: transform 0.2s ease-in-out;
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+/* Enhanced focus indicators (WCAG 2.4.7) */
+.focus-visible-ring:focus-visible {
+  @apply outline-none ring-2 ring-accent ring-offset-2 ring-offset-cream;
+}
+
+/* Focus style for all interactive elements */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  @apply outline-none ring-2 ring-accent/50 ring-offset-1;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .btn-primary {
+    @apply border-2 border-charcoal;
+  }
+  
+  .card {
+    @apply border border-charcoal/20;
+  }
+  
+  input, select, textarea {
+    @apply border-2;
+  }
+}
+
+/* Screen reader only content */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Not sr-only when focused (for skip links) */
+.sr-only-focusable:focus,
+.sr-only-focusable:focus-within {
+  position: static;
+  width: auto;
+  height: auto;
+  padding: inherit;
+  margin: inherit;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+}
+
+/* Error states should not be color-only (A11Y) */
+.input-error {
+  @apply border-danger;
+  box-shadow: inset 3px 0 0 theme('colors.danger');
+}
+
+/* ARIA live region for announcements */
+.aria-live-polite {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+/* ===== LIGHTHOUSE & AXE OPTIMIZATIONS ===== */
+
+/* Ensure minimum contrast ratios (WCAG AA 4.5:1 for normal text) */
+.text-contrast {
+  color: #1A1A1A; /* Contrast ratio: 12.6:1 on white */
+}
+
+.dark .text-contrast {
+  color: #F5F0E8; /* Contrast ratio: 13.2:1 on #121212 */
+}
+
+/* Interactive element minimum size (WCAG 2.5.5 Target Size) */
+.touch-target-44 {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+/* Visible focus indicators (WCAG 2.4.7 Focus Visible) */
+:focus-visible {
+  outline: 2px solid #C4A35A;
+  outline-offset: 2px;
+}
+
+/* Remove default outline for mouse users */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Ensure links are distinguishable (WCAG 1.4.1 Use of Color) */
+a:not(.btn-primary):not(.btn-secondary) {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+a:hover:not(.btn-primary):not(.btn-secondary) {
+  text-decoration-thickness: 2px;
+}
+
+/* Error messages with icon indicator (not color-only) */
+.error-message::before {
+  content: "⚠ ";
+}
+
+/* Success messages with icon indicator */
+.success-message::before {
+  content: "✓ ";
+}
+
+/* Loading states - Skeleton animation optimized for performance */
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    #E5E2DC 25%,
+    #F0EDE7 37%,
+    #E5E2DC 63%
+  );
+  background-size: 400% 100%;
+  animation: skeleton-loading 1.4s ease infinite;
+}
+
+.dark .skeleton {
+  background: linear-gradient(
+    90deg,
+    #2D2D2D 25%,
+    #3D3D3D 37%,
+    #2D2D2D 63%
+  );
+  background-size: 400% 100%;
+}
+
+/* Print styles for accessibility */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  
+  a[href]::after {
+    content: " (" attr(href) ")";
+  }
+}
+
+/* Forced colors mode (Windows High Contrast) */
+@media (forced-colors: active) {
+  .btn-primary,
+  .btn-secondary {
+    border: 2px solid currentColor;
+  }
+  
+  .card {
+    border: 1px solid currentColor;
+  }
+  
+  :focus-visible {
+    outline: 3px solid currentColor;
+  }
+}
+
+/* Reduce transparency for better readability */
+@media (prefers-reduced-transparency: reduce) {
+  .bg-opacity-50,
+  .bg-charcoal\/50,
+  .bg-white\/50 {
+    opacity: 1 !important;
+  }
+}
+
+

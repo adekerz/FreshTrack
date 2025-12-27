@@ -1,0 +1,185 @@
+/**
+ * FreshTrack Server - PostgreSQL Version
+ * Multi-hotel inventory management system
+ */
+
+import express from 'express'
+import cors from 'cors'
+import dotenv from 'dotenv'
+
+// Load environment variables
+dotenv.config()
+
+// Import routes
+import authRouter from './routes/auth.js'
+import hotelsRouter from './routes/hotels.js'
+import departmentsRouter from './routes/departments.js'
+import categoriesRouter from './routes/categories.js'
+import productsRouter from './routes/products.js'
+import batchesRouter from './routes/batches.js'
+import notificationsRouter from './routes/notifications.js'
+import reportsRouter from './routes/reports.js'
+import collectionsRouter from './routes/collections.js'
+import fifoCollectRouter from './routes/fifo-collect.js'
+import auditRouter from './routes/audit.js'
+import settingsRouter from './routes/settings.js'
+import deliveryTemplatesRouter from './routes/delivery-templates.js'
+import writeOffsRouter from './routes/write-offs.js'
+import importRouter from './routes/import.js'
+import exportRouter from './routes/export.js'
+import healthRouter from './routes/health.js'
+import notificationRulesRouter from './routes/notification-rules.js'
+import customContentRouter from './routes/custom-content.js'
+import departmentSettingsRouter from './routes/department-settings.js'
+
+// Import notification jobs
+import { startNotificationJobs } from './jobs/notificationJobs.js'
+
+// Import database
+import { initDatabase, getAllHotels } from './db/database.js'
+import { query } from './db/postgres.js'
+
+const app = express()
+const PORT = process.env.PORT || 3001
+
+// CORS - Allow all origins for now (can be restricted later)
+app.use(cors({
+  origin: true,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+}))
+
+// Handle preflight requests
+app.options('*', cors())
+
+app.use(express.json({ limit: '10mb' }))
+app.use(express.urlencoded({ extended: true }))
+
+// Trust proxy for Railway/Vercel
+app.set('trust proxy', 1)
+
+// Request logging
+app.use((req, res, next) => {
+  const timestamp = new Date().toISOString()
+  console.log(`[${timestamp}] ${req.method} ${req.path}`)
+  next()
+})
+
+// API Routes
+app.use('/api/auth', authRouter)
+app.use('/api/hotels', hotelsRouter)
+app.use('/api/departments', departmentsRouter)
+app.use('/api/categories', categoriesRouter)
+app.use('/api/products', productsRouter)
+app.use('/api/batches', batchesRouter)
+app.use('/api/notifications', notificationsRouter)
+app.use('/api/reports', reportsRouter)
+app.use('/api/collections', collectionsRouter)
+app.use('/api/fifo-collect', fifoCollectRouter)
+app.use('/api/audit-logs', auditRouter)
+app.use('/api/settings', settingsRouter)
+app.use('/api/delivery-templates', deliveryTemplatesRouter)
+app.use('/api/write-offs', writeOffsRouter)
+app.use('/api/import', importRouter)
+app.use('/api/export', exportRouter)
+app.use('/api/health', healthRouter)
+app.use('/api/notification-rules', notificationRulesRouter)
+app.use('/api/custom-content', customContentRouter)
+app.use('/api/department-settings', departmentSettingsRouter)
+
+// Root health check
+app.get('/', async (req, res) => {
+  try {
+    const dbCheck = await query('SELECT NOW() as time')
+    res.json({ 
+      status: 'ok',
+      service: 'FreshTrack API',
+      version: '2.0.0',
+      database: 'connected',
+      timestamp: dbCheck.rows[0]?.time
+    })
+  } catch (error) {
+    res.status(503).json({ 
+      status: 'error',
+      service: 'FreshTrack API',
+      database: 'disconnected',
+      error: error.message
+    })
+  }
+})
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({ error: 'Endpoint not found' })
+})
+
+// Global error handler
+app.use((err, req, res, next) => {
+  console.error('Server Error:', err)
+  res.status(500).json({ 
+    error: 'Internal server error',
+    message: process.env.NODE_ENV === 'development' ? err.message : undefined
+  })
+})
+
+// Start server
+async function startServer() {
+  try {
+    console.log('📦 Connecting to PostgreSQL database...')
+    
+    // Test database connection
+    const dbTest = await query('SELECT NOW() as time')
+    console.log('✅ Database connected:', dbTest.rows[0]?.time)
+    
+    // Initialize database schema (creates tables if not exist)
+    await initDatabase()
+    console.log('✅ Database schema initialized')
+    
+    // Show stats
+    const hotels = await getAllHotels()
+    const usersResult = await query('SELECT COUNT(*) as count FROM users')
+    const productsResult = await query('SELECT COUNT(*) as count FROM products')
+    
+    console.log(`📊 Data: ${hotels.length} hotels, ${usersResult.rows[0]?.count || 0} users, ${productsResult.rows[0]?.count || 0} products`)
+
+    // Start server
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`
+🚀 FreshTrack Server is running!
+📍 Port: ${PORT}
+🌐 API: http://localhost:${PORT}/api
+🗄️ Database: PostgreSQL
+
+Available endpoints:
+  - GET  /api/health
+  - POST /api/auth/login
+  - GET  /api/auth/me
+  - GET  /api/hotels
+  - GET  /api/departments
+  - GET  /api/categories  
+  - GET  /api/products
+  - GET  /api/batches
+  - GET  /api/notifications
+  - GET  /api/reports/dashboard
+  - GET  /api/notification-rules
+      `)
+      
+      // Start notification jobs (Phase 5)
+      try {
+        startNotificationJobs({
+          enableExpiryCheck: true,
+          enableQueueProcess: true,
+          enableTelegramPolling: process.env.TELEGRAM_POLLING === 'true'
+        })
+      } catch (error) {
+        console.error('⚠️ Failed to start notification jobs:', error.message)
+      }
+    })
+  } catch (error) {
+    console.error('❌ Failed to start server:', error)
+    process.exit(1)
+  }
+}
+
+startServer()

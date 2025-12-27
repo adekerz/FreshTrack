@@ -1,0 +1,269 @@
+/**
+ * FreshTrack API Service
+ * Клиент для взаимодействия с backend API
+ */
+
+// Базовый URL API - использует переменную окружения или localhost для разработки
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
+
+/**
+ * Обработка ответа от сервера
+ */
+async function handleResponse(response) {
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Unknown error' }))
+    throw new Error(error.error || `HTTP error! status: ${response.status}`)
+  }
+  return response.json()
+}
+
+/**
+ * Базовый fetch с обработкой ошибок
+ */
+async function apiFetch(endpoint, options = {}) {
+  const url = `${API_BASE_URL}${endpoint}`
+
+  const defaultOptions = {
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  }
+
+  // Добавляем токен авторизации если есть
+  const token = localStorage.getItem('freshtrack_token')
+  if (token) {
+    defaultOptions.headers['Authorization'] = `Bearer ${token}`
+  }
+
+  try {
+    const response = await fetch(url, { ...defaultOptions, ...options })
+    return handleResponse(response)
+  } catch (error) {
+    console.error(`API Error [${endpoint}]:`, error)
+    throw error
+  }
+}
+
+// ============================================
+// Products API
+// ============================================
+
+/**
+ * Получить все продукты
+ */
+export async function getProducts() {
+  return apiFetch('/products')
+}
+
+/**
+ * Получить продукт по ID
+ */
+export async function getProductById(id) {
+  return apiFetch(`/products/${id}`)
+}
+
+/**
+ * Добавить новый продукт
+ */
+export async function addProduct(product) {
+  return apiFetch('/products', {
+    method: 'POST',
+    body: JSON.stringify(product)
+  })
+}
+
+/**
+ * Обновить продукт
+ */
+export async function updateProduct(id, updates) {
+  return apiFetch(`/products/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(updates)
+  })
+}
+
+/**
+ * Удалить продукт
+ */
+export async function deleteProduct(id) {
+  return apiFetch(`/products/${id}`, {
+    method: 'DELETE'
+  })
+}
+
+/**
+ * Получить просроченные продукты
+ */
+export async function getExpiredProducts() {
+  return apiFetch('/products/status/expired')
+}
+
+/**
+ * Получить продукты, истекающие скоро
+ */
+export async function getExpiringSoonProducts(days = 3) {
+  return apiFetch(`/products/status/expiring-soon?days=${days}`)
+}
+
+// ============================================
+// Auth API
+// ============================================
+
+/**
+ * Авторизация
+ */
+export async function login(email, password) {
+  const data = await apiFetch('/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ email, password })
+  })
+
+  if (data.token) {
+    localStorage.setItem('freshtrack_token', data.token)
+  }
+
+  return data
+}
+
+/**
+ * Регистрация
+ */
+export async function register(userData) {
+  const data = await apiFetch('/auth/register', {
+    method: 'POST',
+    body: JSON.stringify(userData)
+  })
+
+  if (data.token) {
+    localStorage.setItem('freshtrack_token', data.token)
+  }
+
+  return data
+}
+
+/**
+ * Получить текущего пользователя
+ */
+export async function getCurrentUser() {
+  return apiFetch('/auth/me')
+}
+
+/**
+ * Выход из системы
+ */
+export function logout() {
+  localStorage.removeItem('freshtrack_token')
+}
+
+// ============================================
+// Notifications API
+// ============================================
+
+/**
+ * Отправить тестовое уведомление в Telegram
+ */
+export async function sendTestTelegramNotification() {
+  return apiFetch('/notifications/test', {
+    method: 'POST'
+  })
+}
+
+/**
+ * Отправить ежедневное уведомление
+ */
+export async function sendDailyNotification() {
+  return apiFetch('/notifications/send-daily')
+}
+
+/**
+ * Получить сводку по уведомлениям
+ */
+export async function getNotificationSummary() {
+  return apiFetch('/notifications/summary')
+}
+
+/**
+ * Получить логи уведомлений
+ */
+export async function getNotificationLogs(limit = 50) {
+  return apiFetch(`/notifications/logs?limit=${limit}`)
+}
+
+/**
+ * Получить статус планировщика
+ */
+export async function getSchedulerStatus() {
+  return apiFetch('/notifications/status')
+}
+
+// ============================================
+// Health Check
+// ============================================
+
+/**
+ * Проверить состояние API
+ */
+export async function checkApiHealth() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/health`)
+    return response.ok
+  } catch {
+    return false
+  }
+}
+
+// ============================================
+// Grouped API exports
+// ============================================
+
+export const authAPI = {
+  login,
+  register,
+  getCurrentUser,
+  logout
+}
+
+export const productsAPI = {
+  getProducts,
+  getProductById,
+  addProduct,
+  updateProduct,
+  deleteProduct,
+  getExpiredProducts,
+  getExpiringSoonProducts
+}
+
+export const notificationsAPI = {
+  sendTestTelegramNotification,
+  sendDailyNotification,
+  getNotificationSummary,
+  getNotificationLogs,
+  getSchedulerStatus
+}
+
+export default {
+  // Products
+  getProducts,
+  getProductById,
+  addProduct,
+  updateProduct,
+  deleteProduct,
+  getExpiredProducts,
+  getExpiringSoonProducts,
+
+  // Auth
+  login,
+  register,
+  getCurrentUser,
+  logout,
+
+  // Notifications
+  sendTestTelegramNotification,
+  sendDailyNotification,
+  getNotificationSummary,
+  getNotificationLogs,
+  getSchedulerStatus,
+
+  // Health
+  checkApiHealth
+}

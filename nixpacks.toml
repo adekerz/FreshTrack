@@ -1,0 +1,12 @@
+# Nixpacks configuration for Railway
+[phases.setup]
+nixPkgs = ["nodejs_22", "npm-9_x"]
+
+[phases.install]
+cmds = ["cd server && npm install"]
+
+[phases.build]
+cmds = ["echo 'No build needed for server'"]
+
+[start]
+cmd = "cd server && node index.js"
