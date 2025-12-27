@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react'
 import { useTranslation } from '../../context/LanguageContext'
 import { useToast } from '../../context/ToastContext'
 import { Save, Check, AlertCircle, RefreshCw } from 'lucide-react'
+import { logError } from '../../utils/logger'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 
@@ -53,7 +54,7 @@ export default function GeneralSettings() {
         setSettings(prev => ({ ...prev, ...data }))
       }
     } catch (error) {
-      console.error('Error loading settings:', error)
+      logError('Error loading settings:', error)
     } finally {
       setLoading(false)
     }
@@ -70,7 +71,7 @@ export default function GeneralSettings() {
       addToast(t('toast.settingsSaved'), 'success')
       setTimeout(() => setMessage(null), 3000)
     } catch (error) {
-      console.error('Error saving settings:', error)
+      logError('Error saving settings:', error)
       setMessage({ type: 'error', text: t('settings.saveError') })
       addToast(t('toast.settingsSaveError'), 'error')
     } finally {

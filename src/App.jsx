@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
+import ErrorBoundary from './components/ErrorBoundary'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import DashboardPage from './pages/DashboardPage'
@@ -17,7 +18,7 @@ import Layout from './components/Layout'
 function App() {
   const { user, loading } = useAuth()
 
-  // РџРѕРєР°Р·С‹РІР°РµРј Р·Р°РіСЂСѓР·РєСѓ РїСЂРё РёРЅРёС†РёР°Р»РёР·Р°С†РёРё
+  // Показываем загрузку при инициализации
   if (loading) {
     return (
       <div className="min-h-screen bg-cream flex items-center justify-center">
@@ -40,57 +41,59 @@ function App() {
   }
 
   return (
-    <Layout>
-      <Routes>
-        {/* РћР±С‰РµРґРѕСЃС‚СѓРїРЅС‹Рµ СЃС‚СЂР°РЅРёС†С‹ (РґР»СЏ РІСЃРµС… Р°РІС‚РѕСЂРёР·РѕРІР°РЅРЅС‹С…) */}
-        <Route path="/" element={<DashboardPage />} />
-        <Route path="/inventory" element={<InventoryPage />} />
-        <Route path="/notifications" element={<NotificationsPage />} />
-        <Route path="/calendar" element={<CalendarPage />} />
-        <Route path="/settings" element={<SettingsPage />} />
+    <ErrorBoundary>
+      <Layout>
+        <Routes>
+          {/* Общедоступные страницы (для всех авторизованных) */}
+          <Route path="/" element={<DashboardPage />} />
+          <Route path="/inventory" element={<InventoryPage />} />
+          <Route path="/notifications" element={<NotificationsPage />} />
+          <Route path="/calendar" element={<CalendarPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
 
-        {/* РЎС‚СЂР°РЅРёС†С‹ СЃ РѕРіСЂР°РЅРёС‡РµРЅРЅС‹Рј РґРѕСЃС‚СѓРїРѕРј */}
-        <Route
-          path="/notifications/history"
-          element={
-            <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'HOTEL_ADMIN']}>
-              <NotificationsHistoryPage />
-            </ProtectedRoute>
-          }
-        />
+          {/* Страницы с ограниченным доступом */}
+          <Route
+            path="/notifications/history"
+            element={
+              <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'HOTEL_ADMIN']}>
+                <NotificationsHistoryPage />
+              </ProtectedRoute>
+            }
+          />
 
-        {/* РўРѕР»СЊРєРѕ РґР»СЏ Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂРѕРІ */}
-        <Route
-          path="/collection-history"
-          element={
-            <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'HOTEL_ADMIN']}>
-              <CollectionHistoryPage />
-            </ProtectedRoute>
-          }
-        />
+          {/* Только для администраторов */}
+          <Route
+            path="/collection-history"
+            element={
+              <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'HOTEL_ADMIN']}>
+                <CollectionHistoryPage />
+              </ProtectedRoute>
+            }
+          />
 
-        <Route
-          path="/statistics"
-          element={
-            <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'HOTEL_ADMIN']}>
-              <StatisticsPage />
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="/statistics"
+            element={
+              <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'HOTEL_ADMIN']}>
+                <StatisticsPage />
+              </ProtectedRoute>
+            }
+          />
 
-        <Route
-          path="/audit-logs"
-          element={
-            <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'HOTEL_ADMIN']}>
-              <AuditLogsPage />
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="/audit-logs"
+            element={
+              <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'HOTEL_ADMIN']}>
+                <AuditLogsPage />
+              </ProtectedRoute>
+            }
+          />
 
-        {/* Fallback */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </Layout>
+          {/* Fallback */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Layout>
+    </ErrorBoundary>
   )
 }
 

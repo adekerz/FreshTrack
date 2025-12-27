@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Upload, Image, Loader2, RotateCcw, Edit3, Check, X } from 'lucide-react'
 import { useTranslation } from '../context/LanguageContext'
+import { logError } from '../utils/logger'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 
@@ -47,7 +48,7 @@ export default function CustomContentSettings() {
       const data = await apiFetch(`${API_URL}/custom-content`)
       setContent(data.content || {})
     } catch (error) {
-      console.error('Error loading content:', error)
+      logError('Error loading content:', error)
     } finally {
       setLoading(false)
     }
@@ -76,7 +77,7 @@ export default function CustomContentSettings() {
       setEditingField(null)
       setEditValue('')
     } catch (error) {
-      console.error('Error saving content:', error)
+      logError('Error saving content:', error)
     } finally {
       setSaving(false)
     }
@@ -105,7 +106,7 @@ export default function CustomContentSettings() {
       const data = await response.json()
       setContent((prev) => ({ ...prev, logo_url: data.logoUrl }))
     } catch (error) {
-      console.error('Error uploading logo:', error)
+      logError('Error uploading logo:', error)
     } finally {
       setUploadingLogo(false)
     }
@@ -118,7 +119,7 @@ export default function CustomContentSettings() {
       })
       setContent((prev) => ({ ...prev, logo_url: '/default-logo.svg' }))
     } catch (error) {
-      console.error('Error resetting logo:', error)
+      logError('Error resetting logo:', error)
     }
   }
 

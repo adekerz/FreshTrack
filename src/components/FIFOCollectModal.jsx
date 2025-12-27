@@ -26,6 +26,7 @@ import {
 import { useTranslation } from '../context/LanguageContext'
 import { useToast } from '../context/ToastContext'
 import { apiFetch } from '../services/api'
+import { logError } from '../utils/logger'
 
 // Причины списания (соответствуют backend CollectionReason)
 const REASONS = [
@@ -67,7 +68,7 @@ export default function FIFOCollectModal({
       const data = await apiFetch(`/fifo-collect/preview?productId=${product.id}&quantity=${quantity}`)
       setPreview(data)
     } catch (err) {
-      console.error('Preview fetch error:', err)
+      logError('Preview fetch error:', err)
       setError(err.message)
       setPreview(null)
     } finally {
@@ -130,7 +131,7 @@ export default function FIFOCollectModal({
       onSuccess?.(result)
       onClose()
     } catch (err) {
-      console.error('Collection error:', err)
+      logError('Collection error:', err)
       setError(err.message)
       addToast(t('fifoCollect.error') || 'Ошибка при списании', 'error')
     } finally {

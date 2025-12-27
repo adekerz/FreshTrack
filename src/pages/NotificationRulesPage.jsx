@@ -17,6 +17,7 @@ import {
 import { useTranslation } from '../context/LanguageContext'
 import { useToast } from '../context/ToastContext'
 import { cn } from '../utils/classNames'
+import { logError } from '../utils/logger'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 
@@ -92,7 +93,7 @@ export default function NotificationRulesPage() {
       const data = await apiFetch(`${API_URL}/settings/notifications/rules`)
       setRules(data.rules || DEFAULT_RULES)
     } catch (error) {
-      console.error('Error loading rules:', error)
+      logError('Error loading rules:', error)
       // Используем дефолтные правила если API недоступен
       setRules(DEFAULT_RULES)
     } finally {
@@ -107,7 +108,7 @@ export default function NotificationRulesPage() {
         body: JSON.stringify({ rules: newRules })
       })
     } catch (error) {
-      console.error('Error saving rules:', error)
+      logError('Error saving rules:', error)
     }
   }
 

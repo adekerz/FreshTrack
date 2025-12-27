@@ -15,6 +15,7 @@ import {
   ChevronLeft,
   ChevronRight
 } from 'lucide-react'
+import { logError } from '../utils/logger'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 
@@ -96,7 +97,7 @@ export default function NotificationsHistoryPage() {
         setLogs(data.logs)
         setPagination(data.pagination)
       } catch (err) {
-        console.error('Error fetching logs:', err)
+        logError('Error fetching logs:', err)
         setError(err.message)
       } finally {
         setLoading(false)

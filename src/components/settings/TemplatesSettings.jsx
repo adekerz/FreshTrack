@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react'
 import { useTranslation } from '../../context/LanguageContext'
 import { useProducts } from '../../context/ProductContext'
 import { useToast } from '../../context/ToastContext'
+import { logError } from '../../utils/logger'
 import { 
   Plus, 
   X, 
@@ -74,7 +75,7 @@ export default function TemplatesSettings() {
       setTemplates(templatesData.templates || templatesData || [])
       setProducts(productsData.products || productsData || [])
     } catch (error) {
-      console.error('Error fetching data:', error)
+      logError('Error fetching data:', error)
       setTemplates([])
       setProducts([])
     } finally {
@@ -97,7 +98,7 @@ export default function TemplatesSettings() {
       closeModal()
       addToast(t('toast.templateCreated'), 'success')
     } catch (error) {
-      console.error('Error creating template:', error)
+      logError('Error creating template:', error)
       addToast(t('toast.templateCreateError'), 'error')
     } finally {
       setSaving(false)
@@ -117,7 +118,7 @@ export default function TemplatesSettings() {
       closeModal()
       addToast(t('toast.templateUpdated'), 'success')
     } catch (error) {
-      console.error('Error updating template:', error)
+      logError('Error updating template:', error)
       addToast(t('toast.templateUpdateError'), 'error')
     } finally {
       setSaving(false)
@@ -134,7 +135,7 @@ export default function TemplatesSettings() {
       fetchData()
       addToast(t('toast.templateDeleted'), 'success')
     } catch (error) {
-      console.error('Error deleting template:', error)
+      logError('Error deleting template:', error)
       addToast(t('toast.templateDeleteError'), 'error')
     }
   }

@@ -7,6 +7,7 @@ import { useToast } from '../context/ToastContext'
 import { format, parseISO } from 'date-fns'
 import CollectModal from './CollectModal'
 import FIFOCollectModal from './FIFOCollectModal'
+import { logError } from '../utils/logger'
 
 // Цвета статусов для полоски слева
 const statusBorderColors = {
@@ -88,7 +89,7 @@ export default function ProductModal({ product, onClose }) {
       setShowAddForm(false)
       addToast(t('toast.batchAdded'), 'success')
     } catch (error) {
-      console.error('Error adding batch:', error)
+      logError('Error adding batch:', error)
       addToast(t('toast.batchAddError'), 'error')
     }
   }
@@ -113,7 +114,7 @@ export default function ProductModal({ product, onClose }) {
       addToast(t('toast.productDeleted'), 'success')
       onClose()
     } catch (error) {
-      console.error('Error deleting product:', error)
+      logError('Error deleting product:', error)
       addToast(t('toast.productDeleteError'), 'error')
     } finally {
       setDeleting(false)

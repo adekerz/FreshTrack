@@ -6,6 +6,7 @@
 import { useState, useRef } from 'react'
 import { useTranslation } from '../../context/LanguageContext'
 import { useToast } from '../../context/ToastContext'
+import { logError } from '../../utils/logger'
 import { 
   Upload, 
   Download, 
@@ -60,7 +61,7 @@ export default function ImportExportSettings() {
         addToast(t('toast.importError'), 'error')
       }
     } catch (error) {
-      console.error('Import error:', error)
+      logError('Import error:', error)
       setImportResult({
         success: false,
         message: t('import.error') || 'Ошибка импорта',
@@ -98,7 +99,7 @@ export default function ImportExportSettings() {
       window.URL.revokeObjectURL(url)
       addToast(t('toast.exportSuccess'), 'success')
     } catch (error) {
-      console.error('Export error:', error)
+      logError('Export error:', error)
       addToast(t('toast.exportError'), 'error')
     } finally {
       setExporting(null)

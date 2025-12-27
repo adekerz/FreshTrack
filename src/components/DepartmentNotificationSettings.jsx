@@ -3,6 +3,7 @@ import { Bell, Clock, Mail, MessageSquare, Smartphone, Save, Loader2 } from 'luc
 import { useTranslation } from '../context/LanguageContext'
 import { departments } from '../context/ProductContext'
 import { cn } from '../utils/classNames'
+import { logError } from '../utils/logger'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 
@@ -39,7 +40,7 @@ export default function DepartmentNotificationSettings() {
       const data = await apiFetch(`${API_URL}/department-settings`)
       setSettings(data.settings || {})
     } catch (error) {
-      console.error('Error loading department settings:', error)
+      logError('Error loading department settings:', error)
     } finally {
       setLoading(false)
     }
@@ -64,7 +65,7 @@ export default function DepartmentNotificationSettings() {
         body: JSON.stringify(settings[departmentId] || {})
       })
     } catch (error) {
-      console.error('Error saving settings:', error)
+      logError('Error saving settings:', error)
     } finally {
       setSaving(null)
     }

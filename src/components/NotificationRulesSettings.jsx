@@ -3,6 +3,7 @@ import { Bell, Plus, Trash2, Save, Loader2, ToggleLeft, ToggleRight, X } from 'l
 import { useTranslation } from '../context/LanguageContext'
 import { useProducts } from '../context/ProductContext'
 import { cn } from '../utils/classNames'
+import { logError } from '../utils/logger'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 
@@ -49,7 +50,7 @@ export default function NotificationRulesSettings() {
       const data = await apiFetch(`${API_URL}/notification-rules`)
       setRules(data.rules || [])
     } catch (error) {
-      console.error('Error loading rules:', error)
+      logError('Error loading rules:', error)
     } finally {
       setLoading(false)
     }
@@ -65,7 +66,7 @@ export default function NotificationRulesSettings() {
         rules.map((rule) => (rule.id === ruleId ? { ...rule, isActive: result.isActive } : rule))
       )
     } catch (error) {
-      console.error('Error toggling rule:', error)
+      logError('Error toggling rule:', error)
     }
   }
 
@@ -78,7 +79,7 @@ export default function NotificationRulesSettings() {
       })
       setRules(rules.filter((rule) => rule.id !== ruleId))
     } catch (error) {
-      console.error('Error deleting rule:', error)
+      logError('Error deleting rule:', error)
     }
   }
 
@@ -115,7 +116,7 @@ export default function NotificationRulesSettings() {
         channels: ['app']
       })
     } catch (error) {
-      console.error('Error adding rule:', error)
+      logError('Error adding rule:', error)
     } finally {
       setSaving(false)
     }

@@ -293,7 +293,7 @@ export function ProductProvider({ children }) {
 
         return newBatch
       } catch (err) {
-        console.error('Error adding batch:', err)
+        logError('Error adding batch:', err)
         throw err
       }
     },
@@ -318,7 +318,7 @@ export function ProductProvider({ children }) {
 
       return true
     } catch (err) {
-      console.error('Error collecting batch:', err)
+      logError('Error collecting batch:', err)
       throw err
     }
   }, [])
@@ -340,7 +340,7 @@ export function ProductProvider({ children }) {
 
       return true
     } catch (err) {
-      console.error('Error deleting batch:', err)
+      logError('Error deleting batch:', err)
       throw err
     }
   }, [])
@@ -380,7 +380,7 @@ export function ProductProvider({ children }) {
 
       return newProduct
     } catch (error) {
-      console.error('Error adding custom product:', error)
+      logError('Error adding custom product:', error)
       
       // Fallback: добавить только в локальный каталог
       const productId = `custom-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`
@@ -637,7 +637,7 @@ export function ProductProvider({ children }) {
 
       return true
     } catch (error) {
-      console.error('Error deleting product:', error)
+      logError('Error deleting product:', error)
       throw error
     }
   }, [])

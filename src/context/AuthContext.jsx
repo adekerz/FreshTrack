@@ -5,6 +5,7 @@
 
 import { createContext, useContext, useState, useEffect } from 'react'
 import { authAPI } from '../services/api'
+import { logError } from '../utils/logger'
 
 const AuthContext = createContext(null)
 
@@ -49,7 +50,7 @@ export function AuthProvider({ children }) {
 
       return { success: false, error: response.error || 'Invalid credentials' }
     } catch (error) {
-      console.error('Login error:', error.message)
+      logError('Login error:', error.message)
       return { 
         success: false, 
         error: 'Unable to connect to server. Please check your connection.' 

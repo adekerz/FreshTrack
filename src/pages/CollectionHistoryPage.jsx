@@ -9,6 +9,7 @@ import { useAuth } from '../context/AuthContext'
 import { useProducts } from '../context/ProductContext'
 import { Navigate } from 'react-router-dom'
 import { Filter, RefreshCw, ChevronLeft, ChevronRight, ArchiveX, User, Package } from 'lucide-react'
+import { logError } from '../utils/logger'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 
@@ -64,7 +65,7 @@ export default function CollectionHistoryPage() {
         }
       }
     } catch (err) {
-      console.error('Error fetching stats:', err)
+      logError('Error fetching stats:', err)
     }
   }, [])
 
@@ -114,7 +115,7 @@ export default function CollectionHistoryPage() {
         const totalPages = Math.ceil(total / pagination.limit)
         setPagination(prev => ({ ...prev, page, total, totalPages }))
       } catch (err) {
-        console.error('Error fetching logs:', err)
+        logError('Error fetching logs:', err)
         setError(err.message)
         setLogs([])
       } finally {

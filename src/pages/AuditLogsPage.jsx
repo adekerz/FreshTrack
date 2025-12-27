@@ -25,6 +25,7 @@ import {
 import { useTranslation } from '../context/LanguageContext'
 import { cn } from '../utils/classNames'
 import { formatDate } from '../utils/dateUtils'
+import { logError } from '../utils/logger'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 
@@ -83,7 +84,7 @@ export default function AuditLogsPage() {
       setLogs(data.logs || [])
       setPagination(prev => ({ ...prev, total: data.total || 0 }))
     } catch (error) {
-      console.error('Error loading audit logs:', error)
+      logError('Error loading audit logs:', error)
       setLogs([])
     } finally {
       setLoading(false)
@@ -116,7 +117,7 @@ export default function AuditLogsPage() {
         a.click()
       }
     } catch (error) {
-      console.error('Export error:', error)
+      logError('Export error:', error)
     }
   }
 

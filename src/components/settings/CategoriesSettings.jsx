@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react'
 import { useTranslation } from '../../context/LanguageContext'
 import { useToast } from '../../context/ToastContext'
 import { Plus, X, RefreshCw, Tag, Palette } from 'lucide-react'
+import { logError } from '../../utils/logger'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 
@@ -49,7 +50,7 @@ export default function CategoriesSettings() {
       const data = await apiFetch(`${API_URL}/categories`)
       setCategories(data.categories || data || [])
     } catch (error) {
-      console.error('Error fetching categories:', error)
+      logError('Error fetching categories:', error)
       // Показываем стандартные категории, если API не отвечает
       setCategories([
         { id: 1, name: 'Wine', color: '#722F37' },
@@ -75,7 +76,7 @@ export default function CategoriesSettings() {
       setNewCategory({ name: '', color: defaultColors[Math.floor(Math.random() * defaultColors.length)] })
       addToast(t('toast.categoryAdded'), 'success')
     } catch (error) {
-      console.error('Error adding category:', error)
+      logError('Error adding category:', error)
       addToast(t('toast.categoryAddError'), 'error')
     } finally {
       setAdding(false)
@@ -92,7 +93,7 @@ export default function CategoriesSettings() {
       fetchCategories()
       addToast(t('toast.categoryDeleted'), 'success')
     } catch (error) {
-      console.error('Error deleting category:', error)
+      logError('Error deleting category:', error)
       addToast(t('toast.categoryDeleteError'), 'error')
     }
   }

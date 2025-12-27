@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from '../../context/LanguageContext'
 import { useToast } from '../../context/ToastContext'
+import { logError } from '../../utils/logger'
 import { 
   Send, 
   Save, 
@@ -69,7 +70,7 @@ export default function TelegramSettings() {
         setSettings(prev => ({ ...prev, ...data }))
       }
     } catch (error) {
-      console.error('Error loading telegram settings:', error)
+      logError('Error loading telegram settings:', error)
     } finally {
       setLoading(false)
     }
@@ -86,7 +87,7 @@ export default function TelegramSettings() {
       addToast(t('toast.telegramSettingsSaved'), 'success')
       setTimeout(() => setMessage(null), 3000)
     } catch (error) {
-      console.error('Error saving settings:', error)
+      logError('Error saving settings:', error)
       setMessage({ type: 'error', text: t('settings.saveError') })
       addToast(t('toast.telegramSettingsError'), 'error')
     } finally {
@@ -112,7 +113,7 @@ export default function TelegramSettings() {
         addToast(t('toast.telegramTestError'), 'error')
       }
     } catch (error) {
-      console.error('Error testing telegram:', error)
+      logError('Error testing telegram:', error)
       setMessage({ type: 'error', text: t('telegram.testError') || 'Ошибка отправки' })
       addToast(t('toast.telegramTestError'), 'error')
     } finally {

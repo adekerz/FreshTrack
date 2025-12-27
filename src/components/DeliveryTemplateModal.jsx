@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { X, Package, Plus, Minus, Calendar, Check, Loader2 } from 'lucide-react'
 import { useTranslation } from '../context/LanguageContext'
 import { useProducts } from '../context/ProductContext'
+import { logError } from '../utils/logger'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 
@@ -44,7 +45,7 @@ export default function DeliveryTemplateModal({ isOpen, onClose, onApply, depart
       const data = await apiFetch(`${API_URL}/delivery-templates`)
       setTemplates(data.templates || [])
     } catch (error) {
-      console.error('Error loading templates:', error)
+      logError('Error loading templates:', error)
     } finally {
       setLoading(false)
     }
@@ -99,7 +100,7 @@ export default function DeliveryTemplateModal({ isOpen, onClose, onApply, depart
         onClose()
       }
     } catch (error) {
-      console.error('Error applying template:', error)
+      logError('Error applying template:', error)
     } finally {
       setApplying(false)
     }

@@ -18,6 +18,7 @@ import {
   EyeOff
 } from 'lucide-react'
 import { formatDate } from '../../utils/dateUtils'
+import { logError } from '../../utils/logger'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 
@@ -65,7 +66,7 @@ export default function UsersSettings() {
       const data = await apiFetch(`${API_URL}/auth/users`)
       setUsers(data.users || data || [])
     } catch (error) {
-      console.error('Error fetching users:', error)
+      logError('Error fetching users:', error)
       setUsers([])
     } finally {
       setLoading(false)
@@ -105,7 +106,7 @@ export default function UsersSettings() {
       fetchUsers()
       addToast(t('toast.userUpdated'), 'success')
     } catch (error) {
-      console.error('Error toggling user status:', error)
+      logError('Error toggling user status:', error)
       addToast(t('toast.userUpdateError'), 'error')
     }
   }
@@ -120,7 +121,7 @@ export default function UsersSettings() {
       fetchUsers()
       addToast(t('toast.userDeleted'), 'success')
     } catch (error) {
-      console.error('Error deleting user:', error)
+      logError('Error deleting user:', error)
       addToast(t('toast.userDeleteError'), 'error')
     }
   }

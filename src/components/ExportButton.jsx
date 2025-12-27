@@ -7,6 +7,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Download, FileSpreadsheet, FileText, ChevronDown } from 'lucide-react'
 import { useTranslation } from '../context/LanguageContext'
 import { exportToExcel, exportToPDF } from '../utils/exportUtils'
+import { logError } from '../utils/logger'
 
 export default function ExportButton({
   data,
@@ -61,7 +62,7 @@ export default function ExportButton({
           break
       }
     } catch (error) {
-      console.error('Export error:', error)
+      logError('Export error:', error)
       alert(t('export.error'))
     } finally {
       setExporting(null)
