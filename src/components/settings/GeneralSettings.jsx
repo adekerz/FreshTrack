@@ -7,25 +7,7 @@ import { useState, useEffect } from 'react'
 import { useTranslation } from '../../context/LanguageContext'
 import { useToast } from '../../context/ToastContext'
 import { Save, Check, AlertCircle, RefreshCw } from 'lucide-react'
-import { logError } from '../../utils/logger'
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
-
-const apiFetch = async (url, options = {}) => {
-  const token = localStorage.getItem('freshtrack_token')
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-      ...options.headers
-    }
-  })
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`)
-  }
-  return response.json()
-}
+import { apiFetch } from '../../services/api'
 
 export default function GeneralSettings() {
   const { t } = useTranslation()
@@ -49,12 +31,12 @@ export default function GeneralSettings() {
   const loadSettings = async () => {
     setLoading(true)
     try {
-      const data = await apiFetch(`${API_URL}/settings/general`)
+      const data = await apiFetch('/settings/general')
       if (data) {
         setSettings(prev => ({ ...prev, ...data }))
       }
     } catch (error) {
-      logError('Error loading settings:', error)
+      // Error already logged by apiFetch
     } finally {
       setLoading(false)
     }
@@ -63,7 +45,7 @@ export default function GeneralSettings() {
   const saveSettings = async () => {
     setSaving(true)
     try {
-      await apiFetch(`${API_URL}/settings/general`, {
+      await apiFetch('/settings/general', {
         method: 'PUT',
         body: JSON.stringify(settings)
       })
@@ -71,7 +53,7 @@ export default function GeneralSettings() {
       addToast(t('toast.settingsSaved'), 'success')
       setTimeout(() => setMessage(null), 3000)
     } catch (error) {
-      logError('Error saving settings:', error)
+      // Error already logged by apiFetch
       setMessage({ type: 'error', text: t('settings.saveError') })
       addToast(t('toast.settingsSaveError'), 'error')
     } finally {

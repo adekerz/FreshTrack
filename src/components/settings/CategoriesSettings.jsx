@@ -7,25 +7,7 @@ import { useState, useEffect } from 'react'
 import { useTranslation } from '../../context/LanguageContext'
 import { useToast } from '../../context/ToastContext'
 import { Plus, X, RefreshCw, Tag, Palette } from 'lucide-react'
-import { logError } from '../../utils/logger'
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
-
-const apiFetch = async (url, options = {}) => {
-  const token = localStorage.getItem('freshtrack_token')
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-      ...options.headers
-    }
-  })
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`)
-  }
-  return response.json()
-}
+import { apiFetch } from '../../services/api'
 
 const defaultColors = [
   '#FF8D6B', '#6B8DFF', '#6BFF8D', '#FF6B8D', '#8D6BFF',
@@ -47,11 +29,10 @@ export default function CategoriesSettings() {
   const fetchCategories = async () => {
     setLoading(true)
     try {
-      const data = await apiFetch(`${API_URL}/categories`)
+      const data = await apiFetch('/categories')
       setCategories(data.categories || data || [])
     } catch (error) {
-      logError('Error fetching categories:', error)
-      // Показываем стандартные категории, если API не отвечает
+      // Fallback to default categories if API fails
       setCategories([
         { id: 1, name: 'Wine', color: '#722F37' },
         { id: 2, name: 'Spirits', color: '#8B4513' },
@@ -68,7 +49,7 @@ export default function CategoriesSettings() {
     
     setAdding(true)
     try {
-      await apiFetch(`${API_URL}/categories`, {
+      await apiFetch('/categories', {
         method: 'POST',
         body: JSON.stringify(newCategory)
       })
@@ -76,7 +57,6 @@ export default function CategoriesSettings() {
       setNewCategory({ name: '', color: defaultColors[Math.floor(Math.random() * defaultColors.length)] })
       addToast(t('toast.categoryAdded'), 'success')
     } catch (error) {
-      logError('Error adding category:', error)
       addToast(t('toast.categoryAddError'), 'error')
     } finally {
       setAdding(false)
@@ -87,13 +67,12 @@ export default function CategoriesSettings() {
     if (!confirm(`${t('categories.confirmDelete') || 'Удалить категорию'} "${name}"?`)) return
     
     try {
-      await apiFetch(`${API_URL}/categories/${id}`, {
+      await apiFetch(`/categories/${id}`, {
         method: 'DELETE'
       })
       fetchCategories()
       addToast(t('toast.categoryDeleted'), 'success')
     } catch (error) {
-      logError('Error deleting category:', error)
       addToast(t('toast.categoryDeleteError'), 'error')
     }
   }

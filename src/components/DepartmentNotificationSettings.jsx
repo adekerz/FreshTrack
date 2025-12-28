@@ -3,25 +3,7 @@ import { Bell, Clock, Mail, MessageSquare, Smartphone, Save, Loader2 } from 'luc
 import { useTranslation } from '../context/LanguageContext'
 import { departments } from '../context/ProductContext'
 import { cn } from '../utils/classNames'
-import { logError } from '../utils/logger'
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
-
-const apiFetch = async (url, options = {}) => {
-  const token = localStorage.getItem('freshtrack_token')
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-      ...options.headers
-    }
-  })
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`)
-  }
-  return response.json()
-}
+import { apiFetch } from '../services/api'
 
 export default function DepartmentNotificationSettings() {
   const { t } = useTranslation()
@@ -37,10 +19,10 @@ export default function DepartmentNotificationSettings() {
   const loadSettings = async () => {
     setLoading(true)
     try {
-      const data = await apiFetch(`${API_URL}/department-settings`)
+      const data = await apiFetch('/department-settings')
       setSettings(data.settings || {})
     } catch (error) {
-      logError('Error loading department settings:', error)
+      // Error logged by apiFetch
     } finally {
       setLoading(false)
     }
@@ -60,12 +42,12 @@ export default function DepartmentNotificationSettings() {
   const saveDepartmentSettings = async (departmentId) => {
     setSaving(departmentId)
     try {
-      await apiFetch(`${API_URL}/department-settings/${departmentId}`, {
+      await apiFetch(`/department-settings/${departmentId}`, {
         method: 'PUT',
         body: JSON.stringify(settings[departmentId] || {})
       })
     } catch (error) {
-      logError('Error saving settings:', error)
+      // Error logged by apiFetch
     } finally {
       setSaving(null)
     }

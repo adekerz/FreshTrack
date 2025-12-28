@@ -6,7 +6,7 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from '../../context/LanguageContext'
 import { useToast } from '../../context/ToastContext'
-import { logError } from '../../utils/logger'
+import { apiFetch } from '../../services/api'
 import { 
   Send, 
   Save, 
@@ -18,24 +18,6 @@ import {
   Clock,
   MessageSquare
 } from 'lucide-react'
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
-
-const apiFetch = async (url, options = {}) => {
-  const token = localStorage.getItem('freshtrack_token')
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-      ...options.headers
-    }
-  })
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`)
-  }
-  return response.json()
-}
 
 export default function TelegramSettings() {
   const { t } = useTranslation()
@@ -65,12 +47,12 @@ export default function TelegramSettings() {
   const loadSettings = async () => {
     setLoading(true)
     try {
-      const data = await apiFetch(`${API_URL}/settings/telegram`)
+      const data = await apiFetch('/settings/telegram')
       if (data) {
         setSettings(prev => ({ ...prev, ...data }))
       }
     } catch (error) {
-      logError('Error loading telegram settings:', error)
+      // Error logged by apiFetch
     } finally {
       setLoading(false)
     }
@@ -79,7 +61,7 @@ export default function TelegramSettings() {
   const saveSettings = async () => {
     setSaving(true)
     try {
-      await apiFetch(`${API_URL}/settings/telegram`, {
+      await apiFetch('/settings/telegram', {
         method: 'PUT',
         body: JSON.stringify(settings)
       })
@@ -87,7 +69,6 @@ export default function TelegramSettings() {
       addToast(t('toast.telegramSettingsSaved'), 'success')
       setTimeout(() => setMessage(null), 3000)
     } catch (error) {
-      logError('Error saving settings:', error)
       setMessage({ type: 'error', text: t('settings.saveError') })
       addToast(t('toast.telegramSettingsError'), 'error')
     } finally {
@@ -98,7 +79,7 @@ export default function TelegramSettings() {
   const testTelegram = async () => {
     setTesting(true)
     try {
-      const response = await apiFetch(`${API_URL}/notifications/test-telegram`, {
+      const response = await apiFetch('/notifications/test-telegram', {
         method: 'POST'
       })
       setMessage({ 
@@ -113,7 +94,6 @@ export default function TelegramSettings() {
         addToast(t('toast.telegramTestError'), 'error')
       }
     } catch (error) {
-      logError('Error testing telegram:', error)
       setMessage({ type: 'error', text: t('telegram.testError') || 'Ошибка отправки' })
       addToast(t('toast.telegramTestError'), 'error')
     } finally {

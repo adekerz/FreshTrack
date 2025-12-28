@@ -25,25 +25,7 @@ import {
 import { useTranslation } from '../context/LanguageContext'
 import { cn } from '../utils/classNames'
 import { formatDate } from '../utils/dateUtils'
-import { logError } from '../utils/logger'
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
-
-const apiFetch = async (url, options = {}) => {
-  const token = localStorage.getItem('freshtrack_token')
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-      ...options.headers
-    }
-  })
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`)
-  }
-  return response.json()
-}
+import { apiFetch, API_BASE_URL } from '../services/api'
 
 export default function AuditLogsPage() {
   const { t } = useTranslation()
@@ -80,11 +62,11 @@ export default function AuditLogsPage() {
         ...(filters.dateTo && { dateTo: filters.dateTo })
       })
       
-      const data = await apiFetch(`${API_URL}/audit-logs?${params}`)
+      const data = await apiFetch(`/audit-logs?${params}`)
       setLogs(data.logs || [])
       setPagination(prev => ({ ...prev, total: data.total || 0 }))
-    } catch (error) {
-      logError('Error loading audit logs:', error)
+    } catch {
+      // Error already logged by apiFetch
       setLogs([])
     } finally {
       setLoading(false)
@@ -103,7 +85,7 @@ export default function AuditLogsPage() {
 
   const exportLogs = async () => {
     try {
-      const response = await fetch(`${API_URL}/export/audit`, {
+      const response = await fetch(`${API_BASE_URL}/export/audit`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('freshtrack_token')}`
         }
@@ -116,8 +98,8 @@ export default function AuditLogsPage() {
         a.download = `audit-logs-${new Date().toISOString().split('T')[0]}.xlsx`
         a.click()
       }
-    } catch (error) {
-      logError('Export error:', error)
+    } catch {
+      // Export error
     }
   }
 

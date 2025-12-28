@@ -1,24 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Upload, Image, Loader2, RotateCcw, Edit3, Check, X } from 'lucide-react'
 import { useTranslation } from '../context/LanguageContext'
-import { logError } from '../utils/logger'
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
-
-const apiFetch = async (url, options = {}) => {
-  const token = localStorage.getItem('freshtrack_token')
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      ...options.headers
-    }
-  })
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`)
-  }
-  return response.json()
-}
+import { apiFetch, API_BASE_URL } from '../services/api'
 
 export default function CustomContentSettings() {
   const { t } = useTranslation()
@@ -45,10 +28,10 @@ export default function CustomContentSettings() {
   const loadContent = async () => {
     setLoading(true)
     try {
-      const data = await apiFetch(`${API_URL}/custom-content`)
+      const data = await apiFetch('/custom-content')
       setContent(data.content || {})
     } catch (error) {
-      logError('Error loading content:', error)
+      // Error logged by apiFetch
     } finally {
       setLoading(false)
     }
@@ -67,7 +50,7 @@ export default function CustomContentSettings() {
   const saveField = async (key) => {
     setSaving(true)
     try {
-      await apiFetch(`${API_URL}/custom-content/${key}`, {
+      await apiFetch(`/custom-content/${key}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ value: editValue })
@@ -77,7 +60,7 @@ export default function CustomContentSettings() {
       setEditingField(null)
       setEditValue('')
     } catch (error) {
-      logError('Error saving content:', error)
+      // Error logged by apiFetch
     } finally {
       setSaving(false)
     }
@@ -93,7 +76,7 @@ export default function CustomContentSettings() {
       formData.append('logo', file)
 
       const token = localStorage.getItem('freshtrack_token')
-      const response = await fetch(`${API_URL}/custom-content/upload-logo`, {
+      const response = await fetch(`${API_BASE_URL}/custom-content/upload-logo`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`
@@ -106,7 +89,7 @@ export default function CustomContentSettings() {
       const data = await response.json()
       setContent((prev) => ({ ...prev, logo_url: data.logoUrl }))
     } catch (error) {
-      logError('Error uploading logo:', error)
+      // Logo upload error
     } finally {
       setUploadingLogo(false)
     }
@@ -114,12 +97,12 @@ export default function CustomContentSettings() {
 
   const resetLogo = async () => {
     try {
-      await apiFetch(`${API_URL}/custom-content/logo`, {
+      await apiFetch('/custom-content/logo', {
         method: 'DELETE'
       })
       setContent((prev) => ({ ...prev, logo_url: '/default-logo.svg' }))
     } catch (error) {
-      logError('Error resetting logo:', error)
+      // Error logged by apiFetch
     }
   }
 

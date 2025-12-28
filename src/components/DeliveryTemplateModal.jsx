@@ -2,25 +2,7 @@ import { useState, useEffect } from 'react'
 import { X, Package, Plus, Minus, Calendar, Check, Loader2 } from 'lucide-react'
 import { useTranslation } from '../context/LanguageContext'
 import { useProducts } from '../context/ProductContext'
-import { logError } from '../utils/logger'
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
-
-const apiFetch = async (url, options = {}) => {
-  const token = localStorage.getItem('freshtrack_token')
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-      ...options.headers
-    }
-  })
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`)
-  }
-  return response.json()
-}
+import { apiFetch } from '../services/api'
 
 export default function DeliveryTemplateModal({ isOpen, onClose, onApply, departmentId }) {
   const { t } = useTranslation()
@@ -42,10 +24,10 @@ export default function DeliveryTemplateModal({ isOpen, onClose, onApply, depart
   const loadTemplates = async () => {
     setLoading(true)
     try {
-      const data = await apiFetch(`${API_URL}/delivery-templates`)
+      const data = await apiFetch('/delivery-templates')
       setTemplates(data.templates || [])
     } catch (error) {
-      logError('Error loading templates:', error)
+      // Error logged by apiFetch
     } finally {
       setLoading(false)
     }
@@ -84,7 +66,7 @@ export default function DeliveryTemplateModal({ isOpen, onClose, onApply, depart
 
     setApplying(true)
     try {
-      const result = await apiFetch(`${API_URL}/delivery-templates/${selectedTemplate.id}/apply`, {
+      const result = await apiFetch(`/delivery-templates/${selectedTemplate.id}/apply`, {
         method: 'POST',
         body: JSON.stringify({
           items: items.map((item) => ({
@@ -100,7 +82,7 @@ export default function DeliveryTemplateModal({ isOpen, onClose, onApply, depart
         onClose()
       }
     } catch (error) {
-      logError('Error applying template:', error)
+      // Error logged by apiFetch
     } finally {
       setApplying(false)
     }

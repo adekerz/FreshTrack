@@ -17,25 +17,7 @@ import {
 import { useTranslation } from '../context/LanguageContext'
 import { useToast } from '../context/ToastContext'
 import { cn } from '../utils/classNames'
-import { logError } from '../utils/logger'
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
-
-const apiFetch = async (url, options = {}) => {
-  const token = localStorage.getItem('freshtrack_token')
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-      ...options.headers
-    }
-  })
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`)
-  }
-  return response.json()
-}
+import { apiFetch } from '../services/api'
 
 const DEFAULT_RULES = [
   {
@@ -90,10 +72,9 @@ export default function NotificationRulesPage() {
   const loadRules = async () => {
     setLoading(true)
     try {
-      const data = await apiFetch(`${API_URL}/settings/notifications/rules`)
+      const data = await apiFetch('/settings/notifications/rules')
       setRules(data.rules || DEFAULT_RULES)
-    } catch (error) {
-      logError('Error loading rules:', error)
+    } catch {
       // Используем дефолтные правила если API недоступен
       setRules(DEFAULT_RULES)
     } finally {
@@ -103,12 +84,12 @@ export default function NotificationRulesPage() {
 
   const saveRules = async (newRules) => {
     try {
-      await apiFetch(`${API_URL}/settings/notifications/rules`, {
+      await apiFetch('/settings/notifications/rules', {
         method: 'PUT',
         body: JSON.stringify({ rules: newRules })
       })
-    } catch (error) {
-      logError('Error saving rules:', error)
+    } catch {
+      // Error already logged by apiFetch
     }
   }
 

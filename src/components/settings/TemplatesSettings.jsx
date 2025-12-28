@@ -7,7 +7,7 @@ import { useState, useEffect } from 'react'
 import { useTranslation } from '../../context/LanguageContext'
 import { useProducts } from '../../context/ProductContext'
 import { useToast } from '../../context/ToastContext'
-import { logError } from '../../utils/logger'
+import { apiFetch } from '../../services/api'
 import { 
   Plus, 
   X, 
@@ -18,24 +18,6 @@ import {
   Package,
   Check
 } from 'lucide-react'
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
-
-const apiFetch = async (url, options = {}) => {
-  const token = localStorage.getItem('freshtrack_token')
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-      ...options.headers
-    }
-  })
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`)
-  }
-  return response.json()
-}
 
 export default function TemplatesSettings() {
   const { t } = useTranslation()
@@ -69,13 +51,12 @@ export default function TemplatesSettings() {
     setLoading(true)
     try {
       const [templatesData, productsData] = await Promise.all([
-        apiFetch(`${API_URL}/delivery-templates`),
-        apiFetch(`${API_URL}/products/catalog`)
+        apiFetch('/delivery-templates'),
+        apiFetch('/products/catalog')
       ])
       setTemplates(templatesData.templates || templatesData || [])
       setProducts(productsData.products || productsData || [])
     } catch (error) {
-      logError('Error fetching data:', error)
       setTemplates([])
       setProducts([])
     } finally {
@@ -87,7 +68,7 @@ export default function TemplatesSettings() {
     
     setSaving(true)
     try {
-      await apiFetch(`${API_URL}/delivery-templates`, {
+      await apiFetch('/delivery-templates', {
         method: 'POST',
         body: JSON.stringify({
           ...newTemplate,
@@ -98,7 +79,6 @@ export default function TemplatesSettings() {
       closeModal()
       addToast(t('toast.templateCreated'), 'success')
     } catch (error) {
-      logError('Error creating template:', error)
       addToast(t('toast.templateCreateError'), 'error')
     } finally {
       setSaving(false)
@@ -110,7 +90,7 @@ export default function TemplatesSettings() {
     
     setSaving(true)
     try {
-      await apiFetch(`${API_URL}/delivery-templates/${editingTemplate.id}`, {
+      await apiFetch(`/delivery-templates/${editingTemplate.id}`, {
         method: 'PUT',
         body: JSON.stringify(newTemplate)
       })
@@ -118,7 +98,6 @@ export default function TemplatesSettings() {
       closeModal()
       addToast(t('toast.templateUpdated'), 'success')
     } catch (error) {
-      logError('Error updating template:', error)
       addToast(t('toast.templateUpdateError'), 'error')
     } finally {
       setSaving(false)
@@ -129,13 +108,12 @@ export default function TemplatesSettings() {
     if (!confirm(`${t('templates.confirmDelete') || 'Удалить шаблон'} "${name}"?`)) return
     
     try {
-      await apiFetch(`${API_URL}/delivery-templates/${id}`, {
+      await apiFetch(`/delivery-templates/${id}`, {
         method: 'DELETE'
       })
       fetchData()
       addToast(t('toast.templateDeleted'), 'success')
     } catch (error) {
-      logError('Error deleting template:', error)
       addToast(t('toast.templateDeleteError'), 'error')
     }
   }

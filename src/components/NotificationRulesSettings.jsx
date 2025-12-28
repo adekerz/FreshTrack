@@ -3,25 +3,7 @@ import { Bell, Plus, Trash2, Save, Loader2, ToggleLeft, ToggleRight, X } from 'l
 import { useTranslation } from '../context/LanguageContext'
 import { useProducts } from '../context/ProductContext'
 import { cn } from '../utils/classNames'
-import { logError } from '../utils/logger'
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
-
-const apiFetch = async (url, options = {}) => {
-  const token = localStorage.getItem('freshtrack_token')
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-      ...options.headers
-    }
-  })
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`)
-  }
-  return response.json()
-}
+import { apiFetch } from '../services/api'
 
 export default function NotificationRulesSettings() {
   const { t } = useTranslation()
@@ -47,10 +29,10 @@ export default function NotificationRulesSettings() {
   const loadRules = async () => {
     setLoading(true)
     try {
-      const data = await apiFetch(`${API_URL}/notification-rules`)
+      const data = await apiFetch('/notification-rules')
       setRules(data.rules || [])
     } catch (error) {
-      logError('Error loading rules:', error)
+      // Error logged by apiFetch
     } finally {
       setLoading(false)
     }
@@ -58,7 +40,7 @@ export default function NotificationRulesSettings() {
 
   const toggleRule = async (ruleId) => {
     try {
-      const result = await apiFetch(`${API_URL}/notification-rules/${ruleId}/toggle`, {
+      const result = await apiFetch(`/notification-rules/${ruleId}/toggle`, {
         method: 'PATCH'
       })
 
@@ -66,7 +48,7 @@ export default function NotificationRulesSettings() {
         rules.map((rule) => (rule.id === ruleId ? { ...rule, isActive: result.isActive } : rule))
       )
     } catch (error) {
-      logError('Error toggling rule:', error)
+      // Error logged by apiFetch
     }
   }
 
@@ -74,12 +56,12 @@ export default function NotificationRulesSettings() {
     if (!window.confirm(t('rules.deleteConfirm') || 'Удалить правило?')) return
 
     try {
-      await apiFetch(`${API_URL}/notification-rules/${ruleId}`, {
+      await apiFetch(`/notification-rules/${ruleId}`, {
         method: 'DELETE'
       })
       setRules(rules.filter((rule) => rule.id !== ruleId))
     } catch (error) {
-      logError('Error deleting rule:', error)
+      // Error logged by apiFetch
     }
   }
 
@@ -88,7 +70,7 @@ export default function NotificationRulesSettings() {
 
     setSaving(true)
     try {
-      await apiFetch(`${API_URL}/notification-rules/rules`, {
+      await apiFetch('/notification-rules/rules', {
         method: 'POST',
         body: JSON.stringify({
           name: newRule.name,

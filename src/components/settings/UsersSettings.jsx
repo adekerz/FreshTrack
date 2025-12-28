@@ -18,26 +18,7 @@ import {
   EyeOff
 } from 'lucide-react'
 import { formatDate } from '../../utils/dateUtils'
-import { logError } from '../../utils/logger'
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
-
-const apiFetch = async (url, options = {}) => {
-  const token = localStorage.getItem('freshtrack_token')
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-      ...options.headers
-    }
-  })
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}))
-    throw new Error(error.error || `HTTP error! status: ${response.status}`)
-  }
-  return response.json()
-}
+import { apiFetch } from '../../services/api'
 
 export default function UsersSettings() {
   const { t } = useTranslation()
@@ -63,10 +44,9 @@ export default function UsersSettings() {
   const fetchUsers = async () => {
     setLoading(true)
     try {
-      const data = await apiFetch(`${API_URL}/auth/users`)
+      const data = await apiFetch('/auth/users')
       setUsers(data.users || data || [])
     } catch (error) {
-      logError('Error fetching users:', error)
       setUsers([])
     } finally {
       setLoading(false)
@@ -81,7 +61,7 @@ export default function UsersSettings() {
     setCreating(true)
     setError(null)
     try {
-      await apiFetch(`${API_URL}/auth/users`, {
+      await apiFetch('/auth/users', {
         method: 'POST',
         body: JSON.stringify(newUser)
       })
@@ -99,14 +79,13 @@ export default function UsersSettings() {
 
   const toggleUserStatus = async (userId, isActive) => {
     try {
-      await apiFetch(`${API_URL}/auth/users/${userId}`, {
+      await apiFetch(`/auth/users/${userId}`, {
         method: 'PATCH',
         body: JSON.stringify({ is_active: !isActive })
       })
       fetchUsers()
       addToast(t('toast.userUpdated'), 'success')
     } catch (error) {
-      logError('Error toggling user status:', error)
       addToast(t('toast.userUpdateError'), 'error')
     }
   }
@@ -115,13 +94,12 @@ export default function UsersSettings() {
     if (!confirm(`${t('users.confirmDelete') || 'Удалить пользователя'} ${userName}?`)) return
     
     try {
-      await apiFetch(`${API_URL}/auth/users/${userId}`, {
+      await apiFetch(`/auth/users/${userId}`, {
         method: 'DELETE'
       })
       fetchUsers()
       addToast(t('toast.userDeleted'), 'success')
     } catch (error) {
-      logError('Error deleting user:', error)
       addToast(t('toast.userDeleteError'), 'error')
     }
   }
