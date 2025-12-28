@@ -4,6 +4,7 @@
  */
 
 import express from 'express'
+import { logError } from '../utils/logger.js'
 import {
   getAllCollections,
   getCollectionById,
@@ -39,7 +40,7 @@ router.get('/', authMiddleware, hotelIsolation, departmentIsolation, requirePerm
     const collections = await getAllCollections(req.hotelId, filters)
     res.json({ success: true, collections })
   } catch (error) {
-    console.error('Get collections error:', error)
+    logError('Get collections error', error)
     res.status(500).json({ success: false, error: 'Failed to get collections' })
   }
 })
@@ -62,7 +63,7 @@ router.get('/:id', authMiddleware, hotelIsolation, departmentIsolation, requireP
     const products = await getCollectionProducts(req.params.id)
     res.json({ success: true, collection: { ...collection, products } })
   } catch (error) {
-    console.error('Get collection error:', error)
+    logError('Get collection error', error)
     res.status(500).json({ success: false, error: 'Failed to get collection' })
   }
 })
@@ -105,7 +106,7 @@ router.post('/', authMiddleware, hotelIsolation, departmentIsolation, requirePer
     
     res.status(201).json({ success: true, collection })
   } catch (error) {
-    console.error('Create collection error:', error)
+    logError('Create collection error', error)
     res.status(500).json({ success: false, error: 'Failed to create collection' })
   }
 })
@@ -148,7 +149,7 @@ router.put('/:id', authMiddleware, hotelIsolation, departmentIsolation, requireP
     }
     res.json({ success })
   } catch (error) {
-    console.error('Update collection error:', error)
+    logError('Update collection error', error)
     res.status(500).json({ success: false, error: 'Failed to update collection' })
   }
 })
@@ -176,7 +177,7 @@ router.post('/:id/products', authMiddleware, hotelIsolation, departmentIsolation
     const success = await addProductToCollection(req.params.id, product_id)
     res.json({ success })
   } catch (error) {
-    console.error('Add product to collection error:', error)
+    logError('Add product to collection error', error)
     res.status(500).json({ success: false, error: 'Failed to add product to collection' })
   }
 })
@@ -199,7 +200,7 @@ router.delete('/:id/products/:productId', authMiddleware, hotelIsolation, depart
     const success = await removeProductFromCollection(req.params.id, req.params.productId)
     res.json({ success })
   } catch (error) {
-    console.error('Remove product from collection error:', error)
+    logError('Remove product from collection error', error)
     res.status(500).json({ success: false, error: 'Failed to remove product from collection' })
   }
 })
@@ -229,9 +230,12 @@ router.delete('/:id', authMiddleware, hotelIsolation, departmentIsolation, requi
     }
     res.json({ success })
   } catch (error) {
-    console.error('Delete collection error:', error)
+    logError('Delete collection error', error)
     res.status(500).json({ success: false, error: 'Failed to delete collection' })
   }
 })
 
 export default router
+
+
+

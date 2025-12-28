@@ -3,6 +3,7 @@
  */
 
 import express from 'express'
+import { logError } from '../utils/logger.js'
 import {
   createProduct,
   createBatch,
@@ -112,7 +113,7 @@ router.post('/products', authMiddleware, hotelIsolation, departmentIsolation, re
     
     res.json({ success: true, results })
   } catch (error) {
-    console.error('Import products error:', error)
+    logError('Import products error', error)
     res.status(500).json({ success: false, error: 'Failed to import products' })
   }
 })
@@ -182,9 +183,12 @@ router.post('/batches', authMiddleware, hotelIsolation, departmentIsolation, req
     
     res.json({ success: true, results })
   } catch (error) {
-    console.error('Import batches error:', error)
+    logError('Import batches error', error)
     res.status(500).json({ success: false, error: 'Failed to import batches' })
   }
 })
 
 export default router
+
+
+

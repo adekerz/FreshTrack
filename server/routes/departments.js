@@ -11,6 +11,7 @@ import {
   deleteDepartment,
   logAudit
 } from '../db/database.js'
+import { logError } from '../utils/logger.js'
 import { 
   authMiddleware, 
   hotelIsolation,
@@ -29,7 +30,7 @@ router.get('/', authMiddleware, hotelIsolation, requirePermission(PermissionReso
     const departments = await getAllDepartments(req.hotelId, filters)
     res.json({ success: true, departments })
   } catch (error) {
-    console.error('Get departments error:', error)
+    logError('Departments', error)
     res.status(500).json({ success: false, error: 'Failed to get departments' })
   }
 })
@@ -46,7 +47,7 @@ router.get('/:id', authMiddleware, hotelIsolation, requirePermission(PermissionR
     }
     res.json({ success: true, department })
   } catch (error) {
-    console.error('Get department error:', error)
+    logError('Departments', error)
     res.status(500).json({ success: false, error: 'Failed to get department' })
   }
 })
@@ -73,7 +74,7 @@ router.post('/', authMiddleware, hotelIsolation, requirePermission(PermissionRes
     
     res.status(201).json({ success: true, department })
   } catch (error) {
-    console.error('Create department error:', error)
+    logError('Departments', error)
     res.status(500).json({ success: false, error: 'Failed to create department' })
   }
 })
@@ -108,7 +109,7 @@ router.put('/:id', authMiddleware, hotelIsolation, requirePermission(PermissionR
     }
     res.json({ success })
   } catch (error) {
-    console.error('Update department error:', error)
+    logError('Departments', error)
     res.status(500).json({ success: false, error: 'Failed to update department' })
   }
 })
@@ -134,9 +135,11 @@ router.delete('/:id', authMiddleware, hotelIsolation, requirePermission(Permissi
     }
     res.json({ success })
   } catch (error) {
-    console.error('Delete department error:', error)
+    logError('Departments', error)
     res.status(500).json({ success: false, error: 'Failed to delete department' })
   }
 })
 
 export default router
+
+

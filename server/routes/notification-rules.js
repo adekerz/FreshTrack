@@ -4,6 +4,7 @@
  */
 
 import express from 'express'
+import { logError } from '../utils/logger.js'
 import { query } from '../db/database.js'
 import { 
   authMiddleware, 
@@ -38,7 +39,7 @@ router.get('/', requirePermission(PermissionResource.SETTINGS, PermissionAction.
     const rules = await NotificationEngine.getRules(req.hotelId)
     res.json({ success: true, rules })
   } catch (error) {
-    console.error('Get notification rules error:', error)
+    logError('Get notification rules error', error)
     res.status(500).json({ success: false, error: 'Failed to get notification rules' })
   }
 })
@@ -51,7 +52,7 @@ router.get('/rules', requirePermission(PermissionResource.SETTINGS, PermissionAc
     const rules = await NotificationEngine.getRules(req.hotelId)
     res.json({ success: true, rules })
   } catch (error) {
-    console.error('Get notification rules error:', error)
+    logError('Get notification rules error', error)
     res.status(500).json({ success: false, error: 'Failed to get notification rules' })
   }
 })
@@ -84,7 +85,7 @@ router.post('/rules', requirePermission(PermissionResource.SETTINGS, PermissionA
     
     res.json({ success: true, id: ruleId })
   } catch (error) {
-    console.error('Create notification rule error:', error)
+    logError('Create notification rule error', error)
     res.status(500).json({ success: false, error: 'Failed to create notification rule' })
   }
 })
@@ -115,7 +116,7 @@ router.patch('/:id/toggle', requirePermission(PermissionResource.SETTINGS, Permi
     
     res.json({ success: true, isActive: newEnabled })
   } catch (error) {
-    console.error('Toggle notification rule error:', error)
+    logError('Toggle notification rule error', error)
     res.status(500).json({ success: false, error: 'Failed to toggle notification rule' })
   }
 })
@@ -131,7 +132,7 @@ router.delete('/:id', requirePermission(PermissionResource.SETTINGS, PermissionA
     )
     res.json({ success: true })
   } catch (error) {
-    console.error('Delete notification rule error:', error)
+    logError('Delete notification rule error', error)
     res.status(500).json({ success: false, error: 'Failed to delete notification rule' })
   }
 })
@@ -147,7 +148,7 @@ router.delete('/rules/:id', requirePermission(PermissionResource.SETTINGS, Permi
     )
     res.json({ success: true })
   } catch (error) {
-    console.error('Delete notification rule error:', error)
+    logError('Delete notification rule error', error)
     res.status(500).json({ success: false, error: 'Failed to delete notification rule' })
   }
 })
@@ -171,7 +172,7 @@ router.get('/telegram-chats', requirePermission(PermissionResource.SETTINGS, Per
     
     res.json({ success: true, chats: result.rows })
   } catch (error) {
-    console.error('Get telegram chats error:', error)
+    logError('Get telegram chats error', error)
     res.status(500).json({ success: false, error: 'Failed to get telegram chats' })
   }
 })
@@ -199,7 +200,7 @@ router.put('/telegram-chats/:id', requirePermission(PermissionResource.SETTINGS,
     
     res.json({ success: true })
   } catch (error) {
-    console.error('Update telegram chat error:', error)
+    logError('Update telegram chat error', error)
     res.status(500).json({ success: false, error: 'Failed to update telegram chat' })
   }
 })
@@ -215,7 +216,7 @@ router.delete('/telegram-chats/:id', requirePermission(PermissionResource.SETTIN
     )
     res.json({ success: true })
   } catch (error) {
-    console.error('Delete telegram chat error:', error)
+    logError('Delete telegram chat error', error)
     res.status(500).json({ success: false, error: 'Failed to delete telegram chat' })
   }
 })
@@ -232,7 +233,7 @@ router.get('/jobs/status', requirePermission(PermissionResource.SETTINGS, Permis
     const status = getJobStatus()
     res.json({ success: true, ...status })
   } catch (error) {
-    console.error('Get job status error:', error)
+    logError('Get job status error', error)
     res.status(500).json({ success: false, error: 'Failed to get job status' })
   }
 })
@@ -245,7 +246,7 @@ router.post('/jobs/run-expiry-check', requirePermission(PermissionResource.SETTI
     const count = await runExpiryCheckNow()
     res.json({ success: true, notificationsCreated: count })
   } catch (error) {
-    console.error('Run expiry check error:', error)
+    logError('Run expiry check error', error)
     res.status(500).json({ success: false, error: 'Failed to run expiry check' })
   }
 })
@@ -258,7 +259,7 @@ router.post('/jobs/run-queue', requirePermission(PermissionResource.SETTINGS, Pe
     const result = await runQueueProcessNow()
     res.json({ success: true, ...result })
   } catch (error) {
-    console.error('Run queue process error:', error)
+    logError('Run queue process error', error)
     res.status(500).json({ success: false, error: 'Failed to run queue process' })
   }
 })
@@ -282,7 +283,7 @@ router.post('/telegram-webhook', async (req, res) => {
     // Always return 200 to Telegram
     res.sendStatus(200)
   } catch (error) {
-    console.error('Telegram webhook error:', error)
+    logError('Telegram webhook error', error)
     res.sendStatus(200) // Still return 200 to prevent retry spam
   }
 })
@@ -300,7 +301,7 @@ router.get('/stats', requirePermission(PermissionResource.SETTINGS, PermissionAc
     const stats = await NotificationEngine.getStats(req.hotelId, startDate, endDate)
     res.json({ success: true, stats })
   } catch (error) {
-    console.error('Get notification stats error:', error)
+    logError('Get notification stats error', error)
     res.status(500).json({ success: false, error: 'Failed to get notification stats' })
   }
 })
@@ -323,9 +324,12 @@ router.post('/test-telegram', requirePermission(PermissionResource.SETTINGS, Per
     
     res.json({ success: true, messageId: result.message_id })
   } catch (error) {
-    console.error('Test telegram error:', error)
+    logError('Test telegram error', error)
     res.status(500).json({ success: false, error: error.message })
   }
 })
 
 export default router
+
+
+

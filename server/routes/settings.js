@@ -7,6 +7,7 @@
  */
 
 import express from 'express'
+import { logError } from '../utils/logger.js'
 import {
   getSettings as getLegacySettings,
   getSetting as getLegacySetting,
@@ -61,7 +62,7 @@ router.get('/user', authMiddleware, hotelIsolation, async (req, res) => {
       }
     })
   } catch (error) {
-    console.error('Get user settings error:', error)
+    logError('Get user settings error', error)
     res.status(500).json({ success: false, error: 'Failed to get user settings' })
   }
 })
@@ -88,7 +89,7 @@ router.get('/hierarchy/:key', authMiddleware, hotelIsolation, async (req, res) =
       resolved: true
     })
   } catch (error) {
-    console.error('Get hierarchical setting error:', error)
+    logError('Get hierarchical setting error', error)
     res.status(500).json({ success: false, error: 'Failed to get setting' })
   }
 })
@@ -129,7 +130,7 @@ router.put('/user/:key', authMiddleware, hotelIsolation, async (req, res) => {
     
     res.json({ success: result.success })
   } catch (error) {
-    console.error('Set user setting error:', error)
+    logError('Set user setting error', error)
     res.status(500).json({ success: false, error: 'Failed to set user setting' })
   }
 })
@@ -215,7 +216,7 @@ router.post('/batch', authMiddleware, hotelIsolation, requirePermission(Permissi
       errors: errors.length > 0 ? errors : undefined 
     })
   } catch (error) {
-    console.error('Batch settings update error:', error)
+    logError('Batch settings update error', error)
     res.status(500).json({ success: false, error: 'Failed to batch update settings' })
   }
 })
@@ -235,7 +236,7 @@ router.delete('/user/:key', authMiddleware, hotelIsolation, async (req, res) => 
     
     res.json({ success })
   } catch (error) {
-    console.error('Delete user setting error:', error)
+    logError('Delete user setting error', error)
     res.status(500).json({ success: false, error: 'Failed to delete user setting' })
   }
 })
@@ -252,7 +253,7 @@ router.get('/department', authMiddleware, hotelIsolation, requirePermission(Perm
     
     res.json({ success: true, settings, scope: 'department' })
   } catch (error) {
-    console.error('Get department settings error:', error)
+    logError('Get department settings error', error)
     res.status(500).json({ success: false, error: 'Failed to get department settings' })
   }
 })
@@ -297,7 +298,7 @@ router.put('/department/:key', authMiddleware, hotelIsolation, requirePermission
     
     res.json({ success: result.success })
   } catch (error) {
-    console.error('Set department setting error:', error)
+    logError('Set department setting error', error)
     res.status(500).json({ success: false, error: 'Failed to set department setting' })
   }
 })
@@ -314,7 +315,7 @@ router.get('/hotel', authMiddleware, hotelIsolation, requirePermission(Permissio
     
     res.json({ success: true, settings, scope: 'hotel' })
   } catch (error) {
-    console.error('Get hotel settings error:', error)
+    logError('Get hotel settings error', error)
     res.status(500).json({ success: false, error: 'Failed to get hotel settings' })
   }
 })
@@ -354,7 +355,7 @@ router.put('/hotel/:key', authMiddleware, hotelIsolation, requirePermission(Perm
     
     res.json({ success: result.success })
   } catch (error) {
-    console.error('Set hotel setting error:', error)
+    logError('Set hotel setting error', error)
     res.status(500).json({ success: false, error: 'Failed to set hotel setting' })
   }
 })
@@ -373,7 +374,7 @@ router.get('/system', authMiddleware, async (req, res) => {
     
     res.json({ success: true, settings, scope: 'system' })
   } catch (error) {
-    console.error('Get system settings error:', error)
+    logError('Get system settings error', error)
     res.status(500).json({ success: false, error: 'Failed to get system settings' })
   }
 })
@@ -416,7 +417,7 @@ router.put('/system/:key', authMiddleware, async (req, res) => {
     
     res.json({ success: result.success })
   } catch (error) {
-    console.error('Set system setting error:', error)
+    logError('Set system setting error', error)
     res.status(500).json({ success: false, error: 'Failed to set system setting' })
   }
 })
@@ -430,7 +431,7 @@ router.post('/cache/clear', authMiddleware, hotelIsolation, requirePermission(Pe
     clearSettingsCache()
     res.json({ success: true, message: 'Settings cache cleared' })
   } catch (error) {
-    console.error('Clear cache error:', error)
+    logError('Clear cache error', error)
     res.status(500).json({ success: false, error: 'Failed to clear cache' })
   }
 })
@@ -454,7 +455,7 @@ router.get('/', authMiddleware, hotelIsolation, requirePermission(PermissionReso
     const settings = await getLegacySettings(req.hotelId, category)
     res.json({ success: true, settings })
   } catch (error) {
-    console.error('Get settings error:', error)
+    logError('Get settings error', error)
     res.status(500).json({ success: false, error: 'Failed to get settings' })
   }
 })
@@ -484,7 +485,7 @@ router.get('/general', authMiddleware, hotelIsolation, async (req, res) => {
       }
     })
   } catch (error) {
-    console.error('Get general settings error:', error)
+    logError('Get general settings error', error)
     res.status(500).json({ success: false, error: 'Failed to get general settings' })
   }
 })
@@ -533,7 +534,7 @@ router.put('/general', authMiddleware, hotelIsolation, requirePermission(Permiss
     
     res.json({ success: true })
   } catch (error) {
-    console.error('Save general settings error:', error)
+    logError('Save general settings error', error)
     res.status(500).json({ success: false, error: 'Failed to save general settings' })
   }
 })
@@ -559,7 +560,7 @@ router.get('/telegram', authMiddleware, hotelIsolation, async (req, res) => {
       }
     })
   } catch (error) {
-    console.error('Get telegram settings error:', error)
+    logError('Get telegram settings error', error)
     res.status(500).json({ success: false, error: 'Failed to get telegram settings' })
   }
 })
@@ -601,7 +602,7 @@ router.put('/telegram', authMiddleware, hotelIsolation, requirePermission(Permis
     
     res.json({ success: true })
   } catch (error) {
-    console.error('Save telegram settings error:', error)
+    logError('Save telegram settings error', error)
     res.status(500).json({ success: false, error: 'Failed to save telegram settings' })
   }
 })
@@ -615,7 +616,7 @@ router.get('/:key', authMiddleware, hotelIsolation, async (req, res) => {
     }
     res.json({ success: true, setting })
   } catch (error) {
-    console.error('Get setting error:', error)
+    logError('Get setting error', error)
     res.status(500).json({ success: false, error: 'Failed to get setting' })
   }
 })
@@ -639,7 +640,7 @@ router.put('/', authMiddleware, hotelIsolation, requirePermission(PermissionReso
     }
     res.json({ success })
   } catch (error) {
-    console.error('Update settings error:', error)
+    logError('Update settings error', error)
     res.status(500).json({ success: false, error: 'Failed to update settings' })
   }
 })
@@ -664,7 +665,7 @@ router.put('/:key', authMiddleware, hotelIsolation, requirePermission(Permission
     }
     res.json({ success })
   } catch (error) {
-    console.error('Update setting error:', error)
+    logError('Update setting error', error)
     res.status(500).json({ success: false, error: 'Failed to update setting' })
   }
 })
@@ -684,7 +685,7 @@ router.get('/notifications/rules', authMiddleware, hotelIsolation, requirePermis
     
     res.json({ success: true, rules })
   } catch (error) {
-    console.error('Get notification rules error:', error)
+    logError('Get notification rules error', error)
     res.status(500).json({ success: false, error: 'Failed to get notification rules' })
   }
 })
@@ -714,9 +715,12 @@ router.put('/notifications/rules', authMiddleware, hotelIsolation, requirePermis
     
     res.json({ success: true })
   } catch (error) {
-    console.error('Update notification rules error:', error)
+    logError('Update notification rules error', error)
     res.status(500).json({ success: false, error: 'Failed to update notification rules' })
   }
 })
 
 export default router
+
+
+

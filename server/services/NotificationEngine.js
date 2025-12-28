@@ -13,6 +13,8 @@
 import crypto from 'crypto'
 import { query } from '../db/database.js'
 import { v4 as uuidv4 } from 'uuid'
+import { HOTEL_WIDE_ROLES } from '../utils/constants.js'
+import { logError } from '../utils/logger.js'
 import { TelegramService } from './TelegramService.js'
 import { getExpiryStatus, enrichBatchWithExpiryData } from './ExpiryService.js'
 
@@ -96,7 +98,7 @@ export class NotificationEngine {
       return totalNotifications
       
     } catch (error) {
-      console.error('❌ Expiry check failed:', error)
+      logError('NotificationEngine', error)
       throw error
     }
   }
@@ -241,8 +243,9 @@ export class NotificationEngine {
     }
     
     if (rule.department_id) {
-      whereClause += ` AND (u.department_id = $${paramIndex++} OR u.role IN ('HOTEL_ADMIN', 'SUPER_ADMIN'))`
+      whereClause += ` AND (u.department_id = $${paramIndex++} OR u.role = ANY($${paramIndex++}))`
       params.push(rule.department_id)
+      params.push(HOTEL_WIDE_ROLES)
     }
     
     whereClause += ` AND u.role = ANY($${paramIndex++})`
@@ -338,7 +341,7 @@ export class NotificationEngine {
         batch.department_id
       )
     } catch (error) {
-      console.error('Failed to send to linked chats:', error)
+      logError('NotificationEngine', error)
     }
   }
   
@@ -377,7 +380,7 @@ export class NotificationEngine {
       return { delivered, failed }
       
     } catch (error) {
-      console.error('❌ Queue processing failed:', error)
+      logError('NotificationEngine', error)
       throw error
     }
   }
@@ -661,3 +664,5 @@ export class NotificationEngine {
 }
 
 export default NotificationEngine
+
+

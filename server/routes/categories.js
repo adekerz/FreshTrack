@@ -11,6 +11,7 @@ import {
   deleteCategory,
   logAudit
 } from '../db/database.js'
+import { logError } from '../utils/logger.js'
 import { 
   authMiddleware, 
   hotelIsolation, 
@@ -35,7 +36,7 @@ router.get('/', authMiddleware, hotelIsolation, departmentIsolation, requirePerm
     const categories = await getAllCategories(req.hotelId, filters)
     res.json({ success: true, categories })
   } catch (error) {
-    console.error('Get categories error:', error)
+    logError('Categories', error)
     res.status(500).json({ success: false, error: 'Failed to get categories' })
   }
 })
@@ -57,7 +58,7 @@ router.get('/:id', authMiddleware, hotelIsolation, departmentIsolation, requireP
     }
     res.json({ success: true, category })
   } catch (error) {
-    console.error('Get category error:', error)
+    logError('Categories', error)
     res.status(500).json({ success: false, error: 'Failed to get category' })
   }
 })
@@ -94,7 +95,7 @@ router.post('/', authMiddleware, hotelIsolation, departmentIsolation, requirePer
     
     res.status(201).json({ success: true, category })
   } catch (error) {
-    console.error('Create category error:', error)
+    logError('Categories', error)
     res.status(500).json({ success: false, error: 'Failed to create category' })
   }
 })
@@ -146,7 +147,7 @@ router.put('/:id', authMiddleware, hotelIsolation, departmentIsolation, requireP
     }
     res.json({ success })
   } catch (error) {
-    console.error('Update category error:', error)
+    logError('Categories', error)
     res.status(500).json({ success: false, error: 'Failed to update category' })
   }
 })
@@ -181,9 +182,11 @@ router.delete('/:id', authMiddleware, hotelIsolation, departmentIsolation, requi
     }
     res.json({ success })
   } catch (error) {
-    console.error('Delete category error:', error)
+    logError('Categories', error)
     res.status(500).json({ success: false, error: 'Failed to delete category' })
   }
 })
 
 export default router
+
+

@@ -4,6 +4,7 @@
  */
 
 import express from 'express'
+import { logError } from '../utils/logger.js'
 import {
   getSettings,
   getSetting,
@@ -64,7 +65,7 @@ router.get('/', async (req, res) => {
     
     res.json({ success: true, content })
   } catch (error) {
-    console.error('Get custom content error:', error)
+    logError('Get custom content error', error)
     res.status(500).json({ success: false, error: 'Failed to get custom content' })
   }
 })
@@ -94,7 +95,7 @@ router.get('/:key', async (req, res) => {
       value: value || getDefaultContent(key)
     })
   } catch (error) {
-    console.error('Get custom content item error:', error)
+    logError('Get custom content item error', error)
     res.status(500).json({ success: false, error: 'Failed to get content item' })
   }
 })
@@ -131,7 +132,7 @@ router.put('/:key', requirePermission(PermissionResource.SETTINGS, PermissionAct
     
     res.json({ success: true, key, value })
   } catch (error) {
-    console.error('Update custom content error:', error)
+    logError('Update custom content error', error)
     res.status(500).json({ success: false, error: 'Failed to update content' })
   }
 })
@@ -173,7 +174,7 @@ router.put('/', requirePermission(PermissionResource.SETTINGS, PermissionAction.
     
     res.json({ success: true, updatedKeys })
   } catch (error) {
-    console.error('Update custom content error:', error)
+    logError('Update custom content error', error)
     res.status(500).json({ success: false, error: 'Failed to update content' })
   }
 })
@@ -212,7 +213,7 @@ router.post('/upload-logo', requirePermission(PermissionResource.SETTINGS, Permi
       logoUrl: '/assets/logo.svg'
     })
   } catch (error) {
-    console.error('Upload logo error:', error)
+    logError('Upload logo error', error)
     res.status(500).json({ success: false, error: 'Failed to upload logo' })
   }
 })
@@ -243,9 +244,12 @@ router.delete('/logo', requirePermission(PermissionResource.SETTINGS, Permission
     
     res.json({ success: true, logoUrl: '/assets/logo.svg' })
   } catch (error) {
-    console.error('Reset logo error:', error)
+    logError('Reset logo error', error)
     res.status(500).json({ success: false, error: 'Failed to reset logo' })
   }
 })
 
 export default router
+
+
+

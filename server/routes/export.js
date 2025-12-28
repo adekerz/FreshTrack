@@ -3,6 +3,7 @@
  */
 
 import express from 'express'
+import { logError } from '../utils/logger.js'
 import {
   getAllProducts,
   getAllBatches,
@@ -52,7 +53,7 @@ router.get('/products', authMiddleware, hotelIsolation, departmentIsolation, req
     
     res.json({ success: true, products, count: products.length })
   } catch (error) {
-    console.error('Export products error:', error)
+    logError('Export products error', error)
     res.status(500).json({ success: false, error: 'Failed to export products' })
   }
 })
@@ -87,7 +88,7 @@ router.get('/batches', authMiddleware, hotelIsolation, departmentIsolation, requ
     
     res.json({ success: true, batches, count: batches.length })
   } catch (error) {
-    console.error('Export batches error:', error)
+    logError('Export batches error', error)
     res.status(500).json({ success: false, error: 'Failed to export batches' })
   }
 })
@@ -98,7 +99,7 @@ router.get('/categories', authMiddleware, hotelIsolation, departmentIsolation, r
     const categories = await getAllCategories(req.hotelId)
     res.json({ success: true, categories, count: categories.length })
   } catch (error) {
-    console.error('Export categories error:', error)
+    logError('Export categories error', error)
     res.status(500).json({ success: false, error: 'Failed to export categories' })
   }
 })
@@ -109,7 +110,7 @@ router.get('/departments', authMiddleware, hotelIsolation, departmentIsolation, 
     const departments = await getAllDepartments(req.hotelId)
     res.json({ success: true, departments, count: departments.length })
   } catch (error) {
-    console.error('Export departments error:', error)
+    logError('Export departments error', error)
     res.status(500).json({ success: false, error: 'Failed to export departments' })
   }
 })
@@ -132,7 +133,7 @@ router.get('/write-offs', authMiddleware, hotelIsolation, departmentIsolation, r
     
     res.json({ success: true, write_offs: writeOffs, count: writeOffs.length })
   } catch (error) {
-    console.error('Export write-offs error:', error)
+    logError('Export write-offs error', error)
     res.status(500).json({ success: false, error: 'Failed to export write-offs' })
   }
 })
@@ -184,7 +185,7 @@ router.get('/inventory', authMiddleware, hotelIsolation, departmentIsolation, re
     
     res.json({ success: true, inventory, count: inventory.length })
   } catch (error) {
-    console.error('Export inventory error:', error)
+    logError('Export inventory error', error)
     res.status(500).json({ success: false, error: 'Failed to export inventory' })
   }
 })
@@ -244,7 +245,7 @@ router.get('/collections', authMiddleware, hotelIsolation, departmentIsolation, 
     
     res.json({ success: true, collections, count: collections.length })
   } catch (error) {
-    console.error('Export collections error:', error)
+    logError('Export collections error', error)
     res.status(500).json({ success: false, error: 'Failed to export collections' })
   }
 })
@@ -259,7 +260,7 @@ router.get('/audit', authMiddleware, hotelIsolation, requirePermission(Permissio
     
     res.json({ success: true, logs, count: logs.length })
   } catch (error) {
-    console.error('Export audit logs error:', error)
+    logError('Export audit logs error', error)
     res.status(500).json({ success: false, error: 'Failed to export audit logs' })
   }
 })
@@ -291,9 +292,12 @@ router.get('/all', authMiddleware, hotelIsolation, requirePermission(PermissionR
       exported_at: new Date().toISOString()
     })
   } catch (error) {
-    console.error('Export all error:', error)
+    logError('Export all error', error)
     res.status(500).json({ success: false, error: 'Failed to export all data' })
   }
 })
 
 export default router
+
+
+

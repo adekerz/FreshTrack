@@ -3,6 +3,7 @@
  */
 
 import express from 'express'
+import { logError } from '../utils/logger.js'
 import {
   getAllWriteOffs,
   getWriteOffById,
@@ -37,7 +38,7 @@ router.get('/stats', authMiddleware, hotelIsolation, departmentIsolation, requir
     const stats = await getWriteOffStats(req.hotelId, deptId)
     res.json({ success: true, ...stats })
   } catch (error) {
-    console.error('Get write-off stats error:', error)
+    logError('Get write-off stats error', error)
     res.status(500).json({ success: false, error: 'Failed to get write-off stats' })
   }
 })
@@ -59,7 +60,7 @@ router.get('/', authMiddleware, hotelIsolation, departmentIsolation, requirePerm
     const writeOffs = await getAllWriteOffs(req.hotelId, filters)
     res.json({ success: true, write_offs: writeOffs })
   } catch (error) {
-    console.error('Get write-offs error:', error)
+    logError('Get write-offs error', error)
     res.status(500).json({ success: false, error: 'Failed to get write-offs' })
   }
 })
@@ -80,7 +81,7 @@ router.get('/:id', authMiddleware, hotelIsolation, departmentIsolation, requireP
     }
     res.json({ success: true, write_off: writeOff })
   } catch (error) {
-    console.error('Get write-off error:', error)
+    logError('Get write-off error', error)
     res.status(500).json({ success: false, error: 'Failed to get write-off' })
   }
 })
@@ -158,7 +159,7 @@ router.post('/', authMiddleware, hotelIsolation, departmentIsolation, requirePer
     
     res.status(201).json({ success: true, write_off: writeOff })
   } catch (error) {
-    console.error('Create write-off error:', error)
+    logError('Create write-off error', error)
     res.status(500).json({ success: false, error: 'Failed to create write-off' })
   }
 })
@@ -193,7 +194,7 @@ router.put('/:id', authMiddleware, hotelIsolation, departmentIsolation, requireP
     }
     res.json({ success })
   } catch (error) {
-    console.error('Update write-off error:', error)
+    logError('Update write-off error', error)
     res.status(500).json({ success: false, error: 'Failed to update write-off' })
   }
 })
@@ -223,9 +224,12 @@ router.delete('/:id', authMiddleware, hotelIsolation, departmentIsolation, requi
     }
     res.json({ success })
   } catch (error) {
-    console.error('Delete write-off error:', error)
+    logError('Delete write-off error', error)
     res.status(500).json({ success: false, error: 'Failed to delete write-off' })
   }
 })
 
 export default router
+
+
+

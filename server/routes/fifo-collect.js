@@ -17,6 +17,7 @@ import {
   PermissionResource,
   PermissionAction
 } from '../middleware/auth.js'
+import { logError } from '../utils/logger.js'
 
 const router = express.Router()
 
@@ -69,7 +70,7 @@ router.get('/preview', authMiddleware, hotelIsolation, departmentIsolation, requ
 
     res.json(preview)
   } catch (error) {
-    console.error('FIFO preview error:', error)
+    logError('FIFOCollect', error)
     res.status(500).json({ 
       success: false, 
       error: 'PREVIEW_FAILED',
@@ -139,7 +140,7 @@ router.post('/collect',
 
       res.json(result)
     } catch (error) {
-      console.error('FIFO collect error:', error)
+      logError('FIFOCollect', error)
       res.status(500).json({ 
         success: false, 
         error: 'COLLECTION_FAILED',
@@ -186,7 +187,7 @@ router.get('/history',
         count: history.length
       })
     } catch (error) {
-      console.error('Get collection history error:', error)
+      logError('FIFOCollect', error)
       res.status(500).json({ 
         success: false, 
         error: 'FETCH_FAILED',
@@ -250,7 +251,7 @@ router.get('/history/export',
         sheetName: 'Collection History'
       })
     } catch (error) {
-      console.error('Export collection history error:', error)
+      logError('FIFOCollect', error)
       res.status(500).json({ 
         success: false, 
         error: 'EXPORT_FAILED',
@@ -292,7 +293,7 @@ router.get('/stats',
         ...stats
       })
     } catch (error) {
-      console.error('Get collection stats error:', error)
+      logError('FIFOCollect', error)
       res.status(500).json({ 
         success: false, 
         error: 'STATS_FAILED',
@@ -318,3 +319,5 @@ router.get('/reasons', authMiddleware, (req, res) => {
 })
 
 export default router
+
+

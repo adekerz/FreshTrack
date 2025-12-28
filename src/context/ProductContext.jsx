@@ -6,11 +6,9 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import { getBatchStatus } from '../utils/dateUtils'
 import { logDebug, logWarn, logError } from '../utils/logger'
+import { apiFetch } from '../services/api'
 
 const ProductContext = createContext(null)
-
-// API URL from environment or default
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 
 // Legacy exports for backwards compatibility - will be populated from state
 export let departments = []
@@ -32,29 +30,6 @@ const DEFAULT_DEPARTMENT_ICONS = {
 
 // Storage key for local catalog cache
 const CATALOG_STORAGE_KEY = 'freshtrack_catalog'
-
-/**
- * Хелпер для API запросов
- */
-async function apiFetch(endpoint, options = {}) {
-  const token = localStorage.getItem('freshtrack_token')
-
-  const defaultOptions = {
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {})
-    }
-  }
-
-  const response = await fetch(`${API_URL}${endpoint}`, { ...defaultOptions, ...options })
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Unknown error' }))
-    throw new Error(error.error || `HTTP error! status: ${response.status}`)
-  }
-
-  return response.json()
-}
 
 export function ProductProvider({ children }) {
   // Каталог товаров (локальный, для UI выбора)

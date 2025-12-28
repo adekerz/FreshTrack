@@ -42,9 +42,28 @@ import { query } from './db/postgres.js'
 const app = express()
 const PORT = process.env.PORT || 3001
 
-// CORS - Allow all origins for now (can be restricted later)
+// CORS - Restrict origins in production
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',')
+  : ['http://localhost:5173', 'http://localhost:3000']
+
 app.use(cors({
-  origin: true,
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, curl, etc.)
+    if (!origin) return callback(null, true)
+    
+    // In development, allow all origins
+    if (process.env.NODE_ENV !== 'production') {
+      return callback(null, true)
+    }
+    
+    // In production, check against allowed origins
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true)
+    }
+    
+    return callback(new Error('Not allowed by CORS'))
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
@@ -59,12 +78,9 @@ app.use(express.urlencoded({ extended: true }))
 // Trust proxy for Railway/Vercel
 app.set('trust proxy', 1)
 
-// Request logging
-app.use((req, res, next) => {
-  const timestamp = new Date().toISOString()
-  console.log(`[${timestamp}] ${req.method} ${req.path}`)
-  next()
-})
+// Request logging (development only)
+import { requestLogger } from './utils/logger.js'
+app.use(requestLogger)
 
 // API Routes
 app.use('/api/auth', authRouter)

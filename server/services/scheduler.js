@@ -6,6 +6,7 @@
 import cron from 'node-cron'
 import { getExpiredProducts, getExpiringTodayProducts, getExpiringSoonProducts } from '../db/database.js'
 import { sendDailyAlert, initTelegramBot } from './telegram.js'
+import { logError } from '../utils/logger.js'
 
 let dailyJob = null
 
@@ -56,12 +57,12 @@ export async function runDailyCheck() {
     if (result.success) {
       console.log('✅ Daily check completed successfully')
     } else {
-      console.error('❌ Daily check completed with errors:', result.error)
+      logError('scheduler', result.error)
     }
 
     return result
   } catch (error) {
-    console.error('❌ Error during daily check:', error)
+    logError('scheduler', error)
     return { success: false, error: error.message }
   }
 }
@@ -102,3 +103,5 @@ export default {
   restartScheduler,
   getSchedulerStatus
 }
+
+

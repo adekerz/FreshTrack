@@ -6,11 +6,12 @@
 
 import jwt from 'jsonwebtoken'
 import { getUserById, getHotelById, getDepartmentById, query } from '../db/database.js'
+import { logError, logWarn } from '../utils/logger.js'
 
 // SECURITY: JWT_SECRET must be set in environment variables
 const JWT_SECRET = process.env.JWT_SECRET
 if (!JWT_SECRET) {
-  console.error('CRITICAL: JWT_SECRET environment variable is required!')
+  logError('Auth', new Error('JWT_SECRET environment variable is required!'))
   // In production, throw error. In development, use fallback with warning
   if (process.env.NODE_ENV === 'production') {
     throw new Error('JWT_SECRET environment variable is required in production')
@@ -158,7 +159,7 @@ export const authMiddleware = async (req, res, next) => {
     
     next()
   } catch (error) {
-    console.error('Auth middleware error:', error)
+    logError('Auth', error)
     return res.status(401).json({ 
       success: false, 
       error: 'Authentication failed' 
@@ -232,7 +233,7 @@ export const hotelIsolation = async (req, res, next) => {
           req.hotelId = result.rows[0].id
         }
       } catch (error) {
-        console.error('Error auto-selecting hotel for SUPER_ADMIN:', error)
+        logError('Auth', error)
       }
     }
     return next()
@@ -577,7 +578,7 @@ export function requirePermission(resource, action, options = {}) {
       
       next()
     } catch (error) {
-      console.error('Permission check error:', error)
+      logError('Auth', error)
       return res.status(500).json({ 
         success: false, 
         error: 'Permission check failed' 
@@ -620,3 +621,5 @@ export function clearPermissionCache() {
 }
 
 export default authMiddleware
+
+

@@ -3,6 +3,7 @@
  */
 
 import express from 'express'
+import { logError } from '../utils/logger.js'
 import {
   getAllHotels,
   getHotelById,
@@ -35,7 +36,7 @@ router.get('/', authMiddleware, requirePermission(PermissionResource.HOTELS, Per
       res.json({ success: true, hotels: [] })
     }
   } catch (error) {
-    console.error('Get hotels error:', error)
+    logError('Get hotels error', error)
     res.status(500).json({ success: false, error: 'Failed to get hotels' })
   }
 })
@@ -52,7 +53,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
     }
     res.json({ success: true, hotel })
   } catch (error) {
-    console.error('Get hotel error:', error)
+    logError('Get hotel error', error)
     res.status(500).json({ success: false, error: 'Failed to get hotel' })
   }
 })
@@ -78,7 +79,7 @@ router.post('/', authMiddleware, requirePermission(PermissionResource.HOTELS, Pe
     
     res.status(201).json({ success: true, hotel })
   } catch (error) {
-    console.error('Create hotel error:', error)
+    logError('Create hotel error', error)
     res.status(500).json({ success: false, error: 'Failed to create hotel' })
   }
 })
@@ -121,7 +122,7 @@ router.put('/:id', authMiddleware, requirePermission(PermissionResource.HOTELS, 
     }
     res.json({ success })
   } catch (error) {
-    console.error('Update hotel error:', error)
+    logError('Update hotel error', error)
     res.status(500).json({ success: false, error: 'Failed to update hotel' })
   }
 })
@@ -144,9 +145,12 @@ router.delete('/:id', authMiddleware, requirePermission(PermissionResource.HOTEL
     }
     res.json({ success })
   } catch (error) {
-    console.error('Delete hotel error:', error)
+    logError('Delete hotel error', error)
     res.status(500).json({ success: false, error: 'Failed to delete hotel' })
   }
 })
 
 export default router
+
+
+

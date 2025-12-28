@@ -25,6 +25,7 @@ import {
   PermissionAction
 } from '../middleware/auth.js'
 import { enrichBatchWithExpiryData } from '../services/ExpiryService.js'
+import { logError } from '../utils/logger.js'
 
 const router = express.Router()
 
@@ -43,7 +44,7 @@ router.get('/', authMiddleware, hotelIsolation, departmentIsolation, requirePerm
     const products = await getAllProducts(req.hotelId, filters)
     res.json({ success: true, products })
   } catch (error) {
-    console.error('Get products error:', error)
+    logError('Products', error)
     res.status(500).json({ success: false, error: 'Failed to get products' })
   }
 })
@@ -62,7 +63,7 @@ router.get('/expiring', authMiddleware, hotelIsolation, departmentIsolation, req
     const products = await getAllProducts(req.hotelId, filters)
     res.json({ success: true, products })
   } catch (error) {
-    console.error('Get expiring products error:', error)
+    logError('Products', error)
     res.status(500).json({ success: false, error: 'Failed to get expiring products' })
   }
 })
@@ -81,7 +82,7 @@ router.get('/low-stock', authMiddleware, hotelIsolation, departmentIsolation, re
     const products = await getAllProducts(req.hotelId, filters)
     res.json({ success: true, products })
   } catch (error) {
-    console.error('Get low stock products error:', error)
+    logError('Products', error)
     res.status(500).json({ success: false, error: 'Failed to get low stock products' })
   }
 })
@@ -94,7 +95,7 @@ router.get('/catalog', authMiddleware, hotelIsolation, departmentIsolation, requ
     const products = await getAllProducts(req.hotelId, { department_id: deptId })
     res.json({ success: true, products })
   } catch (error) {
-    console.error('Get product catalog error:', error)
+    logError('Products', error)
     res.status(500).json({ success: false, error: 'Failed to get product catalog' })
   }
 })
@@ -120,7 +121,7 @@ router.get('/:id', authMiddleware, hotelIsolation, departmentIsolation, requireP
     const productBatches = batches.filter(b => b.product_id === req.params.id)
     res.json({ success: true, product: { ...product, batches: productBatches } })
   } catch (error) {
-    console.error('Get product error:', error)
+    logError('Products', error)
     res.status(500).json({ success: false, error: 'Failed to get product' })
   }
 })
@@ -162,7 +163,7 @@ router.post('/', authMiddleware, hotelIsolation, departmentIsolation, requirePer
     
     res.status(201).json({ success: true, product })
   } catch (error) {
-    console.error('Create product error:', error)
+    logError('Products', error)
     res.status(500).json({ success: false, error: 'Failed to create product' })
   }
 })
@@ -220,7 +221,7 @@ router.put('/:id', authMiddleware, hotelIsolation, departmentIsolation, requireP
     }
     res.json({ success })
   } catch (error) {
-    console.error('Update product error:', error)
+    logError('Products', error)
     res.status(500).json({ success: false, error: 'Failed to update product' })
   }
 })
@@ -384,7 +385,7 @@ router.post('/:id/collect', authMiddleware, hotelIsolation, departmentIsolation,
       }
     })
   } catch (error) {
-    console.error('FIFO collect error:', error)
+    logError('Products', error)
     res.status(500).json({ success: false, error: 'Failed to collect product' })
   }
 })
@@ -410,9 +411,11 @@ router.delete('/:id', authMiddleware, hotelIsolation, requirePermission(Permissi
     }
     res.json({ success })
   } catch (error) {
-    console.error('Delete product error:', error)
+    logError('Products', error)
     res.status(500).json({ success: false, error: 'Failed to delete product' })
   }
 })
 
 export default router
+
+

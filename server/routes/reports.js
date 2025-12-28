@@ -6,6 +6,7 @@
  */
 
 import express from 'express'
+import { logError } from '../utils/logger.js'
 import {
   getAllProducts,
   getAllBatches,
@@ -69,7 +70,7 @@ router.get('/statistics', authMiddleware, hotelIsolation, departmentIsolation, r
     
     res.json({ success: true, ...statistics })
   } catch (error) {
-    console.error('Get statistics error:', error)
+    logError('Get statistics error', error)
     res.status(500).json({ success: false, error: 'Failed to get statistics' })
   }
 })
@@ -89,7 +90,7 @@ router.get('/statistics/quick', authMiddleware, hotelIsolation, departmentIsolat
     
     res.json({ success: true, ...quickStats })
   } catch (error) {
-    console.error('Get quick stats error:', error)
+    logError('Get quick stats error', error)
     res.status(500).json({ success: false, error: 'Failed to get quick stats' })
   }
 })
@@ -157,7 +158,7 @@ router.get('/inventory', authMiddleware, hotelIsolation, departmentIsolation, re
       batches: paginatedBatches // Backward compatibility
     })
   } catch (error) {
-    console.error('Get inventory report error:', error)
+    logError('Get inventory report error', error)
     res.status(500).json({ success: false, error: 'Failed to generate inventory report' })
   }
 })
@@ -216,7 +217,7 @@ router.get('/expiry', authMiddleware, hotelIsolation, departmentIsolation, requi
       }
     })
   } catch (error) {
-    console.error('Get expiry report error:', error)
+    logError('Get expiry report error', error)
     res.status(500).json({ success: false, error: 'Failed to generate expiry report' })
   }
 })
@@ -251,7 +252,7 @@ router.get('/write-offs', authMiddleware, hotelIsolation, departmentIsolation, r
     
     res.json({ success: true, summary, write_offs: writeOffs })
   } catch (error) {
-    console.error('Get write-offs report error:', error)
+    logError('Get write-offs report error', error)
     res.status(500).json({ success: false, error: 'Failed to generate write-offs report' })
   }
 })
@@ -278,7 +279,7 @@ router.get('/activity', authMiddleware, hotelIsolation, departmentIsolation, req
     
     res.json({ success: true, summary, logs })
   } catch (error) {
-    console.error('Get activity report error:', error)
+    logError('Get activity report error', error)
     res.status(500).json({ success: false, error: 'Failed to generate activity report' })
   }
 })
@@ -388,7 +389,7 @@ router.get('/calendar', authMiddleware, hotelIsolation, departmentIsolation, req
       }
     })
   } catch (error) {
-    console.error('Get calendar data error:', error)
+    logError('Get calendar data error', error)
     res.status(500).json({ success: false, error: 'Failed to get calendar data' })
   }
 })
@@ -429,9 +430,12 @@ router.get('/dashboard', authMiddleware, hotelIsolation, departmentIsolation, as
     
     res.json({ success: true, dashboard })
   } catch (error) {
-    console.error('Get dashboard error:', error)
+    logError('Get dashboard error', error)
     res.status(500).json({ success: false, error: 'Failed to get dashboard data' })
   }
 })
 
 export default router
+
+
+

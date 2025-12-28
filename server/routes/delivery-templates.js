@@ -3,6 +3,7 @@
  */
 
 import express from 'express'
+import { logError } from '../utils/logger.js'
 import {
   getAllDeliveryTemplates,
   getDeliveryTemplateById,
@@ -31,7 +32,7 @@ router.get('/', authMiddleware, hotelIsolation, departmentIsolation, requirePerm
     const templates = await getAllDeliveryTemplates(req.hotelId, deptId)
     res.json({ success: true, templates })
   } catch (error) {
-    console.error('Get delivery templates error:', error)
+    logError('Get delivery templates error', error)
     res.status(500).json({ success: false, error: 'Failed to get delivery templates' })
   }
 })
@@ -52,7 +53,7 @@ router.get('/:id', authMiddleware, hotelIsolation, departmentIsolation, requireP
     }
     res.json({ success: true, template })
   } catch (error) {
-    console.error('Get delivery template error:', error)
+    logError('Get delivery template error', error)
     res.status(500).json({ success: false, error: 'Failed to get delivery template' })
   }
 })
@@ -91,7 +92,7 @@ router.post('/', authMiddleware, hotelIsolation, departmentIsolation, requirePer
     
     res.status(201).json({ success: true, template })
   } catch (error) {
-    console.error('Create delivery template error:', error)
+    logError('Create delivery template error', error)
     res.status(500).json({ success: false, error: 'Failed to create delivery template' })
   }
 })
@@ -138,7 +139,7 @@ router.put('/:id', authMiddleware, hotelIsolation, departmentIsolation, requireP
     }
     res.json({ success })
   } catch (error) {
-    console.error('Update delivery template error:', error)
+    logError('Update delivery template error', error)
     res.status(500).json({ success: false, error: 'Failed to update delivery template' })
   }
 })
@@ -201,7 +202,7 @@ router.post('/:id/apply', authMiddleware, hotelIsolation, departmentIsolation, r
     
     res.status(201).json({ success: true, batches: createdBatches })
   } catch (error) {
-    console.error('Apply delivery template error:', error)
+    logError('Apply delivery template error', error)
     res.status(500).json({ success: false, error: 'Failed to apply delivery template' })
   }
 })
@@ -231,9 +232,12 @@ router.delete('/:id', authMiddleware, hotelIsolation, departmentIsolation, requi
     }
     res.json({ success })
   } catch (error) {
-    console.error('Delete delivery template error:', error)
+    logError('Delete delivery template error', error)
     res.status(500).json({ success: false, error: 'Failed to delete delivery template' })
   }
 })
 
 export default router
+
+
+

@@ -8,6 +8,7 @@
  * - Retry logic with exponential backoff
  */
 
+import { logError } from '../utils/logger.js'
 import { query } from '../db/database.js'
 
 const BOT_TOKEN = '7792952266:AAHWSDqKWBkFOtvmmjOlre_pR84bBnV9I4Y'
@@ -262,7 +263,7 @@ export class TelegramService {
       )
       
     } catch (error) {
-      console.error('Link command error:', error)
+      logError('TelegramService', error)
       await this.sendMessage(chatId, `❌ Ошибка: ${error.message}`)
     }
   }
@@ -282,7 +283,7 @@ export class TelegramService {
         'Используйте `/link hotel:КОД` чтобы привязать снова.'
       )
     } catch (error) {
-      console.error('Unlink command error:', error)
+      logError('TelegramService', error)
       await this.sendMessage(chatId, `❌ Ошибка: ${error.message}`)
     }
   }
@@ -336,7 +337,7 @@ export class TelegramService {
       await this.sendMessage(chatId, statusText)
       
     } catch (error) {
-      console.error('Status command error:', error)
+      logError('TelegramService', error)
       await this.sendMessage(chatId, `❌ Ошибка: ${error.message}`)
     }
   }
@@ -406,7 +407,7 @@ ${chatType !== 'private' ? `
       
       console.log(`✅ Registered chat: ${chatTitle} (${chatId})`)
     } catch (error) {
-      console.error('Failed to register chat:', error)
+      logError('TelegramService', error)
     }
   }
   
@@ -420,7 +421,7 @@ ${chatType !== 'private' ? `
         [chatId]
       )
     } catch (error) {
-      console.error('Failed to mark chat inactive:', error)
+      logError('TelegramService', error)
     }
   }
   
@@ -446,7 +447,7 @@ ${chatType !== 'private' ? `
       const result = await query(queryText, params)
       return result.rows
     } catch (error) {
-      console.error('Failed to get chats:', error)
+      logError('TelegramService', error)
       return []
     }
   }
@@ -548,7 +549,7 @@ ${chatType !== 'private' ? `
           await this.processUpdate(update)
         }
       } catch (error) {
-        console.error('Polling error:', error.message)
+        logError('TelegramService', error.message)
       }
       
       setTimeout(poll, intervalMs)
@@ -582,3 +583,5 @@ ${chatType !== 'private' ? `
 }
 
 export default TelegramService
+
+

@@ -5,6 +5,7 @@
  */
 
 import express from 'express'
+import { logError } from '../utils/logger.js'
 import { getAuditLogs } from '../db/database.js'
 import { 
   authMiddleware, 
@@ -53,7 +54,7 @@ router.get('/', authMiddleware, hotelIsolation, requirePermission(PermissionReso
       logs: filteredLogs // Backward compatibility
     })
   } catch (error) {
-    console.error('Get audit logs error:', error)
+    logError('Get audit logs error', error)
     res.status(500).json({ success: false, error: 'Failed to get audit logs' })
   }
 })
@@ -111,7 +112,7 @@ router.get('/export',
         sheetName: 'Audit Logs'
       })
     } catch (error) {
-      console.error('Export audit logs error:', error)
+      logError('Export audit logs error', error)
       res.status(500).json({ success: false, error: 'Failed to export audit logs' })
     }
   }
@@ -127,7 +128,7 @@ router.get('/actions', authMiddleware, hotelIsolation, requirePermission(Permiss
     ]
     res.json({ success: true, actions })
   } catch (error) {
-    console.error('Get audit actions error:', error)
+    logError('Get audit actions error', error)
     res.status(500).json({ success: false, error: 'Failed to get audit actions' })
   }
 })
@@ -142,7 +143,7 @@ router.get('/entity-types', authMiddleware, hotelIsolation, requirePermission(Pe
     ]
     res.json({ success: true, entity_types: entityTypes })
   } catch (error) {
-    console.error('Get entity types error:', error)
+    logError('Get entity types error', error)
     res.status(500).json({ success: false, error: 'Failed to get entity types' })
   }
 })
@@ -207,7 +208,7 @@ router.get('/entity/:type/:id',
         timeline
       })
     } catch (error) {
-      console.error('Get entity history error:', error)
+      logError('Get entity history error', error)
       res.status(500).json({ 
         success: false, 
         error: 'Failed to get entity history' 
@@ -217,3 +218,6 @@ router.get('/entity/:type/:id',
 )
 
 export default router
+
+
+

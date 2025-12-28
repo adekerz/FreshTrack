@@ -23,6 +23,7 @@ import {
   PermissionAction
 } from '../middleware/auth.js'
 import { PermissionService } from '../services/PermissionService.js'
+import { logError } from '../utils/logger.js'
 
 const router = express.Router()
 
@@ -36,7 +37,7 @@ async function getUserPermissionsArray(user) {
     // Convert to 'resource:action' format
     return permissions.map(p => `${p.resource}:${p.action}`)
   } catch (error) {
-    console.error('Error loading permissions:', error)
+    logError('Auth', error)
     // Fallback based on role for resilience
     const role = user.role?.toUpperCase()
     if (role === 'SUPER_ADMIN') return ['*']
@@ -103,7 +104,7 @@ router.post('/login', async (req, res) => {
       token
     })
   } catch (error) {
-    console.error('Login error:', error)
+    logError('Auth', error)
     res.status(500).json({ success: false, error: 'Authentication failed' })
   }
 })
@@ -122,7 +123,7 @@ router.post('/logout', authMiddleware, async (req, res) => {
     })
     res.json({ success: true, message: 'Logged out successfully' })
   } catch (error) {
-    console.error('Logout error:', error)
+    logError('Auth', error)
     res.status(500).json({ success: false, error: 'Logout failed' })
   }
 })
@@ -159,7 +160,7 @@ router.get('/me', authMiddleware, async (req, res) => {
       }
     })
   } catch (error) {
-    console.error('Get me error:', error)
+    logError('Auth', error)
     res.status(500).json({ success: false, error: 'Failed to get user info' })
   }
 })
@@ -175,7 +176,7 @@ router.get('/users', authMiddleware, hotelIsolation, requirePermission(Permissio
     }))
     res.json({ success: true, users: safeUsers })
   } catch (error) {
-    console.error('Get users error:', error)
+    logError('Auth', error)
     res.status(500).json({ success: false, error: 'Failed to get users' })
   }
 })
@@ -223,7 +224,7 @@ router.post('/users', authMiddleware, hotelIsolation, requirePermission(Permissi
     
     res.status(201).json({ success: true, user: newUser })
   } catch (error) {
-    console.error('Create user error:', error)
+    logError('Auth', error)
     res.status(500).json({ success: false, error: 'Failed to create user' })
   }
 })
@@ -274,7 +275,7 @@ router.put('/users/:id', authMiddleware, requirePermission(PermissionResource.US
     }
     res.json({ success })
   } catch (error) {
-    console.error('Update user error:', error)
+    logError('Auth', error)
     res.status(500).json({ success: false, error: 'Failed to update user' })
   }
 })
@@ -323,7 +324,7 @@ router.patch('/users/:id', authMiddleware, requirePermission(PermissionResource.
     }
     res.json({ success })
   } catch (error) {
-    console.error('Patch user error:', error)
+    logError('Auth', error)
     res.status(500).json({ success: false, error: 'Failed to update user' })
   }
 })
@@ -348,7 +349,7 @@ router.put('/profile', authMiddleware, async (req, res) => {
     }
     res.json({ success })
   } catch (error) {
-    console.error('Update profile error:', error)
+    logError('Auth', error)
     res.status(500).json({ success: false, error: 'Failed to update profile' })
   }
 })
@@ -384,9 +385,11 @@ router.post('/change-password', authMiddleware, async (req, res) => {
     }
     res.json({ success, message: 'Password changed successfully' })
   } catch (error) {
-    console.error('Change password error:', error)
+    logError('Auth', error)
     res.status(500).json({ success: false, error: 'Failed to change password' })
   }
 })
 
 export default router
+
+

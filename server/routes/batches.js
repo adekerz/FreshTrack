@@ -4,6 +4,7 @@
  */
 
 import express from 'express'
+import { logError } from '../utils/logger.js'
 import {
   getAllBatches,
   getBatchById,
@@ -75,7 +76,7 @@ router.get('/', authMiddleware, hotelIsolation, departmentIsolation, requirePerm
       batches: paginatedBatches // Backward compatibility
     })
   } catch (error) {
-    console.error('Get batches error:', error)
+    logError('Get batches error', error)
     res.status(500).json({ success: false, error: 'Failed to get batches' })
   }
 })
@@ -98,7 +99,7 @@ router.get('/stats', authMiddleware, hotelIsolation, departmentIsolation, requir
     
     res.json({ success: true, stats })
   } catch (error) {
-    console.error('Get batch stats error:', error)
+    logError('Get batch stats error', error)
     res.status(500).json({ success: false, error: 'Failed to get batch stats' })
   }
 })
@@ -128,7 +129,7 @@ router.get('/:id', authMiddleware, hotelIsolation, departmentIsolation, requireP
     
     res.json({ success: true, batch })
   } catch (error) {
-    console.error('Get batch error:', error)
+    logError('Get batch error', error)
     res.status(500).json({ success: false, error: 'Failed to get batch' })
   }
 })
@@ -144,7 +145,7 @@ router.post('/', authMiddleware, hotelIsolation, departmentIsolation, requirePer
     
     // Validate hotel_id is available
     if (!req.hotelId) {
-      console.error('Create batch error: No hotel_id in request', { user: req.user?.id })
+      logError('Create batch error: No hotel_id in request', { user: req.user?.id })
       return res.status(400).json({ success: false, error: 'Hotel ID is required' })
     }
     
@@ -231,7 +232,7 @@ router.post('/', authMiddleware, hotelIsolation, departmentIsolation, requirePer
       quantity: batch.quantity
     })
   } catch (error) {
-    console.error('Create batch error:', error)
+    logError('Create batch error', error)
     res.status(500).json({ success: false, error: 'Failed to create batch' })
   }
 })
@@ -286,7 +287,7 @@ router.put('/:id', authMiddleware, hotelIsolation, departmentIsolation, requireP
       res.json({ success: false })
     }
   } catch (error) {
-    console.error('Update batch error:', error)
+    logError('Update batch error', error)
     res.status(500).json({ success: false, error: 'Failed to update batch' })
   }
 })
@@ -327,7 +328,7 @@ router.delete('/:id', authMiddleware, hotelIsolation, departmentIsolation, requi
     }
     res.json({ success })
   } catch (error) {
-    console.error('Delete batch error:', error)
+    logError('Delete batch error', error)
     res.status(500).json({ success: false, error: 'Failed to delete batch' })
   }
 })
@@ -430,9 +431,13 @@ router.post('/:id/collect', authMiddleware, hotelIsolation, departmentIsolation,
       write_off: writeOff 
     })
   } catch (error) {
-    console.error('Collect batch error:', error)
+    logError('Collect batch error', error)
     res.status(500).json({ success: false, error: 'Failed to collect batch' })
   }
 })
 
 export default router
+
+
+
+

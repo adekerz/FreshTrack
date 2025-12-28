@@ -4,6 +4,7 @@
  */
 
 import express from 'express'
+import { logError } from '../utils/logger.js'
 import { query, logAudit } from '../db/database.js'
 import { 
   authMiddleware, 
@@ -60,7 +61,7 @@ router.get('/', authMiddleware, hotelIsolation, requirePermission(PermissionReso
     
     res.json({ success: true, settings })
   } catch (error) {
-    console.error('Get department settings error:', error)
+    logError('Get department settings error', error)
     res.status(500).json({ success: false, error: 'Failed to get department settings' })
   }
 })
@@ -101,7 +102,7 @@ router.get('/:departmentId', authMiddleware, hotelIsolation, requirePermission(P
     
     res.json({ success: true, settings: result })
   } catch (error) {
-    console.error('Get department settings error:', error)
+    logError('Get department settings error', error)
     res.status(500).json({ success: false, error: 'Failed to get department settings' })
   }
 })
@@ -151,9 +152,12 @@ router.put('/:departmentId', authMiddleware, hotelIsolation, requirePermission(P
     
     res.json({ success: true })
   } catch (error) {
-    console.error('Update department settings error:', error)
+    logError('Update department settings error', error)
     res.status(500).json({ success: false, error: 'Failed to update department settings' })
   }
 })
 
 export default router
+
+
+

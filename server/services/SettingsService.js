@@ -11,6 +11,7 @@
  * 4. System defaults (lowest priority)
  */
 
+import { logError } from '../utils/logger.js'
 import { query } from '../db/database.js'
 
 /**
@@ -324,7 +325,7 @@ export async function setSetting(key, value, context = {}) {
     
     return { success: true, before: beforeValue, after: value }
   } catch (error) {
-    console.error('Failed to save setting:', error)
+    logError('SettingsService', error)
     return { success: false, before: null, after: null }
   }
 }
@@ -359,7 +360,7 @@ export async function deleteSetting(key, context = {}) {
     
     return true
   } catch (error) {
-    console.error('Failed to delete setting:', error)
+    logError('SettingsService', error)
     return false
   }
 }
@@ -444,3 +445,5 @@ export default {
   getSystemDefaults,
   getAllSettingsForScope
 }
+
+

@@ -6,6 +6,7 @@
 import TelegramBot from 'node-telegram-bot-api'
 import { logNotification, getActiveProducts, getAllProducts, getNotificationLogs, getStats, getSetting, getAllDepartments } from '../db/database.js'
 import { calculateBatchStats, calculateDaysUntilExpiry, getExpiryStatus } from './ExpiryService.js'
+import { logError } from '../utils/logger.js'
 
 // Функции для получения настроек (сначала БД, потом .env)
 function getBotToken() {
@@ -54,7 +55,7 @@ export function initTelegramBot(enablePolling = false) {
     
     return bot
   } catch (error) {
-    console.error('❌ Failed to initialize Telegram bot:', error)
+    logError('telegram', error)
     return null
   }
 }
@@ -153,7 +154,7 @@ ${stats.healthScore >= 80 ? '🟢' : stats.healthScore >= 50 ? '🟡' : '🔴'} 
       bot.sendMessage(chatId, statusMessage, { parse_mode: 'Markdown' })
     } catch (error) {
       bot.sendMessage(chatId, '❌ Error retrieving status')
-      console.error('Status command error:', error)
+      logError('telegram', error)
     }
   })
 
@@ -196,7 +197,7 @@ _Report generated automatically_`
       bot.sendMessage(chatId, reportMessage, { parse_mode: 'Markdown' })
     } catch (error) {
       bot.sendMessage(chatId, '❌ Error generating report')
-      console.error('Report command error:', error)
+      logError('telegram', error)
     }
   })
 
@@ -250,7 +251,7 @@ All expiration dates are within normal range.
       bot.sendMessage(chatId, alertMessage, { parse_mode: 'Markdown' })
     } catch (error) {
       bot.sendMessage(chatId, '❌ Error retrieving list')
-      console.error('Alerts command error:', error)
+      logError('telegram', error)
     }
   })
 
@@ -285,7 +286,7 @@ ${healthEmoji} ${progressBar} ${stats.healthScore}%
       bot.sendMessage(chatId, deptMessage, { parse_mode: 'Markdown' })
     } catch (error) {
       bot.sendMessage(chatId, '❌ Error retrieving data')
-      console.error('Departments command error:', error)
+      logError('telegram', error)
     }
   })
 
@@ -326,7 +327,7 @@ ${healthEmoji} ${progressBar} ${stats.healthScore}%
       bot.sendMessage(chatId, message, { parse_mode: 'Markdown' })
     } catch (error) {
       bot.sendMessage(chatId, '❌ Error')
-      console.error('Today command error:', error)
+      logError('telegram', error)
     }
   })
 
@@ -377,7 +378,7 @@ Great work team! 🎉
       bot.sendMessage(chatId, message, { parse_mode: 'Markdown' })
     } catch (error) {
       bot.sendMessage(chatId, '❌ Error')
-      console.error('Expired command error:', error)
+      logError('telegram', error)
     }
   })
 
@@ -522,7 +523,7 @@ export async function sendDailyAlert({ expiredProducts = [], expiringToday = [],
   }
 
   if (!bot) {
-    console.error('Telegram bot not available')
+    logError('telegram',)
     return { success: false, error: 'Bot not initialized' }
   }
 
@@ -570,7 +571,7 @@ export async function sendDailyAlert({ expiredProducts = [], expiringToday = [],
     console.log(`✅ Telegram notification sent: ${totalProducts} products`)
     return { success: true, productsNotified: totalProducts }
   } catch (error) {
-    console.error('❌ Failed to send Telegram message:', error)
+    logError('telegram', error)
     logNotification('daily_alert', message, totalProducts, 'failed')
     return { success: false, error: error.message }
   }
@@ -585,7 +586,7 @@ export async function sendTestNotification() {
   }
 
   if (!bot) {
-    console.error('Telegram bot not available')
+    logError('telegram',)
     return { success: false, error: 'Bot not initialized' }
   }
 
@@ -605,7 +606,7 @@ _This is a test message from FreshTrack system._`
     console.log('✅ Test notification sent')
     return { success: true }
   } catch (error) {
-    console.error('❌ Failed to send test notification:', error)
+    logError('telegram', error)
     logNotification('test', 'Test notification failed', 0, 'failed')
     return { success: false, error: error.message }
   }
@@ -628,7 +629,7 @@ export async function sendCustomMessage(text, parseMode = 'Markdown') {
     await bot.sendMessage(chatId, text, { parse_mode: parseMode })
     return { success: true }
   } catch (error) {
-    console.error('Failed to send custom message:', error)
+    logError('telegram', error)
     return { success: false, error: error.message }
   }
 }
@@ -662,7 +663,7 @@ export async function sendProductAlert(product, alertType = 'expiring') {
     await bot.sendMessage(chatId, message, { parse_mode: 'Markdown' })
     return { success: true }
   } catch (error) {
-    console.error('Failed to send product alert:', error)
+    logError('telegram', error)
     return { success: false, error: error.message }
   }
 }
@@ -674,3 +675,5 @@ export default {
   sendCustomMessage,
   sendProductAlert
 }
+
+

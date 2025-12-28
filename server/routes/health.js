@@ -5,11 +5,22 @@
 import express from 'express'
 import { query } from '../db/postgres.js'
 import { initDatabase } from '../db/database.js'
+import { simpleRateLimit, logError } from '../utils/logger.js'
 
 const router = express.Router()
 
-// GET /api/health
-router.get('/', async (req, res) => {
+// GET /api/health - Basic health check (rate limited, no DB query for DoS protection)
+router.get('/', simpleRateLimit, (req, res) => {
+  res.json({
+    success: true,
+    status: 'healthy',
+    version: process.env.npm_package_version || '2.0.0',
+    timestamp: new Date().toISOString()
+  })
+})
+
+// GET /api/health/detailed - Detailed health with DB check (rate limited)
+router.get('/detailed', simpleRateLimit, async (req, res) => {
   try {
     // Check database connection
     const dbCheck = await query('SELECT NOW() as time')
@@ -21,7 +32,7 @@ router.get('/', async (req, res) => {
       version: process.env.npm_package_version || '2.0.0'
     })
   } catch (error) {
-    console.error('Health check error:', error)
+    logError('HealthCheck', error)
     res.status(503).json({
       success: false,
       status: 'unhealthy',
@@ -54,7 +65,7 @@ router.get('/db-status', async (req, res) => {
       needsInit: parseInt(hotelsResult.rows[0]?.count || 0) === 0
     })
   } catch (error) {
-    console.error('DB status error:', error)
+    logError('HealthCheck', error)
     res.status(500).json({ success: false, error: error.message })
   }
 })
@@ -86,7 +97,7 @@ router.post('/init-db', async (req, res) => {
     await initDatabase()
     res.json({ success: true, message: 'Database initialized successfully' })
   } catch (error) {
-    console.error('Init DB error:', error)
+    logError('HealthCheck', error)
     res.status(500).json({ success: false, error: error.message })
   }
 })

@@ -102,6 +102,37 @@ export const FIELD_LIMITS = {
   NOTES: 1000
 }
 
+/**
+ * Middleware to validate UUID param
+ * Usage: router.param('id', validateUUIDParam)
+ */
+export function validateUUIDParam(req, res, next, id) {
+  if (!isValidUUID(id)) {
+    return res.status(400).json({ 
+      success: false, 
+      error: 'Invalid ID format. Expected UUID.' 
+    })
+  }
+  next()
+}
+
+/**
+ * Middleware factory for validating specific param names
+ * Usage: router.use(validateParamUUID('productId'))
+ */
+export function validateParamUUID(paramName) {
+  return (req, res, next) => {
+    const id = req.params[paramName]
+    if (id && !isValidUUID(id)) {
+      return res.status(400).json({ 
+        success: false, 
+        error: `Invalid ${paramName} format. Expected UUID.` 
+      })
+    }
+    next()
+  }
+}
+
 export default {
   validatePassword,
   isValidUUID,
@@ -109,5 +140,7 @@ export default {
   validateRequired,
   isValidEmail,
   sanitizeString,
+  validateUUIDParam,
+  validateParamUUID,
   FIELD_LIMITS
 }

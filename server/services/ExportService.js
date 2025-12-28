@@ -9,6 +9,7 @@
  */
 
 import ExcelJS from 'exceljs'
+import { logError } from '../utils/logger.js'
 
 /**
  * Export formats
@@ -354,7 +355,7 @@ export class ExportService {
           })
       }
     } catch (error) {
-      console.error('Export generation error:', error)
+      logError('ExportService', error)
       res.status(500).json({
         success: false,
         error: 'EXPORT_FAILED',
@@ -400,3 +401,5 @@ export class ExportService {
 }
 
 export default ExportService
+
+

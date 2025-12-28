@@ -13,6 +13,7 @@
  */
 
 import { query, getClient } from '../db/postgres.js'
+import { logError } from '../utils/logger.js'
 import { v4 as uuidv4 } from 'uuid'
 import { auditService, AuditAction, AuditEntityType } from './AuditService.js'
 
@@ -300,7 +301,7 @@ export async function collect({
         }
       })
     } catch (auditError) {
-      console.error('Audit log failed:', auditError)
+      logError('CollectionService', auditError)
       // Don't fail the collection for audit errors
     }
 
@@ -316,7 +317,7 @@ export async function collect({
 
   } catch (error) {
     await client.query('ROLLBACK')
-    console.error('FIFO collection error:', error)
+    logError('CollectionService', error)
     throw error
   } finally {
     client.release()
@@ -483,3 +484,5 @@ export default {
   getCollectionHistory,
   getCollectionStats
 }
+
+

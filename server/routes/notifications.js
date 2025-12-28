@@ -3,6 +3,7 @@
  */
 
 import express from 'express'
+import { logError } from '../utils/logger.js'
 import {
   getAllNotifications,
   getNotificationById,
@@ -43,7 +44,7 @@ router.get('/', authMiddleware, hotelIsolation, departmentIsolation, requirePerm
     const unreadCount = await getUnreadNotificationsCount(req.hotelId, req.user.id, deptId)
     res.json({ success: true, notifications, unread_count: unreadCount })
   } catch (error) {
-    console.error('Get notifications error:', error)
+    logError('Get notifications error', error)
     res.status(500).json({ success: false, error: 'Failed to get notifications' })
   }
 })
@@ -55,7 +56,7 @@ router.get('/unread-count', authMiddleware, hotelIsolation, departmentIsolation,
     const count = await getUnreadNotificationsCount(req.hotelId, req.user.id, deptId)
     res.json({ success: true, count })
   } catch (error) {
-    console.error('Get unread count error:', error)
+    logError('Get unread count error', error)
     res.status(500).json({ success: false, error: 'Failed to get unread count' })
   }
 })
@@ -100,7 +101,7 @@ router.get('/logs', authMiddleware, hotelIsolation, departmentIsolation, require
       }
     })
   } catch (error) {
-    console.error('Get notification logs error:', error)
+    logError('Get notification logs error', error)
     res.status(500).json({ success: false, error: 'Failed to fetch logs' })
   }
 })
@@ -121,7 +122,7 @@ router.get('/:id', authMiddleware, hotelIsolation, departmentIsolation, requireP
     }
     res.json({ success: true, notification })
   } catch (error) {
-    console.error('Get notification error:', error)
+    logError('Get notification error', error)
     res.status(500).json({ success: false, error: 'Failed to get notification' })
   }
 })
@@ -153,7 +154,7 @@ router.post('/', authMiddleware, hotelIsolation, departmentIsolation, requirePer
     
     res.status(201).json({ success: true, notification })
   } catch (error) {
-    console.error('Create notification error:', error)
+    logError('Create notification error', error)
     res.status(500).json({ success: false, error: 'Failed to create notification' })
   }
 })
@@ -176,7 +177,7 @@ router.put('/:id/read', authMiddleware, hotelIsolation, departmentIsolation, req
     const success = await markNotificationAsRead(req.params.id)
     res.json({ success })
   } catch (error) {
-    console.error('Mark notification read error:', error)
+    logError('Mark notification read error', error)
     res.status(500).json({ success: false, error: 'Failed to mark notification as read' })
   }
 })
@@ -188,7 +189,7 @@ router.put('/read-all', authMiddleware, hotelIsolation, departmentIsolation, req
     const count = await markAllNotificationsAsRead(req.hotelId, deptId)
     res.json({ success: true, count })
   } catch (error) {
-    console.error('Mark all notifications read error:', error)
+    logError('Mark all notifications read error', error)
     res.status(500).json({ success: false, error: 'Failed to mark all notifications as read' })
   }
 })
@@ -211,7 +212,7 @@ router.delete('/:id', authMiddleware, hotelIsolation, departmentIsolation, requi
     const success = await deleteNotification(req.params.id)
     res.json({ success })
   } catch (error) {
-    console.error('Delete notification error:', error)
+    logError('Delete notification error', error)
     res.status(500).json({ success: false, error: 'Failed to delete notification' })
   }
 })
@@ -242,7 +243,7 @@ router.post('/test-telegram', authMiddleware, hotelIsolation, departmentIsolatio
     
     res.json({ success: true, messageId: result?.message_id })
   } catch (error) {
-    console.error('Test telegram error:', error)
+    logError('Test telegram error', error)
     res.status(500).json({ success: false, error: error.message || 'Failed to send test message' })
   }
 })
@@ -270,9 +271,12 @@ router.post('/test', authMiddleware, hotelIsolation, departmentIsolation, requir
       message: 'Test notification sent successfully'
     })
   } catch (error) {
-    console.error('Test notification error:', error)
+    logError('Test notification error', error)
     res.status(500).json({ success: false, error: 'Failed to send test notification' })
   }
 })
 
 export default router
+
+
+
