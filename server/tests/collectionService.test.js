@@ -527,4 +527,84 @@ describe('CollectionService - Phase 8: FIFO Collection', () => {
       expect(result.affectedBatches[0].remainingQuantity).toBe(99)
     })
   })
+
+  describe('HOTEL_ADMIN without departmentId', () => {
+    it('previewCollection should work without departmentId (hotel-wide access)', async () => {
+      const mockBatches = {
+        rows: [
+          { id: 'batch-1', quantity: 10, expiry_date: '2025-01-10', product_name: 'Cola', category_name: 'Drinks', department_id: 'dept-1' },
+          { id: 'batch-2', quantity: 5, expiry_date: '2025-01-15', product_name: 'Cola', category_name: 'Drinks', department_id: 'dept-2' }
+        ]
+      }
+      query.mockResolvedValueOnce(mockBatches)
+
+      const result = await CollectionService.previewCollection({
+        productId: 'prod-1',
+        quantity: 12,
+        hotelId: 'hotel-1',
+        departmentId: null // HOTEL_ADMIN has no department
+      })
+
+      expect(result.success).toBe(true)
+      expect(result.affectedBatches).toHaveLength(2)
+      expect(result.totalAvailable).toBe(15) // Sum from all departments
+    })
+
+    it('collect should work without departmentId for HOTEL_ADMIN', async () => {
+      const mockBatches = {
+        rows: [
+          { id: 'batch-1', quantity: 10, expiry_date: '2025-01-10', product_id: 'prod-1', product_name: 'Cola', category_name: 'Drinks', department_id: 'dept-1' }
+        ]
+      }
+
+      mockClient.query
+        .mockResolvedValueOnce({}) // BEGIN
+        .mockResolvedValueOnce(mockBatches) // SELECT batches
+        .mockResolvedValueOnce({}) // INSERT collection_history
+        .mockResolvedValueOnce({}) // UPDATE batch
+        .mockResolvedValueOnce({}) // COMMIT
+
+      const result = await CollectionService.collect({
+        productId: 'prod-1',
+        quantity: 5,
+        userId: 'user-1',
+        hotelId: 'hotel-1',
+        departmentId: null, // HOTEL_ADMIN
+        reason: CollectionReason.CONSUMPTION
+      })
+
+      expect(result.success).toBe(true)
+      expect(result.totalCollected).toBe(5)
+    })
+
+    it('should use batch department_id in history when user has no departmentId', async () => {
+      const mockBatches = {
+        rows: [
+          { id: 'batch-1', quantity: 10, expiry_date: '2025-01-10', product_id: 'prod-1', product_name: 'Cola', category_name: 'Drinks', department_id: 'dept-kitchen' }
+        ]
+      }
+
+      let insertedDepartmentId = null
+      mockClient.query.mockImplementation((sql, params) => {
+        if (sql.includes('INSERT INTO collection_history')) {
+          insertedDepartmentId = params[4] // department_id is 5th param (index 4)
+        }
+        if (sql.includes('SELECT')) return Promise.resolve(mockBatches)
+        return Promise.resolve({})
+      })
+
+      await CollectionService.collect({
+        productId: 'prod-1',
+        quantity: 5,
+        userId: 'user-1',
+        hotelId: 'hotel-1',
+        departmentId: null,
+        reason: CollectionReason.CONSUMPTION
+      })
+
+      // Should use batch's department_id, not null
+      expect(insertedDepartmentId).toBe('dept-kitchen')
+    })
+  })
 })
+

@@ -19,6 +19,7 @@
     "backup:data": "node db/backup.js --format=data-only"
   },
   "dependencies": {
+    "@sentry/node": "^10.32.1",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
@@ -27,6 +28,7 @@
     "jsonwebtoken": "^9.0.2",
     "node-cron": "^4.2.1",
     "pg": "^8.11.3",
+    "rate-limiter-flexible": "^9.0.1",
     "uuid": "^9.0.0"
   },
   "keywords": [

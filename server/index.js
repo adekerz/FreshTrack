@@ -10,6 +10,17 @@ import dotenv from 'dotenv'
 // Load environment variables
 dotenv.config()
 
+// Import Sentry for error tracking (must be early)
+import { 
+  initSentry, 
+  sentryRequestHandler, 
+  sentryTracingHandler,
+  sentryErrorHandler 
+} from './utils/sentry.js'
+
+// Import rate limiter
+import { rateLimitGeneral, rateLimitAuth, rateLimitHeavy } from './middleware/rateLimiter.js'
+
 // Import routes
 import authRouter from './routes/auth.js'
 import hotelsRouter from './routes/hotels.js'
@@ -41,6 +52,13 @@ import { query } from './db/postgres.js'
 
 const app = express()
 const PORT = process.env.PORT || 3001
+
+// Initialize Sentry (before other middleware)
+initSentry(app)
+
+// Sentry request handler (must be first)
+app.use(sentryRequestHandler())
+app.use(sentryTracingHandler())
 
 // CORS - Restrict origins in production
 const allowedOrigins = process.env.ALLOWED_ORIGINS
@@ -82,8 +100,11 @@ app.set('trust proxy', 1)
 import { requestLogger } from './utils/logger.js'
 app.use(requestLogger)
 
-// API Routes
-app.use('/api/auth', authRouter)
+// Rate limiting (before routes)
+app.use('/api', rateLimitGeneral)
+
+// API Routes - with specific rate limits
+app.use('/api/auth', rateLimitAuth, authRouter)
 app.use('/api/hotels', hotelsRouter)
 app.use('/api/departments', departmentsRouter)
 app.use('/api/categories', categoriesRouter)
@@ -98,7 +119,7 @@ app.use('/api/settings', settingsRouter)
 app.use('/api/delivery-templates', deliveryTemplatesRouter)
 app.use('/api/write-offs', writeOffsRouter)
 app.use('/api/import', importRouter)
-app.use('/api/export', exportRouter)
+app.use('/api/export', rateLimitHeavy, exportRouter)
 app.use('/api/health', healthRouter)
 app.use('/api/notification-rules', notificationRulesRouter)
 app.use('/api/custom-content', customContentRouter)
@@ -129,6 +150,9 @@ app.get('/', async (req, res) => {
 app.use((req, res) => {
   res.status(404).json({ error: 'Endpoint not found' })
 })
+
+// Sentry error handler (must be before other error handlers)
+app.use(sentryErrorHandler())
 
 // Global error handler
 app.use((err, req, res, next) => {
