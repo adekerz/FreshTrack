@@ -52,7 +52,7 @@ export const PermissionScope = {
 
 // Cache for role permissions (TTL-based)
 const permissionCache = new Map()
-const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
+const CACHE_TTL = 30 * 1000 // 30 seconds - short TTL for permission changes to propagate quickly
 
 /**
  * Get permissions for a role (with caching)
