@@ -8,6 +8,7 @@
 
 import { query } from '../db/database.js'
 import { sendCustomMessage } from './telegram.js'
+import { logInfo, logError } from '../utils/logger.js'
 
 /**
  * Notification channels
@@ -103,7 +104,7 @@ export class NotificationService {
     try {
       await this.saveToDb(notif)
     } catch (error) {
-      console.error('Failed to save notification to DB:', error)
+      logError('NotificationService', error)
       // Continue - notification will still be processed from memory
     }
     
@@ -356,7 +357,7 @@ export class NotificationService {
       const result = await query(queryText, params)
       return result.rows
     } catch (error) {
-      console.error('Failed to get notifications:', error)
+      logError('NotificationService', error)
       return []
     }
   }
@@ -373,7 +374,7 @@ export class NotificationService {
       `, [notificationId, userId])
       return true
     } catch (error) {
-      console.error('Failed to mark notification as read:', error)
+      logError('NotificationService', error)
       return false
     }
   }
@@ -444,7 +445,7 @@ export class NotificationService {
       `, [hotelId, departmentId])
       return result.rows
     } catch (error) {
-      console.error('Failed to get users to notify:', error)
+      logError('NotificationService', error)
       return []
     }
   }
@@ -497,7 +498,7 @@ export class NotificationService {
       }
     }, intervalMs)
     
-    console.log('📬 Notification queue processor started')
+    logInfo('NotificationService', '📬 Notification queue processor started')
   }
   
   /**
@@ -513,3 +514,5 @@ export class NotificationService {
 }
 
 export default NotificationService
+
+

@@ -11,7 +11,7 @@
  * 4. System defaults (lowest priority)
  */
 
-import { logError } from '../utils/logger.js'
+import { logError, logWarn } from '../utils/logger.js'
 import { query } from '../db/database.js'
 
 /**
@@ -157,7 +157,7 @@ async function fetchSettingsFromDb(context) {
     return settings
   } catch (error) {
     // Table might not exist yet, return empty
-    console.warn('Settings table not found, using defaults')
+    logWarn('SettingsService',)
     return {}
   }
 }
@@ -445,5 +445,7 @@ export default {
   getSystemDefaults,
   getAllSettingsForScope
 }
+
+
 
 

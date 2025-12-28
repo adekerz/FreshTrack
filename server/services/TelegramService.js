@@ -8,7 +8,7 @@
  * - Retry logic with exponential backoff
  */
 
-import { logError } from '../utils/logger.js'
+import { logError, logInfo, logDebug } from '../utils/logger.js'
 import { query } from '../db/database.js'
 
 const BOT_TOKEN = '7792952266:AAHWSDqKWBkFOtvmmjOlre_pR84bBnV9I4Y'
@@ -77,7 +77,7 @@ export class TelegramService {
       
       return data.result
     } catch (error) {
-      console.error(`Telegram API error (${method}):`, error.message)
+      logError('TelegramService', error)
       throw error
     }
   }
@@ -137,7 +137,7 @@ export class TelegramService {
     
     if (new_chat_member.status === 'member' || new_chat_member.status === 'administrator') {
       // Bot was added to chat
-      console.log(`📥 Bot added to ${chatType}: ${chatTitle} (${chatId})`)
+      logInfo('TelegramService', `📥 Bot added to ${chatType}: ${chatTitle} (${chatId})`)
       
       await this.registerChat({
         chatId,
@@ -151,7 +151,7 @@ export class TelegramService {
       
     } else if (new_chat_member.status === 'left' || new_chat_member.status === 'kicked') {
       // Bot was removed from chat
-      console.log(`📤 Bot removed from ${chatType}: ${chatTitle} (${chatId})`)
+      logInfo('TelegramService', `📤 Bot removed from ${chatType}: ${chatTitle} (${chatId})`)
       
       await this.markChatInactive(chatId)
     }
@@ -405,7 +405,7 @@ ${chatType !== 'private' ? `
           bot_removed = false
       `, [chatId, chatType, chatTitle])
       
-      console.log(`✅ Registered chat: ${chatTitle} (${chatId})`)
+      logInfo('TelegramService', `✅ Registered chat: ${chatTitle} (${chatId})`)
     } catch (error) {
       logError('TelegramService', error)
     }
@@ -485,7 +485,7 @@ ${chatType !== 'private' ? `
         )
         
       } catch (error) {
-        console.error(`Failed to send to chat ${chat.chat_id}:`, error)
+        logError('TelegramService', error)
         results.push({ 
           chatId: chat.chat_id, 
           success: false, 
@@ -536,7 +536,7 @@ ${chatType !== 'private' ? `
    * Start polling for updates (for development/testing)
    */
   static async startPolling(intervalMs = 1000) {
-    console.log('🔄 Starting Telegram polling...')
+    logInfo('TelegramService', '🔄 Starting Telegram polling...')
     
     let offset = 0
     

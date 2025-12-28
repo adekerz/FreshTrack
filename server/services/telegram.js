@@ -6,7 +6,7 @@
 import TelegramBot from 'node-telegram-bot-api'
 import { logNotification, getActiveProducts, getAllProducts, getNotificationLogs, getStats, getSetting, getAllDepartments } from '../db/database.js'
 import { calculateBatchStats, calculateDaysUntilExpiry, getExpiryStatus } from './ExpiryService.js'
-import { logError } from '../utils/logger.js'
+import { logError, logInfo, logDebug } from '../utils/logger.js'
 
 // Функции для получения настроек (сначала БД, потом .env)
 function getBotToken() {
@@ -31,7 +31,7 @@ export function initTelegramBot(enablePolling = false) {
   const BOT_TOKEN = getBotToken()
   
   if (!BOT_TOKEN) {
-    console.warn('⚠️ Telegram bot token not configured')
+    logWarn('telegram',)
     return null
   }
 
@@ -48,9 +48,9 @@ export function initTelegramBot(enablePolling = false) {
     
     if (enablePolling) {
       setupCommandHandlers()
-      console.log('✅ Telegram bot initialized with polling (commands enabled)')
+      logInfo('Telegram', '✅ Telegram bot initialized with polling (commands enabled)')
     } else {
-      console.log('✅ Telegram bot initialized (notifications only)')
+      logInfo('Telegram', '✅ Telegram bot initialized (notifications only)')
     }
     
     return bot
@@ -405,7 +405,7 @@ Great work team! 🎉
     bot.sendMessage(chatId, infoMessage, { parse_mode: 'Markdown' })
   })
 
-  console.log('✅ Command handlers registered')
+  logInfo('Telegram', '✅ Command handlers registered')
 }
 
 /**
@@ -531,7 +531,7 @@ export async function sendDailyAlert({ expiredProducts = [], expiringToday = [],
 
   // Если нет продуктов для уведомления
   if (totalProducts === 0) {
-    console.log('📭 No products to notify about')
+    logDebug('Telegram', '📭 No products to notify about')
     return { success: true, message: 'No products need attention' }
   }
 
@@ -568,7 +568,7 @@ export async function sendDailyAlert({ expiredProducts = [], expiringToday = [],
     // Логируем успешную отправку
     logNotification('daily_alert', message, totalProducts, 'sent')
     
-    console.log(`✅ Telegram notification sent: ${totalProducts} products`)
+    logInfo('Telegram', `✅ Telegram notification sent: ${totalProducts} products`)
     return { success: true, productsNotified: totalProducts }
   } catch (error) {
     logError('telegram', error)
@@ -603,7 +603,7 @@ _This is a test message from FreshTrack system._`
     const chatId = getChatId()
     await bot.sendMessage(chatId, message, { parse_mode: 'Markdown' })
     logNotification('test', 'Test notification', 0, 'sent')
-    console.log('✅ Test notification sent')
+    logInfo('Telegram', '✅ Test notification sent')
     return { success: true }
   } catch (error) {
     logError('telegram', error)
@@ -675,5 +675,6 @@ export default {
   sendCustomMessage,
   sendProductAlert
 }
+
 
 

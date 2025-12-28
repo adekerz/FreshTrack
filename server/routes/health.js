@@ -86,11 +86,11 @@ router.post('/init-db', async (req, res) => {
       return res.status(403).json({ success: false, error: 'Invalid secret key' })
     }
   } else {
-    // In development: allow with default secret or env secret
-    const validSecret = initSecret || 'FreshTrack2024!'
-    if (secret !== validSecret) {
+    // In development: require INIT_SECRET env var or skip secret check
+    if (initSecret && secret !== initSecret) {
       return res.status(403).json({ success: false, error: 'Invalid secret key' })
     }
+    // If no INIT_SECRET set in dev, allow without secret for convenience
   }
   
   try {

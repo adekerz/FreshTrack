@@ -6,7 +6,7 @@
 import cron from 'node-cron'
 import { getExpiredProducts, getExpiringTodayProducts, getExpiringSoonProducts } from '../db/database.js'
 import { sendDailyAlert, initTelegramBot } from './telegram.js'
-import { logError } from '../utils/logger.js'
+import { logError, logInfo, logDebug } from '../utils/logger.js'
 
 let dailyJob = null
 
@@ -20,13 +20,13 @@ export function initScheduler() {
   // Ежедневная проверка в 9:00 утра
   // Формат cron: минуты часы день месяц день_недели
   dailyJob = cron.schedule('0 9 * * *', async () => {
-    console.log('⏰ Running daily expiry check...')
+    logInfo('Scheduler', '⏰ Running daily expiry check...')
     await runDailyCheck()
   }, {
     timezone: 'Asia/Almaty' // Часовой пояс Казахстана
   })
 
-  console.log('📅 Daily check scheduled for 9:00 AM (Asia/Almaty)')
+  logInfo('Scheduler', '📅 Daily check scheduled for 9:00 AM (Asia/Almaty)')
 
   // Также запускаем проверку сразу при старте сервера (опционально)
   // Раскомментируйте если нужна проверка при запуске:
@@ -37,7 +37,7 @@ export function initScheduler() {
  * Выполнение ежедневной проверки
  */
 export async function runDailyCheck() {
-  console.log('🔍 Starting daily expiry check...')
+  logDebug('Scheduler', '🔍 Starting daily expiry check...')
   
   try {
     // Получаем продукты из базы данных
@@ -45,7 +45,7 @@ export async function runDailyCheck() {
     const expiringToday = getExpiringTodayProducts()
     const expiringSoon = getExpiringSoonProducts(3) // В течение 3 дней
 
-    console.log(`📊 Found: ${expiredProducts.length} expired, ${expiringToday.length} expiring today, ${expiringSoon.length} expiring soon`)
+    logDebug('Scheduler', `📊 Found: ${expiredProducts.length} expired, ${expiringToday.length} expiring today, ${expiringSoon.length} expiring soon`)
 
     // Отправляем уведомление в Telegram
     const result = await sendDailyAlert({
@@ -55,9 +55,9 @@ export async function runDailyCheck() {
     })
 
     if (result.success) {
-      console.log('✅ Daily check completed successfully')
+      logInfo('Scheduler', '✅ Daily check completed successfully')
     } else {
-      logError('scheduler', result.error)
+      logError('Scheduler', result.error)
     }
 
     return result
@@ -73,7 +73,7 @@ export async function runDailyCheck() {
 export function stopScheduler() {
   if (dailyJob) {
     dailyJob.stop()
-    console.log('⏹️ Scheduler stopped')
+    logInfo('Scheduler', '⏹️ Scheduler stopped')
   }
 }
 
@@ -83,7 +83,7 @@ export function stopScheduler() {
 export function restartScheduler() {
   stopScheduler()
   initScheduler()
-  console.log('🔄 Scheduler restarted')
+  logInfo('Scheduler', '🔄 Scheduler restarted')
 }
 
 /**

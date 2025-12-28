@@ -3,7 +3,7 @@
  */
 
 import express from 'express'
-import { logError } from '../utils/logger.js'
+import { logError, logWarn } from '../utils/logger.js'
 import {
   getAllDeliveryTemplates,
   getDeliveryTemplateById,
@@ -238,6 +238,8 @@ router.delete('/:id', authMiddleware, hotelIsolation, departmentIsolation, requi
 })
 
 export default router
+
+
 
 
 

@@ -185,7 +185,7 @@ export const superAdminOnly = (req, res, next) => {
  * @deprecated Use requirePermission() instead. This middleware uses hardcoded role checks.
  */
 export const hotelAdminOnly = (req, res, next) => {
-  console.warn('DEPRECATED: hotelAdminOnly middleware used. Migrate to requirePermission()')
+  logWarn('auth',)
   const allowedRoles = ['SUPER_ADMIN', 'HOTEL_ADMIN']
   if (!allowedRoles.includes(req.user?.role)) {
     return res.status(403).json({ 
@@ -201,7 +201,7 @@ export const hotelAdminOnly = (req, res, next) => {
  * @deprecated Use requirePermission() instead. This middleware uses hardcoded role checks.
  */
 export const departmentManagerOnly = (req, res, next) => {
-  console.warn('DEPRECATED: departmentManagerOnly middleware used. Migrate to requirePermission()')
+  logWarn('auth',)
   const allowedRoles = ['SUPER_ADMIN', 'HOTEL_ADMIN', 'DEPARTMENT_MANAGER']
   if (!allowedRoles.includes(req.user?.role)) {
     return res.status(403).json({ 
@@ -444,7 +444,7 @@ async function getRolePermissions(role) {
     return permissions
   } catch (error) {
     // If permissions table doesn't exist yet, fall back to role-based check
-    console.warn('Permission table not found, using role-based fallback')
+    logWarn('auth',)
     return null
   }
 }
@@ -503,12 +503,12 @@ export async function hasPermission(user, resource, action, targets = {}) {
   if (!permissions) {
     // SUPER_ADMIN always has full access as a safety net
     if (user.role === 'SUPER_ADMIN') {
-      console.warn('Permission DB unavailable, SUPER_ADMIN granted fallback access')
+      logWarn('Auth', 'Permission DB unavailable, SUPER_ADMIN granted fallback access')
       return true
     }
     
     // All other roles: deny access when permission DB is unavailable
-    console.error(`Permission DB unavailable, denying access for ${user.role} to ${resource}:${action}`)
+    logError('Auth', new Error(`Permission DB unavailable, denying access for ${user.role} to ${resource}:${action}`))
     return false
   }
   
@@ -621,5 +621,6 @@ export function clearPermissionCache() {
 }
 
 export default authMiddleware
+
 
 

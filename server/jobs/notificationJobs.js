@@ -11,6 +11,7 @@
 import cron from 'node-cron'
 import { NotificationEngine } from '../services/NotificationEngine.js'
 import { TelegramService } from '../services/TelegramService.js'
+import { logInfo, logError } from '../utils/logger.js'
 
 let expiryCheckJob = null
 let queueProcessJob = null
@@ -28,24 +29,24 @@ export function startNotificationJobs(options = {}) {
     queueProcessSchedule = '*/5 * * * *'  // Every 5 minutes
   } = options
   
-  console.log('🚀 Starting notification jobs...')
+  logInfo('NotificationJobs', '🚀 Starting notification jobs...')
   
   // Expiry check job (hourly)
   if (enableExpiryCheck) {
     expiryCheckJob = cron.schedule(expiryCheckSchedule, async () => {
-      console.log(`\n⏰ [${new Date().toISOString()}] Running expiry check...`)
+      logInfo('NotificationJobs', `⏰ Running expiry check...`)
       try {
         const count = await NotificationEngine.checkExpiringBatches()
-        console.log(`✅ Expiry check complete. Created ${count} notifications.`)
+        logInfo('NotificationJobs', `✅ Expiry check complete. Created ${count} notifications.`)
       } catch (error) {
-        console.error('❌ Expiry check failed:', error)
+        logError('NotificationJobs', error)
       }
     }, {
       scheduled: true,
       timezone: 'Asia/Almaty'
     })
     
-    console.log(`📅 Expiry check scheduled: ${expiryCheckSchedule}`)
+    logInfo('NotificationJobs', `📅 Expiry check scheduled: ${expiryCheckSchedule}`)
   }
   
   // Queue processing job (every 5 minutes)
@@ -54,27 +55,27 @@ export function startNotificationJobs(options = {}) {
       try {
         const result = await NotificationEngine.processQueue()
         if (result.delivered > 0 || result.failed > 0) {
-          console.log(`📤 Queue processed: ${result.delivered} delivered, ${result.failed} failed`)
+          logInfo('NotificationJobs', `📤 Queue processed: ${result.delivered} delivered, ${result.failed} failed`)
         }
       } catch (error) {
-        console.error('❌ Queue processing failed:', error)
+        logError('NotificationJobs', error)
       }
     }, {
       scheduled: true,
       timezone: 'Asia/Almaty'
     })
     
-    console.log(`📤 Queue processing scheduled: ${queueProcessSchedule}`)
+    logInfo('NotificationJobs', `📤 Queue processing scheduled: ${queueProcessSchedule}`)
   }
   
   // Telegram polling (for development/small deployments)
   if (enableTelegramPolling && !telegramPolling) {
     telegramPolling = true
     TelegramService.startPolling(2000)  // Poll every 2 seconds
-    console.log('🔄 Telegram polling started')
+    logInfo('NotificationJobs', '🔄 Telegram polling started')
   }
   
-  console.log('✅ Notification jobs started successfully')
+  logInfo('NotificationJobs', '✅ Notification jobs started successfully')
   
   return {
     expiryCheckJob,
@@ -87,7 +88,7 @@ export function startNotificationJobs(options = {}) {
  * Stop all notification jobs
  */
 export function stopNotificationJobs() {
-  console.log('🛑 Stopping notification jobs...')
+  logInfo('NotificationJobs', '🛑 Stopping notification jobs...')
   
   if (expiryCheckJob) {
     expiryCheckJob.stop()
@@ -101,14 +102,14 @@ export function stopNotificationJobs() {
   
   telegramPolling = false
   
-  console.log('✅ Notification jobs stopped')
+  logInfo('NotificationJobs', '✅ Notification jobs stopped')
 }
 
 /**
  * Run expiry check immediately (manual trigger)
  */
 export async function runExpiryCheckNow() {
-  console.log('🔔 Running manual expiry check...')
+  logInfo('NotificationJobs', '🔔 Running manual expiry check...')
   return NotificationEngine.checkExpiringBatches()
 }
 
@@ -116,7 +117,7 @@ export async function runExpiryCheckNow() {
  * Run queue processing immediately (manual trigger)
  */
 export async function runQueueProcessNow() {
-  console.log('📤 Running manual queue processing...')
+  logInfo('NotificationJobs', '📤 Running manual queue processing...')
   return NotificationEngine.processQueue()
 }
 

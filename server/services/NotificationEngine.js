@@ -14,7 +14,7 @@ import crypto from 'crypto'
 import { query } from '../db/database.js'
 import { v4 as uuidv4 } from 'uuid'
 import { HOTEL_WIDE_ROLES } from '../utils/constants.js'
-import { logError } from '../utils/logger.js'
+import { logError, logInfo, logDebug } from '../utils/logger.js'
 import { TelegramService } from './TelegramService.js'
 import { getExpiryStatus, enrichBatchWithExpiryData } from './ExpiryService.js'
 
@@ -74,7 +74,7 @@ export class NotificationEngine {
    * Called by cron job (hourly)
    */
   static async checkExpiringBatches() {
-    console.log('🔔 Starting expiry check...')
+    logInfo('NotificationEngine', '🔔 Starting expiry check...')
     
     try {
       // Get all enabled notification rules
@@ -85,7 +85,7 @@ export class NotificationEngine {
       `)
       
       const rules = rulesResult.rows
-      console.log(`📋 Found ${rules.length} active expiry rules`)
+      logInfo('NotificationEngine', `📋 Found ${rules.length} active expiry rules`)
       
       let totalNotifications = 0
       
@@ -94,7 +94,7 @@ export class NotificationEngine {
         totalNotifications += notifications
       }
       
-      console.log(`✅ Expiry check complete. Created ${totalNotifications} notifications.`)
+      logInfo('NotificationEngine', `✅ Expiry check complete. Created ${totalNotifications} notifications.`)
       return totalNotifications
       
     } catch (error) {
@@ -350,7 +350,7 @@ export class NotificationEngine {
    * Called by cron job (every 5 minutes)
    */
   static async processQueue() {
-    console.log('📤 Processing notification queue...')
+    logDebug('NotificationEngine', '📤 Processing notification queue...')
     
     try {
       // Get pending notifications ready to send
@@ -365,7 +365,7 @@ export class NotificationEngine {
       `)
       
       const notifications = result.rows
-      console.log(`📬 Found ${notifications.length} notifications to process`)
+      logDebug('NotificationEngine', `📬 Found ${notifications.length} notifications to process`)
       
       let delivered = 0
       let failed = 0
@@ -376,7 +376,7 @@ export class NotificationEngine {
         else failed++
       }
       
-      console.log(`✅ Queue processed. Delivered: ${delivered}, Failed: ${failed}`)
+      logInfo('NotificationEngine', `✅ Queue processed. Delivered: ${delivered}, Failed: ${failed}`)
       return { delivered, failed }
       
     } catch (error) {
@@ -448,7 +448,7 @@ export class NotificationEngine {
           WHERE id = $4
         `, [retryCount, hoursDelay, error.message, notification.id])
         
-        console.log(`🔄 Notification ${notification.id} scheduled for retry ${retryCount}/${MAX_RETRIES}`)
+        logDebug('NotificationEngine', `🔄 Notification ${notification.id} scheduled for retry ${retryCount}/${MAX_RETRIES}`)
       } else {
         await query(`
           UPDATE notifications 
@@ -458,7 +458,7 @@ export class NotificationEngine {
           WHERE id = $3
         `, [retryCount, `Max retries exceeded: ${error.message}`, notification.id])
         
-        console.log(`❌ Notification ${notification.id} failed after ${MAX_RETRIES} retries`)
+        logDebug('NotificationEngine', `❌ Notification ${notification.id} failed after ${MAX_RETRIES} retries`)
       }
       
       return false
@@ -479,7 +479,7 @@ export class NotificationEngine {
         
       case NotificationChannel.EMAIL:
         // TODO: Implement email
-        console.log('📧 Email notifications not yet implemented')
+        logDebug('NotificationEngine', '📧 Email notifications not yet implemented')
         return true
         
       default:
