@@ -3,20 +3,16 @@
  * Multi-hotel inventory management system
  */
 
+// IMPORTANT: Import Sentry instrumentation FIRST
+import './instrument.js'
+import * as Sentry from '@sentry/node'
+
 import express from 'express'
 import cors from 'cors'
 import dotenv from 'dotenv'
 
 // Load environment variables
 dotenv.config()
-
-// Import Sentry for error tracking (must be early)
-import { 
-  initSentry, 
-  sentryRequestHandler, 
-  sentryTracingHandler,
-  sentryErrorHandler 
-} from './utils/sentry.js'
 
 // Import rate limiter
 import { rateLimitGeneral, rateLimitAuth, rateLimitHeavy } from './middleware/rateLimiter.js'
@@ -52,13 +48,6 @@ import { query } from './db/postgres.js'
 
 const app = express()
 const PORT = process.env.PORT || 3001
-
-// Initialize Sentry (before other middleware)
-initSentry(app)
-
-// Sentry request handler (must be first)
-app.use(sentryRequestHandler())
-app.use(sentryTracingHandler())
 
 // CORS - Restrict origins in production
 const allowedOrigins = process.env.ALLOWED_ORIGINS
@@ -146,20 +135,26 @@ app.get('/', async (req, res) => {
   }
 })
 
+// Debug route for Sentry testing
+app.get('/debug-sentry', function mainHandler(req, res) {
+  throw new Error('My first Sentry error!')
+})
+
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({ error: 'Endpoint not found' })
 })
 
 // Sentry error handler (must be before other error handlers)
-app.use(sentryErrorHandler())
+Sentry.setupExpressErrorHandler(app)
 
 // Global error handler
 app.use((err, req, res, next) => {
   console.error('Server Error:', err)
   res.status(500).json({ 
     error: 'Internal server error',
-    message: process.env.NODE_ENV === 'development' ? err.message : undefined
+    message: process.env.NODE_ENV === 'development' ? err.message : undefined,
+    sentryId: res.sentry
   })
 })
 

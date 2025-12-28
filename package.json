@@ -18,6 +18,7 @@
     "lighthouse:ci": "lighthouse http://localhost:5173 --output json --output-path ./reports/lighthouse.json --budget-path=./lighthouse-budget.json"
   },
   "dependencies": {
+    "@sentry/node": "^10.32.1",
     "bcryptjs": "^2.4.3",
     "clsx": "^2.0.0",
     "cors": "^2.8.5",
