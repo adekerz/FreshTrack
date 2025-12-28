@@ -61,19 +61,28 @@ export async function previewCollection({
   }
 
   // Get active batches sorted by expiry (FIFO)
-  const batchesResult = await query(`
-    SELECT b.id, b.quantity, b.expiry_date, b.batch_number,
+  // If departmentId is null, get all batches for the hotel (for HOTEL_ADMIN/SUPER_ADMIN)
+  let batchesQuery = `
+    SELECT b.id, b.quantity, b.expiry_date, b.batch_number, b.department_id,
            p.name as product_name, p.name_en, c.name as category_name
     FROM batches b
     JOIN products p ON b.product_id = p.id
     LEFT JOIN categories c ON p.category_id = c.id
     WHERE b.product_id = $1 
       AND b.hotel_id = $2 
-      AND b.department_id = $3
       AND b.status = 'active' 
       AND b.quantity > 0
-    ORDER BY b.expiry_date ASC, b.added_at ASC
-  `, [productId, hotelId, departmentId])
+  `
+  const params = [productId, hotelId]
+  
+  if (departmentId) {
+    batchesQuery += ` AND b.department_id = $3`
+    params.push(departmentId)
+  }
+  
+  batchesQuery += ` ORDER BY b.expiry_date ASC, b.added_at ASC`
+  
+  const batchesResult = await query(batchesQuery, params)
 
   const batches = batchesResult.rows
 
@@ -165,11 +174,11 @@ export async function collect({
     }
   }
 
-  if (!productId || !hotelId || !departmentId) {
+  if (!productId || !hotelId) {
     return {
       success: false,
       error: CollectionError.INVALID_DEPARTMENT,
-      message: 'Product ID, Hotel ID and Department ID are required'
+      message: 'Product ID and Hotel ID are required'
     }
   }
 
@@ -179,20 +188,28 @@ export async function collect({
     await client.query('BEGIN')
 
     // 1. Get active batches with FOR UPDATE lock (prevents race conditions)
-    const batchesResult = await client.query(`
+    // Build query dynamically - departmentId is optional for HOTEL_ADMIN/SUPER_ADMIN
+    let query = `
       SELECT b.id, b.quantity, b.expiry_date, b.batch_number, b.product_id,
-             p.name as product_name, c.name as category_name
+             p.name as product_name, c.name as category_name, b.department_id
       FROM batches b
       JOIN products p ON b.product_id = p.id
       LEFT JOIN categories c ON p.category_id = c.id
       WHERE b.product_id = $1 
         AND b.hotel_id = $2 
-        AND b.department_id = $3
         AND b.status = 'active' 
         AND b.quantity > 0
-      ORDER BY b.expiry_date ASC, b.added_at ASC
-      FOR UPDATE
-    `, [productId, hotelId, departmentId])
+    `
+    const params = [productId, hotelId]
+    
+    if (departmentId) {
+      params.push(departmentId)
+      query += ` AND b.department_id = $${params.length}`
+    }
+    
+    query += ` ORDER BY b.expiry_date ASC, b.added_at ASC FOR UPDATE`
+    
+    const batchesResult = await client.query(query, params)
 
     const batches = batchesResult.rows
 
@@ -231,6 +248,7 @@ export async function collect({
       const quantityRemaining = batchQty - takeFromThisBatch
 
       // 2a. Create collection history with snapshot
+      // Use batch's department_id for accurate tracking (supports HOTEL_ADMIN without department)
       const historyId = uuidv4()
       await client.query(`
         INSERT INTO collection_history (
@@ -244,7 +262,7 @@ export async function collect({
         batch.id,
         productId,
         hotelId,
-        departmentId,
+        batch.department_id || departmentId, // Use batch's department for correct tracking
         userId,
         takeFromThisBatch,
         quantityRemaining,

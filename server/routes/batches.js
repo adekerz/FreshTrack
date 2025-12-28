@@ -343,6 +343,11 @@ router.post('/:id/collect', authMiddleware, hotelIsolation, departmentIsolation,
       return res.status(404).json({ success: false, error: 'Batch not found' })
     }
     
+    // Validate batch has quantity
+    if (batch.quantity === null || batch.quantity === undefined || batch.quantity <= 0) {
+      return res.status(400).json({ success: false, error: 'Batch has no quantity to collect' })
+    }
+    
     const product = await getProductById(batch.product_id)
     if (!product || product.hotel_id !== req.hotelId) {
       return res.status(403).json({ success: false, error: 'Access denied' })
@@ -390,7 +395,7 @@ router.post('/:id/collect', authMiddleware, hotelIsolation, departmentIsolation,
       batch_id: batch.id,
       product_id: product.id,
       product_name: product.name,
-      quantity: batch.quantity,
+      quantity: batch.quantity || 1,  // Fallback to 1 if somehow null
       reason: reason || 'manual',
       comment: comment || null,
       user_id: req.user.id,

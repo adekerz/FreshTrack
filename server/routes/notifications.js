@@ -228,8 +228,8 @@ router.post('/test-telegram', authMiddleware, hotelIsolation, departmentIsolatio
     let targetChatId = chatId
     if (!targetChatId) {
       // Try to get from settings
-      const { getSettingValue } = await import('../db/database.js')
-      targetChatId = await getSettingValue(req.hotelId, null, 'telegram_chat_id')
+      const { getSetting } = await import('../db/database.js')
+      targetChatId = await getSetting(req.hotelId, 'telegram_chat_id')
     }
     
     if (!targetChatId) {

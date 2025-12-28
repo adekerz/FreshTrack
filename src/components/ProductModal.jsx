@@ -141,7 +141,7 @@ export default function ProductModal({ product, onClose }) {
             {activeBatches.length > 0 && (
               <button
                 onClick={() => setShowFIFOModal(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors shadow-sm"
                 title={t('fifoCollect.title') || 'FIFO Списание'}
               >
                 <Zap className="w-4 h-4" />
