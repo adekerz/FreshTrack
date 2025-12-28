@@ -135,11 +135,6 @@ app.get('/', async (req, res) => {
   }
 })
 
-// Debug route for Sentry testing
-app.get('/debug-sentry', function mainHandler(req, res) {
-  throw new Error('My first Sentry error!')
-})
-
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({ error: 'Endpoint not found' })
