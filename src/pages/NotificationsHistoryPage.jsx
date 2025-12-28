@@ -15,9 +15,7 @@ import {
   ChevronLeft,
   ChevronRight
 } from 'lucide-react'
-import { logError } from '../utils/logger'
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
+import { apiFetch } from '../services/api'
 
 // Типы уведомлений и их отображение
 const NOTIFICATION_TYPES = {
@@ -85,19 +83,11 @@ export default function NotificationsHistoryPage() {
         if (appliedFilters.startDate) params.append('startDate', appliedFilters.startDate)
         if (appliedFilters.endDate) params.append('endDate', appliedFilters.endDate)
 
-        const response = await fetch(`${API_URL}/notifications/logs?${params}`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('freshtrack_token')}`
-          }
-        })
-
-        if (!response.ok) throw new Error('Failed to fetch logs')
-
-        const data = await response.json()
+        const data = await apiFetch(`/notifications/logs?${params}`)
         setLogs(data.logs)
         setPagination(data.pagination)
       } catch (err) {
-        logError('Error fetching logs:', err)
+        // Error already logged by apiFetch
         setError(err.message)
       } finally {
         setLoading(false)

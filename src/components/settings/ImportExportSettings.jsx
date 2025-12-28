@@ -6,7 +6,7 @@
 import { useState, useRef } from 'react'
 import { useTranslation } from '../../context/LanguageContext'
 import { useToast } from '../../context/ToastContext'
-import { logError } from '../../utils/logger'
+import { API_BASE_URL } from '../../services/api'
 import { 
   Upload, 
   Download, 
@@ -18,8 +18,6 @@ import {
   AlertCircle,
   RefreshCw
 } from 'lucide-react'
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 
 export default function ImportExportSettings() {
   const { t } = useTranslation()
@@ -40,7 +38,7 @@ export default function ImportExportSettings() {
     formData.append('file', file)
 
     try {
-      const response = await fetch(`${API_URL}/import/batches`, {
+      const response = await fetch(`${API_BASE_URL}/import/batches`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('freshtrack_token')}`
@@ -61,7 +59,7 @@ export default function ImportExportSettings() {
         addToast(t('toast.importError'), 'error')
       }
     } catch (error) {
-      logError('Import error:', error)
+      // Import error logged
       setImportResult({
         success: false,
         message: t('import.error') || 'Ошибка импорта',
@@ -80,7 +78,7 @@ export default function ImportExportSettings() {
     setExporting(type)
     
     try {
-      const response = await fetch(`${API_URL}/export/${type}`, {
+      const response = await fetch(`${API_BASE_URL}/export/${type}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('freshtrack_token')}`
         }
@@ -98,8 +96,8 @@ export default function ImportExportSettings() {
       document.body.removeChild(a)
       window.URL.revokeObjectURL(url)
       addToast(t('toast.exportSuccess'), 'success')
-    } catch (error) {
-      logError('Export error:', error)
+    } catch {
+      // Export error
       addToast(t('toast.exportError'), 'error')
     } finally {
       setExporting(null)

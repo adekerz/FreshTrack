@@ -9,9 +9,7 @@ import { useAuth } from '../context/AuthContext'
 import { useProducts } from '../context/ProductContext'
 import { Navigate } from 'react-router-dom'
 import { Filter, RefreshCw, ChevronLeft, ChevronRight, ArchiveX, User, Package } from 'lucide-react'
-import { logError } from '../utils/logger'
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
+import { apiFetch } from '../services/api'
 
 // Причины сбора
 const REASONS = {
@@ -53,19 +51,12 @@ export default function CollectionHistoryPage() {
   // Загрузка статистики
   const fetchStats = useCallback(async () => {
     try {
-      const response = await fetch(`${API_URL}/write-offs/stats`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('freshtrack_token')}`
-        }
-      })
-      if (response.ok) {
-        const data = await response.json()
-        if (data.success) {
-          setStats({ today: data.today, week: data.week, month: data.month, total: data.total })
-        }
+      const data = await apiFetch('/write-offs/stats')
+      if (data.success) {
+        setStats({ today: data.today, week: data.week, month: data.month, total: data.total })
       }
-    } catch (err) {
-      logError('Error fetching stats:', err)
+    } catch {
+      // Error already logged by apiFetch
     }
   }, [])
 
@@ -86,15 +77,7 @@ export default function CollectionHistoryPage() {
         if (appliedFilters.startDate) params.append('start_date', appliedFilters.startDate)
         if (appliedFilters.endDate) params.append('end_date', appliedFilters.endDate)
 
-        const response = await fetch(`${API_URL}/write-offs?${params}`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('freshtrack_token')}`
-          }
-        })
-
-        if (!response.ok) throw new Error('Failed to fetch logs')
-
-        const data = await response.json()
+        const data = await apiFetch(`/write-offs?${params}`)
         // Transform write_offs to expected log format
         const writeOffs = data.write_offs || []
         const transformedLogs = writeOffs.map(wo => ({
@@ -115,7 +98,7 @@ export default function CollectionHistoryPage() {
         const totalPages = Math.ceil(total / pagination.limit)
         setPagination(prev => ({ ...prev, page, total, totalPages }))
       } catch (err) {
-        logError('Error fetching logs:', err)
+        // Error already logged by apiFetch
         setError(err.message)
         setLogs([])
       } finally {
