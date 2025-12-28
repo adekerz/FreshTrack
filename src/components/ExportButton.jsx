@@ -6,6 +6,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Download, FileSpreadsheet, FileText, ChevronDown } from 'lucide-react'
 import { useTranslation } from '../context/LanguageContext'
+import { useToast } from '../context/ToastContext'
 import { exportToExcel, exportToPDF } from '../utils/exportUtils'
 import { logError } from '../utils/logger'
 
@@ -19,6 +20,7 @@ export default function ExportButton({
   disabled = false
 }) {
   const { t } = useTranslation()
+  const { addToast } = useToast()
   const [isOpen, setIsOpen] = useState(false)
   const [exporting, setExporting] = useState(null)
   const dropdownRef = useRef(null)
@@ -37,7 +39,7 @@ export default function ExportButton({
 
   const handleExport = async (type) => {
     if (!data || data.length === 0) {
-      alert(t('export.noData'))
+      addToast(t('export.noData'), 'warning')
       return
     }
 
@@ -63,7 +65,7 @@ export default function ExportButton({
       }
     } catch (error) {
       logError('Export error:', error)
-      alert(t('export.error'))
+      addToast(t('export.error'), 'error')
     } finally {
       setExporting(null)
       setIsOpen(false)
