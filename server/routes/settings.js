@@ -7,7 +7,7 @@
  */
 
 import express from 'express'
-import { logError } from '../utils/logger.js'
+import { logError, logInfo } from '../utils/logger.js'
 import {
   getSettings as getLegacySettings,
   getSetting as getLegacySetting,
@@ -30,6 +30,7 @@ import {
   PermissionResource,
   PermissionAction
 } from '../middleware/auth.js'
+import sseManager from '../services/SSEManager.js'
 
 const router = express.Router()
 
@@ -445,6 +446,164 @@ router.get('/keys', authMiddleware, (req, res) => {
 })
 
 // ═══════════════════════════════════════════════════════════════
+// BRANDING ENDPOINTS (SSE-enabled real-time updates)
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * GET /api/settings/branding - Get branding settings
+ * Returns logo, colors, site name for real-time theming
+ */
+router.get('/branding', authMiddleware, hotelIsolation, async (req, res) => {
+  try {
+    const context = {
+      hotelId: req.hotelId,
+      departmentId: req.departmentId,
+      userId: req.user?.id
+    }
+    
+    const settings = await getHierarchicalSettings(context)
+    
+    // Extract branding-related settings
+    const branding = {
+      siteName: settings.raw?.['branding.siteName'] || 'FreshTrack',
+      logoUrl: settings.raw?.['branding.logoUrl'] || null,
+      faviconUrl: settings.raw?.['branding.faviconUrl'] || null,
+      primaryColor: settings.raw?.['branding.primaryColor'] || '#FF8D6B',
+      secondaryColor: settings.raw?.['branding.secondaryColor'] || '#4A7C59',
+      accentColor: settings.raw?.['branding.accentColor'] || '#F59E0B',
+      dangerColor: settings.raw?.['branding.dangerColor'] || '#C4554D',
+      footerText: settings.raw?.['branding.footerText'] || '© 2024 FreshTrack',
+      customCss: settings.raw?.['branding.customCss'] || null
+    }
+    
+    res.json({ success: true, branding })
+  } catch (error) {
+    logError('Get branding settings error', error)
+    res.status(500).json({ success: false, error: 'Failed to get branding settings' })
+  }
+})
+
+/**
+ * PUT /api/settings/branding - Update branding settings
+ * Broadcasts changes via SSE to all connected clients
+ */
+router.put('/branding', authMiddleware, hotelIsolation, requirePermission(PermissionResource.SETTINGS, PermissionAction.UPDATE), async (req, res) => {
+  try {
+    const updates = req.body
+    
+    if (!updates || typeof updates !== 'object' || Object.keys(updates).length === 0) {
+      return res.status(400).json({ success: false, error: 'Branding updates are required' })
+    }
+    
+    const context = {
+      scope: 'hotel',
+      hotelId: req.hotelId
+    }
+    
+    // Valid branding keys
+    const validKeys = ['siteName', 'logoUrl', 'faviconUrl', 'primaryColor', 
+                       'secondaryColor', 'accentColor', 'dangerColor', 
+                       'footerText', 'customCss']
+    
+    const savedSettings = {}
+    const snapshotBefore = {}
+    
+    for (const [key, value] of Object.entries(updates)) {
+      if (validKeys.includes(key)) {
+        const brandingKey = `branding.${key}`
+        
+        // Get old value for audit
+        const oldValue = await getHierarchicalSetting(brandingKey, { hotelId: req.hotelId })
+        snapshotBefore[key] = oldValue
+        
+        // Save new value
+        await setSetting(brandingKey, value, context)
+        savedSettings[key] = value
+      }
+    }
+    
+    // Audit log
+    await logAudit({
+      hotel_id: req.hotelId,
+      user_id: req.user.id,
+      user_name: req.user.name,
+      action: 'update',
+      entity_type: 'branding',
+      entity_id: req.hotelId,
+      details: { keys: Object.keys(savedSettings) },
+      snapshot_before: snapshotBefore,
+      snapshot_after: savedSettings,
+      ip_address: req.ip
+    })
+    
+    // 🔥 SSE Broadcast to all clients in this hotel
+    sseManager.broadcast(req.hotelId, 'branding-update', {
+      settings: savedSettings,
+      updatedBy: req.user.name,
+      timestamp: new Date().toISOString()
+    })
+    
+    logInfo('Branding', `Updated by ${req.user.name}: ${Object.keys(savedSettings).join(', ')}`)
+    
+    res.json({ success: true, updated: Object.keys(savedSettings) })
+  } catch (error) {
+    logError('Update branding settings error', error)
+    res.status(500).json({ success: false, error: 'Failed to update branding settings' })
+  }
+})
+
+/**
+ * POST /api/settings/branding/reset - Reset branding to defaults
+ * Broadcasts reset via SSE
+ */
+router.post('/branding/reset', authMiddleware, hotelIsolation, requirePermission(PermissionResource.SETTINGS, PermissionAction.UPDATE), async (req, res) => {
+  try {
+    const defaultBranding = {
+      siteName: 'FreshTrack',
+      logoUrl: null,
+      faviconUrl: null,
+      primaryColor: '#FF8D6B',
+      secondaryColor: '#4A7C59',
+      accentColor: '#F59E0B',
+      dangerColor: '#C4554D',
+      footerText: '© 2024 FreshTrack',
+      customCss: null
+    }
+    
+    const context = { scope: 'hotel', hotelId: req.hotelId }
+    
+    for (const [key, value] of Object.entries(defaultBranding)) {
+      await setSetting(`branding.${key}`, value, context)
+    }
+    
+    // Audit log
+    await logAudit({
+      hotel_id: req.hotelId,
+      user_id: req.user.id,
+      user_name: req.user.name,
+      action: 'reset',
+      entity_type: 'branding',
+      entity_id: req.hotelId,
+      details: { action: 'reset_to_defaults' },
+      ip_address: req.ip
+    })
+    
+    // 🔥 SSE Broadcast
+    sseManager.broadcast(req.hotelId, 'branding-update', {
+      settings: defaultBranding,
+      updatedBy: req.user.name,
+      reset: true,
+      timestamp: new Date().toISOString()
+    })
+    
+    res.json({ success: true, branding: defaultBranding })
+  } catch (error) {
+    logError('Reset branding error', error)
+    res.status(500).json({ success: false, error: 'Failed to reset branding' })
+  }
+})
+
+// ═══════════════════════════════════════════════════════════════
 // LEGACY ENDPOINTS (for backward compatibility)
 // ═══════════════════════════════════════════════════════════════
 
@@ -556,7 +715,13 @@ router.get('/telegram', authMiddleware, hotelIsolation, async (req, res) => {
         botToken: settings.raw?.['telegram.botToken'] || '',
         botUsername: settings.raw?.['telegram.botUsername'] || '',
         enabled: settings.raw?.['telegram.enabled'] ?? true,
-        channels: settings.notification?.channels || ['app', 'telegram']
+        channels: settings.notification?.channels || ['app', 'telegram'],
+        messageTemplates: settings.raw?.['telegram.messageTemplates'] || {
+          dailyReport: '📊 Ежедневный отчёт FreshTrack\n\n✅ В норме: {good}\n⚠️ Скоро истекает: {warning}\n🔴 Просрочено: {expired}',
+          expiryWarning: '⚠️ Внимание! {product} истекает {date} ({quantity} шт)',
+          expiredAlert: '🔴 ПРОСРОЧЕНО: {product} — {quantity} шт',
+          collectionConfirm: '✅ Собрано: {product} — {quantity} шт\nПричина: {reason}'
+        }
       }
     })
   } catch (error) {
@@ -565,10 +730,87 @@ router.get('/telegram', authMiddleware, hotelIsolation, async (req, res) => {
   }
 })
 
+// GET /api/settings/telegram/chats - Get linked Telegram chats for hotel
+router.get('/telegram/chats', authMiddleware, hotelIsolation, async (req, res) => {
+  try {
+    const { query: dbQuery } = await import('../db/database.js')
+    
+    const result = await dbQuery(`
+      SELECT 
+        tc.chat_id,
+        tc.chat_type,
+        tc.chat_title,
+        tc.is_active,
+        tc.silent_mode,
+        tc.notification_types,
+        tc.last_message_at,
+        tc.added_at,
+        h.name as hotel_name,
+        d.name as department_name
+      FROM telegram_chats tc
+      LEFT JOIN hotels h ON tc.hotel_id = h.id
+      LEFT JOIN departments d ON tc.department_id = d.id
+      WHERE tc.hotel_id = $1 AND tc.bot_removed = false
+      ORDER BY tc.added_at DESC
+    `, [req.hotelId])
+    
+    res.json({
+      success: true,
+      chats: result.rows
+    })
+  } catch (error) {
+    logError('Get telegram chats error', error)
+    res.status(500).json({ success: false, error: 'Failed to get telegram chats' })
+  }
+})
+
+// DELETE /api/settings/telegram/chats/:chatId - Unlink a Telegram chat
+router.delete('/telegram/chats/:chatId', authMiddleware, hotelIsolation, requirePermission(PermissionResource.SETTINGS, PermissionAction.DELETE), async (req, res) => {
+  try {
+    const { chatId } = req.params
+    const { query: dbQuery } = await import('../db/database.js')
+    
+    // First verify this chat belongs to this hotel
+    const chatResult = await dbQuery(
+      'SELECT hotel_id FROM telegram_chats WHERE chat_id = $1',
+      [chatId]
+    )
+    
+    if (chatResult.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Chat not found' })
+    }
+    
+    if (chatResult.rows[0].hotel_id !== req.hotelId) {
+      return res.status(403).json({ success: false, error: 'Access denied' })
+    }
+    
+    // Unlink the chat (set hotel_id and department_id to NULL, keep record for history)
+    await dbQuery(
+      'UPDATE telegram_chats SET hotel_id = NULL, department_id = NULL, is_active = false WHERE chat_id = $1',
+      [chatId]
+    )
+    
+    await logAudit({
+      hotel_id: req.hotelId,
+      user_id: req.user.id,
+      user_name: req.user.name,
+      action: 'delete',
+      entity_type: 'telegram_chat',
+      entity_id: chatId,
+      details: { action: 'unlink' }
+    })
+    
+    res.json({ success: true })
+  } catch (error) {
+    logError('Unlink telegram chat error', error)
+    res.status(500).json({ success: false, error: 'Failed to unlink telegram chat' })
+  }
+})
+
 // PUT /api/settings/telegram - Save Telegram settings
 router.put('/telegram', authMiddleware, hotelIsolation, requirePermission(PermissionResource.SETTINGS, PermissionAction.UPDATE), async (req, res) => {
   try {
-    const { settings } = req.body
+    const settings = req.body
     
     if (!settings || typeof settings !== 'object') {
       return res.status(400).json({ success: false, error: 'Settings object is required' })
@@ -580,6 +822,10 @@ router.put('/telegram', authMiddleware, hotelIsolation, requirePermission(Permis
       userId: null
     }
     
+    // Save message templates if provided
+    if (settings.messageTemplates !== undefined) {
+      await setSetting('telegram.messageTemplates', settings.messageTemplates, 'hotel', context)
+    }
     if (settings.botToken !== undefined) {
       await setSetting('telegram.botToken', settings.botToken, 'hotel', context)
     }

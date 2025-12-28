@@ -25,16 +25,16 @@ export default function ThemeSwitcher({ variant = 'toggle', className = '' }) {
         onClick={toggleTheme}
         className={cn(
           'p-2 rounded-lg transition-colors',
-          'hover:bg-sand dark:hover:bg-white/10',
+          'hover:bg-muted',
           'focus-visible:ring-2 focus-visible:ring-accent',
           className
         )}
         aria-label={isDark ? t('theme.switchToLight') || 'Switch to light mode' : t('theme.switchToDark') || 'Switch to dark mode'}
       >
         {isDark ? (
-          <Sun className="w-5 h-5 text-warmgray dark:text-cream/80" />
+          <Sun className="w-5 h-5 text-muted-foreground" />
         ) : (
-          <Moon className="w-5 h-5 text-warmgray" />
+          <Moon className="w-5 h-5 text-muted-foreground" />
         )}
       </button>
     )
@@ -45,7 +45,7 @@ export default function ThemeSwitcher({ variant = 'toggle', className = '' }) {
     return (
       <div 
         className={cn(
-          'flex gap-1 p-1 bg-sand dark:bg-white/10 rounded-lg',
+          'flex gap-1 p-1 bg-muted rounded-lg',
           className
         )}
         role="radiogroup"
@@ -64,8 +64,8 @@ export default function ThemeSwitcher({ variant = 'toggle', className = '' }) {
               className={cn(
                 'flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all',
                 isActive
-                  ? 'bg-white dark:bg-charcoal text-charcoal dark:text-cream shadow-sm'
-                  : 'text-warmgray hover:text-charcoal dark:hover:text-cream'
+                  ? 'bg-card text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
               )}
             >
               <Icon className="w-4 h-4" />
@@ -86,8 +86,8 @@ export default function ThemeSwitcher({ variant = 'toggle', className = '' }) {
         <button
           className={cn(
             'flex items-center gap-2 px-3 py-2 rounded-lg transition-colors',
-            'hover:bg-sand dark:hover:bg-white/10',
-            'text-warmgray hover:text-charcoal dark:hover:text-cream'
+            'hover:bg-muted',
+            'text-muted-foreground hover:text-foreground'
           )}
           aria-label={t('theme.label') || 'Theme preference'}
         >
@@ -96,7 +96,7 @@ export default function ThemeSwitcher({ variant = 'toggle', className = '' }) {
         </button>
         
         <div className="absolute right-0 top-full mt-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
-          <div className="bg-white dark:bg-charcoal rounded-lg shadow-lg border border-sand dark:border-white/10 py-1 min-w-[140px]">
+          <div className="bg-card rounded-lg shadow-lg border border-border py-1 min-w-[140px]">
             {themes.map(({ id, name }) => {
               const Icon = icons[id]
               const isActive = theme === id
@@ -109,7 +109,7 @@ export default function ThemeSwitcher({ variant = 'toggle', className = '' }) {
                     'w-full flex items-center gap-3 px-4 py-2 text-sm transition-colors',
                     isActive
                       ? 'text-accent bg-accent/5'
-                      : 'text-charcoal dark:text-cream hover:bg-sand/50 dark:hover:bg-white/5'
+                      : 'text-foreground hover:bg-muted'
                   )}
                 >
                   <Icon className="w-4 h-4" />

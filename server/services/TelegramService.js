@@ -181,6 +181,21 @@ export class TelegramService {
       return this.handleStatusCommand(chatId)
     }
     
+    // /notify command - toggle notifications
+    if (text.startsWith('/notify')) {
+      return this.handleNotifyCommand(chatId, text)
+    }
+    
+    // /filter command - set notification types
+    if (text.startsWith('/filter')) {
+      return this.handleFilterCommand(chatId, text)
+    }
+    
+    // /silent command - toggle silent mode
+    if (text.startsWith('/silent')) {
+      return this.handleSilentCommand(chatId, text)
+    }
+    
     // /help command
     if (text === '/help' || text === '/start') {
       return this.sendHelpMessage(chatId)
@@ -188,48 +203,190 @@ export class TelegramService {
   }
   
   /**
-   * Handle /link command
-   * Format: /link hotel:HOTEL_CODE [department:DEPT_CODE]
+   * Handle /notify command
+   * Format: /notify on|off
    */
-  static async handleLinkCommand(chatId, text, from) {
-    // Parse command: /link hotel:hotelcode department:deptcode
-    const hotelMatch = text.match(/hotel:(\S+)/i)
-    const deptMatch = text.match(/department:(\S+)/i)
+  static async handleNotifyCommand(chatId, text) {
+    const match = text.match(/\/notify\s+(on|off)/i)
     
-    if (!hotelMatch) {
+    if (!match) {
       await this.sendMessage(chatId, 
-        '❌ *Ошибка формата*\n\nИспользуйте: `/link hotel:КОД_ОТЕЛЯ`\n' +
-        'Или: `/link hotel:КОД_ОТЕЛЯ department:КОД_ОТДЕЛА`'
+        '❓ *Использование:*\n`/notify on` - включить уведомления\n`/notify off` - выключить уведомления'
       )
       return
     }
     
-    const hotelCode = hotelMatch[1]
-    const deptCode = deptMatch?.[1]
+    const enabled = match[1].toLowerCase() === 'on'
     
     try {
-      // Find hotel by code or name
+      await query(
+        'UPDATE telegram_chats SET is_active = $1 WHERE chat_id = $2',
+        [enabled, chatId]
+      )
+      
+      await this.sendMessage(chatId, 
+        enabled 
+          ? '✅ *Уведомления включены*\n\nВы будете получать уведомления о сроках годности.'
+          : '🔇 *Уведомления отключены*\n\nИспользуйте `/notify on` чтобы включить снова.'
+      )
+    } catch (error) {
+      logError('TelegramService', error)
+      await this.sendMessage(chatId, `❌ Ошибка: ${error.message}`)
+    }
+  }
+  
+  /**
+   * Handle /filter command
+   * Format: /filter critical|warning|expired|all
+   */
+  static async handleFilterCommand(chatId, text) {
+    const validTypes = ['critical', 'warning', 'expired', 'all']
+    const match = text.match(/\/filter\s+(\S+)/i)
+    
+    if (!match) {
+      await this.sendMessage(chatId, 
+        '❓ *Использование:*\n' +
+        '`/filter critical` - только критичные (≤3 дня)\n' +
+        '`/filter warning` - предупреждения (≤7 дней)\n' +
+        '`/filter expired` - только просроченные\n' +
+        '`/filter all` - все уведомления'
+      )
+      return
+    }
+    
+    const filterType = match[1].toLowerCase()
+    
+    if (!validTypes.includes(filterType)) {
+      await this.sendMessage(chatId, `❌ Неизвестный тип: ${filterType}\n\nДопустимые: ${validTypes.join(', ')}`)
+      return
+    }
+    
+    try {
+      const notificationTypes = filterType === 'all' 
+        ? ['critical', 'warning', 'expired'] 
+        : [filterType]
+      
+      await query(
+        'UPDATE telegram_chats SET notification_types = $1 WHERE chat_id = $2',
+        [JSON.stringify(notificationTypes), chatId]
+      )
+      
+      const typeLabels = {
+        critical: '🚨 Критичные',
+        warning: '⚠️ Предупреждения',
+        expired: '❌ Просроченные',
+        all: '📋 Все типы'
+      }
+      
+      await this.sendMessage(chatId, 
+        `✅ *Фильтр обновлён*\n\nТеперь вы получаете: ${typeLabels[filterType]}`
+      )
+    } catch (error) {
+      logError('TelegramService', error)
+      await this.sendMessage(chatId, `❌ Ошибка: ${error.message}`)
+    }
+  }
+  
+  /**
+   * Handle /silent command
+   * Format: /silent on|off
+   */
+  static async handleSilentCommand(chatId, text) {
+    const match = text.match(/\/silent\s+(on|off)/i)
+    
+    if (!match) {
+      await this.sendMessage(chatId, 
+        '❓ *Использование:*\n`/silent on` - беззвучные уведомления\n`/silent off` - со звуком'
+      )
+      return
+    }
+    
+    const silent = match[1].toLowerCase() === 'on'
+    
+    try {
+      await query(
+        'UPDATE telegram_chats SET silent_mode = $1 WHERE chat_id = $2',
+        [silent, chatId]
+      )
+      
+      await this.sendMessage(chatId, 
+        silent 
+          ? '🔕 *Беззвучный режим включён*\n\nУведомления будут приходить без звука.'
+          : '🔔 *Беззвучный режим выключен*\n\nУведомления будут со звуком.'
+      )
+    } catch (error) {
+      logError('TelegramService', error)
+      await this.sendMessage(chatId, `❌ Ошибка: ${error.message}`)
+    }
+  }
+  
+  /**
+   * Handle /link command
+   * Format: /link отель:НАЗВАНИЕ [департамент:НАЗВАНИЕ]
+   * Searches by name, not code
+   */
+  static async handleLinkCommand(chatId, text, from) {
+    // Parse command: /link отель:название департамент:название
+    // Support both Russian and English keywords
+    const hotelMatch = text.match(/(?:hotel|отель)[:\s]+["']?([^"'\n]+?)["']?(?:\s+(?:department|департамент|отдел)|$)/i)
+    const deptMatch = text.match(/(?:department|департамент|отдел)[:\s]+["']?([^"'\n]+?)["']?$/i)
+    
+    if (!hotelMatch) {
+      await this.sendMessage(chatId, 
+        '❌ *Ошибка формата*\n\n' +
+        'Используйте:\n' +
+        '`/link отель:Название отеля`\n' +
+        '`/link отель:Название отеля департамент:Название отдела`\n\n' +
+        '_Пример: /link отель:Хонор Бар_'
+      )
+      return
+    }
+    
+    const hotelName = hotelMatch[1].trim()
+    const deptName = deptMatch?.[1]?.trim()
+    
+    try {
+      // Find hotel by name (case-insensitive, partial match)
       const hotelResult = await query(
-        'SELECT id, name FROM hotels WHERE code = $1 OR LOWER(name) LIKE LOWER($2) LIMIT 1',
-        [hotelCode, `%${hotelCode}%`]
+        `SELECT id, name, code FROM hotels 
+         WHERE LOWER(name) LIKE LOWER($1) 
+         OR LOWER(name) = LOWER($2)
+         LIMIT 1`,
+        [`%${hotelName}%`, hotelName]
       )
       
       if (hotelResult.rows.length === 0) {
-        await this.sendMessage(chatId, `❌ Отель "${hotelCode}" не найден`)
+        await this.sendMessage(chatId, 
+          `❌ *Отель не найден*\n\nНе удалось найти отель "${hotelName}".\n\n` +
+          `Проверьте название и попробуйте снова.`
+        )
         return
       }
       
       const hotel = hotelResult.rows[0]
       let department = null
       
-      if (deptCode) {
+      if (deptName) {
         const deptResult = await query(
-          'SELECT id, name FROM departments WHERE hotel_id = $1 AND (code = $2 OR LOWER(name) LIKE LOWER($3)) LIMIT 1',
-          [hotel.id, deptCode, `%${deptCode}%`]
+          `SELECT id, name, code FROM departments 
+           WHERE hotel_id = $1 
+           AND (LOWER(name) LIKE LOWER($2) OR LOWER(name) = LOWER($3))
+           LIMIT 1`,
+          [hotel.id, `%${deptName}%`, deptName]
         )
         
         if (deptResult.rows.length === 0) {
-          await this.sendMessage(chatId, `❌ Отдел "${deptCode}" не найден в отеле "${hotel.name}"`)
+          // Show available departments
+          const availableDepts = await query(
+            'SELECT name FROM departments WHERE hotel_id = $1',
+            [hotel.id]
+          )
+          const deptList = availableDepts.rows.map(d => `• ${d.name}`).join('\n')
+          
+          await this.sendMessage(chatId, 
+            `❌ *Департамент не найден*\n\nНе удалось найти "${deptName}" в отеле "${hotel.name}".\n\n` +
+            `*Доступные департаменты:*\n${deptList || 'Нет департаментов'}`
+          )
           return
         }
         
@@ -254,13 +411,16 @@ export class TelegramService {
       ])
       
       const linkInfo = department 
-        ? `🏨 ${hotel.name} → 🏢 ${department.name}`
-        : `🏨 ${hotel.name} (все отделы)`
+        ? `🏨 *${hotel.name}*\n🏢 *${department.name}*`
+        : `🏨 *${hotel.name}* (все департаменты)`
       
       await this.sendMessage(chatId, 
         `✅ *Чат успешно привязан!*\n\n${linkInfo}\n\n` +
-        `Теперь сюда будут приходить уведомления о сроках годности.`
+        `Теперь сюда будут приходить уведомления о сроках годности.\n\n` +
+        `Используйте \`/status\` для проверки настроек.`
       )
+      
+      logInfo('TelegramService', `✅ Chat ${chatId} linked to hotel ${hotel.name}${department ? ` / ${department.name}` : ''}`)
       
     } catch (error) {
       logError('TelegramService', error)
@@ -371,21 +531,29 @@ ${chatType !== 'private' ? `
   static async sendHelpMessage(chatId) {
     const message = `📚 *FreshTrack Bot - Справка*
 
-*Основные команды:*
-/link hotel:КОД - привязать к отелю
-/link hotel:КОД department:КОД - привязать к отделу
-/unlink - отвязать чат
-/status - статус привязки
+*Привязка чата:*
+\`/link отель:Название\` - привязать к отелю
+\`/link отель:Название департамент:Название\` - привязать к департаменту
+\`/unlink\` - отвязать чат
+\`/status\` - статус привязки
 
-*Типы уведомлений:*
-🚨 Критические (≤3 дня)
-⚠️ Предупреждения (≤7 дней)
-❌ Просроченные
+*Настройка уведомлений:*
+\`/notify on\` - включить уведомления
+\`/notify off\` - отключить уведомления
+\`/filter critical\` - только критичные (≤3 дня)
+\`/filter warning\` - предупреждения (≤7 дней)
+\`/filter expired\` - только просроченные
+\`/filter all\` - все типы
 
-*Настройка:*
-Добавьте бота в групповой чат и используйте \`/link\` для привязки к отелю или отделу.
+*Режим доставки:*
+\`/silent on\` - беззвучные уведомления
+\`/silent off\` - со звуком
 
-💡 _Бот автоматически отправляет уведомления согласно настроенным правилам._`
+*Пример привязки:*
+\`/link отель:Хонор Бар\`
+\`/link отель:Grand Hotel департамент:Кухня\`
+
+💡 _Введите название отеля как в системе FreshTrack_`
 
     await this.sendMessage(chatId, message)
   }

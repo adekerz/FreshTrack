@@ -1,29 +1,44 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   AlertTriangle,
   Clock,
   AlertCircle,
-  Check,
   Bell,
   Calendar,
   Package,
-  History
+  History,
+  Zap
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useProducts, departments } from '../context/ProductContext'
 import { useTranslation } from '../context/LanguageContext'
 import { format, parseISO } from 'date-fns'
-import CollectModal from '../components/CollectModal'
 import { SkeletonNotifications, Skeleton } from '../components/Skeleton'
+import FIFOCollectModal from '../components/FIFOCollectModal'
 
 export default function NotificationsPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const { getActiveBatches, collectBatch, findProduct, loading } = useProducts()
+  const { getActiveBatches, findProduct, loading, refreshProducts, refresh, departments: depts } = useProducts()
+  const [retryCount, setRetryCount] = useState(0)
+  
+  // Состояние для FIFO модала
+  const [fifoModalOpen, setFifoModalOpen] = useState(false)
+  const [selectedProduct, setSelectedProduct] = useState(null)
 
-  // Состояние для модала сбора
-  const [collectModalOpen, setCollectModalOpen] = useState(false)
-  const [selectedBatch, setSelectedBatch] = useState(null)
+  // Автоматический retry когда нет данных
+  useEffect(() => {
+    if (!loading && depts.length === 0 && retryCount < 10) {
+      const timer = setTimeout(() => {
+        setRetryCount(prev => prev + 1)
+        refresh()
+      }, 2000)
+      return () => clearTimeout(timer)
+    }
+    if (depts.length > 0) {
+      setRetryCount(0)
+    }
+  }, [loading, depts.length, retryCount, refresh])
 
   // Получить все активные партии с информацией
   const getBatchesWithInfo = () => {
@@ -56,8 +71,8 @@ export default function NotificationsPage() {
     }
   }
 
-  // Показываем скелетон при загрузке
-  if (loading) {
+  // Показываем скелетон при загрузке (когда есть данные)
+  if (loading && depts.length > 0) {
     return (
       <div className="p-4 sm:p-6 animate-fade-in">
         <div className="flex items-center gap-3 mb-6">
@@ -65,6 +80,35 @@ export default function NotificationsPage() {
           <Skeleton className="h-7 w-48" />
         </div>
         <SkeletonNotifications count={5} />
+      </div>
+    )
+  }
+
+  // Загрузка БД (нет данных)
+  if (depts.length === 0) {
+    return (
+      <div className="flex-1 flex items-center justify-center py-16 sm:py-24 animate-fade-in">
+        <div className="flex flex-col items-center gap-6">
+          <div className="loader loader-lg">
+            <div className="cell d-0" />
+            <div className="cell d-1" />
+            <div className="cell d-2" />
+            <div className="cell d-1" />
+            <div className="cell d-2" />
+            <div className="cell d-3" />
+            <div className="cell d-2" />
+            <div className="cell d-3" />
+            <div className="cell d-4" />
+          </div>
+          <div className="text-center">
+            <p className="text-foreground font-medium mb-1">
+              {loading ? t('common.loading') : t('inventory.connectingDatabase') || 'Подключение к базе данных...'}
+            </p>
+            <p className="text-muted-foreground text-sm animate-pulse">
+              {retryCount > 0 && `${t('common.attempt') || 'Попытка'} ${retryCount}/10`}
+            </p>
+          </div>
+        </div>
       </div>
     )
   }
@@ -87,18 +131,18 @@ export default function NotificationsPage() {
           {batches.map((batch) => (
             <div
               key={batch.id}
-              className={`bg-white dark:bg-dark-surface rounded-lg p-3 sm:p-4 border-l-4 ${
+              className={`bg-card rounded-lg p-3 sm:p-4 border-l-4 ${
                 batch.daysLeft < 0
                   ? 'border-l-danger'
                   : batch.daysLeft <= 3
                     ? 'border-l-danger'
                     : 'border-l-warning'
-              } border border-sand dark:border-dark-border`}
+              } border border-border`}
             >
               <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                 <div className="flex-1 min-w-0">
                   {/* Название товара */}
-                  <h3 className="font-medium text-charcoal dark:text-cream mb-1 text-sm sm:text-base truncate">{batch.productName}</h3>
+                  <h3 className="font-medium text-foreground mb-1 text-sm sm:text-base truncate">{batch.productName}</h3>
 
                   {/* Отдел */}
                   <div
@@ -112,7 +156,7 @@ export default function NotificationsPage() {
                   </div>
 
                   {/* Даты и количество - горизонтально на мобильных */}
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs sm:text-sm text-warmgray">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs sm:text-sm text-muted-foreground">
                     <div className="flex items-center gap-1">
                       <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
                       <span>
@@ -145,16 +189,25 @@ export default function NotificationsPage() {
                   </div>
                 </div>
 
-                {/* Кнопка собрать */}
+                {/* Кнопка FIFO сбора */}
                 <button
                   onClick={() => {
-                    setSelectedBatch(batch)
-                    setCollectModalOpen(true)
+                    const product = findProduct(batch.productId)
+                    if (product) {
+                      setSelectedProduct({
+                        id: product.id,
+                        name: product.name,
+                        totalQuantity: product.totalQuantity || batch.quantity
+                      })
+                      setFifoModalOpen(true)
+                    }
                   }}
-                  className="flex items-center justify-center gap-1 px-3 sm:px-4 py-2 text-xs sm:text-sm border border-success text-success rounded-lg hover:bg-success hover:text-white transition-colors w-full sm:w-auto flex-shrink-0"
+                  className="flex items-center justify-center gap-1 px-3 sm:px-4 py-2 text-xs sm:text-sm border border-accent text-accent rounded-lg hover:bg-accent hover:text-white transition-colors w-full sm:w-auto flex-shrink-0"
+                  title={t('fifoCollect.title')}
                 >
-                  <Check className="w-4 h-4" />
-                  {t('product.collect')}
+                  <Zap className="w-4 h-4" />
+                  <span className="hidden sm:inline">{t('fifoCollect.title')}</span>
+                  <span className="sm:hidden">{t('fifoCollect.short') || 'FIFO'}</span>
                 </button>
               </div>
             </div>
@@ -173,14 +226,14 @@ export default function NotificationsPage() {
       {/* Заголовок */}
       <div className="mb-4 sm:mb-8 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="font-serif text-xl sm:text-2xl text-charcoal dark:text-cream mb-1 sm:mb-2">{t('notifications.title')}</h1>
-          <p className="text-warmgray dark:text-warmgray/80 text-xs sm:text-sm">{t('notifications.description')}</p>
+          <h1 className="font-serif text-xl sm:text-2xl text-foreground mb-1 sm:mb-2">{t('notifications.title')}</h1>
+          <p className="text-muted-foreground text-xs sm:text-sm">{t('notifications.description')}</p>
         </div>
 
         {/* Кнопка истории уведомлений */}
         <button
           onClick={() => navigate('/notifications/history')}
-          className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm border border-sand dark:border-dark-border text-warmgray dark:text-cream/70 rounded-lg hover:bg-sand/50 dark:hover:bg-dark-border hover:text-charcoal dark:hover:text-cream transition-colors w-full sm:w-auto"
+          className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm border border-border text-muted-foreground rounded-lg hover:bg-muted hover:text-foreground transition-colors w-full sm:w-auto"
         >
           <History className="w-4 h-4" />
           <span>{t('notificationHistory.title')}</span>
@@ -193,8 +246,8 @@ export default function NotificationsPage() {
           <div className="w-16 h-16 sm:w-20 sm:h-20 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
             <Bell className="w-8 h-8 sm:w-10 sm:h-10 text-success" />
           </div>
-          <h2 className="font-serif text-xl sm:text-2xl text-charcoal dark:text-cream mb-2">{t('notifications.allGood')}</h2>
-          <p className="text-warmgray dark:text-warmgray/80 text-sm">{t('notifications.noAlerts')}</p>
+          <h2 className="font-serif text-xl sm:text-2xl text-foreground mb-2">{t('notifications.allGood')}</h2>
+          <p className="text-muted-foreground text-sm">{t('notifications.noAlerts')}</p>
         </div>
       ) : (
         <>
@@ -227,16 +280,18 @@ export default function NotificationsPage() {
         </>
       )}
 
-      {/* Модал сбора */}
-      <CollectModal
-        isOpen={collectModalOpen}
+      {/* FIFO модал сбора */}
+      <FIFOCollectModal
+        isOpen={fifoModalOpen}
         onClose={() => {
-          setCollectModalOpen(false)
-          setSelectedBatch(null)
+          setFifoModalOpen(false)
+          setSelectedProduct(null)
         }}
-        batch={selectedBatch}
-        onConfirm={async ({ batchId, reason, comment }) => {
-          await collectBatch(batchId, reason, comment)
+        product={selectedProduct}
+        onSuccess={() => {
+          refreshProducts()
+          setFifoModalOpen(false)
+          setSelectedProduct(null)
         }}
       />
     </div>

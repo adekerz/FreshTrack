@@ -117,16 +117,16 @@ export default function CustomContentSettings() {
   return (
     <div className="space-y-6">
       {/* Logo Section */}
-      <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6">
+      <div className="bg-muted/50 rounded-xl p-6">
         <div className="flex items-center gap-2 mb-4">
           <Image className="w-5 h-5 text-primary-600" />
-          <h3 className="font-medium text-gray-900 dark:text-white">
+          <h3 className="font-medium text-foreground">
             {t('customContent.logo') || 'Логотип компании'}
           </h3>
         </div>
 
         <div className="flex items-center gap-6">
-          <div className="w-24 h-24 bg-white dark:bg-gray-800 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center overflow-hidden">
+          <div className="w-24 h-24 bg-card rounded-xl border-2 border-dashed border-border flex items-center justify-center overflow-hidden">
             {content.logo_url ? (
               <img
                 src={content.logo_url}
@@ -166,7 +166,7 @@ export default function CustomContentSettings() {
             {content.logo_url && content.logo_url !== '/default-logo.svg' && (
               <button
                 onClick={resetLogo}
-                className="flex items-center gap-2 px-4 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors text-sm"
+                className="flex items-center gap-2 px-4 py-2 text-muted-foreground hover:bg-muted rounded-lg transition-colors text-sm"
               >
                 <RotateCcw className="w-4 h-4" />
                 {t('customContent.resetLogo') || 'Сбросить'}
@@ -181,10 +181,10 @@ export default function CustomContentSettings() {
       </div>
 
       {/* Text Fields */}
-      <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6">
+      <div className="bg-muted/50 rounded-xl p-6">
         <div className="flex items-center gap-2 mb-4">
           <Edit3 className="w-5 h-5 text-primary-600" />
-          <h3 className="font-medium text-gray-900 dark:text-white">
+          <h3 className="font-medium text-foreground">
             {t('customContent.texts') || 'Тексты интерфейса'}
           </h3>
         </div>
@@ -193,7 +193,7 @@ export default function CustomContentSettings() {
           {editableFields.map((field) => (
             <div key={field.key} className="flex items-center gap-4">
               <div className="w-1/3">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                <label className="block text-sm font-medium text-muted-foreground">
                   {field.label}
                 </label>
               </div>
@@ -206,7 +206,7 @@ export default function CustomContentSettings() {
                       value={editValue}
                       onChange={(e) => setEditValue(e.target.value)}
                       placeholder={field.placeholder}
-                      className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                      className="flex-1 px-3 py-2 border border-border rounded-lg bg-card text-foreground text-sm"
                       autoFocus
                     />
                     <button
@@ -222,21 +222,21 @@ export default function CustomContentSettings() {
                     </button>
                     <button
                       onClick={cancelEditing}
-                      className="p-2 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300"
+                      className="p-2 bg-muted text-muted-foreground rounded-lg hover:bg-muted/80"
                     >
                       <X className="w-4 h-4" />
                     </button>
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
-                    <span className="flex-1 text-gray-900 dark:text-white">
+                    <span className="flex-1 text-foreground">
                       {content[field.key] || (
                         <span className="text-gray-400 italic">{field.placeholder}</span>
                       )}
                     </span>
                     <button
                       onClick={() => startEditing(field.key)}
-                      className="p-2 text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
+                      className="p-2 text-muted-foreground hover:bg-muted rounded-lg transition-colors"
                     >
                       <Edit3 className="w-4 h-4" />
                     </button>

@@ -207,11 +207,11 @@ export default function NotificationRulesPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
             <Bell className="w-7 h-7 text-primary-500" />
             {t('notificationRules.title')}
           </h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">{t('notificationRules.subtitle')}</p>
+          <p className="text-muted-foreground mt-1">{t('notificationRules.subtitle')}</p>
         </div>
         <button
           onClick={handleAddRule}
@@ -223,14 +223,14 @@ export default function NotificationRulesPage() {
       </div>
 
       {/* Rules List */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden">
+      <div className="bg-card rounded-xl shadow-lg overflow-hidden">
         {rules.length === 0 ? (
           <div className="p-8 text-center">
             <AlertTriangle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-500 dark:text-gray-400">{t('notificationRules.noRules')}</p>
+            <p className="text-muted-foreground">{t('notificationRules.noRules')}</p>
           </div>
         ) : (
-          <div className="divide-y divide-gray-200 dark:divide-gray-700">
+          <div className="divide-y divide-border">
             {rules.map((rule) => (
               <div
                 key={rule.id}
@@ -242,13 +242,13 @@ export default function NotificationRulesPage() {
                 {/* Rule Info */}
                 <div className="flex-1">
                   <div className="flex items-center gap-3">
-                    <h3 className="font-semibold text-gray-900 dark:text-white">{rule.name}</h3>
+                    <h3 className="font-semibold text-foreground">{rule.name}</h3>
                     <span
                       className={cn(
                         'px-2 py-0.5 rounded-full text-xs font-medium',
                         rule.enabled
                           ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                          : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
+                          : 'bg-muted text-muted-foreground'
                       )}
                     >
                       {rule.enabled
@@ -257,7 +257,7 @@ export default function NotificationRulesPage() {
                     </span>
                   </div>
 
-                  <div className="mt-2 flex flex-wrap items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
+                  <div className="mt-2 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                     <span className="flex items-center gap-1">
                       <AlertTriangle className="w-4 h-4" />
                       {getConditionLabel(rule.condition)}: {rule.threshold}
@@ -273,7 +273,7 @@ export default function NotificationRulesPage() {
                     {rule.channels.map((channel) => (
                       <span
                         key={channel}
-                        className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-xs"
+                        className="inline-flex items-center gap-1 px-2 py-1 bg-muted rounded text-xs"
                       >
                         {getChannelIcon(channel)}
                         {channel === 'email' && t('notificationRules.email')}
@@ -288,7 +288,7 @@ export default function NotificationRulesPage() {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => handleToggleRule(rule.id)}
-                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    className="p-2 rounded-lg hover:bg-muted transition-colors"
                     title={rule.enabled ? 'Disable' : 'Enable'}
                   >
                     {rule.enabled ? (
@@ -299,7 +299,7 @@ export default function NotificationRulesPage() {
                   </button>
                   <button
                     onClick={() => handleEditRule(rule)}
-                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    className="p-2 rounded-lg hover:bg-muted transition-colors"
                   >
                     <Edit2 className="w-5 h-5 text-gray-500" />
                   </button>
@@ -319,14 +319,14 @@ export default function NotificationRulesPage() {
       {/* Edit/Add Modal */}
       {showForm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md">
+          <div className="bg-card rounded-xl shadow-xl w-full max-w-md">
             <div className="flex items-center justify-between p-4 border-b dark:border-gray-700">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+              <h2 className="text-lg font-semibold text-foreground">
                 {editingRule ? t('notificationRules.editRule') : t('notificationRules.addRule')}
               </h2>
               <button
                 onClick={() => setShowForm(false)}
-                className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                className="p-1 hover:bg-muted rounded"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -335,27 +335,27 @@ export default function NotificationRulesPage() {
             <div className="p-4 space-y-4">
               {/* Rule Name */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-sm font-medium text-muted-foreground mb-1">
                   {t('notificationRules.ruleName')}
                 </label>
                 <input
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-card text-foreground"
                   placeholder="Введите название..."
                 />
               </div>
 
               {/* Condition */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-sm font-medium text-muted-foreground mb-1">
                   {t('notificationRules.condition')}
                 </label>
                 <select
                   value={formData.condition}
                   onChange={(e) => setFormData({ ...formData, condition: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-card text-foreground"
                 >
                   <option value="daysToExpiry">
                     {t('notificationRules.conditions.daysToExpiry')}
@@ -367,7 +367,7 @@ export default function NotificationRulesPage() {
 
               {/* Threshold */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-sm font-medium text-muted-foreground mb-1">
                   {t('notificationRules.threshold')}
                 </label>
                 <input
@@ -376,20 +376,20 @@ export default function NotificationRulesPage() {
                   onChange={(e) =>
                     setFormData({ ...formData, threshold: parseInt(e.target.value) || 0 })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-card text-foreground"
                   min="0"
                 />
               </div>
 
               {/* Schedule */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-sm font-medium text-muted-foreground mb-1">
                   {t('notificationRules.schedule')}
                 </label>
                 <select
                   value={formData.schedule}
                   onChange={(e) => setFormData({ ...formData, schedule: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-card text-foreground"
                 >
                   <option value="immediate">{t('notificationRules.immediate')}</option>
                   <option value="daily">{t('notificationRules.daily')}</option>
@@ -399,7 +399,7 @@ export default function NotificationRulesPage() {
 
               {/* Channels */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-muted-foreground mb-2">
                   {t('notificationRules.channels')}
                 </label>
                 <div className="flex gap-2">
@@ -411,7 +411,7 @@ export default function NotificationRulesPage() {
                         'flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors',
                         formData.channels.includes(channel)
                           ? 'bg-primary-100 border-primary-500 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400'
-                          : 'border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400'
+                          : 'border-border text-muted-foreground'
                       )}
                     >
                       {getChannelIcon(channel)}
@@ -427,7 +427,7 @@ export default function NotificationRulesPage() {
             <div className="flex justify-end gap-2 p-4 border-t dark:border-gray-700">
               <button
                 onClick={() => setShowForm(false)}
-                className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                className="px-4 py-2 text-muted-foreground hover:bg-muted rounded-lg transition-colors"
               >
                 {t('common.cancel')}
               </button>

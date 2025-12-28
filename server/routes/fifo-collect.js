@@ -125,6 +125,7 @@ router.post('/collect',
         productId,
         quantity: parseInt(quantity),
         userId: req.user.id,
+        userName: req.user.name || req.user.login || 'Unknown',
         hotelId: req.hotelId,
         departmentId: req.departmentId,
         reason: reason || CollectionService.CollectionReason.CONSUMPTION,
@@ -141,10 +142,11 @@ router.post('/collect',
       res.json(result)
     } catch (error) {
       logError('FIFOCollect', error)
+      console.error('FIFO Collect Error Details:', error.message, error.stack)
       res.status(500).json({ 
         success: false, 
         error: 'COLLECTION_FAILED',
-        message: 'Failed to execute collection' 
+        message: error.message || 'Failed to execute collection'
       })
     }
   }

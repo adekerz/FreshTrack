@@ -1,12 +1,12 @@
 {
-  "name": "FreshTrack",
+  "name": "FreshTrack — Учёт сроков годности",
   "short_name": "FreshTrack",
-  "description": "Enterprise Inventory & Expiration Date Management System",
+  "description": "Enterprise Inventory & Expiration Date Management System. Управление сроками годности для отелей и ресторанов.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#FBF9F7",
-  "theme_color": "#C4A35A",
-  "orientation": "any",
+  "theme_color": "#FF8D6B",
+  "orientation": "portrait-primary",
   "icons": [
     {
       "src": "/favicon.svg",
@@ -15,14 +15,64 @@
       "purpose": "any"
     },
     {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
       "src": "/icons/icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "maskable"
     }
   ],
-  "categories": ["business", "productivity"],
+  "screenshots": [
+    {
+      "src": "/screenshots/dashboard.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Dashboard"
+    },
+    {
+      "src": "/screenshots/mobile.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Mobile View"
+    }
+  ],
+  "categories": ["business", "productivity", "food"],
   "lang": "ru",
+  "dir": "ltr",
   "scope": "/",
-  "prefer_related_applications": false
+  "prefer_related_applications": false,
+  "shortcuts": [
+    {
+      "name": "Добавить товар",
+      "short_name": "Добавить",
+      "description": "Быстрое добавление нового товара",
+      "url": "/inventory?action=add",
+      "icons": [{ "src": "/icons/add.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Истекающие",
+      "short_name": "Истекающие",
+      "description": "Товары с истекающим сроком",
+      "url": "/notifications",
+      "icons": [{ "src": "/icons/warning.png", "sizes": "96x96" }]
+    }
+  ],
+  "related_applications": [],
+  "handle_links": "preferred",
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  }
 }

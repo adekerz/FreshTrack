@@ -77,16 +77,16 @@ export default function AddCustomProductModal({ onClose, departmentId = null }) 
 
   return (
     <div
-      className="fixed inset-0 bg-charcoal/50 flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-black/50 dark:bg-black/60 flex items-center justify-center z-50 p-4"
       onClick={handleOverlayClick}
     >
-      <div className="bg-cream rounded-lg w-full max-w-md overflow-hidden animate-slide-up">
+      <div className="bg-card rounded-lg w-full max-w-md overflow-hidden animate-slide-up">
         {/* Заголовок */}
-        <div className="flex items-center justify-between p-6 border-b border-sand">
-          <h2 className="font-serif text-xl text-charcoal">{t('customProduct.title')}</h2>
+        <div className="flex items-center justify-between p-6 border-b border-border">
+          <h2 className="font-serif text-xl text-foreground">{t('customProduct.title')}</h2>
           <button
             onClick={onClose}
-            className="text-warmgray hover:text-charcoal transition-colors p-2"
+            className="text-muted-foreground hover:text-foreground transition-colors p-2"
           >
             <X className="w-5 h-5" />
           </button>
@@ -96,7 +96,7 @@ export default function AddCustomProductModal({ onClose, departmentId = null }) 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Выбор отдела */}
           <div>
-            <label className="block text-sm text-warmgray mb-2">
+            <label className="block text-sm text-muted-foreground mb-2">
               {t('customProduct.department')} *
             </label>
             <div className="flex gap-2 flex-wrap">
@@ -110,8 +110,8 @@ export default function AddCustomProductModal({ onClose, departmentId = null }) 
                     onClick={() => setSelectedDepartment(dept.id)}
                     className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-all ${
                       isSelected
-                        ? 'border-accent bg-accent/10 text-charcoal'
-                        : 'border-sand bg-white text-warmgray hover:border-charcoal'
+                        ? 'border-accent bg-accent/10 text-foreground'
+                        : 'border-border bg-card text-muted-foreground hover:border-foreground'
                     }`}
                   >
                     <Icon
@@ -127,7 +127,7 @@ export default function AddCustomProductModal({ onClose, departmentId = null }) 
 
           {/* Выбор категории */}
           <div>
-            <label className="block text-sm text-warmgray mb-2">
+            <label className="block text-sm text-muted-foreground mb-2">
               {t('customProduct.category')} *
             </label>
             <div className="flex gap-2 flex-wrap">
@@ -140,8 +140,8 @@ export default function AddCustomProductModal({ onClose, departmentId = null }) 
                     onClick={() => setSelectedCategory(cat.id)}
                     className={`px-4 py-2 rounded-lg border text-sm transition-all ${
                       isSelected
-                        ? 'border-accent bg-accent/10 text-charcoal'
-                        : 'border-sand bg-white text-warmgray hover:border-charcoal'
+                        ? 'border-accent bg-accent/10 text-foreground'
+                        : 'border-border bg-card text-muted-foreground hover:border-foreground'
                     }`}
                   >
                     {getCategoryName(cat)}
@@ -153,7 +153,7 @@ export default function AddCustomProductModal({ onClose, departmentId = null }) 
 
           {/* Название товара */}
           <div>
-            <label className="block text-sm text-warmgray mb-2">
+            <label className="block text-sm text-muted-foreground mb-2">
               {t('customProduct.productName')} *
             </label>
             <input
@@ -161,7 +161,7 @@ export default function AddCustomProductModal({ onClose, departmentId = null }) 
               value={productName}
               onChange={(e) => setProductName(e.target.value)}
               placeholder={t('customProduct.productNamePlaceholder')}
-              className="w-full px-4 py-3 border border-sand rounded-lg focus:outline-none focus:border-accent"
+              className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:border-accent bg-card text-foreground"
               autoFocus
             />
           </div>
@@ -174,14 +174,14 @@ export default function AddCustomProductModal({ onClose, departmentId = null }) 
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-3 border border-sand text-warmgray rounded-lg hover:border-charcoal hover:text-charcoal transition-colors"
+              className="flex-1 py-3 border border-border text-muted-foreground rounded-lg hover:border-foreground hover:text-foreground transition-colors"
             >
               {t('common.cancel')}
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 py-3 bg-charcoal text-white rounded-lg hover:bg-charcoal/90 transition-colors disabled:opacity-50"
+              className="flex-1 py-3 bg-foreground text-background rounded-lg hover:bg-foreground/90 transition-colors disabled:opacity-50"
             >
               {t('customProduct.addToCatalog')}
             </button>

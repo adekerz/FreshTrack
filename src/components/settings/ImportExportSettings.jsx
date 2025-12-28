@@ -114,19 +114,19 @@ export default function ImportExportSettings() {
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="text-xl font-semibold text-charcoal">{t('settings.importExport.title') || 'Импорт/Экспорт'}</h2>
-        <p className="text-sm text-warmgray mt-1">{t('import.description') || 'Массовые операции с данными'}</p>
+        <h2 className="text-xl font-semibold text-foreground">{t('settings.importExport.title') || 'Импорт/Экспорт'}</h2>
+        <p className="text-sm text-muted-foreground mt-1">{t('import.description') || 'Массовые операции с данными'}</p>
       </div>
 
       {/* Импорт */}
-      <div className="p-6 border border-sand rounded-xl bg-white">
-        <h3 className="font-medium text-charcoal mb-4 flex items-center gap-2">
+      <div className="p-6 border border-border rounded-xl bg-card">
+        <h3 className="font-medium text-foreground mb-4 flex items-center gap-2">
           <Upload className="w-5 h-5" />
           {t('import.title') || 'Импорт данных'}
         </h3>
         
         <div className="space-y-4">
-          <div className="border-2 border-dashed border-sand rounded-xl p-8 text-center hover:border-accent/50 transition-colors">
+          <div className="border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-accent/50 transition-colors">
             <input 
               ref={fileInputRef}
               type="file" 
@@ -139,20 +139,20 @@ export default function ImportExportSettings() {
               htmlFor="import-file"
               className="cursor-pointer"
             >
-              <div className="w-16 h-16 mx-auto mb-4 bg-cream rounded-full flex items-center justify-center">
+              <div className="w-16 h-16 mx-auto mb-4 bg-muted rounded-full flex items-center justify-center">
                 {importing ? (
                   <RefreshCw className="w-8 h-8 text-accent animate-spin" />
                 ) : (
                   <FileSpreadsheet className="w-8 h-8 text-accent" />
                 )}
               </div>
-              <p className="text-charcoal font-medium mb-1">
+              <p className="text-foreground font-medium mb-1">
                 {importing 
                   ? (t('import.processing') || 'Обработка...')
                   : (t('import.selectFile') || 'Выберите файл для импорта')
                 }
               </p>
-              <p className="text-sm text-warmgray">
+              <p className="text-sm text-muted-foreground">
                 {t('import.formats') || 'Поддерживаемые форматы'}: Excel (.xlsx, .xls), CSV
               </p>
             </label>
@@ -206,8 +206,8 @@ export default function ImportExportSettings() {
       </div>
 
       {/* Экспорт */}
-      <div className="p-6 border border-sand rounded-xl bg-white">
-        <h3 className="font-medium text-charcoal mb-4 flex items-center gap-2">
+      <div className="p-6 border border-border rounded-xl bg-card">
+        <h3 className="font-medium text-foreground mb-4 flex items-center gap-2">
           <Download className="w-5 h-5" />
           {t('export.title') || 'Экспорт данных'}
         </h3>
@@ -218,20 +218,20 @@ export default function ImportExportSettings() {
               key={type}
               onClick={() => handleExport(type)}
               disabled={exporting === type}
-              className="flex items-start gap-4 p-4 border border-sand rounded-xl hover:border-accent hover:bg-accent/5 transition-colors text-left disabled:opacity-50 group"
+              className="flex items-start gap-4 p-4 border border-border rounded-xl hover:border-accent hover:bg-accent/5 transition-colors text-left disabled:opacity-50 group"
             >
-              <div className="w-12 h-12 bg-cream rounded-lg flex items-center justify-center shrink-0 group-hover:bg-accent/10 transition-colors">
+              <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center shrink-0 group-hover:bg-accent/10 transition-colors">
                 {exporting === type ? (
                   <RefreshCw className="w-6 h-6 text-accent animate-spin" />
                 ) : (
-                  <Icon className="w-6 h-6 text-charcoal group-hover:text-accent transition-colors" />
+                  <Icon className="w-6 h-6 text-foreground group-hover:text-accent transition-colors" />
                 )}
               </div>
               <div>
-                <p className="font-medium text-charcoal group-hover:text-accent transition-colors">
+                <p className="font-medium text-foreground group-hover:text-accent transition-colors">
                   {label}
                 </p>
-                <p className="text-sm text-warmgray mt-0.5">{desc}</p>
+                <p className="text-sm text-muted-foreground mt-0.5">{desc}</p>
               </div>
             </button>
           ))}

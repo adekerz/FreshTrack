@@ -19,10 +19,11 @@ import { auditService, AuditAction, AuditEntityType } from './AuditService.js'
 
 // Collection reasons
 export const CollectionReason = {
-  CONSUMPTION: 'consumption',
-  MINIBAR: 'minibar',
-  SALE: 'sale',
+  EXPIRED: 'expired',
+  KITCHEN: 'kitchen',
   DAMAGED: 'damaged',
+  RETURN: 'return',
+  COMPLIMENT: 'compliment',
   OTHER: 'other'
 }
 
@@ -161,6 +162,7 @@ export async function collect({
   productId,
   quantity,
   userId,
+  userName,
   hotelId,
   departmentId,
   reason = CollectionReason.CONSUMPTION,
@@ -189,6 +191,7 @@ export async function collect({
 
     // 1. Get active batches with FOR UPDATE lock (prevents race conditions)
     // Build query dynamically - departmentId is optional for HOTEL_ADMIN/SUPER_ADMIN
+    // Note: FOR UPDATE OF b only - can't lock nullable side of LEFT JOIN
     let query = `
       SELECT b.id, b.quantity, b.expiry_date, b.batch_number, b.product_id,
              p.name as product_name, c.name as category_name, b.department_id
@@ -207,7 +210,7 @@ export async function collect({
       query += ` AND b.department_id = $${params.length}`
     }
     
-    query += ` ORDER BY b.expiry_date ASC, b.added_at ASC FOR UPDATE`
+    query += ` ORDER BY b.expiry_date ASC, b.added_at ASC FOR UPDATE OF b`
     
     const batchesResult = await client.query(query, params)
 
@@ -250,6 +253,8 @@ export async function collect({
       // 2a. Create collection history with snapshot
       // Use batch's department_id for accurate tracking (supports HOTEL_ADMIN without department)
       const historyId = uuidv4()
+      const deptIdToUse = batch.department_id || departmentId
+      
       await client.query(`
         INSERT INTO collection_history (
           id, batch_id, product_id, hotel_id, department_id, user_id,
@@ -262,7 +267,7 @@ export async function collect({
         batch.id,
         productId,
         hotelId,
-        batch.department_id || departmentId, // Use batch's department for correct tracking
+        deptIdToUse, // Use batch's department for correct tracking
         userId,
         takeFromThisBatch,
         quantityRemaining,
@@ -305,6 +310,7 @@ export async function collect({
     try {
       await auditService.log({
         userId,
+        userName: userName || 'System',
         hotelId,
         action: AuditAction.COLLECT || 'fifo_collect',
         entityType: AuditEntityType.BATCH || 'collection',
@@ -335,6 +341,8 @@ export async function collect({
 
   } catch (error) {
     await client.query('ROLLBACK')
+    console.error('CollectionService.collect ERROR:', error.message)
+    console.error('CollectionService.collect STACK:', error.stack)
     logError('CollectionService', error)
     throw error
   } finally {

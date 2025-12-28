@@ -8,6 +8,22 @@ import { logError } from '../utils/logger'
 // Базовый URL API - использует переменную окружения или localhost для разработки
 export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 
+// Базовый URL сервера (без /api) - для статических файлов
+export const SERVER_BASE_URL = API_BASE_URL.replace(/\/api$/, '')
+
+/**
+ * Получить полный URL для статического файла (uploads и т.д.)
+ * @param {string} path - относительный путь (e.g., '/uploads/logos/logo.png')
+ * @returns {string} - полный URL
+ */
+export function getStaticUrl(path) {
+  if (!path) return null
+  if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:')) {
+    return path // уже полный URL
+  }
+  return `${SERVER_BASE_URL}${path}`
+}
+
 /**
  * Обработка ответа от сервера
  */
@@ -168,7 +184,7 @@ export function logout() {
  * Отправить тестовое уведомление в Telegram
  */
 export async function sendTestTelegramNotification() {
-  return apiFetch('/notifications/test', {
+  return apiFetch('/notifications/test-telegram', {
     method: 'POST'
   })
 }

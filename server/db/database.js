@@ -485,22 +485,22 @@ export function createAuditSnapshot(entity, entityType) {
 // ═══════════════════════════════════════════════════════════════
 
 export async function getUserByLogin(login) {
-  const result = await query('SELECT * FROM users WHERE login = $1 AND is_active = TRUE', [login])
+  const result = await query('SELECT * FROM users WHERE login = $1', [login])
   return result.rows[0] || null
 }
 
 export async function getUserById(id) {
-  const result = await query('SELECT * FROM users WHERE id = $1 AND is_active = TRUE', [id])
+  const result = await query('SELECT * FROM users WHERE id = $1', [id])
   return result.rows[0] || null
 }
 
 export async function getUserByLoginOrEmail(identifier) {
   const isEmail = identifier.includes('@')
   if (isEmail) {
-    const result = await query('SELECT * FROM users WHERE email = $1 AND is_active = TRUE', [identifier])
+    const result = await query('SELECT * FROM users WHERE email = $1', [identifier])
     return result.rows[0] || null
   }
-  const result = await query('SELECT * FROM users WHERE login = $1 AND is_active = TRUE', [identifier])
+  const result = await query('SELECT * FROM users WHERE login = $1', [identifier])
   return result.rows[0] || null
 }
 

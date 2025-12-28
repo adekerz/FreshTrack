@@ -169,7 +169,7 @@ export default function TemplatesSettings() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <RefreshCw className="w-6 h-6 animate-spin text-warmgray" />
+        <RefreshCw className="w-6 h-6 animate-spin text-muted-foreground" />
       </div>
     )
   }
@@ -178,12 +178,12 @@ export default function TemplatesSettings() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-xl font-semibold text-charcoal">{t('settings.templates.title') || 'Шаблоны поставок'}</h2>
-          <p className="text-sm text-warmgray mt-1">{t('templates.description') || 'Быстрое добавление товаров по шаблону'}</p>
+          <h2 className="text-xl font-semibold text-foreground">{t('settings.templates.title') || 'Шаблоны поставок'}</h2>
+          <p className="text-sm text-muted-foreground mt-1">{t('templates.description') || 'Быстрое добавление товаров по шаблону'}</p>
         </div>
         <button 
           onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-charcoal text-white rounded-lg hover:bg-charcoal/90 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-foreground text-background rounded-lg hover:bg-foreground/90 transition-colors"
         >
           <Plus className="w-4 h-4" />
           {t('templates.create') || 'Создать'}
@@ -193,8 +193,8 @@ export default function TemplatesSettings() {
       {/* Список шаблонов */}
       {templates.length === 0 ? (
         <div className="text-center py-12">
-          <FileBox className="w-12 h-12 mx-auto mb-4 text-warmgray opacity-50" />
-          <p className="text-warmgray">{t('templates.noTemplates') || 'Нет созданных шаблонов'}</p>
+          <FileBox className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+          <p className="text-muted-foreground">{t('templates.noTemplates') || 'Нет созданных шаблонов'}</p>
           <button 
             onClick={() => setShowCreateModal(true)}
             className="mt-4 text-accent hover:underline"
@@ -205,15 +205,15 @@ export default function TemplatesSettings() {
       ) : (
         <div className="grid gap-4">
           {templates.map(template => (
-            <div key={template.id} className="p-5 border border-sand rounded-xl bg-white hover:shadow-md transition-shadow">
+            <div key={template.id} className="p-5 border border-border rounded-xl bg-card hover:shadow-md transition-shadow">
               <div className="flex justify-between items-start">
                 <div>
-                  <h3 className="font-semibold text-charcoal text-lg">{template.name}</h3>
+                  <h3 className="font-semibold text-foreground text-lg">{template.name}</h3>
                   {template.description && (
-                    <p className="text-sm text-warmgray mt-1">{template.description}</p>
+                    <p className="text-sm text-muted-foreground mt-1">{template.description}</p>
                   )}
                   <div className="flex items-center gap-4 mt-3">
-                    <span className="flex items-center gap-1 text-sm text-warmgray">
+                    <span className="flex items-center gap-1 text-sm text-muted-foreground">
                       <Package className="w-4 h-4" />
                       {template.items?.length || 0} {t('templates.products') || 'товаров'}
                     </span>
@@ -222,14 +222,14 @@ export default function TemplatesSettings() {
                 <div className="flex gap-2">
                   <button 
                     onClick={() => openEditModal(template)}
-                    className="p-2 rounded-lg hover:bg-cream text-warmgray hover:text-charcoal transition-colors"
+                    className="p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                     title={t('common.edit')}
                   >
                     <Edit2 className="w-4 h-4" />
                   </button>
                   <button 
                     onClick={() => deleteTemplate(template.id, template.name)}
-                    className="p-2 rounded-lg hover:bg-red-50 text-warmgray hover:text-red-600 transition-colors"
+                    className="p-2 rounded-lg hover:bg-red-50 text-muted-foreground hover:text-red-600 transition-colors"
                     title={t('common.delete')}
                   >
                     <Trash2 className="w-4 h-4" />
@@ -243,13 +243,13 @@ export default function TemplatesSettings() {
                   {template.items.slice(0, 5).map((item, idx) => (
                     <span 
                       key={idx}
-                      className="px-3 py-1 bg-cream/70 rounded-full text-sm text-charcoal"
+                      className="px-3 py-1 bg-muted/70 rounded-full text-sm text-foreground"
                     >
                       {item.product_name || item.name} × {item.default_quantity}
                     </span>
                   ))}
                   {template.items.length > 5 && (
-                    <span className="px-3 py-1 bg-cream/70 rounded-full text-sm text-warmgray">
+                    <span className="px-3 py-1 bg-muted/70 rounded-full text-sm text-muted-foreground">
                       +{template.items.length - 5}
                     </span>
                   )}
@@ -263,9 +263,9 @@ export default function TemplatesSettings() {
       {/* Модалка создания/редактирования */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col shadow-xl">
-            <div className="flex items-center justify-between p-6 border-b border-sand">
-              <h3 className="text-lg font-semibold text-charcoal">
+          <div className="bg-card rounded-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col shadow-xl">
+            <div className="flex items-center justify-between p-6 border-b border-border">
+              <h3 className="text-lg font-semibold text-foreground">
                 {editingTemplate 
                   ? (t('templates.editTemplate') || 'Редактировать шаблон')
                   : (t('templates.create') || 'Создать шаблон')
@@ -275,14 +275,14 @@ export default function TemplatesSettings() {
                 onClick={closeModal}
                 className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
               >
-                <X className="w-5 h-5 text-warmgray" />
+                <X className="w-5 h-5 text-muted-foreground" />
               </button>
             </div>
 
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
               {/* Название */}
               <div>
-                <label className="block text-sm font-medium text-charcoal mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   {t('templates.name') || 'Название шаблона'} *
                 </label>
                 <input 
@@ -290,29 +290,29 @@ export default function TemplatesSettings() {
                   placeholder={t('templates.namePlaceholder') || 'Например: Ежедневная поставка'}
                   value={newTemplate.name}
                   onChange={(e) => setNewTemplate({...newTemplate, name: e.target.value})}
-                  className="w-full px-4 py-2.5 border border-sand rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+                  className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-card"
                 />
               </div>
 
               {/* Описание */}
               <div>
-                <label className="block text-sm font-medium text-charcoal mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   {t('templates.descriptionLabel') || 'Описание'}
                 </label>
                 <textarea 
                   placeholder={t('templates.descriptionPlaceholder') || 'Описание шаблона (опционально)'}
                   value={newTemplate.description}
                   onChange={(e) => setNewTemplate({...newTemplate, description: e.target.value})}
-                  className="w-full px-4 py-2.5 border border-sand rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent resize-none h-20"
+                  className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent resize-none h-20 bg-card"
                 />
               </div>
 
               {/* Выбор товаров */}
               <div>
-                <label className="block text-sm font-medium text-charcoal mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   {t('templates.selectProducts') || 'Выберите товары'}
                 </label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-40 overflow-y-auto p-2 border border-sand rounded-lg bg-cream/30">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-40 overflow-y-auto p-2 border border-border rounded-lg bg-muted/30">
                   {products.map(product => {
                     const isSelected = newTemplate.items.some(item => item.product_id === product.id)
                     return (
@@ -322,7 +322,7 @@ export default function TemplatesSettings() {
                         className={`p-2 rounded-lg text-left text-sm transition-colors flex items-center gap-2 ${
                           isSelected 
                             ? 'bg-accent/20 text-accent border border-accent' 
-                            : 'bg-white border border-sand hover:border-charcoal'
+                            : 'bg-card border border-border hover:border-foreground'
                         }`}
                       >
                         {isSelected && <Check className="w-4 h-4 shrink-0" />}
@@ -336,42 +336,42 @@ export default function TemplatesSettings() {
               {/* Выбранные товары с настройками */}
               {newTemplate.items.length > 0 && (
                 <div>
-                  <label className="block text-sm font-medium text-charcoal mb-2">
+                  <label className="block text-sm font-medium text-foreground mb-2">
                     {t('templates.selectedProducts') || 'Выбранные товары'} ({newTemplate.items.length})
                   </label>
                   <div className="space-y-2">
                     {newTemplate.items.map(item => (
                       <div 
                         key={item.product_id} 
-                        className="flex items-center gap-3 p-3 bg-cream/50 rounded-lg"
+                        className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg"
                       >
-                        <span className="flex-1 font-medium text-charcoal truncate">
+                        <span className="flex-1 font-medium text-foreground truncate">
                           {item.product_name}
                         </span>
                         <div className="flex items-center gap-2">
                           <div>
-                            <label className="text-xs text-warmgray">{t('templates.quantity') || 'Кол-во'}</label>
+                            <label className="text-xs text-muted-foreground">{t('templates.quantity') || 'Кол-во'}</label>
                             <input 
                               type="number"
                               min="1"
                               value={item.default_quantity}
                               onChange={(e) => updateTemplateItem(item.product_id, 'default_quantity', e.target.value)}
-                              className="w-16 px-2 py-1 border border-sand rounded text-center text-sm"
+                              className="w-16 px-2 py-1 border border-border rounded text-center text-sm bg-card"
                             />
                           </div>
                           <div>
-                            <label className="text-xs text-warmgray">{t('templates.shelfLife') || 'Срок'}</label>
+                            <label className="text-xs text-muted-foreground">{t('templates.shelfLife') || 'Срок'}</label>
                             <input 
                               type="number"
                               min="1"
                               value={item.shelf_life_days}
                               onChange={(e) => updateTemplateItem(item.product_id, 'shelf_life_days', e.target.value)}
-                              className="w-16 px-2 py-1 border border-sand rounded text-center text-sm"
+                              className="w-16 px-2 py-1 border border-border rounded text-center text-sm bg-card"
                             />
                           </div>
                           <button 
                             onClick={() => removeProductFromTemplate(item.product_id)}
-                            className="p-1 text-warmgray hover:text-red-500 transition-colors"
+                            className="p-1 text-muted-foreground hover:text-red-500 transition-colors"
                           >
                             <X className="w-4 h-4" />
                           </button>
@@ -383,11 +383,11 @@ export default function TemplatesSettings() {
               )}
             </div>
 
-            <div className="p-6 border-t border-sand bg-cream/30">
+            <div className="p-6 border-t border-border bg-muted/30">
               <button 
                 onClick={editingTemplate ? updateTemplate : createTemplate}
                 disabled={saving || !newTemplate.name.trim() || newTemplate.items.length === 0}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-charcoal text-white rounded-lg hover:bg-charcoal/90 transition-colors disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-foreground text-background rounded-lg hover:bg-foreground/90 transition-colors disabled:opacity-50"
               >
                 {saving ? (
                   <RefreshCw className="w-4 h-4 animate-spin" />

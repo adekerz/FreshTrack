@@ -29,7 +29,7 @@ const Input = forwardRef(({
     <div className={`relative ${containerClassName}`}>
       <div className="relative">
         {Icon && (
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-warmgray pointer-events-none">
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">
             <Icon className="w-5 h-5" />
           </div>
         )}
@@ -48,16 +48,16 @@ const Input = forwardRef(({
           }}
           className={`
             peer w-full min-h-[48px] px-4 pt-5 pb-2
-            bg-white dark:bg-dark-surface border rounded-lg
-            text-charcoal dark:text-cream placeholder-transparent
+            bg-card border rounded-lg
+            text-foreground placeholder-transparent
             transition-all duration-200
             focus:outline-none focus:ring-2 focus:ring-offset-0
-            disabled:bg-sand/50 dark:disabled:bg-white/5 disabled:cursor-not-allowed
+            disabled:bg-muted disabled:cursor-not-allowed
             ${Icon ? 'pl-11' : ''}
             ${type === 'password' ? 'pr-11' : ''}
             ${error 
               ? 'border-danger focus:border-danger focus:ring-danger/30' 
-              : 'border-sand dark:border-dark-border focus:border-accent focus:ring-accent/30'
+              : 'border-border focus:border-accent focus:ring-accent/30'
             }
             ${className}
           `}
@@ -75,7 +75,7 @@ const Input = forwardRef(({
                 ? 'top-2 text-xs' 
                 : 'top-1/2 -translate-y-1/2 text-sm'
               }
-              ${error ? 'text-danger' : focused ? 'text-accent' : 'text-warmgray'}
+              ${error ? 'text-danger' : focused ? 'text-accent' : 'text-muted-foreground'}
             `}
           >
             {label}
@@ -87,7 +87,7 @@ const Input = forwardRef(({
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-warmgray hover:text-charcoal dark:hover:text-cream transition-colors p-1"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1"
             tabIndex={-1}
             aria-label={showPassword ? 'Hide password' : 'Show password'}
           >

@@ -96,14 +96,14 @@ export default function Modal({
       aria-label={!title ? ariaLabel : undefined}
     >
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-charcoal/50 backdrop-blur-sm" aria-hidden="true" />
+      <div className="absolute inset-0 bg-black/50 dark:bg-black/60 backdrop-blur-sm" aria-hidden="true" />
       
       {/* Modal */}
       <div
         ref={modalRef}
         className={`
           relative w-full ${sizes[size]}
-          bg-white dark:bg-dark-surface rounded-2xl shadow-soft-lg
+          bg-card rounded-2xl shadow-soft-lg
           ${reducedMotion ? '' : 'animate-scale-in'}
           max-h-[calc(100vh-2rem)] flex flex-col
           transition-colors duration-300
@@ -112,15 +112,15 @@ export default function Modal({
       >
         {/* Header */}
         {(title || showCloseButton) && (
-          <div className="flex items-start justify-between p-4 md:p-6 border-b border-sand dark:border-dark-border flex-shrink-0">
+          <div className="flex items-start justify-between p-4 md:p-6 border-b border-border flex-shrink-0">
             <div>
               {title && (
-                <h2 id={titleId} className="text-xl font-semibold text-charcoal dark:text-cream">
+                <h2 id={titleId} className="text-xl font-semibold text-foreground">
                   {title}
                 </h2>
               )}
               {description && (
-                <p id={descId} className="mt-1 text-sm text-warmgray dark:text-warmgray/80">
+                <p id={descId} className="mt-1 text-sm text-muted-foreground">
                   {description}
                 </p>
               )}
@@ -128,7 +128,7 @@ export default function Modal({
             {showCloseButton && (
               <button
                 onClick={onClose}
-                className="p-2 -m-2 text-warmgray hover:text-charcoal dark:hover:text-cream hover:bg-sand/50 dark:hover:bg-white/10 rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-accent"
+                className="p-2 -m-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-accent"
                 aria-label="Close dialog"
                 type="button"
               >
@@ -145,7 +145,7 @@ export default function Modal({
 
         {/* Footer */}
         {footer && (
-          <div className="flex items-center justify-end gap-3 p-4 md:p-6 border-t border-sand dark:border-dark-border flex-shrink-0">
+          <div className="flex items-center justify-end gap-3 p-4 md:p-6 border-t border-border flex-shrink-0">
             {footer}
           </div>
         )}

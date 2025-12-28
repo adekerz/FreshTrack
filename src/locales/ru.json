@@ -1,4 +1,6 @@
 {
+  "expiry_critical": "Критический срок",
+  "expired": "Просрочено",
   "theme": {
     "label": "Тема",
     "light": "Светлая",
@@ -75,7 +77,8 @@
     "minutesAgo": "мин. назад",
     "hoursAgo": "ч. назад",
     "daysAgo": "дн. назад",
-    "today": "Сегодня"
+    "today": "Сегодня",
+    "attempt": "Попытка"
   },
   "toast": {
     "success": "Успешно",
@@ -257,7 +260,10 @@
     "units": "шт.",
     "applyTemplate": "Применить шаблон",
     "noDepartments": "Нет отделов",
-    "createDepartment": "Создать отдел"
+    "createDepartment": "Создать отдел",
+    "connectingDatabase": "Подключение к базе данных...",
+    "empty": "Нет товаров",
+    "addFirst": "Добавьте первый товар"
   },
   "notifications": {
     "title": "Уведомления",
@@ -294,7 +300,11 @@
       "disabled": "Уведомления заблокированы",
       "unsupported": "Не поддерживается браузером",
       "notRequested": "Не запрошены"
-    }
+    },
+    "empty": "Нет уведомлений",
+    "markAllRead": "Прочитать все",
+    "clearAll": "Очистить все",
+    "items": "уведомлений"
   },
   "departments": {
     "honor-bar": "Honor Bar"
@@ -390,6 +400,7 @@
     "critical": "Критично",
     "urgent": "Срочно",
     "expired": "Просрочено",
+    "fresh": "Свежий",
     "expiresToday": "Истекает сегодня",
     "expiresInDays": "Истекает через {{days}} дн.",
     "expiredDaysAgo": "Просрочено {{days}} дн. назад"
@@ -504,14 +515,19 @@
       "collectedBy": "Кто собрал"
     },
     "reasons": {
+      "expired": "Истёк срок годности",
+      "kitchen": "Перемещение на кухню/бар",
+      "damaged": "Повреждена упаковка",
+      "return": "Возврат поставщику (брак)",
+      "compliment": "Комплимент гостю",
+      "other": "Другое",
+      "consumption": "Использование",
+      "minibar": "Мини-бар",
+      "sale": "Продажа",
       "manual": "Ручной сбор",
-      "expired": "Просрочено",
-      "damaged": "Повреждено",
-      "kitchen": "Использовано на кухне",
       "disposed": "Утилизировано",
       "staff": "Выдано сотрудникам",
-      "returned": "Возврат поставщику",
-      "other": "Другое"
+      "returned": "Возврат поставщику"
     }
   },
   "statistics": {
@@ -606,6 +622,8 @@
     "departments": "Отделы",
     "categoriesLabel": "Категории",
     "export": "Экспорт",
+    "branding": "Брендинг",
+    "brandingDescription": "Настройте внешний вид приложения",
     "tabs": {
       "profile": "Профиль",
       "notifications": "Уведомления",
@@ -801,6 +819,28 @@
       "database": "База данных",
       "connected": "Подключена"
     }
+  },
+  "branding": {
+    "logo": "Логотип",
+    "uploadLogo": "Загрузить",
+    "removeLogo": "Удалить",
+    "logoUploaded": "Логотип загружен",
+    "logoRemoved": "Логотип удален",
+    "logoUploadError": "Ошибка загрузки логотипа",
+    "invalidFileType": "Только изображения",
+    "fileTooLarge": "Файл слишком большой (макс 5MB)",
+    "siteName": "Название сайта",
+    "siteNameLabel": "Название",
+    "siteNameHint": "Название отображается в шапке и по всему сайту",
+    "colors": "Цвета",
+    "primaryColor": "Основной",
+    "secondaryColor": "Вторичный",
+    "accentColor": "Акцент",
+    "dangerColor": "Опасность",
+    "preview": "Превью цветов:",
+    "resetToDefault": "Сбросить к умолчанию",
+    "confirmReset": "Сбросить брендинг к настройкам по умолчанию?",
+    "reset": "Брендинг сброшен"
   },
   "export": {
     "title": "Экспорт данных",
@@ -1158,7 +1198,9 @@
     "roleManager": "Менеджер",
     "roleStaff": "Сотрудник",
     "fillRequired": "Заполните обязательные поля",
-    "confirmDelete": "Удалить пользователя"
+    "confirmDelete": "Удалить пользователя",
+    "unblockConfirmTitle": "Разблокировать пользователя?",
+    "unblockConfirmMessage": "Пользователь снова сможет входить в систему"
   },
   "categorySettings": {
     "title": "Управление категориями",
@@ -1212,6 +1254,7 @@
   },
   "fifoCollect": {
     "title": "FIFO Списание",
+    "short": "FIFO",
     "inStock": "На складе",
     "quickActions": "Быстрое списание",
     "quantity": "Количество",
@@ -1223,11 +1266,33 @@
     "success": "Успешно списано {{count}} шт.",
     "error": "Ошибка при списании",
     "reasons": {
-      "consumption": "Кухня",
-      "minibar": "Минибар",
-      "sale": "Продажа",
-      "damaged": "Брак",
+      "expired": "Истёк срок годности",
+      "kitchen": "Кухня/Бар",
+      "damaged": "Повреждена упаковка",
+      "return": "Возврат (брак)",
+      "compliment": "Комплимент гостю",
       "other": "Другое"
     }
+  },
+  "offline": {
+    "message": "Нет подключения — изменения сохранятся при восстановлении связи",
+    "reconnected": "Подключение восстановлено",
+    "syncing": "Синхронизация...",
+    "pending": "ожидает",
+    "syncComplete": "Синхронизация завершена",
+    "syncError": "Ошибка синхронизации"
+  },
+  "actions": {
+    "collect": "Собрать",
+    "edit": "Редактировать",
+    "delete": "Удалить",
+    "add": "Добавить",
+    "save": "Сохранить",
+    "cancel": "Отмена"
+  },
+  "mobile": {
+    "pullToRefresh": "Потяните для обновления",
+    "swipeToDelete": "Свайп влево для удаления",
+    "tapToExpand": "Нажмите для подробностей"
   }
 }

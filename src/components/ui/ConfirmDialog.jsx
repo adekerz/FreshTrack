@@ -62,12 +62,12 @@ export default function ConfirmDialog({
           <Icon className="w-6 h-6" />
         </div>
 
-        <h3 className="text-lg font-semibold text-charcoal dark:text-cream mb-2">
+        <h3 className="text-lg font-semibold text-foreground mb-2">
           {title}
         </h3>
 
         {description && (
-          <p className="text-sm text-warmgray dark:text-warmgray/80 mb-6">
+          <p className="text-sm text-muted-foreground mb-6">
             {description}
           </p>
         )}

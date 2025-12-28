@@ -220,29 +220,74 @@ router.delete('/:id', authMiddleware, hotelIsolation, departmentIsolation, requi
 // POST /api/notifications/test-telegram - Send test Telegram notification (alias)
 router.post('/test-telegram', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.NOTIFICATIONS, PermissionAction.CREATE), async (req, res) => {
   try {
+    console.log('📤 Test Telegram request received')
+    console.log('   User:', req.user?.name, 'Hotel ID:', req.hotelId)
+    
     // Import TelegramService
     const { TelegramService } = await import('../services/TelegramService.js')
+    const { query } = await import('../db/postgres.js')
     const { chatId } = req.body
     
-    // Get chat ID from settings if not provided
-    let targetChatId = chatId
-    if (!targetChatId) {
-      // Try to get from settings
-      const { getSetting } = await import('../db/database.js')
-      targetChatId = await getSetting(req.hotelId, 'telegram_chat_id')
+    let targetChats = []
+    
+    if (chatId) {
+      // Send to specific chat
+      targetChats = [{ chat_id: chatId }]
+    } else {
+      // Get all linked chats for this hotel (or all chats for SUPER_ADMIN)
+      let chatsQuery = `SELECT chat_id, chat_title FROM telegram_chats 
+                        WHERE is_active = true AND bot_removed = false`
+      const params = []
+      
+      if (req.hotelId) {
+        chatsQuery += ` AND hotel_id = $1`
+        params.push(req.hotelId)
+      }
+      
+      console.log('   Query:', chatsQuery, 'Params:', params)
+      const chatsResult = await query(chatsQuery, params)
+      targetChats = chatsResult.rows
+      console.log('   Found chats:', targetChats.length, targetChats)
     }
     
-    if (!targetChatId) {
-      return res.status(400).json({ success: false, error: 'No Telegram chat ID configured' })
+    if (targetChats.length === 0) {
+      console.log('   ❌ No chats found')
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Нет привязанных Telegram чатов. Добавьте бота @adekerzbot в чат и используйте /link hotel:RC-ASTANA' 
+      })
     }
     
-    const result = await TelegramService.sendMessage(
-      targetChatId,
-      '✅ *Тест FreshTrack*\n\nЕсли вы видите это сообщение, Telegram интеграция работает!'
-    )
+    const testMessage = `✅ *Тест FreshTrack*
+
+Если вы видите это сообщение, Telegram интеграция работает!
+
+📅 ${new Date().toLocaleString('ru-RU', { timeZone: 'Asia/Almaty' })}`
     
-    res.json({ success: true, messageId: result?.message_id })
+    const results = []
+    for (const chat of targetChats) {
+      try {
+        console.log('   Sending to chat:', chat.chat_id)
+        const result = await TelegramService.sendMessage(chat.chat_id, testMessage)
+        console.log('   ✅ Sent! Message ID:', result?.message_id)
+        results.push({ chatId: chat.chat_id, success: true, messageId: result?.message_id })
+      } catch (error) {
+        console.log('   ❌ Error:', error.message)
+        results.push({ chatId: chat.chat_id, success: false, error: error.message })
+      }
+    }
+    
+    const successCount = results.filter(r => r.success).length
+    console.log('   Result: sent to', successCount, 'of', targetChats.length, 'chats')
+    
+    res.json({ 
+      success: successCount > 0, 
+      sentTo: successCount,
+      totalChats: targetChats.length,
+      results
+    })
   } catch (error) {
+    console.error('❌ Test telegram error:', error)
     logError('Test telegram error', error)
     res.status(500).json({ success: false, error: error.message || 'Failed to send test message' })
   }
@@ -273,6 +318,23 @@ router.post('/test', authMiddleware, hotelIsolation, departmentIsolation, requir
   } catch (error) {
     logError('Test notification error', error)
     res.status(500).json({ success: false, error: 'Failed to send test notification' })
+  }
+})
+
+// POST /api/notifications/check-expiring - Manually trigger expiry check
+router.post('/check-expiring', authMiddleware, requirePermission(PermissionResource.NOTIFICATIONS, PermissionAction.WRITE), async (req, res) => {
+  try {
+    const { NotificationEngine } = await import('../services/NotificationEngine.js')
+    const count = await NotificationEngine.checkExpiringBatches()
+    
+    res.json({ 
+      success: true, 
+      message: `Expiry check complete`,
+      notificationsCreated: count
+    })
+  } catch (error) {
+    logError('Expiry check error', error)
+    res.status(500).json({ success: false, error: error.message })
   }
 })
 

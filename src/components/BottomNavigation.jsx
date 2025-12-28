@@ -105,29 +105,29 @@ export default function BottomNavigation() {
 
       {/* Меню "Ещё" */}
       {showMore && (
-        <div className="fixed bottom-16 left-4 right-4 bg-white dark:bg-dark-surface rounded-xl shadow-xl z-50 sm:hidden overflow-hidden animate-slide-up safe-bottom transition-colors duration-300">
+        <div className="fixed bottom-16 left-4 right-4 bg-card rounded-xl shadow-xl z-50 sm:hidden overflow-hidden animate-slide-up safe-bottom transition-colors duration-300">
           <div className="p-2">
             {/* Профиль пользователя */}
-            <div className="flex items-center gap-3 px-4 py-3 border-b border-sand dark:border-dark-border mb-2">
+            <div className="flex items-center gap-3 px-4 py-3 border-b border-border mb-2">
               <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center">
                 <User className="w-5 h-5 text-accent" />
               </div>
               <div className="flex-1">
-                <p className="text-sm font-medium text-charcoal dark:text-cream">{user?.name}</p>
-                <p className="text-xs text-warmgray dark:text-warmgray/80">{user?.role}</p>
+                <p className="text-sm font-medium text-foreground">{user?.name}</p>
+                <p className="text-xs text-muted-foreground">{user?.role}</p>
               </div>
             </div>
 
             {/* Переключатель языка */}
             <div className="flex items-center gap-3 px-4 py-3 mb-2">
-              <Globe className="w-5 h-5 text-charcoal dark:text-cream" />
-              <span className="text-sm font-medium text-charcoal dark:text-cream flex-1">{t('header.language') || 'Язык'}</span>
-              <div className="flex gap-1 bg-sand dark:bg-white/10 rounded-lg p-1">
+              <Globe className="w-5 h-5 text-foreground" />
+              <span className="text-sm font-medium text-foreground flex-1">{t('header.language') || 'Язык'}</span>
+              <div className="flex gap-1 bg-muted rounded-lg p-1">
                 <button
                   onClick={() => changeLanguage('ru')}
                   className={cn(
                     'px-2 py-1 text-xs font-medium rounded-md transition-colors',
-                    language === 'ru' ? 'bg-white dark:bg-dark-surface text-accent shadow-sm' : 'text-charcoal/60 dark:text-warmgray'
+                    language === 'ru' ? 'bg-card text-accent shadow-sm' : 'text-muted-foreground'
                   )}
                 >
                   RU
@@ -136,7 +136,7 @@ export default function BottomNavigation() {
                   onClick={() => changeLanguage('kk')}
                   className={cn(
                     'px-2 py-1 text-xs font-medium rounded-md transition-colors',
-                    language === 'kk' ? 'bg-white dark:bg-dark-surface text-accent shadow-sm' : 'text-charcoal/60 dark:text-warmgray'
+                    language === 'kk' ? 'bg-card text-accent shadow-sm' : 'text-muted-foreground'
                   )}
                 >
                   KZ
@@ -145,7 +145,7 @@ export default function BottomNavigation() {
                   onClick={() => changeLanguage('en')}
                   className={cn(
                     'px-2 py-1 text-xs font-medium rounded-md transition-colors',
-                    language === 'en' ? 'bg-white dark:bg-dark-surface text-accent shadow-sm' : 'text-charcoal/60 dark:text-warmgray'
+                    language === 'en' ? 'bg-card text-accent shadow-sm' : 'text-muted-foreground'
                   )}
                 >
                   EN
@@ -164,7 +164,7 @@ export default function BottomNavigation() {
                   onClick={() => handleNavClick(path)}
                   className={cn(
                     'w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors',
-                    isActive ? 'bg-accent/10 text-accent' : 'text-charcoal dark:text-cream hover:bg-sand/50 dark:hover:bg-white/10'
+                    isActive ? 'bg-accent/10 text-accent' : 'text-foreground hover:bg-muted'
                   )}
                 >
                   <Icon className="w-5 h-5" />
@@ -179,7 +179,7 @@ export default function BottomNavigation() {
                 setShowMore(false)
                 logout()
               }}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-danger hover:bg-danger/10 mt-2 border-t border-sand dark:border-dark-border pt-4"
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-danger hover:bg-danger/10 mt-2 border-t border-border pt-4"
             >
               <LogOut className="w-5 h-5" />
               <span className="text-sm font-medium">{t('header.signOut') || 'Выйти'}</span>
@@ -189,7 +189,7 @@ export default function BottomNavigation() {
       )}
 
       <nav 
-        className="fixed bottom-0 left-0 right-0 bg-white dark:bg-dark-surface border-t border-sand dark:border-dark-border shadow-soft z-40 sm:hidden transition-colors duration-300"
+        className="fixed bottom-0 left-0 right-0 bg-card border-t border-border shadow-soft z-40 sm:hidden transition-colors duration-300"
         role="navigation"
         aria-label={t('nav.mobileNav') || 'Mobile navigation'}
       >
@@ -213,10 +213,10 @@ export default function BottomNavigation() {
           />
         )}
         
-        {/* Safe area padding for iOS - using env() */}
+        {/* Safe area padding for iOS - using env() with fallback */}
         <div 
           className="flex items-center justify-around"
-          style={{ paddingBottom: 'env(safe-area-inset-bottom, 8px)' }}
+          style={{ paddingBottom: 'max(8px, env(safe-area-inset-bottom))' }}
         >
           {navItems.map(({ path, icon: Icon, label, badge }, index) => {
             const isActive = index === activeIndex && !isMoreActive
@@ -229,10 +229,11 @@ export default function BottomNavigation() {
                 aria-label={badge ? `${label}, ${badge} ${t('notifications.new') || 'new'}` : label}
                 className={cn(
                   'flex flex-col items-center justify-center',
-                  'min-w-[64px] min-h-[56px] py-2 px-3', // Fitts's Law: large touch targets
+                  'min-w-[64px] min-h-[56px] py-2 px-3', // Fitts's Law: 48px+ touch targets
                   'rounded-lg transition-all',
-                  'active:scale-95 tap-highlight-transparent',
-                  isActive ? 'text-accent' : 'text-warmgray active:bg-sand/50'
+                  'active:scale-95 touch-manipulation',
+                  '-webkit-tap-highlight-color-transparent',
+                  isActive ? 'text-accent' : 'text-muted-foreground active:bg-muted'
                 )}
               >
                 <div className="relative">
@@ -260,7 +261,7 @@ export default function BottomNavigation() {
                 <span
                   className={cn(
                     'text-[10px] mt-1 font-medium transition-colors',
-                    isActive ? 'text-accent' : 'text-warmgray'
+                    isActive ? 'text-accent' : 'text-muted-foreground'
                   )}
                 >
                   {label}
@@ -280,7 +281,7 @@ export default function BottomNavigation() {
               'min-w-[64px] min-h-[56px] py-2 px-3',
               'rounded-lg transition-all',
               'active:scale-95 tap-highlight-transparent',
-              (showMore || isMoreActive) ? 'text-accent' : 'text-warmgray active:bg-sand/50'
+              (showMore || isMoreActive) ? 'text-accent' : 'text-muted-foreground active:bg-muted'
             )}
           >
             <div className="relative">
@@ -299,7 +300,7 @@ export default function BottomNavigation() {
             <span
               className={cn(
                 'text-[10px] mt-1 font-medium transition-colors',
-                (showMore || isMoreActive) ? 'text-accent' : 'text-warmgray'
+                (showMore || isMoreActive) ? 'text-accent' : 'text-muted-foreground'
               )}
             >
               {t('nav.more') || 'Ещё'}

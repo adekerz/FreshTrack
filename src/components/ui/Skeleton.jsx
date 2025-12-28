@@ -9,7 +9,7 @@ export function Skeleton({ className = '', animate = true }) {
   return (
     <div 
       className={`
-        bg-sand dark:bg-white/10 rounded
+        bg-muted rounded
         ${animate ? 'animate-pulse' : ''}
         ${className}
       `}
@@ -46,7 +46,7 @@ export function SkeletonAvatar({ size = 'md', className = '' }) {
 // Card skeleton
 export function SkeletonCard({ className = '' }) {
   return (
-    <div className={`bg-white dark:bg-dark-surface rounded-xl border border-sand dark:border-dark-border p-4 md:p-6 ${className}`}>
+    <div className={`bg-card rounded-xl border border-border p-4 md:p-6 ${className}`}>
       <div className="flex items-center gap-4 mb-4">
         <SkeletonAvatar />
         <div className="flex-1">
@@ -75,10 +75,10 @@ export function SkeletonTableRow({ columns = 4, className = '' }) {
 // Table skeleton
 export function SkeletonTable({ rows = 5, columns = 4, className = '' }) {
   return (
-    <div className={`bg-white rounded-xl border border-sand overflow-hidden ${className}`}>
+    <div className={`bg-card rounded-xl border border-border overflow-hidden ${className}`}>
       <table className="w-full">
         <thead>
-          <tr className="border-b border-sand bg-sand/30">
+          <tr className="border-b border-border bg-muted">
             {Array.from({ length: columns }).map((_, i) => (
               <th key={i} className="px-4 py-3 text-left">
                 <Skeleton className="h-4 w-20" />
@@ -99,7 +99,7 @@ export function SkeletonTable({ rows = 5, columns = 4, className = '' }) {
 // Stat card skeleton
 export function SkeletonStat({ className = '' }) {
   return (
-    <div className={`bg-white rounded-xl border border-sand p-4 ${className}`}>
+    <div className={`bg-card rounded-xl border border-border p-4 ${className}`}>
       <div className="flex items-center justify-between mb-3">
         <Skeleton className="h-10 w-10 rounded-full" />
         <Skeleton className="h-4 w-12" />

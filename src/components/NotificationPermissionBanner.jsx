@@ -55,9 +55,9 @@ export default function NotificationPermissionBanner() {
 
   return (
     <div className="fixed bottom-4 right-4 z-50 max-w-sm animate-slide-up">
-      <div className="bg-white dark:bg-dark-surface rounded-xl shadow-lg border border-sand dark:border-dark-border overflow-hidden">
+      <div className="bg-card rounded-xl shadow-lg border border-border overflow-hidden">
         {/* Header */}
-        <div className="bg-gradient-to-r from-charcoal to-charcoal/90 px-4 py-3">
+        <div className="bg-gradient-to-r from-foreground to-foreground/90 px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-white">
               <Bell className="w-5 h-5" />
@@ -76,7 +76,7 @@ export default function NotificationPermissionBanner() {
 
         {/* Content */}
         <div className="p-4">
-          <p className="text-sm text-warmgray mb-4">
+          <p className="text-sm text-muted-foreground mb-4">
             {t('notifications.pushBanner.description') ||
               'Включите уведомления, чтобы получать оповещения о товарах с истекающим сроком годности прямо в браузере.'}
           </p>
@@ -102,7 +102,7 @@ export default function NotificationPermissionBanner() {
 
             <button
               onClick={handleDismiss}
-              className="px-4 py-2 text-warmgray hover:text-charcoal text-sm transition-colors"
+              className="px-4 py-2 text-muted-foreground hover:text-foreground text-sm transition-colors"
             >
               {t('notifications.pushBanner.later') || 'Позже'}
             </button>
@@ -153,15 +153,15 @@ export function NotificationStatus() {
         return {
           icon: BellOff,
           text: t('notifications.status.unsupported') || 'Не поддерживается',
-          color: 'text-warmgray',
-          bgColor: 'bg-sand/50'
+          color: 'text-muted-foreground',
+          bgColor: 'bg-muted'
         }
       case 'checking':
         return {
           icon: Bell,
           text: t('common.loading') || 'Загрузка...',
-          color: 'text-warmgray',
-          bgColor: 'bg-sand/50'
+          color: 'text-muted-foreground',
+          bgColor: 'bg-muted'
         }
       default:
         return {
@@ -177,13 +177,13 @@ export function NotificationStatus() {
   const Icon = status.icon
 
   return (
-    <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-sand">
+    <div className="flex items-center justify-between p-4 bg-card rounded-lg border border-border">
       <div className="flex items-center gap-3">
         <div className={`p-2 rounded-lg ${status.bgColor}`}>
           <Icon className={`w-5 h-5 ${status.color}`} />
         </div>
         <div>
-          <p className="font-medium text-charcoal">
+          <p className="font-medium text-foreground">
             {t('notifications.browserNotifications') || 'Браузерные уведомления'}
           </p>
           <p className={`text-sm ${status.color}`}>{status.text}</p>
@@ -193,14 +193,14 @@ export function NotificationStatus() {
       {permission === 'default' && (
         <button
           onClick={handleRequestPermission}
-          className="px-4 py-2 bg-charcoal text-white rounded-lg text-sm hover:bg-charcoal/90 transition-colors"
+          className="px-4 py-2 bg-foreground text-background rounded-lg text-sm hover:bg-foreground/90 transition-colors"
         >
           {t('notifications.enable') || 'Включить'}
         </button>
       )}
 
       {permission === 'denied' && (
-        <p className="text-xs text-warmgray max-w-[150px] text-right">
+        <p className="text-xs text-muted-foreground max-w-[150px] text-right">
           {t('notifications.deniedHint') || 'Измените в настройках браузера'}
         </p>
       )}

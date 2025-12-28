@@ -7,9 +7,9 @@
 import { forwardRef } from 'react'
 
 const variants = {
-  default: 'bg-white dark:bg-dark-surface border border-sand dark:border-dark-border',
-  elevated: 'bg-white dark:bg-dark-surface shadow-soft',
-  interactive: 'bg-white dark:bg-dark-surface border border-sand dark:border-dark-border hover:shadow-soft hover:border-transparent cursor-pointer transition-all duration-200',
+  default: 'bg-card border border-border',
+  elevated: 'bg-card shadow-soft',
+  interactive: 'bg-card border border-border hover:shadow-soft hover:border-transparent cursor-pointer transition-all duration-200',
   ghost: 'bg-transparent',
   accent: 'bg-accent/5 border border-accent/20',
 }
@@ -48,14 +48,14 @@ export const CardHeader = ({ children, className = '' }) => (
 
 // Card Title subcomponent
 export const CardTitle = ({ children, className = '' }) => (
-  <h3 className={`text-lg font-semibold text-charcoal dark:text-cream ${className}`}>
+  <h3 className={`text-lg font-semibold text-foreground ${className}`}>
     {children}
   </h3>
 )
 
 // Card Description subcomponent
 export const CardDescription = ({ children, className = '' }) => (
-  <p className={`text-sm text-warmgray dark:text-warmgray/80 mt-1 ${className}`}>
+  <p className={`text-sm text-muted-foreground mt-1 ${className}`}>
     {children}
   </p>
 )
@@ -69,7 +69,7 @@ export const CardContent = ({ children, className = '' }) => (
 
 // Card Footer subcomponent
 export const CardFooter = ({ children, className = '' }) => (
-  <div className={`mt-4 pt-4 border-t border-sand dark:border-dark-border ${className}`}>
+  <div className={`mt-4 pt-4 border-t border-border ${className}`}>
     {children}
   </div>
 )

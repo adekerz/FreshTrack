@@ -26,6 +26,8 @@ import {
 } from '../middleware/auth.js'
 import { enrichBatchWithExpiryData } from '../services/ExpiryService.js'
 import { logError } from '../utils/logger.js'
+import { sseManager } from '../services/SSEManager.js'
+import { SSE_EVENTS } from '../utils/constants.js'
 
 const router = express.Router()
 
@@ -161,6 +163,19 @@ router.post('/', authMiddleware, hotelIsolation, departmentIsolation, requirePer
       details: { name, sku, department_id: productDeptId }, ip_address: req.ip
     })
     
+    // SSE: Broadcast product-created to all hotel users
+    sseManager.broadcast(req.hotelId, SSE_EVENTS.PRODUCT_CREATED, {
+      product,
+      user: { id: req.user.id, name: req.user.name },
+      timestamp: new Date().toISOString()
+    })
+    
+    // SSE: Trigger stats update
+    sseManager.broadcast(req.hotelId, SSE_EVENTS.STATS_UPDATE, {
+      reason: 'product_created',
+      timestamp: new Date().toISOString()
+    })
+    
     res.status(201).json({ success: true, product })
   } catch (error) {
     logError('Products', error)
@@ -217,6 +232,15 @@ router.put('/:id', authMiddleware, hotelIsolation, departmentIsolation, requireP
         hotel_id: req.hotelId, user_id: req.user.id, user_name: req.user.name,
         action: 'update', entity_type: 'product', entity_id: req.params.id,
         details: { name: product.name, updates: Object.keys(updates) }, ip_address: req.ip
+      })
+      
+      // SSE: Broadcast product-updated to all hotel users
+      sseManager.broadcast(req.hotelId, SSE_EVENTS.PRODUCT_UPDATED, {
+        productId: req.params.id,
+        productName: product.name,
+        updates: Object.keys(updates),
+        user: { id: req.user.id, name: req.user.name },
+        timestamp: new Date().toISOString()
       })
     }
     res.json({ success })
@@ -375,6 +399,24 @@ router.post('/:id/collect', authMiddleware, hotelIsolation, departmentIsolation,
       ip_address: req.ip
     })
     
+    // SSE: Broadcast write-off event
+    const eventType = collectedBatches.length > 1 ? SSE_EVENTS.BULK_WRITE_OFF : SSE_EVENTS.WRITE_OFF
+    sseManager.broadcast(req.hotelId, eventType, {
+      productId,
+      productName: product.name,
+      quantity,
+      reason,
+      batchesAffected: collectedBatches.length,
+      user: { id: req.user.id, name: req.user.name },
+      timestamp: new Date().toISOString()
+    })
+    
+    // SSE: Trigger stats update
+    sseManager.broadcast(req.hotelId, SSE_EVENTS.STATS_UPDATE, {
+      reason: 'write_off',
+      timestamp: new Date().toISOString()
+    })
+    
     res.json({
       success: true,
       message: `Collected ${quantity} units using FIFO from ${collectedBatches.length} batch(es)`,
@@ -407,6 +449,20 @@ router.delete('/:id', authMiddleware, hotelIsolation, requirePermission(Permissi
         hotel_id: req.hotelId, user_id: req.user.id, user_name: req.user.name,
         action: 'delete', entity_type: 'product', entity_id: req.params.id,
         details: { name: product.name }, ip_address: req.ip
+      })
+      
+      // SSE: Broadcast product-deleted to all hotel users
+      sseManager.broadcast(req.hotelId, SSE_EVENTS.PRODUCT_DELETED, {
+        productId: req.params.id,
+        productName: product.name,
+        user: { id: req.user.id, name: req.user.name },
+        timestamp: new Date().toISOString()
+      })
+      
+      // SSE: Trigger stats update
+      sseManager.broadcast(req.hotelId, SSE_EVENTS.STATS_UPDATE, {
+        reason: 'product_deleted',
+        timestamp: new Date().toISOString()
       })
     }
     res.json({ success })

@@ -64,7 +64,7 @@ export default function GeneralSettings() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <RefreshCw className="w-6 h-6 animate-spin text-warmgray" />
+        <RefreshCw className="w-6 h-6 animate-spin text-muted-foreground" />
       </div>
     )
   }
@@ -72,8 +72,8 @@ export default function GeneralSettings() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-charcoal">{t('settings.generalTitle') || 'Общие настройки'}</h2>
-        <p className="text-sm text-warmgray mt-1">{t('settings.generalDescription') || 'Основные параметры системы'}</p>
+        <h2 className="text-xl font-semibold text-foreground">{t('settings.generalTitle') || 'Общие настройки'}</h2>
+        <p className="text-sm text-muted-foreground mt-1">{t('settings.generalDescription') || 'Основные параметры системы'}</p>
       </div>
 
       {message && (
@@ -90,33 +90,33 @@ export default function GeneralSettings() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Название сайта */}
         <div>
-          <label className="block text-sm font-medium text-charcoal mb-2">
+          <label className="block text-sm font-medium text-foreground mb-2">
             {t('settings.siteName') || 'Название сайта'}
           </label>
           <input 
             type="text"
             value={settings.siteName}
             onChange={(e) => setSettings({...settings, siteName: e.target.value})}
-            className="w-full px-4 py-2.5 border border-sand rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+            className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-card"
           />
         </div>
 
         {/* Название отдела */}
         <div>
-          <label className="block text-sm font-medium text-charcoal mb-2">
+          <label className="block text-sm font-medium text-foreground mb-2">
             {t('settings.departmentName') || 'Название отдела'}
           </label>
           <input 
             type="text"
             value={settings.departmentName}
             onChange={(e) => setSettings({...settings, departmentName: e.target.value})}
-            className="w-full px-4 py-2.5 border border-sand rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+            className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-card"
           />
         </div>
 
         {/* Предупреждение за дней */}
         <div>
-          <label className="block text-sm font-medium text-charcoal mb-2">
+          <label className="block text-sm font-medium text-foreground mb-2">
             {t('settings.warningDays') || 'Предупреждать за (дней)'}
           </label>
           <input 
@@ -125,16 +125,16 @@ export default function GeneralSettings() {
             max="30"
             value={settings.warningDays}
             onChange={(e) => setSettings({...settings, warningDays: parseInt(e.target.value) || 7})}
-            className="w-full px-4 py-2.5 border border-sand rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+            className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-card"
           />
-          <p className="text-sm text-warmgray mt-1">
+          <p className="text-sm text-muted-foreground mt-1">
             {t('settings.warningDaysHint') || 'За сколько дней до истечения предупреждать'}
           </p>
         </div>
 
         {/* Критический срок */}
         <div>
-          <label className="block text-sm font-medium text-charcoal mb-2">
+          <label className="block text-sm font-medium text-foreground mb-2">
             {t('settings.criticalDays') || 'Критический срок (дней)'}
           </label>
           <input 
@@ -143,19 +143,19 @@ export default function GeneralSettings() {
             max="10"
             value={settings.criticalDays}
             onChange={(e) => setSettings({...settings, criticalDays: parseInt(e.target.value) || 3})}
-            className="w-full px-4 py-2.5 border border-sand rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+            className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-card"
           />
         </div>
 
         {/* Формат даты */}
         <div>
-          <label className="block text-sm font-medium text-charcoal mb-2">
+          <label className="block text-sm font-medium text-foreground mb-2">
             {t('settings.dateFormat') || 'Формат даты'}
           </label>
           <select 
             value={settings.dateFormat}
             onChange={(e) => setSettings({...settings, dateFormat: e.target.value})}
-            className="w-full px-4 py-2.5 border border-sand rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-white"
+            className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-card"
           >
             <option value="DD.MM.YYYY">DD.MM.YYYY (31.12.2025)</option>
             <option value="MM/DD/YYYY">MM/DD/YYYY (12/31/2025)</option>
@@ -165,13 +165,13 @@ export default function GeneralSettings() {
 
         {/* Часовой пояс */}
         <div>
-          <label className="block text-sm font-medium text-charcoal mb-2">
+          <label className="block text-sm font-medium text-foreground mb-2">
             {t('settings.timezone') || 'Часовой пояс'}
           </label>
           <select 
             value={settings.timezone}
             onChange={(e) => setSettings({...settings, timezone: e.target.value})}
-            className="w-full px-4 py-2.5 border border-sand rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-white"
+            className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-card"
           >
             <option value="Asia/Almaty">Asia/Almaty (UTC+5)</option>
             <option value="Europe/Moscow">Europe/Moscow (UTC+3)</option>
@@ -180,11 +180,11 @@ export default function GeneralSettings() {
         </div>
       </div>
 
-      <div className="flex justify-end pt-6 border-t border-sand">
+      <div className="flex justify-end pt-6 border-t border-border">
         <button 
           onClick={saveSettings}
           disabled={saving}
-          className="flex items-center gap-2 px-6 py-2.5 bg-charcoal text-white rounded-lg hover:bg-charcoal/90 transition-colors disabled:opacity-50"
+          className="flex items-center gap-2 px-6 py-2.5 bg-foreground text-background rounded-lg hover:bg-foreground/90 transition-colors disabled:opacity-50"
         >
           <Save className="w-4 h-4" />
           {saving ? t('common.loading') : t('common.save')}

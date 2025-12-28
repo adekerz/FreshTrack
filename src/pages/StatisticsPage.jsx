@@ -146,8 +146,8 @@ export default function StatisticsPage() {
       title: t('statistics.totalBatches'),
       value: stats.total,
       icon: Package,
-      color: 'text-charcoal',
-      bgColor: 'bg-sand/50'
+      color: 'text-foreground',
+      bgColor: 'bg-muted'
     },
     {
       title: t('statistics.goodStatus'),
@@ -186,8 +186,8 @@ export default function StatisticsPage() {
       {/* Заголовок */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-light text-charcoal dark:text-cream">{t('statistics.title')}</h1>
-          <p className="text-warmgray dark:text-warmgray/80 text-xs sm:text-sm mt-1">{t('statistics.subtitle')}</p>
+          <h1 className="text-xl sm:text-2xl font-light text-foreground">{t('statistics.title')}</h1>
+          <p className="text-muted-foreground text-xs sm:text-sm mt-1">{t('statistics.subtitle')}</p>
         </div>
 
         <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
@@ -207,15 +207,15 @@ export default function StatisticsPage() {
           />
 
           {/* Переключатель периода */}
-          <div className="flex items-center gap-1 sm:gap-2 bg-white dark:bg-dark-surface rounded-lg border border-sand dark:border-dark-border p-1">
+          <div className="flex items-center gap-1 sm:gap-2 bg-card rounded-lg border border-border p-1">
             {['week', 'month', 'all'].map((period) => (
               <button
                 key={period}
                 onClick={() => setSelectedPeriod(period)}
                 className={`px-2 sm:px-4 py-1 sm:py-1.5 text-xs sm:text-sm rounded-md transition-colors ${
                   selectedPeriod === period
-                    ? 'bg-charcoal dark:bg-accent text-white dark:text-charcoal'
-                    : 'text-warmgray hover:text-charcoal dark:hover:text-cream'
+                    ? 'bg-foreground text-background'
+                    : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
                 {t(`statistics.period.${period}`)}
@@ -230,7 +230,7 @@ export default function StatisticsPage() {
         {statCards.map((card, index) => (
           <div
             key={index}
-            className="bg-white dark:bg-dark-surface rounded-xl border border-sand dark:border-dark-border p-3 sm:p-4 hover:shadow-md transition-shadow"
+            className="bg-card rounded-xl border border-border p-3 sm:p-4 hover:shadow-md transition-shadow"
           >
             <div className="flex items-center justify-between mb-2 sm:mb-3">
               <div className={`p-1.5 sm:p-2 rounded-lg ${card.bgColor}`}>
@@ -245,15 +245,15 @@ export default function StatisticsPage() {
                 </span>
               )}
             </div>
-            <p className="text-xl sm:text-2xl font-light text-charcoal dark:text-cream">{card.value}</p>
-            <p className="text-xs sm:text-sm text-warmgray dark:text-warmgray/80 line-clamp-1">{card.title}</p>
+            <p className="text-xl sm:text-2xl font-light text-foreground">{card.value}</p>
+            <p className="text-xs sm:text-sm text-muted-foreground line-clamp-1">{card.title}</p>
           </div>
         ))}
       </div>
 
       {/* Статистика по отделам */}
-      <div className="bg-white dark:bg-dark-surface rounded-xl border border-sand dark:border-dark-border p-4 sm:p-6">
-        <h2 className="text-lg font-medium text-charcoal dark:text-cream mb-4">{t('statistics.byDepartment')}</h2>
+      <div className="bg-card rounded-xl border border-border p-4 sm:p-6">
+        <h2 className="text-lg font-medium text-foreground mb-4">{t('statistics.byDepartment')}</h2>
 
         <div className="space-y-4">
           {departmentStats.map((dept) => {
@@ -268,9 +268,9 @@ export default function StatisticsPage() {
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2 gap-1">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: dept.color }} />
-                    <span className="text-sm font-medium text-charcoal dark:text-cream">{dept.name}</span>
+                    <span className="text-sm font-medium text-foreground">{dept.name}</span>
                   </div>
-                  <div className="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm text-warmgray ml-5 sm:ml-0">
+                  <div className="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm text-muted-foreground ml-5 sm:ml-0">
                     <span>
                       {dept.total} {t('statistics.batches')}
                     </span>
@@ -281,7 +281,7 @@ export default function StatisticsPage() {
                 </div>
 
                 {/* Progress bar */}
-                <div className="h-2 bg-gray-100 dark:bg-dark-border rounded-full overflow-hidden flex">
+                <div className="h-2 bg-muted rounded-full overflow-hidden flex">
                   <div className="bg-success transition-all" style={{ width: `${goodPercent}%` }} />
                   <div
                     className="bg-warning transition-all"
@@ -298,7 +298,7 @@ export default function StatisticsPage() {
                 </div>
 
                 {/* Legend - scrollable on mobile */}
-                <div className="flex items-center gap-2 sm:gap-4 mt-2 text-xs text-warmgray overflow-x-auto pb-1">
+                <div className="flex items-center gap-2 sm:gap-4 mt-2 text-xs text-muted-foreground overflow-x-auto pb-1">
                   <span className="flex items-center gap-1 whitespace-nowrap">
                     <div className="w-2 h-2 rounded-full bg-success flex-shrink-0" />
                     {dept.good} {t('status.good')}
@@ -325,15 +325,15 @@ export default function StatisticsPage() {
       {/* Статистика по категориям + Топ товары */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
         {/* По категориям */}
-        <div className="bg-white dark:bg-dark-surface rounded-xl border border-sand dark:border-dark-border p-4 sm:p-6">
-          <h2 className="text-base sm:text-lg font-medium text-charcoal dark:text-cream mb-3 sm:mb-4">{t('statistics.byCategory')}</h2>
+        <div className="bg-card rounded-xl border border-border p-4 sm:p-6">
+          <h2 className="text-base sm:text-lg font-medium text-foreground mb-3 sm:mb-4">{t('statistics.byCategory')}</h2>
 
           <div className="space-y-2 sm:space-y-3">
             {categoryStats.map((cat) => (
               <div key={cat.id} className="flex items-center justify-between gap-2">
-                <span className="text-xs sm:text-sm text-charcoal dark:text-cream truncate flex-1">{cat.name}</span>
+                <span className="text-xs sm:text-sm text-foreground truncate flex-1">{cat.name}</span>
                 <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
-                  <span className="text-xs sm:text-sm text-warmgray whitespace-nowrap">
+                  <span className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap">
                     {cat.total} {t('statistics.batches')}
                   </span>
                   {cat.expired > 0 && (
@@ -346,14 +346,14 @@ export default function StatisticsPage() {
             ))}
 
             {categoryStats.length === 0 && (
-              <p className="text-xs sm:text-sm text-warmgray text-center py-4">{t('statistics.noData')}</p>
+              <p className="text-xs sm:text-sm text-muted-foreground text-center py-4">{t('statistics.noData')}</p>
             )}
           </div>
         </div>
 
         {/* Товары, требующие внимания */}
-        <div className="bg-white dark:bg-dark-surface rounded-xl border border-sand dark:border-dark-border p-4 sm:p-6">
-          <h2 className="text-base sm:text-lg font-medium text-charcoal dark:text-cream mb-3 sm:mb-4">{t('statistics.topAlerts')}</h2>
+        <div className="bg-card rounded-xl border border-border p-4 sm:p-6">
+          <h2 className="text-base sm:text-lg font-medium text-foreground mb-3 sm:mb-4">{t('statistics.topAlerts')}</h2>
 
           <div className="space-y-2 sm:space-y-3">
             {topAlertProducts.map((batch, index) => {
@@ -365,10 +365,10 @@ export default function StatisticsPage() {
                     {index + 1}
                   </span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs sm:text-sm text-charcoal dark:text-cream truncate">
+                    <p className="text-xs sm:text-sm text-foreground truncate">
                       {batch.productName || batch.name}
                     </p>
-                    <p className="text-xs text-warmgray truncate">{dept?.name}</p>
+                    <p className="text-xs text-muted-foreground truncate">{dept?.name}</p>
                   </div>
                   <span
                     className={`text-xs font-medium whitespace-nowrap flex-shrink-0 ${
@@ -388,7 +388,7 @@ export default function StatisticsPage() {
             {topAlertProducts.length === 0 && (
               <div className="text-center py-4">
                 <CheckCircle className="w-6 h-6 sm:w-8 sm:h-8 text-success mx-auto mb-2" />
-                <p className="text-xs sm:text-sm text-warmgray">{t('statistics.allGood')}</p>
+                <p className="text-xs sm:text-sm text-muted-foreground">{t('statistics.allGood')}</p>
               </div>
             )}
           </div>

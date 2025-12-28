@@ -4,9 +4,11 @@
  */
 
 import cron from 'node-cron'
-import { getExpiredProducts, getExpiringTodayProducts, getExpiringSoonProducts } from '../db/database.js'
+import { getExpiredProducts, getExpiringTodayProducts, getExpiringSoonProducts, getAllHotels } from '../db/database.js'
 import { sendDailyAlert, initTelegramBot } from './telegram.js'
 import { logError, logInfo, logDebug } from '../utils/logger.js'
+import sseManager from './SSEManager.js'
+import { SSE_EVENTS } from '../utils/constants.js'
 
 let dailyJob = null
 
@@ -47,6 +49,9 @@ export async function runDailyCheck() {
 
     logDebug('Scheduler', `📊 Found: ${expiredProducts.length} expired, ${expiringToday.length} expiring today, ${expiringSoon.length} expiring soon`)
 
+    // SSE: Broadcast expiry alerts to all connected clients
+    await broadcastExpiryAlerts(expiredProducts, expiringToday, expiringSoon)
+
     // Отправляем уведомление в Telegram
     const result = await sendDailyAlert({
       expiredProducts,
@@ -64,6 +69,86 @@ export async function runDailyCheck() {
   } catch (error) {
     logError('scheduler', error)
     return { success: false, error: error.message }
+  }
+}
+
+/**
+ * Broadcast expiry alerts via SSE
+ * Groups products by hotel for isolated broadcasts
+ */
+async function broadcastExpiryAlerts(expiredProducts, expiringToday, expiringSoon) {
+  try {
+    // Get all hotels for broadcasting
+    const hotels = await getAllHotels()
+    
+    for (const hotel of hotels) {
+      const hotelId = hotel.id
+      
+      // Filter products by hotel
+      const hotelExpired = expiredProducts.filter(p => p.hotel_id === hotelId)
+      const hotelCritical = expiringToday.filter(p => p.hotel_id === hotelId)
+      const hotelWarning = expiringSoon.filter(p => p.hotel_id === hotelId && 
+        !expiringToday.some(t => t.id === p.id))
+      
+      // Broadcast expired products
+      if (hotelExpired.length > 0) {
+        sseManager.broadcast(hotelId, SSE_EVENTS.EXPIRED, {
+          count: hotelExpired.length,
+          products: hotelExpired.slice(0, 10).map(p => ({
+            id: p.id,
+            name: p.name,
+            quantity: p.quantity,
+            expiryDate: p.expiry_date
+          })),
+          message: `${hotelExpired.length} продуктов просрочено`
+        })
+      }
+      
+      // Broadcast critical (expiring today / < 3 days)
+      if (hotelCritical.length > 0) {
+        sseManager.broadcast(hotelId, SSE_EVENTS.EXPIRING_CRITICAL, {
+          count: hotelCritical.length,
+          products: hotelCritical.slice(0, 10).map(p => ({
+            id: p.id,
+            name: p.name,
+            quantity: p.quantity,
+            expiryDate: p.expiry_date,
+            daysLeft: p.days_left
+          })),
+          message: `${hotelCritical.length} продуктов истекает < 3 дней`
+        })
+      }
+      
+      // Broadcast warning (expiring < 7 days)
+      if (hotelWarning.length > 0) {
+        sseManager.broadcast(hotelId, SSE_EVENTS.EXPIRING_WARNING, {
+          count: hotelWarning.length,
+          products: hotelWarning.slice(0, 10).map(p => ({
+            id: p.id,
+            name: p.name,
+            quantity: p.quantity,
+            expiryDate: p.expiry_date,
+            daysLeft: p.days_left
+          })),
+          message: `${hotelWarning.length} продуктов истекает < 7 дней`
+        })
+      }
+      
+      // Broadcast stats update if there are any expiry issues
+      if (hotelExpired.length > 0 || hotelCritical.length > 0 || hotelWarning.length > 0) {
+        sseManager.broadcast(hotelId, SSE_EVENTS.STATS_UPDATE, {
+          reason: 'expiry_check',
+          expired: hotelExpired.length,
+          critical: hotelCritical.length,
+          warning: hotelWarning.length,
+          timestamp: new Date().toISOString()
+        })
+      }
+    }
+    
+    logInfo('Scheduler', '📡 Expiry alerts broadcasted via SSE')
+  } catch (error) {
+    logError('Scheduler', `Failed to broadcast expiry alerts: ${error.message}`)
   }
 }
 

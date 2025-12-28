@@ -80,7 +80,7 @@ export default function CategoriesSettings() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <RefreshCw className="w-6 h-6 animate-spin text-warmgray" />
+        <RefreshCw className="w-6 h-6 animate-spin text-muted-foreground" />
       </div>
     )
   }
@@ -88,19 +88,19 @@ export default function CategoriesSettings() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-charcoal">{t('settings.categories.title') || 'Категории'}</h2>
-        <p className="text-sm text-warmgray mt-1">{t('categorySettings.description') || 'Управление категориями товаров'}</p>
+        <h2 className="text-xl font-semibold text-foreground">{t('settings.categories.title') || 'Категории'}</h2>
+        <p className="text-sm text-muted-foreground mt-1">{t('categorySettings.description') || 'Управление категориями товаров'}</p>
       </div>
 
       {/* Форма добавления */}
-      <div className="flex flex-col sm:flex-row gap-4 p-4 bg-cream/50 rounded-xl">
+      <div className="flex flex-col sm:flex-row gap-4 p-4 bg-muted/50 rounded-xl">
         <div className="flex-1">
           <input 
             type="text"
             placeholder={t('categorySettings.name') || 'Название категории'}
             value={newCategory.name}
             onChange={(e) => setNewCategory({...newCategory, name: e.target.value})}
-            className="w-full px-4 py-2.5 border border-sand rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+            className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-card"
             onKeyPress={(e) => e.key === 'Enter' && addCategory()}
           />
         </div>
@@ -111,7 +111,7 @@ export default function CategoriesSettings() {
               type="color"
               value={newCategory.color}
               onChange={(e) => setNewCategory({...newCategory, color: e.target.value})}
-              className="w-12 h-10 rounded-lg border border-sand cursor-pointer"
+              className="w-12 h-10 rounded-lg border border-border cursor-pointer"
               title={t('categorySettings.selectColor') || 'Выберите цвет'}
             />
           </div>
@@ -119,7 +119,7 @@ export default function CategoriesSettings() {
           <button 
             onClick={addCategory}
             disabled={adding || !newCategory.name.trim()}
-            className="flex items-center gap-2 px-6 py-2.5 bg-charcoal text-white rounded-lg hover:bg-charcoal/90 transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-6 py-2.5 bg-foreground text-background rounded-lg hover:bg-foreground/90 transition-colors disabled:opacity-50"
           >
             {adding ? (
               <RefreshCw className="w-4 h-4 animate-spin" />
@@ -133,7 +133,7 @@ export default function CategoriesSettings() {
 
       {/* Предустановленные цвета */}
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-sm text-warmgray mr-2">{t('categories.quickColors') || 'Быстрый выбор:'}:</span>
+        <span className="text-sm text-muted-foreground mr-2">{t('categories.quickColors') || 'Быстрый выбор:'}:</span>
         {defaultColors.map(color => (
           <button
             key={color}
@@ -152,7 +152,7 @@ export default function CategoriesSettings() {
         {categories.map(cat => (
           <div 
             key={cat.id} 
-            className="flex items-center justify-between p-4 rounded-xl border-2 bg-white hover:shadow-md transition-shadow"
+            className="flex items-center justify-between p-4 rounded-xl border-2 bg-card hover:shadow-md transition-shadow"
             style={{ borderColor: cat.color }}
           >
             <div className="flex items-center gap-3">
@@ -163,15 +163,15 @@ export default function CategoriesSettings() {
                 <Tag className="w-5 h-5" style={{ color: cat.color }} />
               </div>
               <div>
-                <span className="font-medium text-charcoal">
+                <span className="font-medium text-foreground">
                   {cat.name}
                 </span>
-                <p className="text-xs text-warmgray">{cat.color}</p>
+                <p className="text-xs text-muted-foreground">{cat.color}</p>
               </div>
             </div>
             <button 
               onClick={() => deleteCategory(cat.id, cat.name)}
-              className="p-2 rounded-lg hover:bg-red-50 text-warmgray hover:text-red-600 transition-colors"
+              className="p-2 rounded-lg hover:bg-red-50 text-muted-foreground hover:text-red-600 transition-colors"
               title={t('common.delete')}
             >
               <X className="w-4 h-4" />
@@ -181,7 +181,7 @@ export default function CategoriesSettings() {
       </div>
 
       {categories.length === 0 && (
-        <div className="text-center py-12 text-warmgray">
+        <div className="text-center py-12 text-muted-foreground">
           <Palette className="w-12 h-12 mx-auto mb-4 opacity-50" />
           <p>{t('categories.noCategories') || 'Категории не найдены'}</p>
         </div>

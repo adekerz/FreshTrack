@@ -51,9 +51,10 @@ export function AuthProvider({ children }) {
       return { success: false, error: response.error || 'Invalid credentials' }
     } catch (error) {
       logError('Login error:', error.message)
+      // Передаём сообщение об ошибке от сервера (например, "Account is blocked")
       return { 
         success: false, 
-        error: 'Unable to connect to server. Please check your connection.' 
+        error: error.message || 'Unable to connect to server. Please check your connection.' 
       }
     }
   }

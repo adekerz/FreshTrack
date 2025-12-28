@@ -5,6 +5,7 @@ import BottomNavigation from './BottomNavigation'
 import NotificationPermissionBanner from './NotificationPermissionBanner'
 import Breadcrumbs from './Breadcrumbs'
 import OnboardingTour from './OnboardingTour'
+import { OfflineIndicator } from './ui'
 import { useTranslation } from '../context/LanguageContext'
 
 export default function Layout({ children }) {
@@ -12,7 +13,10 @@ export default function Layout({ children }) {
   const { t } = useTranslation()
 
   return (
-    <div className="min-h-screen bg-cream dark:bg-dark-bg flex overflow-x-hidden max-w-full transition-colors duration-300">
+    <div className="min-h-screen bg-background flex overflow-x-hidden max-w-full transition-colors duration-300">
+      {/* Offline Indicator - показывается когда нет сети */}
+      <OfflineIndicator />
+
       {/* Skip Link for Keyboard Navigation (A11Y) */}
       <a 
         href="#main-content" 

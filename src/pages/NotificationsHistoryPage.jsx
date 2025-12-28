@@ -147,8 +147,8 @@ export default function NotificationsHistoryPage() {
       {/* Заголовок и кнопки */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-light text-charcoal dark:text-cream">{t('notificationHistory.title')}</h1>
-          <p className="text-warmgray dark:text-warmgray/80 text-xs sm:text-sm mt-1">{t('notificationHistory.subtitle')}</p>
+          <h1 className="text-xl sm:text-2xl font-light text-foreground">{t('notificationHistory.title')}</h1>
+          <p className="text-muted-foreground text-xs sm:text-sm mt-1">{t('notificationHistory.subtitle')}</p>
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3">
@@ -158,11 +158,11 @@ export default function NotificationsHistoryPage() {
             className={`flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 border rounded-lg text-xs sm:text-sm transition-colors flex-1 sm:flex-none justify-center ${
               hasActiveFilters
                 ? 'border-accent text-accent bg-accent/5'
-                : 'border-sand text-warmgray hover:bg-sand/50'
+                : 'border-border text-muted-foreground hover:bg-muted'
             }`}
           >
             <Filter className="w-4 h-4" />
-            <span className="hidden xs:inline">{t('notificationHistory.filters')}</span>
+            <span className="hidden sm:inline">{t('notificationHistory.filters')}</span>
             {hasActiveFilters && <span className="w-2 h-2 bg-accent rounded-full" />}
           </button>
 
@@ -170,7 +170,7 @@ export default function NotificationsHistoryPage() {
           <button
             onClick={() => fetchLogs(pagination.page)}
             disabled={loading}
-            className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 bg-charcoal text-white rounded-lg text-xs sm:text-sm hover:bg-charcoal/90 transition-colors disabled:opacity-50"
+            className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 bg-foreground text-background rounded-lg text-xs sm:text-sm hover:bg-foreground/90 transition-colors disabled:opacity-50"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             <span className="hidden sm:inline">{t('common.refresh')}</span>
@@ -180,19 +180,19 @@ export default function NotificationsHistoryPage() {
 
       {/* Панель фильтров */}
       {showFilters && (
-        <div className="bg-white dark:bg-dark-surface rounded-xl border border-sand dark:border-dark-border p-4 sm:p-6 space-y-4">
-          <h3 className="font-medium text-charcoal dark:text-cream text-sm sm:text-base">{t('notificationHistory.filterOptions')}</h3>
+        <div className="bg-card rounded-xl border border-border p-4 sm:p-6 space-y-4">
+          <h3 className="font-medium text-foreground text-sm sm:text-base">{t('notificationHistory.filterOptions')}</h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
             {/* Тип уведомления */}
             <div>
-              <label className="block text-xs sm:text-sm text-warmgray mb-1">
+              <label className="block text-xs sm:text-sm text-muted-foreground mb-1">
                 {t('notificationHistory.filterType')}
               </label>
               <select
                 value={filters.type}
                 onChange={(e) => setFilters((prev) => ({ ...prev, type: e.target.value }))}
-                className="w-full px-3 py-2 border border-sand rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent text-sm"
+                className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent text-sm bg-card text-foreground"
               >
                 <option value="">{t('notificationHistory.allTypes')}</option>
                 {Object.entries(NOTIFICATION_TYPES).map(([key, { label }]) => (
@@ -205,27 +205,27 @@ export default function NotificationsHistoryPage() {
 
             {/* Дата начала */}
             <div>
-              <label className="block text-xs sm:text-sm text-warmgray mb-1">
+              <label className="block text-xs sm:text-sm text-muted-foreground mb-1">
                 {t('notificationHistory.startDate')}
               </label>
               <input
                 type="date"
                 value={filters.startDate}
                 onChange={(e) => setFilters((prev) => ({ ...prev, startDate: e.target.value }))}
-                className="w-full px-3 py-2 border border-sand rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent text-sm"
+                className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent text-sm bg-card text-foreground"
               />
             </div>
 
             {/* Дата конца */}
             <div>
-              <label className="block text-xs sm:text-sm text-warmgray mb-1">
+              <label className="block text-xs sm:text-sm text-muted-foreground mb-1">
                 {t('notificationHistory.endDate')}
               </label>
               <input
                 type="date"
                 value={filters.endDate}
                 onChange={(e) => setFilters((prev) => ({ ...prev, endDate: e.target.value }))}
-                className="w-full px-3 py-2 border border-sand rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent text-sm"
+                className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent text-sm bg-card text-foreground"
               />
             </div>
           </div>
@@ -233,13 +233,13 @@ export default function NotificationsHistoryPage() {
           <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 pt-2">
             <button
               onClick={handleResetFilters}
-              className="px-4 py-2 text-sm text-warmgray hover:text-charcoal transition-colors order-2 sm:order-1"
+              className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors order-2 sm:order-1"
             >
               {t('common.reset')}
             </button>
             <button
               onClick={handleApplyFilters}
-              className="px-4 py-2 bg-charcoal text-white rounded-lg text-sm hover:bg-charcoal/90 transition-colors order-1 sm:order-2"
+              className="px-4 py-2 bg-foreground text-background rounded-lg text-sm hover:bg-foreground/90 transition-colors order-1 sm:order-2"
             >
               {t('common.apply')}
             </button>
@@ -253,13 +253,13 @@ export default function NotificationsHistoryPage() {
       )}
 
       {/* Таблица/Карточки уведомлений */}
-      <div className="bg-white dark:bg-dark-surface rounded-xl border border-sand dark:border-dark-border overflow-hidden">
+      <div className="bg-card rounded-xl border border-border overflow-hidden">
         {loading && logs.length === 0 ? (
           <div className="flex items-center justify-center py-12">
-            <RefreshCw className="w-6 h-6 sm:w-8 sm:h-8 text-warmgray animate-spin" />
+            <RefreshCw className="w-6 h-6 sm:w-8 sm:h-8 text-muted-foreground animate-spin" />
           </div>
         ) : logs.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-warmgray">
+          <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
             <Send className="w-10 h-10 sm:w-12 sm:h-12 mb-4 opacity-50" />
             <p className="text-base sm:text-lg">{t('notificationHistory.noLogs')}</p>
             <p className="text-xs sm:text-sm">{t('notificationHistory.noLogsHint')}</p>
@@ -269,36 +269,36 @@ export default function NotificationsHistoryPage() {
             {/* Desktop Table */}
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-cream/50 dark:bg-dark-border/30">
+                <thead className="bg-muted/50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-warmgray uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       {t('notificationHistory.columns.date')}
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-warmgray uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       {t('notificationHistory.columns.type')}
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-warmgray uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       {t('notificationHistory.columns.message')}
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-warmgray uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       {t('notificationHistory.columns.products')}
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-warmgray uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       {t('notificationHistory.columns.status')}
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-warmgray uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       {t('notificationHistory.columns.sentBy')}
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-sand/50 dark:divide-dark-border">
+                <tbody className="divide-y divide-border">
                   {logs.map((log) => {
                     const typeInfo = getNotificationType(log.type)
                     const TypeIcon = typeInfo.icon
 
                     return (
-                      <tr key={log.id} className="hover:bg-cream/30 dark:hover:bg-dark-border/30 transition-colors">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-charcoal dark:text-cream">
+                      <tr key={log.id} className="hover:bg-muted transition-colors">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
                           {formatDate(log.sent_at)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -309,10 +309,10 @@ export default function NotificationsHistoryPage() {
                             {t(typeInfo.label)}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-sm text-charcoal dark:text-cream max-w-md">
+                        <td className="px-6 py-4 text-sm text-foreground max-w-md">
                           <p className="truncate">{log.message}</p>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-charcoal dark:text-cream">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
                           {log.products_count > 0 ? log.products_count : '-'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -322,7 +322,7 @@ export default function NotificationsHistoryPage() {
                                 ? 'text-green-600'
                                 : log.status === 'failed'
                                   ? 'text-red-600'
-                                  : 'text-warmgray'
+                                  : 'text-muted-foreground'
                             }`}
                           >
                             {log.status === 'sent' ? (
@@ -333,7 +333,7 @@ export default function NotificationsHistoryPage() {
                             {t(`notificationHistory.status.${log.status}`)}
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-warmgray">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                           {log.sent_by_name || t('notificationHistory.system')}
                         </td>
                       </tr>
@@ -344,7 +344,7 @@ export default function NotificationsHistoryPage() {
             </div>
 
             {/* Mobile Cards */}
-            <div className="md:hidden divide-y divide-sand/50 dark:divide-dark-border">
+            <div className="md:hidden divide-y divide-border">
               {logs.map((log) => {
                 const typeInfo = getNotificationType(log.type)
                 const TypeIcon = typeInfo.icon
@@ -358,12 +358,12 @@ export default function NotificationsHistoryPage() {
                         <TypeIcon className="w-3 h-3" />
                         {t(typeInfo.label)}
                       </span>
-                      <span className="text-xs text-warmgray">
+                      <span className="text-xs text-muted-foreground">
                         {formatDate(log.sent_at)}
                       </span>
                     </div>
 
-                    <p className="text-sm text-charcoal dark:text-cream line-clamp-2">{log.message}</p>
+                    <p className="text-sm text-foreground line-clamp-2">{log.message}</p>
 
                     <div className="flex items-center justify-between text-xs">
                       <span
@@ -372,7 +372,7 @@ export default function NotificationsHistoryPage() {
                             ? 'text-green-600'
                             : log.status === 'failed'
                               ? 'text-red-600'
-                              : 'text-warmgray'
+                              : 'text-muted-foreground'
                         }`}
                       >
                         {log.status === 'sent' ? (
@@ -383,7 +383,7 @@ export default function NotificationsHistoryPage() {
                         {t(`notificationHistory.status.${log.status}`)}
                       </span>
                       {log.products_count > 0 && (
-                        <span className="text-warmgray">
+                        <span className="text-muted-foreground">
                           {log.products_count} {t('notificationHistory.columns.products').toLowerCase()}
                         </span>
                       )}
@@ -395,8 +395,8 @@ export default function NotificationsHistoryPage() {
 
             {/* Пагинация */}
             {pagination.totalPages > 1 && (
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 sm:px-6 py-3 sm:py-4 border-t border-sand/50 dark:border-dark-border">
-                <p className="text-xs sm:text-sm text-warmgray text-center sm:text-left">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 sm:px-6 py-3 sm:py-4 border-t border-border">
+                <p className="text-xs sm:text-sm text-muted-foreground text-center sm:text-left">
                   {t('notificationHistory.showing', {
                     from: (pagination.page - 1) * pagination.limit + 1,
                     to: Math.min(pagination.page * pagination.limit, pagination.total),
@@ -408,19 +408,19 @@ export default function NotificationsHistoryPage() {
                   <button
                     onClick={() => setPagination((prev) => ({ ...prev, page: prev.page - 1 }))}
                     disabled={pagination.page <= 1}
-                    className="p-2 text-warmgray hover:text-charcoal disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    className="p-2 text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                   >
                     <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
                   </button>
 
-                  <span className="text-xs sm:text-sm text-charcoal dark:text-cream">
+                  <span className="text-xs sm:text-sm text-foreground">
                     {pagination.page} / {pagination.totalPages}
                   </span>
 
                   <button
                     onClick={() => setPagination((prev) => ({ ...prev, page: prev.page + 1 }))}
                     disabled={pagination.page >= pagination.totalPages}
-                    className="p-2 text-warmgray hover:text-charcoal disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    className="p-2 text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                   >
                     <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
                   </button>

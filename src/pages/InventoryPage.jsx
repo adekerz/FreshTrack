@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { Wine, Coffee, Utensils, ChefHat, Warehouse, Package, Plus, FileBox } from 'lucide-react'
 import { useProducts } from '../context/ProductContext'
@@ -53,6 +53,22 @@ export default function InventoryPage() {
   const [showProductModal, setShowProductModal] = useState(false)
   const [showAddCustomModal, setShowAddCustomModal] = useState(false)
   const [showTemplateModal, setShowTemplateModal] = useState(false)
+  const [retryCount, setRetryCount] = useState(0)
+
+  // Автоматический retry когда нет данных (БД ещё загружается)
+  useEffect(() => {
+    if (!loading && departments.length === 0 && retryCount < 10) {
+      const timer = setTimeout(() => {
+        setRetryCount(prev => prev + 1)
+        refresh()
+      }, 2000) // Retry каждые 2 секунды
+      return () => clearTimeout(timer)
+    }
+    // Сбросить счётчик если данные загрузились
+    if (departments.length > 0) {
+      setRetryCount(0)
+    }
+  }, [loading, departments.length, retryCount, refresh])
 
   // Получить название категории в зависимости от языка
   const getCategoryName = (category) => {
@@ -161,8 +177,8 @@ export default function InventoryPage() {
   const products = getFilteredProducts()
   const availableCategories = getAvailableCategories()
 
-  // Показываем скелетон при загрузке
-  if (loading) {
+  // Показываем скелетон при загрузке (когда уже есть отделы)
+  if (loading && departments.length > 0) {
     return (
       <div className="p-4 sm:p-6 animate-fade-in">
         <div className="flex items-center gap-3 mb-6">
@@ -182,14 +198,30 @@ export default function InventoryPage() {
     )
   }
 
-  // Если нет выбранного отдела, показываем сообщение
-  if (!selectedDepartment && departments.length === 0) {
+  // Если нет данных и идёт загрузка/retry - показываем анимацию подключения к БД
+  if (departments.length === 0) {
     return (
-      <div className="p-4 sm:p-8 animate-fade-in">
-        <div className="text-center py-12">
-          <Package className="w-12 h-12 sm:w-16 sm:h-16 text-warmgray mx-auto mb-4" />
-          <h2 className="font-serif text-lg sm:text-xl text-charcoal dark:text-cream mb-2">{t('inventory.noDepartments') || 'No departments configured'}</h2>
-          <p className="text-warmgray dark:text-warmgray/80 text-sm">{t('inventory.createDepartment') || 'Please create a department in Settings first.'}</p>
+      <div className="flex-1 flex items-center justify-center py-16 sm:py-24 animate-fade-in">
+        <div className="flex flex-col items-center gap-6">
+          <div className="loader loader-lg">
+            <div className="cell d-0" />
+            <div className="cell d-1" />
+            <div className="cell d-2" />
+            <div className="cell d-1" />
+            <div className="cell d-2" />
+            <div className="cell d-3" />
+            <div className="cell d-2" />
+            <div className="cell d-3" />
+            <div className="cell d-4" />
+          </div>
+          <div className="text-center">
+            <p className="text-foreground font-medium mb-1">
+              {loading ? t('common.loading') : t('inventory.connectingDatabase') || 'Подключение к базе данных...'}
+            </p>
+            <p className="text-muted-foreground text-sm animate-pulse">
+              {retryCount > 0 && `${t('common.attempt') || 'Попытка'} ${retryCount}/10`}
+            </p>
+          </div>
         </div>
       </div>
     )
@@ -225,17 +257,19 @@ export default function InventoryPage() {
           />
           <button
             onClick={() => setShowTemplateModal(true)}
-            className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-warmgray hover:text-accent transition-colors"
+            className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground hover:text-accent transition-colors"
+            title={t('inventory.applyTemplate')}
           >
             <FileBox className="w-4 h-4" />
-            <span className="hidden xs:inline">{t('inventory.applyTemplate')}</span>
+            <span className="hidden sm:inline">{t('inventory.applyTemplate')}</span>
           </button>
           <button
             onClick={() => setShowAddCustomModal(true)}
-            className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-warmgray hover:text-accent transition-colors"
+            className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground hover:text-accent transition-colors"
+            title={t('inventory.addNewProduct')}
           >
             <Plus className="w-4 h-4" />
-            <span className="hidden xs:inline">{t('inventory.addNewProduct')}</span>
+            <span className="hidden sm:inline">{t('inventory.addNewProduct')}</span>
           </button>
         </div>
       </div>
@@ -246,8 +280,8 @@ export default function InventoryPage() {
           onClick={() => setSelectedCategory('all')}
           className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm transition-all whitespace-nowrap flex-shrink-0 ${
             selectedCategory === 'all'
-              ? 'bg-charcoal text-white'
-              : 'bg-transparent border border-sand text-warmgray hover:border-charcoal hover:text-charcoal'
+              ? 'bg-foreground text-background'
+              : 'bg-transparent border border-border text-muted-foreground hover:border-foreground hover:text-foreground'
           }`}
         >
           {t('common.all')}
@@ -258,8 +292,8 @@ export default function InventoryPage() {
             onClick={() => setSelectedCategory(cat.id)}
             className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm transition-all whitespace-nowrap flex-shrink-0 ${
               selectedCategory === cat.id
-                ? 'bg-charcoal text-white'
-                : 'bg-transparent border border-sand text-warmgray hover:border-charcoal hover:text-charcoal'
+                ? 'bg-foreground text-background'
+                : 'bg-transparent border border-border text-muted-foreground hover:border-foreground hover:text-foreground'
             }`}
           >
             {getCategoryName(cat)}
@@ -270,9 +304,9 @@ export default function InventoryPage() {
       {/* Сетка товаров */}
       {products.length === 0 ? (
         <div className="text-center py-12 sm:py-16">
-          <Package className="w-12 h-12 sm:w-16 sm:h-16 text-sand mx-auto mb-4" />
-          <p className="text-warmgray text-base sm:text-lg">{t('inventory.noProducts')}</p>
-          <p className="text-warmgray/70 text-xs sm:text-sm mt-2">{t('inventory.addBatchToStart')}</p>
+          <Package className="w-12 h-12 sm:w-16 sm:h-16 text-muted mx-auto mb-4" />
+          <p className="text-muted-foreground text-base sm:text-lg">{t('inventory.noProducts')}</p>
+          <p className="text-muted-foreground/70 text-xs sm:text-sm mt-2">{t('inventory.addBatchToStart')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
@@ -282,16 +316,16 @@ export default function InventoryPage() {
               <button
                 key={product.id}
                 onClick={() => handleProductClick(product)}
-                className="bg-white dark:bg-dark-surface border border-sand dark:border-dark-border rounded-lg p-3 sm:p-4 text-left transition-all hover:shadow-md hover:border-accent group"
+                className="bg-card border border-border rounded-lg p-3 sm:p-4 text-left transition-all hover:shadow-md hover:border-accent group"
               >
                 {/* Статус индикатор */}
                 <div className="flex items-start justify-between mb-2 sm:mb-3">
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-medium text-charcoal dark:text-cream group-hover:text-accent transition-colors text-sm sm:text-base truncate">
+                    <h3 className="font-medium text-foreground group-hover:text-accent transition-colors text-sm sm:text-base truncate">
                       {product.name}
                     </h3>
                     {category && (
-                      <span className="text-xs text-warmgray bg-sand/50 dark:bg-white/10 px-1.5 sm:px-2 py-0.5 rounded mt-1 inline-block truncate max-w-full">
+                      <span className="text-xs text-muted-foreground bg-muted px-1.5 sm:px-2 py-0.5 rounded mt-1 inline-block truncate max-w-full">
                         {getCategoryName(category)}
                       </span>
                     )}
@@ -305,14 +339,14 @@ export default function InventoryPage() {
                 </div>
 
                 {/* Информация о партиях */}
-                <div className="text-xs sm:text-sm text-warmgray dark:text-warmgray/80">
+                <div className="text-xs sm:text-sm text-muted-foreground">
                   {product.totalBatches === 0 ? (
-                    <span className="text-warmgray/50">{t('inventory.noBatches')}</span>
+                    <span className="text-muted-foreground/50">{t('inventory.noBatches')}</span>
                   ) : (
                     <div className="flex flex-wrap gap-x-1">
-                      <span><span className="font-medium text-charcoal dark:text-cream">{product.totalBatches}</span> {t('inventory.batches')}</span>
+                      <span><span className="font-medium text-foreground">{product.totalBatches}</span> {t('inventory.batches')}</span>
                       <span>•</span>
-                      <span><span className="font-medium text-charcoal dark:text-cream">{product.totalQuantity}</span> {t('inventory.units')}</span>
+                      <span><span className="font-medium text-foreground">{product.totalQuantity}</span> {t('inventory.units')}</span>
                     </div>
                   )}
                 </div>

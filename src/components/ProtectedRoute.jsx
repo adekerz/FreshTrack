@@ -54,10 +54,20 @@ export default function ProtectedRoute({
   // Показываем загрузку пока проверяется авторизация
   if (loading) {
     return (
-      <div className="min-h-screen bg-cream flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-sand border-t-accent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-warmgray">Проверка авторизации...</p>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="loader loader-md">
+            <div className="cell d-0" />
+            <div className="cell d-1" />
+            <div className="cell d-2" />
+            <div className="cell d-1" />
+            <div className="cell d-2" />
+            <div className="cell d-3" />
+            <div className="cell d-2" />
+            <div className="cell d-3" />
+            <div className="cell d-4" />
+          </div>
+          <p className="text-muted-foreground text-sm">Проверка авторизации...</p>
         </div>
       </div>
     )

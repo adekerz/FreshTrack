@@ -19,22 +19,23 @@ import {
   Settings,
   Check,
   AlertCircle,
-  Users,
   Tags,
   FileBox,
   Send,
   Palette,
   Database,
-  RefreshCw
+  RefreshCw,
+  Building2
 } from 'lucide-react'
 import NotificationRulesSettings from '../components/NotificationRulesSettings'
 import CustomContentSettings from '../components/CustomContentSettings'
 import GeneralSettings from '../components/settings/GeneralSettings'
-import UsersSettings from '../components/settings/UsersSettings'
+import OrganizationSettings from '../components/settings/OrganizationSettings'
 import CategoriesSettings from '../components/settings/CategoriesSettings'
 import TemplatesSettings from '../components/settings/TemplatesSettings'
 import TelegramSettings from '../components/settings/TelegramSettings'
 import ImportExportSettings from '../components/settings/ImportExportSettings'
+import BrandingSettings from '../components/settings/BrandingSettings'
 
 export default function SettingsPage() {
   const { t } = useTranslation()
@@ -81,7 +82,7 @@ export default function SettingsPage() {
   const adminTabs = [
     { id: 'profile', icon: User, label: t('settings.tabs.profile') },
     { id: 'general', icon: Settings, label: t('settings.tabs.general') || 'Общие' },
-    { id: 'users', icon: Users, label: t('settings.tabs.users') || 'Пользователи' },
+    { id: 'organization', icon: Building2, label: user?.role === 'SUPER_ADMIN' ? 'Организация' : (t('settings.tabs.users') || 'Пользователи') },
     { id: 'categories', icon: Tags, label: t('settings.tabs.categories') || 'Категории' },
     { id: 'templates', icon: FileBox, label: t('settings.tabs.templates') || 'Шаблоны' },
     { id: 'rules', icon: Bell, label: t('settings.tabs.rules') || 'Правила' },
@@ -116,7 +117,7 @@ export default function SettingsPage() {
   const renderProfile = () => (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-medium text-charcoal dark:text-cream mb-4">{t('settings.profile.title')}</h3>
+        <h3 className="text-lg font-medium text-foreground mb-4">{t('settings.profile.title')}</h3>
 
         <div className="space-y-4">
           {/* Аватар */}
@@ -125,26 +126,26 @@ export default function SettingsPage() {
               {user?.name?.[0] || 'U'}
             </div>
             <div>
-              <p className="font-medium text-charcoal dark:text-cream">{user?.name}</p>
-              <p className="text-sm text-warmgray dark:text-warmgray/80">{user?.email}</p>
+              <p className="font-medium text-foreground">{user?.name}</p>
+              <p className="text-sm text-muted-foreground">{user?.email}</p>
             </div>
           </div>
 
           {/* Информация */}
           <div className="grid sm:grid-cols-2 gap-4 pt-4">
             <div>
-              <label className="block text-sm text-warmgray mb-1">
+              <label className="block text-sm text-muted-foreground mb-1">
                 {t('settings.profile.login')}
               </label>
               <input
                 type="text"
                 value={user?.login || ''}
                 disabled
-                className="w-full px-3 py-2 border border-sand rounded-lg bg-cream/50 text-warmgray"
+                className="w-full px-3 py-2 border border-border rounded-lg bg-muted text-muted-foreground"
               />
             </div>
             <div>
-              <label className="block text-sm text-warmgray mb-1">
+              <label className="block text-sm text-muted-foreground mb-1">
                 {t('settings.profile.role')}
               </label>
               <input
@@ -155,14 +156,14 @@ export default function SettingsPage() {
                     : t('settings.profile.roleManager')
                 }
                 disabled
-                className="w-full px-3 py-2 border border-sand rounded-lg bg-cream/50 text-warmgray"
+                className="w-full px-3 py-2 border border-border rounded-lg bg-muted text-muted-foreground"
               />
             </div>
           </div>
 
           {/* Доступные отделы */}
           <div>
-            <label className="block text-sm text-warmgray mb-2">
+            <label className="block text-sm text-muted-foreground mb-2">
               {t('settings.profile.departments')}
             </label>
             <div className="flex flex-wrap gap-2">
@@ -171,7 +172,7 @@ export default function SettingsPage() {
                 return (
                   <span
                     key={deptId}
-                    className="px-3 py-1 bg-sand/50 text-charcoal text-sm rounded-full"
+                    className="px-3 py-1 bg-muted text-foreground text-sm rounded-full"
                   >
                     {dept?.name || deptId}
                   </span>
@@ -188,14 +189,14 @@ export default function SettingsPage() {
   const renderNotifications = () => (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-medium text-charcoal dark:text-cream mb-4">
+        <h3 className="text-lg font-medium text-foreground mb-4">
           {t('settings.notifications.title')}
         </h3>
 
         <div className="space-y-4">
           {/* Дни предупреждения */}
           <div>
-            <label className="block text-sm text-warmgray mb-1">
+            <label className="block text-sm text-muted-foreground mb-1">
               {t('settings.notifications.warningDays')}
             </label>
             <select
@@ -206,7 +207,7 @@ export default function SettingsPage() {
                   warningDays: parseInt(e.target.value)
                 }))
               }
-              className="w-full sm:w-48 px-3 py-2 border border-sand rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+              className="w-full sm:w-48 px-3 py-2 border border-border rounded-lg bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
             >
               {[3, 5, 7, 10, 14].map((days) => (
                 <option key={days} value={days}>
@@ -218,7 +219,7 @@ export default function SettingsPage() {
 
           {/* Критические дни */}
           <div>
-            <label className="block text-sm text-warmgray mb-1">
+            <label className="block text-sm text-muted-foreground mb-1">
               {t('settings.notifications.criticalDays')}
             </label>
             <select
@@ -229,7 +230,7 @@ export default function SettingsPage() {
                   criticalDays: parseInt(e.target.value)
                 }))
               }
-              className="w-full sm:w-48 px-3 py-2 border border-sand rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+              className="w-full sm:w-48 px-3 py-2 border border-border rounded-lg bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
             >
               {[1, 2, 3, 5].map((days) => (
                 <option key={days} value={days}>
@@ -241,7 +242,7 @@ export default function SettingsPage() {
 
           {/* Время уведомления */}
           <div>
-            <label className="block text-sm text-warmgray mb-1">
+            <label className="block text-sm text-muted-foreground mb-1">
               {t('settings.notifications.time')}
             </label>
             <input
@@ -253,7 +254,7 @@ export default function SettingsPage() {
                   notificationTime: e.target.value
                 }))
               }
-              className="w-full sm:w-48 px-3 py-2 border border-sand rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+              className="w-full sm:w-48 px-3 py-2 border border-border rounded-lg bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
             />
           </div>
 
@@ -269,9 +270,9 @@ export default function SettingsPage() {
                   enableWeekends: e.target.checked
                 }))
               }
-              className="w-4 h-4 text-accent border-sand rounded focus:ring-accent"
+              className="w-4 h-4 text-accent border-border rounded focus:ring-accent"
             />
-            <label htmlFor="weekends" className="text-sm text-charcoal">
+            <label htmlFor="weekends" className="text-sm text-foreground">
               {t('settings.notifications.weekends')}
             </label>
           </div>
@@ -284,7 +285,7 @@ export default function SettingsPage() {
   const renderLanguage = () => (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-medium text-charcoal dark:text-cream mb-4">{t('settings.language.title')}</h3>
+        <h3 className="text-lg font-medium text-foreground mb-4">{t('settings.language.title')}</h3>
 
         <div className="grid sm:grid-cols-3 gap-3">
           {languages.map((lang) => (
@@ -294,13 +295,13 @@ export default function SettingsPage() {
               className={`flex items-center gap-3 p-4 rounded-lg border transition-all ${
                 language === lang.code
                   ? 'border-accent bg-accent/5'
-                  : 'border-sand hover:border-warmgray'
+                  : 'border-border hover:border-muted-foreground'
               }`}
             >
               <span className="text-2xl">{lang.flag}</span>
               <span
                 className={`text-sm font-medium ${
-                  language === lang.code ? 'text-accent' : 'text-charcoal'
+                  language === lang.code ? 'text-accent' : 'text-foreground'
                 }`}
               >
                 {lang.name}
@@ -312,11 +313,11 @@ export default function SettingsPage() {
       </div>
 
       {/* Onboarding Tour Reset */}
-      <div className="pt-6 border-t border-sand">
-        <h3 className="text-lg font-medium text-charcoal dark:text-cream mb-4">
+      <div className="pt-6 border-t border-border">
+        <h3 className="text-lg font-medium text-foreground mb-4">
           {t('settings.onboarding.title') || 'Guided Tour'}
         </h3>
-        <p className="text-sm text-warmgray mb-4">
+        <p className="text-sm text-muted-foreground mb-4">
           {t('settings.onboarding.description') || 'Restart the guided tour to learn about the app features.'}
         </p>
         <button
@@ -338,35 +339,35 @@ export default function SettingsPage() {
   const renderSystem = () => (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-medium text-charcoal dark:text-cream mb-4">{t('settings.system.title')}</h3>
+        <h3 className="text-lg font-medium text-foreground mb-4">{t('settings.system.title')}</h3>
 
         <div className="space-y-4">
           {/* Telegram настройки */}
-          <div className="p-4 bg-cream/50 rounded-lg">
+          <div className="p-4 bg-muted rounded-lg">
             <div className="flex items-center gap-2 mb-2">
-              <Shield className="w-5 h-5 text-charcoal" />
-              <span className="font-medium text-charcoal">Telegram Bot</span>
+              <Shield className="w-5 h-5 text-foreground" />
+              <span className="font-medium text-foreground">Telegram Bot</span>
             </div>
-            <p className="text-sm text-warmgray mb-3">{t('settings.system.telegramDescription')}</p>
+            <p className="text-sm text-muted-foreground mb-3">{t('settings.system.telegramDescription')}</p>
             <div className="text-sm">
-              <p className="text-warmgray">
-                Chat ID: <span className="text-charcoal font-mono">-5090103384</span>
+              <p className="text-muted-foreground">
+                Chat ID: <span className="text-foreground font-mono">-5090103384</span>
               </p>
-              <p className="text-warmgray">
-                Bot: <span className="text-charcoal">@FreshTrackBot</span>
+              <p className="text-muted-foreground">
+                Bot: <span className="text-foreground">@FreshTrackBot</span>
               </p>
             </div>
           </div>
 
           {/* Версия */}
-          <div className="flex items-center justify-between py-3 border-t border-sand">
-            <span className="text-sm text-warmgray">{t('settings.system.version')}</span>
-            <span className="text-sm text-charcoal font-mono">1.0.0</span>
+          <div className="flex items-center justify-between py-3 border-t border-border">
+            <span className="text-sm text-muted-foreground">{t('settings.system.version')}</span>
+            <span className="text-sm text-foreground font-mono">1.0.0</span>
           </div>
 
           {/* База данных */}
-          <div className="flex items-center justify-between py-3 border-t border-sand">
-            <span className="text-sm text-warmgray">{t('settings.system.database')}</span>
+          <div className="flex items-center justify-between py-3 border-t border-border">
+            <span className="text-sm text-muted-foreground">{t('settings.system.database')}</span>
             <span className="text-sm text-success font-medium">
               {t('settings.system.connected')}
             </span>
@@ -380,8 +381,8 @@ export default function SettingsPage() {
     <div className="space-y-4 sm:space-y-6 p-1 sm:p-0">
       {/* Заголовок */}
       <div>
-        <h1 className="text-xl sm:text-2xl font-light text-charcoal dark:text-cream">{t('settings.title')}</h1>
-        <p className="text-warmgray dark:text-warmgray/80 text-xs sm:text-sm mt-1">{t('settings.subtitle')}</p>
+        <h1 className="text-xl sm:text-2xl font-light text-foreground">{t('settings.title')}</h1>
+        <p className="text-muted-foreground text-xs sm:text-sm mt-1">{t('settings.subtitle')}</p>
       </div>
 
       {/* Сообщение */}
@@ -405,46 +406,46 @@ export default function SettingsPage() {
       <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
         {/* Табы - горизонтальная прокрутка на мобильных */}
         <div className="lg:w-64 shrink-0">
-          <div className="bg-white dark:bg-dark-surface rounded-xl border border-sand dark:border-dark-border p-1.5 sm:p-2 flex lg:flex-col gap-1 overflow-x-auto lg:overflow-visible">
+          <div className="bg-card rounded-xl border border-border p-1.5 sm:p-2 flex lg:flex-col gap-1 overflow-x-auto lg:overflow-visible">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-lg text-xs sm:text-sm transition-colors whitespace-nowrap flex-shrink-0 lg:w-full ${
                   activeTab === tab.id
-                    ? 'bg-charcoal dark:bg-accent text-white'
-                    : 'text-warmgray hover:bg-sand/50 dark:hover:bg-white/10 hover:text-charcoal dark:hover:text-cream'
+                    ? 'bg-foreground text-background'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                 }`}
               >
                 <tab.icon className="w-4 h-4 sm:w-5 sm:h-5" />
-                <span className="hidden xs:inline lg:inline">{tab.label}</span>
+                <span className="hidden sm:inline">{tab.label}</span>
               </button>
             ))}
           </div>
         </div>
 
         {/* Контент */}
-        <div className="flex-1 bg-white dark:bg-dark-surface rounded-xl border border-sand dark:border-dark-border p-4 sm:p-6">
+        <div className="flex-1 bg-card rounded-xl border border-border p-4 sm:p-6">
           {activeTab === 'profile' && renderProfile()}
           {activeTab === 'notifications' && renderNotifications()}
           {activeTab === 'language' && renderLanguage()}
           {activeTab === 'general' && userIsAdmin && <GeneralSettings />}
-          {activeTab === 'users' && userIsAdmin && <UsersSettings />}
+          {activeTab === 'organization' && userIsAdmin && <OrganizationSettings />}
           {activeTab === 'categories' && userIsAdmin && <CategoriesSettings />}
           {activeTab === 'templates' && userIsAdmin && <TemplatesSettings />}
           {activeTab === 'rules' && userIsAdmin && <NotificationRulesSettings />}
           {activeTab === 'telegram' && userIsAdmin && <TelegramSettings />}
-          {activeTab === 'branding' && userIsAdmin && <CustomContentSettings />}
+          {activeTab === 'branding' && userIsAdmin && <BrandingSettings />}
           {activeTab === 'import-export' && userIsAdmin && <ImportExportSettings />}
           {activeTab === 'system' && userIsAdmin && renderSystem()}
 
           {/* Кнопка сохранения (только для вкладок уведомлений у обычных пользователей) */}
           {activeTab === 'notifications' && !userIsAdmin && (
-              <div className="flex justify-end pt-4 sm:pt-6 mt-4 sm:mt-6 border-t border-sand">
+              <div className="flex justify-end pt-4 sm:pt-6 mt-4 sm:mt-6 border-t border-border">
                 <button
                   onClick={handleSave}
                   disabled={saving}
-                  className="flex items-center gap-2 px-4 sm:px-6 py-2 bg-charcoal text-white rounded-lg text-xs sm:text-sm hover:bg-charcoal/90 transition-colors disabled:opacity-50 w-full sm:w-auto justify-center"
+                  className="flex items-center gap-2 px-4 sm:px-6 py-2 bg-foreground text-background rounded-lg text-xs sm:text-sm hover:bg-foreground/90 transition-colors disabled:opacity-50 w-full sm:w-auto justify-center"
                 >
                   {saving ? t('common.loading') : t('common.save')}
                 </button>

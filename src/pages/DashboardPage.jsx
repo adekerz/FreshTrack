@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Package,
@@ -48,8 +48,23 @@ const getDeptIcon = (dept) => {
 export default function DashboardPage() {
   const { t } = useTranslation()
   const { user } = useAuth()
-  const { getStats, getAlerts, collectBatch, departments, loading } = useProducts()
+  const { getStats, getAlerts, collectBatch, departments, loading, refresh } = useProducts()
   const [showAddBatchModal, setShowAddBatchModal] = useState(false)
+  const [retryCount, setRetryCount] = useState(0)
+
+  // Автоматический retry когда нет данных (БД ещё загружается)
+  useEffect(() => {
+    if (!loading && departments.length === 0 && retryCount < 10) {
+      const timer = setTimeout(() => {
+        setRetryCount(prev => prev + 1)
+        refresh()
+      }, 2000)
+      return () => clearTimeout(timer)
+    }
+    if (departments.length > 0) {
+      setRetryCount(0)
+    }
+  }, [loading, departments.length, retryCount, refresh])
 
   // Get greeting based on time of day
   const getGreeting = () => {
@@ -59,11 +74,40 @@ export default function DashboardPage() {
     return t('dashboard.goodEvening') || 'Good evening'
   }
 
-  // Show skeleton while loading
-  if (loading) {
+  // Show skeleton while loading (когда есть данные)
+  if (loading && departments.length > 0) {
     return (
       <div className="p-4 sm:p-6">
         <SkeletonDashboard />
+      </div>
+    )
+  }
+
+  // Загрузка БД (нет данных)
+  if (departments.length === 0) {
+    return (
+      <div className="flex-1 flex items-center justify-center py-16 sm:py-24">
+        <div className="flex flex-col items-center gap-6">
+          <div className="loader loader-lg">
+            <div className="cell d-0" />
+            <div className="cell d-1" />
+            <div className="cell d-2" />
+            <div className="cell d-1" />
+            <div className="cell d-2" />
+            <div className="cell d-3" />
+            <div className="cell d-2" />
+            <div className="cell d-3" />
+            <div className="cell d-4" />
+          </div>
+          <div className="text-center">
+            <p className="text-foreground font-medium mb-1">
+              {loading ? t('common.loading') : t('inventory.connectingDatabase') || 'Подключение к базе данных...'}
+            </p>
+            <p className="text-muted-foreground text-sm animate-pulse">
+              {retryCount > 0 && `${t('common.attempt') || 'Попытка'} ${retryCount}/10`}
+            </p>
+          </div>
+        </div>
       </div>
     )
   }
@@ -87,8 +131,8 @@ export default function DashboardPage() {
       title: t('dashboard.totalBatches'),
       value: stats.total,
       icon: Package,
-      color: 'text-charcoal',
-      bgColor: 'bg-sand/50'
+      color: 'text-foreground',
+      bgColor: 'bg-muted'
     },
     {
       title: t('dashboard.goodStatus'),
@@ -119,10 +163,10 @@ export default function DashboardPage() {
       <div className="bg-gradient-to-r from-accent/5 to-transparent dark:from-accent/10 dark:to-transparent rounded-xl p-4 sm:p-6 animate-fade-in">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-xl sm:text-2xl font-serif text-charcoal dark:text-cream">
+            <h1 className="text-xl sm:text-2xl font-serif text-foreground">
               {getGreeting()}, {user?.name?.split(' ')[0] || t('common.user')}
             </h1>
-            <p className="text-sm text-warmgray dark:text-warmgray/80 mt-1">
+            <p className="text-sm text-muted-foreground mt-1">
               {t('dashboard.summary') || 'Here is your inventory overview'}
             </p>
           </div>
@@ -160,7 +204,7 @@ export default function DashboardPage() {
           return (
             <div
               key={card.title}
-              className={`bg-white dark:bg-dark-surface rounded-xl sm:rounded-lg p-4 sm:p-6 border border-sand dark:border-dark-border animate-slide-up hover-lift ${isCritical ? 'critical-highlight' : ''}`}
+              className={`bg-card rounded-xl sm:rounded-lg p-4 sm:p-6 border border-border animate-slide-up hover-lift ${isCritical ? 'critical-highlight' : ''}`}
               style={{ animationDelay: `${index * 0.1}s`, animationFillMode: 'backwards' }}
             >
               <div className="flex items-center justify-between mb-2 sm:mb-4">
@@ -171,7 +215,7 @@ export default function DashboardPage() {
                 </div>
               </div>
               <div className={`text-2xl sm:text-3xl font-serif mb-0.5 sm:mb-1 ${card.color}`}>{card.value}</div>
-              <div className="text-xs sm:text-sm text-warmgray line-clamp-1">{card.title}</div>
+              <div className="text-xs sm:text-sm text-muted-foreground line-clamp-1">{card.title}</div>
             </div>
           )
         })}
@@ -180,10 +224,10 @@ export default function DashboardPage() {
       {/* Отделы - адаптивный Bento Grid */}
       <div>
         <div className="flex items-center justify-between mb-4 sm:mb-6">
-          <h2 className="font-serif text-lg sm:text-xl text-charcoal dark:text-cream">{t('dashboard.departments')}</h2>
+          <h2 className="font-serif text-lg sm:text-xl text-foreground">{t('dashboard.departments')}</h2>
           <Link
             to="/inventory"
-            className="text-xs sm:text-sm text-warmgray hover:text-accent transition-colors flex items-center gap-1"
+            className="text-xs sm:text-sm text-muted-foreground hover:text-accent transition-colors flex items-center gap-1"
           >
             {t('dashboard.viewAll')}
             <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -197,7 +241,7 @@ export default function DashboardPage() {
               <Link
                 key={dept.id}
                 to={`/inventory/${dept.id}`}
-                className="interactive-card bg-white dark:bg-dark-surface rounded-xl sm:rounded-lg p-4 sm:p-6 border border-sand dark:border-dark-border group animate-slide-up focus-ring"
+                className="interactive-card bg-card rounded-xl sm:rounded-lg p-4 sm:p-6 border border-border group animate-slide-up focus-ring"
                 style={{ animationDelay: `${(index + 4) * 0.1}s`, animationFillMode: 'backwards' }}
               >
                 <div className="flex items-center gap-3 sm:gap-4">
@@ -208,12 +252,12 @@ export default function DashboardPage() {
                     <Icon className="w-6 h-6 sm:w-7 sm:h-7" style={{ color: dept.color || '#C4A35A' }} />
                   </div>
                   <div className="min-w-0">
-                    <h3 className="font-medium text-charcoal dark:text-cream group-hover:text-accent transition-colors truncate">
+                    <h3 className="font-medium text-foreground group-hover:text-accent transition-colors truncate">
                       {dept.name}
                     </h3>
-                    <p className="text-xs sm:text-sm text-warmgray">{t('dashboard.viewInventory')}</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground">{t('dashboard.viewInventory')}</p>
                   </div>
-                  <ArrowRight className="w-5 h-5 text-warmgray/50 group-hover:text-accent group-hover:translate-x-1 transition-all ml-auto" />
+                  <ArrowRight className="w-5 h-5 text-muted-foreground/50 group-hover:text-accent group-hover:translate-x-1 transition-all ml-auto" />
                 </div>
               </Link>
             )
@@ -224,11 +268,11 @@ export default function DashboardPage() {
       {/* Требуют внимания - компактный вид на мобильных */}
       <div>
         <div className="flex items-center justify-between mb-4 sm:mb-6">
-          <h2 className="font-serif text-lg sm:text-xl text-charcoal dark:text-cream">{t('dashboard.needsAttention')}</h2>
+          <h2 className="font-serif text-lg sm:text-xl text-foreground">{t('dashboard.needsAttention')}</h2>
           {alerts.length > 0 && (
             <Link
               to="/notifications"
-              className="text-xs sm:text-sm text-warmgray hover:text-accent transition-colors flex items-center gap-1"
+              className="text-xs sm:text-sm text-muted-foreground hover:text-accent transition-colors flex items-center gap-1"
             >
               {t('dashboard.viewAll')}
               <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -239,27 +283,27 @@ export default function DashboardPage() {
         {alerts.length === 0 ? (
           <div className="bg-success/5 border border-success/20 rounded-xl sm:rounded-lg p-6 sm:p-8 text-center animate-fade-in">
             <Check className="w-10 h-10 sm:w-12 sm:h-12 text-success mx-auto mb-3 sm:mb-4" />
-            <h3 className="font-serif text-base sm:text-lg text-charcoal dark:text-cream mb-1 sm:mb-2">{t('dashboard.allGood')}</h3>
-            <p className="text-sm text-warmgray">{t('dashboard.noExpiring')}</p>
+            <h3 className="font-serif text-base sm:text-lg text-foreground mb-1 sm:mb-2">{t('dashboard.allGood')}</h3>
+            <p className="text-sm text-muted-foreground">{t('dashboard.noExpiring')}</p>
           </div>
         ) : (
           <div className="space-y-2 sm:space-y-3">
             {alerts.slice(0, 5).map((alert, index) => (
               <div
                 key={alert.id}
-                className={`bg-white dark:bg-dark-surface rounded-xl sm:rounded-lg p-3 sm:p-4 border-l-4 ${
+                className={`bg-card rounded-xl sm:rounded-lg p-3 sm:p-4 border-l-4 ${
                   alert.daysLeft < 0
                     ? 'border-l-danger'
                     : alert.daysLeft <= 3
                       ? 'border-l-danger'
                       : 'border-l-warning'
-                } border border-sand dark:border-dark-border animate-slide-up`}
+                } border border-border animate-slide-up`}
                 style={{ animationDelay: `${index * 0.05}s`, animationFillMode: 'backwards' }}
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-2 flex-wrap">
-                      <h3 className="font-medium text-charcoal dark:text-cream text-sm sm:text-base truncate">{alert.productName}</h3>
+                      <h3 className="font-medium text-foreground text-sm sm:text-base truncate">{alert.productName}</h3>
                       {alert.department && (
                         <span
                           className="text-xs px-2 py-0.5 rounded flex-shrink-0"
@@ -273,7 +317,7 @@ export default function DashboardPage() {
                       )}
                     </div>
 
-                    <div className="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm text-warmgray">
+                    <div className="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
                       <div className="flex items-center gap-1">
                         <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
                         {formatDate(alert.expiryDate)}
@@ -300,14 +344,6 @@ export default function DashboardPage() {
                           : t('status.expiresInDays', { days: alert.daysLeft })}
                     </div>
                   </div>
-
-                  <button
-                    onClick={() => collectBatch(alert.id)}
-                    className="flex items-center justify-center gap-1 px-3 sm:px-4 py-2 text-xs sm:text-sm border border-success text-success rounded-lg hover:bg-success hover:text-white transition-colors w-full sm:w-auto"
-                  >
-                    <Check className="w-4 h-4" />
-                    {t('product.collect')}
-                  </button>
                 </div>
               </div>
             ))}
@@ -315,7 +351,7 @@ export default function DashboardPage() {
             {alerts.length > 5 && (
               <Link
                 to="/notifications"
-                className="block text-center py-3 text-sm text-warmgray hover:text-accent transition-colors"
+                className="block text-center py-3 text-sm text-muted-foreground hover:text-accent transition-colors"
               >
                 {t('dashboard.showMore', { count: alerts.length - 5 })}
               </Link>

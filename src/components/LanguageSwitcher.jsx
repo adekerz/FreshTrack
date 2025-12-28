@@ -44,18 +44,18 @@ export default function LanguageSwitcher() {
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
           'flex items-center gap-2 px-3 py-2 rounded transition-all duration-200',
-          'text-sm text-charcoal dark:text-cream hover:bg-sand dark:hover:bg-white/10',
-          'border border-transparent hover:border-sand dark:hover:border-white/20',
-          isOpen && 'bg-sand dark:bg-white/10 border-sand dark:border-white/20'
+          'text-sm text-foreground hover:bg-muted',
+          'border border-transparent hover:border-border',
+          isOpen && 'bg-muted border-border'
         )}
         aria-expanded={isOpen}
         aria-haspopup="listbox"
       >
-        <Globe className="w-4 h-4 text-warmgray" />
+        <Globe className="w-4 h-4 text-muted-foreground" />
         <span className="font-medium">{currentLanguage?.shortName}</span>
         <ChevronDown
           className={cn(
-            'w-3.5 h-3.5 text-warmgray transition-transform duration-200',
+            'w-3.5 h-3.5 text-muted-foreground transition-transform duration-200',
             isOpen && 'rotate-180'
           )}
         />
@@ -64,7 +64,7 @@ export default function LanguageSwitcher() {
       {/* Dropdown меню */}
       <div
         className={cn(
-          'absolute right-0 top-full mt-2 w-40 bg-white dark:bg-dark-surface rounded-lg shadow-lg border border-sand dark:border-dark-border',
+          'absolute right-0 top-full mt-2 w-40 bg-card rounded-lg shadow-lg border border-border',
           'overflow-hidden z-50',
           'transition-all duration-200 origin-top-right',
           isOpen
@@ -80,8 +80,8 @@ export default function LanguageSwitcher() {
             onClick={() => handleSelect(lang.code)}
             className={cn(
               'w-full flex items-center gap-3 px-4 py-3 text-left transition-colors',
-              'text-sm hover:bg-sand/50 dark:hover:bg-white/10',
-              language === lang.code ? 'bg-sand/30 dark:bg-white/10 text-charcoal dark:text-cream font-medium' : 'text-warmgray'
+              'text-sm hover:bg-muted',
+              language === lang.code ? 'bg-muted text-foreground font-medium' : 'text-muted-foreground'
             )}
             role="option"
             aria-selected={language === lang.code}
@@ -89,7 +89,7 @@ export default function LanguageSwitcher() {
             <span
               className={cn(
                 'w-6 h-6 flex items-center justify-center rounded text-xs font-medium',
-                language === lang.code ? 'bg-accent text-white' : 'bg-sand dark:bg-white/20 text-warmgray'
+                language === lang.code ? 'bg-accent text-white' : 'bg-muted text-muted-foreground'
               )}
             >
               {lang.shortName}

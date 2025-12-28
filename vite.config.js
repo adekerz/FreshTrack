@@ -12,6 +12,8 @@ export default defineConfig({
     },
   },
   build: {
+    // Target modern browsers for better bundle size
+    target: 'esnext',
     // Enable source maps for debugging
     sourcemap: false,
     // Minification settings
@@ -22,7 +24,7 @@ export default defineConfig({
         drop_debugger: true,
       },
     },
-    // Chunk splitting for better caching
+    // Chunk splitting for better caching and lazy loading
     rollupOptions: {
       output: {
         manualChunks: {
@@ -30,7 +32,7 @@ export default defineConfig({
           'react-vendor': ['react', 'react-dom', 'react-router-dom'],
           // Utility libraries
           'utils-vendor': ['date-fns', 'clsx'],
-          // Icons
+          // Icons - separate chunk for tree-shaking
           'icons-vendor': ['lucide-react'],
         },
       },
@@ -41,5 +43,10 @@ export default defineConfig({
   // Performance optimizations
   optimizeDeps: {
     include: ['react', 'react-dom', 'react-router-dom', 'date-fns', 'lucide-react'],
+  },
+  // PWA & Mobile optimizations
+  server: {
+    // Enable HTTPS for PWA testing locally
+    // https: true,
   },
 })

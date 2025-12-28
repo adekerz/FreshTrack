@@ -1,6 +1,6 @@
 /**
- * TelegramSettings - Настройки Telegram бота
- * Управление токеном, chatId, шаблонами сообщений
+ * TelegramSettings - Настройки Telegram уведомлений
+ * Шаблоны сообщений и управление привязанными чатами
  */
 
 import { useState, useEffect } from 'react'
@@ -8,25 +8,23 @@ import { useTranslation } from '../../context/LanguageContext'
 import { useToast } from '../../context/ToastContext'
 import { apiFetch } from '../../services/api'
 import { 
-  Send, 
   Save, 
   RefreshCw, 
   Check, 
   AlertCircle,
-  Eye,
-  EyeOff,
-  Clock,
-  MessageSquare
+  MessageSquare,
+  ExternalLink,
+  Users,
+  Trash2,
+  Bot
 } from 'lucide-react'
+
+const BOT_USERNAME = 'FreshTrackNotifyBot' // Имя бота
 
 export default function TelegramSettings() {
   const { t } = useTranslation()
   const { addToast } = useToast()
   const [settings, setSettings] = useState({
-    botToken: '',
-    chatId: '-5090103384',
-    enabled: true,
-    scheduleTime: '09:00',
     messageTemplates: {
       dailyReport: '📊 Ежедневный отчёт FreshTrack\n\n✅ В норме: {good}\n⚠️ Скоро истекает: {warning}\n🔴 Просрочено: {expired}',
       expiryWarning: '⚠️ Внимание! {product} истекает {date} ({quantity} шт)',
@@ -34,27 +32,39 @@ export default function TelegramSettings() {
       collectionConfirm: '✅ Собрано: {product} — {quantity} шт\nПричина: {reason}'
     }
   })
+  const [linkedChats, setLinkedChats] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [testing, setTesting] = useState(false)
   const [message, setMessage] = useState(null)
-  const [showToken, setShowToken] = useState(false)
 
   useEffect(() => {
     loadSettings()
+    loadLinkedChats()
   }, [])
 
   const loadSettings = async () => {
     setLoading(true)
     try {
       const data = await apiFetch('/settings/telegram')
-      if (data) {
-        setSettings(prev => ({ ...prev, ...data }))
+      if (data?.messageTemplates) {
+        setSettings(prev => ({ 
+          ...prev, 
+          messageTemplates: { ...prev.messageTemplates, ...data.messageTemplates }
+        }))
       }
     } catch (error) {
       // Error logged by apiFetch
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadLinkedChats = async () => {
+    try {
+      const data = await apiFetch('/settings/telegram/chats')
+      setLinkedChats(data.chats || [])
+    } catch (error) {
+      // Error logged by apiFetch
     }
   }
 
@@ -76,29 +86,15 @@ export default function TelegramSettings() {
     }
   }
 
-  const testTelegram = async () => {
-    setTesting(true)
+  const unlinkChat = async (chatId) => {
     try {
-      const response = await apiFetch('/notifications/test-telegram', {
-        method: 'POST'
+      await apiFetch(`/settings/telegram/chats/${chatId}`, {
+        method: 'DELETE'
       })
-      setMessage({ 
-        type: response.success ? 'success' : 'error', 
-        text: response.success 
-          ? (t('telegram.testSuccess') || 'Тестовое сообщение отправлено!')
-          : (t('telegram.testError') || 'Ошибка отправки')
-      })
-      if (response.success) {
-        addToast(t('toast.telegramTestSuccess'), 'success')
-      } else {
-        addToast(t('toast.telegramTestError'), 'error')
-      }
+      addToast(t('telegram.chatUnlinked') || 'Чат отвязан', 'success')
+      loadLinkedChats()
     } catch (error) {
-      setMessage({ type: 'error', text: t('telegram.testError') || 'Ошибка отправки' })
-      addToast(t('toast.telegramTestError'), 'error')
-    } finally {
-      setTesting(false)
-      setTimeout(() => setMessage(null), 3000)
+      addToast(t('telegram.chatUnlinkError') || 'Ошибка отвязки чата', 'error')
     }
   }
 
@@ -112,10 +108,15 @@ export default function TelegramSettings() {
     })
   }
 
+  const openAddBotLink = () => {
+    // Открываем ссылку для добавления бота в группу
+    window.open(`https://t.me/${BOT_USERNAME}?startgroup=setup`, '_blank')
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <RefreshCw className="w-6 h-6 animate-spin text-warmgray" />
+        <RefreshCw className="w-6 h-6 animate-spin text-muted-foreground" />
       </div>
     )
   }
@@ -123,169 +124,177 @@ export default function TelegramSettings() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-charcoal">{t('settings.telegram.title') || 'Telegram'}</h2>
-        <p className="text-sm text-warmgray mt-1">{t('telegram.description') || 'Настройки Telegram-бота для уведомлений'}</p>
+        <h2 className="text-xl font-semibold text-foreground">{t('settings.telegram.title') || 'Telegram уведомления'}</h2>
+        <p className="text-sm text-muted-foreground mt-1">{t('telegram.description') || 'Настройка шаблонов и управление чатами'}</p>
       </div>
 
       {message && (
         <div className={`flex items-center gap-2 p-4 rounded-lg ${
           message.type === 'success' 
-            ? 'bg-green-50 text-green-800 border border-green-200' 
-            : 'bg-red-50 text-red-800 border border-red-200'
+            ? 'bg-success/10 text-success border border-success/20' 
+            : 'bg-danger/10 text-danger border border-danger/20'
         }`}>
           {message.type === 'success' ? <Check className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
           {message.text}
         </div>
       )}
 
-      {/* Основные настройки */}
-      <div className="p-6 border border-sand rounded-xl bg-white">
-        <h3 className="font-medium text-charcoal mb-4">{t('telegram.connection') || 'Подключение'}</h3>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label className="block text-sm font-medium text-charcoal mb-2">Bot Token</label>
-            <div className="relative">
-              <input 
-                type={showToken ? 'text' : 'password'}
-                value={settings.botToken}
-                onChange={(e) => setSettings({...settings, botToken: e.target.value})}
-                placeholder="123456789:ABC-DEF..."
-                className="w-full px-4 py-2.5 border border-sand rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent pr-10"
-              />
-              <button 
-                type="button"
-                onClick={() => setShowToken(!showToken)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-warmgray hover:text-charcoal"
-              >
-                {showToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-charcoal mb-2">Chat ID</label>
-            <input 
-              value={settings.chatId}
-              onChange={(e) => setSettings({...settings, chatId: e.target.value})}
-              placeholder="-1001234567890"
-              className="w-full px-4 py-2.5 border border-sand rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
-            />
-          </div>
-        </div>
-
-        <div className="flex items-center gap-6 mt-6">
-          <label className="flex items-center gap-3 cursor-pointer">
-            <input 
-              type="checkbox"
-              checked={settings.enabled}
-              onChange={(e) => setSettings({...settings, enabled: e.target.checked})}
-              className="w-5 h-5 text-accent border-sand rounded focus:ring-accent"
-            />
-            <span className="text-charcoal">{t('telegram.enabled') || 'Уведомления включены'}</span>
-          </label>
-
-          <button 
-            onClick={testTelegram}
-            disabled={testing}
-            className="flex items-center gap-2 px-4 py-2 border border-sand rounded-lg hover:bg-cream transition-colors disabled:opacity-50"
-          >
-            {testing ? (
-              <RefreshCw className="w-4 h-4 animate-spin" />
-            ) : (
-              <Send className="w-4 h-4" />
-            )}
-            {t('telegram.test') || 'Тест отправки'}
-          </button>
-        </div>
-      </div>
-
-      {/* Расписание */}
-      <div className="p-6 border border-sand rounded-xl bg-white">
-        <h3 className="font-medium text-charcoal mb-4 flex items-center gap-2">
-          <Clock className="w-5 h-5" />
-          {t('telegram.schedule') || 'Расписание'}
+      {/* Добавить бота в чат */}
+      <div className="p-6 border border-border rounded-xl bg-card">
+        <h3 className="font-medium text-foreground mb-4 flex items-center gap-2">
+          <Bot className="w-5 h-5" />
+          {t('telegram.addBot') || 'Добавить бота в чат'}
         </h3>
         
-        <div className="flex items-center gap-4">
-          <div>
-            <label className="block text-sm text-warmgray mb-1">
-              {t('telegram.scheduleTime') || 'Время ежедневного отчёта'}
-            </label>
-            <input 
-              type="time"
-              value={settings.scheduleTime}
-              onChange={(e) => setSettings({...settings, scheduleTime: e.target.value})}
-              className="px-4 py-2.5 border border-sand rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
-            />
+        <p className="text-sm text-muted-foreground mb-4">
+          {t('telegram.addBotDescription') || 'Добавьте бота в групповой чат Telegram и привяжите его к отелю или отделу для получения уведомлений.'}
+        </p>
+
+        <div className="bg-muted/50 rounded-lg p-4 mb-4">
+          <h4 className="text-sm font-medium text-foreground mb-2">{t('telegram.setupSteps') || 'Инструкция:'}</h4>
+          <ol className="text-sm text-muted-foreground space-y-2 list-decimal list-inside">
+            <li>{t('telegram.step1') || 'Нажмите кнопку "Добавить бота в чат" ниже'}</li>
+            <li>{t('telegram.step2') || 'Выберите группу в Telegram'}</li>
+            <li>{t('telegram.step3') || 'В группе отправьте команду:'} <code className="bg-background px-2 py-0.5 rounded text-accent">/link отель:Название</code></li>
+            <li>{t('telegram.step4') || 'Для привязки к отделу:'} <code className="bg-background px-2 py-0.5 rounded text-accent">/link отель:Название департамент:Название</code></li>
+          </ol>
+        </div>
+
+        <div className="bg-muted/50 rounded-lg p-4 mb-4">
+          <h4 className="text-sm font-medium text-foreground mb-2">{t('telegram.availableCommands') || 'Доступные команды:'}</h4>
+          <div className="text-sm text-muted-foreground space-y-1 font-mono">
+            <div><code>/link отель:Название</code> — привязать к отелю</div>
+            <div><code>/link отель:Название департамент:Кухня</code> — привязать к отделу</div>
+            <div><code>/status</code> — показать статус чата</div>
+            <div><code>/unlink</code> — отвязать чат</div>
+            <div><code>/notify on|off</code> — включить/выключить уведомления</div>
+            <div><code>/filter critical|warning|expired</code> — фильтр типов</div>
+            <div><code>/help</code> — справка</div>
           </div>
         </div>
+
+        <button 
+          onClick={openAddBotLink}
+          className="flex items-center gap-2 px-4 py-2.5 bg-[#0088cc] text-white rounded-lg hover:bg-[#0088cc]/90 transition-colors"
+        >
+          <ExternalLink className="w-4 h-4" />
+          {t('telegram.addBotButton') || 'Добавить бота в чат'}
+        </button>
       </div>
 
+      {/* Привязанные чаты */}
+      {linkedChats.length > 0 && (
+        <div className="p-6 border border-border rounded-xl bg-card">
+          <h3 className="font-medium text-foreground mb-4 flex items-center gap-2">
+            <Users className="w-5 h-5" />
+            {t('telegram.linkedChats') || 'Привязанные чаты'} ({linkedChats.length})
+          </h3>
+          
+          <div className="space-y-3">
+            {linkedChats.map(chat => (
+              <div 
+                key={chat.chat_id} 
+                className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border border-border"
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-foreground truncate">{chat.chat_title || 'Чат'}</div>
+                  <div className="text-sm text-muted-foreground">
+                    {chat.hotel_name ? (
+                      <>
+                        🏨 {chat.hotel_name}
+                        {chat.department_name && <span> → 🏢 {chat.department_name}</span>}
+                      </>
+                    ) : (
+                      <span className="text-warning">⚠️ Не привязан</span>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={`px-2 py-1 rounded text-xs ${
+                    chat.is_active 
+                      ? 'bg-success/10 text-success' 
+                      : 'bg-danger/10 text-danger'
+                  }`}>
+                    {chat.is_active ? 'Активен' : 'Неактивен'}
+                  </span>
+                  <button
+                    onClick={() => unlinkChat(chat.chat_id)}
+                    className="p-2 text-muted-foreground hover:text-danger hover:bg-danger/10 rounded-lg transition-colors"
+                    title={t('telegram.unlinkChat') || 'Отвязать чат'}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Шаблоны сообщений */}
-      <div className="p-6 border border-sand rounded-xl bg-white">
-        <h3 className="font-medium text-charcoal mb-2 flex items-center gap-2">
+      <div className="p-6 border border-border rounded-xl bg-card">
+        <h3 className="font-medium text-foreground mb-2 flex items-center gap-2">
           <MessageSquare className="w-5 h-5" />
           {t('telegram.messageTemplates') || 'Шаблоны сообщений'}
         </h3>
-        <p className="text-sm text-warmgray mb-6">
+        <p className="text-sm text-muted-foreground mb-6">
           {t('telegram.templatesHint') || 'Используйте переменные в фигурных скобках'}
         </p>
 
         <div className="space-y-6">
           {/* Ежедневный отчёт */}
           <div>
-            <label className="block text-sm font-medium text-charcoal mb-2">
+            <label className="block text-sm font-medium text-foreground mb-2">
               {t('telegram.dailyReport') || 'Ежедневный отчёт'}
             </label>
             <textarea 
               value={settings.messageTemplates.dailyReport}
               onChange={(e) => updateTemplate('dailyReport', e.target.value)}
-              className="w-full px-4 py-3 border border-sand rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent resize-none h-32 font-mono text-sm"
+              className="w-full px-4 py-3 border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent resize-none h-32 font-mono text-sm"
             />
-            <p className="text-xs text-warmgray mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               {t('telegram.variables') || 'Переменные'}: {'{good}'}, {'{warning}'}, {'{expired}'}, {'{total}'}
             </p>
           </div>
 
           {/* Предупреждение об истечении */}
           <div>
-            <label className="block text-sm font-medium text-charcoal mb-2">
+            <label className="block text-sm font-medium text-foreground mb-2">
               {t('telegram.expiryWarning') || 'Предупреждение об истечении'}
             </label>
             <textarea 
               value={settings.messageTemplates.expiryWarning}
               onChange={(e) => updateTemplate('expiryWarning', e.target.value)}
-              className="w-full px-4 py-3 border border-sand rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent resize-none h-24 font-mono text-sm"
+              className="w-full px-4 py-3 border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent resize-none h-24 font-mono text-sm"
             />
-            <p className="text-xs text-warmgray mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               {t('telegram.variables') || 'Переменные'}: {'{product}'}, {'{date}'}, {'{quantity}'}
             </p>
           </div>
 
           {/* Просрочено */}
           <div>
-            <label className="block text-sm font-medium text-charcoal mb-2">
+            <label className="block text-sm font-medium text-foreground mb-2">
               {t('telegram.expiredAlert') || 'Уведомление о просрочке'}
             </label>
             <textarea 
               value={settings.messageTemplates.expiredAlert}
               onChange={(e) => updateTemplate('expiredAlert', e.target.value)}
-              className="w-full px-4 py-3 border border-sand rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent resize-none h-24 font-mono text-sm"
+              className="w-full px-4 py-3 border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent resize-none h-24 font-mono text-sm"
             />
           </div>
 
           {/* Подтверждение сбора */}
           <div>
-            <label className="block text-sm font-medium text-charcoal mb-2">
+            <label className="block text-sm font-medium text-foreground mb-2">
               {t('telegram.collectionConfirm') || 'Подтверждение сбора'}
             </label>
             <textarea 
               value={settings.messageTemplates.collectionConfirm}
               onChange={(e) => updateTemplate('collectionConfirm', e.target.value)}
-              className="w-full px-4 py-3 border border-sand rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent resize-none h-24 font-mono text-sm"
+              className="w-full px-4 py-3 border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent resize-none h-24 font-mono text-sm"
             />
-            <p className="text-xs text-warmgray mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               {t('telegram.variables') || 'Переменные'}: {'{product}'}, {'{quantity}'}, {'{reason}'}
             </p>
           </div>
@@ -297,7 +306,7 @@ export default function TelegramSettings() {
         <button 
           onClick={saveSettings}
           disabled={saving}
-          className="flex items-center gap-2 px-6 py-2.5 bg-charcoal text-white rounded-lg hover:bg-charcoal/90 transition-colors disabled:opacity-50"
+          className="flex items-center gap-2 px-6 py-2.5 bg-foreground text-background rounded-lg hover:bg-foreground/90 transition-colors disabled:opacity-50"
         >
           <Save className="w-4 h-4" />
           {saving ? t('common.loading') : t('common.save')}

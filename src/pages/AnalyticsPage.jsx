@@ -149,15 +149,15 @@ export default function AnalyticsPage() {
     <div className="space-y-6">
       {/* Заголовок */}
       <div>
-        <h1 className="text-2xl font-light text-charcoal dark:text-cream">{t('analytics.title')}</h1>
-        <p className="text-warmgray dark:text-warmgray/80 text-sm mt-1">{t('analytics.subtitle')}</p>
+        <h1 className="text-2xl font-light text-foreground">{t('analytics.title')}</h1>
+        <p className="text-muted-foreground text-sm mt-1">{t('analytics.subtitle')}</p>
       </div>
 
       {/* Рекомендации */}
-      <div className="bg-white dark:bg-dark-surface rounded-xl border border-sand dark:border-dark-border p-6">
+      <div className="bg-card rounded-xl border border-border p-6">
         <div className="flex items-center gap-2 mb-4">
           <Sparkles className="w-5 h-5 text-accent" />
-          <h2 className="text-lg font-medium text-charcoal dark:text-cream">
+          <h2 className="text-lg font-medium text-foreground">
             {t('analytics.recommendations.title')}
           </h2>
         </div>
@@ -236,10 +236,10 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Прогноз на неделю */}
-      <div className="bg-white dark:bg-dark-surface rounded-xl border border-sand dark:border-dark-border p-6">
+      <div className="bg-card rounded-xl border border-border p-6">
         <div className="flex items-center gap-2 mb-4">
           <CalendarDays className="w-5 h-5 text-accent" />
-          <h2 className="text-lg font-medium text-charcoal dark:text-cream">{t('analytics.weekForecast')}</h2>
+          <h2 className="text-lg font-medium text-foreground">{t('analytics.weekForecast')}</h2>
         </div>
 
         <div className="grid grid-cols-7 gap-2">
@@ -248,16 +248,16 @@ export default function AnalyticsPage() {
               key={day.date}
               className={`text-center p-3 rounded-lg ${
                 index === 0
-                  ? 'bg-charcoal text-white'
+                  ? 'bg-foreground text-background'
                   : day.count > 0
                     ? 'bg-warning/10 border border-warning/30'
-                    : 'bg-cream/50 dark:bg-dark-border'
+                    : 'bg-muted'
               }`}
             >
-              <p className={`text-xs ${index === 0 ? 'text-white/70' : 'text-warmgray'}`}>
+              <p className={`text-xs ${index === 0 ? 'opacity-70' : 'text-muted-foreground'}`}>
                 {day.day}
               </p>
-              <p className={`text-lg font-medium ${index === 0 ? 'text-white' : 'text-charcoal dark:text-cream'}`}>
+              <p className={`text-lg font-medium ${index === 0 ? '' : 'text-foreground'}`}>
                 {day.dayNumber}
               </p>
               {day.count > 0 && (
@@ -273,14 +273,14 @@ export default function AnalyticsPage() {
           ))}
         </div>
 
-        <p className="text-sm text-warmgray mt-4">{t('analytics.weekForecastHint')}</p>
+        <p className="text-sm text-muted-foreground mt-4">{t('analytics.weekForecastHint')}</p>
       </div>
 
       {/* Сравнение отделов */}
-      <div className="bg-white dark:bg-dark-surface rounded-xl border border-sand dark:border-dark-border p-6">
+      <div className="bg-card rounded-xl border border-border p-6">
         <div className="flex items-center gap-2 mb-4">
           <BarChart3 className="w-5 h-5 text-accent" />
-          <h2 className="text-lg font-medium text-charcoal dark:text-cream">{t('analytics.departmentHealth')}</h2>
+          <h2 className="text-lg font-medium text-foreground">{t('analytics.departmentHealth')}</h2>
         </div>
 
         <div className="space-y-4">
@@ -289,7 +289,7 @@ export default function AnalyticsPage() {
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full" style={{ backgroundColor: dept.color }} />
-                  <span className="text-sm font-medium text-charcoal dark:text-cream">{dept.name}</span>
+                  <span className="text-sm font-medium text-foreground">{dept.name}</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <span

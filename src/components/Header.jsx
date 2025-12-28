@@ -1,14 +1,16 @@
 import { useState, useRef, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { Plus, LogOut, Send, ChevronDown, Package, FolderPlus, Leaf, Search, Bell } from 'lucide-react'
+import { Plus, LogOut, Send, ChevronDown, Package, FolderPlus, Leaf, Search } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useProducts } from '../context/ProductContext'
 import { useTranslation, useLanguage } from '../context/LanguageContext'
+import { useBranding } from '../context/BrandingContext'
 import AddBatchModal from './AddBatchModal'
 import AddCustomProductModal from './AddCustomProductModal'
 import LanguageSwitcher from './LanguageSwitcher'
 import ThemeSwitcher from './ThemeSwitcher'
 import GlobalSearch from './GlobalSearch'
+import NotificationBell from './NotificationBell'
 import { sendTestTelegramNotification } from '../services/api'
 
 export default function Header() {
@@ -18,6 +20,7 @@ export default function Header() {
   const { getExpiringBatches } = useProducts()
   const { t } = useTranslation()
   const { language } = useLanguage()
+  const { siteName } = useBranding()
   const [showDropdown, setShowDropdown] = useState(false)
   const [showAddBatchModal, setShowAddBatchModal] = useState(false)
   const [showAddProductModal, setShowAddProductModal] = useState(false)
@@ -48,7 +51,7 @@ export default function Header() {
     if (location.pathname === '/statistics') return t('nav.statistics')
     if (location.pathname === '/analytics') return t('nav.analytics')
     if (location.pathname === '/settings') return t('nav.settings')
-    return 'FreshTrack'
+    return siteName || 'FreshTrack'
   }
 
   // Форматирование даты в зависимости от языка
@@ -81,7 +84,7 @@ export default function Header() {
 
   return (
     <>
-      <header className="bg-cream dark:bg-dark-surface border-b border-sand dark:border-dark-border px-4 lg:px-8 py-3 sm:py-4 flex items-center justify-between sticky top-0 z-10 transition-colors duration-300">
+      <header className="bg-card border-b border-border px-4 lg:px-8 py-3 sm:py-4 flex items-center justify-between sticky top-0 z-10 transition-colors duration-300">
         {/* Left side: logo on mobile + title */}
         <div className="flex items-center gap-3">
           {/* Logo - mobile only */}
@@ -95,12 +98,12 @@ export default function Header() {
             <div className="flex items-center gap-2">
               <h1 className="font-serif text-lg sm:text-xl lg:text-2xl">{getPageTitle()}</h1>
               {hotelName && (
-                <span className="text-sm text-warmgray bg-sand/50 px-2 py-0.5 rounded-full hidden lg:inline-block">
+                <span className="text-sm text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-full hidden lg:inline-block">
                   {hotelName}
                 </span>
               )}
             </div>
-            <p className="text-xs lg:text-sm text-warmgray">{getLocalizedDate()}</p>
+            <p className="text-xs lg:text-sm text-muted-foreground">{getLocalizedDate()}</p>
           </div>
         </div>
 
@@ -108,10 +111,10 @@ export default function Header() {
           {/* Mobile search button */}
           <button
             onClick={() => setShowMobileSearch(!showMobileSearch)}
-            className="sm:hidden p-2 hover:bg-sand dark:hover:bg-white/10 rounded-lg transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+            className="sm:hidden p-2 hover:bg-muted rounded-lg transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
             aria-label={t('search.placeholder')}
           >
-            <Search className={`w-5 h-5 ${showMobileSearch ? 'text-accent' : 'text-charcoal dark:text-cream'}`} />
+            <Search className={`w-5 h-5 ${showMobileSearch ? 'text-accent' : 'text-foreground'}`} />
           </button>
 
           {/* Global search - desktop only */}
@@ -122,25 +125,14 @@ export default function Header() {
           {/* Theme switcher */}
           <ThemeSwitcher variant="toggle" />
 
-          {/* Notification bell */}
-          <button
-            onClick={() => navigate('/notifications')}
-            className="relative p-2 hover:bg-sand dark:hover:bg-white/10 rounded-lg transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
-            aria-label={t('nav.notifications')}
-          >
-            <Bell className="w-5 h-5 text-charcoal dark:text-cream" />
-            {expiringCount > 0 && (
-              <span className="absolute top-1 right-1 min-w-[18px] h-[18px] flex items-center justify-center text-xs font-medium text-white bg-danger rounded-full px-1">
-                {expiringCount > 99 ? '99+' : expiringCount}
-              </span>
-            )}
-          </button>
+          {/* Real-time Notification bell with SSE */}
+          <NotificationBell />
 
           {/* Add dropdown menu */}
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setShowDropdown(!showDropdown)}
-              className="flex items-center gap-1 sm:gap-2 text-sm text-charcoal hover:text-accent transition-colors"
+              className="flex items-center gap-1 sm:gap-2 text-sm text-foreground hover:text-accent transition-colors"
             >
               <Plus className="w-4 h-4" />
               <span className="hidden sm:inline">{t('header.addBatch')}</span>
@@ -150,32 +142,32 @@ export default function Header() {
             </button>
 
             {showDropdown && (
-              <div className="absolute right-0 top-full mt-2 w-56 bg-cream dark:bg-dark-surface border border-sand dark:border-dark-border rounded-lg shadow-lg py-2 z-50">
+              <div className="absolute right-0 top-full mt-2 w-56 bg-card border border-border rounded-lg shadow-lg py-2 z-50">
                 <button
                   onClick={() => {
                     setShowAddBatchModal(true)
                     setShowDropdown(false)
                   }}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-charcoal dark:text-cream hover:bg-sand/50 dark:hover:bg-white/10 transition-colors text-left"
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-muted transition-colors text-left"
                 >
                   <Package className="w-4 h-4 text-accent" />
                   <div>
                     <p className="font-medium">{t('header.addBatch')}</p>
-                    <p className="text-xs text-warmgray dark:text-warmgray/80">{t('header.addBatchDesc')}</p>
+                    <p className="text-xs text-muted-foreground">{t('header.addBatchDesc')}</p>
                   </div>
                 </button>
-                <div className="h-px bg-sand dark:bg-dark-border mx-3 my-1" />
+                <div className="h-px bg-border mx-3 my-1" />
                 <button
                   onClick={() => {
                     setShowAddProductModal(true)
                     setShowDropdown(false)
                   }}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-charcoal dark:text-cream hover:bg-sand/50 dark:hover:bg-white/10 transition-colors text-left"
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-muted transition-colors text-left"
                 >
                   <FolderPlus className="w-4 h-4 text-success" />
                   <div>
                     <p className="font-medium">{t('header.newProduct')}</p>
-                    <p className="text-xs text-warmgray dark:text-warmgray/80">{t('header.newProductDesc')}</p>
+                    <p className="text-xs text-muted-foreground">{t('header.newProductDesc')}</p>
                   </div>
                 </button>
               </div>
@@ -191,7 +183,7 @@ export default function Header() {
                 ? 'text-success'
                 : telegramStatus === 'error'
                   ? 'text-danger'
-                  : 'text-charcoal hover:text-accent'
+                  : 'text-foreground hover:text-accent'
             }`}
             title={t('header.testTelegram')}
           >
@@ -199,27 +191,27 @@ export default function Header() {
             <span className="hidden lg:inline">{telegramStatus === 'sending' ? '...' : t('header.testTelegram')}</span>
           </button>
 
-          <div className="hidden sm:block h-8 w-px bg-sand dark:bg-dark-border" />
+          <div className="hidden sm:block h-8 w-px bg-border" />
 
           {/* Language switcher - только на десктопе */}
           <div className="hidden sm:block">
             <LanguageSwitcher />
           </div>
 
-          <div className="hidden sm:block h-8 w-px bg-sand dark:bg-dark-border" />
+          <div className="hidden sm:block h-8 w-px bg-border" />
 
           {/* User info - скрыто на мобильных, доступно через More меню */}
           <div className="hidden sm:flex items-center gap-3">
             <div className="text-right">
-              <p className="text-sm font-medium text-charcoal dark:text-cream">{user?.name}</p>
-              <p className="text-xs text-warmgray dark:text-warmgray/80">{user?.role}</p>
+              <p className="text-sm font-medium text-foreground">{user?.name}</p>
+              <p className="text-xs text-muted-foreground">{user?.role}</p>
             </div>
             <button
               onClick={logout}
-              className="p-2 hover:bg-sand dark:hover:bg-white/10 rounded transition-colors"
+              className="p-2 hover:bg-muted rounded transition-colors"
               title={t('header.signOut')}
             >
-              <LogOut className="w-4 h-4 text-warmgray dark:text-warmgray/80" />
+              <LogOut className="w-4 h-4 text-muted-foreground" />
             </button>
           </div>
         </div>
@@ -227,7 +219,7 @@ export default function Header() {
 
       {/* Мобильный поиск - раскрывается под хедером */}
       {showMobileSearch && (
-        <div className="sm:hidden bg-cream dark:bg-dark-surface border-b border-sand dark:border-dark-border px-4 py-3 sticky top-[57px] z-10">
+        <div className="sm:hidden bg-card border-b border-border px-4 py-3 sticky top-[57px] z-10">
           <GlobalSearch 
             onSearch={() => setShowMobileSearch(false)} 
             autoFocus 

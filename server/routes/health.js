@@ -3,7 +3,7 @@
  */
 
 import express from 'express'
-import { query } from '../db/postgres.js'
+import { query, getEnvironmentInfo } from '../db/postgres.js'
 import { initDatabase } from '../db/database.js'
 import { simpleRateLimit, logError } from '../utils/logger.js'
 
@@ -11,10 +11,13 @@ const router = express.Router()
 
 // GET /api/health - Basic health check (rate limited, no DB query for DoS protection)
 router.get('/', simpleRateLimit, (req, res) => {
+  const envInfo = getEnvironmentInfo()
   res.json({
     success: true,
     status: 'healthy',
     version: process.env.npm_package_version || '2.0.0',
+    environment: envInfo.environment,
+    dbHost: envInfo.dbHost,
     timestamp: new Date().toISOString()
   })
 })

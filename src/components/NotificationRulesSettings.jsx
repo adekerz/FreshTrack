@@ -159,7 +159,7 @@ export default function NotificationRulesSettings() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Bell className="w-5 h-5 text-primary-600" />
-          <h3 className="font-medium text-gray-900 dark:text-white">
+          <h3 className="font-medium text-foreground">
             {t('rules.title') || 'Правила уведомлений'}
           </h3>
         </div>
@@ -176,7 +176,7 @@ export default function NotificationRulesSettings() {
       {showAddForm && (
         <div className="bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-800 rounded-xl p-4 space-y-4">
           <div className="flex items-center justify-between">
-            <h4 className="font-medium text-gray-900 dark:text-white">
+            <h4 className="font-medium text-foreground">
               {t('rules.newRule') || 'Новое правило'}
             </h4>
             <button
@@ -197,7 +197,7 @@ export default function NotificationRulesSettings() {
                 value={newRule.name}
                 onChange={(e) => setNewRule({ ...newRule, name: e.target.value })}
                 placeholder="Напр.: Молочка — 3 дня"
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                className="w-full px-3 py-2 border border-border rounded-lg bg-card text-foreground text-sm"
               />
             </div>
 
@@ -213,7 +213,7 @@ export default function NotificationRulesSettings() {
                 }
                 min="1"
                 max="365"
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                className="w-full px-3 py-2 border border-border rounded-lg bg-card text-foreground text-sm"
               />
             </div>
 
@@ -229,7 +229,7 @@ export default function NotificationRulesSettings() {
                 }
                 min="1"
                 max="365"
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                className="w-full px-3 py-2 border border-border rounded-lg bg-card text-foreground text-sm"
               />
             </div>
 
@@ -240,7 +240,7 @@ export default function NotificationRulesSettings() {
               <select
                 value={newRule.departmentId}
                 onChange={(e) => setNewRule({ ...newRule, departmentId: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                className="w-full px-3 py-2 border border-border rounded-lg bg-card text-foreground text-sm"
               >
                 <option value="">{t('rules.allDepartments') || 'Все отделы'}</option>
                 {departments.map((dept) => (
@@ -258,7 +258,7 @@ export default function NotificationRulesSettings() {
               <select
                 value={newRule.category}
                 onChange={(e) => setNewRule({ ...newRule, category: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                className="w-full px-3 py-2 border border-border rounded-lg bg-card text-foreground text-sm"
               >
                 <option value="">{t('rules.allCategories') || 'Все категории'}</option>
                 {categories.map((cat) => (
@@ -276,7 +276,7 @@ export default function NotificationRulesSettings() {
               <select
                 value={newRule.notificationType}
                 onChange={(e) => setNewRule({ ...newRule, notificationType: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                className="w-full px-3 py-2 border border-border rounded-lg bg-card text-foreground text-sm"
               >
                 <option value="all">{t('rules.allChannels') || 'Все каналы'}</option>
                 <option value="telegram">Telegram</option>
@@ -289,7 +289,7 @@ export default function NotificationRulesSettings() {
           <div className="flex justify-end gap-2">
             <button
               onClick={() => setShowAddForm(false)}
-              className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors text-sm"
+              className="px-4 py-2 text-muted-foreground hover:bg-muted rounded-lg transition-colors text-sm"
             >
               {t('common.cancel')}
             </button>
@@ -318,13 +318,13 @@ export default function NotificationRulesSettings() {
               className={cn(
                 'flex items-center justify-between p-4 rounded-xl transition-colors',
                 (rule.isActive ?? rule.enabled)
-                  ? 'bg-gray-50 dark:bg-gray-700/50'
+                  ? 'bg-muted/50'
                   : 'bg-gray-100/50 dark:bg-gray-800/30 opacity-60'
               )}
             >
               <div className="flex-1">
                 <div className="flex items-center gap-2">
-                  <p className="font-medium text-gray-900 dark:text-white">{rule.name}</p>
+                  <p className="font-medium text-foreground">{rule.name}</p>
                   {getNotificationTypeBadge(rule.notificationType)}
                 </div>
                 <p className="text-sm text-gray-500 mt-1">
@@ -340,7 +340,7 @@ export default function NotificationRulesSettings() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => toggleRule(rule.id)}
-                  className="p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
+                  className="p-2 hover:bg-muted rounded-lg transition-colors"
                   title={(rule.isActive ?? rule.enabled) ? 'Выключить' : 'Включить'}
                 >
                   {(rule.isActive ?? rule.enabled) ? (

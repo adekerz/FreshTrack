@@ -4,7 +4,11 @@
  */
 
 import express from 'express'
-import { logError } from '../utils/logger.js'
+import multer from 'multer'
+import path from 'path'
+import fs from 'fs'
+import { fileURLToPath } from 'url'
+import { logError, logInfo } from '../utils/logger.js'
 import {
   getSettings,
   getSetting,
@@ -19,7 +23,42 @@ import {
   PermissionAction
 } from '../middleware/auth.js'
 
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+
 const router = express.Router()
+
+// Configure multer for logo uploads
+const uploadsDir = path.join(__dirname, '..', 'uploads', 'logos')
+
+// Ensure uploads directory exists
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true })
+}
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadsDir)
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname)
+    const filename = `logo-${req.hotelId}-${Date.now()}${ext}`
+    cb(null, filename)
+  }
+})
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml', 'image/webp']
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true)
+    } else {
+      cb(new Error('Invalid file type. Only PNG, JPG, SVG, WEBP are allowed.'))
+    }
+  }
+})
 
 // Apply auth middleware
 router.use(authMiddleware)
@@ -203,14 +242,40 @@ function getDefaultContent(key) {
 /**
  * POST /api/custom-content/upload-logo - Upload logo
  */
-router.post('/upload-logo', requirePermission(PermissionResource.SETTINGS, PermissionAction.UPDATE), async (req, res) => {
+router.post('/upload-logo', requirePermission(PermissionResource.SETTINGS, PermissionAction.UPDATE), upload.single('logo'), async (req, res) => {
   try {
-    // For now, return a placeholder - actual file upload would require multer
-    // This is a stub endpoint to prevent 404 errors
+    if (!req.file) {
+      return res.status(400).json({ success: false, error: 'No file uploaded' })
+    }
+
+    // Build the URL for the uploaded logo
+    const logoUrl = `/uploads/logos/${req.file.filename}`
+
+    // Save logo URL to branding settings
+    const context = {
+      scope: 'hotel',
+      hotelId: req.hotelId
+    }
+    
+    await setSetting('branding.logoUrl', logoUrl, context)
+
+    // Audit log
+    await logAudit({
+      hotel_id: req.hotelId,
+      user_id: req.user.id,
+      user_name: req.user.name,
+      action: 'upload',
+      entity_type: 'logo',
+      entity_id: req.file.filename,
+      details: { filename: req.file.filename, size: req.file.size }
+    })
+
+    logInfo('Logo', `Uploaded by ${req.user.name}: ${req.file.filename}`)
+    
     res.json({ 
       success: true, 
-      message: 'Logo upload endpoint ready',
-      logoUrl: '/assets/logo.svg'
+      logoUrl,
+      filename: req.file.filename
     })
   } catch (error) {
     logError('Upload logo error', error)

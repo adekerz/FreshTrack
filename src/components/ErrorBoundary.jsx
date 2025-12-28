@@ -44,26 +44,26 @@ class ErrorBoundary extends React.Component {
       }
 
       return (
-        <div className="min-h-screen bg-cream dark:bg-dark-bg flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-dark-surface rounded-2xl shadow-elevated p-8 max-w-md w-full text-center">
+        <div className="min-h-screen bg-background flex items-center justify-center p-4">
+          <div className="bg-card rounded-2xl shadow-elevated p-8 max-w-md w-full text-center">
             <div className="w-16 h-16 bg-danger/10 rounded-full flex items-center justify-center mx-auto mb-4">
               <AlertTriangle className="w-8 h-8 text-danger" />
             </div>
             
-            <h1 className="text-xl font-semibold text-charcoal dark:text-cream mb-2">
+            <h1 className="text-xl font-semibold text-foreground mb-2">
               Что-то пошло не так
             </h1>
             
-            <p className="text-warmgray dark:text-dark-text mb-6">
+            <p className="text-muted-foreground mb-6">
               Произошла непредвиденная ошибка. Попробуйте обновить страницу.
             </p>
             
             {import.meta.env.DEV && this.state.error && (
               <details className="mb-6 text-left">
-                <summary className="cursor-pointer text-sm text-warmgray hover:text-charcoal">
+                <summary className="cursor-pointer text-sm text-muted-foreground hover:text-foreground">
                   Подробности ошибки
                 </summary>
-                <pre className="mt-2 p-3 bg-gray-100 dark:bg-dark-bg rounded-lg text-xs overflow-auto max-h-40">
+                <pre className="mt-2 p-3 bg-muted rounded-lg text-xs overflow-auto max-h-40">
                   {this.state.error.toString()}
                   {this.state.errorInfo?.componentStack}
                 </pre>
@@ -81,7 +81,7 @@ class ErrorBoundary extends React.Component {
               
               <button
                 onClick={this.handleGoHome}
-                className="flex items-center gap-2 px-4 py-2 border border-sand dark:border-dark-border text-charcoal dark:text-cream rounded-lg hover:bg-sand/20 transition-colors"
+                className="flex items-center gap-2 px-4 py-2 border border-border text-foreground rounded-lg hover:bg-muted transition-colors"
               >
                 <Home className="w-4 h-4" />
                 На главную

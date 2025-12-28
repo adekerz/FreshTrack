@@ -130,7 +130,7 @@ export default function OnboardingTour() {
       <div
         ref={tooltipRef}
         className={cn(
-          'absolute bg-white dark:bg-dark-surface rounded-2xl shadow-2xl',
+          'absolute bg-card rounded-2xl shadow-2xl',
           'p-6 max-w-sm w-[calc(100vw-2rem)]',
           'animate-scale-in'
         )}
@@ -139,7 +139,7 @@ export default function OnboardingTour() {
         {/* Close button */}
         <button
           onClick={skipOnboarding}
-          className="absolute top-3 right-3 p-1 text-warmgray hover:text-charcoal dark:hover:text-cream transition-colors"
+          className="absolute top-3 right-3 p-1 text-muted-foreground hover:text-foreground transition-colors"
           aria-label={t('common.close')}
         >
           <X className="w-5 h-5" />
@@ -155,10 +155,10 @@ export default function OnboardingTour() {
         </div>
 
         {/* Content */}
-        <h3 className="text-lg font-semibold text-charcoal dark:text-cream mb-2">
+        <h3 className="text-lg font-semibold text-foreground mb-2">
           {t(currentStepData?.title) || currentStepData?.title}
         </h3>
-        <p className="text-warmgray text-sm mb-6">
+        <p className="text-muted-foreground text-sm mb-6">
           {t(currentStepData?.description) || currentStepData?.description}
         </p>
 
@@ -173,7 +173,7 @@ export default function OnboardingTour() {
                   ? 'w-6 bg-accent' 
                   : index < currentStep 
                     ? 'bg-accent/50' 
-                    : 'bg-sand dark:bg-white/20'
+                    : 'bg-muted'
               )}
             />
           ))}

@@ -11,16 +11,23 @@ import { Navigate } from 'react-router-dom'
 import { Filter, RefreshCw, ChevronLeft, ChevronRight, ArchiveX, User, Package } from 'lucide-react'
 import { apiFetch } from '../services/api'
 
-// Причины сбора
+// Причины сбора (синхронизировано с CollectionService.CollectionReason)
 const REASONS = {
-  manual: { label: 'collectionHistory.reasons.manual', color: 'bg-blue-100 text-blue-800' },
+  // Основные причины (новые)
   expired: { label: 'collectionHistory.reasons.expired', color: 'bg-red-100 text-red-800' },
-  damaged: { label: 'collectionHistory.reasons.damaged', color: 'bg-orange-100 text-orange-800' },
   kitchen: { label: 'collectionHistory.reasons.kitchen', color: 'bg-green-100 text-green-800' },
+  damaged: { label: 'collectionHistory.reasons.damaged', color: 'bg-orange-100 text-orange-800' },
+  return: { label: 'collectionHistory.reasons.return', color: 'bg-blue-100 text-blue-800' },
+  compliment: { label: 'collectionHistory.reasons.compliment', color: 'bg-purple-100 text-purple-800' },
+  other: { label: 'collectionHistory.reasons.other', color: 'bg-gray-100 text-gray-800' },
+  // Legacy reasons (для совместимости со старыми записями)
+  consumption: { label: 'collectionHistory.reasons.consumption', color: 'bg-green-100 text-green-800' },
+  minibar: { label: 'collectionHistory.reasons.minibar', color: 'bg-blue-100 text-blue-800' },
+  sale: { label: 'collectionHistory.reasons.sale', color: 'bg-purple-100 text-purple-800' },
+  manual: { label: 'collectionHistory.reasons.manual', color: 'bg-blue-100 text-blue-800' },
   disposed: { label: 'collectionHistory.reasons.disposed', color: 'bg-yellow-100 text-yellow-800' },
   staff: { label: 'collectionHistory.reasons.staff', color: 'bg-purple-100 text-purple-800' },
-  returned: { label: 'collectionHistory.reasons.returned', color: 'bg-cyan-100 text-cyan-800' },
-  other: { label: 'collectionHistory.reasons.other', color: 'bg-gray-100 text-gray-800' }
+  returned: { label: 'collectionHistory.reasons.returned', color: 'bg-cyan-100 text-cyan-800' }
 }
 
 export default function CollectionHistoryPage() {
@@ -51,9 +58,14 @@ export default function CollectionHistoryPage() {
   // Загрузка статистики
   const fetchStats = useCallback(async () => {
     try {
-      const data = await apiFetch('/write-offs/stats')
-      if (data.success) {
-        setStats({ today: data.today, week: data.week, month: data.month, total: data.total })
+      const data = await apiFetch('/fifo-collect/stats?period=month')
+      if (data.success && data.totals) {
+        setStats({ 
+          today: 0, // TODO: API needs today stats
+          week: 0,
+          month: data.totals.quantity || 0, 
+          total: data.totals.transactions || 0 
+        })
       }
     } catch {
       // Error already logged by apiFetch
@@ -72,30 +84,30 @@ export default function CollectionHistoryPage() {
           offset: ((page - 1) * pagination.limit).toString()
         })
 
-        if (appliedFilters.departmentId) params.append('department_id', appliedFilters.departmentId)
+        if (appliedFilters.departmentId) params.append('departmentId', appliedFilters.departmentId)
         if (appliedFilters.reason) params.append('reason', appliedFilters.reason)
-        if (appliedFilters.startDate) params.append('start_date', appliedFilters.startDate)
-        if (appliedFilters.endDate) params.append('end_date', appliedFilters.endDate)
+        if (appliedFilters.startDate) params.append('startDate', appliedFilters.startDate)
+        if (appliedFilters.endDate) params.append('endDate', appliedFilters.endDate)
 
-        const data = await apiFetch(`/write-offs?${params}`)
-        // Transform write_offs to expected log format
-        const writeOffs = data.write_offs || []
-        const transformedLogs = writeOffs.map(wo => ({
-          id: wo.id,
-          productName: wo.product_name || wo.productName || 'Неизвестный товар',
-          departmentId: wo.department_id || wo.departmentId,
-          quantity: wo.quantity,
-          expiryDate: wo.expiry_date || wo.expiryDate,
-          reason: wo.reason,
-          comment: wo.notes || wo.comment,
-          collectedAt: wo.created_at || wo.createdAt,
-          collectedByName: wo.user_name || wo.userName
+        const data = await apiFetch(`/fifo-collect/history?${params}`)
+        // Transform collection_history to expected log format
+        const historyItems = data.history || []
+        const transformedLogs = historyItems.map(item => ({
+          id: item.id,
+          productName: item.product_name || item.productName || 'Неизвестный товар',
+          departmentId: item.department_id || item.departmentId,
+          quantity: item.quantity_collected || item.quantityCollected,
+          expiryDate: item.expiry_date || item.expiryDate,
+          reason: item.collection_reason || item.reason || 'consumption',
+          comment: item.notes || item.comment,
+          collectedAt: item.collected_at || item.collectedAt,
+          collectedByName: item.user_name || item.userName || 'Система'
         }))
         
         setLogs(transformedLogs)
         // Calculate pagination from response or estimate
-        const total = data.total || writeOffs.length
-        const totalPages = Math.ceil(total / pagination.limit)
+        const total = data.count || historyItems.length
+        const totalPages = Math.ceil(total / pagination.limit) || 1
         setPagination(prev => ({ ...prev, page, total, totalPages }))
       } catch (err) {
         // Error already logged by apiFetch
@@ -178,8 +190,8 @@ export default function CollectionHistoryPage() {
       {/* Заголовок */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-light text-charcoal dark:text-cream">{t('collectionHistory.title')}</h1>
-          <p className="text-warmgray dark:text-warmgray/80 text-xs sm:text-sm mt-1">{t('collectionHistory.subtitle')}</p>
+          <h1 className="text-xl sm:text-2xl font-light text-foreground">{t('collectionHistory.title')}</h1>
+          <p className="text-muted-foreground text-xs sm:text-sm mt-1">{t('collectionHistory.subtitle')}</p>
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3">
@@ -189,7 +201,7 @@ export default function CollectionHistoryPage() {
             className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 border rounded-lg text-xs sm:text-sm transition-colors ${
               hasActiveFilters
                 ? 'border-accent text-accent bg-accent/5'
-                : 'border-sand dark:border-dark-border text-warmgray dark:text-cream/70 hover:bg-sand/50 dark:hover:bg-dark-border'
+                : 'border-border text-muted-foreground hover:bg-muted'
             }`}
           >
             <Filter className="w-4 h-4" />
@@ -204,7 +216,7 @@ export default function CollectionHistoryPage() {
               fetchStats()
             }}
             disabled={loading}
-            className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-charcoal text-white rounded-lg text-xs sm:text-sm hover:bg-charcoal/90 transition-colors disabled:opacity-50"
+            className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-foreground text-background rounded-lg text-xs sm:text-sm hover:bg-foreground/90 transition-colors disabled:opacity-50"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             <span className="hidden sm:inline">{t('common.refresh')}</span>
@@ -214,39 +226,39 @@ export default function CollectionHistoryPage() {
 
       {/* Статистика - Bento Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <div className="bg-white dark:bg-dark-surface rounded-xl border border-sand dark:border-dark-border p-3 sm:p-4">
-          <p className="text-xs sm:text-sm text-warmgray dark:text-warmgray/80">{t('collectionHistory.stats.today')}</p>
-          <p className="text-xl sm:text-2xl font-light text-charcoal dark:text-cream">{stats.today}</p>
+        <div className="bg-card rounded-xl border border-border p-3 sm:p-4">
+          <p className="text-xs sm:text-sm text-muted-foreground">{t('collectionHistory.stats.today')}</p>
+          <p className="text-xl sm:text-2xl font-light text-foreground">{stats.today}</p>
         </div>
-        <div className="bg-white dark:bg-dark-surface rounded-xl border border-sand dark:border-dark-border p-3 sm:p-4">
-          <p className="text-xs sm:text-sm text-warmgray dark:text-warmgray/80">{t('collectionHistory.stats.week')}</p>
-          <p className="text-xl sm:text-2xl font-light text-charcoal dark:text-cream">{stats.week}</p>
+        <div className="bg-card rounded-xl border border-border p-3 sm:p-4">
+          <p className="text-xs sm:text-sm text-muted-foreground">{t('collectionHistory.stats.week')}</p>
+          <p className="text-xl sm:text-2xl font-light text-foreground">{stats.week}</p>
         </div>
-        <div className="bg-white dark:bg-dark-surface rounded-xl border border-sand dark:border-dark-border p-3 sm:p-4">
-          <p className="text-xs sm:text-sm text-warmgray dark:text-warmgray/80">{t('collectionHistory.stats.month')}</p>
-          <p className="text-xl sm:text-2xl font-light text-charcoal dark:text-cream">{stats.month}</p>
+        <div className="bg-card rounded-xl border border-border p-3 sm:p-4">
+          <p className="text-xs sm:text-sm text-muted-foreground">{t('collectionHistory.stats.month')}</p>
+          <p className="text-xl sm:text-2xl font-light text-foreground">{stats.month}</p>
         </div>
-        <div className="bg-white dark:bg-dark-surface rounded-xl border border-sand dark:border-dark-border p-3 sm:p-4">
-          <p className="text-xs sm:text-sm text-warmgray dark:text-warmgray/80">{t('collectionHistory.stats.total')}</p>
-          <p className="text-xl sm:text-2xl font-light text-charcoal dark:text-cream">{stats.total}</p>
+        <div className="bg-card rounded-xl border border-border p-3 sm:p-4">
+          <p className="text-xs sm:text-sm text-muted-foreground">{t('collectionHistory.stats.total')}</p>
+          <p className="text-xl sm:text-2xl font-light text-foreground">{stats.total}</p>
         </div>
       </div>
 
       {/* Панель фильтров */}
       {showFilters && (
-        <div className="bg-white dark:bg-dark-surface rounded-xl border border-sand dark:border-dark-border p-6 space-y-4">
-          <h3 className="font-medium text-charcoal dark:text-cream">{t('collectionHistory.filterOptions')}</h3>
+        <div className="bg-card rounded-xl border border-border p-6 space-y-4">
+          <h3 className="font-medium text-foreground">{t('collectionHistory.filterOptions')}</h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Отдел */}
             <div>
-              <label className="block text-sm text-warmgray mb-1">
+              <label className="block text-sm text-muted-foreground mb-1">
                 {t('collectionHistory.filterDepartment')}
               </label>
               <select
                 value={filters.departmentId}
                 onChange={(e) => setFilters((prev) => ({ ...prev, departmentId: e.target.value }))}
-                className="w-full px-3 py-2 border border-sand dark:border-dark-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-white dark:bg-dark-bg dark:text-cream"
+                className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-card text-foreground"
               >
                 <option value="">{t('collectionHistory.allDepartments')}</option>
                 {departments.map((dept) => (
@@ -259,13 +271,13 @@ export default function CollectionHistoryPage() {
 
             {/* Причина */}
             <div>
-              <label className="block text-sm text-warmgray mb-1">
+              <label className="block text-sm text-muted-foreground mb-1">
                 {t('collectionHistory.filterReason')}
               </label>
               <select
                 value={filters.reason}
                 onChange={(e) => setFilters((prev) => ({ ...prev, reason: e.target.value }))}
-                className="w-full px-3 py-2 border border-sand dark:border-dark-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-white dark:bg-dark-bg dark:text-cream"
+                className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-card text-foreground"
               >
                 <option value="">{t('collectionHistory.allReasons')}</option>
                 {Object.entries(REASONS).map(([key, { label }]) => (
@@ -278,27 +290,27 @@ export default function CollectionHistoryPage() {
 
             {/* Дата начала */}
             <div>
-              <label className="block text-sm text-warmgray mb-1">
+              <label className="block text-sm text-muted-foreground mb-1">
                 {t('collectionHistory.startDate')}
               </label>
               <input
                 type="date"
                 value={filters.startDate}
                 onChange={(e) => setFilters((prev) => ({ ...prev, startDate: e.target.value }))}
-                className="w-full px-3 py-2 border border-sand dark:border-dark-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-white dark:bg-dark-bg dark:text-cream"
+                className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-card text-foreground"
               />
             </div>
 
             {/* Дата конца */}
             <div>
-              <label className="block text-sm text-warmgray mb-1">
+              <label className="block text-sm text-muted-foreground mb-1">
                 {t('collectionHistory.endDate')}
               </label>
               <input
                 type="date"
                 value={filters.endDate}
                 onChange={(e) => setFilters((prev) => ({ ...prev, endDate: e.target.value }))}
-                className="w-full px-3 py-2 border border-sand dark:border-dark-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-white dark:bg-dark-bg dark:text-cream"
+                className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-card text-foreground"
               />
             </div>
           </div>
@@ -306,13 +318,13 @@ export default function CollectionHistoryPage() {
           <div className="flex justify-end gap-3 pt-2">
             <button
               onClick={handleResetFilters}
-              className="px-4 py-2 text-sm text-warmgray hover:text-charcoal transition-colors"
+              className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               {t('common.reset')}
             </button>
             <button
               onClick={handleApplyFilters}
-              className="px-4 py-2 bg-charcoal text-white rounded-lg text-sm hover:bg-charcoal/90 transition-colors"
+              className="px-4 py-2 bg-foreground text-background rounded-lg text-sm hover:opacity-90 transition-colors"
             >
               {t('common.apply')}
             </button>
@@ -326,13 +338,13 @@ export default function CollectionHistoryPage() {
       )}
 
       {/* Таблица сборов / Карточки на мобильных */}
-      <div className="bg-white dark:bg-dark-surface rounded-xl border border-sand dark:border-dark-border overflow-hidden">
+      <div className="bg-card rounded-xl border border-border overflow-hidden">
         {loading && logs.length === 0 ? (
           <div className="flex items-center justify-center py-12">
-            <RefreshCw className="w-8 h-8 text-warmgray animate-spin" />
+            <RefreshCw className="w-8 h-8 text-muted-foreground animate-spin" />
           </div>
         ) : logs.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-8 sm:py-12 text-warmgray">
+          <div className="flex flex-col items-center justify-center py-8 sm:py-12 text-muted-foreground">
             <ArchiveX className="w-10 h-10 sm:w-12 sm:h-12 mb-3 sm:mb-4 opacity-50" />
             <p className="text-base sm:text-lg">{t('collectionHistory.noLogs')}</p>
             <p className="text-xs sm:text-sm">{t('collectionHistory.noLogsHint')}</p>
@@ -340,7 +352,7 @@ export default function CollectionHistoryPage() {
         ) : (
           <>
             {/* Мобильный вид - карточки */}
-            <div className="sm:hidden divide-y divide-sand/50">
+            <div className="sm:hidden divide-y divide-border">
               {logs.map((log) => {
                 const reasonInfo = getReason(log.reason)
                 const dept = departments.find(d => d.id === log.departmentId)
@@ -350,15 +362,15 @@ export default function CollectionHistoryPage() {
                   <div key={log.id} className="p-4 space-y-2">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-2 min-w-0">
-                        <Package className="w-4 h-4 text-warmgray flex-shrink-0" />
-                        <span className="text-sm font-medium text-charcoal truncate">{log.productName}</span>
+                        <Package className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                        <span className="text-sm font-medium text-foreground truncate">{log.productName}</span>
                       </div>
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium flex-shrink-0 ${reasonInfo.color}`}>
                         {t(reasonInfo.label)}
                       </span>
                     </div>
                     
-                    <div className="flex flex-wrap items-center gap-2 text-xs text-warmgray">
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                       <span className="inline-flex items-center px-2 py-0.5 rounded-full" style={{ backgroundColor: `${department.color}20`, color: department.color }}>
                         {department.name}
                       </span>
@@ -368,10 +380,10 @@ export default function CollectionHistoryPage() {
                     </div>
                     
                     {log.comment && (
-                      <p className="text-xs text-warmgray line-clamp-2">{log.comment}</p>
+                      <p className="text-xs text-muted-foreground line-clamp-2">{log.comment}</p>
                     )}
                     
-                    <div className="flex items-center gap-1 text-xs text-warmgray">
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
                       <User className="w-3 h-3" />
                       {log.collectedByName || t('collectionHistory.system')}
                     </div>
@@ -383,49 +395,49 @@ export default function CollectionHistoryPage() {
             {/* Десктопный вид - таблица */}
             <div className="hidden sm:block overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-cream/50">
+                <thead className="bg-muted">
                   <tr>
-                    <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-warmgray uppercase tracking-wider">
+                    <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       {t('collectionHistory.columns.date')}
                     </th>
-                    <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-warmgray uppercase tracking-wider">
+                    <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       {t('collectionHistory.columns.product')}
                     </th>
-                    <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-warmgray uppercase tracking-wider hidden md:table-cell">
+                    <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider hidden md:table-cell">
                       {t('collectionHistory.columns.department')}
                     </th>
-                    <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-warmgray uppercase tracking-wider">
+                    <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       {t('collectionHistory.columns.quantity')}
                     </th>
-                    <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-warmgray uppercase tracking-wider hidden lg:table-cell">
+                    <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider hidden lg:table-cell">
                       {t('collectionHistory.columns.expiryDate')}
                     </th>
-                    <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-warmgray uppercase tracking-wider">
+                    <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       {t('collectionHistory.columns.reason')}
                     </th>
-                    <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-warmgray uppercase tracking-wider hidden xl:table-cell">
+                    <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider hidden xl:table-cell">
                       {t('collectionHistory.columns.comment')}
                     </th>
-                    <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-warmgray uppercase tracking-wider hidden lg:table-cell">
+                    <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider hidden lg:table-cell">
                       {t('collectionHistory.columns.collectedBy')}
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-sand/50">
+                <tbody className="divide-y divide-border">
                   {logs.map((log) => {
                     const reasonInfo = getReason(log.reason)
                     const dept = departments.find(d => d.id === log.departmentId)
                     const department = dept || { name: log.departmentId || 'N/A', color: '#C4A35A' }
 
                     return (
-                      <tr key={log.id} className="hover:bg-cream/30 transition-colors">
-                        <td className="px-4 lg:px-6 py-3 lg:py-4 whitespace-nowrap text-xs lg:text-sm text-charcoal">
+                      <tr key={log.id} className="hover:bg-muted transition-colors">
+                        <td className="px-4 lg:px-6 py-3 lg:py-4 whitespace-nowrap text-xs lg:text-sm text-foreground">
                           {formatDate(log.collectedAt)}
                         </td>
                         <td className="px-4 lg:px-6 py-3 lg:py-4 whitespace-nowrap">
                           <div className="flex items-center gap-2">
-                            <Package className="w-4 h-4 text-warmgray" />
-                            <span className="text-xs lg:text-sm text-charcoal font-medium">{log.productName}</span>
+                            <Package className="w-4 h-4 text-muted-foreground" />
+                            <span className="text-xs lg:text-sm text-foreground font-medium">{log.productName}</span>
                           </div>
                         </td>
                         <td className="px-4 lg:px-6 py-3 lg:py-4 whitespace-nowrap hidden md:table-cell">
@@ -433,10 +445,10 @@ export default function CollectionHistoryPage() {
                             {department.name}
                           </span>
                         </td>
-                        <td className="px-4 lg:px-6 py-3 lg:py-4 whitespace-nowrap text-xs lg:text-sm text-charcoal">
+                        <td className="px-4 lg:px-6 py-3 lg:py-4 whitespace-nowrap text-xs lg:text-sm text-foreground">
                           {log.quantity} {t('inventory.units')}
                         </td>
-                        <td className="px-4 lg:px-6 py-3 lg:py-4 whitespace-nowrap text-xs lg:text-sm text-charcoal hidden lg:table-cell">
+                        <td className="px-4 lg:px-6 py-3 lg:py-4 whitespace-nowrap text-xs lg:text-sm text-foreground hidden lg:table-cell">
                           {formatDateOnly(log.expiryDate)}
                         </td>
                         <td className="px-4 lg:px-6 py-3 lg:py-4 whitespace-nowrap">
@@ -444,11 +456,11 @@ export default function CollectionHistoryPage() {
                             {t(reasonInfo.label)}
                           </span>
                         </td>
-                        <td className="px-4 lg:px-6 py-3 lg:py-4 text-xs lg:text-sm text-warmgray max-w-xs truncate hidden xl:table-cell" title={log.comment || ''}>
+                        <td className="px-4 lg:px-6 py-3 lg:py-4 text-xs lg:text-sm text-muted-foreground max-w-xs truncate hidden xl:table-cell" title={log.comment || ''}>
                           {log.comment || '-'}
                         </td>
                         <td className="px-4 lg:px-6 py-3 lg:py-4 whitespace-nowrap hidden lg:table-cell">
-                          <div className="flex items-center gap-2 text-xs lg:text-sm text-warmgray">
+                          <div className="flex items-center gap-2 text-xs lg:text-sm text-muted-foreground">
                             <User className="w-4 h-4" />
                             {log.collectedByName || t('collectionHistory.system')}
                           </div>
@@ -462,15 +474,15 @@ export default function CollectionHistoryPage() {
 
             {/* Пагинация */}
             {pagination.totalPages > 1 && (
-              <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-t border-sand/50">
-                <p className="text-xs sm:text-sm text-warmgray hidden sm:block">
+              <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-t border-border">
+                <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
                   {t('collectionHistory.showing', {
                     from: (pagination.page - 1) * pagination.limit + 1,
                     to: Math.min(pagination.page * pagination.limit, pagination.total),
                     total: pagination.total
                   })}
                 </p>
-                <p className="text-xs text-warmgray sm:hidden">
+                <p className="text-xs text-muted-foreground sm:hidden">
                   {pagination.page} / {pagination.totalPages}
                 </p>
 
@@ -478,19 +490,19 @@ export default function CollectionHistoryPage() {
                   <button
                     onClick={() => setPagination((prev) => ({ ...prev, page: prev.page - 1 }))}
                     disabled={pagination.page <= 1}
-                    className="p-2 text-warmgray hover:text-charcoal disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    className="p-2 text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                   >
                     <ChevronLeft className="w-5 h-5" />
                   </button>
 
-                  <span className="text-sm text-charcoal hidden sm:inline">
+                  <span className="text-sm text-foreground hidden sm:inline">
                     {pagination.page} / {pagination.totalPages}
                   </span>
 
                   <button
                     onClick={() => setPagination((prev) => ({ ...prev, page: prev.page + 1 }))}
                     disabled={pagination.page >= pagination.totalPages}
-                    className="p-2 text-warmgray hover:text-charcoal disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    className="p-2 text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                   >
                     <ChevronRight className="w-5 h-5" />
                   </button>

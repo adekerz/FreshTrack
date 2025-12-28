@@ -92,19 +92,29 @@ export function verifyToken(token) {
 
 /**
  * Main auth middleware - ASYNC
+ * Supports both Bearer token in header and token in query param (for SSE)
  */
 export const authMiddleware = async (req, res, next) => {
   try {
+    let token = null
     const authHeader = req.headers.authorization
     
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    // Try Bearer token from header first
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.split(' ')[1]
+    }
+    // Fallback to query param (for SSE/EventSource which doesn't support headers)
+    else if (req.query.token) {
+      token = req.query.token
+    }
+    
+    if (!token) {
       return res.status(401).json({ 
         success: false, 
         error: 'Authorization required' 
       })
     }
     
-    const token = authHeader.split(' ')[1]
     const decoded = verifyToken(token)
     
     if (!decoded) {

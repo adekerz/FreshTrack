@@ -32,8 +32,8 @@ const colors = {
   },
   loading: {
     bg: 'bg-gray-100 border-gray-300',
-    icon: 'text-warmgray',
-    progress: 'bg-warmgray'
+    icon: 'text-muted-foreground',
+    progress: 'bg-muted-foreground'
   }
 }
 
@@ -59,10 +59,10 @@ function ToastItem({ toast, onRemove }) {
       {/* Контент */}
       <div className="flex-1 min-w-0">
         {toast.title && (
-          <p className="font-medium text-charcoal dark:text-cream text-sm">{toast.title}</p>
+          <p className="font-medium text-foreground text-sm">{toast.title}</p>
         )}
         {toast.message && (
-          <p className="text-warmgray dark:text-warmgray/80 text-sm mt-0.5">{toast.message}</p>
+          <p className="text-muted-foreground text-sm mt-0.5">{toast.message}</p>
         )}
       </div>
 
@@ -70,7 +70,7 @@ function ToastItem({ toast, onRemove }) {
       {toast.type !== 'loading' && (
         <button
           onClick={() => onRemove(toast.id)}
-          className="flex-shrink-0 text-warmgray hover:text-charcoal dark:hover:text-cream transition-colors p-1 -m-1"
+          className="flex-shrink-0 text-muted-foreground hover:text-foreground transition-colors p-1 -m-1"
           aria-label="Закрыть"
         >
           <X className="w-4 h-4" />

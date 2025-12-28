@@ -114,7 +114,7 @@ export default function RegisterPage() {
               <br />
               <span className="text-accent">{t('auth.precisionHighlight')}</span>
             </h1>
-            <p className="text-warmgray leading-relaxed">{t('auth.joinSubtitle')}</p>
+            <p className="text-muted-foreground leading-relaxed">{t('auth.joinSubtitle')}</p>
           </div>
 
           <div />
@@ -122,11 +122,11 @@ export default function RegisterPage() {
       </div>
 
       {/* Right Panel - Register Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 lg:p-16 bg-cream overflow-y-auto">
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 lg:p-16 bg-background overflow-y-auto">
         <div className="w-full max-w-md animate-fade-in py-4">
           {/* Mobile Logo */}
           <div className="lg:hidden flex items-center gap-3 mb-8">
-            <div className="w-10 h-10 border border-charcoal flex items-center justify-center">
+            <div className="w-10 h-10 border border-foreground flex items-center justify-center">
               <Leaf className="w-5 h-5 text-accent" />
             </div>
             <span className="font-serif text-2xl tracking-wide">{t('common.appName')}</span>
@@ -134,7 +134,7 @@ export default function RegisterPage() {
 
           <div className="mb-8">
             <h2 className="font-serif text-3xl mb-2">{t('auth.createAccount')}</h2>
-            <p className="text-warmgray">{t('auth.joinSubtitle')}</p>
+            <p className="text-muted-foreground">{t('auth.joinSubtitle')}</p>
           </div>
 
           {/* Server error */}
@@ -173,18 +173,18 @@ export default function RegisterPage() {
             </div>
 
             <div className="animate-fade-in-up" style={{ animationDelay: '150ms' }}>
-              <label className="text-xs uppercase tracking-wider text-warmgray mb-2 block font-medium">
+              <label className="text-xs uppercase tracking-wider text-muted-foreground mb-2 block font-medium">
                 {t('auth.department')}
               </label>
               <div className="relative">
-                <Building className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-warmgray pointer-events-none" />
+                <Building className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground pointer-events-none" />
                 <select
                   value={formData.department}
                   onChange={(e) => handleChange('department', e.target.value)}
                   onBlur={() => handleBlur('department')}
-                  className={`w-full h-12 pl-12 pr-4 bg-white border rounded-lg appearance-none cursor-pointer
+                  className={`w-full h-12 pl-12 pr-4 bg-card border rounded-lg appearance-none cursor-pointer
                     focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all
-                    ${errors.department ? 'border-danger' : 'border-sand hover:border-warmgray'}`}
+                    ${errors.department ? 'border-danger' : 'border-border hover:border-muted-foreground'}`}
                   required
                 >
                   <option value="">{t('auth.selectDepartment')}</option>
@@ -227,7 +227,7 @@ export default function RegisterPage() {
                       />
                     ))}
                   </div>
-                  <p className="text-xs text-warmgray flex items-center gap-1">
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
                     {passwordStrength >= 4 && <CheckCircle className="w-3 h-3 text-success" />}
                     {strengthLabels[passwordStrength]}
                   </p>
@@ -273,10 +273,10 @@ export default function RegisterPage() {
             </div>
 
             <div className="text-center animate-fade-in-up" style={{ animationDelay: '350ms' }}>
-              <span className="text-warmgray text-sm">{t('auth.haveAccount')} </span>
+              <span className="text-muted-foreground text-sm">{t('auth.haveAccount')} </span>
               <Link
                 to="/login"
-                className="text-charcoal text-sm font-medium hover:text-accent transition-colors underline-offset-4 hover:underline"
+                className="text-foreground text-sm font-medium hover:text-accent transition-colors underline-offset-4 hover:underline"
               >
                 {t('auth.signIn')}
               </Link>

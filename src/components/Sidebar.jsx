@@ -18,6 +18,8 @@ import {
 import { useProducts } from '../context/ProductContext'
 import { useAuth } from '../context/AuthContext'
 import { useTranslation, useLanguage } from '../context/LanguageContext'
+import { useBranding } from '../context/BrandingContext'
+import { getStaticUrl } from '../services/api'
 import { cn } from '../utils/classNames'
 
 export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose }) {
@@ -27,6 +29,7 @@ export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose })
   const { user, logout } = useAuth()
   const { t } = useTranslation()
   const { language, changeLanguage } = useLanguage()
+  const { siteName, logoUrl } = useBranding()
   const stats = getStats()
 
   // Количество непрочитанных уведомлений (или критичных + просроченных)
@@ -143,7 +146,7 @@ export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose })
     <>
       {/* Оверлей для мобильной версии */}
       {isMobile && isOpen && (
-        <div className="fixed inset-0 bg-charcoal/50 z-40 lg:hidden" onClick={onClose} />
+        <div className="fixed inset-0 bg-black/50 dark:bg-black/60 z-40 lg:hidden" onClick={onClose} />
       )}
 
       <aside
@@ -164,11 +167,19 @@ export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose })
         {/* Logo */}
         <div className="p-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 border border-accent flex items-center justify-center flex-shrink-0">
-              <Leaf className="w-5 h-5 text-accent" />
+            <div className="w-10 h-10 border border-accent flex items-center justify-center flex-shrink-0 overflow-hidden">
+              {logoUrl ? (
+                <img 
+                  src={getStaticUrl(logoUrl)} 
+                  alt={siteName || 'Logo'} 
+                  className="w-full h-full object-contain"
+                  onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }}
+                />
+              ) : null}
+              <Leaf className={`w-5 h-5 text-accent ${logoUrl ? 'hidden' : ''}`} />
             </div>
             {(isOpen || isMobile) && (
-              <span className="font-serif text-xl tracking-wide">{t('common.appName')}</span>
+              <span className="font-serif text-xl tracking-wide">{siteName || t('common.appName')}</span>
             )}
           </div>
 
@@ -194,7 +205,7 @@ export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose })
               <div key={groupIndex} className={groupIndex > 0 ? 'mt-6' : ''}>
                 {/* Group label */}
                 {group.label && (isOpen || isMobile) && (
-                  <p className="px-4 mb-2 text-xs font-medium text-warmgray uppercase tracking-wider">
+                  <p className="px-4 mb-2 text-xs font-medium text-cream/60 uppercase tracking-wider">
                     {group.label}
                   </p>
                 )}
@@ -251,7 +262,7 @@ export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose })
           <div className="px-4 py-4 border-t border-white/10">
             {/* Переключатель языка */}
             <div className="flex items-center gap-2 px-4 py-2 mb-2">
-              <Globe className="w-4 h-4 text-warmgray" />
+              <Globe className="w-4 h-4 text-cream/60" />
               <div className="flex gap-1">
                 {['ru', 'en', 'kk'].map((lang) => (
                   <button
@@ -260,8 +271,8 @@ export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose })
                     className={cn(
                       'px-2 py-1 text-xs rounded transition-colors',
                       language === lang
-                        ? 'bg-accent text-charcoal font-medium'
-                        : 'text-warmgray hover:text-cream'
+                        ? 'bg-accent text-foreground font-medium'
+                        : 'text-cream/60 hover:text-cream'
                     )}
                   >
                     {lang.toUpperCase()}
@@ -277,7 +288,7 @@ export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose })
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">{user.name}</p>
-                <p className="text-xs text-warmgray truncate">{user.role}</p>
+                <p className="text-xs text-cream/60 truncate">{user.role}</p>
               </div>
             </div>
             
@@ -287,7 +298,7 @@ export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose })
                 logout()
                 if (onClose) onClose()
               }}
-              className="w-full flex items-center gap-3 px-4 py-3 mt-2 text-warmgray hover:text-danger hover:bg-white/5 rounded transition-colors"
+              className="w-full flex items-center gap-3 px-4 py-3 mt-2 text-cream/60 hover:text-danger hover:bg-white/5 rounded transition-colors"
             >
               <LogOut className="w-5 h-5" />
               <span>{t('header.signOut')}</span>

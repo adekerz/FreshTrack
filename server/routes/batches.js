@@ -1,10 +1,11 @@
 /**
  * FreshTrack Batches API - PostgreSQL Async Version
  * Phase 6: Uses UnifiedFilterService for consistent filtering
+ * Phase 8: SSE real-time updates
  */
 
 import express from 'express'
-import { logError } from '../utils/logger.js'
+import { logError, logInfo } from '../utils/logger.js'
 import {
   getAllBatches,
   getBatchById,
@@ -34,6 +35,8 @@ import {
   calculateBatchStats
 } from '../services/ExpiryService.js'
 import { UnifiedFilterService, PaginationDefaults } from '../services/FilterService.js'
+import sseManager from '../services/SSEManager.js'
+import { SSE_EVENTS } from '../utils/constants.js'
 
 const router = express.Router()
 
@@ -219,6 +222,16 @@ router.post('/', authMiddleware, hotelIsolation, departmentIsolation, requirePer
       snapshot_after: createAuditSnapshot(enrichedBatch, 'batch')
     })
     
+    // 🔥 SSE Broadcast: notify all clients about new batch
+    sseManager.broadcast(req.hotelId, SSE_EVENTS.BATCH_ADDED, {
+      batchId: batch.id,
+      productName: product.name,
+      quantity: batch.quantity,
+      expiryDate: expDate,
+      userName: req.user.name,
+      departmentId: departmentId
+    })
+    
     // Вернуть данные в формате, ожидаемом фронтендом
     res.status(201).json({ 
       success: true, 
@@ -282,6 +295,14 @@ router.put('/:id', authMiddleware, hotelIsolation, departmentIsolation, requireP
         snapshot_after: snapshotAfter
       })
       
+      // 🔥 SSE Broadcast: notify about batch update
+      sseManager.broadcast(req.hotelId, SSE_EVENTS.BATCH_UPDATED, {
+        batchId: req.params.id,
+        productName: product.name,
+        updates: Object.keys(updates),
+        userName: req.user.name
+      })
+      
       res.json({ success: true, batch: enrichedBatch })
     } else {
       res.json({ success: false })
@@ -324,6 +345,20 @@ router.delete('/:id', authMiddleware, hotelIsolation, departmentIsolation, requi
         ip_address: req.ip,
         snapshot_before: snapshotBefore,
         snapshot_after: null  // Entity no longer exists
+      })
+      
+      // 🔥 SSE Broadcast: notify about batch deletion
+      sseManager.broadcast(req.hotelId, SSE_EVENTS.BATCH_UPDATED, {
+        action: 'deleted',
+        batchId: req.params.id,
+        productName: product.name,
+        userName: req.user.name
+      })
+      
+      // SSE: Trigger stats update
+      sseManager.broadcast(req.hotelId, SSE_EVENTS.STATS_UPDATE, {
+        reason: 'batch_deleted',
+        timestamp: new Date().toISOString()
       })
     }
     res.json({ success })

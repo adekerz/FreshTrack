@@ -24,6 +24,8 @@ import {
 } from '../middleware/auth.js'
 import { PermissionService } from '../services/PermissionService.js'
 import { logError } from '../utils/logger.js'
+import { sseManager } from '../services/SSEManager.js'
+import { SSE_EVENTS, HOTEL_WIDE_ROLES } from '../utils/constants.js'
 
 const router = express.Router()
 
@@ -60,6 +62,11 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ success: false, error: 'Invalid credentials' })
     }
     
+    // SECURITY: Check if user is blocked
+    if (user.is_active === false) {
+      return res.status(403).json({ success: false, error: 'Account is blocked. Contact administrator.' })
+    }
+    
     const isValidPassword = verifyPassword(password, user.password)
     if (!isValidPassword) {
       return res.status(401).json({ success: false, error: 'Invalid credentials' })
@@ -83,6 +90,16 @@ router.post('/login', async (req, res) => {
       details: { method: 'password' },
       ip_address: req.ip
     })
+    
+    // SSE: Broadcast user-online to admins only
+    if (user.hotel_id) {
+      sseManager.broadcastToAdmins(user.hotel_id, SSE_EVENTS.USER_ONLINE, {
+        userId: user.id,
+        userName: user.name || user.login,
+        userRole: user.role,
+        timestamp: new Date().toISOString()
+      })
+    }
     
     // Get user permissions from database
     const permissions = await getUserPermissionsArray(user)
@@ -121,6 +138,16 @@ router.post('/logout', authMiddleware, async (req, res) => {
       entity_id: req.user.id,
       ip_address: req.ip
     })
+    
+    // SSE: Broadcast user-offline to admins only
+    if (req.user.hotel_id) {
+      sseManager.broadcastToAdmins(req.user.hotel_id, SSE_EVENTS.USER_OFFLINE, {
+        userId: req.user.id,
+        userName: req.user.name || req.user.login,
+        timestamp: new Date().toISOString()
+      })
+    }
+    
     res.json({ success: true, message: 'Logged out successfully' })
   } catch (error) {
     logError('Auth', error)
@@ -291,17 +318,24 @@ router.patch('/users/:id', authMiddleware, requirePermission(PermissionResource.
     const { id } = req.params
     const { name, email, password, role, department_id, is_active } = req.body
     
+    console.log('[PATCH User] ID:', id, 'Body:', { name, email, role, department_id, is_active })
+    
     const user = await getUserById(id)
     if (!user) {
       return res.status(404).json({ success: false, error: 'User not found' })
     }
+    
+    // SUPER_ADMIN can update anyone, others only in their hotel
     if (req.user.role !== 'SUPER_ADMIN' && user.hotel_id !== req.user.hotel_id) {
       return res.status(403).json({ success: false, error: 'Access denied' })
     }
-    // SECURITY: HOTEL_ADMIN cannot manage SUPER_ADMIN or other HOTEL_ADMINs
-    if (req.user.role === 'HOTEL_ADMIN' && user.role === 'SUPER_ADMIN') {
-      return res.status(403).json({ success: false, error: 'Cannot update Super Admin user' })
+    
+    // SECURITY: Cannot block/modify SUPER_ADMIN users (except self)
+    if (user.role === 'SUPER_ADMIN' && user.id !== req.user.id) {
+      return res.status(403).json({ success: false, error: 'Cannot modify Super Admin users' })
     }
+    
+    // SECURITY: HOTEL_ADMIN cannot manage other HOTEL_ADMINs
     if (req.user.role === 'HOTEL_ADMIN' && user.role === 'HOTEL_ADMIN' && user.id !== req.user.id) {
       return res.status(403).json({ success: false, error: 'Cannot manage other hotel admins' })
     }
@@ -311,20 +345,30 @@ router.patch('/users/:id', authMiddleware, requirePermission(PermissionResource.
     if (email !== undefined) updates.email = email
     if (password) updates.password = password
     if (department_id !== undefined) updates.department_id = department_id
-    if (is_active !== undefined) updates.is_active = is_active
+    if (is_active !== undefined) updates.is_active = Boolean(is_active) // Ensure boolean
     if (role !== undefined) updates.role = role
     
+    console.log('[PATCH User] Updates to apply:', updates)
+    
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ success: false, error: 'No updates provided' })
+    }
+    
     const success = await updateUser(id, updates)
+    console.log('[PATCH User] Update result:', success)
+    
     if (success) {
       await logAudit({
         hotel_id: user.hotel_id, user_id: req.user.id, user_name: req.user.name,
-        action: 'update', entity_type: 'user', entity_id: id,
-        details: { updates: Object.keys(updates) }, ip_address: req.ip
+        action: is_active === false ? 'block_user' : (is_active === true ? 'unblock_user' : 'update'),
+        entity_type: 'user', entity_id: id,
+        details: { updates: Object.keys(updates), targetUser: user.name }, ip_address: req.ip
       })
     }
     res.json({ success })
   } catch (error) {
     logError('Auth', error)
+    console.error('[PATCH User] Error:', error)
     res.status(500).json({ success: false, error: 'Failed to update user' })
   }
 })

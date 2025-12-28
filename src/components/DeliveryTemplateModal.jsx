@@ -98,19 +98,19 @@ export default function DeliveryTemplateModal({ isOpen, onClose, onApply, depart
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       {/* Backdrop */}
-      <div className="fixed inset-0 bg-charcoal/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="fixed inset-0 bg-black/50 dark:bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
       {/* Modal */}
       <div className="flex min-h-full items-center justify-center p-4">
-        <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-hidden">
+        <div className="relative bg-card rounded-2xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-hidden">
           {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between p-6 border-b border-border">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-primary-100 dark:bg-primary-900/30 rounded-lg">
                 <Package className="w-5 h-5 text-primary-600 dark:text-primary-400" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                <h2 className="text-lg font-semibold text-foreground">
                   {t('templates.title') || 'Шаблоны поставок'}
                 </h2>
                 {selectedTemplate && (
@@ -120,7 +120,7 @@ export default function DeliveryTemplateModal({ isOpen, onClose, onApply, depart
             </div>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              className="p-2 hover:bg-muted rounded-lg transition-colors"
             >
               <X className="w-5 h-5 text-gray-500" />
             </button>
@@ -135,7 +135,7 @@ export default function DeliveryTemplateModal({ isOpen, onClose, onApply, depart
             ) : !selectedTemplate ? (
               /* Template Selection */
               <div className="space-y-4">
-                <p className="text-gray-600 dark:text-gray-400">
+                <p className="text-muted-foreground">
                   {t('templates.selectTemplate') || 'Выберите шаблон для применения:'}
                 </p>
 
@@ -149,10 +149,10 @@ export default function DeliveryTemplateModal({ isOpen, onClose, onApply, depart
                       <button
                         key={template.id}
                         onClick={() => selectTemplate(template)}
-                        className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-xl hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/10 transition-colors text-left"
+                        className="flex items-center justify-between p-4 border border-border rounded-xl hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/10 transition-colors text-left"
                       >
                         <div>
-                          <h3 className="font-medium text-gray-900 dark:text-white">
+                          <h3 className="font-medium text-foreground">
                             {template.name}
                           </h3>
                           <p className="text-sm text-gray-500">
@@ -172,7 +172,7 @@ export default function DeliveryTemplateModal({ isOpen, onClose, onApply, depart
               <div className="space-y-6">
                 {/* Department info */}
                 <div className="p-3 bg-accent/10 rounded-lg">
-                  <p className="text-sm text-charcoal">
+                  <p className="text-sm text-foreground">
                     <span className="font-medium">{t('templates.targetDepartment') || 'Целевой отдел'}:</span>{' '}
                     {departments.find(d => d.id === targetDepartment)?.name || targetDepartment}
                   </p>
@@ -181,7 +181,7 @@ export default function DeliveryTemplateModal({ isOpen, onClose, onApply, depart
                 {/* Items list */}
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <h3 className="font-medium text-gray-900 dark:text-white">
+                    <h3 className="font-medium text-foreground">
                       {t('templates.products') || 'Товары'}
                     </h3>
                     <button
@@ -195,10 +195,10 @@ export default function DeliveryTemplateModal({ isOpen, onClose, onApply, depart
                   {items.map((item, index) => (
                     <div
                       key={index}
-                      className="flex flex-wrap md:flex-nowrap items-center gap-3 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl"
+                      className="flex flex-wrap md:flex-nowrap items-center gap-3 p-4 bg-muted/50 rounded-xl"
                     >
                       <div className="flex-1 min-w-[150px]">
-                        <p className="font-medium text-gray-900 dark:text-white text-sm">
+                        <p className="font-medium text-foreground text-sm">
                           {item.productName}
                         </p>
                         <p className="text-xs text-gray-500">{item.category}</p>
@@ -211,7 +211,7 @@ export default function DeliveryTemplateModal({ isOpen, onClose, onApply, depart
                           onClick={() =>
                             updateItem(index, 'quantity', Math.max(1, item.quantity - 1))
                           }
-                          className="p-1 rounded bg-gray-200 dark:bg-gray-600 hover:bg-gray-300"
+                          className="p-1 rounded bg-muted hover:bg-muted/80"
                         >
                           <Minus className="w-4 h-4" />
                         </button>
@@ -221,13 +221,13 @@ export default function DeliveryTemplateModal({ isOpen, onClose, onApply, depart
                           onChange={(e) =>
                             updateItem(index, 'quantity', parseInt(e.target.value) || 1)
                           }
-                          className="w-16 text-center px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                          className="w-16 text-center px-2 py-1 border border-border rounded bg-card text-foreground text-sm"
                           min="1"
                         />
                         <button
                           type="button"
                           onClick={() => updateItem(index, 'quantity', item.quantity + 1)}
-                          className="p-1 rounded bg-gray-200 dark:bg-gray-600 hover:bg-gray-300"
+                          className="p-1 rounded bg-muted hover:bg-muted/80"
                         >
                           <Plus className="w-4 h-4" />
                         </button>
@@ -240,7 +240,7 @@ export default function DeliveryTemplateModal({ isOpen, onClose, onApply, depart
                           type="date"
                           value={item.expiryDate}
                           onChange={(e) => updateItem(index, 'expiryDate', e.target.value)}
-                          className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                          className="px-2 py-1 border border-border rounded bg-card text-foreground text-sm"
                         />
                       </div>
 
@@ -261,14 +261,14 @@ export default function DeliveryTemplateModal({ isOpen, onClose, onApply, depart
 
           {/* Footer */}
           {selectedTemplate && (
-            <div className="flex items-center justify-between gap-4 p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-              <div className="text-sm text-gray-600 dark:text-gray-400">
+            <div className="flex items-center justify-between gap-4 p-6 border-t border-border bg-muted">
+              <div className="text-sm text-muted-foreground">
                 {items.length} {t('templates.itemsToAdd') || 'позиций будет добавлено'}
               </div>
               <div className="flex gap-3">
                 <button
                   onClick={onClose}
-                  className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                  className="px-4 py-2 text-muted-foreground hover:bg-muted rounded-lg transition-colors"
                 >
                   {t('common.cancel')}
                 </button>

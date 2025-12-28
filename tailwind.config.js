@@ -8,19 +8,63 @@ export default {
   theme: {
     extend: {
       colors: {
+        // Semantic colors with CSS variables
+        background: 'rgb(var(--background) / <alpha-value>)',
+        foreground: 'rgb(var(--foreground) / <alpha-value>)',
+        card: {
+          DEFAULT: 'rgb(var(--card) / <alpha-value>)',
+          foreground: 'rgb(var(--card-foreground) / <alpha-value>)',
+        },
+        muted: {
+          DEFAULT: 'rgb(var(--muted) / <alpha-value>)',
+          foreground: 'rgb(var(--muted-foreground) / <alpha-value>)',
+        },
+        primary: {
+          DEFAULT: 'rgb(var(--primary) / <alpha-value>)',
+          foreground: 'rgb(var(--primary-foreground) / <alpha-value>)',
+        },
+        secondary: {
+          DEFAULT: 'rgb(var(--secondary) / <alpha-value>)',
+          foreground: 'rgb(var(--secondary-foreground) / <alpha-value>)',
+        },
+        destructive: {
+          DEFAULT: 'rgb(var(--danger) / <alpha-value>)',
+          foreground: 'rgb(var(--primary-foreground) / <alpha-value>)',
+        },
+        border: 'rgb(var(--border) / <alpha-value>)',
+        ring: 'rgb(var(--ring) / <alpha-value>)',
+        
+        // Surface elevation levels (Material Design)
+        surface: {
+          0: 'rgb(var(--surface-0) / <alpha-value>)',
+          1: 'rgb(var(--surface-1) / <alpha-value>)',
+          2: 'rgb(var(--surface-2) / <alpha-value>)',
+          3: 'rgb(var(--surface-3) / <alpha-value>)',
+          hover: 'rgb(var(--surface-hover) / <alpha-value>)',
+        },
+        
+        // Brand colors (keep for backwards compatibility)
         cream: '#FAF8F5',
         sand: '#F5F0E8',
         charcoal: '#1A1A1A',
         warmgray: '#6B6560',
         accent: '#FF8D6B',
         'accent-light': '#FFB499',
-        success: '#4A7C59',
-        warning: '#D4A853',
-        danger: '#C4554D',
-        // Dark mode variants
+        success: 'rgb(var(--success) / <alpha-value>)',
+        warning: 'rgb(var(--warning) / <alpha-value>)',
+        danger: 'rgb(var(--danger) / <alpha-value>)',
+        // Dark mode surface colors
         'dark-bg': '#121212',
         'dark-surface': '#1E1E1E',
-        'dark-border': '#2D2D2D',
+        'dark-elevated': '#2D2D2D',
+        'dark-border': '#404040',
+        'dark-hover': '#383838',
+        // Text colors for dark mode (with opacity)
+        'dark-text': {
+          DEFAULT: 'rgba(255, 255, 255, 0.87)',   /* High emphasis */
+          secondary: 'rgba(255, 255, 255, 0.60)', /* Medium emphasis */
+          disabled: 'rgba(255, 255, 255, 0.38)',  /* Disabled */
+        },
       },
       fontFamily: {
         serif: ['Cormorant Garamond', 'serif'],
@@ -77,6 +121,24 @@ export default {
         '18': '4.5rem',
         '88': '22rem',
       },
+      // Touch-friendly минимальные размеры
+      minHeight: {
+        'touch': '48px',
+        'touch-lg': '56px',
+      },
+      minWidth: {
+        'touch': '48px',
+        'touch-lg': '56px',
+      },
+    },
+    // Responsive screens для мобильной адаптации
+    screens: {
+      'xs': '375px',
+      'sm': '640px',
+      'md': '768px',
+      'lg': '1024px',
+      'xl': '1280px',
+      '2xl': '1536px',
     },
   },
   plugins: [],

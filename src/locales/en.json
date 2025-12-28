@@ -1,4 +1,6 @@
 {
+  "expiry_critical": "Critical Expiry",
+  "expired": "Expired",
   "theme": {
     "label": "Theme",
     "light": "Light",
@@ -263,6 +265,10 @@
     "title": "Notifications",
     "description": "Product batches requiring attention",
     "new": "New",
+    "empty": "No notifications",
+    "markAllRead": "Mark all as read",
+    "clearAll": "Clear all",
+    "items": "notifications",
     "activeAlerts": "Active Alerts",
     "needAttention": "{{count}} batches need attention",
     "allClear": "All Clear",
@@ -493,14 +499,19 @@
       "collectedBy": "Collected By"
     },
     "reasons": {
-      "manual": "Manual Collection",
       "expired": "Expired",
-      "damaged": "Damaged",
-      "kitchen": "Used in Kitchen",
+      "kitchen": "Moved to Kitchen/Bar",
+      "damaged": "Packaging Damaged",
+      "return": "Return to Supplier (Defect)",
+      "compliment": "Guest Compliment",
+      "other": "Other",
+      "consumption": "Consumption",
+      "minibar": "Minibar",
+      "sale": "Sale",
+      "manual": "Manual Collection",
       "disposed": "Disposed",
       "staff": "Given to Staff",
-      "returned": "Returned to Supplier",
-      "other": "Other"
+      "returned": "Returned to Supplier"
     }
   },
   "statistics": {
@@ -595,6 +606,8 @@
     "departments": "Departments",
     "categoriesLabel": "Categories",
     "export": "Export",
+    "branding": "Branding",
+    "brandingDescription": "Customize the app appearance",
     "tabs": {
       "profile": "Profile",
       "notifications": "Notifications",
@@ -790,6 +803,28 @@
       "database": "Database",
       "connected": "Connected"
     }
+  },
+  "branding": {
+    "logo": "Logo",
+    "uploadLogo": "Upload",
+    "removeLogo": "Remove",
+    "logoUploaded": "Logo uploaded",
+    "logoRemoved": "Logo removed",
+    "logoUploadError": "Logo upload error",
+    "invalidFileType": "Images only",
+    "fileTooLarge": "File too large (max 5MB)",
+    "siteName": "Site Name",
+    "siteNameLabel": "Name",
+    "siteNameHint": "Name is displayed in the header and throughout the site",
+    "colors": "Colors",
+    "primaryColor": "Primary",
+    "secondaryColor": "Secondary",
+    "accentColor": "Accent",
+    "dangerColor": "Danger",
+    "preview": "Color preview:",
+    "resetToDefault": "Reset to default",
+    "confirmReset": "Reset branding to defaults?",
+    "reset": "Branding reset"
   },
   "export": {
     "title": "Export Data",
@@ -1140,6 +1175,9 @@
     "lastLogin": "Last Login",
     "active": "Active",
     "block": "Block",
+    "unblock": "Unblock",
+    "unblockConfirmTitle": "Unblock User",
+    "unblockConfirmMessage": "Are you sure you want to unblock this user?",
     "roleAdmin": "Administrator",
     "roleManager": "Manager",
     "roleStaff": "Staff",
@@ -1197,6 +1235,7 @@
   },
   "fifoCollect": {
     "title": "FIFO Collection",
+    "short": "FIFO",
     "inStock": "In stock",
     "quickActions": "Quick collection",
     "quantity": "Quantity",
@@ -1208,10 +1247,11 @@
     "success": "Successfully collected {{count}} units",
     "error": "Collection error",
     "reasons": {
-      "consumption": "Kitchen",
-      "minibar": "Minibar",
-      "sale": "Sale",
-      "damaged": "Damaged",
+      "expired": "Expired",
+      "kitchen": "Kitchen/Bar",
+      "damaged": "Packaging Damaged",
+      "return": "Return (Defect)",
+      "compliment": "Guest Compliment",
       "other": "Other"
     }
   }

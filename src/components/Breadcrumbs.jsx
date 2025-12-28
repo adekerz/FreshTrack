@@ -68,7 +68,7 @@ export default function Breadcrumbs({ className, customItems }) {
       aria-label="Breadcrumb" 
       className={cn('hidden sm:block mb-4', className)}
     >
-      <ol className="flex items-center gap-1 text-sm text-warmgray">
+      <ol className="flex items-center gap-1 text-sm text-muted-foreground">
         {breadcrumbs.map((item, index) => {
           const isLast = index === breadcrumbs.length - 1
           const Icon = item.icon
@@ -76,12 +76,12 @@ export default function Breadcrumbs({ className, customItems }) {
           return (
             <li key={item.path} className="flex items-center">
               {index > 0 && (
-                <ChevronRight className="w-4 h-4 mx-1 text-warmgray/50" aria-hidden="true" />
+                <ChevronRight className="w-4 h-4 mx-1 text-muted-foreground/50" aria-hidden="true" />
               )}
               
               {isLast ? (
                 <span 
-                  className="text-charcoal dark:text-cream font-medium flex items-center gap-1.5"
+                  className="text-foreground font-medium flex items-center gap-1.5"
                   aria-current="page"
                 >
                   {Icon && <Icon className="w-4 h-4" />}

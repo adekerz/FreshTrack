@@ -1,5 +1,6 @@
 /**
  * FreshTrack Write-offs API - PostgreSQL Async Version
+ * Phase 8: SSE real-time updates
  */
 
 import express from 'express'
@@ -24,6 +25,7 @@ import {
   PermissionResource,
   PermissionAction
 } from '../middleware/auth.js'
+import sseManager from '../services/SSEManager.js'
 
 const router = express.Router()
 
@@ -155,6 +157,16 @@ router.post('/', authMiddleware, hotelIsolation, departmentIsolation, requirePer
       hotel_id: req.hotelId, user_id: req.user.id, user_name: req.user.name,
       action: 'create', entity_type: 'write_off', entity_id: writeOff.id,
       details: { product_name: productInfo.name, quantity, reason }, ip_address: req.ip
+    })
+    
+    // 🔥 SSE Broadcast: notify about write-off
+    sseManager.broadcast(req.hotelId, 'write-off', {
+      writeOffId: writeOff.id,
+      productName: productInfo.name,
+      quantity: parseFloat(quantity),
+      reason,
+      userName: req.user.name,
+      departmentId: deptId
     })
     
     res.status(201).json({ success: true, write_off: writeOff })

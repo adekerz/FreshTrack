@@ -138,7 +138,7 @@ export default function AuditLogsPage() {
       case 'login':
         return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
       case 'logout':
-        return 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+        return 'bg-muted text-muted-foreground'
       case 'create':
         return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
       case 'update':
@@ -150,7 +150,7 @@ export default function AuditLogsPage() {
       case 'settingschange':
         return 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'
       default:
-        return 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+        return 'bg-muted text-muted-foreground'
     }
   }
 
@@ -259,11 +259,11 @@ export default function AuditLogsPage() {
       {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-xl sm:text-2xl font-light text-charcoal dark:text-cream flex items-center gap-2">
+          <h1 className="text-xl sm:text-2xl font-light text-foreground flex items-center gap-2">
             <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-accent" />
             {t('auditLogs.title') || 'Журнал действий'}
           </h1>
-          <p className="text-warmgray dark:text-warmgray/80 mt-1 text-xs sm:text-sm">
+          <p className="text-muted-foreground mt-1 text-xs sm:text-sm">
             {t('auditLogs.subtitle') || 'История всех действий в системе'}
           </p>
         </div>
@@ -272,7 +272,7 @@ export default function AuditLogsPage() {
           <button
             onClick={loadLogs}
             disabled={loading}
-            className="p-2 rounded-lg hover:bg-sand text-warmgray transition-colors"
+            className="p-2 rounded-lg hover:bg-muted text-muted-foreground transition-colors"
             title={t('common.refresh') || 'Обновить'}
           >
             <RefreshCw className={cn('w-4 h-4 sm:w-5 sm:h-5', loading && 'animate-spin')} />
@@ -288,17 +288,17 @@ export default function AuditLogsPage() {
       </div>
 
       {/* Filters Bar */}
-      <div className="bg-white dark:bg-dark-surface rounded-xl border border-sand dark:border-dark-border p-3 sm:p-4">
+      <div className="bg-card rounded-xl border border-border p-3 sm:p-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
           {/* Search */}
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-warmgray" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={t('common.search') || 'Поиск...'}
-              className="w-full pl-9 sm:pl-10 pr-4 py-2 border border-sand dark:border-dark-border rounded-lg bg-cream dark:bg-dark-bg text-charcoal dark:text-cream text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
+              className="w-full pl-9 sm:pl-10 pr-4 py-2 border border-border rounded-lg bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
             />
           </div>
 
@@ -310,11 +310,11 @@ export default function AuditLogsPage() {
                 'flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg border transition-colors text-sm flex-1 sm:flex-none justify-center',
                 showFilters || hasActiveFilters
                   ? 'border-accent bg-accent/10 text-accent'
-                  : 'border-sand text-warmgray hover:bg-sand'
+                  : 'border-border text-muted-foreground hover:bg-muted'
               )}
             >
               <Filter className="w-4 h-4" />
-              <span className="hidden xs:inline">{t('common.filters') || 'Фильтры'}</span>
+              <span className="hidden sm:inline">{t('common.filters') || 'Фильтры'}</span>
               {hasActiveFilters && (
                 <span className="ml-1 w-5 h-5 bg-accent text-white text-xs rounded-full flex items-center justify-center">
                   {[filters.actionType, filters.entityType, filters.dateFrom, filters.dateTo].filter(Boolean).length}
@@ -336,16 +336,16 @@ export default function AuditLogsPage() {
 
         {/* Extended Filters */}
         {showFilters && (
-          <div className="mt-4 pt-4 border-t border-sand dark:border-dark-border grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="mt-4 pt-4 border-t border-border grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Action Type */}
             <div>
-              <label className="block text-sm font-medium text-charcoal dark:text-cream mb-1">
+              <label className="block text-sm font-medium text-foreground mb-1">
                 {t('auditLogs.filters.actionType') || 'Тип действия'}
               </label>
               <select
                 value={filters.actionType}
                 onChange={(e) => setFilters(prev => ({ ...prev, actionType: e.target.value }))}
-                className="w-full px-3 py-2 border border-sand dark:border-dark-border rounded-lg bg-cream dark:bg-dark-bg text-charcoal dark:text-cream focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+                className="w-full px-3 py-2 border border-border rounded-lg bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
               >
                 <option value="">{t('common.all') || 'Все'}</option>
                 {actionTypes.map(type => (
@@ -356,13 +356,13 @@ export default function AuditLogsPage() {
 
             {/* Entity Type */}
             <div>
-              <label className="block text-sm font-medium text-charcoal dark:text-cream mb-1">
+              <label className="block text-sm font-medium text-foreground mb-1">
                 {t('auditLogs.filters.entityType') || 'Тип объекта'}
               </label>
               <select
                 value={filters.entityType}
                 onChange={(e) => setFilters(prev => ({ ...prev, entityType: e.target.value }))}
-                className="w-full px-3 py-2 border border-sand dark:border-dark-border rounded-lg bg-cream dark:bg-dark-bg text-charcoal dark:text-cream focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+                className="w-full px-3 py-2 border border-border rounded-lg bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
               >
                 <option value="">{t('common.all') || 'Все'}</option>
                 {entityTypes.map(type => (
@@ -373,32 +373,32 @@ export default function AuditLogsPage() {
 
             {/* Date From */}
             <div>
-              <label className="block text-sm font-medium text-charcoal dark:text-cream mb-1">
+              <label className="block text-sm font-medium text-foreground mb-1">
                 {t('auditLogs.filters.dateFrom') || 'Дата от'}
               </label>
               <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-warmgray" />
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <input
                   type="date"
                   value={filters.dateFrom}
                   onChange={(e) => setFilters(prev => ({ ...prev, dateFrom: e.target.value }))}
-                  className="w-full pl-10 pr-3 py-2 border border-sand dark:border-dark-border rounded-lg bg-cream dark:bg-dark-bg text-charcoal dark:text-cream focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+                  className="w-full pl-10 pr-3 py-2 border border-border rounded-lg bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
                 />
               </div>
             </div>
 
             {/* Date To */}
             <div>
-              <label className="block text-sm font-medium text-charcoal dark:text-cream mb-1">
+              <label className="block text-sm font-medium text-foreground mb-1">
                 {t('auditLogs.filters.dateTo') || 'Дата до'}
               </label>
               <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-warmgray" />
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <input
                   type="date"
                   value={filters.dateTo}
                   onChange={(e) => setFilters(prev => ({ ...prev, dateTo: e.target.value }))}
-                  className="w-full pl-10 pr-3 py-2 border border-sand dark:border-dark-border rounded-lg bg-cream dark:bg-dark-bg text-charcoal dark:text-cream focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+                  className="w-full pl-10 pr-3 py-2 border border-border rounded-lg bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
                 />
               </div>
             </div>
@@ -407,61 +407,61 @@ export default function AuditLogsPage() {
       </div>
 
       {/* Stats */}
-      <div className="flex items-center gap-4 text-sm text-warmgray">
+      <div className="flex items-center gap-4 text-sm text-muted-foreground">
         <span>
-          {t('common.total') || 'Всего'}: <strong className="text-charcoal dark:text-cream">{pagination.total}</strong> {t('auditLogs.records') || 'записей'}
+          {t('common.total') || 'Всего'}: <strong className="text-foreground">{pagination.total}</strong> {t('auditLogs.records') || 'записей'}
         </span>
         {hasActiveFilters && (
           <span>
-            {t('common.filtered') || 'Отфильтровано'}: <strong className="text-charcoal dark:text-cream">{filteredLogs.length}</strong>
+            {t('common.filtered') || 'Отфильтровано'}: <strong className="text-foreground">{filteredLogs.length}</strong>
           </span>
         )}
       </div>
 
       {/* Logs List */}
-      <div className="bg-white dark:bg-dark-surface rounded-xl border border-sand dark:border-dark-border overflow-hidden">
+      <div className="bg-card rounded-xl border border-border overflow-hidden">
         {filteredLogs.length === 0 ? (
           <div className="p-8 text-center">
-            <FileText className="w-12 h-12 text-warmgray mx-auto mb-4" />
-            <p className="text-warmgray">{t('auditLogs.noLogs') || 'Журнал пуст'}</p>
+            <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+            <p className="text-muted-foreground">{t('auditLogs.noLogs') || 'Журнал пуст'}</p>
           </div>
         ) : (
           <>
             {/* Desktop Table */}
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-sand/50 dark:bg-dark-border/30">
+                <thead className="bg-muted">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-warmgray uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       {t('auditLogs.timestamp') || 'Время'}
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-warmgray uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       {t('auditLogs.user') || 'Пользователь'}
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-warmgray uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       {t('auditLogs.action') || 'Действие'}
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-warmgray uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       {t('auditLogs.entity') || 'Объект'}
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-warmgray uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       {t('auditLogs.details') || 'Детали'}
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-warmgray uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       {t('auditLogs.ipAddress') || 'IP'}
                     </th>
-                    <th className="px-4 py-3 text-center text-xs font-medium text-warmgray uppercase tracking-wider">
+                    <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       {t('common.actions') || 'Действия'}
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-sand dark:divide-dark-border">
+                <tbody className="divide-y divide-border">
                   {filteredLogs.map((log) => (
-                    <tr key={log.id} className="hover:bg-sand/30 dark:hover:bg-dark-border/30 transition-colors">
+                    <tr key={log.id} className="hover:bg-muted transition-colors">
                       <td className="px-4 py-3 whitespace-nowrap">
                         <div className="flex items-center gap-2 text-sm">
-                          <Clock className="w-4 h-4 text-warmgray" />
-                          <span className="text-charcoal dark:text-cream">
+                          <Clock className="w-4 h-4 text-muted-foreground" />
+                          <span className="text-foreground">
                             {formatTimestamp(log.timestamp || log.created_at)}
                           </span>
                         </div>
@@ -471,7 +471,7 @@ export default function AuditLogsPage() {
                           <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center">
                             <User className="w-4 h-4 text-accent" />
                           </div>
-                          <span className="font-medium text-charcoal dark:text-cream">
+                          <span className="font-medium text-foreground">
                             {log.userName || log.user || 'Система'}
                           </span>
                         </div>
@@ -491,11 +491,11 @@ export default function AuditLogsPage() {
                         <div className="flex items-center gap-2">
                           {getEntityIcon(log.entity_type)}
                           <div>
-                            <span className="text-charcoal dark:text-cream">
+                            <span className="text-foreground">
                               {log.entity_name || log.target || '—'}
                             </span>
                             {log.entity_type && (
-                              <span className="text-xs text-warmgray block">
+                              <span className="text-xs text-muted-foreground block">
                                 {log.entity_type}
                               </span>
                             )}
@@ -503,19 +503,19 @@ export default function AuditLogsPage() {
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="text-sm text-warmgray line-clamp-2">
+                        <span className="text-sm text-muted-foreground line-clamp-2">
                           {formatDetails(log.details)}
                         </span>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
-                        <span className="text-sm text-warmgray font-mono">
+                        <span className="text-sm text-muted-foreground font-mono">
                           {log.ip_address || log.ipAddress || '—'}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-center">
                         <button
                           onClick={() => setSelectedLog(log)}
-                          className="p-1.5 rounded-lg hover:bg-sand text-warmgray transition-colors"
+                          className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground transition-colors"
                           title={t('common.viewDetails') || 'Подробнее'}
                         >
                           <Eye className="w-4 h-4" />
@@ -528,11 +528,11 @@ export default function AuditLogsPage() {
             </div>
 
             {/* Mobile Cards */}
-            <div className="md:hidden divide-y divide-sand dark:divide-dark-border">
+            <div className="md:hidden divide-y divide-border">
               {filteredLogs.map((log) => (
                 <div 
                   key={log.id} 
-                  className="p-4 space-y-3 cursor-pointer hover:bg-sand/30 dark:hover:bg-dark-border/30 transition-colors"
+                  className="p-4 space-y-3 cursor-pointer hover:bg-muted transition-colors"
                   onClick={() => setSelectedLog(log)}
                 >
                   <div className="flex items-center justify-between">
@@ -545,14 +545,14 @@ export default function AuditLogsPage() {
                       {getActionIcon(log.action_type || log.action)}
                       {getActionLabel(log.action_type || log.action)}
                     </span>
-                    <span className="text-xs text-warmgray">
+                    <span className="text-xs text-muted-foreground">
                       {formatTimestamp(log.timestamp || log.created_at)}
                     </span>
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <User className="w-4 h-4 text-warmgray" />
-                    <span className="font-medium text-charcoal dark:text-cream">
+                    <User className="w-4 h-4 text-muted-foreground" />
+                    <span className="font-medium text-foreground">
                       {log.userName || log.user || 'Система'}
                     </span>
                   </div>
@@ -560,14 +560,14 @@ export default function AuditLogsPage() {
                   {(log.entity_name || log.target) && (
                     <div className="flex items-center gap-2 text-sm">
                       {getEntityIcon(log.entity_type)}
-                      <span className="text-charcoal dark:text-cream">
+                      <span className="text-foreground">
                         {log.entity_name || log.target}
                       </span>
                     </div>
                   )}
 
                   {log.details && (
-                    <p className="text-sm text-warmgray line-clamp-2">
+                    <p className="text-sm text-muted-foreground line-clamp-2">
                       {formatDetails(log.details)}
                     </p>
                   )}
@@ -579,8 +579,8 @@ export default function AuditLogsPage() {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-sand dark:border-dark-border">
-            <div className="text-sm text-warmgray">
+          <div className="flex items-center justify-between px-4 py-3 border-t border-border">
+            <div className="text-sm text-muted-foreground">
               {((pagination.page - 1) * pagination.limit) + 1}—
               {Math.min(pagination.page * pagination.limit, pagination.total)} {t('common.of') || 'из'}{' '}
               {pagination.total}
@@ -589,9 +589,9 @@ export default function AuditLogsPage() {
               <button
                 onClick={() => setPagination(prev => ({ ...prev, page: Math.max(1, prev.page - 1) }))}
                 disabled={pagination.page === 1}
-                className="p-2 rounded-lg hover:bg-sand disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="p-2 rounded-lg hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                <ChevronLeft className="w-5 h-5 text-charcoal" />
+                <ChevronLeft className="w-5 h-5 text-foreground" />
               </button>
               
               <div className="flex items-center gap-1">
@@ -614,7 +614,7 @@ export default function AuditLogsPage() {
                         'w-8 h-8 rounded-lg text-sm font-medium transition-colors',
                         pageNum === pagination.page
                           ? 'bg-accent text-white'
-                          : 'hover:bg-sand text-charcoal'
+                          : 'hover:bg-muted text-foreground'
                       )}
                     >
                       {pageNum}
@@ -626,9 +626,9 @@ export default function AuditLogsPage() {
               <button
                 onClick={() => setPagination(prev => ({ ...prev, page: Math.min(totalPages, prev.page + 1) }))}
                 disabled={pagination.page === totalPages}
-                className="p-2 rounded-lg hover:bg-sand disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="p-2 rounded-lg hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                <ChevronRight className="w-5 h-5 text-charcoal" />
+                <ChevronRight className="w-5 h-5 text-foreground" />
               </button>
             </div>
           </div>
@@ -637,40 +637,40 @@ export default function AuditLogsPage() {
 
       {/* Details Modal */}
       {selectedLog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-charcoal/50">
-          <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto">
-            <div className="p-6 border-b border-sand flex items-center justify-between">
-              <h2 className="text-xl font-light text-charcoal">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 dark:bg-black/60">
+          <div className="bg-card rounded-2xl shadow-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+            <div className="p-6 border-b border-border flex items-center justify-between">
+              <h2 className="text-xl font-light text-foreground">
                 {t('auditLogs.logDetails') || 'Детали записи'}
               </h2>
               <button
                 onClick={() => setSelectedLog(null)}
-                className="p-2 rounded-lg hover:bg-sand transition-colors"
+                className="p-2 rounded-lg hover:bg-muted transition-colors"
               >
-                <X className="w-5 h-5 text-charcoal" />
+                <X className="w-5 h-5 text-foreground" />
               </button>
             </div>
             
             <div className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm text-warmgray">
+                  <label className="text-sm text-muted-foreground">
                     {t('auditLogs.timestamp') || 'Время'}
                   </label>
-                  <p className="font-medium text-charcoal">
+                  <p className="font-medium text-foreground">
                     {formatDate(selectedLog.timestamp || selectedLog.created_at, true)}
                   </p>
                 </div>
                 <div>
-                  <label className="text-sm text-warmgray">
+                  <label className="text-sm text-muted-foreground">
                     {t('auditLogs.user') || 'Пользователь'}
                   </label>
-                  <p className="font-medium text-charcoal">
+                  <p className="font-medium text-foreground">
                     {selectedLog.userName || selectedLog.user || 'Система'}
                   </p>
                 </div>
                 <div>
-                  <label className="text-sm text-warmgray">
+                  <label className="text-sm text-muted-foreground">
                     {t('auditLogs.action') || 'Действие'}
                   </label>
                   <span
@@ -684,14 +684,14 @@ export default function AuditLogsPage() {
                   </span>
                 </div>
                 <div>
-                  <label className="text-sm text-warmgray">
+                  <label className="text-sm text-muted-foreground">
                     {t('auditLogs.entity') || 'Объект'}
                   </label>
-                  <p className="font-medium text-charcoal">
+                  <p className="font-medium text-foreground">
                     {selectedLog.entity_name || selectedLog.target || '—'}
                   </p>
                   {selectedLog.entity_type && (
-                    <span className="text-xs text-warmgray">
+                    <span className="text-xs text-muted-foreground">
                       {selectedLog.entity_type} #{selectedLog.entity_id}
                     </span>
                   )}
@@ -700,10 +700,10 @@ export default function AuditLogsPage() {
 
               {selectedLog.details && (
                 <div>
-                  <label className="text-sm text-warmgray">
+                  <label className="text-sm text-muted-foreground">
                     {t('auditLogs.details') || 'Детали'}
                   </label>
-                  <pre className="mt-1 text-charcoal whitespace-pre-wrap text-sm bg-sand/50 p-3 rounded-lg">
+                  <pre className="mt-1 text-foreground whitespace-pre-wrap text-sm bg-muted p-3 rounded-lg">
                     {formatDetails(selectedLog.details)}
                   </pre>
                 </div>
@@ -713,7 +713,7 @@ export default function AuditLogsPage() {
                 <div className="grid grid-cols-2 gap-4">
                   {selectedLog.old_value && (
                     <div>
-                      <label className="text-sm text-warmgray">
+                      <label className="text-sm text-muted-foreground">
                         {t('auditLogs.oldValue') || 'Старое значение'}
                       </label>
                       <pre className="mt-1 p-3 bg-danger/10 rounded-lg text-sm text-danger overflow-x-auto">
@@ -725,7 +725,7 @@ export default function AuditLogsPage() {
                   )}
                   {selectedLog.new_value && (
                     <div>
-                      <label className="text-sm text-warmgray">
+                      <label className="text-sm text-muted-foreground">
                         {t('auditLogs.newValue') || 'Новое значение'}
                       </label>
                       <pre className="mt-1 p-3 bg-success/10 rounded-lg text-sm text-success overflow-x-auto">
@@ -738,21 +738,21 @@ export default function AuditLogsPage() {
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-4 pt-4 border-t border-sand">
+              <div className="grid grid-cols-2 gap-4 pt-4 border-t border-border">
                 <div>
-                  <label className="text-sm text-warmgray">
+                  <label className="text-sm text-muted-foreground">
                     {t('auditLogs.ipAddress') || 'IP-адрес'}
                   </label>
-                  <p className="font-mono text-charcoal">
+                  <p className="font-mono text-foreground">
                     {selectedLog.ip_address || selectedLog.ipAddress || '—'}
                   </p>
                 </div>
                 {selectedLog.user_agent && (
                   <div>
-                    <label className="text-sm text-warmgray">
+                    <label className="text-sm text-muted-foreground">
                       {t('auditLogs.userAgent') || 'User Agent'}
                     </label>
-                    <p className="text-sm text-warmgray truncate" title={selectedLog.user_agent}>
+                    <p className="text-sm text-muted-foreground truncate" title={selectedLog.user_agent}>
                       {selectedLog.user_agent}
                     </p>
                   </div>
@@ -760,10 +760,10 @@ export default function AuditLogsPage() {
               </div>
             </div>
 
-            <div className="p-6 border-t border-sand flex justify-end">
+            <div className="p-6 border-t border-border flex justify-end">
               <button
                 onClick={() => setSelectedLog(null)}
-                className="px-4 py-2 bg-sand text-charcoal rounded-lg hover:bg-taupe/30 transition-colors"
+                className="px-4 py-2 bg-muted text-foreground rounded-lg hover:bg-muted/80 transition-colors"
               >
                 {t('common.close') || 'Закрыть'}
               </button>

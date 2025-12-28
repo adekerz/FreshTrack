@@ -38,6 +38,8 @@ import healthRouter from './routes/health.js'
 import notificationRulesRouter from './routes/notification-rules.js'
 import customContentRouter from './routes/custom-content.js'
 import departmentSettingsRouter from './routes/department-settings.js'
+import telegramRouter from './routes/telegram.js'
+import eventsRouter from './routes/events.js'
 
 // Import notification jobs
 import { startNotificationJobs } from './jobs/notificationJobs.js'
@@ -51,12 +53,12 @@ const PORT = process.env.PORT || 3001
 
 // CORS - Restrict origins in production
 const allowedOrigins = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(',')
+  ? process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim())
   : ['http://localhost:5173', 'http://localhost:3000']
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (mobile apps, curl, etc.)
+    // Allow requests with no origin (mobile apps, curl, Postman, etc.)
     if (!origin) return callback(null, true)
     
     // In development, allow all origins
@@ -69,11 +71,14 @@ app.use(cors({
       return callback(null, true)
     }
     
+    console.warn('[CORS] Blocked origin:', origin)
     return callback(new Error('Not allowed by CORS'))
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['Content-Disposition'],
+  maxAge: 86400,
 }))
 
 // Handle preflight requests
@@ -81,6 +86,13 @@ app.options('*', cors())
 
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true }))
+
+// Serve static files for uploads (logos, etc.)
+import path from 'path'
+import { fileURLToPath } from 'url'
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
 
 // Trust proxy for Railway/Vercel
 app.set('trust proxy', 1)
@@ -113,6 +125,8 @@ app.use('/api/health', healthRouter)
 app.use('/api/notification-rules', notificationRulesRouter)
 app.use('/api/custom-content', customContentRouter)
 app.use('/api/department-settings', departmentSettingsRouter)
+app.use('/api/telegram', telegramRouter)
+app.use('/api/events', eventsRouter)
 
 // Root health check
 app.get('/', async (req, res) => {

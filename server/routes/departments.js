@@ -55,11 +55,14 @@ router.get('/:id', authMiddleware, hotelIsolation, requirePermission(PermissionR
 // POST /api/departments
 router.post('/', authMiddleware, hotelIsolation, requirePermission(PermissionResource.DEPARTMENTS, PermissionAction.CREATE), async (req, res) => {
   try {
-    const { name, description, code, manager_id, settings } = req.body
+    const { name, description, manager_id, settings } = req.body
     
     if (!name) {
       return res.status(400).json({ success: false, error: 'Department name is required' })
     }
+    
+    // Auto-generate code from name
+    const code = generateDepartmentCode(name)
     
     const department = await createDepartment({
       hotel_id: req.hotelId,
@@ -69,7 +72,7 @@ router.post('/', authMiddleware, hotelIsolation, requirePermission(PermissionRes
     await logAudit({
       hotel_id: req.hotelId, user_id: req.user.id, user_name: req.user.name,
       action: 'create', entity_type: 'department', entity_id: department.id,
-      details: { name }, ip_address: req.ip
+      details: { name, code }, ip_address: req.ip
     })
     
     res.status(201).json({ success: true, department })
@@ -78,6 +81,23 @@ router.post('/', authMiddleware, hotelIsolation, requirePermission(PermissionRes
     res.status(500).json({ success: false, error: 'Failed to create department' })
   }
 })
+
+/**
+ * Generate unique department code from name
+ */
+function generateDepartmentCode(name) {
+  // Take first letters of each word, uppercase
+  const prefix = name
+    .split(/\s+/)
+    .map(word => word.charAt(0).toUpperCase())
+    .join('')
+    .slice(0, 3) || 'DPT'
+  
+  // Add random 3-digit suffix
+  const suffix = Math.floor(100 + Math.random() * 900)
+  
+  return `${prefix}${suffix}`
+}
 
 // PUT /api/departments/:id
 router.put('/:id', authMiddleware, hotelIsolation, requirePermission(PermissionResource.DEPARTMENTS, PermissionAction.UPDATE), async (req, res) => {

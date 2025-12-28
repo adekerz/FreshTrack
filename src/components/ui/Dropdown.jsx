@@ -89,8 +89,8 @@ export function DropdownTrigger({ children, className = '' }) {
       onClick={() => setIsOpen(!isOpen)}
       className={`
         inline-flex items-center gap-2 px-3 py-2 rounded-lg
-        text-sm font-medium text-charcoal dark:text-cream
-        hover:bg-sand/50 dark:hover:bg-white/10 transition-colors
+        text-sm font-medium text-foreground
+        hover:bg-muted transition-colors
         focus:outline-none focus:ring-2 focus:ring-accent/30 focus:ring-offset-1
         ${className}
       `}
@@ -120,7 +120,7 @@ export function DropdownMenu({ children, align = 'left', className = '' }) {
       className={`
         absolute top-full mt-1 z-50
         min-w-[180px] py-1
-        bg-white dark:bg-dark-surface rounded-lg shadow-soft-lg border border-sand dark:border-dark-border
+        bg-card rounded-lg shadow-soft-lg border border-border
         animate-fade-in
         ${alignClasses[align]}
         ${className}
@@ -171,9 +171,9 @@ export function DropdownItem({
         disabled:opacity-50 disabled:cursor-not-allowed
         ${danger 
           ? 'text-danger hover:bg-danger/5' 
-          : 'text-charcoal dark:text-cream hover:bg-sand/50 dark:hover:bg-white/10'
+          : 'text-foreground hover:bg-muted'
         }
-        ${isActive ? 'bg-sand/50 dark:bg-white/10' : ''}
+        ${isActive ? 'bg-muted' : ''}
         ${className}
       `}
       role="menuitem"
@@ -186,13 +186,13 @@ export function DropdownItem({
 
 // Dropdown Separator
 export function DropdownSeparator() {
-  return <div className="my-1 border-t border-sand dark:border-dark-border" />
+  return <div className="my-1 border-t border-border" />
 }
 
 // Dropdown Label
 export function DropdownLabel({ children }) {
   return (
-    <div className="px-3 py-1.5 text-xs font-medium text-warmgray uppercase tracking-wider">
+    <div className="px-3 py-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">
       {children}
     </div>
   )

@@ -61,11 +61,14 @@ router.get('/:id', authMiddleware, async (req, res) => {
 // POST /api/hotels
 router.post('/', authMiddleware, requirePermission(PermissionResource.HOTELS, PermissionAction.CREATE), async (req, res) => {
   try {
-    const { name, code, description, address, phone, email, settings, timezone } = req.body
+    const { name, description, address, phone, email, settings, timezone } = req.body
     
-    if (!name || !code) {
-      return res.status(400).json({ success: false, error: 'Hotel name and code are required' })
+    if (!name) {
+      return res.status(400).json({ success: false, error: 'Hotel name is required' })
     }
+    
+    // Auto-generate code from name
+    const code = generateHotelCode(name)
     
     const hotel = await createHotel({
       name, code, description, address, phone, email, settings, timezone
@@ -83,6 +86,24 @@ router.post('/', authMiddleware, requirePermission(PermissionResource.HOTELS, Pe
     res.status(500).json({ success: false, error: 'Failed to create hotel' })
   }
 })
+
+/**
+ * Generate unique hotel code from name
+ * Takes first letters of each word + random suffix
+ */
+function generateHotelCode(name) {
+  // Take first letters of each word, uppercase
+  const prefix = name
+    .split(/\s+/)
+    .map(word => word.charAt(0).toUpperCase())
+    .join('')
+    .slice(0, 3) || 'HTL'
+  
+  // Add random 4-digit suffix
+  const suffix = Math.floor(1000 + Math.random() * 9000)
+  
+  return `${prefix}${suffix}`
+}
 
 // PUT /api/hotels/:id
 router.put('/:id', authMiddleware, requirePermission(PermissionResource.HOTELS, PermissionAction.UPDATE, {

@@ -78,7 +78,7 @@ export default function DepartmentNotificationSettings() {
     <div className="space-y-4">
       <div className="flex items-center gap-2 mb-4">
         <Bell className="w-5 h-5 text-primary-600" />
-        <h3 className="font-medium text-gray-900 dark:text-white">
+        <h3 className="font-medium text-foreground">
           {t('deptNotifications.title') || 'Уведомления по отделам'}
         </h3>
       </div>
@@ -88,13 +88,13 @@ export default function DepartmentNotificationSettings() {
         const isExpanded = expanded === dept.id
 
         return (
-          <div key={dept.id} className="bg-gray-50 dark:bg-gray-700/50 rounded-xl overflow-hidden">
+          <div key={dept.id} className="bg-muted/50 rounded-xl overflow-hidden">
             {/* Header */}
             <button
               onClick={() => setExpanded(isExpanded ? null : dept.id)}
-              className="w-full flex items-center justify-between p-4 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              className="w-full flex items-center justify-between p-4 hover:bg-muted transition-colors"
             >
-              <span className="font-medium text-gray-900 dark:text-white">
+              <span className="font-medium text-foreground">
                 {dept.name}
               </span>
               <div className="flex items-center gap-3">
@@ -127,7 +127,7 @@ export default function DepartmentNotificationSettings() {
 
             {/* Expanded content */}
             {isExpanded && (
-              <div className="px-4 pb-4 space-y-4 border-t border-gray-200 dark:border-gray-600 pt-4">
+              <div className="px-4 pb-4 space-y-4 border-t border-border pt-4">
                 {/* Channels */}
                 <div>
                   <label className="block text-xs uppercase tracking-wider text-gray-500 mb-3">
@@ -144,7 +144,7 @@ export default function DepartmentNotificationSettings() {
                         className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
                       />
                       <MessageSquare className="w-4 h-4 text-blue-500" />
-                      <span className="text-sm text-gray-700 dark:text-gray-300">Telegram</span>
+                      <span className="text-sm text-muted-foreground">Telegram</span>
                     </label>
 
                     <label className="flex items-center gap-2 cursor-pointer">
@@ -155,7 +155,7 @@ export default function DepartmentNotificationSettings() {
                         className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
                       />
                       <Smartphone className="w-4 h-4 text-green-500" />
-                      <span className="text-sm text-gray-700 dark:text-gray-300">Push</span>
+                      <span className="text-sm text-muted-foreground">Push</span>
                     </label>
 
                     <label className="flex items-center gap-2 cursor-pointer">
@@ -166,7 +166,7 @@ export default function DepartmentNotificationSettings() {
                         className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
                       />
                       <Mail className="w-4 h-4 text-orange-500" />
-                      <span className="text-sm text-gray-700 dark:text-gray-300">Email</span>
+                      <span className="text-sm text-muted-foreground">Email</span>
                     </label>
                   </div>
                 </div>
@@ -182,14 +182,14 @@ export default function DepartmentNotificationSettings() {
                       type="time"
                       value={deptSettings.quietHoursStart || '22:00'}
                       onChange={(e) => updateSetting(dept.id, 'quietHoursStart', e.target.value)}
-                      className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                      className="px-3 py-2 border border-border rounded-lg bg-card text-foreground text-sm"
                     />
                     <span className="text-gray-500">—</span>
                     <input
                       type="time"
                       value={deptSettings.quietHoursEnd || '08:00'}
                       onChange={(e) => updateSetting(dept.id, 'quietHoursEnd', e.target.value)}
-                      className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                      className="px-3 py-2 border border-border rounded-lg bg-card text-foreground text-sm"
                     />
                   </div>
                   <p className="text-xs text-gray-500 mt-1">
@@ -220,7 +220,7 @@ export default function DepartmentNotificationSettings() {
                             'px-3 py-1.5 rounded-lg text-sm font-medium transition-colors',
                             isSelected
                               ? 'bg-primary-600 text-white'
-                              : 'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-300'
+                              : 'bg-muted text-muted-foreground hover:bg-muted/80'
                           )}
                         >
                           {day}

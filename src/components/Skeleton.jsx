@@ -14,7 +14,7 @@ export function Skeleton({ className, ...props }) {
       role="status"
       aria-label="Loading..."
       className={cn(
-        'animate-pulse bg-warmgray/20 rounded',
+        'animate-pulse bg-muted rounded',
         className
       )}
       {...props}
@@ -63,7 +63,7 @@ export function SkeletonAvatar({ size = 'md', className }) {
 export function SkeletonCard({ className }) {
   return (
     <div className={cn(
-      'bg-white rounded-2xl p-6 border border-sand shadow-soft',
+      'bg-card rounded-2xl p-6 border border-border shadow-soft',
       className
     )}>
       <div className="flex items-start gap-4">
@@ -98,7 +98,7 @@ export function SkeletonTableRow({ columns = 5, className }) {
 export function SkeletonBatchRow({ className }) {
   return (
     <div className={cn(
-      'flex items-center gap-4 p-4 bg-white rounded-xl border border-sand animate-pulse',
+      'flex items-center gap-4 p-4 bg-card rounded-xl border border-border animate-pulse',
       className
     )}>
       {/* Product name */}
@@ -137,11 +137,11 @@ export function SkeletonDashboard() {
       
       {/* Chart area */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-2xl p-6 border border-sand">
+        <div className="bg-card rounded-2xl p-6 border border-border">
           <Skeleton className="h-6 w-40 mb-4" />
           <Skeleton className="h-64 w-full rounded-xl" />
         </div>
-        <div className="bg-white rounded-2xl p-6 border border-sand">
+        <div className="bg-card rounded-2xl p-6 border border-border">
           <Skeleton className="h-6 w-40 mb-4" />
           <Skeleton className="h-64 w-full rounded-xl" />
         </div>
@@ -176,7 +176,7 @@ export function SkeletonModal() {
           <Skeleton className="h-4 w-32" />
         </div>
       </div>
-      <div className="border-t border-sand pt-4">
+      <div className="border-t border-border pt-4">
         <SkeletonText lines={3} />
       </div>
     </div>
@@ -189,7 +189,7 @@ export function SkeletonModal() {
 export function SkeletonNotification({ className }) {
   return (
     <div className={cn(
-      'flex items-start gap-3 p-4 bg-white rounded-xl border border-sand animate-pulse',
+      'flex items-start gap-3 p-4 bg-card rounded-xl border border-border animate-pulse',
       className
     )}>
       <Skeleton className="w-10 h-10 rounded-full" />

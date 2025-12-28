@@ -125,14 +125,14 @@ export default function AddBatchModal({ onClose, preselectedProduct = null }) {
 
   return (
     <div
-      className="fixed inset-0 bg-charcoal/50 flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-charcoal/50 dark:bg-black/60 flex items-center justify-center z-50 p-4"
       onClick={handleOverlayClick}
     >
-      <div className="bg-cream dark:bg-dark-surface rounded-lg w-full max-w-lg overflow-hidden animate-slide-up">
+      <div className="bg-card rounded-lg w-full max-w-lg overflow-hidden animate-slide-up">
         {/* Заголовок */}
-        <div className="flex items-center justify-between p-6 border-b border-sand dark:border-dark-border">
+        <div className="flex items-center justify-between p-6 border-b border-border">
           <div>
-            <h2 className="font-serif text-xl text-charcoal dark:text-cream">{t('batch.addBatch')}</h2>
+            <h2 className="font-serif text-xl text-foreground">{t('batch.addBatch')}</h2>
             {/* Индикатор шагов */}
             {!preselectedProduct && (
               <div className="flex items-center gap-2 mt-2">
@@ -140,7 +140,7 @@ export default function AddBatchModal({ onClose, preselectedProduct = null }) {
                   <div
                     key={s}
                     className={`w-2 h-2 rounded-full transition-colors ${
-                      s <= step ? 'bg-accent' : 'bg-sand'
+                      s <= step ? 'bg-accent' : 'bg-muted'
                     }`}
                   />
                 ))}
@@ -149,7 +149,7 @@ export default function AddBatchModal({ onClose, preselectedProduct = null }) {
           </div>
           <button
             onClick={onClose}
-            className="text-warmgray hover:text-charcoal dark:hover:text-cream transition-colors p-2"
+            className="text-muted-foreground hover:text-foreground transition-colors p-2"
           >
             <X className="w-5 h-5" />
           </button>
@@ -160,7 +160,7 @@ export default function AddBatchModal({ onClose, preselectedProduct = null }) {
           {/* Шаг 1: Выбор отдела */}
           {step === 1 && (
             <div className="animate-fade-in">
-              <p className="text-warmgray mb-4">{t('batch.selectDepartment')}</p>
+              <p className="text-muted-foreground mb-4">{t('batch.selectDepartment')}</p>
               <div className="space-y-2">
                 {departments.map((dept) => {
                   const Icon = getDeptIcon(dept)
@@ -168,7 +168,7 @@ export default function AddBatchModal({ onClose, preselectedProduct = null }) {
                     <button
                       key={dept.id}
                       onClick={() => handleDepartmentSelect(dept.id)}
-                      className="w-full flex items-center justify-between p-4 bg-white dark:bg-dark-bg border border-sand dark:border-dark-border rounded-lg hover:border-accent transition-colors group"
+                      className="w-full flex items-center justify-between p-4 bg-background border border-border rounded-lg hover:border-accent transition-colors group"
                     >
                       <div className="flex items-center gap-3">
                         <div
@@ -177,9 +177,9 @@ export default function AddBatchModal({ onClose, preselectedProduct = null }) {
                         >
                           <Icon className="w-5 h-5" style={{ color: dept.color || '#C4A35A' }} />
                         </div>
-                        <span className="font-medium text-charcoal dark:text-cream">{dept.name}</span>
+                        <span className="font-medium text-foreground">{dept.name}</span>
                       </div>
-                      <ChevronRight className="w-5 h-5 text-warmgray group-hover:text-accent transition-colors" />
+                      <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-accent transition-colors" />
                     </button>
                   )
                 })}
@@ -190,16 +190,16 @@ export default function AddBatchModal({ onClose, preselectedProduct = null }) {
           {/* Шаг 2: Выбор категории */}
           {step === 2 && (
             <div className="animate-fade-in">
-              <p className="text-warmgray mb-4">{t('batch.selectCategory')}</p>
+              <p className="text-muted-foreground mb-4">{t('batch.selectCategory')}</p>
               <div className="space-y-2">
                 {availableCategories.map((cat) => (
                   <button
                     key={cat.id}
                     onClick={() => handleCategorySelect(cat.id)}
-                    className="w-full flex items-center justify-between p-4 bg-white dark:bg-dark-bg border border-sand dark:border-dark-border rounded-lg hover:border-accent transition-colors group"
+                    className="w-full flex items-center justify-between p-4 bg-background border border-border rounded-lg hover:border-accent transition-colors group"
                   >
-                    <span className="font-medium text-charcoal dark:text-cream">{getCategoryName(cat)}</span>
-                    <ChevronRight className="w-5 h-5 text-warmgray group-hover:text-accent transition-colors" />
+                    <span className="font-medium text-foreground">{getCategoryName(cat)}</span>
+                    <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-accent transition-colors" />
                   </button>
                 ))}
               </div>
@@ -209,16 +209,16 @@ export default function AddBatchModal({ onClose, preselectedProduct = null }) {
           {/* Шаг 3: Выбор товара */}
           {step === 3 && (
             <div className="animate-fade-in">
-              <p className="text-warmgray mb-4">{t('batch.selectProduct')}</p>
+              <p className="text-muted-foreground mb-4">{t('batch.selectProduct')}</p>
               <div className="space-y-2 max-h-64 overflow-y-auto">
                 {getProductsInCategory().map((product) => (
                   <button
                     key={product.id}
                     onClick={() => handleProductSelect(product)}
-                    className="w-full flex items-center justify-between p-4 bg-white dark:bg-dark-bg border border-sand dark:border-dark-border rounded-lg hover:border-accent transition-colors group"
+                    className="w-full flex items-center justify-between p-4 bg-background border border-border rounded-lg hover:border-accent transition-colors group"
                   >
-                    <span className="font-medium text-charcoal dark:text-cream">{product.name}</span>
-                    <ChevronRight className="w-5 h-5 text-warmgray group-hover:text-accent transition-colors" />
+                    <span className="font-medium text-foreground">{product.name}</span>
+                    <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-accent transition-colors" />
                   </button>
                 ))}
               </div>
@@ -229,14 +229,14 @@ export default function AddBatchModal({ onClose, preselectedProduct = null }) {
           {step === 4 && (
             <div className="animate-fade-in">
               {/* Выбранный товар */}
-              <div className="bg-white dark:bg-dark-bg rounded-lg p-4 border border-sand dark:border-dark-border mb-6">
-                <p className="text-sm text-warmgray">{t('batch.selectedProduct')}</p>
-                <p className="font-medium text-charcoal dark:text-cream">{selectedProduct?.name}</p>
+              <div className="bg-background rounded-lg p-4 border border-border mb-6">
+                <p className="text-sm text-muted-foreground">{t('batch.selectedProduct')}</p>
+                <p className="font-medium text-foreground">{selectedProduct?.name}</p>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm text-warmgray mb-1">
+                  <label className="block text-sm text-muted-foreground mb-1">
                     {t('product.expiryDate')} *
                   </label>
                   <input
@@ -245,13 +245,13 @@ export default function AddBatchModal({ onClose, preselectedProduct = null }) {
                     onChange={(e) =>
                       setBatchData((prev) => ({ ...prev, expiryDate: e.target.value }))
                     }
-                    className="w-full px-4 py-3 border border-sand rounded-lg focus:outline-none focus:border-accent"
+                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:border-accent bg-card text-foreground"
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm text-warmgray mb-1">
+                  <label className="block text-sm text-muted-foreground mb-1">
                     {t('product.quantity')} {!batchData.noQuantity && '*'}
                   </label>
                   <input
@@ -262,8 +262,8 @@ export default function AddBatchModal({ onClose, preselectedProduct = null }) {
                       setBatchData((prev) => ({ ...prev, quantity: e.target.value }))
                     }
                     disabled={batchData.noQuantity}
-                    className={`w-full px-4 py-3 border border-sand rounded-lg focus:outline-none focus:border-accent transition-colors ${
-                      batchData.noQuantity ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : ''
+                    className={`w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:border-accent bg-card text-foreground transition-colors ${
+                      batchData.noQuantity ? 'opacity-50 cursor-not-allowed' : ''
                     }`}
                     required={!batchData.noQuantity}
                     placeholder={batchData.noQuantity ? t('batch.noQuantity') || 'Нет количества' : ''}
@@ -284,7 +284,7 @@ export default function AddBatchModal({ onClose, preselectedProduct = null }) {
                       }
                       className="quantity-toggle"
                     />
-                    <label htmlFor="noQuantity" className="text-sm text-warmgray cursor-pointer select-none">
+                    <label htmlFor="noQuantity" className="text-sm text-muted-foreground cursor-pointer select-none">
                       {t('batch.noQuantityLabel') || 'Без учёта количества'}
                     </label>
                   </div>
@@ -294,7 +294,7 @@ export default function AddBatchModal({ onClose, preselectedProduct = null }) {
                   <button
                     type="button"
                     onClick={handleBack}
-                    className="flex-1 py-3 border border-sand text-warmgray rounded-lg hover:border-charcoal hover:text-charcoal transition-colors"
+                    className="flex-1 py-3 border border-border text-muted-foreground rounded-lg hover:border-foreground hover:text-foreground transition-colors"
                   >
                     {t('common.back')}
                   </button>
@@ -314,7 +314,7 @@ export default function AddBatchModal({ onClose, preselectedProduct = null }) {
           {step > 1 && step < 4 && (
             <button
               onClick={handleBack}
-              className="mt-4 text-sm text-warmgray hover:text-charcoal transition-colors"
+              className="mt-4 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               ← {t('common.back')}
             </button>

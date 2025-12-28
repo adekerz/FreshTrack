@@ -134,7 +134,7 @@ export default function GlobalSearch({ onSearch, autoFocus = false, fullWidth = 
     const parts = text.split(regex)
     return parts.map((part, i) =>
       regex.test(part) ? (
-        <mark key={i} className="bg-warning/30 text-charcoal px-0.5 rounded">
+        <mark key={i} className="bg-warning/30 text-foreground px-0.5 rounded">
           {part}
         </mark>
       ) : (
@@ -168,17 +168,17 @@ export default function GlobalSearch({ onSearch, autoFocus = false, fullWidth = 
         className={cn(
           'flex items-center gap-2 px-4 py-2 rounded-lg border transition-all cursor-pointer',
           fullWidth 
-            ? 'bg-white dark:bg-dark-surface border-sand dark:border-dark-border w-full'
+            ? 'bg-card border-border w-full'
             : isOpen
-              ? 'bg-white dark:bg-dark-surface border-accent shadow-md w-80'
-              : 'bg-sand/50 dark:bg-white/10 border-transparent hover:bg-sand dark:hover:bg-white/20 w-48'
+              ? 'bg-card border-accent shadow-md w-80'
+              : 'bg-muted border-transparent hover:bg-muted w-48'
         )}
         onClick={() => {
           setIsOpen(true)
           setTimeout(() => inputRef.current?.focus(), 100)
         }}
       >
-        <Search className="w-4 h-4 text-warmgray flex-shrink-0" />
+        <Search className="w-4 h-4 text-muted-foreground flex-shrink-0" />
 
         {(isOpen || fullWidth) ? (
           <input
@@ -186,12 +186,12 @@ export default function GlobalSearch({ onSearch, autoFocus = false, fullWidth = 
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="flex-1 bg-transparent outline-none text-sm text-charcoal dark:text-cream placeholder:text-warmgray"
+            className="flex-1 bg-transparent outline-none text-sm text-foreground placeholder:text-muted-foreground"
             placeholder={t('search.placeholder')}
             autoFocus={autoFocus || isOpen}
           />
         ) : (
-          <span className="flex-1 text-sm text-warmgray truncate">{t('search.placeholder')}</span>
+          <span className="flex-1 text-sm text-muted-foreground truncate">{t('search.placeholder')}</span>
         )}
 
         {(isOpen || fullWidth) && query && (
@@ -200,9 +200,9 @@ export default function GlobalSearch({ onSearch, autoFocus = false, fullWidth = 
               e.stopPropagation()
               setQuery('')
             }}
-            className="p-0.5 hover:bg-sand dark:hover:bg-white/20 rounded"
+            className="p-0.5 hover:bg-muted rounded"
           >
-            <X className="w-3 h-3 text-warmgray" />
+            <X className="w-3 h-3 text-muted-foreground" />
           </button>
         )}
       </div>
@@ -211,32 +211,32 @@ export default function GlobalSearch({ onSearch, autoFocus = false, fullWidth = 
       {(isOpen || fullWidth) && query.trim() && (
         <div
           className={cn(
-            'absolute top-full left-0 right-0 mt-2 bg-white dark:bg-dark-surface rounded-lg shadow-lg border border-sand dark:border-dark-border overflow-hidden z-50',
+            'absolute top-full left-0 right-0 mt-2 bg-card rounded-lg shadow-lg border border-border overflow-hidden z-50',
             'animate-fade-in'
           )}
         >
           {!hasResults ? (
-            <div className="p-4 text-center text-warmgray text-sm">{t('search.noResults')}</div>
+            <div className="p-4 text-center text-muted-foreground text-sm">{t('search.noResults')}</div>
           ) : (
             <div className="max-h-96 overflow-y-auto">
               {/* Товары */}
               {results.products.length > 0 && (
                 <div className="p-2">
-                  <div className="px-2 py-1 text-xs uppercase tracking-wider text-warmgray">
+                  <div className="px-2 py-1 text-xs uppercase tracking-wider text-muted-foreground">
                     {t('search.products')}
                   </div>
                   {results.products.map((product, index) => (
                     <button
                       key={`${product.id}-${product.departmentId}-${index}`}
                       onClick={() => handleProductClick(product)}
-                      className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-sand/50 dark:hover:bg-white/10 transition-colors text-left"
+                      className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted transition-colors text-left"
                     >
                       <Package className="w-4 h-4 text-accent flex-shrink-0" />
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm text-charcoal dark:text-cream truncate">
+                        <p className="text-sm text-foreground truncate">
                           {highlightMatch(product.name, query)}
                         </p>
-                        <p className="text-xs text-warmgray truncate">
+                        <p className="text-xs text-muted-foreground truncate">
                           {highlightMatch(product.departmentName, query)} •{' '}
                           {highlightMatch(product.categoryName, query)}
                         </p>
@@ -248,25 +248,25 @@ export default function GlobalSearch({ onSearch, autoFocus = false, fullWidth = 
 
               {/* Разделитель */}
               {results.products.length > 0 && results.departments.length > 0 && (
-                <div className="h-px bg-sand dark:bg-dark-border mx-2" />
+                <div className="h-px bg-border mx-2" />
               )}
 
               {/* Отделы */}
               {results.departments.length > 0 && (
                 <div className="p-2">
-                  <div className="px-2 py-1 text-xs uppercase tracking-wider text-warmgray">
+                  <div className="px-2 py-1 text-xs uppercase tracking-wider text-muted-foreground">
                     {t('search.departments')}
                   </div>
                   {results.departments.map((dept) => (
                     <button
                       key={dept.id}
                       onClick={() => handleDepartmentClick(dept)}
-                      className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-sand/50 dark:hover:bg-white/10 transition-colors text-left"
+                      className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted transition-colors text-left"
                     >
                       <Store className="w-4 h-4 flex-shrink-0" style={{ color: dept.color }} />
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm text-charcoal dark:text-cream">{highlightMatch(dept.name, query)}</p>
-                        <p className="text-xs text-warmgray">
+                        <p className="text-sm text-foreground">{highlightMatch(dept.name, query)}</p>
+                        <p className="text-xs text-muted-foreground">
                           {dept.productCount} {t('search.productsCount')}
                         </p>
                       </div>
