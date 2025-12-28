@@ -982,6 +982,7 @@ export async function getExpiredBatches(hotelId) {
 }
 
 export async function getBatchStats(hotelId, departmentId = null) {
+  // Optimized: Single query with CASE WHEN instead of 4 separate queries
   let whereClause = 'hotel_id = $1 AND status = \'active\''
   const params = [hotelId]
   let paramIndex = 2
@@ -991,17 +992,24 @@ export async function getBatchStats(hotelId, departmentId = null) {
     params.push(departmentId)
   }
   
-  const totalResult = await query(`SELECT COUNT(*) as count FROM batches WHERE ${whereClause}`, params)
-  const expiredResult = await query(`SELECT COUNT(*) as count FROM batches WHERE ${whereClause} AND expiry_date < CURRENT_DATE`, params)
-  const criticalResult = await query(`SELECT COUNT(*) as count FROM batches WHERE ${whereClause} AND expiry_date >= CURRENT_DATE AND expiry_date <= CURRENT_DATE + 3`, params)
-  const warningResult = await query(`SELECT COUNT(*) as count FROM batches WHERE ${whereClause} AND expiry_date > CURRENT_DATE + 3 AND expiry_date <= CURRENT_DATE + 7`, params)
+  const result = await query(`
+    SELECT 
+      COUNT(*) as total,
+      COUNT(*) FILTER (WHERE expiry_date < CURRENT_DATE) as expired,
+      COUNT(*) FILTER (WHERE expiry_date >= CURRENT_DATE AND expiry_date <= CURRENT_DATE + 3) as critical,
+      COUNT(*) FILTER (WHERE expiry_date > CURRENT_DATE + 3 AND expiry_date <= CURRENT_DATE + 7) as warning
+    FROM batches 
+    WHERE ${whereClause}
+  `, params)
   
-  const total = parseInt(totalResult.rows[0].count)
-  const expired = parseInt(expiredResult.rows[0].count)
-  const critical = parseInt(criticalResult.rows[0].count)
-  const warning = parseInt(warningResult.rows[0].count)
-  
-  return { total, expired, critical, warning, good: total - expired - critical - warning }
+  const { total, expired, critical, warning } = result.rows[0]
+  return { 
+    total: parseInt(total), 
+    expired: parseInt(expired), 
+    critical: parseInt(critical), 
+    warning: parseInt(warning), 
+    good: parseInt(total) - parseInt(expired) - parseInt(critical) - parseInt(warning) 
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════
