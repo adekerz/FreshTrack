@@ -2,11 +2,13 @@ import { useState, useMemo, useCallback, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { Wine, Coffee, Utensils, ChefHat, Warehouse, Package, Plus, FileBox, ArrowUpDown } from 'lucide-react'
 import { useProducts } from '../context/ProductContext'
+import { useHotel } from '../context/HotelContext'
 import { useTranslation, useLanguage } from '../context/LanguageContext'
 import ProductModal from '../components/ProductModal'
 import AddCustomProductModal from '../components/AddCustomProductModal'
 import DeliveryTemplateModal from '../components/DeliveryTemplateModal'
 import ExportButton from '../components/ExportButton'
+import HotelSelector from '../components/HotelSelector'
 import { EXPORT_COLUMNS } from '../utils/exportUtils'
 import { SkeletonInventory, Skeleton } from '../components/Skeleton'
 
@@ -43,6 +45,7 @@ const statusColors = {
 export default function InventoryPage() {
   const { t } = useTranslation()
   const { language } = useLanguage()
+  const { canSelectHotel } = useHotel()
   const { departmentId } = useParams()
   const { getProductsByDepartment, catalog, refresh, departments, categories, loading } = useProducts()
 
@@ -253,7 +256,7 @@ export default function InventoryPage() {
     <div className="p-3 sm:p-4 md:p-8 animate-fade-in">
       {/* Заголовок */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-8">
-        <div className="flex items-center gap-2 sm:gap-4">
+        <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
           <div className="flex items-center gap-2 sm:gap-3">
             <div
               className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center flex-shrink-0"
@@ -263,6 +266,8 @@ export default function InventoryPage() {
             </div>
             <h1 className="font-serif text-lg sm:text-2xl truncate">{t('inventory.title')} — {department?.name || selectedDepartment}</h1>
           </div>
+          {/* Hotel Selector for SUPER_ADMIN */}
+          {canSelectHotel && <HotelSelector />}
         </div>
 
         <div className="flex items-center gap-2 sm:gap-4 flex-wrap">

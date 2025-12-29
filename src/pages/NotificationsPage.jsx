@@ -11,13 +11,16 @@ import {
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useProducts, departments } from '../context/ProductContext'
+import { useHotel } from '../context/HotelContext'
 import { useTranslation } from '../context/LanguageContext'
 import { format, parseISO } from 'date-fns'
 import { SkeletonNotifications, Skeleton } from '../components/Skeleton'
 import FIFOCollectModal from '../components/FIFOCollectModal'
+import HotelSelector from '../components/HotelSelector'
 
 export default function NotificationsPage() {
   const { t } = useTranslation()
+  const { canSelectHotel } = useHotel()
   const navigate = useNavigate()
   const { getActiveBatches, findProduct, loading, refreshProducts, refresh, departments: depts } = useProducts()
   const [retryCount, setRetryCount] = useState(0)
@@ -225,9 +228,13 @@ export default function NotificationsPage() {
     <div className="p-3 sm:p-4 md:p-8">
       {/* Заголовок */}
       <div className="mb-4 sm:mb-8 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="font-serif text-xl sm:text-2xl text-foreground mb-1 sm:mb-2">{t('notifications.title')}</h1>
-          <p className="text-muted-foreground text-xs sm:text-sm">{t('notifications.description')}</p>
+        <div className="flex items-center gap-3 flex-wrap">
+          <div>
+            <h1 className="font-serif text-xl sm:text-2xl text-foreground mb-1 sm:mb-2">{t('notifications.title')}</h1>
+            <p className="text-muted-foreground text-xs sm:text-sm">{t('notifications.description')}</p>
+          </div>
+          {/* Hotel Selector for SUPER_ADMIN */}
+          {canSelectHotel && <HotelSelector />}
         </div>
 
         {/* Кнопка истории уведомлений */}

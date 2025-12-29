@@ -105,6 +105,8 @@ export function AuthProvider({ children }) {
     setToken(null)
     localStorage.removeItem('freshtrack_user')
     localStorage.removeItem('freshtrack_token')
+    // Очистка кэша данных при выходе
+    localStorage.removeItem('freshtrack_catalog')
   }
 
   /**

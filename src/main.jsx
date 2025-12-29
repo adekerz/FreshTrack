@@ -10,6 +10,7 @@ import { ToastProvider } from './context/ToastContext'
 import { OnboardingProvider } from './context/OnboardingContext'
 import { BrandingProvider } from './context/BrandingContext'
 import { NotificationsProvider } from './context/NotificationsContext'
+import { HotelProvider } from './context/HotelContext'
 import ToastContainer from './components/Toast'
 import './styles/index.css'
 
@@ -36,16 +37,18 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         <LanguageProvider>
           <ToastProvider>
             <AuthProvider>
-              <BrandingProvider>
-                <NotificationsProvider>
-                  <ProductProvider>
-                    <OnboardingProvider>
-                      <App />
-                      <ToastContainer />
-                    </OnboardingProvider>
-                  </ProductProvider>
-                </NotificationsProvider>
-              </BrandingProvider>
+              <HotelProvider>
+                <BrandingProvider>
+                  <NotificationsProvider>
+                    <ProductProvider>
+                      <OnboardingProvider>
+                        <App />
+                        <ToastContainer />
+                      </OnboardingProvider>
+                    </ProductProvider>
+                  </NotificationsProvider>
+                </BrandingProvider>
+              </HotelProvider>
             </AuthProvider>
           </ToastProvider>
         </LanguageProvider>

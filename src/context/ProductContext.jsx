@@ -14,9 +14,6 @@ const ProductContext = createContext(null)
 export let departments = []
 export let categories = []
 
-// Empty catalog - products loaded from API
-const initialCatalog = {}
-
 // Default department icon mapping (can be customized per department in DB)
 const DEFAULT_DEPARTMENT_ICONS = {
   restaurant: 'Utensils',
@@ -28,15 +25,9 @@ const DEFAULT_DEPARTMENT_ICONS = {
   default: 'Package'
 }
 
-// Storage key for local catalog cache
-const CATALOG_STORAGE_KEY = 'freshtrack_catalog'
-
 export function ProductProvider({ children }) {
-  // Каталог товаров (локальный, для UI выбора)
-  const [catalog, setCatalog] = useState(() => {
-    const saved = localStorage.getItem(CATALOG_STORAGE_KEY)
-    return saved ? JSON.parse(saved) : initialCatalog
-  })
+  // Каталог товаров (только в памяти, без localStorage - данные загружаются с сервера)
+  const [catalog, setCatalog] = useState({})
 
   // Динамические отделы и категории с сервера
   const [departmentList, setDepartmentList] = useState([])
@@ -54,11 +45,6 @@ export function ProductProvider({ children }) {
   })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-
-  // Сохранение каталога в localStorage
-  useEffect(() => {
-    localStorage.setItem(CATALOG_STORAGE_KEY, JSON.stringify(catalog))
-  }, [catalog])
 
   // Загрузка данных с сервера при монтировании (только если есть токен)
   useEffect(() => {

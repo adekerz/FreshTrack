@@ -23,12 +23,15 @@ import {
   Database
 } from 'lucide-react'
 import { useTranslation } from '../context/LanguageContext'
+import { useHotel } from '../context/HotelContext'
 import { cn } from '../utils/classNames'
 import { formatDate } from '../utils/dateUtils'
 import { apiFetch, API_BASE_URL } from '../services/api'
+import HotelSelector from '../components/HotelSelector'
 
 export default function AuditLogsPage() {
   const { t } = useTranslation()
+  const { canSelectHotel } = useHotel()
   const [logs, setLogs] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
@@ -258,14 +261,18 @@ export default function AuditLogsPage() {
     <div className="space-y-4 sm:space-y-6">
       {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-light text-foreground flex items-center gap-2">
-            <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-accent" />
-            {t('auditLogs.title') || 'Журнал действий'}
-          </h1>
-          <p className="text-muted-foreground mt-1 text-xs sm:text-sm">
-            {t('auditLogs.subtitle') || 'История всех действий в системе'}
-          </p>
+        <div className="flex items-center gap-3 flex-wrap">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-light text-foreground flex items-center gap-2">
+              <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-accent" />
+              {t('auditLogs.title') || 'Журнал действий'}
+            </h1>
+            <p className="text-muted-foreground mt-1 text-xs sm:text-sm">
+              {t('auditLogs.subtitle') || 'История всех действий в системе'}
+            </p>
+          </div>
+          {/* Hotel Selector for SUPER_ADMIN */}
+          {canSelectHotel && <HotelSelector />}
         </div>
 
         <div className="flex items-center gap-2">

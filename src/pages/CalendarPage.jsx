@@ -1,7 +1,9 @@
 import { useState, useMemo, useCallback } from 'react'
 import { ChevronLeft, ChevronRight, Calendar, AlertTriangle, Clock, Package } from 'lucide-react'
 import { useProducts } from '../context/ProductContext'
+import { useHotel } from '../context/HotelContext'
 import { useTranslation } from '../context/LanguageContext'
+import HotelSelector from '../components/HotelSelector'
 import {
   format,
   startOfMonth,
@@ -18,6 +20,7 @@ const locales = { ru, en: enUS, kk }
 
 export default function CalendarPage() {
   const { t, language } = useTranslation()
+  const { canSelectHotel } = useHotel()
   const { batches, departments } = useProducts()
 
   const [currentDate, setCurrentDate] = useState(new Date())
@@ -145,13 +148,17 @@ export default function CalendarPage() {
     <div className="space-y-4 sm:space-y-6 p-1 sm:p-0">
       {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-playfair text-foreground">
-            {t('nav.calendar') || 'Календарь'}
-          </h1>
-          <p className="text-muted-foreground text-xs sm:text-sm">
-            {t('calendar.description') || 'Визуализация сроков годности'}
-          </p>
+        <div className="flex items-center gap-3 flex-wrap">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-playfair text-foreground">
+              {t('nav.calendar') || 'Календарь'}
+            </h1>
+            <p className="text-muted-foreground text-xs sm:text-sm">
+              {t('calendar.description') || 'Визуализация сроков годности'}
+            </p>
+          </div>
+          {/* Hotel Selector for SUPER_ADMIN */}
+          {canSelectHotel && <HotelSelector />}
         </div>
 
         {/* Фильтры */}

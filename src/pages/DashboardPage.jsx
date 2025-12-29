@@ -17,10 +17,12 @@ import {
 } from 'lucide-react'
 import { useProducts } from '../context/ProductContext'
 import { useAuth } from '../context/AuthContext'
+import { useHotel } from '../context/HotelContext'
 import { useTranslation } from '../context/LanguageContext'
 import { format, parseISO } from 'date-fns'
 import { SkeletonDashboard } from '../components/Skeleton'
 import AddBatchModal from '../components/AddBatchModal'
+import HotelSelector from '../components/HotelSelector'
 
 // Иконки для отделов - универсальный маппинг
 const ICON_MAP = {
@@ -48,6 +50,7 @@ const getDeptIcon = (dept) => {
 export default function DashboardPage() {
   const { t } = useTranslation()
   const { user } = useAuth()
+  const { selectedHotel, canSelectHotel } = useHotel()
   const { getStats, getAlerts, collectBatch, departments, loading, refresh } = useProducts()
   const [showAddBatchModal, setShowAddBatchModal] = useState(false)
   const [retryCount, setRetryCount] = useState(0)
@@ -162,13 +165,17 @@ export default function DashboardPage() {
       {/* Greeting Section - Peak-End Rule: Start with positive experience */}
       <div className="bg-gradient-to-r from-accent/5 to-transparent dark:from-accent/10 dark:to-transparent rounded-xl p-4 sm:p-6 animate-fade-in">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-serif text-foreground">
-              {getGreeting()}, {user?.name?.split(' ')[0] || t('common.user')}
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              {t('dashboard.summary') || 'Here is your inventory overview'}
-            </p>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <div>
+              <h1 className="text-xl sm:text-2xl font-serif text-foreground">
+                {getGreeting()}, {user?.name?.split(' ')[0] || t('common.user')}
+              </h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                {t('dashboard.summary') || 'Here is your inventory overview'}
+              </p>
+            </div>
+            {/* Hotel Selector for SUPER_ADMIN */}
+            {canSelectHotel && <HotelSelector className="mt-2 sm:mt-0" />}
           </div>
           
           {/* Quick Actions - Fitts Law: Large targets for common actions */}

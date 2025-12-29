@@ -25,10 +25,11 @@ import {
   Palette,
   Database,
   RefreshCw,
-  Building2
+  Building2,
+  Crown,
+  Wrench
 } from 'lucide-react'
 import NotificationRulesSettings from '../components/NotificationRulesSettings'
-import CustomContentSettings from '../components/CustomContentSettings'
 import GeneralSettings from '../components/settings/GeneralSettings'
 import OrganizationSettings from '../components/settings/OrganizationSettings'
 import CategoriesSettings from '../components/settings/CategoriesSettings'
@@ -70,6 +71,7 @@ export default function SettingsPage() {
   }
 
   const userIsAdmin = canAccessSettings()
+  const isSuperAdmin = user?.role === 'SUPER_ADMIN'
 
   // Табы для обычных пользователей
   const userTabs = [
@@ -78,23 +80,28 @@ export default function SettingsPage() {
     { id: 'language', icon: Languages, label: t('settings.tabs.language') }
   ]
 
-  // Расширенные табы для админа
-  const adminTabs = [
+  // Базовые табы для админа (личные настройки)
+  const personalTabs = [
     { id: 'profile', icon: User, label: t('settings.tabs.profile') },
+    { id: 'language', icon: Languages, label: t('settings.tabs.language') }
+  ]
+
+  // Табы управления системой (HOTEL_ADMIN и SUPER_ADMIN)
+  const managementTabs = [
     { id: 'general', icon: Settings, label: t('settings.tabs.general') || 'Общие' },
-    { id: 'organization', icon: Building2, label: user?.role === 'SUPER_ADMIN' ? 'Организация' : (t('settings.tabs.users') || 'Пользователи') },
     { id: 'categories', icon: Tags, label: t('settings.tabs.categories') || 'Категории' },
     { id: 'templates', icon: FileBox, label: t('settings.tabs.templates') || 'Шаблоны' },
     { id: 'rules', icon: Bell, label: t('settings.tabs.rules') || 'Правила' },
     { id: 'telegram', icon: Send, label: t('settings.tabs.telegram') || 'Telegram' },
     { id: 'branding', icon: Palette, label: t('settings.tabs.branding') || 'Брендинг' },
     { id: 'import-export', icon: Database, label: t('settings.tabs.importExport') || 'Импорт/Экспорт' },
-    { id: 'language', icon: Languages, label: t('settings.tabs.language') },
-    { id: 'system', icon: Shield, label: t('settings.tabs.system') }
   ]
 
-  // Выбор табов в зависимости от роли
-  const tabs = userIsAdmin ? adminTabs : userTabs
+  // Табы только для SUPER_ADMIN (уникальные возможности)
+  const superAdminTabs = [
+    { id: 'organization', icon: Building2, label: 'Организация' },
+    { id: 'system', icon: Shield, label: t('settings.tabs.system') }
+  ]
 
   // Сохранение настроек
   const handleSave = async () => {
@@ -405,23 +412,103 @@ export default function SettingsPage() {
 
       <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
         {/* Табы - горизонтальная прокрутка на мобильных */}
-        <div className="lg:w-64 shrink-0">
-          <div className="bg-card rounded-xl border border-border p-1.5 sm:p-2 flex lg:flex-col gap-1 overflow-x-auto lg:overflow-visible">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-lg text-xs sm:text-sm transition-colors whitespace-nowrap flex-shrink-0 lg:w-full ${
-                  activeTab === tab.id
-                    ? 'bg-foreground text-background'
-                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                }`}
-              >
-                <tab.icon className="w-4 h-4 sm:w-5 sm:h-5" />
-                <span className="hidden sm:inline">{tab.label}</span>
-              </button>
-            ))}
-          </div>
+        <div className="lg:w-64 shrink-0 space-y-3">
+          {/* Личные настройки */}
+          {userIsAdmin ? (
+            <>
+              {/* Личные */}
+              <div className="bg-card rounded-xl border border-border p-1.5 sm:p-2">
+                <div className="px-3 py-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+                  <User className="w-3.5 h-3.5" />
+                  Личные
+                </div>
+                <div className="flex lg:flex-col gap-1 overflow-x-auto lg:overflow-visible">
+                  {personalTabs.map((tab) => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm transition-colors whitespace-nowrap flex-shrink-0 lg:w-full ${
+                        activeTab === tab.id
+                          ? 'bg-foreground text-background'
+                          : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                      }`}
+                    >
+                      <tab.icon className="w-4 h-4" />
+                      <span className="hidden sm:inline">{tab.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Управление */}
+              <div className="bg-card rounded-xl border border-border p-1.5 sm:p-2">
+                <div className="px-3 py-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+                  <Wrench className="w-3.5 h-3.5" />
+                  Управление
+                </div>
+                <div className="flex lg:flex-col gap-1 overflow-x-auto lg:overflow-visible">
+                  {managementTabs.map((tab) => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm transition-colors whitespace-nowrap flex-shrink-0 lg:w-full ${
+                        activeTab === tab.id
+                          ? 'bg-foreground text-background'
+                          : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                      }`}
+                    >
+                      <tab.icon className="w-4 h-4" />
+                      <span className="hidden sm:inline">{tab.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Super Admin раздел */}
+              {isSuperAdmin && (
+                <div className="bg-gradient-to-br from-amber-500/10 to-orange-500/10 rounded-xl border border-amber-500/30 p-1.5 sm:p-2">
+                  <div className="px-3 py-1.5 text-xs font-medium text-amber-600 dark:text-amber-400 uppercase tracking-wide flex items-center gap-1.5">
+                    <Crown className="w-3.5 h-3.5" />
+                    Супер-Админ
+                  </div>
+                  <div className="flex lg:flex-col gap-1 overflow-x-auto lg:overflow-visible">
+                    {superAdminTabs.map((tab) => (
+                      <button
+                        key={tab.id}
+                        onClick={() => setActiveTab(tab.id)}
+                        className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm transition-colors whitespace-nowrap flex-shrink-0 lg:w-full ${
+                          activeTab === tab.id
+                            ? 'bg-amber-500 text-white'
+                            : 'text-amber-700 dark:text-amber-300 hover:bg-amber-500/20'
+                        }`}
+                      >
+                        <tab.icon className="w-4 h-4" />
+                        <span className="hidden sm:inline">{tab.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            /* Обычный пользователь */
+            <div className="bg-card rounded-xl border border-border p-1.5 sm:p-2 flex lg:flex-col gap-1 overflow-x-auto lg:overflow-visible">
+              {userTabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-lg text-xs sm:text-sm transition-colors whitespace-nowrap flex-shrink-0 lg:w-full ${
+                    activeTab === tab.id
+                      ? 'bg-foreground text-background'
+                      : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                  }`}
+                >
+                  <tab.icon className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <span className="hidden sm:inline">{tab.label}</span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Контент */}
@@ -430,14 +517,14 @@ export default function SettingsPage() {
           {activeTab === 'notifications' && renderNotifications()}
           {activeTab === 'language' && renderLanguage()}
           {activeTab === 'general' && userIsAdmin && <GeneralSettings />}
-          {activeTab === 'organization' && userIsAdmin && <OrganizationSettings />}
+          {activeTab === 'organization' && isSuperAdmin && <OrganizationSettings />}
           {activeTab === 'categories' && userIsAdmin && <CategoriesSettings />}
           {activeTab === 'templates' && userIsAdmin && <TemplatesSettings />}
           {activeTab === 'rules' && userIsAdmin && <NotificationRulesSettings />}
           {activeTab === 'telegram' && userIsAdmin && <TelegramSettings />}
           {activeTab === 'branding' && userIsAdmin && <BrandingSettings />}
           {activeTab === 'import-export' && userIsAdmin && <ImportExportSettings />}
-          {activeTab === 'system' && userIsAdmin && renderSystem()}
+          {activeTab === 'system' && isSuperAdmin && renderSystem()}
 
           {/* Кнопка сохранения (только для вкладок уведомлений у обычных пользователей) */}
           {activeTab === 'notifications' && !userIsAdmin && (
