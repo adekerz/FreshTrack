@@ -23,12 +23,14 @@ import {
   Database
 } from 'lucide-react'
 import { useTranslation } from '../context/LanguageContext'
+import { useHotel } from '../context/HotelContext'
 import { cn } from '../utils/classNames'
 import { formatDate } from '../utils/dateUtils'
 import { apiFetch, API_BASE_URL } from '../services/api'
 
 export default function AuditLogsPage() {
   const { t } = useTranslation()
+  const { selectedHotelId, selectedHotel } = useHotel()
   const [logs, setLogs] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
@@ -46,9 +48,12 @@ export default function AuditLogsPage() {
   const [showFilters, setShowFilters] = useState(false)
   const [selectedLog, setSelectedLog] = useState(null)
 
+  // Перезагружаем при смене отеля
   useEffect(() => {
-    loadLogs()
-  }, [filters, pagination.page])
+    if (selectedHotelId) {
+      loadLogs()
+    }
+  }, [filters, pagination.page, selectedHotelId])
 
   const loadLogs = async () => {
     setLoading(true)

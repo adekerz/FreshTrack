@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from '../../context/LanguageContext'
 import { useToast } from '../../context/ToastContext'
+import { useHotel } from '../../context/HotelContext'
 import { apiFetch } from '../../services/api'
 import { 
   Save, 
@@ -24,6 +25,7 @@ const BOT_USERNAME = 'FreshTrackNotifyBot' // Имя бота
 export default function TelegramSettings() {
   const { t } = useTranslation()
   const { addToast } = useToast()
+  const { selectedHotelId, selectedHotel } = useHotel()
   const [settings, setSettings] = useState({
     messageTemplates: {
       dailyReport: '📊 Ежедневный отчёт FreshTrack\n\n✅ В норме: {good}\n⚠️ Скоро истекает: {warning}\n🔴 Просрочено: {expired}',
@@ -37,10 +39,13 @@ export default function TelegramSettings() {
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState(null)
 
+  // Перезагружаем при смене отеля
   useEffect(() => {
-    loadSettings()
-    loadLinkedChats()
-  }, [])
+    if (selectedHotelId) {
+      loadSettings()
+      loadLinkedChats()
+    }
+  }, [selectedHotelId])
 
   const loadSettings = async () => {
     setLoading(true)

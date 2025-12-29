@@ -1,13 +1,12 @@
 import { useState, useMemo, useCallback, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Wine, Coffee, Utensils, ChefHat, Warehouse, Package, Plus, FileBox, ArrowUpDown, ArrowLeft, Home } from 'lucide-react'
+import { Wine, Coffee, Utensils, ChefHat, Warehouse, Package, Plus, FileBox, ArrowUpDown, ArrowLeft } from 'lucide-react'
 import { useProducts } from '../context/ProductContext'
 import { useTranslation, useLanguage } from '../context/LanguageContext'
 import ProductModal from '../components/ProductModal'
 import AddCustomProductModal from '../components/AddCustomProductModal'
 import DeliveryTemplateModal from '../components/DeliveryTemplateModal'
 import DepartmentSelector from '../components/DepartmentSelector'
-import Breadcrumbs from '../components/Breadcrumbs'
 import ExportButton from '../components/ExportButton'
 import { EXPORT_COLUMNS } from '../utils/exportUtils'
 import { SkeletonInventory, Skeleton } from '../components/Skeleton'
@@ -300,15 +299,6 @@ export default function InventoryPage() {
 
   return (
     <div className="p-3 sm:p-4 md:p-8 animate-fade-in">
-      {/* Breadcrumbs */}
-      <Breadcrumbs 
-        customItems={[
-          { label: t('nav.home') || 'Главная', path: '/', icon: Home },
-          { label: t('nav.inventory') || 'Инвентарь', path: '/inventory' },
-          ...(departments.length > 1 ? [{ label: department?.name || '', path: `/inventory/${selectedDeptId}`, isLast: true }] : [])
-        ]}
-      />
-      
       {/* Заголовок */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-8">
         <div className="flex items-center gap-2 sm:gap-4">

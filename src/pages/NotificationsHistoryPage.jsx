@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from '../context/LanguageContext'
+import { useHotel } from '../context/HotelContext'
 import {
   Send,
   Filter,
@@ -48,6 +49,7 @@ const NOTIFICATION_TYPES = {
 
 export default function NotificationsHistoryPage() {
   const { t } = useTranslation()
+  const { selectedHotelId, selectedHotel } = useHotel()
   const [logs, setLogs] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -96,9 +98,12 @@ export default function NotificationsHistoryPage() {
     [pagination.limit, appliedFilters]
   )
 
+  // Перезагружаем при смене отеля
   useEffect(() => {
-    fetchLogs(pagination.page)
-  }, [fetchLogs, pagination.page])
+    if (selectedHotelId) {
+      fetchLogs(pagination.page)
+    }
+  }, [fetchLogs, pagination.page, selectedHotelId])
 
   // Применение фильтров
   const handleApplyFilters = () => {

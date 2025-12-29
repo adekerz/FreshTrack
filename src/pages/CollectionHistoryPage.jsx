@@ -7,9 +7,9 @@ import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from '../context/LanguageContext'
 import { useAuth } from '../context/AuthContext'
 import { useProducts } from '../context/ProductContext'
+import { useHotel } from '../context/HotelContext'
 import { Navigate } from 'react-router-dom'
-import { Filter, RefreshCw, ChevronLeft, ChevronRight, ArchiveX, User, Package, Home } from 'lucide-react'
-import Breadcrumbs from '../components/Breadcrumbs'
+import { Filter, RefreshCw, ChevronLeft, ChevronRight, ArchiveX, User, Package } from 'lucide-react'
 import { apiFetch } from '../services/api'
 
 // Причины сбора (синхронизировано с CollectionService.CollectionReason)
@@ -35,6 +35,7 @@ export default function CollectionHistoryPage() {
   const { t } = useTranslation()
   const { isHotelAdmin, hasPermission } = useAuth()
   const { departments } = useProducts()
+  const { selectedHotelId, selectedHotel } = useHotel()
   const [logs, setLogs] = useState([])
   const [stats, setStats] = useState({ today: 0, week: 0, month: 0, total: 0 })
   const [loading, setLoading] = useState(true)
@@ -121,13 +122,14 @@ export default function CollectionHistoryPage() {
     [pagination.limit, appliedFilters]
   )
 
+  // Перезагружаем при смене отеля
   useEffect(() => {
     // Permission-based access check
-    if (isHotelAdmin() || hasPermission('collections:read')) {
+    if (selectedHotelId && (isHotelAdmin() || hasPermission('collections:read'))) {
       fetchLogs(pagination.page)
       fetchStats()
     }
-  }, [fetchLogs, fetchStats, pagination.page, isHotelAdmin, hasPermission])
+  }, [fetchLogs, fetchStats, pagination.page, isHotelAdmin, hasPermission, selectedHotelId])
 
   // Проверка прав доступа (permission-based)
   const canAccessPage = isHotelAdmin() || hasPermission('collections:read')
@@ -188,14 +190,6 @@ export default function CollectionHistoryPage() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      {/* Breadcrumbs */}
-      <Breadcrumbs 
-        customItems={[
-          { label: t('nav.home') || 'Главная', path: '/', icon: Home },
-          { label: t('nav.history') || 'История сборов', path: '/history', isLast: true }
-        ]}
-      />
-      
       {/* Заголовок */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         <div>

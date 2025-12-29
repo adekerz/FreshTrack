@@ -7,10 +7,9 @@ import { useState, useMemo } from 'react'
 import { useTranslation, useLanguage } from '../context/LanguageContext'
 import { useAuth } from '../context/AuthContext'
 import { useProducts } from '../context/ProductContext'
-import Breadcrumbs from '../components/Breadcrumbs'
 import ExportButton from '../components/ExportButton'
 import { EXPORT_COLUMNS } from '../utils/exportUtils'
-import { Package, AlertTriangle, CheckCircle, Clock, Home } from 'lucide-react'
+import { Package, AlertTriangle, CheckCircle, Clock } from 'lucide-react'
 
 export default function StatisticsPage() {
   const { t } = useTranslation()
@@ -184,14 +183,6 @@ export default function StatisticsPage() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      {/* Breadcrumbs */}
-      <Breadcrumbs 
-        customItems={[
-          { label: t('nav.home') || 'Главная', path: '/', icon: Home },
-          { label: t('nav.statistics') || 'Статистика', path: '/statistics', isLast: true }
-        ]}
-      />
-      
       {/* Заголовок */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         <div>

@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react'
 import { useTranslation } from '../../context/LanguageContext'
 import { useProducts } from '../../context/ProductContext'
 import { useToast } from '../../context/ToastContext'
+import { useHotel } from '../../context/HotelContext'
 import { apiFetch } from '../../services/api'
 import { 
   Plus, 
@@ -23,6 +24,7 @@ export default function TemplatesSettings() {
   const { t } = useTranslation()
   const { departments } = useProducts()
   const { addToast } = useToast()
+  const { selectedHotelId, selectedHotel } = useHotel()
   const [templates, setTemplates] = useState([])
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
@@ -43,9 +45,12 @@ export default function TemplatesSettings() {
     }
   }, [departments, selectedDepartment])
 
+  // Перезагружаем при смене отеля
   useEffect(() => {
-    fetchData()
-  }, [])
+    if (selectedHotelId) {
+      fetchData()
+    }
+  }, [selectedHotelId])
 
   const fetchData = async () => {
     setLoading(true)

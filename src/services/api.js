@@ -45,8 +45,9 @@ export async function apiFetch(endpoint, options = {}) {
   let url = `${API_BASE_URL}${endpoint}`
 
   // Добавляем hotel_id для SUPER_ADMIN (из localStorage)
+  // Проверяем что hotel_id ещё не в URL чтобы избежать дублирования
   const selectedHotelId = localStorage.getItem('freshtrack_selected_hotel')
-  if (selectedHotelId) {
+  if (selectedHotelId && !url.includes('hotel_id=')) {
     const separator = url.includes('?') ? '&' : '?'
     url = `${url}${separator}hotel_id=${encodeURIComponent(selectedHotelId)}`
   }

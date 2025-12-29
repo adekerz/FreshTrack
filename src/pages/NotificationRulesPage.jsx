@@ -15,6 +15,7 @@ import {
   AlertTriangle
 } from 'lucide-react'
 import { useTranslation } from '../context/LanguageContext'
+import { useHotel } from '../context/HotelContext'
 import { useToast } from '../context/ToastContext'
 import { cn } from '../utils/classNames'
 import { apiFetch } from '../services/api'
@@ -52,6 +53,7 @@ const DEFAULT_RULES = [
 export default function NotificationRulesPage() {
   const { t } = useTranslation()
   const { addToast } = useToast()
+  const { selectedHotelId, selectedHotel } = useHotel()
   const [rules, setRules] = useState([])
   const [loading, setLoading] = useState(true)
   const [editingRule, setEditingRule] = useState(null)
@@ -65,9 +67,12 @@ export default function NotificationRulesPage() {
     enabled: true
   })
 
+  // Перезагружаем при смене отеля
   useEffect(() => {
-    loadRules()
-  }, [])
+    if (selectedHotelId) {
+      loadRules()
+    }
+  }, [selectedHotelId])
 
   const loadRules = async () => {
     setLoading(true)

@@ -7,15 +7,13 @@ import {
   Calendar,
   Package,
   History,
-  Zap,
-  Home
+  Zap
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useProducts, departments } from '../context/ProductContext'
 import { useTranslation } from '../context/LanguageContext'
 import { format, parseISO } from 'date-fns'
 import { SkeletonNotifications, Skeleton } from '../components/Skeleton'
-import Breadcrumbs from '../components/Breadcrumbs'
 import FIFOCollectModal from '../components/FIFOCollectModal'
 
 export default function NotificationsPage() {
@@ -233,14 +231,6 @@ export default function NotificationsPage() {
 
   return (
     <div className="p-3 sm:p-4 md:p-8">
-      {/* Breadcrumbs */}
-      <Breadcrumbs 
-        customItems={[
-          { label: t('nav.home') || 'Главная', path: '/', icon: Home },
-          { label: t('nav.alerts') || 'Уведомления', path: '/notifications', isLast: true }
-        ]}
-      />
-      
       {/* Заголовок */}
       <div className="mb-4 sm:mb-8 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>

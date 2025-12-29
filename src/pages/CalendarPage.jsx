@@ -1,8 +1,7 @@
 import { useState, useMemo, useCallback } from 'react'
-import { ChevronLeft, ChevronRight, Calendar, AlertTriangle, Clock, Package, Home } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Calendar, AlertTriangle, Clock, Package } from 'lucide-react'
 import { useProducts } from '../context/ProductContext'
 import { useTranslation } from '../context/LanguageContext'
-import Breadcrumbs from '../components/Breadcrumbs'
 import {
   format,
   startOfMonth,
@@ -144,14 +143,6 @@ export default function CalendarPage() {
 
   return (
     <div className="space-y-4 sm:space-y-6 p-1 sm:p-0">
-      {/* Breadcrumbs */}
-      <Breadcrumbs 
-        customItems={[
-          { label: t('nav.home') || 'Главная', path: '/', icon: Home },
-          { label: t('nav.calendar') || 'Календарь', path: '/calendar', isLast: true }
-        ]}
-      />
-      
       {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         <div>

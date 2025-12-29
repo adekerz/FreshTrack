@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react'
 import { useTranslation } from '../../context/LanguageContext'
 import { useToast } from '../../context/ToastContext'
 import { useProducts } from '../../context/ProductContext'
+import { useHotel } from '../../context/HotelContext'
 import { Plus, X, RefreshCw, Tag, Palette } from 'lucide-react'
 import { apiFetch } from '../../services/api'
 
@@ -19,14 +20,18 @@ export default function CategoriesSettings() {
   const { t } = useTranslation()
   const { addToast } = useToast()
   const { refresh } = useProducts()
+  const { selectedHotelId, selectedHotel } = useHotel()
   const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(true)
   const [newCategory, setNewCategory] = useState({ name: '', color: '#FF8D6B' })
   const [adding, setAdding] = useState(false)
 
+  // Перезагружаем категории при смене отеля
   useEffect(() => {
-    fetchCategories()
-  }, [])
+    if (selectedHotelId) {
+      fetchCategories()
+    }
+  }, [selectedHotelId])
 
   const fetchCategories = async () => {
     setLoading(true)
@@ -95,7 +100,14 @@ export default function CategoriesSettings() {
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-semibold text-foreground">{t('settings.categories.title') || 'Категории'}</h2>
-        <p className="text-sm text-muted-foreground mt-1">{t('categorySettings.description') || 'Управление категориями товаров'}</p>
+        <p className="text-sm text-muted-foreground mt-1">
+          {t('categorySettings.description') || 'Управление категориями товаров'}
+          {selectedHotel && (
+            <span className="ml-2 px-2 py-0.5 bg-accent/10 text-accent rounded-md text-xs font-medium">
+              {selectedHotel.name}
+            </span>
+          )}
+        </p>
       </div>
 
       {/* Форма добавления */}
