@@ -13,7 +13,6 @@ import {
   RefreshCw, 
   Globe, 
   Coins, 
-  LayoutGrid, 
   Clock
 } from 'lucide-react'
 import { apiFetch } from '../../services/api'
@@ -27,15 +26,9 @@ export default function GeneralSettings() {
     dateFormat: 'DD.MM.YYYY',
     timeFormat: '24h',
     firstDayOfWeek: 'monday',
-    // Валюта и единицы
-    currency: 'KZT',
+    // Единицы и отображение
     defaultUnit: 'шт',
     showPrices: false,
-    // Отображение
-    itemsPerPage: 25,
-    defaultSort: 'expiry_date',
-    compactView: false,
-    showExpired: true,
     // Сессия
     autoLogoutMinutes: 60,
     rememberDevice: true,
@@ -51,11 +44,12 @@ export default function GeneralSettings() {
   const loadSettings = async () => {
     setLoading(true)
     try {
-      const data = await apiFetch('/settings/general')
-      if (data) {
-        setSettings(prev => ({ ...prev, ...data }))
+      const response = await apiFetch('/settings/general')
+      if (response?.success && response?.settings) {
+        setSettings(prev => ({ ...prev, ...response.settings }))
       }
     } catch (error) {
+      console.error('Load settings error:', error)
       // Use defaults
     } finally {
       setLoading(false)
@@ -211,20 +205,8 @@ export default function GeneralSettings() {
           />
         </Section>
 
-        {/* Валюта и единицы */}
-        <Section icon={Coins} title="Валюта и единицы">
-          <SelectField 
-            label="Валюта"
-            value={settings.currency}
-            onChange={(v) => updateSetting('currency', v)}
-            options={[
-              { value: 'KZT', label: '₸ Тенге (KZT)' },
-              { value: 'RUB', label: '₽ Рубль (RUB)' },
-              { value: 'USD', label: '$ Доллар (USD)' },
-              { value: 'EUR', label: '€ Евро (EUR)' },
-              { value: 'AED', label: 'د.إ Дирхам (AED)' },
-            ]}
-          />
+        {/* Единицы и отображение */}
+        <Section icon={Coins} title="Единицы и отображение">
           <SelectField 
             label="Единица по умолчанию"
             value={settings.defaultUnit}
@@ -243,43 +225,6 @@ export default function GeneralSettings() {
             label="Показывать цены"
             checked={settings.showPrices}
             onChange={(v) => updateSetting('showPrices', v)}
-          />
-        </Section>
-
-        {/* Отображение */}
-        <Section icon={LayoutGrid} title="Отображение">
-          <SelectField 
-            label="Элементов на странице"
-            value={settings.itemsPerPage}
-            onChange={(v) => updateSetting('itemsPerPage', parseInt(v))}
-            options={[
-              { value: 10, label: '10 элементов' },
-              { value: 25, label: '25 элементов' },
-              { value: 50, label: '50 элементов' },
-              { value: 100, label: '100 элементов' },
-            ]}
-          />
-          <SelectField 
-            label="Сортировка по умолчанию"
-            value={settings.defaultSort}
-            onChange={(v) => updateSetting('defaultSort', v)}
-            options={[
-              { value: 'expiry_date', label: 'По сроку годности' },
-              { value: 'name', label: 'По названию' },
-              { value: 'quantity', label: 'По количеству' },
-              { value: 'created_at', label: 'По дате добавления' },
-              { value: 'category', label: 'По категории' },
-            ]}
-          />
-          <Toggle 
-            label="Компактный вид"
-            checked={settings.compactView}
-            onChange={(v) => updateSetting('compactView', v)}
-          />
-          <Toggle 
-            label="Показывать просроченные"
-            checked={settings.showExpired}
-            onChange={(v) => updateSetting('showExpired', v)}
           />
         </Section>
 

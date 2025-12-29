@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
-import { Wine, Coffee, Utensils, ChefHat, Warehouse, Package, Plus, FileBox } from 'lucide-react'
+import { Wine, Coffee, Utensils, ChefHat, Warehouse, Package, Plus, FileBox, ArrowUpDown } from 'lucide-react'
 import { useProducts } from '../context/ProductContext'
 import { useTranslation, useLanguage } from '../context/LanguageContext'
 import ProductModal from '../components/ProductModal'
@@ -49,6 +49,7 @@ export default function InventoryPage() {
   // Используем отдел из URL или первый доступный
   const selectedDepartment = departmentId || (departments.length > 0 ? departments[0].id : null)
   const [selectedCategory, setSelectedCategory] = useState('all')
+  const [sortBy, setSortBy] = useState('expiry') // expiry, name, quantity
   const [selectedProduct, setSelectedProduct] = useState(null)
   const [showProductModal, setShowProductModal] = useState(false)
   const [showAddCustomModal, setShowAddCustomModal] = useState(false)
@@ -87,13 +88,34 @@ export default function InventoryPage() {
     })
   }
 
-  // Получить отфильтрованные товары
+  // Получить отфильтрованные и отсортированные товары
   const getFilteredProducts = useCallback(() => {
     if (!selectedDepartment) return []
-    const products = getProductsByDepartment(selectedDepartment)
-    if (selectedCategory === 'all') return products
-    return products.filter((p) => p.categoryId === selectedCategory)
-  }, [selectedDepartment, selectedCategory, getProductsByDepartment])
+    let products = getProductsByDepartment(selectedDepartment)
+    if (selectedCategory !== 'all') {
+      products = products.filter((p) => p.categoryId === selectedCategory)
+    }
+    
+    // Сортировка
+    return [...products].sort((a, b) => {
+      switch (sortBy) {
+        case 'name':
+          return (a.name || '').localeCompare(b.name || '')
+        case 'quantity':
+          const qtyA = a.batches?.reduce((sum, b) => sum + (b.quantity || 0), 0) || 0
+          const qtyB = b.batches?.reduce((sum, b) => sum + (b.quantity || 0), 0) || 0
+          return qtyB - qtyA
+        case 'expiry':
+        default:
+          // Сортировка по ближайшему сроку годности
+          const getMinExpiry = (product) => {
+            if (!product.batches?.length) return Infinity
+            return Math.min(...product.batches.map(b => b.daysLeft ?? Infinity))
+          }
+          return getMinExpiry(a) - getMinExpiry(b)
+      }
+    })
+  }, [selectedDepartment, selectedCategory, sortBy, getProductsByDepartment])
 
   // Подготовка данных для экспорта (экспортируем отдельные партии, не агрегированные товары)
   const exportData = useMemo(() => {
@@ -274,31 +296,48 @@ export default function InventoryPage() {
         </div>
       </div>
 
-      {/* Фильтры категорий */}
-      <div className="flex gap-2 mb-4 sm:mb-8 flex-wrap overflow-x-auto pb-2">
-        <button
-          onClick={() => setSelectedCategory('all')}
-          className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm transition-all whitespace-nowrap flex-shrink-0 ${
-            selectedCategory === 'all'
-              ? 'bg-foreground text-background'
-              : 'bg-transparent border border-border text-muted-foreground hover:border-foreground hover:text-foreground'
-          }`}
-        >
-          {t('common.all')}
-        </button>
-        {availableCategories.map((cat) => (
+      {/* Фильтры категорий и сортировка */}
+      <div className="flex flex-col sm:flex-row gap-3 mb-4 sm:mb-8">
+        {/* Категории */}
+        <div className="flex gap-2 flex-wrap overflow-x-auto pb-2 flex-1">
           <button
-            key={cat.id}
-            onClick={() => setSelectedCategory(cat.id)}
+            onClick={() => setSelectedCategory('all')}
             className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm transition-all whitespace-nowrap flex-shrink-0 ${
-              selectedCategory === cat.id
+              selectedCategory === 'all'
                 ? 'bg-foreground text-background'
                 : 'bg-transparent border border-border text-muted-foreground hover:border-foreground hover:text-foreground'
             }`}
           >
+            {t('common.all')}
+          </button>
+          {availableCategories.map((cat) => (
+            <button
+              key={cat.id}
+              onClick={() => setSelectedCategory(cat.id)}
+              className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm transition-all whitespace-nowrap flex-shrink-0 ${
+                selectedCategory === cat.id
+                  ? 'bg-foreground text-background'
+                  : 'bg-transparent border border-border text-muted-foreground hover:border-foreground hover:text-foreground'
+              }`}
+            >
             {getCategoryName(cat)}
           </button>
         ))}
+        </div>
+        
+        {/* Сортировка */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <ArrowUpDown className="w-4 h-4 text-muted-foreground" />
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="text-xs sm:text-sm bg-card border border-border rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-accent/20"
+          >
+            <option value="expiry">{t('inventory.sortByExpiry') || 'По сроку'}</option>
+            <option value="name">{t('inventory.sortByName') || 'По названию'}</option>
+            <option value="quantity">{t('inventory.sortByQuantity') || 'По количеству'}</option>
+          </select>
+        </div>
       </div>
 
       {/* Сетка товаров */}

@@ -629,18 +629,35 @@ router.get('/general', authMiddleware, hotelIsolation, async (req, res) => {
       userId: req.user?.id
     })
     
-    // Return general settings with default values (backward compatible)
+    const raw = settings.raw || {}
+    
+    // Return general settings with default values (backward compatible + new fields)
     res.json({ 
       success: true, 
       settings: {
-        siteName: settings.raw?.['branding.siteName'] || 'FreshTrack',
-        departmentName: settings.raw?.['branding.departmentName'] || '',
-        warningDays: settings.expiryThresholds.warning,
-        criticalDays: settings.expiryThresholds.critical,
-        dateFormat: settings.display.dateFormat,
-        timezone: settings.display.timezone,
-        defaultLanguage: settings.display.locale,
-        ...settings.raw
+        // Legacy fields
+        siteName: raw['branding.siteName'] || 'FreshTrack',
+        departmentName: raw['branding.departmentName'] || '',
+        warningDays: settings.expiryThresholds?.warning || 7,
+        criticalDays: settings.expiryThresholds?.critical || 3,
+        defaultLanguage: settings.display?.locale || 'ru',
+        // Regional
+        timezone: raw['display.timezone'] || settings.display?.timezone || 'Asia/Almaty',
+        dateFormat: raw['display.dateFormat'] || settings.display?.dateFormat || 'DD.MM.YYYY',
+        timeFormat: raw['display.timeFormat'] || '24h',
+        firstDayOfWeek: raw['display.firstDayOfWeek'] || 'monday',
+        // Currency
+        currency: raw['display.currency'] || 'KZT',
+        defaultUnit: raw['display.defaultUnit'] || 'шт',
+        showPrices: raw['display.showPrices'] ?? false,
+        // Display
+        itemsPerPage: raw['display.itemsPerPage'] || 25,
+        defaultSort: raw['display.defaultSort'] || 'expiry_date',
+        compactView: raw['display.compactView'] ?? false,
+        showExpired: raw['display.showExpired'] ?? true,
+        // Session
+        autoLogoutMinutes: raw['session.autoLogoutMinutes'] || 60,
+        rememberDevice: raw['session.rememberDevice'] ?? true,
       }
     })
   } catch (error) {
@@ -667,13 +684,29 @@ router.put('/general', authMiddleware, hotelIsolation, requirePermission(Permiss
     
     // Map general settings to hierarchical keys
     const keyMapping = {
+      // Legacy
       siteName: 'branding.siteName',
       departmentName: 'branding.departmentName',
       warningDays: 'expiry.warning.days',
       criticalDays: 'expiry.critical.days',
-      dateFormat: 'display.dateFormat',
+      defaultLanguage: 'display.locale',
+      // Regional
       timezone: 'display.timezone',
-      defaultLanguage: 'display.locale'
+      dateFormat: 'display.dateFormat',
+      timeFormat: 'display.timeFormat',
+      firstDayOfWeek: 'display.firstDayOfWeek',
+      // Currency
+      currency: 'display.currency',
+      defaultUnit: 'display.defaultUnit',
+      showPrices: 'display.showPrices',
+      // Display
+      itemsPerPage: 'display.itemsPerPage',
+      defaultSort: 'display.defaultSort',
+      compactView: 'display.compactView',
+      showExpired: 'display.showExpired',
+      // Session
+      autoLogoutMinutes: 'session.autoLogoutMinutes',
+      rememberDevice: 'session.rememberDevice',
     }
     
     for (const [key, value] of Object.entries(settings)) {
