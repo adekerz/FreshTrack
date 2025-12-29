@@ -110,7 +110,9 @@ export function useSSE(options = {}) {
     const token = localStorage.getItem('freshtrack_token')
     if (!token) return null
 
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001'
+    // VITE_API_URL may include /api, need base URL without it
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
+    const baseUrl = apiUrl.replace(/\/api$/, '')
     // EventSource doesn't support headers, so we pass token in query
     return `${baseUrl}/api/events/stream?token=${encodeURIComponent(token)}`
   }, [])
