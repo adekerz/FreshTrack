@@ -32,6 +32,7 @@ export function ProductProvider({ children }) {
   const prevHotelIdRef = useRef(null)
   const initialLoadDoneRef = useRef(false)
   const fetchingRef = useRef(false) // Предотвращает параллельные вызовы
+  const currentFetchHotelRef = useRef(null) // Какой отель сейчас загружается
   
   // Каталог товаров (только в памяти, без localStorage - данные загружаются с сервера)
   const [catalog, setCatalog] = useState({})
@@ -77,6 +78,14 @@ export function ProductProvider({ children }) {
     // Повторные загрузки - только если отель изменился
     if (prevHotelIdRef.current !== selectedHotelId) {
       logDebug('🏨 Hotel changed, reloading data for hotel:', selectedHotelId)
+      
+      // ВАЖНО: Очищаем данные СРАЗУ при смене отеля, чтобы не показывать старые
+      setCatalog({})
+      setDepartmentList([])
+      setCategoryList([])
+      setBatches([])
+      setStats({ total: 0, expired: 0, critical: 0, warning: 0, good: 0, needsAttention: 0 })
+      
       prevHotelIdRef.current = selectedHotelId
       fetchAllData(selectedHotelId)
     }
@@ -87,10 +96,13 @@ export function ProductProvider({ children }) {
    * @param {number} hotelId - ID выбранного отеля (для SUPER_ADMIN)
    */
   const fetchAllData = async (hotelId = null) => {
-    // Предотвращаем параллельные вызовы
+    // Запоминаем для какого отеля загружаем
+    currentFetchHotelRef.current = hotelId
+    
+    // Если уже идёт загрузка для другого отеля - она станет неактуальной
+    // Не блокируем, просто предупреждаем
     if (fetchingRef.current) {
-      logDebug('⏳ fetchAllData already in progress, skipping...')
-      return
+      logDebug('⏳ fetchAllData already in progress, will override with new hotel:', hotelId)
     }
     
     fetchingRef.current = true
@@ -110,6 +122,12 @@ export function ProductProvider({ children }) {
         apiFetch('/categories').catch(() => ({ categories: [] })),
         apiFetch('/products').catch(() => [])
       ])
+      
+      // ВАЖНО: Проверяем что отель не сменился пока шёл запрос
+      if (currentFetchHotelRef.current !== hotelId) {
+        logDebug('🔄 Hotel changed during fetch, discarding stale data for:', hotelId)
+        return // Не применяем устаревшие данные
+      }
 
       // API возвращает { success: true, batches: [...] } или массив
       const batchesRaw = Array.isArray(batchesRes) ? batchesRes : (batchesRes.batches || [])
