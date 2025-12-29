@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from '../../context/LanguageContext'
 import { useToast } from '../../context/ToastContext'
+import { useProducts } from '../../context/ProductContext'
 import { Plus, X, RefreshCw, Tag, Palette } from 'lucide-react'
 import { apiFetch } from '../../services/api'
 
@@ -17,6 +18,7 @@ const defaultColors = [
 export default function CategoriesSettings() {
   const { t } = useTranslation()
   const { addToast } = useToast()
+  const { refresh } = useProducts()
   const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(true)
   const [newCategory, setNewCategory] = useState({ name: '', color: '#FF8D6B' })
@@ -53,7 +55,9 @@ export default function CategoriesSettings() {
         method: 'POST',
         body: JSON.stringify(newCategory)
       })
-      fetchCategories()
+      await fetchCategories()
+      // Обновляем глобальный контекст чтобы категории появились везде
+      await refresh()
       setNewCategory({ name: '', color: defaultColors[Math.floor(Math.random() * defaultColors.length)] })
       addToast(t('toast.categoryAdded'), 'success')
     } catch (error) {
@@ -70,7 +74,9 @@ export default function CategoriesSettings() {
       await apiFetch(`/categories/${id}`, {
         method: 'DELETE'
       })
-      fetchCategories()
+      await fetchCategories()
+      // Обновляем глобальный контекст
+      await refresh()
       addToast(t('toast.categoryDeleted'), 'success')
     } catch (error) {
       addToast(t('toast.categoryDeleteError'), 'error')
