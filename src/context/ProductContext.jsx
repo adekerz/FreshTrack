@@ -453,12 +453,15 @@ export function ProductProvider({ children }) {
 
   /**
    * Получить товары отдела с информацией о партиях
+   * Включает как товары из каталога, так и custom товары из батчей
    */
   const getProductsByDepartment = useCallback(
     (departmentId) => {
       const departmentCatalog = catalog[departmentId] || {}
       const products = []
+      const addedProductNames = new Set()
 
+      // 1. Добавляем товары из каталога с их батчами
       Object.entries(departmentCatalog).forEach(([categoryId, categoryProducts]) => {
         categoryProducts.forEach((product) => {
           const productBatches = batches
@@ -517,6 +520,71 @@ export function ProductProvider({ children }) {
               ['critical', 'warning', 'today'].includes(b.status?.status || b.status)
             )
           })
+          
+          addedProductNames.add(product.name)
+        })
+      })
+
+      // 2. Добавляем custom товары из батчей, которых нет в каталоге
+      const departmentBatches = batches.filter(b => {
+        const batchDeptId = b.departmentId || b.department
+        return batchDeptId === departmentId && !addedProductNames.has(b.productName)
+      })
+      
+      // Группируем батчи по имени продукта
+      const customProductsMap = new Map()
+      departmentBatches.forEach(b => {
+        if (!customProductsMap.has(b.productName)) {
+          customProductsMap.set(b.productName, [])
+        }
+        const statusInfo = getBatchStatus(b)
+        customProductsMap.get(b.productName).push({
+          ...b,
+          daysLeft: statusInfo.daysLeft,
+          status: statusInfo
+        })
+      })
+      
+      // Добавляем custom товары
+      customProductsMap.forEach((productBatches, productName) => {
+        let overallStatus = 'good'
+        let totalQuantity = 0
+        let hasNoQuantity = false
+
+        productBatches.forEach((batch) => {
+          if (batch.quantity === null || batch.quantity === undefined) {
+            hasNoQuantity = true
+          } else {
+            totalQuantity += batch.quantity
+          }
+          const status = batch.status?.status || batch.status
+          if (status === 'expired') {
+            overallStatus = 'expired'
+          } else if (status === 'critical' && overallStatus !== 'expired') {
+            overallStatus = 'critical'
+          } else if (
+            status === 'warning' &&
+            overallStatus !== 'expired' &&
+            overallStatus !== 'critical'
+          ) {
+            overallStatus = 'warning'
+          }
+        })
+
+        products.push({
+          id: `custom-${productName}`,
+          name: productName,
+          categoryId: productBatches[0]?.categoryId || 'other',
+          departmentId,
+          batches: productBatches,
+          totalBatches: productBatches.length,
+          totalQuantity: hasNoQuantity && totalQuantity === 0 ? '—' : totalQuantity,
+          overallStatus,
+          hasExpired: productBatches.some((b) => (b.status?.status || b.status) === 'expired'),
+          hasExpiringSoon: productBatches.some((b) =>
+            ['critical', 'warning', 'today'].includes(b.status?.status || b.status)
+          ),
+          isCustomProduct: true
         })
       })
 
