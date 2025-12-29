@@ -42,8 +42,7 @@ export function HotelProvider({ children }) {
             setSelectedHotelId(user.hotel_id)
           } else {
             // Для SUPER_ADMIN - первый из списка или сохранённый
-            const saved = localStorage.getItem('freshtrack_selected_hotel')
-            const savedId = saved ? parseInt(saved) : null
+            const savedId = localStorage.getItem('freshtrack_selected_hotel')
             const validSaved = savedId && response.hotels.some(h => h.id === savedId)
             setSelectedHotelId(validSaved ? savedId : response.hotels[0].id)
           }
@@ -67,10 +66,11 @@ export function HotelProvider({ children }) {
   const selectHotel = useCallback((hotelId) => {
     if (!isSuperAdmin) return // HOTEL_ADMIN не может менять отель
     
-    const numId = typeof hotelId === 'string' ? parseInt(hotelId) : hotelId
-    if (hotels.some(h => h.id === numId)) {
-      setSelectedHotelId(numId)
-      localStorage.setItem('freshtrack_selected_hotel', String(numId))
+    // UUID — всегда строки, не конвертируем в число
+    const id = String(hotelId)
+    if (hotels.some(h => h.id === id)) {
+      setSelectedHotelId(id)
+      localStorage.setItem('freshtrack_selected_hotel', id)
     }
   }, [isSuperAdmin, hotels])
 

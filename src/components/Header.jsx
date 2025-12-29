@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { Plus, LogOut, Send, ChevronDown, Package, FolderPlus, Leaf, Search } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useProducts } from '../context/ProductContext'
+import { useHotel } from '../context/HotelContext'
 import { useTranslation, useLanguage } from '../context/LanguageContext'
 import { useBranding } from '../context/BrandingContext'
 import AddBatchModal from './AddBatchModal'
@@ -11,6 +12,7 @@ import LanguageSwitcher from './LanguageSwitcher'
 import ThemeSwitcher from './ThemeSwitcher'
 import GlobalSearch from './GlobalSearch'
 import NotificationBell from './NotificationBell'
+import HotelSelector from './HotelSelector'
 import { sendTestTelegramNotification } from '../services/api'
 
 export default function Header() {
@@ -18,6 +20,7 @@ export default function Header() {
   const navigate = useNavigate()
   const { user, logout, hotelName } = useAuth()
   const { getExpiringBatches } = useProducts()
+  const { canSelectHotel } = useHotel()
   const { t } = useTranslation()
   const { language } = useLanguage()
   const { siteName } = useBranding()
@@ -105,6 +108,9 @@ export default function Header() {
             </div>
             <p className="text-xs lg:text-sm text-muted-foreground">{getLocalizedDate()}</p>
           </div>
+          
+          {/* Hotel Selector for SUPER_ADMIN */}
+          {canSelectHotel && <HotelSelector className="hidden md:block" />}
         </div>
 
         <div className="flex items-center gap-2 lg:gap-3">

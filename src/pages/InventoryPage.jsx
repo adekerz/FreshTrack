@@ -1,14 +1,14 @@
 import { useState, useMemo, useCallback, useEffect } from 'react'
-import { useParams } from 'react-router-dom'
-import { Wine, Coffee, Utensils, ChefHat, Warehouse, Package, Plus, FileBox, ArrowUpDown } from 'lucide-react'
+import { useParams, useNavigate } from 'react-router-dom'
+import { Wine, Coffee, Utensils, ChefHat, Warehouse, Package, Plus, FileBox, ArrowUpDown, ArrowLeft, Home } from 'lucide-react'
 import { useProducts } from '../context/ProductContext'
-import { useHotel } from '../context/HotelContext'
 import { useTranslation, useLanguage } from '../context/LanguageContext'
 import ProductModal from '../components/ProductModal'
 import AddCustomProductModal from '../components/AddCustomProductModal'
 import DeliveryTemplateModal from '../components/DeliveryTemplateModal'
+import DepartmentSelector from '../components/DepartmentSelector'
+import Breadcrumbs from '../components/Breadcrumbs'
 import ExportButton from '../components/ExportButton'
-import HotelSelector from '../components/HotelSelector'
 import { EXPORT_COLUMNS } from '../utils/exportUtils'
 import { SkeletonInventory, Skeleton } from '../components/Skeleton'
 
@@ -45,12 +45,12 @@ const statusColors = {
 export default function InventoryPage() {
   const { t } = useTranslation()
   const { language } = useLanguage()
-  const { canSelectHotel } = useHotel()
   const { departmentId } = useParams()
+  const navigate = useNavigate()
   const { getProductsByDepartment, catalog, refresh, departments, categories, loading } = useProducts()
 
-  // Используем отдел из URL или первый доступный
-  const selectedDepartment = departmentId || (departments.length > 0 ? departments[0].id : null)
+  // Состояние выбранного отдела (из URL или null для показа селектора)
+  const [selectedDeptId, setSelectedDeptId] = useState(departmentId || null)
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [sortBy, setSortBy] = useState('expiry') // expiry, name, quantity
   const [selectedProduct, setSelectedProduct] = useState(null)
@@ -59,19 +59,45 @@ export default function InventoryPage() {
   const [showTemplateModal, setShowTemplateModal] = useState(false)
   const [retryCount, setRetryCount] = useState(0)
 
-  // Автоматический retry когда нет данных (БД ещё загружается)
+  // Если в URL есть departmentId, используем его
   useEffect(() => {
-    if (!loading && departments.length === 0 && retryCount < 10) {
-      const timer = setTimeout(() => {
-        setRetryCount(prev => prev + 1)
-        refresh()
-      }, 2000) // Retry каждые 2 секунды
-      return () => clearTimeout(timer)
+    if (departmentId) {
+      setSelectedDeptId(departmentId)
     }
-    // Сбросить счётчик если данные загрузились
+  }, [departmentId])
+
+  // Выбор отдела
+  const handleSelectDepartment = (deptId) => {
+    setSelectedDeptId(deptId)
+    // Можно добавить навигацию в URL: navigate(`/inventory/${deptId}`)
+  }
+
+  // Вернуться к списку отделов
+  const handleBackToDepartments = () => {
+    setSelectedDeptId(null)
+    setSelectedCategory('all')
+  }
+
+  // Автоматический retry когда нет данных (БД ещё загружается)
+  // Делаем retry только если не loading и прошло достаточно времени
+  useEffect(() => {
+    // Не делаем retry если уже идёт загрузка или достигнут лимит
+    if (loading || retryCount >= 5) return
+    
+    // Если данные есть - сбрасываем счётчик
     if (departments.length > 0) {
-      setRetryCount(0)
+      if (retryCount > 0) setRetryCount(0)
+      return
     }
+    
+    // Retry с увеличивающимся интервалом (3s, 6s, 9s...)
+    const delay = (retryCount + 1) * 3000
+    const timer = setTimeout(() => {
+      setRetryCount(prev => prev + 1)
+      refresh()
+    }, delay)
+    
+    return () => clearTimeout(timer)
   }, [loading, departments.length, retryCount, refresh])
 
   // Получить название категории в зависимости от языка
@@ -83,8 +109,8 @@ export default function InventoryPage() {
 
   // Получить доступные категории для отдела
   const getAvailableCategories = () => {
-    if (!selectedDepartment) return []
-    const deptCatalog = catalog[selectedDepartment] || {}
+    if (!selectedDeptId) return []
+    const deptCatalog = catalog[selectedDeptId] || {}
     return categories.filter((cat) => {
       const products = deptCatalog[cat.id] || []
       return products.length > 0
@@ -93,8 +119,8 @@ export default function InventoryPage() {
 
   // Получить отфильтрованные и отсортированные товары
   const getFilteredProducts = useCallback(() => {
-    if (!selectedDepartment) return []
-    let products = getProductsByDepartment(selectedDepartment)
+    if (!selectedDeptId) return []
+    let products = getProductsByDepartment(selectedDeptId)
     if (selectedCategory !== 'all') {
       products = products.filter((p) => p.categoryId === selectedCategory)
     }
@@ -118,12 +144,12 @@ export default function InventoryPage() {
           return getMinExpiry(a) - getMinExpiry(b)
       }
     })
-  }, [selectedDepartment, selectedCategory, sortBy, getProductsByDepartment])
+  }, [selectedDeptId, selectedCategory, sortBy, getProductsByDepartment])
 
   // Подготовка данных для экспорта (экспортируем отдельные партии, не агрегированные товары)
   const exportData = useMemo(() => {
     const products = getFilteredProducts()
-    const dept = departments.find((d) => d.id === selectedDepartment)
+    const dept = departments.find((d) => d.id === selectedDeptId)
     const exportRows = []
 
     // Функция для получения названия категории
@@ -160,7 +186,7 @@ export default function InventoryPage() {
           exportRows.push({
             productName: product.name,
             category: categoryName,
-            department: dept?.name || selectedDepartment,
+            department: dept?.name || selectedDeptId,
             quantity: batch.quantity === null || batch.quantity === undefined ? '—' : batch.quantity,
             unit: product.unit || 'шт',
             formattedDate: batch.expiryDate
@@ -176,7 +202,7 @@ export default function InventoryPage() {
         exportRows.push({
           productName: product.name,
           category: categoryName,
-          department: dept?.name || selectedDepartment,
+          department: dept?.name || selectedDeptId,
           quantity: 0,
           unit: product.unit || 'шт',
           formattedDate: '-',
@@ -188,7 +214,7 @@ export default function InventoryPage() {
     })
 
     return exportRows
-  }, [selectedDepartment, getFilteredProducts, departments, categories, language, t])
+  }, [selectedDeptId, getFilteredProducts, departments, categories, language, t])
 
   // Открыть модальное окно товара
   const handleProductClick = (product) => {
@@ -197,7 +223,7 @@ export default function InventoryPage() {
   }
 
   // Экран инвентаря отдела
-  const department = departments.find((d) => d.id === selectedDepartment || d.code === selectedDepartment)
+  const department = departments.find((d) => d.id === selectedDeptId || d.code === selectedDeptId)
   const DeptIcon = getDeptIcon(department)
   const products = getFilteredProducts()
   const availableCategories = getAvailableCategories()
@@ -252,11 +278,50 @@ export default function InventoryPage() {
     )
   }
 
+  // Если отдел не выбран и есть несколько отделов - показываем выбор
+  if (!selectedDeptId && departments.length > 1) {
+    return (
+      <div className="animate-fade-in">
+        <DepartmentSelector
+          departments={departments}
+          selectedDepartment={selectedDeptId}
+          onSelect={handleSelectDepartment}
+          title={t('inventory.selectDepartment') || 'Выберите отдел'}
+        />
+      </div>
+    )
+  }
+
+  // Если отдел не выбран но есть только один - автовыбор
+  if (!selectedDeptId && departments.length === 1) {
+    setSelectedDeptId(departments[0].id)
+    return null
+  }
+
   return (
     <div className="p-3 sm:p-4 md:p-8 animate-fade-in">
+      {/* Breadcrumbs */}
+      <Breadcrumbs 
+        customItems={[
+          { label: t('nav.home') || 'Главная', path: '/', icon: Home },
+          { label: t('nav.inventory') || 'Инвентарь', path: '/inventory' },
+          ...(departments.length > 1 ? [{ label: department?.name || '', path: `/inventory/${selectedDeptId}`, isLast: true }] : [])
+        ]}
+      />
+      
       {/* Заголовок */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-8">
-        <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
+        <div className="flex items-center gap-2 sm:gap-4">
+          {/* Кнопка назад если несколько отделов */}
+          {departments.length > 1 && (
+            <button
+              onClick={handleBackToDepartments}
+              className="p-2 rounded-lg hover:bg-surface-secondary transition-colors"
+              title={t('common.back') || 'Назад'}
+            >
+              <ArrowLeft className="w-5 h-5 text-text-secondary" />
+            </button>
+          )}
           <div className="flex items-center gap-2 sm:gap-3">
             <div
               className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center flex-shrink-0"
@@ -264,17 +329,15 @@ export default function InventoryPage() {
             >
               {DeptIcon && <DeptIcon className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: department?.color || '#C4A35A' }} />}
             </div>
-            <h1 className="font-serif text-lg sm:text-2xl truncate">{t('inventory.title')} — {department?.name || selectedDepartment}</h1>
+            <h1 className="font-serif text-lg sm:text-2xl truncate">{t('inventory.title')} — {department?.name || selectedDeptId}</h1>
           </div>
-          {/* Hotel Selector for SUPER_ADMIN */}
-          {canSelectHotel && <HotelSelector />}
         </div>
 
         <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
           <ExportButton
             data={exportData}
             columns={EXPORT_COLUMNS.inventory(t)}
-            filename={`inventory_${selectedDepartment}`}
+            filename={`inventory_${selectedDeptId}`}
             title={`${t('inventory.title')} - ${department?.name}`}
             subtitle={
               selectedCategory !== 'all'
@@ -427,7 +490,7 @@ export default function InventoryPage() {
 
       {showAddCustomModal && (
         <AddCustomProductModal
-          departmentId={selectedDepartment}
+          departmentId={selectedDeptId}
           onClose={() => setShowAddCustomModal(false)}
         />
       )}
@@ -435,7 +498,7 @@ export default function InventoryPage() {
       {showTemplateModal && (
         <DeliveryTemplateModal
           isOpen={true}
-          departmentId={selectedDepartment}
+          departmentId={selectedDeptId}
           onClose={() => setShowTemplateModal(false)}
           onApply={() => {
             refresh()

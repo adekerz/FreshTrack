@@ -6,6 +6,7 @@
 import { Building2, ChevronDown, Check, Loader2 } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import { useHotel } from '../context/HotelContext'
+import { useProducts } from '../context/ProductContext'
 
 export default function HotelSelector({ className = '' }) {
   const { 
@@ -16,6 +17,7 @@ export default function HotelSelector({ className = '' }) {
     loading,
     isSuperAdmin 
   } = useHotel()
+  const { refresh } = useProducts()
   
   const [isOpen, setIsOpen] = useState(false)
   const dropdownRef = useRef(null)
@@ -85,6 +87,8 @@ export default function HotelSelector({ className = '' }) {
               onClick={() => {
                 selectHotel(hotel.id)
                 setIsOpen(false)
+                // Перезагружаем данные для нового отеля
+                setTimeout(() => refresh(), 100)
               }}
               className={`w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-muted transition-colors ${
                 selectedHotel?.id === hotel.id ? 'bg-accent/10' : ''

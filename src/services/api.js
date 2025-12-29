@@ -42,7 +42,14 @@ async function handleResponse(response) {
  * @returns {Promise<any>} - response data
  */
 export async function apiFetch(endpoint, options = {}) {
-  const url = `${API_BASE_URL}${endpoint}`
+  let url = `${API_BASE_URL}${endpoint}`
+
+  // Добавляем hotel_id для SUPER_ADMIN (из localStorage)
+  const selectedHotelId = localStorage.getItem('freshtrack_selected_hotel')
+  if (selectedHotelId) {
+    const separator = url.includes('?') ? '&' : '?'
+    url = `${url}${separator}hotel_id=${encodeURIComponent(selectedHotelId)}`
+  }
 
   const defaultOptions = {
     headers: {

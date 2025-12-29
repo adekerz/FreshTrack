@@ -6,18 +6,16 @@
 import { useState, useMemo } from 'react'
 import { useTranslation, useLanguage } from '../context/LanguageContext'
 import { useAuth } from '../context/AuthContext'
-import { useHotel } from '../context/HotelContext'
 import { useProducts } from '../context/ProductContext'
+import Breadcrumbs from '../components/Breadcrumbs'
 import ExportButton from '../components/ExportButton'
-import HotelSelector from '../components/HotelSelector'
 import { EXPORT_COLUMNS } from '../utils/exportUtils'
-import { Package, AlertTriangle, CheckCircle, Clock } from 'lucide-react'
+import { Package, AlertTriangle, CheckCircle, Clock, Home } from 'lucide-react'
 
 export default function StatisticsPage() {
   const { t } = useTranslation()
   const { language } = useLanguage()
   const { user, isHotelAdmin } = useAuth()
-  const { canSelectHotel } = useHotel()
   const { getActiveBatches, getStats, departments, categories } = useProducts()
   const [selectedPeriod, setSelectedPeriod] = useState('week')
 
@@ -186,15 +184,19 @@ export default function StatisticsPage() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
+      {/* Breadcrumbs */}
+      <Breadcrumbs 
+        customItems={[
+          { label: t('nav.home') || 'Главная', path: '/', icon: Home },
+          { label: t('nav.statistics') || 'Статистика', path: '/statistics', isLast: true }
+        ]}
+      />
+      
       {/* Заголовок */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-        <div className="flex items-center gap-3 flex-wrap">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-light text-foreground">{t('statistics.title')}</h1>
-            <p className="text-muted-foreground text-xs sm:text-sm mt-1">{t('statistics.subtitle')}</p>
-          </div>
-          {/* Hotel Selector for SUPER_ADMIN */}
-          {canSelectHotel && <HotelSelector />}
+        <div>
+          <h1 className="text-xl sm:text-2xl font-light text-foreground">{t('statistics.title')}</h1>
+          <p className="text-muted-foreground text-xs sm:text-sm mt-1">{t('statistics.subtitle')}</p>
         </div>
 
         <div className="flex items-center gap-2 sm:gap-4 flex-wrap">

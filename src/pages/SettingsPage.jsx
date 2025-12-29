@@ -27,8 +27,10 @@ import {
   RefreshCw,
   Building2,
   Crown,
-  Wrench
+  Wrench,
+  Home
 } from 'lucide-react'
+import Breadcrumbs from '../components/Breadcrumbs'
 import NotificationRulesSettings from '../components/NotificationRulesSettings'
 import GeneralSettings from '../components/settings/GeneralSettings'
 import OrganizationSettings from '../components/settings/OrganizationSettings'
@@ -386,6 +388,14 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-4 sm:space-y-6 p-1 sm:p-0">
+      {/* Breadcrumbs */}
+      <Breadcrumbs 
+        customItems={[
+          { label: t('nav.home') || 'Главная', path: '/', icon: Home },
+          { label: t('nav.settings') || 'Настройки', path: '/settings', isLast: true }
+        ]}
+      />
+      
       {/* Заголовок */}
       <div>
         <h1 className="text-xl sm:text-2xl font-light text-foreground">{t('settings.title')}</h1>

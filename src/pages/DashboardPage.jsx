@@ -17,12 +17,10 @@ import {
 } from 'lucide-react'
 import { useProducts } from '../context/ProductContext'
 import { useAuth } from '../context/AuthContext'
-import { useHotel } from '../context/HotelContext'
 import { useTranslation } from '../context/LanguageContext'
 import { format, parseISO } from 'date-fns'
 import { SkeletonDashboard } from '../components/Skeleton'
 import AddBatchModal from '../components/AddBatchModal'
-import HotelSelector from '../components/HotelSelector'
 
 // Иконки для отделов - универсальный маппинг
 const ICON_MAP = {
@@ -50,23 +48,30 @@ const getDeptIcon = (dept) => {
 export default function DashboardPage() {
   const { t } = useTranslation()
   const { user } = useAuth()
-  const { selectedHotel, canSelectHotel } = useHotel()
   const { getStats, getAlerts, collectBatch, departments, loading, refresh } = useProducts()
   const [showAddBatchModal, setShowAddBatchModal] = useState(false)
   const [retryCount, setRetryCount] = useState(0)
 
   // Автоматический retry когда нет данных (БД ещё загружается)
+  // Делаем retry только если не loading и прошло достаточно времени
   useEffect(() => {
-    if (!loading && departments.length === 0 && retryCount < 10) {
-      const timer = setTimeout(() => {
-        setRetryCount(prev => prev + 1)
-        refresh()
-      }, 2000)
-      return () => clearTimeout(timer)
-    }
+    // Не делаем retry если уже идёт загрузка или достигнут лимит
+    if (loading || retryCount >= 5) return
+    
+    // Если данные есть - сбрасываем счётчик
     if (departments.length > 0) {
-      setRetryCount(0)
+      if (retryCount > 0) setRetryCount(0)
+      return
     }
+    
+    // Retry с увеличивающимся интервалом (3s, 6s, 9s...)
+    const delay = (retryCount + 1) * 3000
+    const timer = setTimeout(() => {
+      setRetryCount(prev => prev + 1)
+      refresh()
+    }, delay)
+    
+    return () => clearTimeout(timer)
   }, [loading, departments.length, retryCount, refresh])
 
   // Get greeting based on time of day
@@ -165,17 +170,13 @@ export default function DashboardPage() {
       {/* Greeting Section - Peak-End Rule: Start with positive experience */}
       <div className="bg-gradient-to-r from-accent/5 to-transparent dark:from-accent/10 dark:to-transparent rounded-xl p-4 sm:p-6 animate-fade-in">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-            <div>
-              <h1 className="text-xl sm:text-2xl font-serif text-foreground">
-                {getGreeting()}, {user?.name?.split(' ')[0] || t('common.user')}
-              </h1>
-              <p className="text-sm text-muted-foreground mt-1">
-                {t('dashboard.summary') || 'Here is your inventory overview'}
-              </p>
-            </div>
-            {/* Hotel Selector for SUPER_ADMIN */}
-            {canSelectHotel && <HotelSelector className="mt-2 sm:mt-0" />}
+          <div>
+            <h1 className="text-xl sm:text-2xl font-serif text-foreground">
+              {getGreeting()}, {user?.name?.split(' ')[0] || t('common.user')}
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              {t('dashboard.summary') || 'Here is your inventory overview'}
+            </p>
           </div>
           
           {/* Quick Actions - Fitts Law: Large targets for common actions */}

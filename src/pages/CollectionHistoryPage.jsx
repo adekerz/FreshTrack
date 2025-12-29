@@ -6,12 +6,11 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from '../context/LanguageContext'
 import { useAuth } from '../context/AuthContext'
-import { useHotel } from '../context/HotelContext'
 import { useProducts } from '../context/ProductContext'
 import { Navigate } from 'react-router-dom'
-import { Filter, RefreshCw, ChevronLeft, ChevronRight, ArchiveX, User, Package } from 'lucide-react'
+import { Filter, RefreshCw, ChevronLeft, ChevronRight, ArchiveX, User, Package, Home } from 'lucide-react'
+import Breadcrumbs from '../components/Breadcrumbs'
 import { apiFetch } from '../services/api'
-import HotelSelector from '../components/HotelSelector'
 
 // Причины сбора (синхронизировано с CollectionService.CollectionReason)
 const REASONS = {
@@ -35,7 +34,6 @@ const REASONS = {
 export default function CollectionHistoryPage() {
   const { t } = useTranslation()
   const { isHotelAdmin, hasPermission } = useAuth()
-  const { canSelectHotel } = useHotel()
   const { departments } = useProducts()
   const [logs, setLogs] = useState([])
   const [stats, setStats] = useState({ today: 0, week: 0, month: 0, total: 0 })
@@ -190,15 +188,19 @@ export default function CollectionHistoryPage() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
+      {/* Breadcrumbs */}
+      <Breadcrumbs 
+        customItems={[
+          { label: t('nav.home') || 'Главная', path: '/', icon: Home },
+          { label: t('nav.history') || 'История сборов', path: '/history', isLast: true }
+        ]}
+      />
+      
       {/* Заголовок */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-        <div className="flex items-center gap-3 flex-wrap">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-light text-foreground">{t('collectionHistory.title')}</h1>
-            <p className="text-muted-foreground text-xs sm:text-sm mt-1">{t('collectionHistory.subtitle')}</p>
-          </div>
-          {/* Hotel Selector for SUPER_ADMIN */}
-          {canSelectHotel && <HotelSelector />}
+        <div>
+          <h1 className="text-xl sm:text-2xl font-light text-foreground">{t('collectionHistory.title')}</h1>
+          <p className="text-muted-foreground text-xs sm:text-sm mt-1">{t('collectionHistory.subtitle')}</p>
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3">

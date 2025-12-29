@@ -7,20 +7,19 @@ import {
   Calendar,
   Package,
   History,
-  Zap
+  Zap,
+  Home
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useProducts, departments } from '../context/ProductContext'
-import { useHotel } from '../context/HotelContext'
 import { useTranslation } from '../context/LanguageContext'
 import { format, parseISO } from 'date-fns'
 import { SkeletonNotifications, Skeleton } from '../components/Skeleton'
+import Breadcrumbs from '../components/Breadcrumbs'
 import FIFOCollectModal from '../components/FIFOCollectModal'
-import HotelSelector from '../components/HotelSelector'
 
 export default function NotificationsPage() {
   const { t } = useTranslation()
-  const { canSelectHotel } = useHotel()
   const navigate = useNavigate()
   const { getActiveBatches, findProduct, loading, refreshProducts, refresh, departments: depts } = useProducts()
   const [retryCount, setRetryCount] = useState(0)
@@ -30,17 +29,25 @@ export default function NotificationsPage() {
   const [selectedProduct, setSelectedProduct] = useState(null)
 
   // Автоматический retry когда нет данных
+  // Делаем retry только если не loading и прошло достаточно времени
   useEffect(() => {
-    if (!loading && depts.length === 0 && retryCount < 10) {
-      const timer = setTimeout(() => {
-        setRetryCount(prev => prev + 1)
-        refresh()
-      }, 2000)
-      return () => clearTimeout(timer)
-    }
+    // Не делаем retry если уже идёт загрузка или достигнут лимит
+    if (loading || retryCount >= 5) return
+    
+    // Если данные есть - сбрасываем счётчик
     if (depts.length > 0) {
-      setRetryCount(0)
+      if (retryCount > 0) setRetryCount(0)
+      return
     }
+    
+    // Retry с увеличивающимся интервалом (3s, 6s, 9s...)
+    const delay = (retryCount + 1) * 3000
+    const timer = setTimeout(() => {
+      setRetryCount(prev => prev + 1)
+      refresh()
+    }, delay)
+    
+    return () => clearTimeout(timer)
   }, [loading, depts.length, retryCount, refresh])
 
   // Получить все активные партии с информацией
@@ -226,15 +233,19 @@ export default function NotificationsPage() {
 
   return (
     <div className="p-3 sm:p-4 md:p-8">
+      {/* Breadcrumbs */}
+      <Breadcrumbs 
+        customItems={[
+          { label: t('nav.home') || 'Главная', path: '/', icon: Home },
+          { label: t('nav.alerts') || 'Уведомления', path: '/notifications', isLast: true }
+        ]}
+      />
+      
       {/* Заголовок */}
       <div className="mb-4 sm:mb-8 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex items-center gap-3 flex-wrap">
-          <div>
-            <h1 className="font-serif text-xl sm:text-2xl text-foreground mb-1 sm:mb-2">{t('notifications.title')}</h1>
-            <p className="text-muted-foreground text-xs sm:text-sm">{t('notifications.description')}</p>
-          </div>
-          {/* Hotel Selector for SUPER_ADMIN */}
-          {canSelectHotel && <HotelSelector />}
+        <div>
+          <h1 className="font-serif text-xl sm:text-2xl text-foreground mb-1 sm:mb-2">{t('notifications.title')}</h1>
+          <p className="text-muted-foreground text-xs sm:text-sm">{t('notifications.description')}</p>
         </div>
 
         {/* Кнопка истории уведомлений */}

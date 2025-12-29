@@ -3,10 +3,11 @@
  * Data loaded from API - NO hardcoded data
  */
 
-import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
 import { getBatchStatus } from '../utils/dateUtils'
 import { logDebug, logWarn, logError } from '../utils/logger'
 import { apiFetch } from '../services/api'
+import { useHotel } from './HotelContext'
 
 const ProductContext = createContext(null)
 
@@ -26,6 +27,12 @@ const DEFAULT_DEPARTMENT_ICONS = {
 }
 
 export function ProductProvider({ children }) {
+  // Получаем выбранный отель из HotelContext
+  const { selectedHotelId, loading: hotelLoading } = useHotel()
+  const prevHotelIdRef = useRef(null)
+  const initialLoadDoneRef = useRef(false)
+  const fetchingRef = useRef(false) // Предотвращает параллельные вызовы
+  
   // Каталог товаров (только в памяти, без localStorage - данные загружаются с сервера)
   const [catalog, setCatalog] = useState({})
 
@@ -46,29 +53,60 @@ export function ProductProvider({ children }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
-  // Загрузка данных с сервера при монтировании (только если есть токен)
+  // Загрузка данных с сервера при монтировании и при смене отеля
   useEffect(() => {
     const token = localStorage.getItem('freshtrack_token')
-    if (token) {
-      fetchAllData()
-    } else {
+    
+    // Ждём пока HotelContext загрузится
+    if (hotelLoading) return
+    
+    if (!token) {
       setLoading(false)
+      return
     }
-  }, [])
+    
+    // Первая загрузка - всегда выполняем
+    if (!initialLoadDoneRef.current) {
+      logDebug('🚀 Initial data load for hotel:', selectedHotelId || 'default')
+      initialLoadDoneRef.current = true
+      prevHotelIdRef.current = selectedHotelId
+      fetchAllData(selectedHotelId)
+      return
+    }
+    
+    // Повторные загрузки - только если отель изменился
+    if (prevHotelIdRef.current !== selectedHotelId) {
+      logDebug('🏨 Hotel changed, reloading data for hotel:', selectedHotelId)
+      prevHotelIdRef.current = selectedHotelId
+      fetchAllData(selectedHotelId)
+    }
+  }, [selectedHotelId, hotelLoading])
 
   /**
    * Загрузить все данные с сервера
+   * @param {number} hotelId - ID выбранного отеля (для SUPER_ADMIN)
    */
-  const fetchAllData = async () => {
+  const fetchAllData = async (hotelId = null) => {
+    // Предотвращаем параллельные вызовы
+    if (fetchingRef.current) {
+      logDebug('⏳ fetchAllData already in progress, skipping...')
+      return
+    }
+    
+    fetchingRef.current = true
+    
     try {
       setLoading(true)
       setError(null)
 
+      // Формируем query string с hotel_id для фильтрации
+      const hotelQuery = hotelId ? `?hotel_id=${hotelId}` : ''
+      
       // Загружаем батчи, статистику, отделы, категории и продукты параллельно
       const [batchesRes, statsRes, departmentsRes, categoriesRes, productsRes] = await Promise.all([
-        apiFetch('/batches'),
-        apiFetch('/batches/stats'),
-        apiFetch('/departments').catch(() => ({ departments: [] })),
+        apiFetch(`/batches${hotelQuery}`),
+        apiFetch(`/batches/stats${hotelQuery}`),
+        apiFetch(`/departments${hotelQuery}`).catch(() => ({ departments: [] })),
         apiFetch('/categories').catch(() => ({ categories: [] })),
         apiFetch('/products').catch(() => [])
       ])
@@ -181,6 +219,7 @@ export function ProductProvider({ children }) {
       logError('fetchAllData', err)
       setError(err.message)
     } finally {
+      fetchingRef.current = false
       setLoading(false)
     }
   }
@@ -189,8 +228,8 @@ export function ProductProvider({ children }) {
    * Обновить данные (вызывать после изменений)
    */
   const refresh = useCallback(() => {
-    return fetchAllData()
-  }, [])
+    return fetchAllData(selectedHotelId)
+  }, [selectedHotelId])
 
   /**
    * Добавить партию товара
