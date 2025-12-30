@@ -1,7 +1,8 @@
-import { useState, useMemo, useCallback, useEffect } from 'react'
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Wine, Coffee, Utensils, ChefHat, Warehouse, Package, Plus, FileBox, ArrowUpDown, ArrowLeft } from 'lucide-react'
 import { useProducts } from '../context/ProductContext'
+import { useHotel } from '../context/HotelContext'
 import { useTranslation, useLanguage } from '../context/LanguageContext'
 import ProductModal from '../components/ProductModal'
 import AddCustomProductModal from '../components/AddCustomProductModal'
@@ -47,6 +48,8 @@ export default function InventoryPage() {
   const { departmentId } = useParams()
   const navigate = useNavigate()
   const { getProductsByDepartment, catalog, refresh, departments, categories, loading } = useProducts()
+  const { selectedHotelId } = useHotel()
+  const prevHotelIdRef = useRef(selectedHotelId)
 
   // Состояние выбранного отдела (из URL или null для показа селектора)
   const [selectedDeptId, setSelectedDeptId] = useState(departmentId || null)
@@ -64,6 +67,16 @@ export default function InventoryPage() {
       setSelectedDeptId(departmentId)
     }
   }, [departmentId])
+
+  // Сбрасываем выбранный отдел при смене отеля
+  useEffect(() => {
+    if (prevHotelIdRef.current !== selectedHotelId && prevHotelIdRef.current !== null) {
+      // Отель сменился — сбрасываем отдел и возвращаемся к списку
+      setSelectedDeptId(null)
+      setSelectedCategory('all')
+    }
+    prevHotelIdRef.current = selectedHotelId
+  }, [selectedHotelId])
 
   // Выбор отдела
   const handleSelectDepartment = (deptId) => {
