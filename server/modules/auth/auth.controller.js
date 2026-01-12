@@ -83,7 +83,7 @@ router.get('/validate-hotel-code', async (req, res) => {
 
     // For registration: validate MARSHA code from reference table
     // MARSHA codes are 5 characters, hotel registration codes are 6 characters
-    
+
     let result
     let isExistingHotel = false
 
@@ -94,7 +94,7 @@ router.get('/validate-hotel-code', async (req, res) => {
         FROM hotels h
         WHERE (UPPER(h.code) = $1 OR UPPER(h.marsha_code) = $1) AND h.is_active = true
       `, [trimmedCode])
-      
+
       if (result.rows.length > 0) {
         isExistingHotel = true
       }

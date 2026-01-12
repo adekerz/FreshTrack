@@ -52,7 +52,20 @@ export default function RegisterPage() {
       try {
         const response = await apiFetch(`/auth/validate-hotel-code?code=${formData.hotelCode}`)
         if (response.valid) {
-          setHotelValidation({ loading: false, valid: true, hotel: response.hotel })
+          // Handle both existing hotels and new MARSHA codes
+          const hotelInfo =
+            response.hotel ||
+            (response.marsha
+              ? {
+                  name: response.marsha.hotelName,
+                  code: response.marsha.code,
+                  city: response.marsha.city,
+                  country: response.marsha.country,
+                  brand: response.marsha.brand,
+                  isNew: true
+                }
+              : null)
+          setHotelValidation({ loading: false, valid: true, hotel: hotelInfo })
         } else {
           setHotelValidation({ loading: false, valid: false, hotel: null })
         }
@@ -315,7 +328,11 @@ export default function RegisterPage() {
               {hotelValidation.valid === true && hotelValidation.hotel && (
                 <p className="text-success text-xs mt-1 flex items-center gap-1 animate-fade-in">
                   <Building2 className="w-3 h-3" />
-                  {hotelValidation.hotel.name}
+                  <span>
+                    {hotelValidation.hotel.name}
+                    {hotelValidation.hotel.city && ` • ${hotelValidation.hotel.city}`}
+                    {hotelValidation.hotel.brand && ` (${hotelValidation.hotel.brand})`}
+                  </span>
                 </p>
               )}
               {hotelValidation.valid === false && formData.hotelCode.length >= 5 && (
