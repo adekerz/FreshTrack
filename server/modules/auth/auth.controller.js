@@ -94,7 +94,8 @@ router.get('/validate-hotel-code', async (req, res) => {
       `, [trimmedCode])
     } catch (dbError) {
       // Fallback: column 'code' might not exist yet (pre-migration 017)
-      if (dbError.message?.includes('column') && dbError.message?.includes('does not exist')) {
+      // PostgreSQL error code 42703 = undefined_column
+      if (dbError.code === '42703' || (dbError.message && dbError.message.includes('does not exist'))) {
         console.log('[Auth] Falling back to marsha_code only (code column not exists)')
         result = await dbQuery(`
           SELECT h.id, h.name, h.marsha_code
