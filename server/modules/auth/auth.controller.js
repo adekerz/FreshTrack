@@ -81,52 +81,81 @@ router.get('/validate-hotel-code', async (req, res) => {
 
     const trimmedCode = code.trim().toUpperCase()
 
-    // Try to find hotel - support both code formats
-    // First try marsha_code (always exists), then code (if column exists)
+    // For registration: validate MARSHA code from reference table
+    // MARSHA codes are 5 characters, hotel registration codes are 6 characters
+    
     let result
+    let isExistingHotel = false
 
+    // First check if hotel with this code already exists
     try {
-      // Try with both columns
       result = await dbQuery(`
         SELECT h.id, h.name, h.code, h.marsha_code
         FROM hotels h
         WHERE (UPPER(h.code) = $1 OR UPPER(h.marsha_code) = $1) AND h.is_active = true
       `, [trimmedCode])
+      
+      if (result.rows.length > 0) {
+        isExistingHotel = true
+      }
     } catch (dbError) {
-      // Fallback: column 'code' might not exist yet (pre-migration 017)
-      // PostgreSQL error code 42703 = undefined_column
-      if (dbError.code === '42703' || (dbError.message && dbError.message.includes('does not exist'))) {
-        console.log('[Auth] Falling back to marsha_code only (code column not exists)')
-        result = await dbQuery(`
-          SELECT h.id, h.name, h.marsha_code
-          FROM hotels h
-          WHERE UPPER(h.marsha_code) = $1 AND h.is_active = true
-        `, [trimmedCode])
-      } else {
-        throw dbError
+      // Column might not exist, continue to MARSHA lookup
+      if (dbError.code !== '42703') {
+        console.log('[Auth] DB error checking hotels:', dbError.message)
       }
     }
 
-    if (result.rows.length === 0) {
+    // If not found in hotels, check MARSHA codes reference table
+    if (!isExistingHotel) {
+      try {
+        result = await dbQuery(`
+          SELECT code, hotel_name, city, country, brand
+          FROM marsha_codes
+          WHERE UPPER(code) = $1
+        `, [trimmedCode])
+      } catch (dbError) {
+        console.log('[Auth] MARSHA codes table error:', dbError.message)
+      }
+    }
+
+    if (!result || result.rows.length === 0) {
       return res.status(404).json({
         success: false,
         valid: false,
-        error: 'Отель с таким кодом не найден'
+        error: 'MARSHA код не найден. Проверьте правильность кода.'
       })
     }
 
-    const hotel = result.rows[0]
-
-    res.json({
-      success: true,
-      valid: true,
-      hotel: {
-        id: hotel.id,
-        name: hotel.name,
-        code: hotel.code || hotel.marsha_code,
-        marshaCode: hotel.marsha_code
-      }
-    })
+    if (isExistingHotel) {
+      // Return existing hotel info
+      const hotel = result.rows[0]
+      res.json({
+        success: true,
+        valid: true,
+        exists: true,
+        hotel: {
+          id: hotel.id,
+          name: hotel.name,
+          code: hotel.code || hotel.marsha_code,
+          marshaCode: hotel.marsha_code
+        }
+      })
+    } else {
+      // Return MARSHA code info (hotel not yet created)
+      const marsha = result.rows[0]
+      res.json({
+        success: true,
+        valid: true,
+        exists: false,
+        marsha: {
+          code: marsha.code,
+          hotelName: marsha.hotel_name,
+          city: marsha.city,
+          country: marsha.country,
+          brand: marsha.brand
+        }
+      })
+    }
   } catch (error) {
     console.error('[Auth] Validate hotel code error:', error)
     res.status(500).json({ success: false, error: 'Ошибка сервера' })
