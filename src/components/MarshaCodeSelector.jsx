@@ -19,6 +19,7 @@ import { InlineLoader } from './ui'
  * @param {function} props.onClear - Callback при очистке выбора
  * @param {boolean} props.disabled - Отключить компонент
  * @param {boolean} props.required - Обязательное поле
+ * @param {boolean} props.usePublicApi - Использовать публичный API (для регистрации без авторизации)
  * @param {string} props.className - Дополнительные CSS классы
  */
 export default function MarshaCodeSelector({
@@ -29,6 +30,7 @@ export default function MarshaCodeSelector({
   onClear,
   disabled = false,
   required = false,
+  usePublicApi = false,
   className = ''
 }) {
   const { t } = useTranslation()
@@ -62,7 +64,7 @@ export default function MarshaCodeSelector({
     if (hotelName && hotelName.length >= 3 && !selectedCode) {
       fetchSuggestions(hotelName)
     }
-  }, [hotelName, selectedCode])
+  }, [hotelName, selectedCode, usePublicApi])
 
   // Загрузка деталей выбранного кода
   useEffect(() => {
@@ -71,11 +73,14 @@ export default function MarshaCodeSelector({
     } else {
       setSelectedDetails(null)
     }
-  }, [selectedCode])
+  }, [selectedCode, usePublicApi])
+
+  // Определяем базовый путь API в зависимости от режима
+  const apiBasePath = usePublicApi ? '/marsha-codes/public' : '/marsha-codes'
 
   const fetchSuggestions = async (name) => {
     try {
-      const data = await apiFetch(`/marsha-codes/suggest?hotelName=${encodeURIComponent(name)}`)
+      const data = await apiFetch(`${apiBasePath}/suggest?hotelName=${encodeURIComponent(name)}`)
       setSuggestions(data.suggestions || [])
     } catch (error) {
       console.error('Failed to fetch suggestions:', error)
@@ -84,7 +89,7 @@ export default function MarshaCodeSelector({
 
   const fetchCodeDetails = async (code) => {
     try {
-      const data = await apiFetch(`/marsha-codes/${code}`)
+      const data = await apiFetch(`${apiBasePath}/${code}`)
       setSelectedDetails(data.marshaCode || null)
     } catch (error) {
       console.error('Failed to fetch code details:', error)
@@ -107,8 +112,8 @@ export default function MarshaCodeSelector({
     debounceRef.current = setTimeout(async () => {
       setLoading(true)
       try {
-        console.log('[MarshaCodeSelector] Searching for:', query)
-        const data = await apiFetch(`/marsha-codes/search?q=${encodeURIComponent(query)}&limit=10`)
+        console.log('[MarshaCodeSelector] Searching for:', query, 'Public API:', usePublicApi)
+        const data = await apiFetch(`${apiBasePath}/search?q=${encodeURIComponent(query)}&limit=10`)
         console.log('[MarshaCodeSelector] Search results:', data)
         setSearchResults(data.results || [])
       } catch (error) {
@@ -118,7 +123,7 @@ export default function MarshaCodeSelector({
         setLoading(false)
       }
     }, 300)
-  }, [])
+  }, [usePublicApi, apiBasePath])
 
   const handleSelect = (code) => {
     onSelect?.(code.code, code.id)

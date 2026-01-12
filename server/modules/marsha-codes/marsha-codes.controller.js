@@ -12,7 +12,90 @@ import { logError } from '../../utils/logger.js'
 
 const router = express.Router()
 
-// Apply auth to all routes
+// ===== PUBLIC ROUTES (no auth required) =====
+// These are used during registration when user is not authenticated
+
+/**
+ * GET /api/marsha-codes/public/search
+ * Public search for MARSHA codes (used in registration)
+ */
+router.get('/public/search', async (req, res) => {
+  try {
+    const { q, limit = 10 } = req.query
+
+    console.log('[MARSHA Public Search] Query:', q, 'Limit:', limit)
+
+    if (!q || q.length < 2) {
+      return res.json({ success: true, results: [] })
+    }
+
+    const results = await MarshaCodeService.searchByName(q, {
+      limit: parseInt(limit),
+      includeAssigned: false // Only show unassigned for registration
+    })
+
+    console.log('[MARSHA Public Search] Found', results.length, 'results')
+    res.json({ success: true, results })
+  } catch (error) {
+    console.error('[MARSHA Public Search] Error:', error.message)
+    logError('MarshaCodesController', error)
+    res.status(500).json({
+      success: false,
+      error: 'Failed to search MARSHA codes'
+    })
+  }
+})
+
+/**
+ * GET /api/marsha-codes/public/suggest
+ * Public auto-suggest (used in registration)
+ */
+router.get('/public/suggest', async (req, res) => {
+  try {
+    const { hotelName } = req.query
+
+    if (!hotelName || hotelName.length < 3) {
+      return res.json({ success: true, suggestions: [] })
+    }
+
+    const suggestions = await MarshaCodeService.suggestForHotelName(hotelName)
+    res.json({ success: true, suggestions })
+  } catch (error) {
+    logError('MarshaCodesController', error)
+    res.status(500).json({
+      success: false,
+      error: 'Failed to suggest MARSHA codes'
+    })
+  }
+})
+
+/**
+ * GET /api/marsha-codes/public/:code
+ * Get public details of a MARSHA code
+ */
+router.get('/public/:code', async (req, res) => {
+  try {
+    const { code } = req.params
+    const marshaCode = await MarshaCodeService.getByCode(code.toUpperCase())
+
+    if (!marshaCode) {
+      return res.status(404).json({
+        success: false,
+        error: 'MARSHA code not found'
+      })
+    }
+
+    res.json({ success: true, marshaCode })
+  } catch (error) {
+    logError('MarshaCodesController', error)
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch MARSHA code'
+    })
+  }
+})
+
+// ===== PROTECTED ROUTES (auth required) =====
 router.use(authMiddleware)
 
 /**

@@ -169,6 +169,7 @@ export async function initDatabase() {
       { num: '023', name: '023_department_manager_basic_permissions.sql', desc: 'dept manager basic' },
       { num: '024', name: '024_full_department_manager_permissions.sql', desc: 'dept manager full' },
       { num: '025', name: '025_telegram_chat_thresholds.sql', desc: 'telegram thresholds' },
+      { num: '026', name: '026_seed_marsha_codes.sql', desc: 'seed MARSHA codes data' },
     ]
 
     for (const migration of additionalMigrations) {
