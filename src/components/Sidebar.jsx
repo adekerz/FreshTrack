@@ -12,7 +12,7 @@ export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose })
   const location = useLocation()
   const navigate = useNavigate()
   const { getStats, getUnreadNotificationsCount } = useProducts()
-  const { user, logout } = useAuth()
+  const { user, logout, hasPermission, getCapabilities } = useAuth()
   const { t } = useTranslation()
   const { language, changeLanguage } = useLanguage()
   const { siteName, logoUrl } = useBranding()
@@ -25,6 +25,12 @@ export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose })
       : stats.critical + stats.expired
 
   const userRole = user?.role
+  const capabilities = getCapabilities()
+  const navOptions = {
+    capabilities,
+    permissions: user?.permissions || [],
+    hasPermission
+  }
 
   // Основные пункты навигации из централизованной конфигурации
   const mainItems = mainNavItems.map((item) => ({
@@ -35,8 +41,8 @@ export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose })
     onboardingId: item.id
   }))
 
-  // Дополнительные пункты - фильтруем по роли из централизованной конфигурации
-  const reportItems = filterNavByRole(moreNavItems, userRole)
+  // Дополнительные пункты - фильтруем по роли/permissions из централизованной конфигурации
+  const reportItems = filterNavByRole(moreNavItems, userRole, navOptions)
     .filter((item) => item.group === 'reports')
     .map((item) => ({
       path: item.path,
@@ -45,7 +51,7 @@ export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose })
       onboardingId: item.id
     }))
 
-  const settingsItem = filterNavByRole(moreNavItems, userRole)
+  const settingsItem = filterNavByRole(moreNavItems, userRole, navOptions)
     .filter((item) => item.group === 'system')
     .map((item) => ({
       path: item.path,

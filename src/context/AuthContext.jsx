@@ -180,9 +180,14 @@ export function AuthProvider({ children }) {
 
   /**
    * Check if user is admin (HOTEL_ADMIN or SUPER_ADMIN)
-   * @deprecated Prefer using hasPermission() for granular checks
+   * Uses backend capabilities when available, falls back to role check
    */
   const isAdmin = () => {
+    // Prefer backend capabilities
+    if (user?.capabilities?.isAdmin !== undefined) {
+      return user.capabilities.isAdmin
+    }
+    // Fallback to role check
     const role = user?.role?.toUpperCase()
     return (
       role === 'ADMIN' ||
@@ -194,17 +199,23 @@ export function AuthProvider({ children }) {
 
   /**
    * Check if user is super admin
-   * @deprecated Prefer using hasPermission() for granular checks
+   * Uses backend capabilities when available
    */
   const isSuperAdmin = () => {
+    if (user?.capabilities?.isSuperAdmin !== undefined) {
+      return user.capabilities.isSuperAdmin
+    }
     return user?.role?.toUpperCase() === 'SUPER_ADMIN'
   }
 
   /**
    * Check if user is hotel admin or super admin
-   * @deprecated Prefer using hasPermission() for granular checks
+   * Uses backend capabilities when available
    */
   const isHotelAdmin = () => {
+    if (user?.capabilities?.isAdmin !== undefined) {
+      return user.capabilities.isAdmin
+    }
     const role = user?.role?.toUpperCase()
     return role === 'SUPER_ADMIN' || role === 'HOTEL_ADMIN'
   }
@@ -221,6 +232,21 @@ export function AuthProvider({ children }) {
    */
   const isStaff = () => {
     return user?.role?.toUpperCase() === 'STAFF'
+  }
+
+  /**
+   * Get user capabilities object from backend
+   * Returns empty object if not available
+   */
+  const getCapabilities = () => {
+    return user?.capabilities || {}
+  }
+
+  /**
+   * Check specific capability
+   */
+  const hasCapability = (capability) => {
+    return user?.capabilities?.[capability] === true
   }
 
   /**
@@ -281,7 +307,10 @@ export function AuthProvider({ children }) {
     updateUser,
     hasPermission,
     canManage,
-    canPerformAction
+    canPerformAction,
+    // New capability-based methods
+    getCapabilities,
+    hasCapability
   }
 
   return <AuthContext.Provider value={value}>{!loading && children}</AuthContext.Provider>

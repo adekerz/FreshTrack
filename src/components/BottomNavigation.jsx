@@ -11,7 +11,7 @@ export default function BottomNavigation() {
   const location = useLocation()
   const navigate = useNavigate()
   const { getStats } = useProducts()
-  const { user, logout } = useAuth()
+  const { user, logout, hasPermission, getCapabilities } = useAuth()
   const { t } = useTranslation()
   const { language, changeLanguage } = useLanguage()
   const stats = getStats()
@@ -19,32 +19,40 @@ export default function BottomNavigation() {
 
   const unreadCount = stats.critical + stats.expired
   const userRole = user?.role
+  const capabilities = getCapabilities()
+  const navOptions = {
+    capabilities,
+    permissions: user?.permissions || [],
+    hasPermission
+  }
 
   // Основные пункты навигации (4 пункта + "Ещё") - из централизованной конфигурации
-  const navItems = mainNavItems.map(item => ({
+  const navItems = mainNavItems.map((item) => ({
     path: item.path,
     icon: item.icon,
     label: t(item.labelKey) || item.fallbackLabel,
     badge: item.hasBadge && unreadCount > 0 ? unreadCount : null
   }))
 
-  // Дополнительные пункты меню - фильтруем по роли из централизованной конфигурации
-  const moreItems = filterNavByRole(moreNavItems, userRole).map(item => ({
+  // Дополнительные пункты меню - фильтруем по роли/permissions из централизованной конфигурации
+  const moreItems = filterNavByRole(moreNavItems, userRole, navOptions).map((item) => ({
     path: item.path,
     icon: item.icon,
     label: t(item.labelKey) || item.fallbackLabel
   }))
 
   // Найти индекс активного элемента (включая moreItems)
-  const activeIndex = navItems.findIndex(item => 
-    location.pathname === item.path || 
-    (item.path !== '/' && location.pathname.startsWith(item.path))
+  const activeIndex = navItems.findIndex(
+    (item) =>
+      location.pathname === item.path ||
+      (item.path !== '/' && location.pathname.startsWith(item.path))
   )
-  
+
   // Проверяем, активен ли какой-то из пунктов "Ещё"
-  const isMoreActive = moreItems.some(item => 
-    location.pathname === item.path || 
-    (item.path !== '/' && location.pathname.startsWith(item.path))
+  const isMoreActive = moreItems.some(
+    (item) =>
+      location.pathname === item.path ||
+      (item.path !== '/' && location.pathname.startsWith(item.path))
   )
 
   const handleNavClick = (path) => {
@@ -60,7 +68,7 @@ export default function BottomNavigation() {
     <>
       {/* Overlay для меню "Ещё" */}
       {showMore && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/30 z-40 sm:hidden"
           onClick={() => setShowMore(false)}
         />
@@ -77,14 +85,16 @@ export default function BottomNavigation() {
               </div>
               <div className="flex-1">
                 <p className="text-sm font-medium text-foreground">{user?.name}</p>
-                <p className="text-xs text-muted-foreground">{user?.role}</p>
+                <p className="text-xs text-muted-foreground">{user?.roleLabel || user?.role}</p>
               </div>
             </div>
 
             {/* Переключатель языка */}
             <div className="flex items-center gap-3 px-4 py-3 mb-2">
               <Globe className="w-5 h-5 text-foreground" />
-              <span className="text-sm font-medium text-foreground flex-1">{t('header.language') || 'Язык'}</span>
+              <span className="text-sm font-medium text-foreground flex-1">
+                {t('header.language') || 'Язык'}
+              </span>
               <div className="flex gap-1 bg-muted rounded-lg p-1">
                 <button
                   onClick={() => changeLanguage('ru')}
@@ -118,9 +128,9 @@ export default function BottomNavigation() {
 
             {/* Навигационные пункты */}
             {moreItems.map(({ path, icon: Icon, label }) => {
-              const isActive = location.pathname === path || 
-                (path !== '/' && location.pathname.startsWith(path))
-              
+              const isActive =
+                location.pathname === path || (path !== '/' && location.pathname.startsWith(path))
+
               return (
                 <button
                   key={path}
@@ -151,33 +161,33 @@ export default function BottomNavigation() {
         </div>
       )}
 
-      <nav 
+      <nav
         className="fixed bottom-0 left-0 right-0 bg-card border-t border-border shadow-soft z-40 sm:hidden transition-colors duration-300"
         role="navigation"
         aria-label={t('nav.mobileNav') || 'Mobile navigation'}
       >
         {/* Анимированный индикатор сверху */}
         {activeIndex >= 0 && !isMoreActive && (
-          <div 
+          <div
             className="absolute top-0 h-0.5 bg-accent transition-all duration-300 ease-out"
-            style={{ 
+            style={{
               width: `${100 / (navItems.length + 1)}%`,
               left: `${(activeIndex * 100) / (navItems.length + 1)}%`
             }}
           />
         )}
         {isMoreActive && (
-          <div 
+          <div
             className="absolute top-0 h-0.5 bg-accent transition-all duration-300 ease-out"
-            style={{ 
+            style={{
               width: `${100 / (navItems.length + 1)}%`,
               left: `${(navItems.length * 100) / (navItems.length + 1)}%`
             }}
           />
         )}
-        
+
         {/* Safe area padding for iOS - using env() with fallback */}
-        <div 
+        <div
           className="flex items-center justify-around"
           style={{ paddingBottom: 'max(8px, env(safe-area-inset-bottom))' }}
         >
@@ -200,16 +210,13 @@ export default function BottomNavigation() {
                 )}
               >
                 <div className="relative">
-                  <Icon 
-                    className={cn(
-                      'w-6 h-6 transition-all duration-200', 
-                      isActive && 'scale-110'
-                    )}
+                  <Icon
+                    className={cn('w-6 h-6 transition-all duration-200', isActive && 'scale-110')}
                     strokeWidth={isActive ? 2.5 : 2}
                   />
 
                   {badge && (
-                    <span 
+                    <span
                       className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] 
                         flex items-center justify-center 
                         bg-danger text-white text-[10px] font-bold 
@@ -244,18 +251,15 @@ export default function BottomNavigation() {
               'min-w-[64px] min-h-[56px] py-2 px-3',
               'rounded-lg transition-all',
               'active:scale-95 tap-highlight-transparent',
-              (showMore || isMoreActive) ? 'text-accent' : 'text-muted-foreground active:bg-muted'
+              showMore || isMoreActive ? 'text-accent' : 'text-muted-foreground active:bg-muted'
             )}
           >
             <div className="relative">
               {showMore ? (
                 <X className="w-6 h-6 transition-all duration-200" strokeWidth={2.5} />
               ) : (
-                <MoreHorizontal 
-                  className={cn(
-                    'w-6 h-6 transition-all duration-200',
-                    isMoreActive && 'scale-110'
-                  )}
+                <MoreHorizontal
+                  className={cn('w-6 h-6 transition-all duration-200', isMoreActive && 'scale-110')}
                   strokeWidth={isMoreActive ? 2.5 : 2}
                 />
               )}
@@ -263,7 +267,7 @@ export default function BottomNavigation() {
             <span
               className={cn(
                 'text-[10px] mt-1 font-medium transition-colors',
-                (showMore || isMoreActive) ? 'text-accent' : 'text-muted-foreground'
+                showMore || isMoreActive ? 'text-accent' : 'text-muted-foreground'
               )}
             >
               {t('nav.more') || 'Ещё'}

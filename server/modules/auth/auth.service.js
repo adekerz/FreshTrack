@@ -90,12 +90,24 @@ export class AuthService {
       hotel = await getHotelById(user.hotel_id)
     }
 
+    // Role labels for localization (Russian)
+    const roleLabels = {
+      SUPER_ADMIN: 'Супер Админ',
+      HOTEL_ADMIN: 'Администратор отеля',
+      DEPARTMENT_MANAGER: 'Менеджер отдела',
+      MANAGER: 'Менеджер',
+      STAFF: 'Сотрудник'
+    }
+
+    const role = user.role?.toUpperCase() || 'STAFF'
+
     const response = {
       id: user.id,
       login: user.login,
       name: user.name,
       email: user.email,
       role: user.role,
+      roleLabel: roleLabels[role] || user.role,
       status: user.status || 'active',
       hotel_id: user.hotel_id,
       department_id: user.department_id,
@@ -110,6 +122,44 @@ export class AuthService {
 
     if (includePermissions) {
       response.permissions = await this.getUserPermissionsArray(user)
+
+      // Add capabilities object for easier frontend checks
+      const permissions = response.permissions
+      const isAdmin = role === 'SUPER_ADMIN' || role === 'HOTEL_ADMIN'
+      const hasAll = permissions.includes('*')
+
+      response.capabilities = {
+        // Admin checks (prefer using specific capabilities below)
+        isAdmin,
+        isSuperAdmin: role === 'SUPER_ADMIN',
+
+        // Resource capabilities
+        canViewAuditLogs: hasAll || isAdmin || permissions.includes('audit:read'),
+        canManageUsers: hasAll || isAdmin || permissions.includes('users:create') || permissions.includes('users:manage'),
+        canManageSettings: hasAll || isAdmin || permissions.includes('settings:manage'),
+        canManageHotels: hasAll || role === 'SUPER_ADMIN' || permissions.includes('hotels:manage'),
+        canManageDepartments: hasAll || isAdmin || permissions.includes('departments:manage'),
+        canExport: hasAll || isAdmin || permissions.includes('export:create'),
+        canImport: hasAll || isAdmin || permissions.includes('import:create'),
+
+        // Inventory capabilities
+        canViewInventory: hasAll || permissions.includes('inventory:read') || permissions.includes('products:read'),
+        canEditInventory: hasAll || isAdmin || permissions.includes('inventory:update') || permissions.includes('products:update'),
+        canDeleteInventory: hasAll || isAdmin || permissions.includes('inventory:delete') || permissions.includes('products:delete'),
+
+        // Batch capabilities
+        canCreateBatches: hasAll || permissions.includes('batches:create'),
+        canCollectBatches: hasAll || permissions.includes('batches:collect') || permissions.includes('collections:create'),
+        canWriteOff: hasAll || isAdmin || permissions.includes('writeoffs:create'),
+
+        // Notification capabilities
+        canManageNotifications: hasAll || isAdmin || permissions.includes('notifications:manage'),
+        canViewSystemNotifications: hasAll || isAdmin || permissions.includes('notifications:admin'),
+
+        // Access scope
+        canAccessAllDepartments: isAdmin || permissions.includes('departments:*') || permissions.includes('*'),
+        canAccessAllHotels: role === 'SUPER_ADMIN'
+      }
     }
 
     return response
