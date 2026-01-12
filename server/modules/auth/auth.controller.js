@@ -66,6 +66,7 @@ router.post('/login', async (req, res) => {
 /**
  * GET /api/auth/validate-hotel-code
  * Проверка кода отеля при регистрации (публичный)
+ * Использует hotels.code (6-символьный код регистрации), не MARSHA код
  */
 router.get('/validate-hotel-code', async (req, res) => {
   try {
@@ -78,30 +79,14 @@ router.get('/validate-hotel-code', async (req, res) => {
       })
     }
 
-    // Search in marsha_codes table and join with hotels
+    // Search by hotel registration code (hotels.code, not MARSHA code)
     const result = await dbQuery(`
-      SELECT h.id, h.name, mc.code as marsha_code
+      SELECT h.id, h.name, h.code, h.marsha_code
       FROM hotels h
-      INNER JOIN marsha_codes mc ON h.marsha_code_id = mc.id
-      WHERE UPPER(mc.code) = UPPER($1) AND h.is_active = true
+      WHERE UPPER(h.code) = UPPER($1) AND h.is_active = true
     `, [code.trim()])
 
     if (result.rows.length === 0) {
-      // Also check if MARSHA code exists but not assigned to any hotel
-      const marshaResult = await dbQuery(
-        'SELECT code, hotel_name FROM marsha_codes WHERE UPPER(code) = UPPER($1)',
-        [code.trim()]
-      )
-
-      if (marshaResult.rows.length > 0) {
-        return res.status(404).json({
-          success: false,
-          valid: false,
-          error: 'Этот MARSHA код еще не привязан к отелю в системе',
-          marshaCode: marshaResult.rows[0]
-        })
-      }
-
       return res.status(404).json({
         success: false,
         valid: false,
@@ -117,7 +102,8 @@ router.get('/validate-hotel-code', async (req, res) => {
       hotel: {
         id: hotel.id,
         name: hotel.name,
-        code: hotel.marsha_code
+        code: hotel.code,
+        marshaCode: hotel.marsha_code
       }
     })
   } catch (error) {

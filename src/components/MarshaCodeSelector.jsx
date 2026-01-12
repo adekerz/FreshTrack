@@ -97,33 +97,38 @@ export default function MarshaCodeSelector({
     }
   }
 
-  const handleSearch = useCallback((query) => {
-    setSearch(query)
+  const handleSearch = useCallback(
+    (query) => {
+      setSearch(query)
 
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current)
-    }
-
-    if (query.length < 2) {
-      setSearchResults([])
-      return
-    }
-
-    debounceRef.current = setTimeout(async () => {
-      setLoading(true)
-      try {
-        console.log('[MarshaCodeSelector] Searching for:', query, 'Public API:', usePublicApi)
-        const data = await apiFetch(`${apiBasePath}/search?q=${encodeURIComponent(query)}&limit=10`)
-        console.log('[MarshaCodeSelector] Search results:', data)
-        setSearchResults(data.results || [])
-      } catch (error) {
-        console.error('[MarshaCodeSelector] Search failed:', error)
-        setSearchResults([])
-      } finally {
-        setLoading(false)
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current)
       }
-    }, 300)
-  }, [usePublicApi, apiBasePath])
+
+      if (query.length < 2) {
+        setSearchResults([])
+        return
+      }
+
+      debounceRef.current = setTimeout(async () => {
+        setLoading(true)
+        try {
+          console.log('[MarshaCodeSelector] Searching for:', query, 'Public API:', usePublicApi)
+          const data = await apiFetch(
+            `${apiBasePath}/search?q=${encodeURIComponent(query)}&limit=10`
+          )
+          console.log('[MarshaCodeSelector] Search results:', data)
+          setSearchResults(data.results || [])
+        } catch (error) {
+          console.error('[MarshaCodeSelector] Search failed:', error)
+          setSearchResults([])
+        } finally {
+          setLoading(false)
+        }
+      }, 300)
+    },
+    [usePublicApi, apiBasePath]
+  )
 
   const handleSelect = (code) => {
     onSelect?.(code.code, code.id)
