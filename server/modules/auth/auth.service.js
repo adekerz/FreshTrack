@@ -17,7 +17,8 @@ import {
   logAudit,
   getHotelById,
   updateUserStatus,
-  createJoinRequest
+  createJoinRequest,
+  query as dbQuery
 } from '../../db/database.js'
 import MarshaCodeService from '../../services/MarshaCodeService.js'
 import { generateToken } from '../../middleware/auth.js'
@@ -240,14 +241,26 @@ export class AuthService {
         }
       }
 
-      // Если указан hotelCode, найти отель по MARSHA коду
+      // Если указан hotelCode, найти отель по коду или MARSHA коду
       let hotelId = data.hotelId || null
       if (data.hotelCode && !hotelId) {
-        const hotel = await MarshaCodeService.getHotelByMarshaCode(data.hotelCode)
-        if (hotel) {
-          hotelId = hotel.id
+        // Сначала ищем по code отеля (6-символьный код для присоединения)
+        const hotelByCode = await dbQuery(`
+          SELECT id FROM hotels 
+          WHERE UPPER(code) = $1 AND is_active = true
+        `, [data.hotelCode.toUpperCase()])
+
+        if (hotelByCode.rows.length > 0) {
+          hotelId = hotelByCode.rows[0].id
+        } else {
+          // Если не нашли, ищем по MARSHA коду
+          const hotel = await MarshaCodeService.getHotelByMarshaCode(data.hotelCode)
+          if (hotel) {
+            hotelId = hotel.id
+          }
         }
         // Если отель не найден по коду - это не ошибка, просто не привязываем
+        console.log('[AuthService] Hotel lookup by code:', data.hotelCode, '-> hotelId:', hotelId)
       }
 
       // Создать пользователя с базовой ролью
