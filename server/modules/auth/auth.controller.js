@@ -66,7 +66,7 @@ router.post('/login', async (req, res) => {
 /**
  * GET /api/auth/validate-hotel-code
  * Проверка кода отеля при регистрации (публичный)
- * Использует hotels.code (6-символьный код регистрации), не MARSHA код
+ * Поддерживает оба формата: hotels.code (6-символьный) и marsha_code (5-символьный)
  */
 router.get('/validate-hotel-code', async (req, res) => {
   try {
@@ -79,12 +79,32 @@ router.get('/validate-hotel-code', async (req, res) => {
       })
     }
 
-    // Search by hotel registration code (hotels.code, not MARSHA code)
-    const result = await dbQuery(`
-      SELECT h.id, h.name, h.code, h.marsha_code
-      FROM hotels h
-      WHERE UPPER(h.code) = UPPER($1) AND h.is_active = true
-    `, [code.trim()])
+    const trimmedCode = code.trim().toUpperCase()
+
+    // Try to find hotel - support both code formats
+    // First try marsha_code (always exists), then code (if column exists)
+    let result
+
+    try {
+      // Try with both columns
+      result = await dbQuery(`
+        SELECT h.id, h.name, h.code, h.marsha_code
+        FROM hotels h
+        WHERE (UPPER(h.code) = $1 OR UPPER(h.marsha_code) = $1) AND h.is_active = true
+      `, [trimmedCode])
+    } catch (dbError) {
+      // Fallback: column 'code' might not exist yet (pre-migration 017)
+      if (dbError.message?.includes('column') && dbError.message?.includes('does not exist')) {
+        console.log('[Auth] Falling back to marsha_code only (code column not exists)')
+        result = await dbQuery(`
+          SELECT h.id, h.name, h.marsha_code
+          FROM hotels h
+          WHERE UPPER(h.marsha_code) = $1 AND h.is_active = true
+        `, [trimmedCode])
+      } else {
+        throw dbError
+      }
+    }
 
     if (result.rows.length === 0) {
       return res.status(404).json({
@@ -102,7 +122,7 @@ router.get('/validate-hotel-code', async (req, res) => {
       hotel: {
         id: hotel.id,
         name: hotel.name,
-        code: hotel.code,
+        code: hotel.code || hotel.marsha_code,
         marshaCode: hotel.marsha_code
       }
     })
