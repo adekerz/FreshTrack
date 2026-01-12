@@ -1,7 +1,7 @@
 # FreshTrack Current State Documentation
 
-> **Document Version:** 7.0.0  
-> **Last Updated:** January 12, 2026  
+> **Document Version:** 8.0.0  
+> **Last Updated:** January 13, 2026  
 > **Phase:** Production Release  
 > **Test Count:** 304+ tests passing
 
@@ -706,6 +706,7 @@ npm run start             # Production start
 │  Phase 6: FilterService           → Unified filtering          │
 │  Phase 7: SettingsService         → Hierarchical config        │
 │  Phase 8: CollectionService       → FIFO with snapshots        │
+│  Phase 9: Hotel Identification    → MARSHA + external_ids      │
 └─────────────────────────────────────────────────────────────────┘
                               ▲
                               │ Context-filtered queries
@@ -716,8 +717,56 @@ npm run start             # Production start
 │  • permissions + role_permissions tables                       │
 │  • Composite indexes for performance                           │
 │  • JSONB snapshots for audit                                   │
+│  • external_ids table for OPERA/SAP/PMS integration           │
 └─────────────────────────────────────────────────────────────────┘
 ```
+
+---
+
+## Hotel Identification System
+
+> 📖 Полная документация: [HOTEL_IDENTIFICATION.md](./HOTEL_IDENTIFICATION.md)
+
+### Идентификаторы
+
+| Field          | Type       | Purpose                                                |
+| -------------- | ---------- | ------------------------------------------------------ |
+| `hotel_id`     | UUID       | **ЕДИНСТВЕННЫЙ** идентификатор для FK, ACL, фильтрации |
+| `marsha_code`  | VARCHAR(5) | Внешний код Marriott (только auth + UI)                |
+| `external_ids` | TABLE      | Отдельная таблица для OPERA, SAP, PMS                  |
+
+> ⚠️ `hotels.code` (6-символьный) — **УДАЛЁН** миграцией 019
+
+### Критические правила
+
+```
+❌ ЗАПРЕЩЕНО: WHERE marsha_code = 'TSERZ' в бизнес-запросах
+✅ ПРАВИЛЬНО: WHERE hotel_id = 'uuid'
+
+❌ ЗАПРЕЩЕНО: UPDATE hotels SET marsha_code = 'X' (триггер заблокирует!)
+✅ ПРАВИЛЬНО: UPDATE hotels SET marsha_code_id = 'uuid' (авто-синхронизация)
+```
+
+### Permissions (миграция 029)
+
+| Permission              | Описание             |
+| ----------------------- | -------------------- |
+| `marsha_codes:view`     | Просмотр справочника |
+| `marsha_codes:create`   | Создание кодов       |
+| `marsha_codes:assign`   | Назначение отелю     |
+| `marsha_codes:unassign` | Отвязка от отеля     |
+
+### Миграции
+
+| #   | Файл                             | Описание              |
+| --- | -------------------------------- | --------------------- |
+| 018 | `marsha_codes.sql`               | Справочник MARSHA     |
+| 019 | `remove_hotel_legacy_code.sql`   | Удалён `hotels.code`  |
+| 027 | `unique_active_marsha_index.sql` | UNIQUE для активных   |
+| 028 | `external_ids_integration.sql`   | Таблица external_ids  |
+| 029 | `protect_marsha_code.sql`        | Триггер + permissions |
+
+---
 
 ### Key Code Patterns
 

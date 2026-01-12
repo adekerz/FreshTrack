@@ -65,8 +65,10 @@ router.post('/login', async (req, res) => {
 
 /**
  * GET /api/auth/validate-hotel-code
- * Проверка кода отеля при регистрации (публичный)
- * Поддерживает оба формата: hotels.code (6-символьный) и marsha_code (5-символьный)
+ * Проверка MARSHA кода отеля при регистрации (публичный)
+ * 
+ * ВАЖНО: Поиск ТОЛЬКО по marsha_code — никаких fallback'ов!
+ * Это единственный эндпоинт (вместе с /register) где принимается marsha_code извне.
  */
 router.get('/validate-hotel-code', async (req, res) => {
   try {
@@ -75,50 +77,53 @@ router.get('/validate-hotel-code', async (req, res) => {
     if (!code || typeof code !== 'string') {
       return res.status(400).json({
         success: false,
-        error: 'Код отеля обязателен'
+        error: 'MARSHA код отеля обязателен'
       })
     }
 
-    const trimmedCode = code.trim().toUpperCase()
+    // Нормализация: убираем пробелы, приводим к uppercase
+    const normalizedCode = code.trim().toUpperCase()
 
-    // For registration: validate MARSHA code from reference table
-    // MARSHA codes are 5 characters, hotel registration codes are 6 characters
-
-    let result
-    let isExistingHotel = false
-
-    // First check if hotel with this code already exists
-    try {
-      result = await dbQuery(`
-        SELECT h.id, h.name, h.code, h.marsha_code
-        FROM hotels h
-        WHERE (UPPER(h.code) = $1 OR UPPER(h.marsha_code) = $1) AND h.is_active = true
-      `, [trimmedCode])
-
-      if (result.rows.length > 0) {
-        isExistingHotel = true
-      }
-    } catch (dbError) {
-      // Column might not exist, continue to MARSHA lookup
-      if (dbError.code !== '42703') {
-        console.log('[Auth] DB error checking hotels:', dbError.message)
-      }
+    // Валидация формата: MARSHA код = 5 символов (буквы и цифры)
+    if (!/^[A-Z0-9]{5}$/.test(normalizedCode)) {
+      return res.status(400).json({
+        success: false,
+        valid: false,
+        error: 'MARSHA код должен содержать ровно 5 символов (буквы и цифры)'
+      })
     }
 
-    // If not found in hotels, check MARSHA codes reference table
-    if (!isExistingHotel) {
-      try {
-        result = await dbQuery(`
-          SELECT code, hotel_name, city, country, brand
-          FROM marsha_codes
-          WHERE UPPER(code) = $1
-        `, [trimmedCode])
-      } catch (dbError) {
-        console.log('[Auth] MARSHA codes table error:', dbError.message)
-      }
+    // 1. Сначала проверяем, есть ли уже зарегистрированный отель с этим кодом
+    const hotelResult = await dbQuery(`
+      SELECT h.id, h.name, h.marsha_code
+      FROM hotels h
+      WHERE UPPER(h.marsha_code) = $1 AND h.is_active = true
+    `, [normalizedCode])
+
+    if (hotelResult.rows.length > 0) {
+      // Отель уже существует в системе
+      const hotel = hotelResult.rows[0]
+      return res.json({
+        success: true,
+        valid: true,
+        exists: true,
+        hotel: {
+          id: hotel.id,
+          name: hotel.name,
+          code: hotel.marsha_code,
+          marshaCode: hotel.marsha_code
+        }
+      })
     }
 
-    if (!result || result.rows.length === 0) {
+    // 2. Если отеля нет, проверяем справочник MARSHA кодов
+    const marshaResult = await dbQuery(`
+      SELECT code, hotel_name, city, country, brand
+      FROM marsha_codes
+      WHERE UPPER(code) = $1
+    `, [normalizedCode])
+
+    if (marshaResult.rows.length === 0) {
       return res.status(404).json({
         success: false,
         valid: false,
@@ -126,36 +131,20 @@ router.get('/validate-hotel-code', async (req, res) => {
       })
     }
 
-    if (isExistingHotel) {
-      // Return existing hotel info
-      const hotel = result.rows[0]
-      res.json({
-        success: true,
-        valid: true,
-        exists: true,
-        hotel: {
-          id: hotel.id,
-          name: hotel.name,
-          code: hotel.code || hotel.marsha_code,
-          marshaCode: hotel.marsha_code
-        }
-      })
-    } else {
-      // Return MARSHA code info (hotel not yet created)
-      const marsha = result.rows[0]
-      res.json({
-        success: true,
-        valid: true,
-        exists: false,
-        marsha: {
-          code: marsha.code,
-          hotelName: marsha.hotel_name,
-          city: marsha.city,
-          country: marsha.country,
-          brand: marsha.brand
-        }
-      })
-    }
+    // MARSHA код найден в справочнике (отель ещё не создан)
+    const marsha = marshaResult.rows[0]
+    res.json({
+      success: true,
+      valid: true,
+      exists: false,
+      marsha: {
+        code: marsha.code,
+        hotelName: marsha.hotel_name,
+        city: marsha.city,
+        country: marsha.country,
+        brand: marsha.brand
+      }
+    })
   } catch (error) {
     console.error('[Auth] Validate hotel code error:', error)
     res.status(500).json({ success: false, error: 'Ошибка сервера' })

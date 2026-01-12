@@ -15,30 +15,30 @@ TSEMC
 
 ### Суффиксы брендов
 
-| Код | Бренд |
-|-----|-------|
-| RZ | The Ritz-Carlton |
-| XR | St. Regis |
-| WH | W Hotels |
-| ED | EDITION |
-| LC | The Luxury Collection |
-| MC | Marriott Hotels |
-| SI | Sheraton |
-| WI | Westin |
-| MD | Le Méridien |
-| BR | Renaissance |
-| AK | Autograph Collection |
-| TX | Tribute Portfolio |
-| DE | Design Hotels |
-| CY | Courtyard |
-| FN | Four Points |
-| AR | Aloft |
-| EL | Element |
-| XY | Moxy |
-| FP | Fairfield |
-| RI | Residence Inn |
-| TH | Marriott Executive Apartments |
-| MV | Marriott Vacation Club |
+| Код | Бренд                         |
+| --- | ----------------------------- |
+| RZ  | The Ritz-Carlton              |
+| XR  | St. Regis                     |
+| WH  | W Hotels                      |
+| ED  | EDITION                       |
+| LC  | The Luxury Collection         |
+| MC  | Marriott Hotels               |
+| SI  | Sheraton                      |
+| WI  | Westin                        |
+| MD  | Le Méridien                   |
+| BR  | Renaissance                   |
+| AK  | Autograph Collection          |
+| TX  | Tribute Portfolio             |
+| DE  | Design Hotels                 |
+| CY  | Courtyard                     |
+| FN  | Four Points                   |
+| AR  | Aloft                         |
+| EL  | Element                       |
+| XY  | Moxy                          |
+| FP  | Fairfield                     |
+| RI  | Residence Inn                 |
+| TH  | Marriott Executive Apartments |
+| MV  | Marriott Vacation Club        |
 
 ## Установка
 
@@ -50,6 +50,7 @@ npm run migrate
 ```
 
 Миграция `018_marsha_codes.sql`:
+
 - Создаёт таблицу `marsha_codes` с полями code, hotel_name, city, country, region, brand
 - Добавляет trigram индекс для fuzzy search (pg_trgm)
 - Добавляет поля `marsha_code` и `marsha_code_id` в таблицу `hotels`
@@ -62,6 +63,7 @@ node seed-marsha-codes.js
 ```
 
 Загружает 237 кодов отелей Marriott:
+
 - Казахстан: 5 отелей
 - Европа: 50+ отелей
 - Ближний Восток: 30+ отелей
@@ -80,6 +82,7 @@ GET /api/marsha-codes/search?q=almaty&limit=10
 Fuzzy search по названию отеля, городу или коду.
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -164,8 +167,8 @@ GET /api/marsha-codes/filters
 ```jsx
 import MarshaCodeSelector from '../components/MarshaCodeSelector'
 
-<MarshaCodeSelector
-  hotelName={hotelName}          // Для автоподсказок
+;<MarshaCodeSelector
+  hotelName={hotelName} // Для автоподсказок
   selectedCode={hotel.marsha_code}
   onSelect={(code, codeId) => {
     // code = "TSEMC"
@@ -187,28 +190,52 @@ import MarshaCodeSelector from '../components/MarshaCodeSelector'
 ### Fuzzy matching
 
 Система находит коды даже если название не точно совпадает:
+
 - "Ритц Карлтон Алматы" → ALARC (The Ritz-Carlton, Almaty)
 - "Marriott Астана" → TSEMC (Marriott Hotel, Astana)
 
 ## Казахстанские отели
 
-| Код | Отель | Город | Бренд |
-|-----|-------|-------|-------|
-| TSEXR | The St. Regis Astana | Astana | St. Regis |
-| TSEMC | Marriott Hotel, Astana | Astana | Marriott |
-| TSESI | Sheraton Astana Hotel | Astana | Sheraton |
+| Код   | Отель                    | Город  | Бренд        |
+| ----- | ------------------------ | ------ | ------------ |
+| TSEXR | The St. Regis Astana     | Astana | St. Regis    |
+| TSEMC | Marriott Hotel, Astana   | Astana | Marriott     |
+| TSESI | Sheraton Astana Hotel    | Astana | Sheraton     |
 | TSERZ | The Ritz-Carlton, Astana | Astana | Ritz-Carlton |
 | ALARC | The Ritz-Carlton, Almaty | Almaty | Ritz-Carlton |
 
 ## Безопасность
 
-- Только пользователи с permission `hotels:manage` могут назначать/снимать коды
+### Permissions (миграция 029)
+
+| Permission              | Описание              | Роли                     |
+| ----------------------- | --------------------- | ------------------------ |
+| `marsha_codes:view`     | Просмотр справочника  | SUPER_ADMIN, HOTEL_ADMIN |
+| `marsha_codes:create`   | Создание новых кодов  | SUPER_ADMIN              |
+| `marsha_codes:assign`   | Назначение кода отелю | SUPER_ADMIN              |
+| `marsha_codes:unassign` | Отвязка кода от отеля | SUPER_ADMIN              |
+
+> ⚠️ **Важно:** Никаких hardcoded ролей в коде! Только `requirePermission()`.
+
+### Защита marsha_code (триггер БД)
+
+```sql
+-- ❌ Запрещено прямое редактирование
+UPDATE hotels SET marsha_code = 'XXXXX';  -- ERROR!
+
+-- ✅ Только через marsha_code_id
+UPDATE hotels SET marsha_code_id = 'uuid';  -- OK, авто-синхронизация
+```
+
+### Audit
+
 - Все операции логируются в audit log
-- Один код может быть назначен только одному отелю
+- snapshot_before / snapshot_after для каждого изменения
+- Один код может быть назначен только одному отелю (UNIQUE index)
 
 ## База данных
 
-### Схема marsha_codes
+### Схема marsha_codes (master registry)
 
 ```sql
 CREATE TABLE marsha_codes (
@@ -226,13 +253,41 @@ CREATE TABLE marsha_codes (
 );
 
 -- Trigram index for fuzzy search
-CREATE INDEX idx_marsha_codes_hotel_name_trgm 
+CREATE INDEX idx_marsha_codes_hotel_name_trgm
 ON marsha_codes USING gin (hotel_name gin_trgm_ops);
 ```
 
-### Поля в hotels
+### Поля в hotels (snapshot)
 
 ```sql
-ALTER TABLE hotels ADD COLUMN marsha_code VARCHAR(10);
+-- hotels.marsha_code - снапшот из справочника
+ALTER TABLE hotels ADD COLUMN marsha_code VARCHAR(5);
 ALTER TABLE hotels ADD COLUMN marsha_code_id UUID REFERENCES marsha_codes(id);
+
+-- Уникальный индекс для активных отелей (миграция 027)
+CREATE UNIQUE INDEX unique_active_marsha
+ON hotels (marsha_code)
+WHERE is_active = true;
+
+-- Триггер защиты от прямого редактирования (миграция 029)
+-- При изменении marsha_code_id автоматически синхронизируется marsha_code
 ```
+
+### Таблица external_ids (интеграция, миграция 028)
+
+```sql
+CREATE TABLE external_ids (
+  id UUID PRIMARY KEY,
+  hotel_id UUID REFERENCES hotels(id) ON DELETE CASCADE,
+  system external_system NOT NULL,  -- 'MARSHA', 'OPERA', 'SAP', 'PMS', 'ORACLE', 'OTHER'
+  external_code VARCHAR(50) NOT NULL,
+  metadata JSONB DEFAULT '{}',
+  is_primary BOOLEAN DEFAULT false,
+  verified_at TIMESTAMP,
+
+  UNIQUE (system, external_code),
+  UNIQUE (hotel_id, system)
+);
+```
+
+> 📖 Подробнее см. [HOTEL_IDENTIFICATION.md](./HOTEL_IDENTIFICATION.md)
