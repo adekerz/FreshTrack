@@ -150,6 +150,44 @@ export async function initDatabase() {
       }
     }
 
+    // Run migrations 010-025 dynamically
+    const additionalMigrations = [
+      { num: '010', name: '010_security_permissions_update.sql', desc: 'security permissions' },
+      { num: '011', name: '011_notifications_missing_columns.sql', desc: 'notifications columns' },
+      { num: '012', name: '012_fix_inventory_collect_permission.sql', desc: 'inventory permissions' },
+      { num: '013', name: '013_fix_batches_permissions.sql', desc: 'batches permissions' },
+      { num: '014', name: '014_fix_notification_queue_view.sql', desc: 'notification queue view' },
+      { num: '015', name: '015_add_missing_fk_indexes.sql', desc: 'FK indexes' },
+      { num: '016', name: '016_optimize_batch_stats_index.sql', desc: 'batch stats index' },
+      { num: '017', name: '017_join_requests_and_hotel_codes.sql', desc: 'join requests' },
+      { num: '018', name: '018_marsha_codes.sql', desc: 'MARSHA codes' },
+      { num: '019', name: '019_remove_hotel_legacy_code.sql', desc: 'remove legacy code' },
+      { num: '020', name: '020_fix_user_fk_constraints.sql', desc: 'user FK constraints' },
+      { num: '021', name: '021_staff_basic_permissions.sql', desc: 'staff permissions' },
+      { num: '022a', name: '022_restrict_staff_permissions.sql', desc: 'restrict staff' },
+      { num: '022b', name: '022_remove_system_notification_rules.sql', desc: 'remove system rules' },
+      { num: '023', name: '023_department_manager_basic_permissions.sql', desc: 'dept manager basic' },
+      { num: '024', name: '024_full_department_manager_permissions.sql', desc: 'dept manager full' },
+      { num: '025', name: '025_telegram_chat_thresholds.sql', desc: 'telegram thresholds' },
+    ]
+
+    for (const migration of additionalMigrations) {
+      const migrationPath = path.join(__dirname, 'migrations', migration.name)
+      if (fs.existsSync(migrationPath)) {
+        try {
+          const migrationSql = fs.readFileSync(migrationPath, 'utf8')
+          await query(migrationSql)
+          console.log(`✅ Schema migration ${migration.num} completed (${migration.desc})`)
+        } catch (err) {
+          if (!err.message.includes('already exists') &&
+            !err.message.includes('duplicate key') &&
+            !err.message.includes('does not exist')) {
+            console.log(`   Migration ${migration.num} note:`, err.message?.substring(0, 60))
+          }
+        }
+      }
+    }
+
     // Check if pilot data exists (check by user to handle migration scenarios)
     const usersResult = await query("SELECT id FROM users WHERE login = $1", ['superadmin'])
     if (usersResult.rows.length === 0) {
@@ -158,21 +196,29 @@ export async function initDatabase() {
       console.log('   Pilot data already exists')
 
       // Update existing hotels to have MARSHA codes if missing
-      const marshaUpdates = [
-        { pattern: '%Ritz-Carlton%Astana%', code: 'TSERZ' },
-        { pattern: '%St. Regis%Astana%', code: 'TSEXR' },
-        { pattern: '%St. Regis%Washington%', code: 'WASSX' },
-        { pattern: '%Marriott%Astana%', code: 'TSEMC' },
-        { pattern: '%Sheraton%Astana%', code: 'TSESI' },
-      ]
+      // Only run if marsha_code column exists (migration 018)
+      try {
+        const marshaUpdates = [
+          { pattern: '%Ritz-Carlton%Astana%', code: 'TSERZ' },
+          { pattern: '%St. Regis%Astana%', code: 'TSEXR' },
+          { pattern: '%St. Regis%Washington%', code: 'WASSX' },
+          { pattern: '%Marriott%Astana%', code: 'TSEMC' },
+          { pattern: '%Sheraton%Astana%', code: 'TSESI' },
+        ]
 
-      for (const { pattern, code } of marshaUpdates) {
-        const result = await query(`
-          UPDATE hotels SET marsha_code = $1 
-          WHERE name ILIKE $2 AND marsha_code IS NULL
-        `, [code, pattern])
-        if (result.rowCount > 0) {
-          console.log(`   ✅ Updated hotel with MARSHA code ${code}`)
+        for (const { pattern, code } of marshaUpdates) {
+          const result = await query(`
+            UPDATE hotels SET marsha_code = $1 
+            WHERE name ILIKE $2 AND marsha_code IS NULL
+          `, [code, pattern])
+          if (result.rowCount > 0) {
+            console.log(`   ✅ Updated hotel with MARSHA code ${code}`)
+          }
+        }
+      } catch (err) {
+        // Column may not exist yet on first run
+        if (!err.message.includes('does not exist')) {
+          console.log('   Note: MARSHA codes update skipped:', err.message?.substring(0, 50))
         }
       }
     }
