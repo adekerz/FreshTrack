@@ -328,11 +328,7 @@ export default function RegisterPage() {
               {hotelValidation.valid === true && hotelValidation.hotel && (
                 <p className="text-success text-xs mt-1 flex items-center gap-1 animate-fade-in">
                   <Building2 className="w-3 h-3" />
-                  <span>
-                    {hotelValidation.hotel.name}
-                    {hotelValidation.hotel.city && ` • ${hotelValidation.hotel.city}`}
-                    {hotelValidation.hotel.brand && ` (${hotelValidation.hotel.brand})`}
-                  </span>
+                  {hotelValidation.hotel.name}
                 </p>
               )}
               {hotelValidation.valid === false && formData.hotelCode.length >= 5 && (
