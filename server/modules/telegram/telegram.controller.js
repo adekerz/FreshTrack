@@ -9,6 +9,7 @@ import express from 'express'
 import { authMiddleware, requirePermission } from '../../middleware/auth.js'
 import { TelegramService } from '../../services/TelegramService.js'
 import { query } from '../../db/postgres.js'
+import { logAudit } from '../../db/database.js'
 import { logInfo, logError } from '../../utils/logger.js'
 
 const router = express.Router()
@@ -19,7 +20,7 @@ const router = express.Router()
 router.get('/status', authMiddleware, async (req, res) => {
   try {
     const botInfo = await TelegramService.getMe()
-    
+
     res.json({
       success: true,
       bot: {
@@ -32,9 +33,9 @@ router.get('/status', authMiddleware, async (req, res) => {
     })
   } catch (error) {
     logError('TelegramController', error)
-    res.status(500).json({ 
-      success: false, 
-      error: 'Failed to connect to Telegram bot' 
+    res.status(500).json({
+      success: false,
+      error: 'Failed to connect to Telegram bot'
     })
   }
 })
@@ -45,7 +46,7 @@ router.get('/status', authMiddleware, async (req, res) => {
 router.get('/chats', authMiddleware, async (req, res) => {
   try {
     const { hotel_id, department_id, role } = req.user
-    
+
     let queryText = `
       SELECT 
         tc.*,
@@ -58,7 +59,7 @@ router.get('/chats', authMiddleware, async (req, res) => {
       WHERE 1=1
     `
     const params = []
-    
+
     // Filter by user's context
     if (role !== 'SUPER_ADMIN') {
       if (hotel_id) {
@@ -70,11 +71,11 @@ router.get('/chats', authMiddleware, async (req, res) => {
         queryText += ` AND (tc.department_id = $${params.length} OR tc.department_id IS NULL)`
       }
     }
-    
+
     queryText += ' ORDER BY tc.added_at DESC'
-    
+
     const result = await query(queryText, params)
-    
+
     res.json({
       success: true,
       chats: result.rows
@@ -92,14 +93,14 @@ router.post('/chats', authMiddleware, requirePermission('settings', 'write'), as
   try {
     const { chatId, chatTitle, hotelId, departmentId } = req.body
     const { id: userId } = req.user
-    
+
     if (!chatId) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'chatId is required' 
+      return res.status(400).json({
+        success: false,
+        error: 'chatId is required'
       })
     }
-    
+
     // Verify the chat exists and bot has access
     try {
       await TelegramService.sendMessage(chatId, '✅ Чат успешно привязан к FreshTrack!')
@@ -109,7 +110,7 @@ router.post('/chats', authMiddleware, requirePermission('settings', 'write'), as
         error: `Cannot send message to chat. Make sure bot @adekerzbot is added to the chat. Error: ${telegramError.message}`
       })
     }
-    
+
     // Insert or update chat
     await query(`
       INSERT INTO telegram_chats (chat_id, chat_type, chat_title, hotel_id, department_id, is_active, added_by)
@@ -121,9 +122,18 @@ router.post('/chats', authMiddleware, requirePermission('settings', 'write'), as
         is_active = true,
         bot_removed = false
     `, [chatId, chatTitle || 'Manual Link', hotelId, departmentId || null, userId])
-    
+
     logInfo('TelegramController', `Chat ${chatId} linked to hotel ${hotelId}`)
-    
+
+    // Audit logging
+    await logAudit({
+      userId: userId,
+      action: 'CREATE',
+      resource: 'TelegramChat',
+      resourceId: String(chatId),
+      details: { chatTitle, hotelId, departmentId }
+    })
+
     res.json({
       success: true,
       message: 'Chat registered successfully'
@@ -140,12 +150,21 @@ router.post('/chats', authMiddleware, requirePermission('settings', 'write'), as
 router.delete('/chats/:chatId', authMiddleware, requirePermission('settings', 'write'), async (req, res) => {
   try {
     const { chatId } = req.params
-    
+
     await query(
       'UPDATE telegram_chats SET is_active = false, hotel_id = NULL, department_id = NULL WHERE chat_id = $1',
       [chatId]
     )
-    
+
+    // Audit logging
+    await logAudit({
+      userId: req.user.id,
+      action: 'DELETE',
+      resource: 'TelegramChat',
+      resourceId: String(chatId),
+      details: {}
+    })
+
     res.json({
       success: true,
       message: 'Chat unlinked successfully'
@@ -163,9 +182,9 @@ router.post('/test', authMiddleware, requirePermission('settings', 'write'), asy
   try {
     const { chatId } = req.body
     const { hotel_id } = req.user
-    
+
     let targetChats = []
-    
+
     if (chatId) {
       // Send to specific chat
       targetChats = [{ chat_id: chatId }]
@@ -173,21 +192,21 @@ router.post('/test', authMiddleware, requirePermission('settings', 'write'), asy
       // Send to all hotel chats
       targetChats = await TelegramService.getChatsForContext(hotel_id)
     }
-    
+
     if (targetChats.length === 0) {
       return res.status(400).json({
         success: false,
         error: 'No linked Telegram chats found'
       })
     }
-    
+
     const testMessage = `🧪 *Тестовое уведомление*
 
 Это тестовое сообщение от FreshTrack.
 Если вы видите это — уведомления настроены правильно!
 
 📅 ${new Date().toLocaleString('ru-RU', { timeZone: 'Asia/Almaty' })}`
-    
+
     const results = []
     for (const chat of targetChats) {
       try {
@@ -197,7 +216,7 @@ router.post('/test', authMiddleware, requirePermission('settings', 'write'), asy
         results.push({ chatId: chat.chat_id, success: false, error: error.message })
       }
     }
-    
+
     res.json({
       success: true,
       sentTo: results.filter(r => r.success).length,
@@ -216,7 +235,7 @@ router.post('/test', authMiddleware, requirePermission('settings', 'write'), asy
 router.get('/setup-instructions', authMiddleware, async (req, res) => {
   try {
     const botInfo = await TelegramService.getMe()
-    
+
     res.json({
       success: true,
       botUsername: `@${botInfo.username}`,

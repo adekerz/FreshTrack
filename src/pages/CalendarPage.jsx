@@ -20,7 +20,7 @@ const locales = { ru, en: enUS, kk }
 export default function CalendarPage() {
   const { t, language } = useTranslation()
   const { batches, departments } = useProducts()
-  const { user } = useAuth()
+  const { user, isStaff } = useAuth()
 
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState(new Date())
@@ -28,8 +28,8 @@ export default function CalendarPage() {
 
   const locale = locales[language] || locales.ru
 
-  // Проверка роли STAFF
-  const isStaff = user?.role === 'STAFF'
+  // Проверка роли STAFF через helper функцию
+  const userIsStaff = isStaff()
 
   // Группируем партии по датам истечения срока
   const batchesByDate = useMemo(() => {

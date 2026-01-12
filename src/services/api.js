@@ -26,8 +26,42 @@ export function getStaticUrl(path) {
 
 /**
  * Обработка ответа от сервера
+ * Включает глобальную обработку 401/403/404
  */
 async function handleResponse(response) {
+  // Глобальная обработка ошибок аутентификации и доступа
+  if (response.status === 401) {
+    // Токен истёк или невалиден — очищаем и редиректим
+    localStorage.removeItem('freshtrack_token')
+    localStorage.removeItem('freshtrack_user')
+
+    // Dispatch custom event для обработки в AuthContext
+    window.dispatchEvent(new CustomEvent('auth:unauthorized', {
+      detail: { status: 401, message: 'Session expired' }
+    }))
+
+    throw new Error('Сессия истекла. Пожалуйста, войдите снова.')
+  }
+
+  if (response.status === 403) {
+    // Dispatch custom event для глобального обработчика
+    window.dispatchEvent(new CustomEvent('auth:forbidden', {
+      detail: {
+        status: 403,
+        url: response.url,
+        message: 'Access denied'
+      }
+    }))
+
+    const error = await response.json().catch(() => ({ error: 'Доступ запрещён' }))
+    throw new Error(error.error || 'У вас нет прав для выполнения этого действия')
+  }
+
+  if (response.status === 404) {
+    const error = await response.json().catch(() => ({ error: 'Ресурс не найден' }))
+    throw new Error(error.error || 'Запрашиваемый ресурс не найден')
+  }
+
   if (!response.ok) {
     const error = await response.json().catch(() => ({ error: 'Unknown error' }))
     throw new Error(error.error || `HTTP error! status: ${response.status}`)
@@ -36,7 +70,22 @@ async function handleResponse(response) {
 }
 
 /**
- * Базовый fetch с обработкой ошибок
+ * Retry configuration
+ */
+const RETRY_CONFIG = {
+  maxRetries: 3,
+  retryDelay: 1000, // 1 second base delay
+  retryableStatuses: [502, 503, 504], // Gateway errors
+  retryableMethods: ['GET', 'HEAD', 'OPTIONS'] // Only safe methods
+}
+
+/**
+ * Sleep helper for retry delay
+ */
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms))
+
+/**
+ * Базовый fetch с обработкой ошибок и retry механизмом для 5xx ошибок
  * @param {string} endpoint - API endpoint (e.g., '/products')
  * @param {object} options - fetch options
  * @returns {Promise<any>} - response data
@@ -72,13 +121,45 @@ export async function apiFetch(endpoint, options = {}) {
     }
   }
 
-  try {
-    const response = await fetch(url, mergedOptions)
-    return handleResponse(response)
-  } catch (error) {
-    logError(`API [${endpoint}]`, error)
-    throw error
+  const method = (mergedOptions.method || 'GET').toUpperCase()
+  const isRetryable = RETRY_CONFIG.retryableMethods.includes(method)
+
+  let lastError = null
+  const maxAttempts = isRetryable ? RETRY_CONFIG.maxRetries + 1 : 1
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const response = await fetch(url, mergedOptions)
+
+      // Check if should retry on server errors (only for safe methods)
+      if (isRetryable &&
+        RETRY_CONFIG.retryableStatuses.includes(response.status) &&
+        attempt < maxAttempts) {
+        const delay = RETRY_CONFIG.retryDelay * Math.pow(2, attempt - 1) // Exponential backoff
+        console.warn(`[API] Retry ${attempt}/${RETRY_CONFIG.maxRetries} for ${endpoint} after ${delay}ms (status: ${response.status})`)
+        await sleep(delay)
+        continue
+      }
+
+      return handleResponse(response)
+    } catch (error) {
+      lastError = error
+
+      // Retry on network errors for safe methods
+      if (isRetryable && attempt < maxAttempts && error.name !== 'AbortError') {
+        const delay = RETRY_CONFIG.retryDelay * Math.pow(2, attempt - 1)
+        console.warn(`[API] Retry ${attempt}/${RETRY_CONFIG.maxRetries} for ${endpoint} after ${delay}ms (error: ${error.message})`)
+        await sleep(delay)
+        continue
+      }
+
+      logError(`API [${endpoint}]`, error)
+      throw error
+    }
   }
+
+  // Should not reach here, but just in case
+  throw lastError
 }
 
 // ============================================

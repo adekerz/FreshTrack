@@ -126,7 +126,8 @@ export function hasNavAccess(item, userRole, options = {}) {
   if (!userRole) return false
 
   const { capabilities = {}, permissions = [], hasPermission } = options
-  const isAdmin = userRole === 'SUPER_ADMIN' || userRole === 'HOTEL_ADMIN'
+  const normalizedRole = userRole.toUpperCase()
+  const isAdmin = normalizedRole === 'SUPER_ADMIN' || normalizedRole === 'HOTEL_ADMIN'
 
   // Priority 1: Check capability if specified
   if (item.requiredCapability) {
@@ -147,9 +148,9 @@ export function hasNavAccess(item, userRole, options = {}) {
     return permissions.includes(item.requiredPermission) || permissions.includes('*')
   }
 
-  // Priority 3: Legacy role-based check
+  // Priority 3: Legacy role-based check (deprecated - use capabilities instead)
   if (item.roles === null) return true // Доступно всем
-  return item.roles.includes(userRole.toUpperCase())
+  return item.roles.includes(normalizedRole)
 }
 
 /**

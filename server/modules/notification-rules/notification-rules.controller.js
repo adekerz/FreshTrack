@@ -4,7 +4,7 @@
 
 import { Router } from 'express'
 import { logError } from '../../utils/logger.js'
-import { query } from '../../db/database.js'
+import { query, logAudit } from '../../db/database.js'
 import {
   authMiddleware,
   hotelIsolation,
@@ -76,6 +76,15 @@ router.post('/rules', requirePermission(PermissionResource.SETTINGS, PermissionA
     // Очищаем кеш порогов чтобы новые пороги применились
     clearThresholdsCache(req.hotelId)
 
+    // Audit logging
+    await logAudit({
+      userId: req.user.id,
+      action: id ? 'UPDATE' : 'CREATE',
+      resource: 'NotificationRule',
+      resourceId: ruleId,
+      details: { type, name, warningDays, criticalDays, channels, enabled }
+    })
+
     res.json({ success: true, id: ruleId })
   } catch (error) {
     logError('Create notification rule error', error)
@@ -117,16 +126,35 @@ router.patch('/:id/toggle', requirePermission(PermissionResource.SETTINGS, Permi
           [newEnabled, copyRule.id]
         )
 
+        // Audit logging
+        await logAudit({
+          userId: req.user.id,
+          action: 'TOGGLE',
+          resource: 'NotificationRule',
+          resourceId: copyRule.id,
+          details: { enabled: newEnabled, type: rule.type }
+        })
+
         return res.json({ success: true, isActive: newEnabled })
       } else {
         // Нет копии - создаём с противоположным состоянием от системного
         const newEnabled = !rule.enabled
 
-        await query(`
+        const insertResult = await query(`
           INSERT INTO notification_rules (hotel_id, type, name, description, warning_days, critical_days, channels, recipient_roles, enabled)
           SELECT $1, type, name, description, warning_days, critical_days, channels, recipient_roles, $2
           FROM notification_rules WHERE id = $3
+          RETURNING id
         `, [req.hotelId, newEnabled, id])
+
+        // Audit logging
+        await logAudit({
+          userId: req.user.id,
+          action: 'CREATE',
+          resource: 'NotificationRule',
+          resourceId: insertResult.rows[0]?.id,
+          details: { enabled: newEnabled, type: rule.type, copiedFrom: id }
+        })
 
         return res.json({ success: true, isActive: newEnabled })
       }
@@ -142,6 +170,15 @@ router.patch('/:id/toggle', requirePermission(PermissionResource.SETTINGS, Permi
         'UPDATE notification_rules SET enabled = $1 WHERE id = $2 AND hotel_id = $3',
         [newEnabled, id, req.hotelId]
       )
+
+      // Audit logging
+      await logAudit({
+        userId: req.user.id,
+        action: 'TOGGLE',
+        resource: 'NotificationRule',
+        resourceId: id,
+        details: { enabled: newEnabled, type: rule.type }
+      })
 
       return res.json({ success: true, isActive: newEnabled })
     }
@@ -172,6 +209,16 @@ router.delete('/:id', requirePermission(PermissionResource.SETTINGS, PermissionA
       'DELETE FROM notification_rules WHERE id = $1 AND hotel_id = $2',
       [req.params.id, req.hotelId]
     )
+
+    // Audit logging
+    await logAudit({
+      userId: req.user.id,
+      action: 'DELETE',
+      resource: 'NotificationRule',
+      resourceId: req.params.id,
+      details: {}
+    })
+
     res.json({ success: true })
   } catch (error) {
     logError('Delete notification rule error', error)

@@ -63,11 +63,11 @@ export default function InventoryPage() {
   const { getProductsByDepartment, catalog, refresh, departments, categories, loading } =
     useProducts()
   const { selectedHotelId } = useHotel()
-  const { user } = useAuth()
+  const { user, isStaff } = useAuth()
   const prevHotelIdRef = useRef(selectedHotelId)
 
-  // Проверка роли STAFF
-  const isStaff = user?.role === 'STAFF'
+  // Проверка роли STAFF через helper функцию
+  const userIsStaff = isStaff()
 
   // Состояние выбранного отдела (из URL или null для показа селектора)
   const [selectedDeptId, setSelectedDeptId] = useState(departmentId || null)

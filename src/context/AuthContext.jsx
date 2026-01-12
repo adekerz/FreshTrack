@@ -13,6 +13,41 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [token, setToken] = useState(null)
+  const [authError, setAuthError] = useState(null)
+
+  // Listen for global auth events (401/403 from api.js)
+  useEffect(() => {
+    const handleUnauthorized = (event) => {
+      console.warn('[Auth] Unauthorized event received:', event.detail)
+      // Clear auth state
+      localStorage.removeItem('freshtrack_user')
+      localStorage.removeItem('freshtrack_token')
+      setToken(null)
+      setUser(null)
+      setAuthError({ type: 'unauthorized', message: event.detail?.message })
+    }
+
+    const handleForbidden = (event) => {
+      console.warn('[Auth] Forbidden event received:', event.detail)
+      setAuthError({ type: 'forbidden', message: event.detail?.message, url: event.detail?.url })
+    }
+
+    window.addEventListener('auth:unauthorized', handleUnauthorized)
+    window.addEventListener('auth:forbidden', handleForbidden)
+
+    return () => {
+      window.removeEventListener('auth:unauthorized', handleUnauthorized)
+      window.removeEventListener('auth:forbidden', handleForbidden)
+    }
+  }, [])
+
+  // Clear auth error after a delay
+  useEffect(() => {
+    if (authError) {
+      const timer = setTimeout(() => setAuthError(null), 5000)
+      return () => clearTimeout(timer)
+    }
+  }, [authError])
 
   // Validate token and refresh user data on mount
   useEffect(() => {
@@ -294,6 +329,8 @@ export function AuthProvider({ children }) {
     token,
     loading,
     isAuthenticated: !!user,
+    authError,
+    clearAuthError: () => setAuthError(null),
     login,
     register,
     logout,

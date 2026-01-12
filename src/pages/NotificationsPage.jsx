@@ -30,11 +30,11 @@ export default function NotificationsPage() {
     refresh,
     departments: depts
   } = useProducts()
-  const { user } = useAuth()
+  const { user, isStaff } = useAuth()
   const [retryCount, setRetryCount] = useState(0)
 
-  // Проверка роли STAFF
-  const isStaff = user?.role === 'STAFF'
+  // Проверка роли STAFF через helper функцию
+  const userIsStaff = isStaff()
 
   // Состояние для FIFO модала
   const [fifoModalOpen, setFifoModalOpen] = useState(false)

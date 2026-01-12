@@ -11,20 +11,20 @@ import { apiFetch } from '../services/api'
 const HotelContext = createContext(null)
 
 export function HotelProvider({ children }) {
-  const { user, isAuthenticated } = useAuth()
+  const { user, isAuthenticated, isSuperAdmin } = useAuth()
   const [hotels, setHotels] = useState([])
   const [selectedHotelId, setSelectedHotelId] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
-  const isSuperAdmin = user?.role === 'SUPER_ADMIN'
+  // Используем helper функцию вместо hardcoded role check
+  const userIsSuperAdmin = isSuperAdmin()
 
   // Загружаем список отелей
   const fetchHotels = useCallback(async () => {
     // Не загружаем для неавторизованных или pending пользователей
     // Pending проверяем по status или отсутствию hotel_id (для не-SUPER_ADMIN)
-    const isPending =
-      user?.status === 'pending' || (!user?.hotel_id && user?.role !== 'SUPER_ADMIN')
+    const isPending = user?.status === 'pending' || (!user?.hotel_id && !userIsSuperAdmin)
     if (!isAuthenticated || isPending) {
       setHotels([])
       setSelectedHotelId(null)
@@ -43,7 +43,7 @@ export function HotelProvider({ children }) {
         // Устанавливаем выбранный отель
         if (response.hotels?.length > 0) {
           // Для НЕ-SUPER_ADMIN - автоматически их отель (без вариантов)
-          if (!isSuperAdmin) {
+          if (!userIsSuperAdmin) {
             // Очищаем сохранённый hotel от предыдущего пользователя
             localStorage.removeItem('freshtrack_selected_hotel')
             // Используем hotel_id пользователя
@@ -71,7 +71,7 @@ export function HotelProvider({ children }) {
     } finally {
       setLoading(false)
     }
-  }, [isAuthenticated, isSuperAdmin, user?.hotel_id, user?.status])
+  }, [isAuthenticated, userIsSuperAdmin, user?.hotel_id, user?.status])
 
   // Загружаем отели при авторизации
   useEffect(() => {
@@ -81,7 +81,7 @@ export function HotelProvider({ children }) {
   // Смена отеля (только для SUPER_ADMIN)
   const selectHotel = useCallback(
     (hotelId) => {
-      if (!isSuperAdmin) return // HOTEL_ADMIN не может менять отель
+      if (!userIsSuperAdmin) return // HOTEL_ADMIN не может менять отель
 
       // UUID — всегда строки, не конвертируем в число
       const id = String(hotelId)
@@ -90,17 +90,17 @@ export function HotelProvider({ children }) {
         localStorage.setItem('freshtrack_selected_hotel', id)
       }
     },
-    [isSuperAdmin, hotels]
+    [userIsSuperAdmin, hotels]
   )
 
   // Получить текущий выбранный отель
   const selectedHotel = hotels.find((h) => h.id === selectedHotelId) || null
 
   // Может ли пользователь выбирать отель (для выпадающего списка)
-  const canSelectHotel = isSuperAdmin && hotels.length > 1
+  const canSelectHotel = userIsSuperAdmin && hotels.length > 1
 
   // Показывать ли селектор отеля вообще (для SUPER_ADMIN всегда, если есть отели)
-  const showHotelSelector = isSuperAdmin && hotels.length > 0
+  const showHotelSelector = userIsSuperAdmin && hotels.length > 0
 
   // Обновить список отелей (после создания/редактирования)
   const refreshHotels = useCallback(() => {
@@ -117,7 +117,7 @@ export function HotelProvider({ children }) {
     loading,
     error,
     refreshHotels,
-    isSuperAdmin
+    isSuperAdmin: userIsSuperAdmin
   }
 
   return <HotelContext.Provider value={value}>{children}</HotelContext.Provider>

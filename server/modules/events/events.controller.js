@@ -7,8 +7,9 @@
  */
 
 import express from 'express'
-import { authMiddleware, hotelIsolation } from '../../middleware/auth.js'
+import { authMiddleware, hotelIsolation, requirePermission } from '../../middleware/auth.js'
 import sseManager from '../../services/SSEManager.js'
+import { isSuperAdmin } from '../../utils/constants.js'
 import { logInfo, logError } from '../../utils/logger.js'
 
 const router = express.Router()
@@ -35,7 +36,7 @@ router.get('/stream', authMiddleware, hotelIsolation, (req, res) => {
     res.setHeader('X-Accel-Buffering', 'no') // Disable Nginx buffering
     res.setHeader('Access-Control-Allow-Origin', '*')
     res.setHeader('Access-Control-Allow-Credentials', 'true')
-    
+
     // Flush headers immediately
     res.flushHeaders()
 
@@ -76,15 +77,11 @@ router.get('/stream', authMiddleware, hotelIsolation, (req, res) => {
  * GET /api/events/stats
  * Get SSE connection statistics (admin only)
  */
-router.get('/stats', authMiddleware, (req, res) => {
-  if (!['SUPER_ADMIN', 'HOTEL_ADMIN'].includes(req.user.role)) {
-    return res.status(403).json({ error: 'Admin access required' })
-  }
-
+router.get('/stats', authMiddleware, requirePermission('events', 'view'), (req, res) => {
   const stats = sseManager.getStats()
-  
-  // For HOTEL_ADMIN, only show their hotel
-  if (req.user.role === 'HOTEL_ADMIN' && req.hotelId) {
+
+  // For non-SUPER_ADMIN, only show their hotel
+  if (req.hotelId && !isSuperAdmin(req.user)) {
     res.json({
       success: true,
       hotelId: req.hotelId,
@@ -105,28 +102,24 @@ router.get('/stats', authMiddleware, (req, res) => {
  * Manually broadcast an event (admin only)
  * For testing and manual notifications
  */
-router.post('/broadcast', authMiddleware, hotelIsolation, (req, res) => {
-  if (!['SUPER_ADMIN', 'HOTEL_ADMIN'].includes(req.user.role)) {
-    return res.status(403).json({ error: 'Admin access required' })
-  }
-
+router.post('/broadcast', authMiddleware, hotelIsolation, requirePermission('events', 'broadcast'), (req, res) => {
   const { event, data, targetHotelId } = req.body
 
   if (!event || !data) {
     return res.status(400).json({ error: 'event and data are required' })
   }
 
-  // HOTEL_ADMIN can only broadcast to their hotel
-  const hotelId = req.user.role === 'SUPER_ADMIN' 
+  // Non-SUPER_ADMIN can only broadcast to their hotel
+  const hotelId = isSuperAdmin(req.user)
     ? (targetHotelId || req.hotelId)
     : req.hotelId
 
-  if (!hotelId && req.user.role !== 'SUPER_ADMIN') {
+  if (!hotelId && !isSuperAdmin(req.user)) {
     return res.status(400).json({ error: 'hotelId is required' })
   }
 
   let sent
-  if (req.user.role === 'SUPER_ADMIN' && !hotelId) {
+  if (isSuperAdmin(req.user) && !hotelId) {
     // Broadcast to all hotels
     sent = sseManager.broadcastAll(event, {
       ...data,
@@ -154,11 +147,7 @@ router.post('/broadcast', authMiddleware, hotelIsolation, (req, res) => {
  * POST /api/events/send-to-user
  * Send event to specific user (admin only)
  */
-router.post('/send-to-user', authMiddleware, hotelIsolation, (req, res) => {
-  if (!['SUPER_ADMIN', 'HOTEL_ADMIN'].includes(req.user.role)) {
-    return res.status(403).json({ error: 'Admin access required' })
-  }
-
+router.post('/send-to-user', authMiddleware, hotelIsolation, requirePermission('events', 'send'), (req, res) => {
   const { userId, event, data } = req.body
 
   if (!userId || !event || !data) {

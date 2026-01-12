@@ -24,6 +24,7 @@ import { logAudit } from '../../db/database.js'
 import { query as dbQuery } from '../../db/postgres.js'
 import { StatisticsService } from '../../services/StatisticsService.js'
 import { enrichBatchesWithExpiryData } from '../../services/ExpiryService.js'
+import { isSuperAdmin, canAccessAllDepartments as checkCanAccessAllDepartments } from '../../utils/constants.js'
 
 const router = Router()
 
@@ -43,7 +44,7 @@ function getEffectiveHotelId(req) {
   const bodyHotelId = req.body?.hotel_id || req.body?.hotelId
 
   // Для SUPER_ADMIN используем query/body param если указан
-  if (req.user.role === 'SUPER_ADMIN') {
+  if (isSuperAdmin(req.user)) {
     const externalHotelId = queryHotelId || bodyHotelId
     if (externalHotelId) {
       return externalHotelId
@@ -69,7 +70,7 @@ router.get('/batches/stats', authMiddleware, async (req, res) => {
     let hotelId = getEffectiveHotelId(req)
 
     // Если всё ещё нет hotelId, получаем первый активный отель для SUPER_ADMIN
-    if (!hotelId && req.user.role === 'SUPER_ADMIN') {
+    if (!hotelId && isSuperAdmin(req.user)) {
       const result = await dbQuery('SELECT id FROM hotels WHERE is_active = TRUE LIMIT 1')
       if (result.rows.length > 0) {
         hotelId = result.rows[0].id
@@ -100,7 +101,7 @@ router.get('/batches/stats', authMiddleware, async (req, res) => {
     const context = {
       hotelId,
       departmentId: req.user.department_id,
-      canAccessAllDepartments: req.user.canAccessAllDepartments || req.user.role === 'HOTEL_ADMIN' || req.user.role === 'SUPER_ADMIN'
+      canAccessAllDepartments: checkCanAccessAllDepartments(req.user)
     }
 
     const options = {

@@ -22,13 +22,13 @@ const statusBorderColors = {
 export default function ProductModal({ product, onClose }) {
   const { t } = useTranslation()
   const { language } = useLanguage()
-  const { hasPermission, user } = useAuth()
+  const { hasPermission, user, isStaff } = useAuth()
   const { getBatchesByProduct, collectBatch, deleteBatch, addBatch, deleteProduct, refresh } =
     useProducts()
   const { addToast } = useToast()
 
-  // Проверка роли STAFF
-  const isStaff = user?.role === 'STAFF'
+  // Проверка роли STAFF через helper функцию
+  const userIsStaff = isStaff()
 
   const [showAddForm, setShowAddForm] = useState(false)
   const [showFIFOModal, setShowFIFOModal] = useState(false)

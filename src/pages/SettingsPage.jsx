@@ -45,7 +45,15 @@ import JoinRequestsSettings from '../components/settings/JoinRequestsSettings'
 
 export default function SettingsPage() {
   const { t } = useTranslation()
-  const { user, hasPermission, canManage } = useAuth()
+  const {
+    user,
+    hasPermission,
+    canManage,
+    isHotelAdmin,
+    isSuperAdmin,
+    isDepartmentManager,
+    isStaff: isStaffRole
+  } = useAuth()
   const { language, changeLanguage } = useLanguage()
   const { startOnboarding, resetOnboarding } = useOnboarding()
   const { addToast } = useToast()
@@ -70,15 +78,11 @@ export default function SettingsPage() {
 
   // Проверка прав доступа к управлению настройками (только админы)
   // STAFF видит только личные настройки (профиль, язык)
-  const canAccessSettings = () => {
-    const role = user?.role?.toUpperCase()
-    return role === 'SUPER_ADMIN' || role === 'HOTEL_ADMIN'
-  }
-
-  const userIsAdmin = canAccessSettings()
-  const isSuperAdmin = user?.role === 'SUPER_ADMIN'
-  const isStaff = user?.role === 'STAFF'
-  const isDepartmentManager = user?.role === 'DEPARTMENT_MANAGER'
+  // Используем capabilities/helper функции вместо hardcoded ролей
+  const userIsAdmin = isHotelAdmin()
+  const userIsSuperAdmin = isSuperAdmin()
+  const userIsStaff = isStaffRole()
+  const userIsDepartmentManager = isDepartmentManager()
 
   // Табы для DEPARTMENT_MANAGER (управление своим департаментом)
   const departmentManagerTabs = [
@@ -104,7 +108,11 @@ export default function SettingsPage() {
   ]
 
   // Выбор табов для не-админов
-  const userTabs = isStaff ? staffTabs : isDepartmentManager ? departmentManagerTabs : managerTabs
+  const userTabs = userIsStaff
+    ? staffTabs
+    : userIsDepartmentManager
+      ? departmentManagerTabs
+      : managerTabs
 
   // Базовые табы для админа (личные настройки)
   const personalTabs = [
@@ -117,7 +125,7 @@ export default function SettingsPage() {
   const managementTabs = [
     { id: 'general', icon: Settings, label: t('settings.tabs.general') || 'Общие' },
     // "Пользователи" только для HOTEL_ADMIN - SUPER_ADMIN управляет через "Организация"
-    ...(isSuperAdmin
+    ...(userIsSuperAdmin
       ? []
       : [{ id: 'users', icon: Users, label: t('settings.tabs.users') || 'Пользователи' }]),
     { id: 'join-requests', icon: UserPlus, label: t('settings.tabs.joinRequests') || 'Заявки' },
@@ -194,17 +202,7 @@ export default function SettingsPage() {
               </label>
               <input
                 type="text"
-                value={
-                  user?.role === 'SUPER_ADMIN'
-                    ? t('settings.profile.roleAdmin')
-                    : user?.role === 'HOTEL_ADMIN'
-                      ? t('settings.profile.roleAdmin')
-                      : user?.role === 'STAFF'
-                        ? t('settings.profile.roleStaff')
-                        : user?.role === 'DEPARTMENT_MANAGER'
-                          ? t('settings.profile.roleDepartmentManager')
-                          : t('settings.profile.roleManager')
-                }
+                value={user?.roleLabel || t(`settings.profile.role${user?.role}`) || user?.role}
                 disabled
                 className="w-full px-3 py-2 border border-border rounded-lg bg-muted text-muted-foreground"
               />
@@ -582,7 +580,7 @@ export default function SettingsPage() {
               </div>
 
               {/* Super Admin раздел */}
-              {isSuperAdmin && (
+              {userIsSuperAdmin && (
                 <div className="bg-gradient-to-br from-amber-500/10 to-orange-500/10 rounded-xl border border-amber-500/30 p-1.5 sm:p-2">
                   <div className="px-3 py-1.5 text-xs font-medium text-amber-600 dark:text-amber-400 uppercase tracking-wide flex items-center gap-1.5">
                     <Crown className="w-3.5 h-3.5" />
@@ -636,23 +634,23 @@ export default function SettingsPage() {
           {activeTab === 'general' && userIsAdmin && <GeneralSettings />}
           {activeTab === 'users' && userIsAdmin && <OrganizationSettings />}
           {activeTab === 'join-requests' && userIsAdmin && <JoinRequestsSettings />}
-          {activeTab === 'organization' && isSuperAdmin && <OrganizationSettings />}
+          {activeTab === 'organization' && userIsSuperAdmin && <OrganizationSettings />}
           {activeTab === 'directories' && userIsAdmin && <DirectoriesSettings />}
-          {activeTab === 'directories' && isDepartmentManager && !userIsAdmin && (
+          {activeTab === 'directories' && userIsDepartmentManager && !userIsAdmin && (
             <DirectoriesSettings readOnly />
           )}
           {/* Шаблоны: админы и DEPARTMENT_MANAGER - полный доступ, STAFF - только чтение */}
           {activeTab === 'templates' && userIsAdmin && <TemplatesSettings />}
-          {activeTab === 'templates' && isDepartmentManager && !userIsAdmin && (
+          {activeTab === 'templates' && userIsDepartmentManager && !userIsAdmin && (
             <TemplatesSettings />
           )}
-          {activeTab === 'templates' && isStaff && <TemplatesSettings readOnly />}
+          {activeTab === 'templates' && userIsStaff && <TemplatesSettings readOnly />}
           {activeTab === 'rules' && userIsAdmin && <NotificationRulesSettings />}
           {activeTab === 'telegram' && userIsAdmin && <TelegramSettings />}
           {activeTab === 'email' && userIsAdmin && <EmailSettings />}
           {activeTab === 'branding' && userIsAdmin && <BrandingSettings />}
           {activeTab === 'import-export' && userIsAdmin && <ImportExportSettings />}
-          {activeTab === 'system' && isSuperAdmin && renderSystem()}
+          {activeTab === 'system' && userIsSuperAdmin && renderSystem()}
 
           {/* Кнопка сохранения (только для вкладок уведомлений у обычных пользователей) */}
           {activeTab === 'notifications' && !userIsAdmin && (

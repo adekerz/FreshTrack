@@ -1,6 +1,7 @@
 # FreshTrack Architecture
 
 ## Версия: 2.5.0
+
 ## Дата: Январь 2026
 
 ---
@@ -10,12 +11,14 @@
 ### 1. Backend — единственный источник истины
 
 Frontend **НЕ ДОЛЖЕН**:
+
 - Вычислять статусы (expired, critical, warning)
 - Определять цвета на основе данных
 - Принимать решения о доступе на основе ролей
 - Дублировать бизнес-логику
 
 Frontend **ДОЛЖЕН**:
+
 - Отображать данные как есть
 - Использовать `statusColor`, `statusText` с бэкенда
 - Проверять доступ через `capabilities` объект
@@ -42,6 +45,7 @@ Frontend **ДОЛЖЕН**:
 ```
 
 #### ❌ ЗАПРЕЩЕНО использовать marsha_code для:
+
 - Foreign keys в других таблицах
 - Фильтрации данных
 - Проверок доступа (ACL/permissions)
@@ -49,6 +53,7 @@ Frontend **ДОЛЖЕН**:
 - URL для записи/изменения данных
 
 #### ✅ РАЗРЕШЕНО использовать marsha_code для:
+
 - Поиска отеля при регистрации
 - Отображения в UI как "код отеля"
 - Связи с Telegram (/link команда)
@@ -59,24 +64,30 @@ Frontend **ДОЛЖЕН**:
 
 ### Роли
 
-| Роль | Уровень | Scope | Описание |
-|------|---------|-------|----------|
-| SUPER_ADMIN | 100 | all | Полный доступ ко всем отелям |
-| HOTEL_ADMIN | 80 | hotel | Администратор одного отеля |
-| DEPARTMENT_MANAGER | 50 | department | Менеджер отдела |
-| STAFF | 10 | department | Сотрудник отдела |
+| Роль               | Уровень | Scope      | Описание                     |
+| ------------------ | ------- | ---------- | ---------------------------- |
+| SUPER_ADMIN        | 100     | all        | Полный доступ ко всем отелям |
+| HOTEL_ADMIN        | 80      | hotel      | Администратор одного отеля   |
+| DEPARTMENT_MANAGER | 50      | department | Менеджер отдела              |
+| STAFF              | 10      | department | Сотрудник отдела             |
 
 ### Permissions vs Roles
 
 ```javascript
 // ❌ ПЛОХО - hardcoded роли
-if (user.role === 'ADMIN') { showSettings() }
+if (user.role === 'ADMIN') {
+  showSettings()
+}
 
 // ✅ ХОРОШО - проверка permissions
-if (hasPermission('settings:manage')) { showSettings() }
+if (hasPermission('settings:manage')) {
+  showSettings()
+}
 
 // ✅ ЛУЧШЕ - использовать capabilities с бэкенда
-if (user.capabilities.canManageSettings) { showSettings() }
+if (user.capabilities.canManageSettings) {
+  showSettings()
+}
 ```
 
 ### Capabilities (с backend)
@@ -124,7 +135,7 @@ Backend возвращает готовый объект `capabilities`:
   id: "uuid",
   quantity: 10,
   expiry_date: "2026-01-15",
-  
+
   // Computed by ExpiryService (Single Source of Truth)
   daysLeft: 3,
   expiryStatus: "critical",      // expired|today|critical|warning|good
@@ -223,7 +234,7 @@ FreshTrack/
 
 ### Backend
 
-- [ ] Использует `requirePermission(resource, action)` 
+- [ ] Использует `requirePermission(resource, action)`
 - [ ] Использует `buildContextWhere(req.user)` для фильтрации
 - [ ] Не использует hardcoded роли (кроме SUPER_ADMIN bypass)
 - [ ] Возвращает computed статусы/цвета
