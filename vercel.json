@@ -4,9 +4,7 @@
   "outputDirectory": "dist",
   "installCommand": "npm install --include=dev",
   "env": {
-    "VITE_API_URL": "https://freshtrack-production-41bb.up.railway.app/api"
+    "VITE_API_URL": "https://api.freshtrack.systems/api"
   },
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
-  ]
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
 }
