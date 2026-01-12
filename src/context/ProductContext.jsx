@@ -76,6 +76,13 @@ export function ProductProvider({ children }) {
       return
     }
 
+    // Для SUPER_ADMIN ждём пока selectedHotelId будет установлен
+    // Это предотвращает запросы без hotel_id
+    if (user?.role === 'SUPER_ADMIN' && !selectedHotelId) {
+      logDebug('⏳ Waiting for hotel selection (SUPER_ADMIN)...')
+      return
+    }
+
     // Первая загрузка - всегда выполняем
     if (!initialLoadDoneRef.current) {
       logDebug('🚀 Initial data load for hotel:', selectedHotelId || 'default')
