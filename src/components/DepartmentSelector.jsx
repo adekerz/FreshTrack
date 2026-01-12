@@ -29,9 +29,9 @@ const getDeptIcon = (dept) => {
   return Package
 }
 
-export default function DepartmentSelector({ 
-  departments, 
-  selectedDepartment, 
+export default function DepartmentSelector({
+  departments,
+  selectedDepartment,
   onSelect,
   title,
   showStats = false,
@@ -63,18 +63,14 @@ export default function DepartmentSelector({
 
   return (
     <div className="p-4 sm:p-6">
-      {title && (
-        <h2 className="text-xl font-semibold text-text-primary mb-6">
-          {title}
-        </h2>
-      )}
-      
+      {title && <h2 className="text-xl font-semibold text-text-primary mb-6">{title}</h2>}
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {departments.map((dept) => {
           const Icon = getDeptIcon(dept)
           const isSelected = selectedDepartment === dept.id
           const deptStats = stats[dept.id] || {}
-          
+
           return (
             <button
               key={dept.id}
@@ -82,9 +78,11 @@ export default function DepartmentSelector({
               className={`
                 relative p-6 rounded-xl border-2 transition-all duration-200
                 text-left group hover:shadow-lg
-                ${isSelected 
-                  ? 'border-primary bg-primary/5 shadow-md' 
-                  : 'border-border-primary bg-surface-primary hover:border-primary/50'
+                focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-background
+                ${
+                  isSelected
+                    ? 'border-accent bg-accent/5 shadow-md'
+                    : 'border-border-primary bg-surface-primary hover:border-accent/50'
                 }
               `}
               style={{
@@ -92,26 +90,22 @@ export default function DepartmentSelector({
               }}
             >
               {/* Иконка */}
-              <div 
+              <div
                 className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 transition-transform group-hover:scale-110"
-                style={{ 
+                style={{
                   backgroundColor: `${dept.color || '#FF8D6B'}20`,
                   color: dept.color || '#FF8D6B'
                 }}
               >
                 <Icon className="w-6 h-6" />
               </div>
-              
+
               {/* Название */}
-              <h3 className="font-semibold text-text-primary mb-1">
-                {getDeptName(dept)}
-              </h3>
-              
+              <h3 className="font-semibold text-text-primary mb-1">{getDeptName(dept)}</h3>
+
               {/* Тип отдела */}
-              <p className="text-sm text-text-muted capitalize">
-                {dept.type || 'other'}
-              </p>
-              
+              <p className="text-sm text-text-muted capitalize">{dept.type || 'other'}</p>
+
               {/* Статистика (опционально) */}
               {showStats && (
                 <div className="mt-4 pt-4 border-t border-border-secondary flex items-center gap-4 text-sm">
@@ -127,10 +121,10 @@ export default function DepartmentSelector({
                   )}
                 </div>
               )}
-              
+
               {/* Индикатор выбора */}
               {isSelected && (
-                <div 
+                <div
                   className="absolute top-3 right-3 w-3 h-3 rounded-full"
                   style={{ backgroundColor: dept.color || '#FF8D6B' }}
                 />

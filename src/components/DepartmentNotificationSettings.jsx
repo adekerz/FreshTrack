@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { Bell, Clock, Mail, MessageSquare, Smartphone, Save, Loader2 } from 'lucide-react'
+import { Bell, Clock, Mail, MessageSquare, Smartphone, Save } from 'lucide-react'
+import { SectionLoader, ButtonLoader } from './ui'
 import { useTranslation } from '../context/LanguageContext'
 import { departments } from '../context/ProductContext'
 import { cn } from '../utils/classNames'
@@ -67,11 +68,7 @@ export default function DepartmentNotificationSettings() {
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-8">
-        <Loader2 className="w-6 h-6 animate-spin text-primary-500" />
-      </div>
-    )
+    return <SectionLoader />
   }
 
   return (
@@ -94,14 +91,12 @@ export default function DepartmentNotificationSettings() {
               onClick={() => setExpanded(isExpanded ? null : dept.id)}
               className="w-full flex items-center justify-between p-4 hover:bg-muted transition-colors"
             >
-              <span className="font-medium text-foreground">
-                {dept.name}
-              </span>
+              <span className="font-medium text-foreground">{dept.name}</span>
               <div className="flex items-center gap-3">
                 {/* Quick status indicators */}
                 <div className="flex gap-1">
                   {deptSettings.telegramEnabled && (
-                    <MessageSquare className="w-4 h-4 text-blue-500" />
+                    <MessageSquare className="w-4 h-4 text-accent" />
                   )}
                   {deptSettings.pushEnabled && <Smartphone className="w-4 h-4 text-green-500" />}
                   {deptSettings.emailEnabled && <Mail className="w-4 h-4 text-orange-500" />}
@@ -141,9 +136,9 @@ export default function DepartmentNotificationSettings() {
                         onChange={(e) =>
                           updateSetting(dept.id, 'telegramEnabled', e.target.checked)
                         }
-                        className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                        className="w-4 h-4 rounded border-gray-300 text-accent focus:ring-accent"
                       />
-                      <MessageSquare className="w-4 h-4 text-blue-500" />
+                      <MessageSquare className="w-4 h-4 text-accent" />
                       <span className="text-sm text-muted-foreground">Telegram</span>
                     </label>
 
@@ -152,7 +147,7 @@ export default function DepartmentNotificationSettings() {
                         type="checkbox"
                         checked={deptSettings.pushEnabled}
                         onChange={(e) => updateSetting(dept.id, 'pushEnabled', e.target.checked)}
-                        className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                        className="w-4 h-4 rounded border-gray-300 text-accent focus:ring-accent"
                       />
                       <Smartphone className="w-4 h-4 text-green-500" />
                       <span className="text-sm text-muted-foreground">Push</span>
@@ -163,7 +158,7 @@ export default function DepartmentNotificationSettings() {
                         type="checkbox"
                         checked={deptSettings.emailEnabled}
                         onChange={(e) => updateSetting(dept.id, 'emailEnabled', e.target.checked)}
-                        className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                        className="w-4 h-4 rounded border-gray-300 text-accent focus:ring-accent"
                       />
                       <Mail className="w-4 h-4 text-orange-500" />
                       <span className="text-sm text-muted-foreground">Email</span>
@@ -236,12 +231,9 @@ export default function DepartmentNotificationSettings() {
                     onClick={() => saveDepartmentSettings(dept.id)}
                     disabled={saving === dept.id}
                     className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 transition-colors text-sm"
+                    aria-busy={saving === dept.id}
                   >
-                    {saving === dept.id ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Save className="w-4 h-4" />
-                    )}
+                    {saving === dept.id ? <ButtonLoader /> : <Save className="w-4 h-4" />}
                     {t('common.save')}
                   </button>
                 </div>

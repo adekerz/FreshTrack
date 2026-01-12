@@ -2,11 +2,13 @@ import { useParams, Link } from 'react-router-dom'
 import { Package, AlertTriangle, Clock, Check, ArrowLeft, PieChart } from 'lucide-react'
 import { useProducts, departments } from '../context/ProductContext'
 import { useTranslation } from '../context/LanguageContext'
+import { useThresholds } from '../hooks/useThresholds'
 
 export default function DepartmentDashboardPage() {
   const { departmentId } = useParams()
   const { t } = useTranslation()
   const { batches } = useProducts()
+  const { thresholds } = useThresholds()
 
   // Найти отдел
   const department = departments.find((d) => d.id === departmentId)
@@ -23,9 +25,9 @@ export default function DepartmentDashboardPage() {
     good: departmentBatches.filter((b) => b.status === 'good').length
   }
 
-  // Ближайшие истекающие
+  // Ближайшие истекающие (на основе порога из правил)
   const upcomingExpiry = departmentBatches
-    .filter((b) => b.daysLeft >= 0 && b.daysLeft <= 7)
+    .filter((b) => b.daysLeft >= 0 && b.daysLeft <= thresholds.warning)
     .sort((a, b) => a.daysLeft - b.daysLeft)
     .slice(0, 5)
 
@@ -69,9 +71,7 @@ export default function DepartmentDashboardPage() {
         <div className="flex items-center gap-3">
           <div className="w-4 h-4 rounded-full" style={{ backgroundColor: department.color }} />
           <div>
-            <h1 className="text-xl sm:text-2xl font-playfair text-foreground">
-              {department.name}
-            </h1>
+            <h1 className="text-xl sm:text-2xl font-light text-foreground">{department.name}</h1>
             <p className="text-sm text-muted-foreground">
               {t('department.dashboard') || 'Дашборд отдела'}
             </p>
@@ -160,7 +160,7 @@ export default function DepartmentDashboardPage() {
                     </div>
                     <span
                       className={`text-sm font-medium ${
-                        batch.daysLeft <= 3 ? 'text-danger' : 'text-warning'
+                        batch.daysLeft <= thresholds.critical ? 'text-danger' : 'text-warning'
                       }`}
                     >
                       {batch.daysLeft === 0

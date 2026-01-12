@@ -68,9 +68,8 @@ const Input = forwardRef(({
         {label && (
           <label
             className={`
-              absolute left-4 
-              transition-all duration-200 pointer-events-none
-              ${Icon ? 'left-11' : ''}
+              absolute transition-all duration-200 pointer-events-none
+              ${Icon ? 'left-11' : 'left-4'}
               ${isFloating 
                 ? 'top-2 text-xs' 
                 : 'top-1/2 -translate-y-1/2 text-sm'

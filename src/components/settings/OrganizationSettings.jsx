@@ -10,12 +10,14 @@ import { useToast } from '../../context/ToastContext'
 import { useAuth } from '../../context/AuthContext'
 import { apiFetch } from '../../services/api'
 import { formatDate } from '../../utils/dateUtils'
-import { 
-  Building2, 
-  Plus, 
-  Trash2, 
-  Check, 
-  X, 
+import MarshaCodeSelector from '../MarshaCodeSelector'
+import { ButtonLoader, SectionLoader } from '../ui'
+import {
+  Building2,
+  Plus,
+  Trash2,
+  Check,
+  X,
   RefreshCw,
   ChevronDown,
   ChevronRight,
@@ -33,33 +35,45 @@ export default function OrganizationSettings() {
   const { t } = useTranslation()
   const { addToast } = useToast()
   const { user: currentUser, hasPermission } = useAuth()
-  
+
   const isSuperAdmin = currentUser?.role === 'SUPER_ADMIN'
-  
+
   const [hotels, setHotels] = useState([])
   const [allUsers, setAllUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [expandedHotels, setExpandedHotels] = useState({})
   const [expandedDepts, setExpandedDepts] = useState({})
   const [activeView, setActiveView] = useState('hotels') // hotels | users (для не-SuperAdmin)
-  
+
   // Create hotel modal
   const [showCreateHotel, setShowCreateHotel] = useState(false)
-  const [newHotel, setNewHotel] = useState({ name: '', description: '', address: '' })
+  const [newHotel, setNewHotel] = useState({
+    name: '',
+    description: '',
+    address: '',
+    marsha_code: '',
+    marsha_code_id: null
+  })
   const [creatingHotel, setCreatingHotel] = useState(false)
-  
+
   // Create department modal
   const [showCreateDept, setShowCreateDept] = useState(null) // hotelId
   const [newDept, setNewDept] = useState({ name: '', description: '' })
   const [creatingDept, setCreatingDept] = useState(false)
-  
+
   // Create user modal
   const [showCreateUser, setShowCreateUser] = useState(null) // { hotelId, departmentId? }
-  const [newUser, setNewUser] = useState({ login: '', password: '', name: '', email: '', role: 'STAFF' })
+  const [newUser, setNewUser] = useState({
+    login: '',
+    password: '',
+    name: '',
+    email: '',
+    role: 'STAFF'
+  })
   const [creatingUser, setCreatingUser] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [userError, setUserError] = useState(null)
-  
+
   // Delete/Block confirmation
   const [deleteConfirm, setDeleteConfirm] = useState(null)
   const [blockConfirm, setBlockConfirm] = useState(null)
@@ -75,18 +89,18 @@ export default function OrganizationSettings() {
       if (isSuperAdmin) {
         // Fetch all hotels with departments and users
         const hotelsData = await apiFetch('/hotels')
-        const usersData = await apiFetch('/auth/users')
+        const usersData = await apiFetch('/auth/users?all=true')
         const users = usersData.users || usersData || []
         setAllUsers(users)
-        
+
         const hotelsWithData = await Promise.all(
           (hotelsData.hotels || []).map(async (hotel) => {
             try {
               const deptData = await apiFetch(`/departments?hotel_id=${hotel.id}`)
-              const hotelUsers = users.filter(u => u.hotel_id === hotel.id)
-              const departments = (deptData.departments || []).map(dept => ({
+              const hotelUsers = users.filter((u) => u.hotel_id === hotel.id)
+              const departments = (deptData.departments || []).map((dept) => ({
                 ...dept,
-                users: users.filter(u => u.department_id === dept.id)
+                users: users.filter((u) => u.department_id === dept.id)
               }))
               return { ...hotel, departments, users: hotelUsers }
             } catch {
@@ -109,19 +123,35 @@ export default function OrganizationSettings() {
 
   // Hotel CRUD
   const createHotel = async () => {
+    if (!newHotel.marsha_code) {
+      addToast('Выберите MARSHA код отеля Marriott', 'error')
+      return
+    }
     if (!newHotel.name.trim()) {
       addToast('Введите название отеля', 'error')
       return
     }
     setCreatingHotel(true)
     try {
+      // Подготавливаем данные: пустые строки -> null
+      const hotelData = {
+        name: newHotel.name.trim(),
+        description: newHotel.description?.trim() || null,
+        address: newHotel.address?.trim() || null,
+        marsha_code: newHotel.marsha_code || null,
+        marsha_code_id: newHotel.marsha_code_id || null
+      }
+
       const result = await apiFetch('/hotels', {
         method: 'POST',
-        body: JSON.stringify(newHotel)
+        body: JSON.stringify(hotelData)
       })
-      addToast(`Отель "${result.hotel.name}" создан. Код: ${result.hotel.code}`, 'success')
+
+      // Показываем MARSHA код если он был выбран
+      const codeInfo = result.hotel.marsha_code ? ` Код: ${result.hotel.marsha_code}` : ''
+      addToast(`Отель "${result.hotel.name}" создан.${codeInfo}`, 'success')
       setShowCreateHotel(false)
-      setNewHotel({ name: '', description: '', address: '' })
+      setNewHotel({ name: '', description: '', address: '', marsha_code: '', marsha_code_id: null })
       fetchData()
     } catch (error) {
       addToast(error.message || 'Ошибка создания отеля', 'error')
@@ -143,7 +173,10 @@ export default function OrganizationSettings() {
         headers: { 'X-Hotel-Id': showCreateDept },
         body: JSON.stringify(newDept)
       })
-      addToast(`Департамент "${result.department.name}" создан. Код: ${result.department.code}`, 'success')
+      addToast(
+        `Департамент "${result.department.name}" создан. Код: ${result.department.code}`,
+        'success'
+      )
       setShowCreateDept(null)
       setNewDept({ name: '', description: '' })
       fetchData()
@@ -163,10 +196,14 @@ export default function OrganizationSettings() {
     setCreatingUser(true)
     setUserError(null)
     try {
+      // На уровне отеля (без departmentId) - автоматически HOTEL_ADMIN
+      const effectiveRole = showCreateUser?.departmentId ? newUser.role : 'HOTEL_ADMIN'
+
       await apiFetch('/auth/users', {
         method: 'POST',
         body: JSON.stringify({
           ...newUser,
+          role: effectiveRole,
           hotel_id: showCreateUser?.hotelId,
           department_id: showCreateUser?.departmentId
         })
@@ -208,7 +245,7 @@ export default function OrganizationSettings() {
         await apiFetch(`/hotels/${deleteConfirm.id}`, { method: 'DELETE' })
         addToast('Отель удалён', 'success')
       } else if (deleteConfirm.type === 'department') {
-        await apiFetch(`/departments/${deleteConfirm.id}`, { 
+        await apiFetch(`/departments/${deleteConfirm.id}`, {
           method: 'DELETE',
           headers: { 'X-Hotel-Id': deleteConfirm.hotelId }
         })
@@ -232,36 +269,30 @@ export default function OrganizationSettings() {
   }
 
   const toggleHotel = (hotelId) => {
-    setExpandedHotels(prev => ({ ...prev, [hotelId]: !prev[hotelId] }))
+    setExpandedHotels((prev) => ({ ...prev, [hotelId]: !prev[hotelId] }))
   }
 
   const toggleDept = (deptId) => {
-    setExpandedDepts(prev => ({ ...prev, [deptId]: !prev[deptId] }))
+    setExpandedDepts((prev) => ({ ...prev, [deptId]: !prev[deptId] }))
   }
 
   const getRoleBadge = (role) => {
     const styles = {
       SUPER_ADMIN: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
       HOTEL_ADMIN: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
-      MANAGER: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+      DEPARTMENT_MANAGER: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
       STAFF: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400'
-    }
-    const labels = {
-      SUPER_ADMIN: 'Супер-админ',
-      HOTEL_ADMIN: 'Админ отеля',
-      MANAGER: 'Менеджер',
-      STAFF: 'Сотрудник'
     }
     return (
       <span className={`px-2 py-0.5 rounded text-xs font-medium ${styles[role] || styles.STAFF}`}>
-        {labels[role] || role}
+        {t(`users.roles.${role}`) || role}
       </span>
     )
   }
 
   // Render user row
   const renderUserRow = (user, showHotelInfo = false) => (
-    <div 
+    <div
       key={user.id}
       className="flex items-center justify-between p-3 bg-card rounded-lg border border-border"
     >
@@ -281,22 +312,24 @@ export default function OrganizationSettings() {
         </div>
       </div>
       <div className="flex items-center gap-2 flex-shrink-0">
-        <span className={`px-2 py-0.5 rounded text-xs ${
-          user.is_active !== false 
-            ? 'bg-success/10 text-success' 
-            : 'bg-danger/10 text-danger'
-        }`}>
+        <span
+          className={`px-2 py-0.5 rounded text-xs ${
+            user.is_active !== false ? 'bg-success/10 text-success' : 'bg-danger/10 text-danger'
+          }`}
+        >
           {user.is_active !== false ? 'Активен' : 'Заблок.'}
         </span>
         <button
-          onClick={() => setBlockConfirm({ 
-            userId: user.id, 
-            userName: user.name, 
-            isActive: user.is_active !== false 
-          })}
+          onClick={() =>
+            setBlockConfirm({
+              userId: user.id,
+              userName: user.name,
+              isActive: user.is_active !== false
+            })
+          }
           className={`p-1.5 rounded transition-colors ${
-            user.is_active !== false 
-              ? 'text-muted-foreground hover:text-danger hover:bg-danger/10' 
+            user.is_active !== false
+              ? 'text-muted-foreground hover:text-danger hover:bg-danger/10'
               : 'text-muted-foreground hover:text-success hover:bg-success/10'
           }`}
           title={user.is_active !== false ? 'Заблокировать' : 'Разблокировать'}
@@ -317,11 +350,7 @@ export default function OrganizationSettings() {
   )
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <RefreshCw className="w-6 h-6 animate-spin text-muted-foreground" />
-      </div>
-    )
+    return <SectionLoader />
   }
 
   // For non-SuperAdmin - show only users table
@@ -333,7 +362,7 @@ export default function OrganizationSettings() {
             <h2 className="text-xl font-semibold text-foreground">Пользователи</h2>
             <p className="text-sm text-muted-foreground mt-1">Управление учётными записями</p>
           </div>
-          <button 
+          <button
             onClick={() => setShowCreateUser({ hotelId: currentUser?.hotel_id })}
             className="flex items-center gap-2 px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent/90 transition-colors"
           >
@@ -341,17 +370,15 @@ export default function OrganizationSettings() {
             Создать
           </button>
         </div>
-        
+
         <div className="space-y-2">
           {allUsers.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              Пользователи не найдены
-            </div>
+            <div className="text-center py-12 text-muted-foreground">Пользователи не найдены</div>
           ) : (
-            allUsers.map(user => renderUserRow(user))
+            allUsers.map((user) => renderUserRow(user))
           )}
         </div>
-        
+
         {/* Modals */}
         {renderCreateUserModal()}
         {renderBlockConfirmModal()}
@@ -365,14 +392,10 @@ export default function OrganizationSettings() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-xl font-semibold text-foreground">
-            Структура организации
-          </h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            Отели, департаменты и пользователи
-          </p>
+          <h2 className="text-xl font-semibold text-foreground">Структура организации</h2>
+          <p className="text-sm text-muted-foreground mt-1">Отели, департаменты и пользователи</p>
         </div>
-        <button 
+        <button
           onClick={() => setShowCreateHotel(true)}
           className="flex items-center gap-2 px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent/90 transition-colors"
         >
@@ -390,10 +413,10 @@ export default function OrganizationSettings() {
             <p className="text-sm mt-2">Создайте первый отель</p>
           </div>
         ) : (
-          hotels.map(hotel => (
+          hotels.map((hotel) => (
             <div key={hotel.id} className="bg-card rounded-xl border border-border overflow-hidden">
               {/* Hotel header */}
-              <div 
+              <div
                 className="flex items-center justify-between p-4 cursor-pointer hover:bg-muted/50 transition-colors"
                 onClick={() => toggleHotel(hotel.id)}
               >
@@ -406,17 +429,24 @@ export default function OrganizationSettings() {
                   <Building2 className="w-5 h-5 text-accent" />
                   <div>
                     <h3 className="font-medium text-foreground">{hotel.name}</h3>
-                    <div className="flex items-center gap-2 mt-1">
-                      <code className="text-xs bg-muted px-2 py-0.5 rounded text-accent">
-                        {hotel.code}
-                      </code>
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); copyCode(hotel.code) }}
-                        className="p-1 hover:bg-muted rounded"
-                        title="Копировать код"
-                      >
-                        <Copy className="w-3 h-3 text-muted-foreground" />
-                      </button>
+                    <div className="flex items-center gap-2 mt-1 flex-wrap">
+                      {hotel.marsha_code && (
+                        <>
+                          <code className="text-xs bg-purple-100 dark:bg-purple-900/30 px-2 py-0.5 rounded text-purple-700 dark:text-purple-400 font-mono">
+                            {hotel.marsha_code}
+                          </code>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              copyCode(hotel.marsha_code)
+                            }}
+                            className="p-1 hover:bg-muted rounded"
+                            title="Копировать MARSHA код"
+                          >
+                            <Copy className="w-3 h-3 text-muted-foreground" />
+                          </button>
+                        </>
+                      )}
                       <span className="text-xs text-muted-foreground">
                         • {hotel.departments?.length || 0} деп. • {hotel.users?.length || 0} польз.
                       </span>
@@ -424,15 +454,17 @@ export default function OrganizationSettings() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className={`px-2 py-1 rounded text-xs ${
-                    hotel.is_active !== false 
-                      ? 'bg-success/10 text-success' 
-                      : 'bg-danger/10 text-danger'
-                  }`}>
+                  <span
+                    className={`px-2 py-1 rounded text-xs ${
+                      hotel.is_active !== false
+                        ? 'bg-success/10 text-success'
+                        : 'bg-danger/10 text-danger'
+                    }`}
+                  >
                     {hotel.is_active !== false ? 'Активен' : 'Неактивен'}
                   </span>
                   <button
-                    onClick={(e) => { 
+                    onClick={(e) => {
                       e.stopPropagation()
                       setDeleteConfirm({ type: 'hotel', id: hotel.id, name: hotel.name })
                     }}
@@ -462,12 +494,14 @@ export default function OrganizationSettings() {
                       </button>
                     </div>
                     <div className="space-y-2">
-                      {hotel.users?.filter(u => !u.department_id).length === 0 ? (
+                      {hotel.users?.filter((u) => !u.department_id).length === 0 ? (
                         <p className="text-sm text-muted-foreground text-center py-2">
                           Нет пользователей на уровне отеля
                         </p>
                       ) : (
-                        hotel.users?.filter(u => !u.department_id).map(user => renderUserRow(user))
+                        hotel.users
+                          ?.filter((u) => !u.department_id)
+                          .map((user) => renderUserRow(user))
                       )}
                     </div>
                   </div>
@@ -484,17 +518,20 @@ export default function OrganizationSettings() {
                         Добавить
                       </button>
                     </div>
-                    
+
                     {hotel.departments?.length === 0 ? (
                       <p className="text-sm text-muted-foreground py-4 text-center">
                         Нет департаментов
                       </p>
                     ) : (
                       <div className="space-y-3">
-                        {hotel.departments?.map(dept => (
-                          <div key={dept.id} className="bg-card rounded-lg border border-border overflow-hidden">
+                        {hotel.departments?.map((dept) => (
+                          <div
+                            key={dept.id}
+                            className="bg-card rounded-lg border border-border overflow-hidden"
+                          >
                             {/* Department header */}
-                            <div 
+                            <div
                               className="flex items-center justify-between p-3 cursor-pointer hover:bg-muted/50 transition-colors"
                               onClick={() => toggleDept(dept.id)}
                             >
@@ -526,11 +563,11 @@ export default function OrganizationSettings() {
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation()
-                                    setDeleteConfirm({ 
-                                      type: 'department', 
-                                      id: dept.id, 
+                                    setDeleteConfirm({
+                                      type: 'department',
+                                      id: dept.id,
                                       name: dept.name,
-                                      hotelId: hotel.id 
+                                      hotelId: hotel.id
                                     })
                                   }}
                                   className="p-1.5 text-muted-foreground hover:text-danger hover:bg-danger/10 rounded transition-colors"
@@ -548,7 +585,7 @@ export default function OrganizationSettings() {
                                     Нет пользователей
                                   </p>
                                 ) : (
-                                  dept.users?.map(user => renderUserRow(user))
+                                  dept.users?.map((user) => renderUserRow(user))
                                 )}
                               </div>
                             )}
@@ -577,42 +614,91 @@ export default function OrganizationSettings() {
   function renderCreateHotelModal() {
     if (!showCreateHotel) return null
     return (
-      <div className="fixed inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
-        <div className="bg-card rounded-xl p-6 w-full max-w-md mx-4 shadow-xl animate-slide-up">
+      <div className="fixed inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="bg-card rounded-xl p-6 w-full max-w-xl shadow-xl animate-slide-up min-h-[500px] max-h-[90vh] overflow-y-auto">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-semibold text-foreground">Создать отель</h3>
-            <button onClick={() => setShowCreateHotel(false)} className="p-2 hover:bg-muted rounded-lg">
+            <button
+              onClick={() => setShowCreateHotel(false)}
+              className="p-2 hover:bg-muted rounded-lg"
+            >
               <X className="w-5 h-5 text-muted-foreground" />
             </button>
           </div>
           <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1">Название *</label>
-              <input 
-                type="text"
-                placeholder="Grand Hotel"
-                value={newHotel.name}
-                onChange={(e) => setNewHotel({...newHotel, name: e.target.value})}
-                className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-card"
-              />
-              <p className="text-xs text-muted-foreground mt-1">Код генерируется автоматически</p>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1">Адрес</label>
-              <input 
-                type="text"
-                placeholder="Адрес отеля"
-                value={newHotel.address}
-                onChange={(e) => setNewHotel({...newHotel, address: e.target.value})}
-                className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-card"
-              />
-            </div>
-            <button 
+            {/* MARSHA Code Selector - обязательный, идёт ПЕРВЫМ */}
+            <MarshaCodeSelector
+              hotelName={newHotel.name}
+              selectedCode={newHotel.marsha_code}
+              required={true}
+              onSelect={(code, codeId) =>
+                setNewHotel({
+                  ...newHotel,
+                  marsha_code: code,
+                  marsha_code_id: codeId
+                })
+              }
+              onSelectWithDetails={(marshaCode) => {
+                // Автозаполняем название и адрес из MARSHA кода
+                setNewHotel((prev) => ({
+                  ...prev,
+                  name: marshaCode.hotel_name,
+                  marsha_code: marshaCode.code,
+                  marsha_code_id: marshaCode.id,
+                  // Автозаполняем адрес из города и страны
+                  address: prev.address || `${marshaCode.city}, ${marshaCode.country}`
+                }))
+              }}
+              onClear={() =>
+                setNewHotel({
+                  ...newHotel,
+                  marsha_code: '',
+                  marsha_code_id: null,
+                  name: '',
+                  address: ''
+                })
+              }
+            />
+
+            {/* Название отеля - показываем только после выбора MARSHA кода */}
+            {newHotel.marsha_code && (
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  Название отеля
+                </label>
+                <input
+                  type="text"
+                  value={newHotel.name}
+                  readOnly
+                  className="w-full px-4 py-2.5 border border-border rounded-lg bg-muted/50 text-foreground cursor-not-allowed"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Заполняется автоматически из MARSHA кода
+                </p>
+              </div>
+            )}
+
+            {/* Адрес - можно редактировать */}
+            {newHotel.marsha_code && (
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">Адрес</label>
+                <input
+                  type="text"
+                  placeholder="Уточните адрес"
+                  value={newHotel.address}
+                  onChange={(e) => setNewHotel({ ...newHotel, address: e.target.value })}
+                  className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-card"
+                />
+              </div>
+            )}
+
+            <button
               onClick={createHotel}
               disabled={creatingHotel}
               className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-accent text-white rounded-lg hover:bg-accent/90 disabled:opacity-50"
+              aria-busy={creatingHotel}
             >
-              {creatingHotel ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+              {creatingHotel ? <ButtonLoader /> : <Plus className="w-4 h-4" />}
               Создать
             </button>
           </div>
@@ -628,28 +714,32 @@ export default function OrganizationSettings() {
         <div className="bg-card rounded-xl p-6 w-full max-w-md mx-4 shadow-xl animate-slide-up">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-semibold text-foreground">Создать департамент</h3>
-            <button onClick={() => setShowCreateDept(null)} className="p-2 hover:bg-muted rounded-lg">
+            <button
+              onClick={() => setShowCreateDept(null)}
+              className="p-2 hover:bg-muted rounded-lg"
+            >
               <X className="w-5 h-5 text-muted-foreground" />
             </button>
           </div>
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-foreground mb-1">Название *</label>
-              <input 
+              <input
                 type="text"
                 placeholder="Кухня"
                 value={newDept.name}
-                onChange={(e) => setNewDept({...newDept, name: e.target.value})}
+                onChange={(e) => setNewDept({ ...newDept, name: e.target.value })}
                 className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-card"
               />
               <p className="text-xs text-muted-foreground mt-1">Код генерируется автоматически</p>
             </div>
-            <button 
+            <button
               onClick={createDepartment}
               disabled={creatingDept}
               className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-accent text-white rounded-lg hover:bg-accent/90 disabled:opacity-50"
+              aria-busy={creatingDept}
             >
-              {creatingDept ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+              {creatingDept ? <ButtonLoader /> : <Plus className="w-4 h-4" />}
               Создать
             </button>
           </div>
@@ -660,9 +750,11 @@ export default function OrganizationSettings() {
 
   function renderCreateUserModal() {
     if (!showCreateUser) return null
-    const hotelName = hotels.find(h => h.id === showCreateUser.hotelId)?.name
-    const deptName = hotels.find(h => h.id === showCreateUser.hotelId)?.departments?.find(d => d.id === showCreateUser.departmentId)?.name
-    
+    const hotelName = hotels.find((h) => h.id === showCreateUser.hotelId)?.name
+    const deptName = hotels
+      .find((h) => h.id === showCreateUser.hotelId)
+      ?.departments?.find((d) => d.id === showCreateUser.departmentId)?.name
+
     return (
       <div className="fixed inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
         <div className="bg-card rounded-xl p-6 w-full max-w-md mx-4 shadow-xl animate-slide-up max-h-[90vh] overflow-y-auto">
@@ -670,42 +762,49 @@ export default function OrganizationSettings() {
             <div>
               <h3 className="text-lg font-semibold text-foreground">Создать пользователя</h3>
               <p className="text-xs text-muted-foreground mt-0.5">
-                {hotelName}{deptName ? ` → ${deptName}` : ''}
+                {hotelName}
+                {deptName ? ` → ${deptName}` : ''}
               </p>
             </div>
-            <button onClick={() => { setShowCreateUser(null); setUserError(null) }} className="p-2 hover:bg-muted rounded-lg">
+            <button
+              onClick={() => {
+                setShowCreateUser(null)
+                setUserError(null)
+              }}
+              className="p-2 hover:bg-muted rounded-lg"
+            >
               <X className="w-5 h-5 text-muted-foreground" />
             </button>
           </div>
-          
+
           {userError && (
             <div className="mb-4 p-3 bg-danger/10 border border-danger/20 rounded-lg text-danger text-sm">
               {userError}
             </div>
           )}
-          
+
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-foreground mb-1">Логин *</label>
-              <input 
+              <input
                 type="text"
                 placeholder="username"
                 value={newUser.login}
-                onChange={(e) => setNewUser({...newUser, login: e.target.value})}
+                onChange={(e) => setNewUser({ ...newUser, login: e.target.value })}
                 className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-card"
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-foreground mb-1">Пароль *</label>
               <div className="relative">
-                <input 
+                <input
                   type={showPassword ? 'text' : 'password'}
                   placeholder="••••••••"
                   value={newUser.password}
-                  onChange={(e) => setNewUser({...newUser, password: e.target.value})}
+                  onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
                   className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-card pr-10"
                 />
-                <button 
+                <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
@@ -713,45 +812,55 @@ export default function OrganizationSettings() {
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Мин. 8 символов, заглавные, строчные буквы и цифры
+              </p>
             </div>
             <div>
               <label className="block text-sm font-medium text-foreground mb-1">Имя *</label>
-              <input 
+              <input
                 type="text"
                 placeholder="Иван Иванов"
                 value={newUser.name}
-                onChange={(e) => setNewUser({...newUser, name: e.target.value})}
+                onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
                 className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-card"
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-foreground mb-1">Email</label>
-              <input 
+              <input
                 type="email"
                 placeholder="user@example.com"
                 value={newUser.email}
-                onChange={(e) => setNewUser({...newUser, email: e.target.value})}
+                onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
                 className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-card"
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-foreground mb-1">Роль</label>
-              <select 
-                value={newUser.role}
-                onChange={(e) => setNewUser({...newUser, role: e.target.value})}
-                className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-card"
-              >
-                <option value="STAFF">Сотрудник</option>
-                <option value="MANAGER">Менеджер</option>
-                {!showCreateUser.departmentId && <option value="HOTEL_ADMIN">Админ отеля</option>}
-              </select>
+              {/* На уровне отеля (без departmentId) - только HOTEL_ADMIN */}
+              {!showCreateUser.departmentId ? (
+                <div className="w-full px-4 py-2.5 border border-border rounded-lg bg-muted/50 text-foreground">
+                  {t('users.roles.HOTEL_ADMIN')}
+                </div>
+              ) : (
+                <select
+                  value={newUser.role}
+                  onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
+                  className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-card"
+                >
+                  <option value="STAFF">{t('users.roles.STAFF')}</option>
+                  <option value="DEPARTMENT_MANAGER">{t('users.roles.DEPARTMENT_MANAGER')}</option>
+                </select>
+              )}
             </div>
-            <button 
+            <button
               onClick={createUser}
               disabled={creatingUser}
               className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-accent text-white rounded-lg hover:bg-accent/90 disabled:opacity-50"
+              aria-busy={creatingUser}
             >
-              {creatingUser ? <RefreshCw className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
+              {creatingUser ? <ButtonLoader /> : <UserPlus className="w-4 h-4" />}
               Создать
             </button>
           </div>
@@ -766,12 +875,16 @@ export default function OrganizationSettings() {
       <div className="fixed inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
         <div className="bg-card rounded-xl p-6 max-w-sm w-full mx-4 shadow-xl animate-slide-up">
           <div className="flex items-center gap-3 mb-4">
-            <div className={`w-14 h-14 rounded-full flex items-center justify-center animate-danger-pulse ${
-              blockConfirm.isActive ? 'bg-danger/10' : 'bg-success/10'
-            }`}>
-              <Ban className={`w-7 h-7 animate-danger-shake ${
-                blockConfirm.isActive ? 'text-danger' : 'text-success'
-              }`} />
+            <div
+              className={`w-14 h-14 rounded-full flex items-center justify-center animate-danger-pulse ${
+                blockConfirm.isActive ? 'bg-danger/10' : 'bg-success/10'
+              }`}
+            >
+              <Ban
+                className={`w-7 h-7 animate-danger-shake ${
+                  blockConfirm.isActive ? 'text-danger' : 'text-success'
+                }`}
+              />
             </div>
             <div>
               <h3 className="font-semibold text-foreground">
@@ -792,10 +905,13 @@ export default function OrganizationSettings() {
               onClick={() => toggleUserStatus(blockConfirm.userId, blockConfirm.isActive)}
               disabled={actionLoading}
               className={`flex-1 px-4 py-2 rounded-lg text-white disabled:opacity-50 flex items-center justify-center gap-2 ${
-                blockConfirm.isActive ? 'bg-danger hover:bg-danger/90' : 'bg-success hover:bg-success/90'
+                blockConfirm.isActive
+                  ? 'bg-danger hover:bg-danger/90'
+                  : 'bg-success hover:bg-success/90'
               }`}
+              aria-busy={actionLoading}
             >
-              {actionLoading && <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+              {actionLoading && <ButtonLoader />}
               {blockConfirm.isActive ? 'Заблокировать' : 'Разблокировать'}
             </button>
           </div>
@@ -822,7 +938,8 @@ export default function OrganizationSettings() {
             </div>
           </div>
           <p className="text-sm text-muted-foreground mb-6">
-            {deleteConfirm.type === 'hotel' && 'Все департаменты, пользователи и данные будут удалены.'}
+            {deleteConfirm.type === 'hotel' &&
+              'Все департаменты, пользователи и данные будут удалены.'}
             {deleteConfirm.type === 'department' && 'Все пользователи и данные будут удалены.'}
             {deleteConfirm.type === 'user' && 'Это действие нельзя отменить.'}
           </p>
@@ -838,12 +955,9 @@ export default function OrganizationSettings() {
               onClick={handleDelete}
               disabled={actionLoading}
               className="flex-1 px-4 py-2 bg-danger text-white rounded-lg hover:bg-danger/90 disabled:opacity-50 flex items-center justify-center gap-2"
+              aria-busy={actionLoading}
             >
-              {actionLoading ? (
-                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : (
-                <Trash2 className="w-4 h-4" />
-              )}
+              {actionLoading ? <ButtonLoader /> : <Trash2 className="w-4 h-4" />}
               Удалить
             </button>
           </div>

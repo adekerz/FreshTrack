@@ -20,7 +20,7 @@ export default function Header() {
   const navigate = useNavigate()
   const { user, logout, hotelName } = useAuth()
   const { getExpiringBatches } = useProducts()
-  const { canSelectHotel } = useHotel()
+  const { showHotelSelector, selectedHotelId, selectedHotel } = useHotel()
   const { t } = useTranslation()
   const { language } = useLanguage()
   const { siteName } = useBranding()
@@ -72,16 +72,24 @@ export default function Header() {
     })
   }
 
-  // Тестовая отправка уведомления в Telegram
+  // Тестовая отправка уведомления в Telegram для выбранного отеля
   const handleTestTelegram = async () => {
     try {
       setTelegramStatus('sending')
-      await sendTestTelegramNotification()
+      console.log('📤 Testing Telegram for hotel:', selectedHotelId, selectedHotel?.name)
+      await sendTestTelegramNotification(selectedHotelId)
       setTelegramStatus('success')
       setTimeout(() => setTelegramStatus(null), 3000)
     } catch (error) {
-      setTelegramStatus('error')
-      setTimeout(() => setTelegramStatus(null), 3000)
+      console.error('Telegram test error:', error)
+      // Показываем понятное сообщение в зависимости от ошибки
+      const errorMessage = error?.message || ''
+      if (errorMessage.includes('привязанных') || errorMessage.includes('No linked')) {
+        setTelegramStatus('no_chats')
+      } else {
+        setTelegramStatus('error')
+      }
+      setTimeout(() => setTelegramStatus(null), 5000)
     }
   }
 
@@ -96,10 +104,12 @@ export default function Header() {
               <Leaf className="w-4 h-4 text-accent" />
             </div>
           </div>
-          
+
           <div className="hidden sm:block">
             <div className="flex items-center gap-2">
-              <h1 className="font-serif text-lg sm:text-xl lg:text-2xl">{getPageTitle()}</h1>
+              <h1 className="text-lg sm:text-xl lg:text-2xl font-light text-foreground">
+                {getPageTitle()}
+              </h1>
               {hotelName && (
                 <span className="text-sm text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-full hidden lg:inline-block">
                   {hotelName}
@@ -108,9 +118,9 @@ export default function Header() {
             </div>
             <p className="text-xs lg:text-sm text-muted-foreground">{getLocalizedDate()}</p>
           </div>
-          
-          {/* Hotel Selector for SUPER_ADMIN */}
-          {canSelectHotel && <HotelSelector className="hidden md:block" />}
+
+          {/* Hotel Selector for SUPER_ADMIN - показываем на всех размерах */}
+          {showHotelSelector && <HotelSelector className="hidden sm:block" />}
         </div>
 
         <div className="flex items-center gap-2 lg:gap-3">
@@ -131,8 +141,8 @@ export default function Header() {
           {/* Theme switcher */}
           <ThemeSwitcher variant="toggle" />
 
-          {/* Real-time Notification bell with SSE */}
-          <NotificationBell />
+          {/* Real-time Notification bell with SSE - только для SUPER_ADMIN */}
+          {user?.role === 'SUPER_ADMIN' && <NotificationBell />}
 
           {/* Add dropdown menu */}
           <div className="relative" ref={dropdownRef}>
@@ -162,40 +172,68 @@ export default function Header() {
                     <p className="text-xs text-muted-foreground">{t('header.addBatchDesc')}</p>
                   </div>
                 </button>
-                <div className="h-px bg-border mx-3 my-1" />
-                <button
-                  onClick={() => {
-                    setShowAddProductModal(true)
-                    setShowDropdown(false)
-                  }}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-muted transition-colors text-left"
-                >
-                  <FolderPlus className="w-4 h-4 text-success" />
-                  <div>
-                    <p className="font-medium">{t('header.newProduct')}</p>
-                    <p className="text-xs text-muted-foreground">{t('header.newProductDesc')}</p>
-                  </div>
-                </button>
+                {/* Добавление товара - только для админов и менеджеров (не STAFF) */}
+                {user?.role !== 'STAFF' && (
+                  <>
+                    <div className="h-px bg-border mx-3 my-1" />
+                    <button
+                      onClick={() => {
+                        setShowAddProductModal(true)
+                        setShowDropdown(false)
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-muted transition-colors text-left"
+                    >
+                      <FolderPlus className="w-4 h-4 text-success" />
+                      <div>
+                        <p className="font-medium">{t('header.newProduct')}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {t('header.newProductDesc')}
+                        </p>
+                      </div>
+                    </button>
+                  </>
+                )}
               </div>
             )}
           </div>
 
-          {/* Telegram test */}
-          <button
-            onClick={handleTestTelegram}
-            disabled={telegramStatus === 'sending'}
-            className={`flex items-center gap-1 sm:gap-2 text-sm transition-colors ${
-              telegramStatus === 'success'
-                ? 'text-success'
-                : telegramStatus === 'error'
-                  ? 'text-danger'
-                  : 'text-foreground hover:text-accent'
-            }`}
-            title={t('header.testTelegram')}
-          >
-            <Send className="w-4 h-4" />
-            <span className="hidden lg:inline">{telegramStatus === 'sending' ? '...' : t('header.testTelegram')}</span>
-          </button>
+          {/* Telegram test - только для SUPER_ADMIN */}
+          {user?.role === 'SUPER_ADMIN' && (
+            <div className="relative">
+              <button
+                onClick={handleTestTelegram}
+                disabled={telegramStatus === 'sending'}
+                className={`flex items-center gap-1 sm:gap-2 text-sm transition-colors ${
+                  telegramStatus === 'success'
+                    ? 'text-success'
+                    : telegramStatus === 'error' || telegramStatus === 'no_chats'
+                      ? 'text-danger'
+                      : 'text-foreground hover:text-accent'
+                }`}
+                title={`${t('header.testTelegram')}${selectedHotel ? ` → ${selectedHotel.name}` : ''}`}
+              >
+                <Send className="w-4 h-4" />
+                <span className="hidden lg:inline">
+                  {telegramStatus === 'sending' ? '...' : t('header.testTelegram')}
+                </span>
+              </button>
+              {/* Подсказка при отсутствии чатов */}
+              {telegramStatus === 'no_chats' && (
+                <div className="absolute top-full right-0 mt-2 w-72 p-3 bg-card border border-danger/30 rounded-lg shadow-lg text-xs z-50">
+                  <p className="text-danger font-medium mb-1">
+                    Нет привязанных Telegram чатов
+                    {selectedHotel ? ` для ${selectedHotel.name}` : ''}
+                  </p>
+                  <p className="text-muted-foreground">
+                    Добавьте @adekerzbot в группу и отправьте:{' '}
+                    <code className="bg-muted px-1 rounded">
+                      /link {selectedHotel?.marsha_code || 'MARSHA_КОД'}
+                    </code>
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="hidden sm:block h-8 w-px bg-border" />
 
@@ -210,7 +248,17 @@ export default function Header() {
           <div className="hidden sm:flex items-center gap-3">
             <div className="text-right">
               <p className="text-sm font-medium text-foreground">{user?.name}</p>
-              <p className="text-xs text-muted-foreground">{user?.role}</p>
+              <p className="text-xs text-muted-foreground">
+                {user?.role === 'SUPER_ADMIN'
+                  ? t('settings.profile.roleAdmin')
+                  : user?.role === 'HOTEL_ADMIN'
+                    ? t('settings.profile.roleAdmin')
+                    : user?.role === 'DEPARTMENT_MANAGER'
+                      ? t('settings.profile.roleDepartmentManager')
+                      : user?.role === 'STAFF'
+                        ? t('settings.profile.roleStaff')
+                        : t('settings.profile.roleManager')}
+              </p>
             </div>
             <button
               onClick={logout}
@@ -226,11 +274,7 @@ export default function Header() {
       {/* Мобильный поиск - раскрывается под хедером */}
       {showMobileSearch && (
         <div className="sm:hidden bg-card border-b border-border px-4 py-3 sticky top-[57px] z-10">
-          <GlobalSearch 
-            onSearch={() => setShowMobileSearch(false)} 
-            autoFocus 
-            fullWidth 
-          />
+          <GlobalSearch onSearch={() => setShowMobileSearch(false)} autoFocus fullWidth />
         </div>
       )}
 

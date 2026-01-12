@@ -37,6 +37,509 @@ applyTo: '**'
 
 ---
 
+## 🎯 ПРИНЦИП ПОЛНОЙ РЕАЛИЗАЦИИ ФУНКЦИОНАЛА
+
+**КРИТИЧНО:** Когда реализуешь функцию/фичу — доводи её **до конца**. Не останавливайся на 50%.
+
+### ❌ Плохо (неполная реализация):
+```
+"Создал API endpoint для создания пользователя"
+// Забыл: валидацию, permissions, audit, email уведомления
+```
+
+### ✅ Хорошо (полная реализация):
+```
+"Реализовал полный flow создания пользователя":
+1. API endpoint с валидацией
+2. Permission check (requirePermission)
+3. Бизнес-логика в service
+4. Audit logging
+5. Email уведомление
+6. Frontend форма
+7. Error handling
+8. Loading states
+9. Success feedback
+10. Интеграция с существующей навигацией
+```
+
+### 🔄 Цикл полной реализации
+
+При создании ЛЮБОЙ функции проходи **все этапы**:
+
+#### 1. Backend (полная цепочка)
+```
+Route → Validation → Permission → Service → DB → Audit → Response
+```
+- [ ] API endpoint создан
+- [ ] Input validation (zod/joi)
+- [ ] Permission check (`requirePermission()`)
+- [ ] Бизнес-логика в отдельном service
+- [ ] Транзакции если нужны (несколько DB операций)
+- [ ] Audit logging (`logAudit()`)
+- [ ] Error handling с понятными сообщениями
+- [ ] Изоляция данных (hotel_id фильтр)
+
+#### 2. Frontend (полный UX)
+```
+Form → Validation → API Call → Loading → Success/Error → Integration
+```
+- [ ] Компонент создан и стилизован
+- [ ] Client-side validation
+- [ ] Loading state показывается
+- [ ] Success state с feedback (toast/notification)
+- [ ] Error state с понятным сообщением
+- [ ] Disabled states где нужно
+- [ ] Mobile responsive (≥48px touch targets)
+- [ ] Keyboard navigation (Tab, Enter)
+- [ ] **Интегрирован в навигацию** (кнопки, ссылки, меню)
+- [ ] **Доступен из нужных мест** (не сирота)
+
+#### 3. Интеграция (связь с системой)
+```
+Не живёт в вакууме → Часть единого flow
+```
+- [ ] Есть способ **попасть** на эту страницу/форму
+- [ ] Есть способ **вернуться** обратно
+- [ ] Обновляются зависимые части UI (списки, счётчики)
+- [ ] SSE события если нужны realtime обновления
+- [ ] Permissions на UI (показывать только если `canCreate`)
+
+#### 4. Edge Cases (граничные случаи)
+```
+Не только happy path
+```
+- [ ] Что если пользователь не авторизован?
+- [ ] Что если нет прав?
+- [ ] Что если данные невалидны?
+- [ ] Что если сервер недоступен?
+- [ ] Что если двойная отправка формы?
+- [ ] Что если данных пока нет (empty state)?
+
+---
+
+## 🚨 ОБЯЗАТЕЛЬНЫЕ ВОПРОСЫ ПЕРЕД "ГОТОВО"
+
+Перед тем как считать функцию завершённой, ответь **ДА** на все:
+
+### Backend
+1. ✅ Есть ли permission check?
+2. ✅ Есть ли audit logging?
+3. ✅ Есть ли изоляция по hotel_id?
+4. ✅ Обработаны ли все errors?
+5. ✅ Используется ли service layer (не логика в route)?
+
+### Frontend
+6. ✅ Есть ли loading state?
+7. ✅ Есть ли success feedback?
+8. ✅ Есть ли error handling?
+9. ✅ Работает ли на mobile?
+10. ✅ Доступна ли форма из навигации?
+
+### Интеграция
+11. ✅ Можно ли попасть на эту страницу естественным путём?
+12. ✅ Обновляется ли UI после действия?
+13. ✅ Есть ли способ отменить/вернуться?
+14. ✅ Протестирован ли весь user flow?
+
+**Если хоть один ответ НЕТ — функция НЕ готова.**
+
+---
+
+## 📝 ШАБЛОН ПОЛНОЙ РЕАЛИЗАЦИИ
+
+Когда получаешь задачу, отвечай по этому шаблону:
+
+```markdown
+## Реализация: [Название функции]
+
+### 1. Анализ
+- Что делает функция?
+- Кто может использовать? (permissions)
+- Где она живёт в UI? (навигация)
+- С чем интегрируется? (другие части системы)
+
+### 2. Backend (полный список)
+- [ ] API endpoint: POST /api/...
+- [ ] Validation schema
+- [ ] Permission: requirePermission('resource', 'action')
+- [ ] Service method
+- [ ] Audit: logAudit(...)
+- [ ] Error handling
+
+### 3. Frontend (полный список)
+- [ ] Компонент/Форма
+- [ ] Validation (client-side)
+- [ ] Loading/Success/Error states
+- [ ] Mobile responsive
+- [ ] Accessibility (labels, aria)
+
+### 4. Интеграция
+- [ ] Добавлена кнопка/ссылка в [где]
+- [ ] Обновляется [какой список/UI]
+- [ ] Навигация работает (туда и обратно)
+
+### 5. Тестирование
+- [ ] Happy path работает
+- [ ] Edge cases обработаны
+- [ ] Errors показываются понятно
+- [ ] Mobile проверен
+
+### 6. Код
+[Полный рабочий код всех частей]
+
+### 7. Что проверить
+- [ ] Чеклист для ручного теста
+```
+
+---
+
+## 💡 ПРИМЕРЫ ПОЛНОЙ vs НЕПОЛНОЙ РЕАЛИЗАЦИИ
+
+### ❌ Пример НЕПОЛНОЙ реализации
+
+**Задача:** "Добавь возможность создания категории продуктов"
+
+**Плохой ответ:**
+```typescript
+// API endpoint
+export async function POST(req: Request) {
+  const { name } = await req.json()
+  const category = await prisma.category.create({ data: { name } })
+  return NextResponse.json(category)
+}
+```
+
+**Что не так:**
+- Нет validation
+- Нет permission check
+- Нет audit logging
+- Нет изоляции hotel_id
+- Нет error handling
+- **Нет frontend формы**
+- **Нет интеграции в навигацию**
+- Пользователь не может использовать эту функцию!
+
+---
+
+### ✅ Пример ПОЛНОЙ реализации
+
+**Задача:** "Добавь возможность создания категории продуктов"
+
+**Правильный ответ:**
+
+#### 1. Анализ
+- Категории для организации продуктов
+- Только managers и admins могут создавать
+- Форма доступна из `/settings/categories`
+- После создания обновляется список категорий
+
+#### 2. Backend
+
+```typescript
+// src/app/api/categories/route.ts
+import { requirePermission } from '@/middleware/auth'
+import { CategoryService } from '@/services/category.service'
+import { z } from 'zod'
+
+const schema = z.object({
+  name: z.string().min(2).max(100),
+  description: z.string().optional()
+})
+
+export async function POST(req: Request) {
+  const user = await requirePermission(req, 'categories', 'create')
+  
+  try {
+    const body = await req.json()
+    const data = schema.parse(body)
+    
+    const service = new CategoryService()
+    const category = await service.create({
+      ...data,
+      hotelId: user.hotelId,
+      createdById: user.id
+    })
+    
+    return NextResponse.json(category)
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Неверные данные', details: error.errors },
+        { status: 400 }
+      )
+    }
+    return NextResponse.json(
+      { error: 'Ошибка создания категории' },
+      { status: 500 }
+    )
+  }
+}
+```
+
+```typescript
+// src/services/category.service.ts
+export class CategoryService {
+  async create(data: CreateCategoryInput) {
+    // Проверка уникальности имени в hotel
+    const existing = await prisma.category.findFirst({
+      where: {
+        name: data.name,
+        hotelId: data.hotelId
+      }
+    })
+    
+    if (existing) {
+      throw new Error('Категория с таким именем уже существует')
+    }
+    
+    // Создаём в транзакции
+    const category = await prisma.$transaction(async (tx) => {
+      const cat = await tx.category.create({ data })
+      
+      await tx.auditLog.create({
+        data: {
+          userId: data.createdById,
+          action: 'CREATE',
+          resource: 'Category',
+          resourceId: cat.id,
+          details: { name: cat.name }
+        }
+      })
+      
+      return cat
+    })
+    
+    return category
+  }
+}
+```
+
+#### 3. Frontend
+
+```typescript
+// src/components/categories/CreateCategoryForm.tsx
+'use client'
+
+import { useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { toast } from 'sonner'
+
+export function CreateCategoryForm({ onSuccess }: Props) {
+  const [loading, setLoading] = useState(false)
+  const [name, setName] = useState('')
+  const [description, setDescription] = useState('')
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+
+    try {
+      const res = await fetch('/api/categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, description })
+      })
+
+      if (!res.ok) {
+        const error = await res.json()
+        toast.error(error.error || 'Ошибка создания')
+        return
+      }
+
+      const category = await res.json()
+      toast.success('Категория создана')
+      setName('')
+      setDescription('')
+      onSuccess?.(category) // Обновляем список
+      
+    } catch (err) {
+      toast.error('Ошибка соединения')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <label className="text-sm font-medium">Название</label>
+        <Input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          disabled={loading}
+          required
+          minLength={2}
+          maxLength={100}
+          className="mt-1"
+        />
+      </div>
+
+      <div>
+        <label className="text-sm font-medium">Описание (опционально)</label>
+        <Textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          disabled={loading}
+          className="mt-1"
+        />
+      </div>
+
+      <Button type="submit" disabled={loading} className="w-full">
+        {loading ? 'Создание...' : 'Создать категорию'}
+      </Button>
+    </form>
+  )
+}
+```
+
+#### 4. Интеграция в страницу
+
+```typescript
+// src/app/settings/categories/page.tsx
+'use client'
+
+import { useState, useEffect } from 'react'
+import { CreateCategoryForm } from '@/components/categories/CreateCategoryForm'
+import { Button } from '@/components/ui/button'
+import { Plus } from 'lucide-react'
+
+export default function CategoriesPage() {
+  const [categories, setCategories] = useState([])
+  const [showForm, setShowForm] = useState(false)
+
+  const loadCategories = async () => {
+    const res = await fetch('/api/categories')
+    const data = await res.json()
+    setCategories(data)
+  }
+
+  useEffect(() => { loadCategories() }, [])
+
+  return (
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Категории продуктов</h1>
+        <Button onClick={() => setShowForm(true)}>
+          <Plus className="w-4 h-4 mr-2" />
+          Создать
+        </Button>
+      </div>
+
+      {showForm && (
+        <div className="mb-6 p-4 border rounded-lg">
+          <CreateCategoryForm
+            onSuccess={(cat) => {
+              setCategories([cat, ...categories])
+              setShowForm(false)
+            }}
+          />
+        </div>
+      )}
+
+      {/* Список категорий */}
+      <div className="space-y-2">
+        {categories.map(cat => (
+          <div key={cat.id} className="p-4 border rounded">
+            {cat.name}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+```
+
+#### 5. Добавляем в навигацию
+
+```typescript
+// src/components/Sidebar.tsx (или где у вас навигация)
+
+{permissions.canViewCategories && (
+  <Link href="/settings/categories">
+    <span>Категории</span>
+  </Link>
+)}
+```
+
+**Теперь функция ПОЛНОСТЬЮ работает:**
+✅ Backend с валидацией, permissions, audit
+✅ Frontend с формой и feedback
+✅ Интегрирована в навигацию
+✅ Обновляет список после создания
+✅ Можно реально использовать
+
+---
+
+## 🎯 ИТОГОВОЕ ПРАВИЛО
+
+**Функция считается ГОТОВОЙ только когда:**
+
+1. ✅ Backend полностью реализован (validation, permissions, audit, service)
+2. ✅ Frontend полностью реализован (форма, states, feedback)
+3. ✅ Интегрирована в систему (навигация, обновление UI)
+4. ✅ Пользователь может **РЕАЛЬНО ИСПОЛЬЗОВАТЬ** её end-to-end
+5. ✅ Все edge cases обработаны
+6. ✅ Mobile работает
+7. ✅ Accessibility соблюдён
+
+**НЕ останавливайся на полпути. Доделывай до конца.**
+
+---
+
+## 📖 АКТУАЛЬНАЯ ДОКУМЕНТАЦИЯ (Context7)
+
+### Автоматическое получение актуальных docs
+
+Для получения **актуальной документации** используемых библиотек всегда добавляй в промпт:
+
+```
+use context7
+```
+
+**Примеры:**
+```
+Создай Next.js middleware для проверки JWT токена. use context7
+
+Настрой Prisma схему для многопользовательской системы с изоляцией данных. use context7
+
+Реализуй SSE события на Node.js с использованием Express. use context7
+```
+
+### Что такое Context7?
+
+Context7 MCP — это сервер, который автоматически подтягивает **актуальную документацию и примеры кода** из официальных источников прямо в контекст LLM. Это решает проблемы:
+
+- ❌ Устаревших примеров кода из обучающих данных
+- ❌ Hallucinated API, которых не существует
+- ❌ Generic ответов для старых версий библиотек
+
+### Когда использовать Context7
+
+Context7 должен использоваться **автоматически** при:
+- Работе с внешними библиотеками (Next.js, Prisma, TailwindCSS, shadcn/ui и т.д.)
+- Создании middleware, API endpoints
+- Интеграции с внешними сервисами
+- Любом вопросе где нужна актуальная документация
+
+### Context7 Library IDs
+
+Если знаешь точный ID библиотеки, используй его напрямую:
+
+```
+Реализуй аутентификацию с Supabase. use library /supabase/supabase for API and docs.
+```
+
+**Основные библиотеки проекта:**
+- Next.js: `/vercel/next.js`
+- Prisma: `/prisma/prisma`
+- TailwindCSS: `/tailwindlabs/tailwindcss`
+- React: `/facebook/react`
+- TypeScript: `/microsoft/typescript`
+
+---
+
 ## 📚 UX/UI ИСТОЧНИКИ (обязательно учитывай)
 
 | Тема | Источник | Ключевое правило |
@@ -197,6 +700,7 @@ UI должен:
 3. **Предпочитай backend-решение** frontend-у
 4. **Не выдумывай архитектуру** — спроси
 5. **Не добавляй фичи** которые не просили
+6. **Используй `use context7`** для актуальной документации
 
 ---
 
@@ -223,11 +727,13 @@ UI должен:
 2. **Покажи код** с комментариями
 3. **Укажи что проверить** (чеклист)
 4. **Предупреди о рисках** (если есть)
+
 ```javascript
 // ✅ Пример хорошего ответа:
 
 // Добавляем SSE подписку на изменение брендинга
-// Источник: https://developer.mozilla.org/en-US/docs/Web/API/EventSource
+// Используем актуальную документацию с Context7
+// use context7
 
 useEffect(() => {
   const eventSource = new EventSource('/api/events/stream')
@@ -256,7 +762,27 @@ useEffect(() => {
 │  3. Удобно ли пользователю?            │
 │  4. Безопасно ли?                      │
 │  5. Работает ли на mobile?             │
+│  6. Используй "use context7"           │
 └────────────────────────────────────────┘
          ↓ Если всё ДА ↓
       Пиши код
 ```
+
+---
+
+## 📖 ДОПОЛНИТЕЛЬНЫЕ РЕСУРСЫ
+
+### Context7 MCP Server
+- **Репозиторий**: https://github.com/upstash/context7
+- **Документация**: https://context7.com
+- **Установка**: Настроен в проекте (используй `use context7` в промптах)
+
+### Репозиторий проекта
+- **GitHub**: https://github.com/adekerz/FreshTrack.git
+
+---
+
+## 💡 АВТОМАТИЗАЦИЯ ЧЕРЕЗ ПРАВИЛА
+
+Чтобы не писать `use context7` каждый раз, добавь правило в настройки редактора:
+- **Для VSCode**: Используй расширение Context7 MCP и настрой правило для автоматического добавления `use context7` в промпты.

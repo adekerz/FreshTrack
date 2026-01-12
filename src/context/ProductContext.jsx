@@ -8,6 +8,7 @@ import { getBatchStatus } from '../utils/dateUtils'
 import { logDebug, logWarn, logError } from '../utils/logger'
 import { apiFetch } from '../services/api'
 import { useHotel } from './HotelContext'
+import { useAuth } from './AuthContext'
 
 const ProductContext = createContext(null)
 
@@ -29,11 +30,12 @@ const DEFAULT_DEPARTMENT_ICONS = {
 export function ProductProvider({ children }) {
   // Получаем выбранный отель из HotelContext
   const { selectedHotelId, loading: hotelLoading } = useHotel()
+  const { user } = useAuth()
   const prevHotelIdRef = useRef(null)
   const initialLoadDoneRef = useRef(false)
   const fetchingRef = useRef(false) // Предотвращает параллельные вызовы
   const currentFetchHotelRef = useRef(null) // Какой отель сейчас загружается
-  
+
   // Каталог товаров (только в памяти, без localStorage - данные загружаются с сервера)
   const [catalog, setCatalog] = useState({})
 
@@ -57,15 +59,23 @@ export function ProductProvider({ children }) {
   // Загрузка данных с сервера при монтировании и при смене отеля
   useEffect(() => {
     const token = localStorage.getItem('freshtrack_token')
-    
+
     // Ждём пока HotelContext загрузится
     if (hotelLoading) return
-    
+
+    // Не загружаем данные для pending пользователей (проверяем status и hotel_id)
+    const isPending =
+      user?.status === 'pending' || (!user?.hotel_id && user?.role !== 'SUPER_ADMIN')
+    if (isPending) {
+      setLoading(false)
+      return
+    }
+
     if (!token) {
       setLoading(false)
       return
     }
-    
+
     // Первая загрузка - всегда выполняем
     if (!initialLoadDoneRef.current) {
       logDebug('🚀 Initial data load for hotel:', selectedHotelId || 'default')
@@ -74,22 +84,22 @@ export function ProductProvider({ children }) {
       fetchAllData(selectedHotelId)
       return
     }
-    
+
     // Повторные загрузки - только если отель изменился
     if (prevHotelIdRef.current !== selectedHotelId) {
       logDebug('🏨 Hotel changed, reloading data for hotel:', selectedHotelId)
-      
+
       // ВАЖНО: Очищаем данные СРАЗУ при смене отеля, чтобы не показывать старые
       setCatalog({})
       setDepartmentList([])
       setCategoryList([])
       setBatches([])
       setStats({ total: 0, expired: 0, critical: 0, warning: 0, good: 0, needsAttention: 0 })
-      
+
       prevHotelIdRef.current = selectedHotelId
       fetchAllData(selectedHotelId)
     }
-  }, [selectedHotelId, hotelLoading])
+  }, [selectedHotelId, hotelLoading, user?.status])
 
   /**
    * Загрузить все данные с сервера
@@ -98,31 +108,33 @@ export function ProductProvider({ children }) {
   const fetchAllData = async (hotelId = null) => {
     // Запоминаем для какого отеля загружаем
     currentFetchHotelRef.current = hotelId
-    
+
     // Если уже идёт загрузка для другого отеля - она станет неактуальной
     // Не блокируем, просто предупреждаем
     if (fetchingRef.current) {
       logDebug('⏳ fetchAllData already in progress, will override with new hotel:', hotelId)
     }
-    
+
     fetchingRef.current = true
-    
+
     try {
       setLoading(true)
       setError(null)
 
-      // Формируем query string с hotel_id для фильтрации
-      const hotelQuery = hotelId ? `?hotel_id=${hotelId}` : ''
-      
+      // Формируем query strings
+      // limit=200 (максимум сервера) чтобы загрузить больше партий и продуктов (по умолчанию 50)
+      const baseQuery = hotelId ? `?hotel_id=${hotelId}` : ''
+      const paginatedQuery = hotelId ? `?hotel_id=${hotelId}&limit=200` : '?limit=200'
+
       // Загружаем батчи, статистику, отделы, категории и продукты параллельно
       const [batchesRes, statsRes, departmentsRes, categoriesRes, productsRes] = await Promise.all([
-        apiFetch(`/batches${hotelQuery}`),
-        apiFetch(`/batches/stats${hotelQuery}`),
-        apiFetch(`/departments${hotelQuery}`).catch(() => ({ departments: [] })),
-        apiFetch('/categories').catch(() => ({ categories: [] })),
-        apiFetch('/products').catch(() => [])
+        apiFetch(`/batches${paginatedQuery}`),
+        apiFetch(`/batches/stats${baseQuery}`),
+        apiFetch(`/departments${baseQuery}`).catch(() => ({ departments: [] })),
+        apiFetch(`/categories${baseQuery}`).catch(() => ({ categories: [] })),
+        apiFetch(`/products${paginatedQuery}`).catch(() => [])
       ])
-      
+
       // ВАЖНО: Проверяем что отель не сменился пока шёл запрос
       if (currentFetchHotelRef.current !== hotelId) {
         logDebug('🔄 Hotel changed during fetch, discarding stale data for:', hotelId)
@@ -130,26 +142,28 @@ export function ProductProvider({ children }) {
       }
 
       // API возвращает { success: true, batches: [...] } или массив
-      const batchesRaw = Array.isArray(batchesRes) ? batchesRes : (batchesRes.batches || [])
-      
+      const batchesRaw = Array.isArray(batchesRes) ? batchesRes : batchesRes.batches || []
+
       // Contract validation: проверяем что backend возвращает enriched данные
       const validateBatchContract = (batch) => {
         const requiredFields = ['expiryStatus', 'statusColor', 'daysLeft']
-        const missingFields = requiredFields.filter(field => batch[field] === undefined)
+        const missingFields = requiredFields.filter((field) => batch[field] === undefined)
         if (missingFields.length > 0 && batch.expiry_date) {
-          console.warn(`⚠️ Backend contract warning: Missing enriched fields [${missingFields.join(', ')}] for batch ${batch.id}. Falling back to local calculation.`)
+          console.warn(
+            `⚠️ Backend contract warning: Missing enriched fields [${missingFields.join(', ')}] for batch ${batch.id}. Falling back to local calculation.`
+          )
         }
         return missingFields.length === 0
       }
-      
+
       // Нормализация snake_case → camelCase для совместимости
       // Backend enriches batches with expiryStatus, statusColor, daysLeft, statusText
-      const batchesData = batchesRaw.map(b => {
+      const batchesData = batchesRaw.map((b) => {
         const expiryDate = b.expiry_date || b.expiryDate
-        
+
         // Validate contract (warning only, not blocking)
         const hasEnrichedData = validateBatchContract(b)
-        
+
         // Use getBatchStatus which prefers backend data, falls back to local calculation
         const statusInfo = getBatchStatus(b)
         return {
@@ -158,6 +172,7 @@ export function ProductProvider({ children }) {
           productName: b.product_name || b.productName,
           departmentId: b.department_id || b.departmentId,
           departmentName: b.department_name || b.departmentName,
+          categoryId: b.category_id || b.categoryId,
           categoryName: b.category_name || b.categoryName,
           expiryDate,
           addedBy: b.added_by_name || b.added_by || b.addedBy,
@@ -178,47 +193,52 @@ export function ProductProvider({ children }) {
         }
       })
       setBatches(batchesData)
-      
+
       // API возвращает { success: true, stats: {...} } или объект
       const statsData = statsRes.stats || statsRes || {}
       setStats(statsData)
-      
+
       // Обновляем динамические отделы (API возвращает { departments: [...] } или массив)
-      const deptData = Array.isArray(departmentsRes) ? departmentsRes : (departmentsRes.departments || [])
+      const deptData = Array.isArray(departmentsRes)
+        ? departmentsRes
+        : departmentsRes.departments || []
       if (Array.isArray(deptData)) {
         setDepartmentList(deptData)
         // Обновляем legacy export для обратной совместимости
         departments = deptData
       }
-      
+
       // Обновляем динамические категории (API возвращает { categories: [...] })
-      const catData = Array.isArray(categoriesRes) ? categoriesRes : (categoriesRes.categories || [])
+      const catData = Array.isArray(categoriesRes) ? categoriesRes : categoriesRes.categories || []
       if (Array.isArray(catData)) {
         setCategoryList(catData)
         categories = catData
       }
 
       // Обновляем каталог продуктов из API
-      const productsData = Array.isArray(productsRes) ? productsRes : (productsRes.products || [])
+      // API возвращает { items: [...], page, limit } или массив
+      const productsData = Array.isArray(productsRes)
+        ? productsRes
+        : productsRes.items || productsRes.products || []
       logDebug('📦 Products from API:', productsData.length)
       logDebug('🏢 Departments:', deptData.length)
       logDebug('📂 Categories:', catData.length)
-      
+
       if (productsData.length > 0 && deptData.length > 0) {
         // Строим каталог: department -> category -> products
         // Продукты в БД не привязаны к отделам, поэтому показываем их во всех отделах
         const newCatalog = {}
-        
-        deptData.forEach(dept => {
+
+        deptData.forEach((dept) => {
           newCatalog[dept.id] = {}
-          catData.forEach(cat => {
+          catData.forEach((cat) => {
             // Добавляем продукты этой категории для каждого отдела
-            const categoryProducts = productsData.filter(p => {
+            const categoryProducts = productsData.filter((p) => {
               const pCatId = p.categoryId || p.category_id
               return pCatId === cat.id
             })
-            
-            newCatalog[dept.id][cat.id] = categoryProducts.map(product => ({
+
+            newCatalog[dept.id][cat.id] = categoryProducts.map((product) => ({
               id: product.id,
               name: product.name,
               barcode: product.barcode,
@@ -258,10 +278,12 @@ export function ProductProvider({ children }) {
         // Найти название продукта в каталоге (если передан id) или использовать напрямую
         let productName = productIdOrName
         let category = 'other'
-        
+
         const deptCatalog = catalog[departmentId] || {}
         for (const [catId, products] of Object.entries(deptCatalog)) {
-          const product = products.find((p) => p.id === productIdOrName || p.name === productIdOrName)
+          const product = products.find(
+            (p) => p.id === productIdOrName || p.name === productIdOrName
+          )
           if (product) {
             productName = product.name
             category = catId
@@ -373,12 +395,13 @@ export function ProductProvider({ children }) {
         method: 'POST',
         body: JSON.stringify({
           name: name.trim(),
-          categoryId: categoryId
+          categoryId: categoryId || null,
+          departmentId: departmentId || null
         })
       })
 
       const newProduct = response.product || response
-      
+
       // Обновить локальный каталог
       setCatalog((prev) => {
         const updated = { ...prev }
@@ -388,18 +411,21 @@ export function ProductProvider({ children }) {
         if (!updated[departmentId][categoryId]) {
           updated[departmentId][categoryId] = []
         }
-        updated[departmentId][categoryId] = [...updated[departmentId][categoryId], {
-          id: newProduct.id,
-          name: newProduct.name,
-          isCustom: true
-        }]
+        updated[departmentId][categoryId] = [
+          ...updated[departmentId][categoryId],
+          {
+            id: newProduct.id,
+            name: newProduct.name,
+            isCustom: true
+          }
+        ]
         return updated
       })
 
       return newProduct
     } catch (error) {
       logError('Error adding custom product:', error)
-      
+
       // Fallback: добавить только в локальный каталог
       const productId = `custom-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`
       const newProduct = { id: productId, name, isCustom: true }
@@ -426,18 +452,16 @@ export function ProductProvider({ children }) {
   const getBatchesByProduct = useCallback(
     (productName, departmentId = null) => {
       return batches
-        .filter(
-          (b) => {
-            // Проверяем совпадение имени продукта (productName или name)
-            const batchName = b.productName || b.name || b.product_name
-            const nameMatch = batchName === productName || 
-                             batchName?.toLowerCase() === productName?.toLowerCase()
-            // Проверяем совпадение отдела (department или departmentId)
-            const batchDept = b.department || b.departmentId
-            const deptMatch = !departmentId || batchDept === departmentId
-            return nameMatch && deptMatch
-          }
-        )
+        .filter((b) => {
+          // Проверяем совпадение имени продукта (productName или name)
+          const batchName = b.productName || b.name || b.product_name
+          const nameMatch =
+            batchName === productName || batchName?.toLowerCase() === productName?.toLowerCase()
+          // Проверяем совпадение отдела (department или departmentId)
+          const batchDept = b.department || b.departmentId
+          const deptMatch = !departmentId || batchDept === departmentId
+          return nameMatch && deptMatch
+        })
         .map((b) => {
           const statusInfo = getBatchStatus(b)
           return {
@@ -454,6 +478,7 @@ export function ProductProvider({ children }) {
   /**
    * Получить товары отдела с информацией о партиях
    * Включает как товары из каталога, так и custom товары из батчей
+   * ВАЖНО: Показываем только товары, у которых есть партии в этом отделе
    */
   const getProductsByDepartment = useCallback(
     (departmentId) => {
@@ -462,6 +487,7 @@ export function ProductProvider({ children }) {
       const addedProductNames = new Set()
 
       // 1. Добавляем товары из каталога с их батчами
+      // ТОЛЬКО если у товара есть партии в этом отделе
       Object.entries(departmentCatalog).forEach(([categoryId, categoryProducts]) => {
         categoryProducts.forEach((product) => {
           const productBatches = batches
@@ -520,20 +546,20 @@ export function ProductProvider({ children }) {
               ['critical', 'warning', 'today'].includes(b.status?.status || b.status)
             )
           })
-          
+
           addedProductNames.add(product.name)
         })
       })
 
       // 2. Добавляем custom товары из батчей, которых нет в каталоге
-      const departmentBatches = batches.filter(b => {
+      const departmentBatches = batches.filter((b) => {
         const batchDeptId = b.departmentId || b.department
         return batchDeptId === departmentId && !addedProductNames.has(b.productName)
       })
-      
+
       // Группируем батчи по имени продукта
       const customProductsMap = new Map()
-      departmentBatches.forEach(b => {
+      departmentBatches.forEach((b) => {
         if (!customProductsMap.has(b.productName)) {
           customProductsMap.set(b.productName, [])
         }
@@ -544,7 +570,7 @@ export function ProductProvider({ children }) {
           status: statusInfo
         })
       })
-      
+
       // Добавляем custom товары
       customProductsMap.forEach((productBatches, productName) => {
         let overallStatus = 'good'
@@ -574,7 +600,10 @@ export function ProductProvider({ children }) {
         products.push({
           id: `custom-${productName}`,
           name: productName,
-          categoryId: productBatches[0]?.categoryId || 'other',
+          // Используем categoryId или category_id с бэкенда
+          categoryId: productBatches[0]?.categoryId || productBatches[0]?.category_id || 'other',
+          // Сохраняем categoryName с бэкенда для отображения (single source of truth)
+          categoryName: productBatches[0]?.categoryName || productBatches[0]?.category_name || null,
           departmentId,
           batches: productBatches,
           totalBatches: productBatches.length,
@@ -633,11 +662,17 @@ export function ProductProvider({ children }) {
         // Используем статус с backend (приоритет) или fallback на локальный
         const status = (b.expiryStatus || b.status?.status || '').toUpperCase()
         const daysLeft = b.daysLeft
-        
+
         if (statusFilter === 'expired') return status === 'EXPIRED' || daysLeft < 0
-        if (statusFilter === 'critical') return status === 'CRITICAL' || (status !== 'EXPIRED' && daysLeft >= 0 && daysLeft <= 3)
-        if (statusFilter === 'warning') return status === 'WARNING' || (status !== 'CRITICAL' && status !== 'EXPIRED' && daysLeft > 3 && daysLeft <= 7)
-        if (statusFilter === 'attention') return ['CRITICAL', 'WARNING'].includes(status) || (daysLeft >= 0 && daysLeft <= 14)
+        if (statusFilter === 'critical')
+          return status === 'CRITICAL' || (status !== 'EXPIRED' && daysLeft >= 0 && daysLeft <= 3)
+        if (statusFilter === 'warning')
+          return (
+            status === 'WARNING' ||
+            (status !== 'CRITICAL' && status !== 'EXPIRED' && daysLeft > 3 && daysLeft <= 7)
+          )
+        if (statusFilter === 'attention')
+          return ['CRITICAL', 'WARNING'].includes(status) || (daysLeft >= 0 && daysLeft <= 14)
         if (statusFilter === 'good') return status === 'GOOD' || status === 'OK' || daysLeft > 7
         return true
       })
@@ -719,7 +754,9 @@ export function ProductProvider({ children }) {
       })
 
       // Удалить связанные партии из локального состояния
-      setBatches((prev) => prev.filter((b) => b.productId !== productId && b.product_id !== productId))
+      setBatches((prev) =>
+        prev.filter((b) => b.productId !== productId && b.product_id !== productId)
+      )
 
       return true
     } catch (error) {
@@ -757,10 +794,10 @@ export function ProductProvider({ children }) {
     getUnreadNotificationsCount,
     getAlerts,
     findProduct,
-    
+
     // Хелпер для иконок отделов
     getDepartmentIcon: (deptId) => {
-      const dept = departmentList.find(d => d.id === deptId || d.code === deptId)
+      const dept = departmentList.find((d) => d.id === deptId || d.code === deptId)
       return dept?.icon || DEFAULT_DEPARTMENT_ICONS[dept?.type] || DEFAULT_DEPARTMENT_ICONS.default
     }
   }

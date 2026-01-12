@@ -5,6 +5,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { Download, FileSpreadsheet, FileText, ChevronDown } from 'lucide-react'
+import { InlineLoader } from './ui'
 import { useTranslation } from '../context/LanguageContext'
 import { useToast } from '../context/ToastContext'
 import { exportToExcel, exportToPDF } from '../utils/exportUtils'
@@ -129,16 +130,16 @@ export default function ExportButton({
                   disabled={isExporting}
                   className="w-full flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-muted transition-colors text-left group"
                 >
-                  <div className={`p-2 rounded-lg bg-muted group-hover:bg-muted/80 ${option.color}`}>
+                  <div
+                    className={`p-2 rounded-lg bg-muted group-hover:bg-muted/80 ${option.color}`}
+                  >
                     <Icon className="w-4 h-4" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-foreground">{option.label}</p>
                     <p className="text-xs text-muted-foreground truncate">{option.description}</p>
                   </div>
-                  {isExporting && (
-                    <div className="w-4 h-4 border-2 border-charcoal border-t-transparent rounded-full animate-spin" />
-                  )}
+                  {isExporting && <InlineLoader />}
                 </button>
               )
             })}

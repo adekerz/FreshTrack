@@ -6,15 +6,8 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from '../../context/LanguageContext'
 import { useToast } from '../../context/ToastContext'
-import { 
-  Save, 
-  Check, 
-  AlertCircle, 
-  RefreshCw, 
-  Globe, 
-  Coins, 
-  Clock
-} from 'lucide-react'
+import { Save, Check, AlertCircle, RefreshCw, Globe, Coins, Clock } from 'lucide-react'
+import { SectionLoader, ButtonLoader } from '../ui'
 import { apiFetch } from '../../services/api'
 
 export default function GeneralSettings() {
@@ -22,7 +15,6 @@ export default function GeneralSettings() {
   const { addToast } = useToast()
   const [settings, setSettings] = useState({
     // Региональные
-    timezone: 'Asia/Almaty',
     dateFormat: 'DD.MM.YYYY',
     timeFormat: '24h',
     firstDayOfWeek: 'monday',
@@ -31,7 +23,7 @@ export default function GeneralSettings() {
     showPrices: false,
     // Сессия
     autoLogoutMinutes: 60,
-    rememberDevice: true,
+    rememberDevice: true
   })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -46,7 +38,7 @@ export default function GeneralSettings() {
     try {
       const response = await apiFetch('/settings/general')
       if (response?.success && response?.settings) {
-        setSettings(prev => ({ ...prev, ...response.settings }))
+        setSettings((prev) => ({ ...prev, ...response.settings }))
       }
     } catch (error) {
       console.error('Load settings error:', error)
@@ -75,30 +67,28 @@ export default function GeneralSettings() {
   }
 
   const updateSetting = (key, value) => {
-    setSettings(prev => ({ ...prev, [key]: value }))
+    setSettings((prev) => ({ ...prev, [key]: value }))
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <RefreshCw className="w-6 h-6 animate-spin text-muted-foreground" />
-      </div>
-    )
+    return <SectionLoader />
   }
 
   // Toggle component
   const Toggle = ({ checked, onChange, label }) => (
     <label className="flex items-center justify-between cursor-pointer">
       <span className="text-sm text-foreground">{label}</span>
-      <div 
+      <div
         className={`relative w-11 h-6 rounded-full transition-colors ${
           checked ? 'bg-accent' : 'bg-muted'
         }`}
         onClick={() => onChange(!checked)}
       >
-        <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
-          checked ? 'translate-x-5' : 'translate-x-0'
-        }`} />
+        <div
+          className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+            checked ? 'translate-x-5' : 'translate-x-0'
+          }`}
+        />
       </div>
     </label>
   )
@@ -110,25 +100,23 @@ export default function GeneralSettings() {
         <Icon className="w-5 h-5 text-accent" />
         <h3 className="font-medium text-foreground">{title}</h3>
       </div>
-      <div className="space-y-4">
-        {children}
-      </div>
+      <div className="space-y-4">{children}</div>
     </div>
   )
 
   // Select input component
   const SelectField = ({ label, value, onChange, options, hint }) => (
     <div>
-      <label className="block text-sm font-medium text-foreground mb-1.5">
-        {label}
-      </label>
-      <select 
+      <label className="block text-sm font-medium text-foreground mb-1.5">{label}</label>
+      <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-card text-sm"
       >
-        {options.map(opt => (
-          <option key={opt.value} value={opt.value}>{opt.label}</option>
+        {options.map((opt) => (
+          <option key={opt.value} value={opt.value}>
+            {opt.label}
+          </option>
         ))}
       </select>
       {hint && <p className="text-xs text-muted-foreground mt-1">{hint}</p>}
@@ -147,12 +135,18 @@ export default function GeneralSettings() {
       </div>
 
       {message && (
-        <div className={`flex items-center gap-2 p-4 rounded-lg ${
-          message.type === 'success' 
-            ? 'bg-success/10 text-success border border-success/20' 
-            : 'bg-danger/10 text-danger border border-danger/20'
-        }`}>
-          {message.type === 'success' ? <Check className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+        <div
+          className={`flex items-center gap-2 p-4 rounded-lg ${
+            message.type === 'success'
+              ? 'bg-success/10 text-success border border-success/20'
+              : 'bg-danger/10 text-danger border border-danger/20'
+          }`}
+        >
+          {message.type === 'success' ? (
+            <Check className="w-5 h-5" />
+          ) : (
+            <AlertCircle className="w-5 h-5" />
+          )}
           {message.text}
         </div>
       )}
@@ -160,20 +154,7 @@ export default function GeneralSettings() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Региональные настройки */}
         <Section icon={Globe} title="Региональные настройки">
-          <SelectField 
-            label="Часовой пояс"
-            value={settings.timezone}
-            onChange={(v) => updateSetting('timezone', v)}
-            options={[
-              { value: 'Asia/Almaty', label: 'Алматы (UTC+5)' },
-              { value: 'Asia/Astana', label: 'Астана (UTC+5)' },
-              { value: 'Europe/Moscow', label: 'Москва (UTC+3)' },
-              { value: 'Europe/London', label: 'Лондон (UTC+0)' },
-              { value: 'America/New_York', label: 'Нью-Йорк (UTC-5)' },
-              { value: 'Asia/Dubai', label: 'Дубай (UTC+4)' },
-            ]}
-          />
-          <SelectField 
+          <SelectField
             label="Формат даты"
             value={settings.dateFormat}
             onChange={(v) => updateSetting('dateFormat', v)}
@@ -181,33 +162,33 @@ export default function GeneralSettings() {
               { value: 'DD.MM.YYYY', label: 'DD.MM.YYYY (31.12.2025)' },
               { value: 'MM/DD/YYYY', label: 'MM/DD/YYYY (12/31/2025)' },
               { value: 'YYYY-MM-DD', label: 'YYYY-MM-DD (2025-12-31)' },
-              { value: 'DD MMM YYYY', label: 'DD MMM YYYY (31 дек 2025)' },
+              { value: 'DD MMM YYYY', label: 'DD MMM YYYY (31 дек 2025)' }
             ]}
           />
-          <SelectField 
+          <SelectField
             label="Формат времени"
             value={settings.timeFormat}
             onChange={(v) => updateSetting('timeFormat', v)}
             options={[
               { value: '24h', label: '24 часа (14:30)' },
-              { value: '12h', label: '12 часов (2:30 PM)' },
+              { value: '12h', label: '12 часов (2:30 PM)' }
             ]}
           />
-          <SelectField 
+          <SelectField
             label="Первый день недели"
             value={settings.firstDayOfWeek}
             onChange={(v) => updateSetting('firstDayOfWeek', v)}
             options={[
               { value: 'monday', label: 'Понедельник' },
               { value: 'sunday', label: 'Воскресенье' },
-              { value: 'saturday', label: 'Суббота' },
+              { value: 'saturday', label: 'Суббота' }
             ]}
           />
         </Section>
 
         {/* Единицы и отображение */}
         <Section icon={Coins} title="Единицы и отображение">
-          <SelectField 
+          <SelectField
             label="Единица по умолчанию"
             value={settings.defaultUnit}
             onChange={(v) => updateSetting('defaultUnit', v)}
@@ -217,11 +198,11 @@ export default function GeneralSettings() {
               { value: 'г', label: 'Граммы (г)' },
               { value: 'л', label: 'Литры (л)' },
               { value: 'мл', label: 'Миллилитры (мл)' },
-              { value: 'уп', label: 'Упаковки (уп)' },
+              { value: 'уп', label: 'Упаковки (уп)' }
             ]}
             hint="Используется при добавлении новых партий"
           />
-          <Toggle 
+          <Toggle
             label="Показывать цены"
             checked={settings.showPrices}
             onChange={(v) => updateSetting('showPrices', v)}
@@ -230,7 +211,7 @@ export default function GeneralSettings() {
 
         {/* Сессия и безопасность */}
         <Section icon={Clock} title="Сессия">
-          <SelectField 
+          <SelectField
             label="Автоматический выход"
             value={settings.autoLogoutMinutes}
             onChange={(v) => updateSetting('autoLogoutMinutes', parseInt(v))}
@@ -240,11 +221,11 @@ export default function GeneralSettings() {
               { value: 60, label: 'Через 1 час' },
               { value: 120, label: 'Через 2 часа' },
               { value: 480, label: 'Через 8 часов' },
-              { value: 0, label: 'Никогда' },
+              { value: 0, label: 'Никогда' }
             ]}
             hint="Автоматически выходить из системы при неактивности"
           />
-          <Toggle 
+          <Toggle
             label="Запомнить устройство"
             checked={settings.rememberDevice}
             onChange={(v) => updateSetting('rememberDevice', v)}
@@ -254,16 +235,13 @@ export default function GeneralSettings() {
 
       {/* Sticky save button */}
       <div className="sticky bottom-4 flex justify-end pt-4">
-        <button 
+        <button
           onClick={saveSettings}
           disabled={saving}
           className="flex items-center gap-2 px-6 py-2.5 bg-accent text-white rounded-lg hover:bg-accent/90 transition-colors disabled:opacity-50 shadow-lg"
+          aria-busy={saving}
         >
-          {saving ? (
-            <RefreshCw className="w-4 h-4 animate-spin" />
-          ) : (
-            <Save className="w-4 h-4" />
-          )}
+          {saving ? <ButtonLoader /> : <Save className="w-4 h-4" />}
           {saving ? 'Сохранение...' : 'Сохранить'}
         </button>
       </div>

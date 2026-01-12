@@ -14,22 +14,60 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
   const [token, setToken] = useState(null)
 
+  // Validate token and refresh user data on mount
   useEffect(() => {
-    // Check saved user in localStorage
-    const savedUser = localStorage.getItem('freshtrack_user')
-    const savedToken = localStorage.getItem('freshtrack_token')
+    const initAuth = async () => {
+      const savedUser = localStorage.getItem('freshtrack_user')
+      const savedToken = localStorage.getItem('freshtrack_token')
 
-    if (savedUser && savedToken) {
-      try {
-        setUser(JSON.parse(savedUser))
-        setToken(savedToken)
-      } catch (e) {
-        // Invalid data in localStorage
-        localStorage.removeItem('freshtrack_user')
-        localStorage.removeItem('freshtrack_token')
+      if (savedUser && savedToken) {
+        try {
+          // Set token first for API calls
+          setToken(savedToken)
+
+          // Fetch fresh user data from server
+          const response = await fetch('/api/auth/me', {
+            headers: {
+              Authorization: `Bearer ${savedToken}`,
+              'Content-Type': 'application/json'
+            }
+          })
+
+          if (response.ok) {
+            const data = await response.json()
+            if (data.user) {
+              // Update with fresh data from server
+              setUser(data.user)
+              localStorage.setItem('freshtrack_user', JSON.stringify(data.user))
+            } else {
+              // Fallback to cached user if server returns no user
+              setUser(JSON.parse(savedUser))
+            }
+          } else if (response.status === 401) {
+            // Token expired or invalid - logout
+            localStorage.removeItem('freshtrack_user')
+            localStorage.removeItem('freshtrack_token')
+            setToken(null)
+            setUser(null)
+          } else {
+            // Server error - use cached data
+            setUser(JSON.parse(savedUser))
+          }
+        } catch (e) {
+          // Network error - use cached data
+          console.warn('[Auth] Failed to refresh user, using cached data:', e.message)
+          try {
+            setUser(JSON.parse(savedUser))
+          } catch {
+            localStorage.removeItem('freshtrack_user')
+            localStorage.removeItem('freshtrack_token')
+          }
+        }
       }
+      setLoading(false)
     }
-    setLoading(false)
+
+    initAuth()
   }, [])
 
   /**
@@ -39,7 +77,8 @@ export function AuthProvider({ children }) {
     try {
       const response = await authAPI.login(identifier, password)
 
-      if (response.success) {
+      // API returns { user, token } on success
+      if (response.user && response.token) {
         const userData = response.user
         setUser(userData)
         setToken(response.token)
@@ -52,9 +91,9 @@ export function AuthProvider({ children }) {
     } catch (error) {
       logError('Login error:', error.message)
       // Передаём сообщение об ошибке от сервера (например, "Account is blocked")
-      return { 
-        success: false, 
-        error: error.message || 'Unable to connect to server. Please check your connection.' 
+      return {
+        success: false,
+        error: error.message || 'Unable to connect to server. Please check your connection.'
       }
     }
   }
@@ -100,13 +139,15 @@ export function AuthProvider({ children }) {
     } catch (error) {
       console.log('Logout logging skipped:', error.message)
     }
-    
+
     setUser(null)
     setToken(null)
     localStorage.removeItem('freshtrack_user')
     localStorage.removeItem('freshtrack_token')
     // Очистка кэша данных при выходе
     localStorage.removeItem('freshtrack_catalog')
+    // Очистка выбранного отеля при выходе (важно для переключения между пользователями)
+    localStorage.removeItem('freshtrack_selected_hotel')
   }
 
   /**
@@ -116,24 +157,24 @@ export function AuthProvider({ children }) {
    */
   const hasPermission = (permission) => {
     if (!user) return false
-    
+
     const role = user?.role?.toUpperCase()
     // SUPER_ADMIN has all permissions (implicit wildcard)
     if (role === 'SUPER_ADMIN') return true
-    
+
     const userPermissions = user.permissions || []
-    
+
     // Check for explicit wildcard
     if (userPermissions.includes('*')) return true
-    
+
     // Check for exact match
     if (userPermissions.includes(permission)) return true
-    
+
     // Check for resource wildcard (e.g., 'products:*' grants 'products:delete')
     const [resource] = permission.split(':')
     if (userPermissions.includes(`${resource}:*`)) return true
     if (userPermissions.includes(`${resource}:manage`)) return true
-    
+
     return false
   }
 
@@ -143,7 +184,12 @@ export function AuthProvider({ children }) {
    */
   const isAdmin = () => {
     const role = user?.role?.toUpperCase()
-    return role === 'ADMIN' || role === 'ADMINISTRATOR' || role === 'SUPER_ADMIN' || role === 'HOTEL_ADMIN'
+    return (
+      role === 'ADMIN' ||
+      role === 'ADMINISTRATOR' ||
+      role === 'SUPER_ADMIN' ||
+      role === 'HOTEL_ADMIN'
+    )
   }
 
   /**
@@ -162,7 +208,21 @@ export function AuthProvider({ children }) {
     const role = user?.role?.toUpperCase()
     return role === 'SUPER_ADMIN' || role === 'HOTEL_ADMIN'
   }
-  
+
+  /**
+   * Check if user is department manager
+   */
+  const isDepartmentManager = () => {
+    return user?.role?.toUpperCase() === 'DEPARTMENT_MANAGER'
+  }
+
+  /**
+   * Check if user is staff
+   */
+  const isStaff = () => {
+    return user?.role?.toUpperCase() === 'STAFF'
+  }
+
   /**
    * Check if user can manage a resource (has manage or specific action permission)
    */
@@ -214,6 +274,8 @@ export function AuthProvider({ children }) {
     isAdmin,
     isSuperAdmin,
     isHotelAdmin,
+    isDepartmentManager,
+    isStaff,
     hasAccessToDepartment,
     getAccessibleDepartments,
     updateUser,

@@ -857,6 +857,8 @@ a:hover:not(.btn-primary):not(.btn-secondary) {
 
 /* Reduce transparency for better readability */
 @media (prefers-reduced-transparency: reduce) {
+/* Reduced motion - показываем статичную сетку */
+@media (prefers-reduced-motion: reduce) {
   .bg-opacity-50,
   .bg-charcoal\/50,
   .bg-white\/50 {
@@ -864,88 +866,7 @@ a:hover:not(.btn-primary):not(.btn-secondary) {
   }
 }
 
-/* ===== GRID LOADER - FreshTrack Coral Style ===== */
-.loader {
-  --cell-size: 40px;
-  --cell-spacing: 2px;
-  --cells: 3;
-  --total-size: calc(var(--cells) * (var(--cell-size) + 2 * var(--cell-spacing)));
-  display: flex;
-  flex-wrap: wrap;
-  width: var(--total-size);
-  height: var(--total-size);
+/* NOTE: Grid Loader стили перемещены в loader.css */
+
+
 }
-
-/* Размеры */
-.loader-sm {
-  --cell-size: 20px;
-  --cell-spacing: 1px;
-}
-
-.loader-md {
-  --cell-size: 40px;
-  --cell-spacing: 2px;
-}
-
-.loader-lg {
-  --cell-size: 52px;
-  --cell-spacing: 3px;
-}
-
-.cell {
-  flex: 0 0 var(--cell-size);
-  margin: var(--cell-spacing);
-  background-color: transparent;
-  box-sizing: border-box;
-  border-radius: 6px;
-  animation: 1.5s ripple ease infinite;
-}
-
-/* Задержки анимации по диагонали */
-.cell.d-0 { animation-delay: 0ms; }
-.cell.d-1 { animation-delay: 100ms; }
-.cell.d-2 { animation-delay: 200ms; }
-.cell.d-3 { animation-delay: 300ms; }
-.cell.d-4 { animation-delay: 400ms; }
-
-/* Коралловая палитра FreshTrack (от светлого к насыщенному) */
-.cell:nth-child(1) { --cell-color: rgb(var(--primary) / 0.3); }
-.cell:nth-child(2) { --cell-color: rgb(var(--primary) / 0.4); }
-.cell:nth-child(3) { --cell-color: rgb(var(--primary) / 0.5); }
-.cell:nth-child(4) { --cell-color: rgb(var(--primary) / 0.5); }
-.cell:nth-child(5) { --cell-color: rgb(var(--primary) / 0.7); }
-.cell:nth-child(6) { --cell-color: rgb(var(--primary) / 0.8); }
-.cell:nth-child(7) { --cell-color: rgb(var(--primary) / 0.6); }
-.cell:nth-child(8) { --cell-color: rgb(var(--primary) / 0.8); }
-.cell:nth-child(9) { --cell-color: rgb(var(--primary)); }
-
-@keyframes ripple {
-  0% {
-    background-color: transparent;
-  }
-  30% {
-    background-color: var(--cell-color);
-  }
-  60% {
-    background-color: transparent;
-  }
-  100% {
-    background-color: transparent;
-  }
-}
-
-/* Reduced motion - показываем статичную сетку */
-@media (prefers-reduced-motion: reduce) {
-  .cell {
-    animation: none;
-    background-color: rgb(var(--primary) / 0.3);
-  }
-  .cell:nth-child(5) {
-    background-color: rgb(var(--primary) / 0.6);
-  }
-  .cell:nth-child(9) {
-    background-color: rgb(var(--primary));
-  }
-}
-
-

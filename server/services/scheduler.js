@@ -5,7 +5,7 @@
 
 import cron from 'node-cron'
 import { getExpiredProducts, getExpiringTodayProducts, getExpiringSoonProducts, getAllHotels } from '../db/database.js'
-import { sendDailyAlert, initTelegramBot } from './telegram.js'
+import { sendDailyAlert, initTelegramBot } from './TelegramService.js'
 import { logError, logInfo, logDebug } from '../utils/logger.js'
 import sseManager from './SSEManager.js'
 import { SSE_EVENTS } from '../utils/constants.js'

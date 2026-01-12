@@ -6,6 +6,20 @@
 import React from 'react'
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react'
 
+// Проверяем роль пользователя из localStorage
+function isAdminUser() {
+  try {
+    const userData = localStorage.getItem('freshtrack_user')
+    if (userData) {
+      const user = JSON.parse(userData)
+      return user?.role === 'SUPER_ADMIN' || user?.role === 'HOTEL_ADMIN'
+    }
+  } catch {
+    return false
+  }
+  return false
+}
+
 class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props)
@@ -18,12 +32,12 @@ class ErrorBoundary extends React.Component {
 
   componentDidCatch(error, errorInfo) {
     this.setState({ errorInfo })
-    
+
     // Log error in development only
     if (import.meta.env.DEV) {
       console.error('ErrorBoundary caught error:', error, errorInfo)
     }
-    
+
     // TODO: Send to error monitoring service in production
     // e.g., Sentry.captureException(error, { extra: errorInfo })
   }
@@ -43,22 +57,23 @@ class ErrorBoundary extends React.Component {
         return this.props.fallback
       }
 
+      // Показываем подробности только в DEV или для админов
+      const showDetails = import.meta.env.DEV || isAdminUser()
+
       return (
         <div className="min-h-screen bg-background flex items-center justify-center p-4">
           <div className="bg-card rounded-2xl shadow-elevated p-8 max-w-md w-full text-center">
             <div className="w-16 h-16 bg-danger/10 rounded-full flex items-center justify-center mx-auto mb-4">
               <AlertTriangle className="w-8 h-8 text-danger" />
             </div>
-            
-            <h1 className="text-xl font-semibold text-foreground mb-2">
-              Что-то пошло не так
-            </h1>
-            
+
+            <h1 className="text-xl font-semibold text-foreground mb-2">Что-то пошло не так</h1>
+
             <p className="text-muted-foreground mb-6">
               Произошла непредвиденная ошибка. Попробуйте обновить страницу.
             </p>
-            
-            {import.meta.env.DEV && this.state.error && (
+
+            {showDetails && this.state.error && (
               <details className="mb-6 text-left">
                 <summary className="cursor-pointer text-sm text-muted-foreground hover:text-foreground">
                   Подробности ошибки
@@ -69,7 +84,7 @@ class ErrorBoundary extends React.Component {
                 </pre>
               </details>
             )}
-            
+
             <div className="flex gap-3 justify-center">
               <button
                 onClick={this.handleRefresh}
@@ -78,7 +93,7 @@ class ErrorBoundary extends React.Component {
                 <RefreshCw className="w-4 h-4" />
                 Обновить
               </button>
-              
+
               <button
                 onClick={this.handleGoHome}
                 className="flex items-center gap-2 px-4 py-2 border border-border text-foreground rounded-lg hover:bg-muted transition-colors"

@@ -218,24 +218,12 @@ CREATE INDEX IF NOT EXISTS idx_notifications_batch
   WHERE batch_id IS NOT NULL;
 
 -- ═══════════════════════════════════════════════════════════════
--- STEP 4: Seed default system notification rules
+-- STEP 4: Remove legacy system notification rule
+-- Users should create their own rules with custom thresholds
 -- ═══════════════════════════════════════════════════════════════
 
-INSERT INTO notification_rules (id, type, name, description, warning_days, critical_days, channels, recipient_roles, enabled)
-VALUES 
-  -- Default expiry rule (system-wide)
-  (
-    'a0000000-0000-0000-0000-000000000001',
-    'expiry',
-    'Стандартные уведомления о сроках',
-    'Системное правило: предупреждение за 7 дней, критическое за 3 дня',
-    7,
-    3,
-    '["app", "telegram"]',
-    '["HOTEL_ADMIN", "DEPARTMENT_MANAGER"]',
-    true
-  )
-ON CONFLICT DO NOTHING;
+-- Delete the old system rule if it exists
+DELETE FROM notification_rules WHERE id = 'a0000000-0000-0000-0000-000000000001';
 
 -- ═══════════════════════════════════════════════════════════════
 -- STEP 5: Create function for notification hash generation

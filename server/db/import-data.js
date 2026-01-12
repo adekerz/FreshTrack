@@ -13,9 +13,9 @@ const backupFile = join(__dirname, 'backup_data.json')
 
 async function importData() {
   console.log('📥 Importing data from SQLite backup...')
-  
+
   const client = await getClient()
-  
+
   try {
     // Read backup file
     const backupData = JSON.parse(readFileSync(backupFile, 'utf8'))
@@ -26,19 +26,19 @@ async function importData() {
     console.log(`   - Categories: ${backupData.categories.length}`)
     console.log(`   - Products: ${backupData.products.length}`)
     console.log(`   - Batches: ${backupData.batches.length}`)
-    
+
     await client.query('BEGIN')
-    
+
     // Import hotels
     for (const hotel of backupData.hotels) {
       await client.query(`
-        INSERT INTO hotels (id, name, code, description, address, phone, email, timezone, is_active, created_at)
+        INSERT INTO hotels (id, name, marsha_code, description, address, phone, email, timezone, is_active, created_at)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
         ON CONFLICT (id) DO NOTHING
-      `, [hotel.id, hotel.name, hotel.code, hotel.description, hotel.address, hotel.phone, hotel.email, hotel.timezone || 'Asia/Almaty', hotel.is_active !== 0, hotel.created_at])
+      `, [hotel.id, hotel.name, hotel.code || hotel.marsha_code, hotel.description, hotel.address, hotel.phone, hotel.email, hotel.timezone || 'Asia/Almaty', hotel.is_active !== 0, hotel.created_at])
     }
     console.log(`✅ Hotels imported: ${backupData.hotels.length}`)
-    
+
     // Import departments
     for (const dept of backupData.departments) {
       await client.query(`
@@ -48,7 +48,7 @@ async function importData() {
       `, [dept.id, dept.hotel_id, dept.name, dept.code, dept.description, dept.is_active !== 0, dept.created_at])
     }
     console.log(`✅ Departments imported: ${backupData.departments.length}`)
-    
+
     // Import users (password already hashed in backup)
     for (const user of backupData.users) {
       await client.query(`
@@ -58,7 +58,7 @@ async function importData() {
       `, [user.id, user.hotel_id, user.department_id, user.login, user.name, user.email, user.password, user.role, user.is_active !== 0, user.created_at])
     }
     console.log(`✅ Users imported: ${backupData.users.length}`)
-    
+
     // Import categories
     for (const cat of backupData.categories) {
       await client.query(`
@@ -68,7 +68,7 @@ async function importData() {
       `, [cat.id, cat.hotel_id, cat.department_id, cat.name, cat.description, cat.color, cat.icon, cat.parent_id, cat.sort_order || 0, cat.is_active !== 0, cat.created_at])
     }
     console.log(`✅ Categories imported: ${backupData.categories.length}`)
-    
+
     // Import products
     for (const prod of backupData.products) {
       await client.query(`
@@ -83,7 +83,7 @@ async function importData() {
       ])
     }
     console.log(`✅ Products imported: ${backupData.products.length}`)
-    
+
     // Import batches
     for (const batch of backupData.batches) {
       await client.query(`
@@ -97,7 +97,7 @@ async function importData() {
       ])
     }
     console.log(`✅ Batches imported: ${backupData.batches.length}`)
-    
+
     // Import write-offs
     if (backupData.write_offs) {
       for (const wo of backupData.write_offs) {
@@ -109,7 +109,7 @@ async function importData() {
       }
       console.log(`✅ Write-offs imported: ${backupData.write_offs.length}`)
     }
-    
+
     // Import settings
     if (backupData.settings) {
       for (const setting of backupData.settings) {
@@ -121,10 +121,10 @@ async function importData() {
       }
       console.log(`✅ Settings imported: ${backupData.settings.length}`)
     }
-    
+
     await client.query('COMMIT')
     console.log('\n✅ All data imported successfully!')
-    
+
   } catch (error) {
     await client.query('ROLLBACK')
     console.error('❌ Import failed:', error)

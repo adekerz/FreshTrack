@@ -83,7 +83,7 @@ export default function AddCustomProductModal({ onClose, departmentId = null }) 
       <div className="bg-card rounded-lg w-full max-w-md overflow-hidden animate-slide-up">
         {/* Заголовок */}
         <div className="flex items-center justify-between p-6 border-b border-border">
-          <h2 className="font-serif text-xl text-foreground">{t('customProduct.title')}</h2>
+          <h2 className="text-xl font-medium text-foreground">{t('customProduct.title')}</h2>
           <button
             onClick={onClose}
             className="text-muted-foreground hover:text-foreground transition-colors p-2"
@@ -116,7 +116,7 @@ export default function AddCustomProductModal({ onClose, departmentId = null }) 
                   >
                     <Icon
                       className="w-4 h-4"
-                      style={{ color: isSelected ? (dept.color || '#C4A35A') : undefined }}
+                      style={{ color: isSelected ? dept.color || '#C4A35A' : undefined }}
                     />
                     <span className="text-sm">{dept.name}</span>
                   </button>

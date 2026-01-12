@@ -1,7 +1,7 @@
 /**
  * FreshTrack FIFO Collection Modal
  * Позволяет списывать продукты по количеству с автоматическим FIFO
- * 
+ *
  * Backend API:
  * - GET /api/fifo-collect/preview - Предпросмотр затрагиваемых партий
  * - POST /api/fifo-collect/collect - Выполнить списание
@@ -24,6 +24,7 @@ import {
   Zap,
   Calendar
 } from 'lucide-react'
+import { ButtonLoader, InlineLoader } from './ui'
 import { useTranslation } from '../context/LanguageContext'
 import { useToast } from '../context/ToastContext'
 import { apiFetch } from '../services/api'
@@ -34,7 +35,7 @@ const REASONS = [
   { id: 'expired', icon: Clock, color: 'text-danger' },
   { id: 'kitchen', icon: ChefHat, color: 'text-green-600' },
   { id: 'damaged', icon: Trash2, color: 'text-orange-500' },
-  { id: 'return', icon: RotateCcw, color: 'text-blue-500' },
+  { id: 'return', icon: RotateCcw, color: 'text-accent' },
   { id: 'compliment', icon: Users, color: 'text-purple-500' },
   { id: 'other', icon: AlertTriangle, color: 'text-foreground' }
 ]
@@ -42,15 +43,15 @@ const REASONS = [
 // Быстрые кнопки количества
 const QUICK_AMOUNTS = [1, 5, 10, 25]
 
-export default function FIFOCollectModal({ 
-  isOpen, 
-  onClose, 
-  product,  // { id, name, totalQuantity }
-  onSuccess 
+export default function FIFOCollectModal({
+  isOpen,
+  onClose,
+  product, // { id, name, totalQuantity }
+  onSuccess
 }) {
   const { t } = useTranslation()
   const { addToast } = useToast()
-  
+
   const [quantity, setQuantity] = useState(1)
   const [reason, setReason] = useState('consumption')
   const [notes, setNotes] = useState('')
@@ -62,12 +63,14 @@ export default function FIFOCollectModal({
   // Загрузить preview при изменении количества
   const fetchPreview = useCallback(async () => {
     if (!product?.id || quantity <= 0) return
-    
+
     setIsLoading(true)
     setError(null)
-    
+
     try {
-      const data = await apiFetch(`/fifo-collect/preview?productId=${product.id}&quantity=${quantity}`)
+      const data = await apiFetch(
+        `/fifo-collect/preview?productId=${product.id}&quantity=${quantity}`
+      )
       setPreview(data)
     } catch (err) {
       logError('Preview fetch error:', err)
@@ -128,11 +131,11 @@ export default function FIFOCollectModal({
       })
 
       addToast(
-        t('fifoCollect.success', { count: result.totalCollected || quantity }) || 
-        `Успешно списано ${result.totalCollected || quantity} шт.`,
+        t('fifoCollect.success', { count: result.totalCollected || quantity }) ||
+          `Успешно списано ${result.totalCollected || quantity} шт.`,
         'success'
       )
-      
+
       onSuccess?.(result)
       onClose()
     } catch (err) {
@@ -165,15 +168,10 @@ export default function FIFOCollectModal({
                 <h2 className="text-lg font-semibold text-foreground">
                   {t('fifoCollect.title') || 'FIFO Списание'}
                 </h2>
-                <p className="text-sm text-muted-foreground">
-                  {product.name}
-                </p>
+                <p className="text-sm text-muted-foreground">{product.name}</p>
               </div>
             </div>
-            <button 
-              onClick={onClose} 
-              className="p-2 hover:bg-muted rounded-lg transition-colors"
-            >
+            <button onClick={onClose} className="p-2 hover:bg-muted rounded-lg transition-colors">
               <X className="w-5 h-5 text-muted-foreground" />
             </button>
           </div>
@@ -208,9 +206,11 @@ export default function FIFOCollectModal({
                     disabled={amount > maxQuantity}
                     className={`
                       py-2 px-3 rounded-lg border transition-all text-sm font-medium
-                      ${quantity === amount 
-                        ? 'border-gold bg-gold/10 ring-2 ring-gold/30 text-foreground' 
-                        : 'border-border hover:border-gold/50 hover:bg-muted text-foreground'}
+                      ${
+                        quantity === amount
+                          ? 'border-gold bg-gold/10 ring-2 ring-gold/30 text-foreground'
+                          : 'border-border hover:border-gold/50 hover:bg-muted text-foreground'
+                      }
                       ${amount > maxQuantity ? 'opacity-50 cursor-not-allowed' : ''}
                     `}
                   >
@@ -234,16 +234,18 @@ export default function FIFOCollectModal({
                 >
                   <Minus className="w-5 h-5 text-foreground" />
                 </button>
-                
+
                 <input
                   type="number"
                   value={quantity}
-                  onChange={(e) => setQuantity(Math.max(1, Math.min(maxQuantity, parseInt(e.target.value) || 1)))}
+                  onChange={(e) =>
+                    setQuantity(Math.max(1, Math.min(maxQuantity, parseInt(e.target.value) || 1)))
+                  }
                   className="w-24 text-center text-2xl font-bold border border-border rounded-lg py-2 bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-gold/50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   min={1}
                   max={maxQuantity}
                 />
-                
+
                 <button
                   type="button"
                   onClick={() => handleQuantityChange(1)}
@@ -268,9 +270,11 @@ export default function FIFOCollectModal({
                     onClick={() => setReason(id)}
                     className={`
                       flex items-center gap-2 p-3 rounded-lg border transition-all
-                      ${reason === id 
-                        ? 'border-gold bg-gold/10 ring-2 ring-gold/30' 
-                        : 'border-border hover:border-gold/50 hover:bg-muted'}
+                      ${
+                        reason === id
+                          ? 'border-gold bg-gold/10 ring-2 ring-gold/30'
+                          : 'border-border hover:border-gold/50 hover:bg-muted'
+                      }
                     `}
                   >
                     <Icon className={`w-4 h-4 ${color}`} />
@@ -301,8 +305,8 @@ export default function FIFOCollectModal({
             {/* FIFO Preview */}
             {isLoading ? (
               <div className="flex items-center justify-center py-4 text-muted-foreground">
-                <div className="w-5 h-5 border-2 border-gold/30 border-t-gold rounded-full animate-spin mr-2" />
-                {t('common.loading') || 'Загрузка...'}
+                <InlineLoader />
+                <span className="ml-2">{t('common.loading') || 'Загрузка...'}</span>
               </div>
             ) : preview?.affectedBatches?.length > 0 ? (
               <div className="bg-muted rounded-xl p-4">
@@ -312,7 +316,7 @@ export default function FIFOCollectModal({
                 </div>
                 <div className="space-y-2 max-h-24 overflow-y-auto">
                   {preview.affectedBatches.map((batch, idx) => (
-                    <div 
+                    <div
                       key={batch.batchId || idx}
                       className="flex justify-between items-center text-sm"
                     >
@@ -321,7 +325,8 @@ export default function FIFOCollectModal({
                         {batch.expiryDate ? new Date(batch.expiryDate).toLocaleDateString() : '—'}
                       </span>
                       <span className="font-medium text-warning">
-                        -{batch.collectQuantity || batch.toCollect || 0} {t('common.units') || 'шт.'}
+                        -{batch.collectQuantity || batch.toCollect || 0}{' '}
+                        {t('common.units') || 'шт.'}
                       </span>
                     </div>
                   ))}
@@ -352,10 +357,11 @@ export default function FIFOCollectModal({
               onClick={handleSubmit}
               disabled={isSubmitting || !isValidQuantity}
               className="flex-1 px-4 py-3 bg-warning text-white rounded-xl hover:bg-warning/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              aria-busy={isSubmitting}
             >
               {isSubmitting ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <ButtonLoader />
                   {t('common.processing') || 'Обработка...'}
                 </>
               ) : (

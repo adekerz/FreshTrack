@@ -1,12 +1,20 @@
 import { useToast } from '../context/ToastContext'
-import { CheckCircle, XCircle, AlertTriangle, Info, X, Loader2 } from 'lucide-react'
+import { CheckCircle, XCircle, AlertTriangle, Info, X } from 'lucide-react'
+import { InlineLoader } from './ui'
+
+// Компонент-обёртка для загрузочной иконки
+const LoadingIcon = ({ className }) => (
+  <span className={className}>
+    <InlineLoader />
+  </span>
+)
 
 const icons = {
   success: CheckCircle,
   error: XCircle,
   warning: AlertTriangle,
   info: Info,
-  loading: Loader2
+  loading: LoadingIcon
 }
 
 const colors = {
@@ -40,6 +48,7 @@ const colors = {
 function ToastItem({ toast, onRemove }) {
   const Icon = icons[toast.type] || Info
   const color = colors[toast.type] || colors.info
+  const isLoading = toast.type === 'loading'
 
   return (
     <div
@@ -53,17 +62,17 @@ function ToastItem({ toast, onRemove }) {
     >
       {/* Иконка */}
       <div className={`flex-shrink-0 ${color.icon}`}>
-        <Icon className={`w-5 h-5 ${toast.type === 'loading' ? 'animate-spin' : ''} ${toast.type === 'success' ? 'animate-success-pop' : ''}`} />
+        {isLoading ? (
+          <InlineLoader />
+        ) : (
+          <Icon className={`w-5 h-5 ${toast.type === 'success' ? 'animate-success-pop' : ''}`} />
+        )}
       </div>
 
       {/* Контент */}
       <div className="flex-1 min-w-0">
-        {toast.title && (
-          <p className="font-medium text-foreground text-sm">{toast.title}</p>
-        )}
-        {toast.message && (
-          <p className="text-muted-foreground text-sm mt-0.5">{toast.message}</p>
-        )}
+        {toast.title && <p className="font-medium text-foreground text-sm">{toast.title}</p>}
+        {toast.message && <p className="text-muted-foreground text-sm mt-0.5">{toast.message}</p>}
       </div>
 
       {/* Кнопка закрытия */}

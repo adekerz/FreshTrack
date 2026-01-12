@@ -1,0 +1,354 @@
+/**
+ * FreshTrack Unified Loader Styles
+
+/* =====================================================
+   CSS Custom Properties для loader
+   ===================================================== */
+:root {
+  /* Базовые переменные loader */
+  --loader-color: #ff8d6b;
+  --loader-cell-radius: 2px;
+  --loader-animation-duration: 1.5s;
+  --loader-animation-timing: ease-in-out;
+}
+
+/* =====================================================
+   Основной Loader компонент
+   ===================================================== */
+.loader {
+  --cell-size: 12px;
+  --cell-spacing: 1px;
+  --cells: 3;
+  --total-size: calc(var(--cells) * (var(--cell-size) + 2 * var(--cell-spacing)));
+
+  display: flex;
+  flex-wrap: wrap;
+  width: var(--total-size);
+  height: var(--total-size);
+}
+
+/* =====================================================
+   Размеры Loader
+   ===================================================== */
+
+/* Small: 24px — для кнопок и inline элементов */
+.loader--small {
+  --cell-size: 6px;
+  --cell-spacing: 1px;
+}
+
+/* Medium: 36px — для секций и таблиц (default) */
+.loader--medium {
+  --cell-size: 10px;
+  --cell-spacing: 1px;
+}
+
+/* Large: 48px — для полноэкранной загрузки */
+.loader--large {
+  --cell-size: 14px;
+  --cell-spacing: 1px;
+}
+
+/* =====================================================
+   Ячейки Loader
+   ===================================================== */
+.loader__cell {
+  flex: 0 0 var(--cell-size);
+  margin: var(--cell-spacing);
+  background-color: transparent;
+  box-sizing: border-box;
+  border-radius: var(--loader-cell-radius);
+  animation: loader-ripple var(--loader-animation-duration) var(--loader-animation-timing) infinite;
+}
+
+/* Задержки анимации по диагонали — создаёт эффект волны */
+.loader__cell--d0 {
+  animation-delay: 0ms;
+}
+.loader__cell--d1 {
+  animation-delay: 100ms;
+}
+.loader__cell--d2 {
+  animation-delay: 200ms;
+}
+.loader__cell--d3 {
+  animation-delay: 300ms;
+}
+.loader__cell--d4 {
+  animation-delay: 400ms;
+}
+
+/* Коралловая палитра — от светлого к насыщенному (#FF8D6B) */
+.loader__cell:nth-child(1) {
+  --cell-color: rgba(255, 141, 107, 0.25);
+}
+.loader__cell:nth-child(2) {
+  --cell-color: rgba(255, 141, 107, 0.35);
+}
+.loader__cell:nth-child(3) {
+  --cell-color: rgba(255, 141, 107, 0.45);
+}
+.loader__cell:nth-child(4) {
+  --cell-color: rgba(255, 141, 107, 0.45);
+}
+.loader__cell:nth-child(5) {
+  --cell-color: rgba(255, 141, 107, 0.65);
+}
+.loader__cell:nth-child(6) {
+  --cell-color: rgba(255, 141, 107, 0.75);
+}
+.loader__cell:nth-child(7) {
+  --cell-color: rgba(255, 141, 107, 0.55);
+}
+.loader__cell:nth-child(8) {
+  --cell-color: rgba(255, 141, 107, 0.75);
+}
+.loader__cell:nth-child(9) {
+  --cell-color: #ff8d6b;
+}
+
+/* =====================================================
+   Ripple Анимация
+   ===================================================== */
+@keyframes loader-ripple {
+  0% {
+    background-color: transparent;
+  }
+  30% {
+    background-color: var(--cell-color);
+  }
+  60% {
+    background-color: transparent;
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+/* =====================================================
+   Обёртки Loader
+   ===================================================== */
+
+/* PageLoader — для загрузки страницы */
+.loader-page {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 4rem 1rem;
+  min-height: 50vh;
+}
+
+.loader-page__message {
+  color: rgb(var(--muted-foreground));
+  font-size: 0.875rem;
+  animation: loader-pulse 2s ease-in-out infinite;
+}
+
+/* SectionLoader — для секций */
+.loader-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 2rem 1rem;
+}
+
+.loader-section__message {
+  color: rgb(var(--muted-foreground));
+  font-size: 0.875rem;
+  animation: loader-pulse 2s ease-in-out infinite;
+}
+
+/* InlineLoader — inline элемент */
+.loader-inline {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+}
+
+/* ButtonLoader — для кнопок */
+.loader-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.loader-button__spinner {
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  opacity: 0.7;
+  animation: loader-spin 0.8s linear infinite;
+}
+
+/* FullscreenLoader — полноэкранный overlay */
+.loader-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgb(var(--background) / 0.85);
+  backdrop-filter: blur(4px);
+}
+
+.loader-fullscreen__content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.loader-fullscreen__message {
+  color: rgb(var(--foreground));
+  font-size: 1.125rem;
+  font-weight: 500;
+  animation: loader-pulse 2s ease-in-out infinite;
+}
+
+/* =====================================================
+   Дополнительные анимации
+   ===================================================== */
+
+/* Плавная пульсация для текста */
+@keyframes loader-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+/* Вращение для button spinner */
+@keyframes loader-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* =====================================================
+   Accessibility: Reduced Motion
+   ===================================================== */
+@media (prefers-reduced-motion: reduce) {
+  .loader__cell {
+    animation: none;
+    background-color: rgba(255, 141, 107, 0.25);
+  }
+
+  .loader__cell:nth-child(5) {
+    background-color: rgba(255, 141, 107, 0.5);
+  }
+
+  .loader__cell:nth-child(9) {
+    background-color: #ff8d6b;
+  }
+
+  .loader-button__spinner {
+    animation: none;
+    opacity: 0.5;
+  }
+
+  .loader-page__message,
+  .loader-section__message,
+  .loader-fullscreen__message {
+    animation: none;
+  }
+}
+
+/* =====================================================
+   Legacy Support — для обратной совместимости
+   ===================================================== */
+
+/* Старые классы (deprecated, будут удалены) */
+.loader-sm {
+  --cell-size: 6px;
+  --cell-spacing: 1px;
+}
+
+.loader-md {
+  --cell-size: 10px;
+  --cell-spacing: 1px;
+}
+
+.loader-lg {
+  --cell-size: 14px;
+  --cell-spacing: 1px;
+}
+
+/* Legacy cell classes */
+.cell {
+  flex: 0 0 var(--cell-size);
+  margin: var(--cell-spacing);
+  background-color: transparent;
+  box-sizing: border-box;
+  border-radius: var(--loader-cell-radius);
+  animation: loader-ripple var(--loader-animation-duration) var(--loader-animation-timing) infinite;
+}
+
+.cell.d-0 {
+  animation-delay: 0ms;
+}
+.cell.d-1 {
+  animation-delay: 100ms;
+}
+.cell.d-2 {
+  animation-delay: 200ms;
+}
+.cell.d-3 {
+  animation-delay: 300ms;
+}
+.cell.d-4 {
+  animation-delay: 400ms;
+}
+
+.cell:nth-child(1) {
+  --cell-color: rgba(255, 141, 107, 0.25);
+}
+.cell:nth-child(2) {
+  --cell-color: rgba(255, 141, 107, 0.35);
+}
+.cell:nth-child(3) {
+  --cell-color: rgba(255, 141, 107, 0.45);
+}
+.cell:nth-child(4) {
+  --cell-color: rgba(255, 141, 107, 0.45);
+}
+.cell:nth-child(5) {
+  --cell-color: rgba(255, 141, 107, 0.65);
+}
+.cell:nth-child(6) {
+  --cell-color: rgba(255, 141, 107, 0.75);
+}
+.cell:nth-child(7) {
+  --cell-color: rgba(255, 141, 107, 0.55);
+}
+.cell:nth-child(8) {
+  --cell-color: rgba(255, 141, 107, 0.75);
+}
+.cell:nth-child(9) {
+  --cell-color: #ff8d6b;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cell {
+    animation: none;
+    background-color: rgba(255, 141, 107, 0.25);
+  }
+
+  .cell:nth-child(5) {
+    background-color: rgba(255, 141, 107, 0.5);
+  }
+
+  .cell:nth-child(9) {
+    background-color: #ff8d6b;
+  }
+}

@@ -1,11 +1,12 @@
 /**
  * Protected Route Component
  * Компонент для защиты маршрутов на основе аутентификации и ролей
- * Updated for new role system: SUPER_ADMIN, HOTEL_ADMIN, STAFF
+ * Role system: SUPER_ADMIN, HOTEL_ADMIN, DEPARTMENT_MANAGER, STAFF
  */
 
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { Loader } from './ui'
 
 /**
  * Нормализует роль пользователя к верхнему регистру
@@ -55,18 +56,8 @@ export default function ProtectedRoute({
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="loader loader-md">
-            <div className="cell d-0" />
-            <div className="cell d-1" />
-            <div className="cell d-2" />
-            <div className="cell d-1" />
-            <div className="cell d-2" />
-            <div className="cell d-3" />
-            <div className="cell d-2" />
-            <div className="cell d-3" />
-            <div className="cell d-4" />
-          </div>
+        <div className="flex flex-col items-center gap-4" role="status" aria-live="polite">
+          <Loader size="medium" aria-label="Проверка авторизации" />
           <p className="text-muted-foreground text-sm">Проверка авторизации...</p>
         </div>
       </div>
@@ -186,7 +177,9 @@ export function useAccessControl() {
   const hasAnyDepartmentAccess = (departmentIds) => {
     if (!isAuthenticated || !user) return false
     if (isAdmin(user.role)) return true
-    return departmentIds.some((dept) => user.departments?.includes(dept) || user.department_id === dept)
+    return departmentIds.some(
+      (dept) => user.departments?.includes(dept) || user.department_id === dept
+    )
   }
 
   const checkIsSuperAdmin = () => isSuperAdmin(user?.role)

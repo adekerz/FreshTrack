@@ -10,6 +10,7 @@ import {
   Users,
   RotateCcw
 } from 'lucide-react'
+import { ButtonLoader } from './ui'
 import { useTranslation } from '../context/LanguageContext'
 import { useProducts } from '../context/ProductContext'
 import { useToast } from '../context/ToastContext'
@@ -18,7 +19,7 @@ import { logError } from '../utils/logger'
 const reasons = [
   { id: 'kitchen', icon: ChefHat, color: 'text-green-600' },
   { id: 'disposed', icon: Trash2, color: 'text-danger' },
-  { id: 'staff', icon: Users, color: 'text-blue-500' },
+  { id: 'staff', icon: Users, color: 'text-accent' },
   { id: 'returned', icon: RotateCcw, color: 'text-purple-500' },
   { id: 'expired', icon: AlertTriangle, color: 'text-warning' },
   { id: 'damaged', icon: Package, color: 'text-yellow-500' },
@@ -183,10 +184,11 @@ export default function CollectModal({ isOpen, onClose, batch, onConfirm }) {
                 type="submit"
                 disabled={isSubmitting}
                 className="flex-1 px-4 py-3 bg-warning text-white rounded-xl hover:bg-warning/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                aria-busy={isSubmitting}
               >
                 {isSubmitting ? (
                   <>
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <ButtonLoader />
                     {t('common.processing') || 'Обработка...'}
                   </>
                 ) : (
@@ -195,6 +197,7 @@ export default function CollectModal({ isOpen, onClose, batch, onConfirm }) {
                     {t('collect.confirm') || 'Подтвердить сбор'}
                   </>
                 )}
+              </button>
               </button>
             </div>
           </form>

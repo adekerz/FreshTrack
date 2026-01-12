@@ -5,6 +5,7 @@
 
 import { useState, useEffect } from 'react'
 import { Bell, BellOff, X } from 'lucide-react'
+import { ButtonLoader } from './ui'
 import { useTranslation } from '../context/LanguageContext'
 import {
   isNotificationSupported,
@@ -86,10 +87,11 @@ export default function NotificationPermissionBanner() {
               onClick={handleRequestPermission}
               disabled={requesting}
               className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-accent text-white rounded-lg text-sm font-medium hover:bg-accent/90 transition-colors disabled:opacity-50"
+              aria-busy={requesting}
             >
               {requesting ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <ButtonLoader />
                   <span>{t('common.loading') || 'Загрузка...'}</span>
                 </>
               ) : (

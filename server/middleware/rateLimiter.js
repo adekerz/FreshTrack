@@ -11,24 +11,27 @@ import { logWarn } from '../utils/logger.js'
  */
 
 // General API rate limiter - 100 requests per minute
+const isProduction = process.env.NODE_ENV === 'production'
+
 const generalLimiter = new RateLimiterMemory({
-  points: 100,
+  points: isProduction ? 100 : 1000,
   duration: 60,
-  blockDuration: 60 // Block for 1 minute if exceeded
+  blockDuration: isProduction ? 60 : 10 // Block for 1 minute in prod, 10 sec in dev
 })
 
-// Auth endpoints - stricter limits (10 attempts per 15 minutes)
+// Auth endpoints - stricter limits (20 attempts per 15 minutes)
 const authLimiter = new RateLimiterMemory({
-  points: 10,
-  duration: 15 * 60,
-  blockDuration: 15 * 60 // Block for 15 minutes
+  points: isProduction ? 20 : 500,
+  duration: isProduction ? 15 * 60 : 60,
+  blockDuration: isProduction ? 5 * 60 : 10 // Block for 5 minutes in prod
 })
 
-// Login specifically - very strict (5 attempts per 15 minutes per IP)
+// Login specifically - strict but reasonable
+// In development, disable rate limiting for easier testing
 const loginLimiter = new RateLimiterMemory({
-  points: 5,
-  duration: 15 * 60,
-  blockDuration: 30 * 60 // Block for 30 minutes
+  points: isProduction ? 5 : 500,
+  duration: isProduction ? 15 * 60 : 60,
+  blockDuration: isProduction ? 30 * 60 : 10
 })
 
 // Heavy operations (export, reports) - 10 per minute
@@ -43,6 +46,13 @@ const webhookLimiter = new RateLimiterMemory({
   points: 30,
   duration: 60,
   blockDuration: 120
+})
+
+// Pending status check - lightweight endpoint, 10 per minute per user
+const pendingStatusLimiter = new RateLimiterMemory({
+  points: isProduction ? 10 : 100,
+  duration: 60,
+  blockDuration: isProduction ? 60 : 10
 })
 
 /**
@@ -122,6 +132,11 @@ export const rateLimitHeavy = createRateLimiterMiddleware(heavyLimiter, 'heavy')
 export const rateLimitWebhook = createRateLimiterMiddleware(webhookLimiter, 'webhook')
 
 /**
+ * Pending status rate limiter - lightweight for pending users checking status
+ */
+export const rateLimitPendingStatus = createRateLimiterMiddleware(pendingStatusLimiter, 'pending-status')
+
+/**
  * Slow down middleware - add delay after certain number of requests
  * Useful for slowing down scrapers without blocking
  */
@@ -155,5 +170,6 @@ export default {
   login: rateLimitLogin,
   heavy: rateLimitHeavy,
   webhook: rateLimitWebhook,
+  pendingStatus: rateLimitPendingStatus,
   slowDown
 }

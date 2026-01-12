@@ -1,0 +1,55 @@
+{
+  "compilerOptions": {
+    // Базовые настройки для Node.js
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    
+    // Строгость
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    
+    // Пути
+    "baseUrl": "server",
+    "paths": {
+      "@modules/*": ["modules/*"],
+      "@shared/*": ["shared/*"],
+      "@routes/*": ["routes/*"],
+      "@services/*": ["services/*"],
+      "@middleware/*": ["middleware/*"],
+      "@db/*": ["db/*"]
+    },
+    
+    // Для постепенной миграции
+    "allowJs": true,
+    "checkJs": false,
+    
+    // Emit
+    "outDir": "server/dist",
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    
+    // Skip library checks
+    "skipLibCheck": true,
+    
+    // Типы
+    "types": ["node"]
+  },
+  "include": [
+    "server/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "server/dist",
+    "server/uploads"
+  ]
+}

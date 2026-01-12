@@ -3,20 +3,14 @@
  * Показывается в шапке страниц для фильтрации данных по отелю
  */
 
-import { Building2, ChevronDown, Check, Loader2 } from 'lucide-react'
+import { Building2, ChevronDown, Check } from 'lucide-react'
+import { InlineLoader } from './ui'
 import { useState, useRef, useEffect } from 'react'
 import { useHotel } from '../context/HotelContext'
 
 export default function HotelSelector({ className = '' }) {
-  const { 
-    hotels, 
-    selectedHotel, 
-    selectHotel, 
-    canSelectHotel, 
-    loading,
-    isSuperAdmin 
-  } = useHotel()
-  
+  const { hotels, selectedHotel, selectHotel, canSelectHotel, loading, isSuperAdmin } = useHotel()
+
   const [isOpen, setIsOpen] = useState(false)
   const dropdownRef = useRef(null)
 
@@ -38,7 +32,7 @@ export default function HotelSelector({ className = '' }) {
   if (loading) {
     return (
       <div className={`flex items-center gap-2 px-3 py-2 bg-muted/50 rounded-lg ${className}`}>
-        <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+        <InlineLoader />
         <span className="text-sm text-muted-foreground">Загрузка...</span>
       </div>
     )
@@ -47,19 +41,25 @@ export default function HotelSelector({ className = '' }) {
   // Нет отелей
   if (!hotels.length) {
     return (
-      <div className={`flex items-center gap-2 px-3 py-2 bg-amber-500/10 border border-amber-500/30 rounded-lg ${className}`}>
+      <div
+        className={`flex items-center gap-2 px-3 py-2 bg-amber-500/10 border border-amber-500/30 rounded-lg ${className}`}
+      >
         <Building2 className="w-4 h-4 text-amber-600" />
         <span className="text-sm text-amber-700 dark:text-amber-400">Нет отелей</span>
       </div>
     )
   }
 
-  // Только один отель - показываем без выпадающего списка
-  if (!canSelectHotel) {
+  // Только один отель - показываем без выпадающего, но всё равно показываем для SUPER_ADMIN
+  if (hotels.length === 1) {
     return (
-      <div className={`flex items-center gap-2 px-3 py-2 bg-accent/10 border border-accent/30 rounded-lg ${className}`}>
-        <Building2 className="w-4 h-4 text-accent" />
-        <span className="text-sm font-medium text-foreground">{selectedHotel?.name || 'Отель'}</span>
+      <div
+        className={`flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30 rounded-lg ${className}`}
+      >
+        <Building2 className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+        <span className="text-sm font-medium text-foreground">
+          {selectedHotel?.name || hotels[0]?.name}
+        </span>
       </div>
     )
   }
@@ -74,7 +74,9 @@ export default function HotelSelector({ className = '' }) {
         <span className="text-sm font-medium text-foreground flex-1 text-left truncate">
           {selectedHotel?.name || 'Выберите отель'}
         </span>
-        <ChevronDown className={`w-4 h-4 text-amber-600 dark:text-amber-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        <ChevronDown
+          className={`w-4 h-4 text-amber-600 dark:text-amber-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+        />
       </button>
 
       {isOpen && (
@@ -91,18 +93,22 @@ export default function HotelSelector({ className = '' }) {
                 selectedHotel?.id === hotel.id ? 'bg-accent/10' : ''
               }`}
             >
-              <Building2 className={`w-4 h-4 flex-shrink-0 ${
-                selectedHotel?.id === hotel.id ? 'text-accent' : 'text-muted-foreground'
-              }`} />
+              <Building2
+                className={`w-4 h-4 flex-shrink-0 ${
+                  selectedHotel?.id === hotel.id ? 'text-accent' : 'text-muted-foreground'
+                }`}
+              />
               <div className="flex-1 min-w-0">
-                <p className={`text-sm font-medium truncate ${
-                  selectedHotel?.id === hotel.id ? 'text-accent' : 'text-foreground'
-                }`}>
+                <p
+                  className={`text-sm font-medium truncate ${
+                    selectedHotel?.id === hotel.id ? 'text-accent' : 'text-foreground'
+                  }`}
+                >
                   {hotel.name}
                 </p>
-                {hotel.code && (
-                  <p className="text-xs text-muted-foreground truncate">
-                    {hotel.code}
+                {hotel.marsha_code && (
+                  <p className="text-xs text-muted-foreground truncate font-mono">
+                    {hotel.marsha_code}
                   </p>
                 )}
               </div>

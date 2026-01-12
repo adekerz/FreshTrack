@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback } from 'react'
 import { ChevronLeft, ChevronRight, Calendar, AlertTriangle, Clock, Package } from 'lucide-react'
 import { useProducts } from '../context/ProductContext'
+import { useAuth } from '../context/AuthContext'
 import { useTranslation } from '../context/LanguageContext'
 import {
   format,
@@ -19,12 +20,16 @@ const locales = { ru, en: enUS, kk }
 export default function CalendarPage() {
   const { t, language } = useTranslation()
   const { batches, departments } = useProducts()
+  const { user } = useAuth()
 
   const [currentDate, setCurrentDate] = useState(new Date())
-  const [selectedDate, setSelectedDate] = useState(null)
+  const [selectedDate, setSelectedDate] = useState(new Date())
   const [filterDepartment, setFilterDepartment] = useState('')
 
   const locale = locales[language] || locales.ru
+
+  // Проверка роли STAFF
+  const isStaff = user?.role === 'STAFF'
 
   // Группируем партии по датам истечения срока
   const batchesByDate = useMemo(() => {
@@ -32,7 +37,9 @@ export default function CalendarPage() {
 
     batches.forEach((batch) => {
       if (!batch.expiryDate) return
-      if (filterDepartment && batch.department !== filterDepartment) return
+      // Поддержка обоих форматов: departmentId (новый) и department (старый)
+      const batchDeptId = batch.departmentId || batch.department
+      if (filterDepartment && batchDeptId !== filterDepartment) return
 
       const dateKey = batch.expiryDate.split('T')[0]
       if (!grouped[dateKey]) {
@@ -80,9 +87,11 @@ export default function CalendarPage() {
       // Use expiryStatus from backend (Single Source of Truth)
       // Fallback to status.status for object format or direct status string
       const getStatus = (b) => b.expiryStatus || b.status?.status || b.status
-      
+
       const hasExpired = dayBatches.some((b) => getStatus(b) === 'expired')
-      const hasCritical = dayBatches.some((b) => getStatus(b) === 'critical' || getStatus(b) === 'today')
+      const hasCritical = dayBatches.some(
+        (b) => getStatus(b) === 'critical' || getStatus(b) === 'today'
+      )
       const hasWarning = dayBatches.some((b) => getStatus(b) === 'warning')
 
       if (hasExpired) return 'expired'
@@ -100,7 +109,7 @@ export default function CalendarPage() {
         return 'bg-danger text-white'
       case 'critical':
       case 'today':
-        return 'bg-warning text-white'
+        return 'bg-orange-500 text-white'
       case 'warning':
         return 'bg-yellow-400 text-foreground'
       case 'good':
@@ -146,7 +155,7 @@ export default function CalendarPage() {
       {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-playfair text-foreground">
+          <h1 className="text-xl sm:text-2xl font-light text-foreground">
             {t('nav.calendar') || 'Календарь'}
           </h1>
           <p className="text-muted-foreground text-xs sm:text-sm">
@@ -156,18 +165,21 @@ export default function CalendarPage() {
 
         {/* Фильтры */}
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-          <select
-            value={filterDepartment}
-            onChange={(e) => setFilterDepartment(e.target.value)}
-            className="px-2 sm:px-3 py-1.5 sm:py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-gold/50 bg-card text-foreground text-xs sm:text-sm flex-1 sm:flex-none"
-          >
-            <option value="">{t('common.allDepartments') || 'Все отделы'}</option>
-            {departments.map((dept) => (
-              <option key={dept.id} value={dept.id}>
-                {dept.name}
-              </option>
-            ))}
-          </select>
+          {/* Фильтр отделов - только для админов и менеджеров (не STAFF) */}
+          {!isStaff && (
+            <select
+              value={filterDepartment}
+              onChange={(e) => setFilterDepartment(e.target.value)}
+              className="px-2 sm:px-3 py-1.5 sm:py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-gold/50 bg-card text-foreground text-xs sm:text-sm flex-1 sm:flex-none"
+            >
+              <option value="">{t('common.allDepartments') || 'Все отделы'}</option>
+              {departments.map((dept) => (
+                <option key={dept.id} value={dept.id}>
+                  {dept.name}
+                </option>
+              ))}
+            </select>
+          )}
 
           <button
             onClick={goToToday}
@@ -196,14 +208,16 @@ export default function CalendarPage() {
 
         <div className="bg-card rounded-xl p-3 sm:p-4 shadow-card border border-border">
           <div className="flex items-center gap-2 sm:gap-3">
-            <div className="p-1.5 sm:p-2 bg-warning/10 rounded-lg">
-              <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-warning" />
+            <div className="p-1.5 sm:p-2 bg-orange-500/10 rounded-lg">
+              <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
             </div>
             <div className="min-w-0">
               <p className="text-xs sm:text-sm text-muted-foreground truncate">
                 {t('calendar.criticalDays') || 'Критических'}
               </p>
-              <p className="text-lg sm:text-xl font-semibold text-warning">{monthStats.critical}</p>
+              <p className="text-lg sm:text-xl font-semibold text-orange-600">
+                {monthStats.critical}
+              </p>
             </div>
           </div>
         </div>
@@ -217,7 +231,9 @@ export default function CalendarPage() {
               <p className="text-xs sm:text-sm text-muted-foreground truncate">
                 {t('calendar.warningDays') || 'Внимание'}
               </p>
-              <p className="text-lg sm:text-xl font-semibold text-yellow-600">{monthStats.warning}</p>
+              <p className="text-lg sm:text-xl font-semibold text-yellow-600">
+                {monthStats.warning}
+              </p>
             </div>
           </div>
         </div>
@@ -228,7 +244,9 @@ export default function CalendarPage() {
               <Package className="w-4 h-4 sm:w-5 sm:h-5 text-success" />
             </div>
             <div className="min-w-0">
-              <p className="text-xs sm:text-sm text-muted-foreground truncate">{t('calendar.goodDays') || 'В норме'}</p>
+              <p className="text-xs sm:text-sm text-muted-foreground truncate">
+                {t('calendar.goodDays') || 'В норме'}
+              </p>
               <p className="text-lg sm:text-xl font-semibold text-success">{monthStats.good}</p>
             </div>
           </div>
@@ -331,16 +349,22 @@ export default function CalendarPage() {
               </span>
             </div>
             <div className="flex items-center gap-1 sm:gap-2">
-              <div className="w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-warning" />
-              <span className="text-xs sm:text-sm text-muted-foreground">{t('status.critical') || 'Критично'}</span>
+              <div className="w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-orange-500" />
+              <span className="text-xs sm:text-sm text-muted-foreground">
+                {t('status.critical') || 'Критично'}
+              </span>
             </div>
             <div className="flex items-center gap-1 sm:gap-2">
               <div className="w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-yellow-400" />
-              <span className="text-xs sm:text-sm text-muted-foreground">{t('status.warning') || 'Внимание'}</span>
+              <span className="text-xs sm:text-sm text-muted-foreground">
+                {t('status.warning') || 'Внимание'}
+              </span>
             </div>
             <div className="flex items-center gap-1 sm:gap-2">
               <div className="w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-success" />
-              <span className="text-xs sm:text-sm text-muted-foreground">{t('status.good') || 'Норма'}</span>
+              <span className="text-xs sm:text-sm text-muted-foreground">
+                {t('status.good') || 'Норма'}
+              </span>
             </div>
           </div>
         </div>
@@ -361,45 +385,51 @@ export default function CalendarPage() {
                   // Use same logic as getDayStatus for consistency
                   const batchStatus = batch.expiryStatus || batch.status?.status || batch.status
                   return (
-                  <div
-                    key={batch.id}
-                    className={`
+                    <div
+                      key={batch.id}
+                      className={`
                       p-3 sm:p-4 rounded-lg border-l-4
                       ${
                         batchStatus === 'expired'
                           ? 'border-danger bg-danger/5'
                           : batchStatus === 'critical' || batchStatus === 'today'
-                            ? 'border-warning bg-warning/5'
+                            ? 'border-orange-500 bg-orange-500/5'
                             : batchStatus === 'warning'
-                              ? 'border-yellow-400 bg-yellow-400/10'
+                              ? 'border-warning bg-warning/10'
                               : 'border-success bg-success/5'
                       }
                     `}
-                  >
-                    <h4 className="font-medium text-foreground text-sm sm:text-base">{batch.productName}</h4>
-                    <div className="mt-1 sm:mt-2 space-y-0.5 sm:space-y-1 text-xs sm:text-sm text-muted-foreground">
-                      <p>📍 {getDepartmentName(batch.department)}</p>
-                      <p>
-                        📦 {t('common.quantity')}: {batch.quantity} {t('common.units')}
-                      </p>
-                      <p>
-                        ⏱️ {t('common.daysLeft')}: {batch.daysLeft} {t('common.days')}
-                      </p>
+                    >
+                      <h4 className="font-medium text-foreground text-sm sm:text-base">
+                        {batch.productName}
+                      </h4>
+                      <div className="mt-1 sm:mt-2 space-y-0.5 sm:space-y-1 text-xs sm:text-sm text-muted-foreground">
+                        <p>📍 {getDepartmentName(batch.departmentId || batch.department)}</p>
+                        <p>
+                          📦 {t('common.quantity')}: {batch.quantity} {t('common.units')}
+                        </p>
+                        <p>
+                          ⏱️ {t('common.daysLeft')}: {batch.daysLeft} {t('common.days')}
+                        </p>
+                      </div>
                     </div>
-                  </div>
                   )
                 })}
               </div>
             ) : (
               <div className="text-center py-6 sm:py-8 text-muted-foreground">
                 <Calendar className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-2 sm:mb-3 opacity-30" />
-                <p className="text-xs sm:text-sm">{t('calendar.noProducts') || 'Нет товаров с истечением в этот день'}</p>
+                <p className="text-xs sm:text-sm">
+                  {t('calendar.noProducts') || 'Нет товаров с истечением в этот день'}
+                </p>
               </div>
             )
           ) : (
             <div className="text-center py-6 sm:py-8 text-muted-foreground">
               <Calendar className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-2 sm:mb-3 opacity-30" />
-              <p className="text-xs sm:text-sm">{t('calendar.clickToSelect') || 'Нажмите на дату для просмотра деталей'}</p>
+              <p className="text-xs sm:text-sm">
+                {t('calendar.clickToSelect') || 'Нажмите на дату для просмотра деталей'}
+              </p>
             </div>
           )}
         </div>

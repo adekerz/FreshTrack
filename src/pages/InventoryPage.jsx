@@ -1,8 +1,20 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Wine, Coffee, Utensils, ChefHat, Warehouse, Package, Plus, FileBox, ArrowUpDown, ArrowLeft } from 'lucide-react'
+import {
+  Wine,
+  Coffee,
+  Utensils,
+  ChefHat,
+  Warehouse,
+  Package,
+  Plus,
+  FileBox,
+  ArrowUpDown,
+  ArrowLeft
+} from 'lucide-react'
 import { useProducts } from '../context/ProductContext'
 import { useHotel } from '../context/HotelContext'
+import { useAuth } from '../context/AuthContext'
 import { useTranslation, useLanguage } from '../context/LanguageContext'
 import ProductModal from '../components/ProductModal'
 import AddCustomProductModal from '../components/AddCustomProductModal'
@@ -11,6 +23,7 @@ import DepartmentSelector from '../components/DepartmentSelector'
 import ExportButton from '../components/ExportButton'
 import { EXPORT_COLUMNS } from '../utils/exportUtils'
 import { SkeletonInventory, Skeleton } from '../components/Skeleton'
+import { Loader } from '../components/ui'
 
 // Иконки для отделов - универсальный маппинг
 const ICON_MAP = {
@@ -47,9 +60,14 @@ export default function InventoryPage() {
   const { language } = useLanguage()
   const { departmentId } = useParams()
   const navigate = useNavigate()
-  const { getProductsByDepartment, catalog, refresh, departments, categories, loading } = useProducts()
+  const { getProductsByDepartment, catalog, refresh, departments, categories, loading } =
+    useProducts()
   const { selectedHotelId } = useHotel()
+  const { user } = useAuth()
   const prevHotelIdRef = useRef(selectedHotelId)
+
+  // Проверка роли STAFF
+  const isStaff = user?.role === 'STAFF'
 
   // Состояние выбранного отдела (из URL или null для показа селектора)
   const [selectedDeptId, setSelectedDeptId] = useState(departmentId || null)
@@ -95,20 +113,20 @@ export default function InventoryPage() {
   useEffect(() => {
     // Не делаем retry если уже идёт загрузка или достигнут лимит
     if (loading || retryCount >= 5) return
-    
+
     // Если данные есть - сбрасываем счётчик
     if (departments.length > 0) {
       if (retryCount > 0) setRetryCount(0)
       return
     }
-    
+
     // Retry с увеличивающимся интервалом (3s, 6s, 9s...)
     const delay = (retryCount + 1) * 3000
     const timer = setTimeout(() => {
-      setRetryCount(prev => prev + 1)
+      setRetryCount((prev) => prev + 1)
       refresh()
     }, delay)
-    
+
     return () => clearTimeout(timer)
   }, [loading, departments.length, retryCount, refresh])
 
@@ -120,13 +138,13 @@ export default function InventoryPage() {
   }
 
   // Получить доступные категории для отдела
+  // Показываем все категории отеля (не только с продуктами) для возможности фильтрации
   const getAvailableCategories = () => {
     if (!selectedDeptId) return []
-    const deptCatalog = catalog[selectedDeptId] || {}
-    return categories.filter((cat) => {
-      const products = deptCatalog[cat.id] || []
-      return products.length > 0
-    })
+
+    // Возвращаем все категории отеля
+    // Backend уже фильтрует categories по hotel_id
+    return categories
   }
 
   // Получить отфильтрованные и отсортированные товары
@@ -136,7 +154,7 @@ export default function InventoryPage() {
     if (selectedCategory !== 'all') {
       products = products.filter((p) => p.categoryId === selectedCategory)
     }
-    
+
     // Сортировка
     return [...products].sort((a, b) => {
       switch (sortBy) {
@@ -151,7 +169,7 @@ export default function InventoryPage() {
           // Сортировка по ближайшему сроку годности
           const getMinExpiry = (product) => {
             if (!product.batches?.length) return Infinity
-            return Math.min(...product.batches.map(b => b.daysLeft ?? Infinity))
+            return Math.min(...product.batches.map((b) => b.daysLeft ?? Infinity))
           }
           return getMinExpiry(a) - getMinExpiry(b)
       }
@@ -166,7 +184,7 @@ export default function InventoryPage() {
 
     // Функция для получения названия категории
     const getCategoryName = (categoryId) => {
-      const cat = categories.find(c => c.id === categoryId)
+      const cat = categories.find((c) => c.id === categoryId)
       if (!cat) return '-'
       if (language === 'ru') return cat.nameRu || cat.name || '-'
       if (language === 'kk') return cat.nameKz || cat.name || '-'
@@ -189,8 +207,10 @@ export default function InventoryPage() {
     }
 
     products.forEach((product) => {
-      const categoryName = getCategoryName(product.categoryId) || product.category?.name || '-'
-      
+      // Используем categoryName с бэкенда (single source of truth), fallback на локальный поиск
+      const categoryName =
+        product.categoryName || getCategoryName(product.categoryId) || product.category?.name || '-'
+
       // Если у товара есть партии, экспортируем каждую партию отдельно
       if (product.batches && product.batches.length > 0) {
         product.batches.forEach((batch) => {
@@ -199,7 +219,8 @@ export default function InventoryPage() {
             productName: product.name,
             category: categoryName,
             department: dept?.name || selectedDeptId,
-            quantity: batch.quantity === null || batch.quantity === undefined ? '—' : batch.quantity,
+            quantity:
+              batch.quantity === null || batch.quantity === undefined ? '—' : batch.quantity,
             unit: product.unit || 'шт',
             formattedDate: batch.expiryDate
               ? new Date(batch.expiryDate).toLocaleDateString('ru-RU')
@@ -261,30 +282,50 @@ export default function InventoryPage() {
     )
   }
 
-  // Если нет данных и идёт загрузка/retry - показываем анимацию подключения к БД
-  if (departments.length === 0) {
+  // Если нет данных и идёт загрузка - показываем анимацию подключения к БД
+  if (loading && departments.length === 0) {
     return (
       <div className="flex-1 flex items-center justify-center py-16 sm:py-24 animate-fade-in">
-        <div className="flex flex-col items-center gap-6">
-          <div className="loader loader-lg">
-            <div className="cell d-0" />
-            <div className="cell d-1" />
-            <div className="cell d-2" />
-            <div className="cell d-1" />
-            <div className="cell d-2" />
-            <div className="cell d-3" />
-            <div className="cell d-2" />
-            <div className="cell d-3" />
-            <div className="cell d-4" />
-          </div>
+        <div className="flex flex-col items-center gap-6" role="status" aria-live="polite">
+          <Loader size="large" aria-label={t('common.loading') || 'Загрузка'} />
           <div className="text-center">
             <p className="text-foreground font-medium mb-1">
-              {loading ? t('common.loading') : t('inventory.connectingDatabase') || 'Подключение к базе данных...'}
+              {t('common.loading') || 'Загрузка...'}
             </p>
-            <p className="text-muted-foreground text-sm animate-pulse">
-              {retryCount > 0 && `${t('common.attempt') || 'Попытка'} ${retryCount}/10`}
+            {retryCount > 0 && (
+              <p className="text-muted-foreground text-sm">
+                {`${t('common.attempt') || 'Попытка'} ${retryCount}/10`}
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Если нет отделов после загрузки - показываем empty state
+  if (!loading && departments.length === 0) {
+    return (
+      <div className="flex-1 flex items-center justify-center py-16 sm:py-24 animate-fade-in">
+        <div className="flex flex-col items-center gap-4 text-center px-4">
+          <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
+            <Package className="w-8 h-8 text-muted-foreground" />
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold text-foreground mb-1">
+              {t('inventory.noDepartments') || 'Нет отделов'}
+            </h3>
+            <p className="text-muted-foreground text-sm max-w-xs">
+              {t('inventory.noDepartmentsDescription') ||
+                'Для этого отеля ещё не созданы отделы. Создайте отдел в настройках.'}
             </p>
           </div>
+          <button
+            onClick={() => navigate('/settings')}
+            className="mt-2 px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent/90 transition-colors"
+          >
+            {t('common.goToSettings') || 'Перейти в настройки'}
+          </button>
         </div>
       </div>
     )
@@ -330,9 +371,16 @@ export default function InventoryPage() {
               className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center flex-shrink-0"
               style={{ backgroundColor: `${department?.color || '#C4A35A'}20` }}
             >
-              {DeptIcon && <DeptIcon className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: department?.color || '#C4A35A' }} />}
+              {DeptIcon && (
+                <DeptIcon
+                  className="w-4 h-4 sm:w-5 sm:h-5"
+                  style={{ color: department?.color || '#C4A35A' }}
+                />
+              )}
             </div>
-            <h1 className="font-serif text-lg sm:text-2xl truncate">{t('inventory.title')} — {department?.name || selectedDeptId}</h1>
+            <h1 className="text-xl sm:text-2xl font-light text-foreground truncate">
+              {t('inventory.title')} — {department?.name || selectedDeptId}
+            </h1>
           </div>
         </div>
 
@@ -356,14 +404,17 @@ export default function InventoryPage() {
             <FileBox className="w-4 h-4" />
             <span className="hidden sm:inline">{t('inventory.applyTemplate')}</span>
           </button>
-          <button
-            onClick={() => setShowAddCustomModal(true)}
-            className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground hover:text-accent transition-colors"
-            title={t('inventory.addNewProduct')}
-          >
-            <Plus className="w-4 h-4" />
-            <span className="hidden sm:inline">{t('inventory.addNewProduct')}</span>
-          </button>
+          {/* Добавление товара - только для админов и менеджеров (не STAFF) */}
+          {!isStaff && (
+            <button
+              onClick={() => setShowAddCustomModal(true)}
+              className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground hover:text-accent transition-colors"
+              title={t('inventory.addNewProduct')}
+            >
+              <Plus className="w-4 h-4" />
+              <span className="hidden sm:inline">{t('inventory.addNewProduct')}</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -391,11 +442,11 @@ export default function InventoryPage() {
                   : 'bg-transparent border border-border text-muted-foreground hover:border-foreground hover:text-foreground'
               }`}
             >
-            {getCategoryName(cat)}
-          </button>
-        ))}
+              {getCategoryName(cat)}
+            </button>
+          ))}
         </div>
-        
+
         {/* Сортировка */}
         <div className="flex items-center gap-2 flex-shrink-0">
           <ArrowUpDown className="w-4 h-4 text-muted-foreground" />
@@ -416,12 +467,17 @@ export default function InventoryPage() {
         <div className="text-center py-12 sm:py-16">
           <Package className="w-12 h-12 sm:w-16 sm:h-16 text-muted mx-auto mb-4" />
           <p className="text-muted-foreground text-base sm:text-lg">{t('inventory.noProducts')}</p>
-          <p className="text-muted-foreground/70 text-xs sm:text-sm mt-2">{t('inventory.addBatchToStart')}</p>
+          <p className="text-muted-foreground/70 text-xs sm:text-sm mt-2">
+            {t('inventory.addBatchToStart')}
+          </p>
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
           {products.map((product) => {
+            // Используем categoryName с бэкенда (single source of truth), fallback на локальный поиск
             const category = categories.find((c) => c.id === product.categoryId)
+            const displayCategoryName =
+              product.categoryName || (category ? getCategoryName(category) : null)
             return (
               <button
                 key={product.id}
@@ -434,9 +490,9 @@ export default function InventoryPage() {
                     <h3 className="font-medium text-foreground group-hover:text-accent transition-colors text-sm sm:text-base truncate">
                       {product.name}
                     </h3>
-                    {category && (
+                    {displayCategoryName && (
                       <span className="text-xs text-muted-foreground bg-muted px-1.5 sm:px-2 py-0.5 rounded mt-1 inline-block truncate max-w-full">
-                        {getCategoryName(category)}
+                        {displayCategoryName}
                       </span>
                     )}
                   </div>
@@ -454,9 +510,15 @@ export default function InventoryPage() {
                     <span className="text-muted-foreground/50">{t('inventory.noBatches')}</span>
                   ) : (
                     <div className="flex flex-wrap gap-x-1">
-                      <span><span className="font-medium text-foreground">{product.totalBatches}</span> {t('inventory.batches')}</span>
+                      <span>
+                        <span className="font-medium text-foreground">{product.totalBatches}</span>{' '}
+                        {t('inventory.batches')}
+                      </span>
                       <span>•</span>
-                      <span><span className="font-medium text-foreground">{product.totalQuantity}</span> {t('inventory.units')}</span>
+                      <span>
+                        <span className="font-medium text-foreground">{product.totalQuantity}</span>{' '}
+                        {t('inventory.units')}
+                      </span>
                     </div>
                   )}
                 </div>

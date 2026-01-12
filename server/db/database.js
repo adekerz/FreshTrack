@@ -150,17 +150,36 @@ export async function initDatabase() {
       }
     }
 
-    // Check if pilot data exists
-    const hotelsResult = await query("SELECT id FROM hotels WHERE code = $1", ['RC-ASTANA'])
-    if (hotelsResult.rows.length === 0) {
+    // Check if pilot data exists (check by user to handle migration scenarios)
+    const usersResult = await query("SELECT id FROM users WHERE login = $1", ['superadmin'])
+    if (usersResult.rows.length === 0) {
       await initializePilotData()
     } else {
       console.log('   Pilot data already exists')
+
+      // Update existing hotels to have MARSHA codes if missing
+      const marshaUpdates = [
+        { pattern: '%Ritz-Carlton%Astana%', code: 'TSERZ' },
+        { pattern: '%St. Regis%Astana%', code: 'TSEXR' },
+        { pattern: '%St. Regis%Washington%', code: 'WASSX' },
+        { pattern: '%Marriott%Astana%', code: 'TSEMC' },
+        { pattern: '%Sheraton%Astana%', code: 'TSESI' },
+      ]
+
+      for (const { pattern, code } of marshaUpdates) {
+        const result = await query(`
+          UPDATE hotels SET marsha_code = $1 
+          WHERE name ILIKE $2 AND marsha_code IS NULL
+        `, [code, pattern])
+        if (result.rowCount > 0) {
+          console.log(`   ✅ Updated hotel with MARSHA code ${code}`)
+        }
+      }
     }
 
     console.log('✅ Database initialized successfully')
     console.log('   Pilot: Ritz-Carlton Astana Honor Bar')
-    
+
     return true
   } catch (error) {
     console.error('❌ Database initialization error:', error)
@@ -174,19 +193,19 @@ export async function initDatabase() {
 async function initializePilotData() {
   console.log('🏨 Creating pilot data for Ritz-Carlton Astana...')
 
-  // 1. Create Hotel
+  // 1. Create Hotel with MARSHA code for Ritz-Carlton Astana
   const hotelId = uuidv4()
   await query(`
-    INSERT INTO hotels (id, name, code, city, country, timezone) 
+    INSERT INTO hotels (id, name, marsha_code, city, country, timezone) 
     VALUES ($1, $2, $3, $4, $5, $6)
-  `, [hotelId, 'The Ritz-Carlton, Astana', 'RC-ASTANA', 'Astana', 'Kazakhstan', 'Asia/Almaty'])
+  `, [hotelId, 'The Ritz-Carlton, Astana', 'TSERZ', 'Astana', 'Kazakhstan', 'Asia/Almaty'])
 
   // 2. Create Honor Bar Department
   const deptId = uuidv4()
   await query(`
     INSERT INTO departments (id, hotel_id, name, name_en, name_kk, type, color, icon) 
     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-  `, [deptId, hotelId, 'Хонор Бар', 'Honor Bar', 'Хонор Бар', 'minibar', '#FF8D6B', 'wine'])
+  `, [deptId, hotelId, 'Honor Bar', 'Honor Bar', 'Honor Bar', 'minibar', '#FF8D6B', 'wine'])
 
   // 3. Create Users
   const superAdminId = uuidv4()
@@ -345,7 +364,7 @@ export function buildContextWhere(context, tableAlias = '', startParamIndex = 1)
   }
 
   const where = conditions.length > 0 ? conditions.join(' AND ') : '1=1'
-  
+
   return { where, params, nextParamIndex: paramIndex }
 }
 
@@ -359,37 +378,32 @@ export function buildContextWhere(context, tableAlias = '', startParamIndex = 1)
  */
 export function canAccessResource(user, resource) {
   if (!user || !resource) return false
-  
+
   const userHotelId = user.hotel_id || user.hotelId
   const userDepartmentId = user.department_id || user.departmentId
   const resourceHotelId = resource.hotel_id || resource.hotelId
   const resourceDepartmentId = resource.department_id || resource.departmentId
-  
+
   // SUPER_ADMIN can access everything
-  if (user.role === 'SUPER_ADMIN') {
-    return true
-  }
-  
+  if (user.role === 'SUPER_ADMIN') return true
+
   // Must have hotel context
   if (!userHotelId) return false
-  
+
   // Hotel must match
-  if (resourceHotelId && resourceHotelId !== userHotelId) {
-    return false
-  }
-  
+  if (resourceHotelId && resourceHotelId !== userHotelId) return false
+
   // HOTEL_ADMIN can access any resource in their hotel
-  if (user.role === 'HOTEL_ADMIN') {
-    return true
+  if (user.role === 'HOTEL_ADMIN') return true
+
+  // Hotel-level resource (no department) - user in same hotel can access
+  if (!resourceDepartmentId) {
+    return resourceHotelId === userHotelId
   }
-  
-  // DEPARTMENT_MANAGER and STAFF can only access their department
-  if (userDepartmentId && resourceDepartmentId) {
-    return resourceDepartmentId === userDepartmentId
-  }
-  
-  // If resource has no department (global) or user has no department restriction
-  return true
+
+  // Department-level resource - user must have department and it must match
+  if (!userDepartmentId) return false
+  return resourceDepartmentId === userDepartmentId
 }
 
 /**
@@ -407,11 +421,11 @@ export function canAccessResource(user, resource) {
  * @param {Object} data.snapshot_after - Entity state after change (for create/update)
  */
 export async function logAudit(data) {
-  const { 
-    hotel_id, user_id, user_name, action, entity_type, entity_id, 
-    details, ip_address, snapshot_before, snapshot_after 
+  const {
+    hotel_id, user_id, user_name, action, entity_type, entity_id,
+    details, ip_address, snapshot_before, snapshot_after
   } = data
-  
+
   // Check if snapshot columns exist (graceful degradation)
   try {
     await query(`
@@ -421,14 +435,14 @@ export async function logAudit(data) {
       ) 
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
     `, [
-      uuidv4(), 
-      hotel_id || null, 
-      user_id || null, 
-      user_name, 
-      action, 
-      entity_type || null, 
+      uuidv4(),
+      hotel_id || null,
+      user_id || null,
+      user_name,
+      action,
+      entity_type || null,
       entity_id || null,
-      details ? JSON.stringify(details) : null, 
+      details ? JSON.stringify(details) : null,
       ip_address || null,
       snapshot_before ? JSON.stringify(snapshot_before) : null,
       snapshot_after ? JSON.stringify(snapshot_after) : null
@@ -440,14 +454,14 @@ export async function logAudit(data) {
         INSERT INTO audit_logs (id, hotel_id, user_id, user_name, action, entity_type, entity_id, details, ip_address) 
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
       `, [
-        uuidv4(), 
-        hotel_id || null, 
-        user_id || null, 
-        user_name, 
-        action, 
-        entity_type || null, 
+        uuidv4(),
+        hotel_id || null,
+        user_id || null,
+        user_name,
+        action,
+        entity_type || null,
         entity_id || null,
-        details ? JSON.stringify(details) : null, 
+        details ? JSON.stringify(details) : null,
         ip_address || null
       ])
     } else {
@@ -462,21 +476,21 @@ export async function logAudit(data) {
  */
 export function createAuditSnapshot(entity, entityType) {
   if (!entity) return null
-  
+
   // Fields to exclude from snapshots
   const sensitiveFields = ['password', 'password_hash', 'token', 'refresh_token']
-  
+
   const snapshot = { ...entity }
-  
+
   // Remove sensitive fields
   for (const field of sensitiveFields) {
     delete snapshot[field]
   }
-  
+
   // Add metadata
   snapshot._snapshot_type = entityType
   snapshot._snapshot_time = new Date().toISOString()
-  
+
   return snapshot
 }
 
@@ -495,6 +509,7 @@ export async function getUserById(id) {
 }
 
 export async function getUserByLoginOrEmail(identifier) {
+  if (!identifier) return null
   const isEmail = identifier.includes('@')
   if (isEmail) {
     const result = await query('SELECT * FROM users WHERE email = $1', [identifier])
@@ -523,38 +538,51 @@ export async function getAllUsers(hotelId = null) {
 }
 
 export async function createUser(user) {
-  const { login, name, email, password, role, hotel_id, department_id } = user
+  const { login, name, email, password, role, hotel_id, department_id, status } = user
   const id = uuidv4()
   const hashedPassword = bcrypt.hashSync(password, 10)
-  
+  const userStatus = status || 'active'
+
   await query(`
-    INSERT INTO users (id, login, name, email, password, role, hotel_id, department_id, is_active) 
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, TRUE)
-  `, [id, login, name, email, hashedPassword, role || 'STAFF', hotel_id, department_id])
-  
-  return { id, login, name, email, role: role || 'STAFF', hotel_id, department_id }
+    INSERT INTO users (id, login, name, email, password, role, hotel_id, department_id, is_active, status) 
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, TRUE, $9)
+  `, [id, login, name, email, hashedPassword, role || 'STAFF', hotel_id, department_id, userStatus])
+
+  return { id, login, name, email, role: role || 'STAFF', hotel_id, department_id, status: userStatus }
 }
 
 export async function updateUser(id, updates) {
   const fields = []
   const values = []
   let paramIndex = 1
-  
+
   if (updates.name !== undefined) { fields.push(`name = $${paramIndex++}`); values.push(updates.name) }
   if (updates.email !== undefined) { fields.push(`email = $${paramIndex++}`); values.push(updates.email) }
   if (updates.role !== undefined) { fields.push(`role = $${paramIndex++}`); values.push(updates.role) }
   if (updates.department_id !== undefined) { fields.push(`department_id = $${paramIndex++}`); values.push(updates.department_id) }
-  if (updates.password !== undefined) { 
+  if (updates.password !== undefined) {
     fields.push(`password = $${paramIndex++}`)
     values.push(bcrypt.hashSync(updates.password, 10))
   }
   if (updates.is_active !== undefined) { fields.push(`is_active = $${paramIndex++}`); values.push(updates.is_active) }
   if (updates.telegram_chat_id !== undefined) { fields.push(`telegram_chat_id = $${paramIndex++}`); values.push(updates.telegram_chat_id) }
-  
+
   if (fields.length === 0) return false
-  
+
   values.push(id)
   const result = await query(`UPDATE users SET ${fields.join(', ')} WHERE id = $${paramIndex}`, values)
+  return result.rowCount > 0
+}
+
+export async function deleteUser(id) {
+  // Очищаем ссылки в таблицах без ON DELETE CASCADE/SET NULL
+  await query('UPDATE join_requests SET processed_by = NULL WHERE processed_by = $1', [id])
+  await query('UPDATE notification_rules SET created_by = NULL WHERE created_by = $1', [id])
+  // Удаляем связанные данные (join_requests удалятся каскадно, но подстрахуемся)
+  await query('DELETE FROM join_requests WHERE user_id = $1', [id])
+  await query('DELETE FROM user_settings WHERE user_id = $1', [id])
+  // Удаляем пользователя
+  const result = await query('DELETE FROM users WHERE id = $1', [id])
   return result.rowCount > 0
 }
 
@@ -581,36 +609,44 @@ export async function getHotelById(id) {
 }
 
 export async function getHotelByCode(code) {
-  const result = await query('SELECT * FROM hotels WHERE code = $1', [code])
+  const upperCode = code.toUpperCase()
+
+  // Ищем по MARSHA коду
+  const result = await query(
+    'SELECT * FROM hotels WHERE marsha_code = $1 AND is_active = TRUE',
+    [upperCode]
+  )
   return result.rows[0] || null
 }
 
 export async function createHotel(hotel) {
-  const { name, code, address, city, country, timezone } = hotel
+  const { name, address, city, country, timezone, marsha_code, marsha_code_id } = hotel
   const id = uuidv4()
-  
+
   await query(`
-    INSERT INTO hotels (id, name, code, address, city, country, timezone) 
-    VALUES ($1, $2, $3, $4, $5, $6, $7)
-  `, [id, name, code, address, city, country || 'Kazakhstan', timezone || 'Asia/Almaty'])
-  
-  return { id, name, code, address, city, country, timezone }
+    INSERT INTO hotels (id, name, address, city, country, timezone, marsha_code, marsha_code_id) 
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+  `, [id, name, address, city, country || 'Kazakhstan', timezone || 'Asia/Almaty', marsha_code || null, marsha_code_id || null])
+
+  return { id, name, address, city, country, timezone, marsha_code, marsha_code_id }
 }
 
 export async function updateHotel(id, updates) {
   const fields = []
   const values = []
   let paramIndex = 1
-  
+
   if (updates.name !== undefined) { fields.push(`name = $${paramIndex++}`); values.push(updates.name) }
   if (updates.address !== undefined) { fields.push(`address = $${paramIndex++}`); values.push(updates.address) }
   if (updates.city !== undefined) { fields.push(`city = $${paramIndex++}`); values.push(updates.city) }
   if (updates.country !== undefined) { fields.push(`country = $${paramIndex++}`); values.push(updates.country) }
   if (updates.timezone !== undefined) { fields.push(`timezone = $${paramIndex++}`); values.push(updates.timezone) }
   if (updates.is_active !== undefined) { fields.push(`is_active = $${paramIndex++}`); values.push(updates.is_active) }
-  
+  if (updates.marsha_code !== undefined) { fields.push(`marsha_code = $${paramIndex++}`); values.push(updates.marsha_code) }
+  if (updates.marsha_code_id !== undefined) { fields.push(`marsha_code_id = $${paramIndex++}`); values.push(updates.marsha_code_id) }
+
   if (fields.length === 0) return false
-  
+
   values.push(id)
   const result = await query(`UPDATE hotels SET ${fields.join(', ')} WHERE id = $${paramIndex}`, values)
   return result.rowCount > 0
@@ -637,12 +673,12 @@ export async function getDepartmentById(id) {
 export async function createDepartment(dept) {
   const { hotel_id, name, name_en, name_kk, type, color, icon } = dept
   const id = uuidv4()
-  
+
   await query(`
     INSERT INTO departments (id, hotel_id, name, name_en, name_kk, type, color, icon) 
     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
   `, [id, hotel_id, name, name_en, name_kk, type || 'other', color || '#FF8D6B', icon || 'package'])
-  
+
   return { id, hotel_id, name, name_en, name_kk, type, color, icon }
 }
 
@@ -650,7 +686,7 @@ export async function updateDepartment(id, updates) {
   const fields = []
   const values = []
   let paramIndex = 1
-  
+
   if (updates.name !== undefined) { fields.push(`name = $${paramIndex++}`); values.push(updates.name) }
   if (updates.name_en !== undefined) { fields.push(`name_en = $${paramIndex++}`); values.push(updates.name_en) }
   if (updates.name_kk !== undefined) { fields.push(`name_kk = $${paramIndex++}`); values.push(updates.name_kk) }
@@ -658,9 +694,9 @@ export async function updateDepartment(id, updates) {
   if (updates.color !== undefined) { fields.push(`color = $${paramIndex++}`); values.push(updates.color) }
   if (updates.icon !== undefined) { fields.push(`icon = $${paramIndex++}`); values.push(updates.icon) }
   if (updates.is_active !== undefined) { fields.push(`is_active = $${paramIndex++}`); values.push(updates.is_active) }
-  
+
   if (fields.length === 0) return false
-  
+
   values.push(id)
   const result = await query(`UPDATE departments SET ${fields.join(', ')} WHERE id = $${paramIndex}`, values)
   return result.rowCount > 0
@@ -689,7 +725,7 @@ export async function getAllCategories(hotelId = null) {
       `SELECT * FROM categories 
        WHERE (hotel_id = $1 OR hotel_id IS NULL) 
        AND is_active = TRUE 
-       ORDER BY hotel_id NULLS FIRST, sort_order ASC`, 
+       ORDER BY hotel_id NULLS FIRST, sort_order ASC`,
       [hotelId]
     )
     return result.rows
@@ -707,12 +743,12 @@ export async function getCategoryById(id) {
 export async function createCategory(cat) {
   const { hotel_id, name, name_en, name_kk, color, icon, sort_order } = cat
   const id = uuidv4()
-  
+
   await query(`
     INSERT INTO categories (id, hotel_id, name, name_en, name_kk, color, icon, sort_order) 
     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
   `, [id, hotel_id, name, name_en, name_kk, color || '#6B6560', icon, sort_order || 0])
-  
+
   return { id, hotel_id, name, name_en, name_kk, color, icon, sort_order }
 }
 
@@ -720,7 +756,7 @@ export async function updateCategory(id, updates) {
   const fields = []
   const values = []
   let paramIndex = 1
-  
+
   if (updates.name !== undefined) { fields.push(`name = $${paramIndex++}`); values.push(updates.name) }
   if (updates.name_en !== undefined) { fields.push(`name_en = $${paramIndex++}`); values.push(updates.name_en) }
   if (updates.name_kk !== undefined) { fields.push(`name_kk = $${paramIndex++}`); values.push(updates.name_kk) }
@@ -728,9 +764,9 @@ export async function updateCategory(id, updates) {
   if (updates.icon !== undefined) { fields.push(`icon = $${paramIndex++}`); values.push(updates.icon) }
   if (updates.sort_order !== undefined) { fields.push(`sort_order = $${paramIndex++}`); values.push(updates.sort_order) }
   if (updates.is_active !== undefined) { fields.push(`is_active = $${paramIndex++}`); values.push(updates.is_active) }
-  
+
   if (fields.length === 0) return false
-  
+
   values.push(id)
   const result = await query(`UPDATE categories SET ${fields.join(', ')} WHERE id = $${paramIndex}`, values)
   return result.rowCount > 0
@@ -783,12 +819,12 @@ export async function getProductByName(name, hotelId = null) {
 export async function createProduct(product) {
   const { hotel_id, category_id, name, name_en, name_kk, barcode, default_shelf_life, unit } = product
   const id = uuidv4()
-  
+
   await query(`
     INSERT INTO products (id, hotel_id, category_id, name, name_en, name_kk, barcode, default_shelf_life, unit) 
     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
   `, [id, hotel_id, category_id, name, name_en, name_kk, barcode, default_shelf_life || 30, unit || 'pcs'])
-  
+
   return { id, hotel_id, category_id, name, name_en, name_kk, barcode, default_shelf_life, unit }
 }
 
@@ -796,7 +832,7 @@ export async function updateProduct(id, updates) {
   const fields = []
   const values = []
   let paramIndex = 1
-  
+
   if (updates.category_id !== undefined) { fields.push(`category_id = $${paramIndex++}`); values.push(updates.category_id) }
   if (updates.name !== undefined) { fields.push(`name = $${paramIndex++}`); values.push(updates.name) }
   if (updates.name_en !== undefined) { fields.push(`name_en = $${paramIndex++}`); values.push(updates.name_en) }
@@ -805,9 +841,9 @@ export async function updateProduct(id, updates) {
   if (updates.default_shelf_life !== undefined) { fields.push(`default_shelf_life = $${paramIndex++}`); values.push(updates.default_shelf_life) }
   if (updates.unit !== undefined) { fields.push(`unit = $${paramIndex++}`); values.push(updates.unit) }
   if (updates.is_active !== undefined) { fields.push(`is_active = $${paramIndex++}`); values.push(updates.is_active) }
-  
+
   if (fields.length === 0) return false
-  
+
   values.push(id)
   const result = await query(`UPDATE products SET ${fields.join(', ')} WHERE id = $${paramIndex}`, values)
   return result.rowCount > 0
@@ -836,19 +872,19 @@ export async function getAllBatches(hotelId, departmentId = null, status = null)
   `
   const params = [hotelId]
   let paramIndex = 2
-  
+
   if (departmentId) {
     queryText += ` AND b.department_id = $${paramIndex++}`
     params.push(departmentId)
   }
-  
+
   if (status) {
     queryText += ` AND b.status = $${paramIndex++}`
     params.push(status)
   }
-  
+
   queryText += ' ORDER BY b.expiry_date ASC'
-  
+
   const result = await query(queryText, params)
   return result.rows
 }
@@ -870,15 +906,15 @@ export async function getBatchById(id) {
 export async function createBatch(batch) {
   const { hotel_id, department_id, product_id, quantity, expiry_date, batch_number, added_by } = batch
   const id = uuidv4()
-  
+
   // quantity может быть null для "без учёта количества"
   const batchQuantity = quantity === null || quantity === undefined ? null : quantity
-  
+
   await query(`
     INSERT INTO batches (id, hotel_id, department_id, product_id, quantity, expiry_date, batch_number, added_by, status) 
     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'active')
   `, [id, hotel_id, department_id, product_id, batchQuantity, expiry_date, batch_number, added_by])
-  
+
   return { id, hotel_id, department_id, product_id, quantity: batchQuantity, expiry_date, batch_number, status: 'active' }
 }
 
@@ -886,16 +922,16 @@ export async function updateBatch(id, updates) {
   const fields = []
   const values = []
   let paramIndex = 1
-  
+
   if (updates.quantity !== undefined) { fields.push(`quantity = $${paramIndex++}`); values.push(updates.quantity) }
   if (updates.expiry_date !== undefined) { fields.push(`expiry_date = $${paramIndex++}`); values.push(updates.expiry_date) }
   if (updates.batch_number !== undefined) { fields.push(`batch_number = $${paramIndex++}`); values.push(updates.batch_number) }
   if (updates.status !== undefined) { fields.push(`status = $${paramIndex++}`); values.push(updates.status) }
   if (updates.collected_at !== undefined) { fields.push(`collected_at = $${paramIndex++}`); values.push(updates.collected_at) }
   if (updates.collected_by !== undefined) { fields.push(`collected_by = $${paramIndex++}`); values.push(updates.collected_by) }
-  
+
   if (fields.length === 0) return false
-  
+
   values.push(id)
   const result = await query(`UPDATE batches SET ${fields.join(', ')} WHERE id = $${paramIndex}`, values)
   return result.rowCount > 0
@@ -909,20 +945,20 @@ export async function deleteBatch(id) {
 export async function collectBatch(batchId, userId, reason = 'expired', comment = null) {
   const batch = await getBatchById(batchId)
   if (!batch) return null
-  
+
   const product = await getProductById(batch.product_id)
-  
+
   const writeOffId = uuidv4()
   await query(`
     INSERT INTO write_offs (id, hotel_id, department_id, batch_id, product_id, product_name, quantity, reason, comment, written_off_by) 
     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-  `, [writeOffId, batch.hotel_id, batch.department_id, batchId, batch.product_id, 
+  `, [writeOffId, batch.hotel_id, batch.department_id, batchId, batch.product_id,
     product?.name || batch.product_name, batch.quantity, reason, comment, userId])
-  
+
   await query(`
     UPDATE batches SET status = 'collected', collected_at = CURRENT_TIMESTAMP, collected_by = $1 WHERE id = $2
   `, [userId, batchId])
-  
+
   return { writeOffId, batchId }
 }
 
@@ -941,15 +977,15 @@ export async function getBatchesByProductForFIFO(productId, hotelId, departmentI
   `
   const params = [productId, hotelId]
   let paramIndex = 3
-  
+
   if (departmentId) {
     queryText += ` AND b.department_id = $${paramIndex++}`
     params.push(departmentId)
   }
-  
+
   // FIFO: Sort by expiry_date ascending (earliest first)
   queryText += ' ORDER BY b.expiry_date ASC, b.created_at ASC'
-  
+
   const result = await query(queryText, params)
   return result.rows
 }
@@ -986,12 +1022,12 @@ export async function getBatchStats(hotelId, departmentId = null) {
   let whereClause = 'hotel_id = $1 AND status = \'active\''
   const params = [hotelId]
   let paramIndex = 2
-  
+
   if (departmentId) {
     whereClause += ` AND department_id = $${paramIndex++}`
     params.push(departmentId)
   }
-  
+
   const result = await query(`
     SELECT 
       COUNT(*) as total,
@@ -1001,14 +1037,14 @@ export async function getBatchStats(hotelId, departmentId = null) {
     FROM batches 
     WHERE ${whereClause}
   `, params)
-  
+
   const { total, expired, critical, warning } = result.rows[0]
-  return { 
-    total: parseInt(total), 
-    expired: parseInt(expired), 
-    critical: parseInt(critical), 
-    warning: parseInt(warning), 
-    good: parseInt(total) - parseInt(expired) - parseInt(critical) - parseInt(warning) 
+  return {
+    total: parseInt(total),
+    expired: parseInt(expired),
+    critical: parseInt(critical),
+    warning: parseInt(warning),
+    good: parseInt(total) - parseInt(expired) - parseInt(critical) - parseInt(warning)
   }
 }
 
@@ -1031,17 +1067,17 @@ export async function getWriteOffs(hotelId, filters = {}) {
   `
   const params = [hotelId]
   let paramIndex = 2
-  
+
   if (filters.department_id) { queryText += ` AND wo.department_id = $${paramIndex++}`; params.push(filters.department_id) }
   if (filters.start_date) { queryText += ` AND DATE(wo.written_off_at) >= $${paramIndex++}`; params.push(filters.start_date) }
   if (filters.end_date) { queryText += ` AND DATE(wo.written_off_at) <= $${paramIndex++}`; params.push(filters.end_date) }
   if (filters.reason) { queryText += ` AND wo.reason = $${paramIndex++}`; params.push(filters.reason) }
   if (filters.product_id) { queryText += ` AND wo.product_id = $${paramIndex++}`; params.push(filters.product_id) }
-  
+
   queryText += ' ORDER BY wo.written_off_at DESC'
   if (filters.limit) { queryText += ` LIMIT $${paramIndex++}`; params.push(parseInt(filters.limit)) }
   if (filters.offset) { queryText += ` OFFSET $${paramIndex++}`; params.push(parseInt(filters.offset)) }
-  
+
   const result = await query(queryText, params)
   return result.rows
 }
@@ -1062,13 +1098,13 @@ export async function getNotifications(hotelId, filters = {}) {
   let queryText = 'SELECT * FROM notifications WHERE hotel_id = $1'
   const params = [hotelId]
   let paramIndex = 2
-  
+
   if (filters.departmentId) { queryText += ` AND (department_id = $${paramIndex++} OR department_id IS NULL)`; params.push(filters.departmentId) }
   if (filters.isRead !== undefined) { queryText += ` AND is_read = $${paramIndex++}`; params.push(filters.isRead) }
   if (filters.type) { queryText += ` AND type = $${paramIndex++}`; params.push(filters.type) }
   queryText += ' ORDER BY created_at DESC'
   if (filters.limit) { queryText += ` LIMIT $${paramIndex++}`; params.push(filters.limit) }
-  
+
   const result = await query(queryText, params)
   return result.rows
 }
@@ -1170,10 +1206,10 @@ export async function getHierarchicalSetting(context, key) {
  */
 export async function getAllHierarchicalSettings(context) {
   const { userId, departmentId, hotelId } = context
-  
+
   // Start with system defaults
   const settings = { ...SYSTEM_DEFAULT_SETTINGS }
-  
+
   // 3. Merge hotel settings (lower priority)
   if (hotelId) {
     const hotelResult = await query('SELECT key, value FROM settings WHERE hotel_id = $1', [hotelId])
@@ -1181,7 +1217,7 @@ export async function getAllHierarchicalSettings(context) {
       settings[row.key] = parseSettingValue(row.value)
     }
   }
-  
+
   // 2. Merge department settings (medium priority)
   if (departmentId) {
     const deptResult = await query('SELECT key, value FROM department_settings WHERE department_id = $1', [departmentId])
@@ -1189,7 +1225,7 @@ export async function getAllHierarchicalSettings(context) {
       settings[row.key] = parseSettingValue(row.value)
     }
   }
-  
+
   // 1. Merge user settings (highest priority)
   if (userId) {
     const userResult = await query('SELECT key, value FROM user_settings WHERE user_id = $1', [userId])
@@ -1197,7 +1233,7 @@ export async function getAllHierarchicalSettings(context) {
       settings[row.key] = parseSettingValue(row.value)
     }
   }
-  
+
   return settings
 }
 
@@ -1275,7 +1311,7 @@ export async function getAuditLogs(hotelId, filters = {}) {
   let queryText = 'SELECT * FROM audit_logs WHERE hotel_id = $1'
   const params = [hotelId]
   let paramIndex = 2
-  
+
   if (filters.userId) { queryText += ` AND user_id = $${paramIndex++}`; params.push(filters.userId) }
   if (filters.action) { queryText += ` AND action = $${paramIndex++}`; params.push(filters.action) }
   if (filters.entityType) { queryText += ` AND entity_type = $${paramIndex++}`; params.push(filters.entityType) }
@@ -1284,7 +1320,7 @@ export async function getAuditLogs(hotelId, filters = {}) {
   queryText += ' ORDER BY created_at DESC'
   if (filters.limit) { queryText += ` LIMIT $${paramIndex++}`; params.push(filters.limit) }
   if (filters.offset) { queryText += ` OFFSET $${paramIndex++}`; params.push(filters.offset) }
-  
+
   const result = await query(queryText, params)
   return result.rows.map(log => ({ ...log, details: typeof log.details === 'string' ? JSON.parse(log.details) : log.details }))
 }
@@ -1301,7 +1337,7 @@ export async function getPilotSummary(hotelId) {
   const writeOffQuantity = (await query('SELECT COALESCE(SUM(quantity), 0) as total FROM write_offs WHERE hotel_id = $1', [hotelId])).rows[0].total
   const writeOffsByReason = (await query(`SELECT reason, COUNT(*) as count, SUM(quantity) as quantity FROM write_offs WHERE hotel_id = $1 GROUP BY reason`, [hotelId])).rows
   const notificationsSent = (await query('SELECT COUNT(*) as count FROM notifications WHERE hotel_id = $1', [hotelId])).rows[0].count
-  
+
   return {
     batches: { total: parseInt(totalBatches), active: parseInt(activeBatches), collected: parseInt(collectedBatches) },
     writeOffs: { total: parseInt(totalWriteOffs), quantity: parseInt(writeOffQuantity), byReason: writeOffsByReason },
@@ -1323,25 +1359,25 @@ export async function getWriteOffById(id) {
 
 export async function createWriteOff(data) {
   const id = uuidv4()
-  
+
   // Check if batch_snapshot columns exist (migration 006)
   const hasSnapshotColumns = await checkColumnExists('write_offs', 'batch_snapshot')
-  
+
   if (hasSnapshotColumns && data.batch_snapshot) {
     // Use new schema with batch_snapshot
     await query(`
       INSERT INTO write_offs (id, hotel_id, department_id, batch_id, product_id, product_name, quantity, reason, comment, written_off_by, batch_snapshot, expiry_date, expiry_status)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
     `, [
-      id, 
-      data.hotel_id, 
-      data.department_id, 
-      data.batch_id, 
-      data.product_id, 
-      data.product_name || 'Unknown', 
-      data.quantity, 
-      data.reason, 
-      data.notes || data.comment, 
+      id,
+      data.hotel_id,
+      data.department_id,
+      data.batch_id,
+      data.product_id,
+      data.product_name || 'Unknown',
+      data.quantity,
+      data.reason,
+      data.notes || data.comment,
       data.user_id || data.written_off_by,
       JSON.stringify(data.batch_snapshot),
       data.expiry_date,
@@ -1354,7 +1390,7 @@ export async function createWriteOff(data) {
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
     `, [id, data.hotel_id, data.department_id, data.batch_id, data.product_id, data.product_name || 'Unknown', data.quantity, data.reason, data.notes || data.comment, data.user_id || data.written_off_by])
   }
-  
+
   return { id, ...data }
 }
 
@@ -1396,7 +1432,7 @@ export async function getWriteOffStats(hotelId, departmentId = null) {
   let baseWhere = 'w.hotel_id = $1'
   const params = [hotelId]
   let paramIndex = 2
-  
+
   if (departmentId) {
     baseWhere += ` AND w.department_id = $${paramIndex++}`
     params.push(departmentId)
@@ -1407,19 +1443,19 @@ export async function getWriteOffStats(hotelId, departmentId = null) {
     SELECT COUNT(*) as count FROM write_offs w
     WHERE ${baseWhere}
   `, params)
-  
+
   // Today count
   const todayResult = await query(`
     SELECT COUNT(*) as count FROM write_offs w
     WHERE ${baseWhere} AND w.written_off_at >= $${paramIndex}
   `, [...params, todayStart])
-  
+
   // Week count
   const weekResult = await query(`
     SELECT COUNT(*) as count FROM write_offs w
     WHERE ${baseWhere} AND w.written_off_at >= $${paramIndex}
   `, [...params, weekAgo])
-  
+
   // Month count
   const monthResult = await query(`
     SELECT COUNT(*) as count FROM write_offs w
@@ -1531,4 +1567,113 @@ export async function updateSettings(hotelId, settings) {
   return true
 }
 
+// ═══════════════════════════════════════════════════════════════
+// JOIN REQUESTS - User registration with hotel code
+// ═══════════════════════════════════════════════════════════════
+
+export async function createJoinRequest(userId, hotelId) {
+  const id = uuidv4()
+  await query(`
+    INSERT INTO join_requests (id, user_id, hotel_id, status, requested_at)
+    VALUES ($1, $2, $3, 'pending', NOW())
+    ON CONFLICT (user_id, hotel_id) DO UPDATE SET status = 'pending', requested_at = NOW()
+  `, [id, userId, hotelId])
+  return { id, user_id: userId, hotel_id: hotelId, status: 'pending' }
+}
+
+export async function getJoinRequestsForHotel(hotelId) {
+  const result = await query(`
+    SELECT jr.*, u.name as user_name, u.email as user_email, u.login as user_login,
+           h.name as hotel_name
+    FROM join_requests jr
+    JOIN users u ON jr.user_id = u.id
+    JOIN hotels h ON jr.hotel_id = h.id
+    WHERE jr.hotel_id = $1 AND jr.status = 'pending'
+    ORDER BY jr.requested_at DESC
+  `, [hotelId])
+  return result.rows
+}
+
+// Get ALL pending join requests (for SUPER_ADMIN)
+export async function getAllPendingJoinRequests() {
+  const result = await query(`
+    SELECT jr.*, u.name as user_name, u.email as user_email, u.login as user_login,
+           h.name as hotel_name, h.marsha_code as hotel_code
+    FROM join_requests jr
+    JOIN users u ON jr.user_id = u.id
+    JOIN hotels h ON jr.hotel_id = h.id
+    WHERE jr.status = 'pending'
+    ORDER BY jr.requested_at DESC
+  `)
+  return result.rows
+}
+
+export async function getJoinRequestByUserId(userId) {
+  const result = await query(`
+    SELECT jr.*, h.name as hotel_name, h.marsha_code as hotel_code
+    FROM join_requests jr
+    JOIN hotels h ON jr.hotel_id = h.id
+    WHERE jr.user_id = $1
+    ORDER BY jr.requested_at DESC
+    LIMIT 1
+  `, [userId])
+  return result.rows[0] || null
+}
+
+export async function approveJoinRequest(requestId, adminId, departmentId = null, role = 'STAFF') {
+  const request = await query('SELECT * FROM join_requests WHERE id = $1', [requestId])
+  if (!request.rows[0]) return null
+
+  const jr = request.rows[0]
+
+  // Validate role - включаем DEPARTMENT_MANAGER
+  const validRoles = ['STAFF', 'DEPARTMENT_MANAGER', 'HOTEL_ADMIN']
+  const userRole = validRoles.includes(role) ? role : 'STAFF'
+
+  // HOTEL_ADMIN не привязывается к департаменту, STAFF и DEPARTMENT_MANAGER - привязываются
+  const deptId = userRole === 'HOTEL_ADMIN' ? null : departmentId
+
+  // Update user with hotel_id, role and optionally department_id
+  await query(`
+    UPDATE users 
+    SET hotel_id = $1, department_id = $2, role = $3, status = 'active'
+    WHERE id = $4
+  `, [jr.hotel_id, deptId, userRole, jr.user_id])
+
+  // Update request status
+  await query(`
+    UPDATE join_requests 
+    SET status = 'approved', processed_at = NOW(), processed_by = $1
+    WHERE id = $2
+  `, [adminId, requestId])
+
+  // Get department name for email notification
+  let departmentName = null
+  if (deptId) {
+    const deptResult = await query('SELECT name FROM departments WHERE id = $1', [deptId])
+    departmentName = deptResult.rows[0]?.name
+  }
+
+  return {
+    ...jr,
+    department_name: departmentName,
+    user_role: userRole
+  }
+}
+
+export async function rejectJoinRequest(requestId, adminId, notes = null) {
+  await query(`
+    UPDATE join_requests 
+    SET status = 'rejected', processed_at = NOW(), processed_by = $1, notes = $2
+    WHERE id = $3
+  `, [adminId, notes, requestId])
+  return true
+}
+
+export async function updateUserStatus(userId, status) {
+  await query('UPDATE users SET status = $1 WHERE id = $2', [status, userId])
+  return true
+}
+
 export { query }
+

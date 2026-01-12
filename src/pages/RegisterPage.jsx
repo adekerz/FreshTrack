@@ -1,29 +1,68 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { Leaf, User, Mail, Lock, Building, AlertCircle, ArrowRight, CheckCircle } from 'lucide-react'
+import {
+  Leaf,
+  User,
+  Mail,
+  Lock,
+  Key,
+  AlertCircle,
+  ArrowRight,
+  CheckCircle,
+  Building2
+} from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
-import { useProducts } from '../context/ProductContext'
 import { useTranslation } from '../context/LanguageContext'
 import { useToast } from '../context/ToastContext'
-import { Input, Button } from '../components/ui'
+import { Input, Button, ButtonLoader } from '../components/ui'
+import { apiFetch } from '../services/api'
 
 export default function RegisterPage() {
   const navigate = useNavigate()
   const { register } = useAuth()
-  const { departments } = useProducts()
   const { t } = useTranslation()
   const { addToast } = useToast()
 
   const [formData, setFormData] = useState({
+    login: '',
     name: '',
     email: '',
     password: '',
     confirmPassword: '',
-    department: ''
+    hotelCode: ''
   })
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [touched, setTouched] = useState({})
+  const [hotelValidation, setHotelValidation] = useState({
+    loading: false,
+    valid: null,
+    hotel: null
+  })
+
+  // Validate hotel code with debounce
+  useEffect(() => {
+    if (!formData.hotelCode || formData.hotelCode.length < 5) {
+      setHotelValidation({ loading: false, valid: null, hotel: null })
+      return
+    }
+
+    const timer = setTimeout(async () => {
+      setHotelValidation({ loading: true, valid: null, hotel: null })
+      try {
+        const response = await apiFetch(`/auth/validate-hotel-code?code=${formData.hotelCode}`)
+        if (response.valid) {
+          setHotelValidation({ loading: false, valid: true, hotel: response.hotel })
+        } else {
+          setHotelValidation({ loading: false, valid: false, hotel: null })
+        }
+      } catch {
+        setHotelValidation({ loading: false, valid: false, hotel: null })
+      }
+    }, 500)
+
+    return () => clearTimeout(timer)
+  }, [formData.hotelCode])
 
   // Password strength indicator
   const getPasswordStrength = (password) => {
@@ -37,8 +76,22 @@ export default function RegisterPage() {
   }
 
   const passwordStrength = getPasswordStrength(formData.password)
-  const strengthLabels = ['', t('auth.weak'), t('auth.fair'), t('auth.good'), t('auth.strong'), t('auth.veryStrong')]
-  const strengthColors = ['bg-gray-200', 'bg-danger', 'bg-warning', 'bg-warning', 'bg-success', 'bg-success']
+  const strengthLabels = [
+    '',
+    t('auth.weak'),
+    t('auth.fair'),
+    t('auth.good'),
+    t('auth.strong'),
+    t('auth.veryStrong')
+  ]
+  const strengthColors = [
+    'bg-gray-200',
+    'bg-danger',
+    'bg-warning',
+    'bg-warning',
+    'bg-success',
+    'bg-success'
+  ]
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -54,18 +107,46 @@ export default function RegisterPage() {
       return
     }
 
-    setIsLoading(true)
-    const result = await register(formData)
-
-    if (result.success) {
-      addToast(t('toast.registerSuccess'), 'success')
-      navigate('/')
-    } else {
-      setError(result.error)
-      addToast(t('toast.registerError'), 'error')
+    // Validate hotel code if provided
+    if (formData.hotelCode && !hotelValidation.valid) {
+      setError(t('auth.invalidHotelCode') || 'Неверный код отеля')
+      return
     }
 
-    setIsLoading(false)
+    setIsLoading(true)
+
+    try {
+      const response = await apiFetch('/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({
+          login: formData.login,
+          name: formData.name,
+          email: formData.email || null,
+          password: formData.password,
+          hotelCode: formData.hotelCode || null
+        })
+      })
+
+      if (response.success) {
+        // Store token and user in localStorage (same keys as AuthContext)
+        localStorage.setItem('freshtrack_token', response.token)
+        localStorage.setItem('freshtrack_user', JSON.stringify(response.user))
+        addToast(t('toast.registerSuccess'), 'success')
+
+        // Navigate to pending page if waiting for approval
+        if (response.user.status === 'pending') {
+          navigate('/pending-approval')
+        } else {
+          navigate('/')
+        }
+      } else {
+        setError(response.error)
+      }
+    } catch (err) {
+      setError(err.message || t('toast.registerError'))
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleChange = (field, value) => {
@@ -74,19 +155,29 @@ export default function RegisterPage() {
   }
 
   const handleBlur = (field) => {
-    setTouched(prev => ({ ...prev, [field]: true }))
+    setTouched((prev) => ({ ...prev, [field]: true }))
   }
 
   // Validation errors
   const errors = {
+    login: touched.login && !formData.login ? t('validation.required') : '',
     name: touched.name && !formData.name ? t('validation.required') : '',
-    email: touched.email && !formData.email ? t('validation.required') : 
-           touched.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email) ? t('validation.invalidEmail') : '',
-    department: touched.department && !formData.department ? t('validation.required') : '',
-    password: touched.password && !formData.password ? t('validation.required') :
-              touched.password && formData.password.length < 6 ? t('auth.passwordTooShort') : '',
-    confirmPassword: touched.confirmPassword && !formData.confirmPassword ? t('validation.required') :
-                     touched.confirmPassword && formData.password !== formData.confirmPassword ? t('validation.passwordMismatch') : ''
+    email:
+      touched.email && formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)
+        ? t('validation.invalidEmail')
+        : '',
+    password:
+      touched.password && !formData.password
+        ? t('validation.required')
+        : touched.password && formData.password.length < 6
+          ? t('auth.passwordTooShort')
+          : '',
+    confirmPassword:
+      touched.confirmPassword && !formData.confirmPassword
+        ? t('validation.required')
+        : touched.confirmPassword && formData.password !== formData.confirmPassword
+          ? t('validation.passwordMismatch')
+          : ''
   }
 
   return (
@@ -146,7 +237,22 @@ export default function RegisterPage() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Login */}
             <div className="animate-fade-in-up" style={{ animationDelay: '50ms' }}>
+              <Input
+                type="text"
+                label={t('auth.login') || 'Логин'}
+                value={formData.login}
+                onChange={(e) => handleChange('login', e.target.value)}
+                onBlur={() => handleBlur('login')}
+                icon={User}
+                error={errors.login}
+                autoComplete="username"
+              />
+            </div>
+
+            {/* Full Name */}
+            <div className="animate-fade-in-up" style={{ animationDelay: '100ms' }}>
               <Input
                 type="text"
                 label={t('auth.fullName')}
@@ -159,10 +265,11 @@ export default function RegisterPage() {
               />
             </div>
 
-            <div className="animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+            {/* Email (optional) */}
+            <div className="animate-fade-in-up" style={{ animationDelay: '150ms' }}>
               <Input
                 type="email"
-                label={t('auth.email')}
+                label={`${t('auth.email')} (${t('common.optional') || 'опционально'})`}
                 value={formData.email}
                 onChange={(e) => handleChange('email', e.target.value)}
                 onBlur={() => handleBlur('email')}
@@ -172,38 +279,58 @@ export default function RegisterPage() {
               />
             </div>
 
-            <div className="animate-fade-in-up" style={{ animationDelay: '150ms' }}>
-              <label className="text-xs uppercase tracking-wider text-muted-foreground mb-2 block font-medium">
-                {t('auth.department')}
-              </label>
+            {/* Hotel Code */}
+            <div className="animate-fade-in-up" style={{ animationDelay: '200ms' }}>
               <div className="relative">
-                <Building className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground pointer-events-none" />
-                <select
-                  value={formData.department}
-                  onChange={(e) => handleChange('department', e.target.value)}
-                  onBlur={() => handleBlur('department')}
-                  className={`w-full h-12 pl-12 pr-4 bg-card border rounded-lg appearance-none cursor-pointer
-                    focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all
-                    ${errors.department ? 'border-danger' : 'border-border hover:border-muted-foreground'}`}
-                  required
-                >
-                  <option value="">{t('auth.selectDepartment')}</option>
-                  {departments.map((dept) => (
-                    <option key={dept.id} value={dept.id}>
-                      {dept.name}
-                    </option>
-                  ))}
-                </select>
+                <Input
+                  type="text"
+                  label={t('auth.hotelCode') || 'Код отеля'}
+                  value={formData.hotelCode}
+                  onChange={(e) => handleChange('hotelCode', e.target.value.toUpperCase())}
+                  icon={Key}
+                  maxLength={5}
+                  autoComplete="off"
+                  placeholder="Например: WASSX"
+                />
+                {hotelValidation.loading && (
+                  <div
+                    className="absolute right-3 top-1/2 -translate-y-1/2"
+                    role="status"
+                    aria-label="Проверка"
+                  >
+                    <ButtonLoader />
+                  </div>
+                )}
+                {hotelValidation.valid === true && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <CheckCircle className="w-5 h-5 text-success" />
+                  </div>
+                )}
+                {hotelValidation.valid === false && formData.hotelCode.length >= 5 && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <AlertCircle className="w-5 h-5 text-danger" />
+                  </div>
+                )}
               </div>
-              {errors.department && (
-                <p className="text-danger text-xs mt-1 flex items-center gap-1">
-                  <AlertCircle className="w-3 h-3" />
-                  {errors.department}
+              {hotelValidation.valid === true && hotelValidation.hotel && (
+                <p className="text-success text-xs mt-1 flex items-center gap-1 animate-fade-in">
+                  <Building2 className="w-3 h-3" />
+                  {hotelValidation.hotel.name}
                 </p>
               )}
+              {hotelValidation.valid === false && formData.hotelCode.length >= 5 && (
+                <p className="text-danger text-xs mt-1 flex items-center gap-1 animate-fade-in">
+                  <AlertCircle className="w-3 h-3" />
+                  {t('auth.invalidHotelCode') || 'Неверный MARSHA код'}
+                </p>
+              )}
+              <p className="text-muted-foreground text-xs mt-2">
+                MARSHA код — 5 символов, например: TSEXR, WASSX, ASTLC
+              </p>
             </div>
 
-            <div className="animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+            {/* Password */}
+            <div className="animate-fade-in-up" style={{ animationDelay: '250ms' }}>
               <Input
                 type="password"
                 label={t('auth.password')}
@@ -222,7 +349,9 @@ export default function RegisterPage() {
                       <div
                         key={level}
                         className={`h-1 flex-1 rounded-full transition-colors ${
-                          passwordStrength >= level ? strengthColors[passwordStrength] : 'bg-gray-200'
+                          passwordStrength >= level
+                            ? strengthColors[passwordStrength]
+                            : 'bg-gray-200'
                         }`}
                       />
                     ))}
@@ -235,7 +364,8 @@ export default function RegisterPage() {
               )}
             </div>
 
-            <div className="animate-fade-in-up" style={{ animationDelay: '250ms' }}>
+            {/* Confirm Password */}
+            <div className="animate-fade-in-up" style={{ animationDelay: '300ms' }}>
               <Input
                 type="password"
                 label={t('auth.confirmPassword')}
@@ -255,7 +385,7 @@ export default function RegisterPage() {
               )}
             </div>
 
-            <div className="pt-4 animate-fade-in-up" style={{ animationDelay: '300ms' }}>
+            <div className="pt-4 animate-fade-in-up" style={{ animationDelay: '350ms' }}>
               <Button
                 type="submit"
                 variant="primary"

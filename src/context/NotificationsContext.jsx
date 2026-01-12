@@ -174,9 +174,10 @@ export function NotificationsProvider({ children }) {
     addNotification(type, data)
   }, [addNotification])
 
-  // SSE connection
+  // SSE connection - disabled for pending users (check both status and hotel_id)
+  const isPending = !user || user.status === 'pending' || (!user.hotel_id && user.role !== 'SUPER_ADMIN')
   const { isConnected, state: sseState, reconnect } = useSSE({
-    enabled: !!user,
+    enabled: !!user && !isPending,
     handlers: {
       onExpiringAlert: handleExpiringAlert,
       onWriteOff: handleWriteOff,

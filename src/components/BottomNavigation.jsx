@@ -1,76 +1,39 @@
 import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, Package, Bell, MoreHorizontal, X, BarChart3, ClipboardList, FileText, Calendar, Settings, LogOut, User, Globe } from 'lucide-react'
+import { MoreHorizontal, X, LogOut, User, Globe } from 'lucide-react'
 import { useProducts } from '../context/ProductContext'
 import { useAuth } from '../context/AuthContext'
 import { useTranslation, useLanguage } from '../context/LanguageContext'
 import { cn } from '../utils/classNames'
+import { mainNavItems, moreNavItems, filterNavByRole } from '../config/navigation'
 
 export default function BottomNavigation() {
   const location = useLocation()
   const navigate = useNavigate()
   const { getStats } = useProducts()
-  const { user, logout, isHotelAdmin } = useAuth()
+  const { user, logout } = useAuth()
   const { t } = useTranslation()
   const { language, changeLanguage } = useLanguage()
   const stats = getStats()
   const [showMore, setShowMore] = useState(false)
 
   const unreadCount = stats.critical + stats.expired
-  const isAdmin = isHotelAdmin()
+  const userRole = user?.role
 
-  // Основные пункты навигации (4 пункта + "Ещё")
-  const navItems = [
-    {
-      path: '/',
-      icon: LayoutDashboard,
-      label: t('nav.dashboard') || 'Главная'
-    },
-    {
-      path: '/inventory',
-      icon: Package,
-      label: t('nav.inventory') || 'Инвентарь'
-    },
-    {
-      path: '/notifications',
-      icon: Bell,
-      label: t('nav.notifications') || 'Уведомления',
-      badge: unreadCount > 0 ? unreadCount : null
-    },
-    {
-      path: '/calendar',
-      icon: Calendar,
-      label: t('nav.calendar') || 'Календарь'
-    }
-  ]
+  // Основные пункты навигации (4 пункта + "Ещё") - из централизованной конфигурации
+  const navItems = mainNavItems.map(item => ({
+    path: item.path,
+    icon: item.icon,
+    label: t(item.labelKey) || item.fallbackLabel,
+    badge: item.hasBadge && unreadCount > 0 ? unreadCount : null
+  }))
 
-  // Дополнительные пункты меню (доступны через "Ещё")
-  const moreItems = [
-    {
-      path: '/statistics',
-      icon: BarChart3,
-      label: t('nav.statistics') || 'Статистика',
-      adminOnly: true
-    },
-    {
-      path: '/collection-history',
-      icon: ClipboardList,
-      label: t('nav.collectionHistory') || 'История сборов',
-      adminOnly: true
-    },
-    {
-      path: '/audit-logs',
-      icon: FileText,
-      label: t('nav.auditLogs') || 'Журнал действий',
-      adminOnly: true
-    },
-    {
-      path: '/settings',
-      icon: Settings,
-      label: t('nav.settings') || 'Настройки',
-      adminOnly: false
-    }
-  ].filter(item => !item.adminOnly || isAdmin)
+  // Дополнительные пункты меню - фильтруем по роли из централизованной конфигурации
+  const moreItems = filterNavByRole(moreNavItems, userRole).map(item => ({
+    path: item.path,
+    icon: item.icon,
+    label: t(item.labelKey) || item.fallbackLabel
+  }))
 
   // Найти индекс активного элемента (включая moreItems)
   const activeIndex = navItems.findIndex(item => 

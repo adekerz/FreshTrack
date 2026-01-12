@@ -11,15 +11,15 @@ export { default as Modal } from './Modal'
 export { default as EmptyState } from './EmptyState'
 export { default as ConfirmDialog } from './ConfirmDialog'
 export { default as Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, DropdownSeparator, DropdownLabel } from './Dropdown'
-export { 
-  Skeleton, 
-  SkeletonText, 
-  SkeletonAvatar, 
-  SkeletonCard, 
-  SkeletonTable, 
+export {
+  Skeleton,
+  SkeletonText,
+  SkeletonAvatar,
+  SkeletonCard,
+  SkeletonTable,
   SkeletonTableRow,
   SkeletonStat,
-  SkeletonList 
+  SkeletonList
 } from './Skeleton'
 
 // Mobile-first компоненты
@@ -32,4 +32,15 @@ export { default as OfflineIndicator, useOnlineStatus, usePendingSync } from './
 export { default as MobileInventoryCard, MobileInventoryList } from './MobileInventoryCard'
 export { default as PullToRefresh, usePullToRefresh } from './PullToRefresh'
 export { default as TouchButton, IconButton } from './TouchButton'
-export { default as GridLoader, PageLoader, InlineLoader } from './GridLoader'
+
+// Unified Loader — единственный loader в проекте
+export {
+  default as Loader,
+  default as GridLoader, // Legacy alias
+  PageLoader,
+  SectionLoader,
+  InlineLoader,
+  ButtonLoader,
+  ButtonLoader as ButtonSpinner, // Legacy alias
+  FullscreenLoader
+} from './GridLoader'

@@ -37,6 +37,7 @@
     "save": "Save",
     "cancel": "Cancel",
     "delete": "Delete",
+    "remove": "Remove",
     "edit": "Edit",
     "add": "Add",
     "search": "Search",
@@ -77,7 +78,11 @@
     "minutesAgo": "min ago",
     "hoursAgo": "hours ago",
     "daysAgo": "days ago",
-    "today": "Today"
+    "today": "Today",
+    "approve": "Approve",
+    "reject": "Reject",
+    "saving": "Saving...",
+    "goToSettings": "Go to settings"
   },
   "toast": {
     "success": "Success",
@@ -177,6 +182,7 @@
     "emailPlaceholder": "your@email.com",
     "loginOrEmail": "Login or Email",
     "loginOrEmailPlaceholder": "Enter login or email",
+    "login": "Login",
     "password": "Password",
     "passwordPlaceholder": "••••••••",
     "signIn": "Sign In",
@@ -207,7 +213,74 @@
     "good": "Good",
     "strong": "Strong",
     "veryStrong": "Very strong",
-    "passwordsMatch": "Passwords match"
+    "passwordsMatch": "Passwords match",
+    "hotelCode": "MARSHA Code",
+    "hotelCodeHint": "5 characters, e.g.: TSEXR, WASSX",
+    "invalidHotelCode": "Invalid MARSHA code"
+  },
+  "pending": {
+    "title": "Pending Approval",
+    "message": "Your request has been sent to the administrator. Please wait for confirmation.",
+    "approved": "Request approved!",
+    "redirecting": "Redirecting...",
+    "rejected": "Request rejected",
+    "rejectedMessage": "Unfortunately, your request has been rejected by the administrator.",
+    "reason": "Reason:",
+    "backToLogin": "Back to login",
+    "requestedHotel": "Requested hotel:",
+    "checkStatus": "Check status",
+    "lastChecked": "Last checked:",
+    "logout": "Log out",
+    "autoRefresh": "Status updates automatically every 30 seconds"
+  },
+  "marshaCode": {
+    "label": "MARSHA Code (Marriott)",
+    "optional": "optional",
+    "selectCode": "Select Marriott code",
+    "searchPlaceholder": "Search by name, city or code...",
+    "suggestionsFound": "Similar codes found:",
+    "suggestedCodes": "Recommended codes",
+    "searchResults": "Search results",
+    "noResults": "Nothing found",
+    "tryDifferent": "Try a different query",
+    "startTyping": "Start typing to search",
+    "searchHint": "Hotel name, city or code",
+    "assigned": "Assigned",
+    "brands": {
+      "RZ": "Ritz-Carlton",
+      "XR": "St. Regis",
+      "WH": "W Hotels",
+      "ED": "EDITION",
+      "LC": "Luxury Collection",
+      "MC": "Marriott Hotels",
+      "SI": "Sheraton",
+      "WI": "Westin",
+      "MD": "Le Méridien",
+      "BR": "Renaissance",
+      "AK": "Autograph Collection"
+    }
+  },
+  "joinRequests": {
+    "title": "Join Requests",
+    "description": "Approve or reject employee requests",
+    "noRequests": "No new requests",
+    "noRequestsDescription": "When employees register with your hotel code, their requests will appear here",
+    "pendingCount": "{{count}} requests pending review",
+    "approveTitle": "Approve request",
+    "selectDepartment": "Assign to department",
+    "chooseDepartment": "Select department",
+    "rejectTitle": "Reject request",
+    "rejectReason": "Rejection reason (optional)",
+    "rejectPlaceholder": "Enter reason...",
+    "approvedSuccess": "Request approved",
+    "rejectedSuccess": "Request rejected"
+  },
+  "roles": {
+    "superAdmin": "Super Administrator",
+    "hotelAdmin": "Hotel Administrator",
+    "departmentManager": "Department Manager",
+    "manager": "Manager",
+    "staff": "Staff"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -283,10 +356,10 @@
     "expiresToday": "Expires today",
     "expired": "Expired",
     "expiredSection": "Expired",
-    "urgentSection": "Urgent (3 days)",
-    "warningSection": "Warning (7 days)",
-    "critical": "Critical (up to 3 days)",
-    "warning": "Warning (up to 7 days)",
+    "urgentSection": "Urgent",
+    "warningSection": "Warning",
+    "critical": "Critical (up to {{days}} days)",
+    "warning": "Warning (up to {{days}} days)",
     "collect": "Collect",
     "daysAgo": "{{days}} days ago",
     "browserNotifications": "Browser Notifications",
@@ -318,7 +391,9 @@
     "Beverages": "Beverages",
     "Mixers": "Mixers",
     "snacks": "Snacks",
-    "quickColors": "Quick Colors"
+    "quickColors": "Quick Colors",
+    "deleteTitle": "Delete category?",
+    "deleteWarning": "This action cannot be undone. Products will remain without a category."
   },
   "batch": {
     "manufacturingDate": "Manufacturing Date",
@@ -628,7 +703,8 @@
       "catalog": "Catalog",
       "categories": "Categories",
       "telegram": "Telegram",
-      "importExport": "Import/Export"
+      "importExport": "Import/Export",
+      "joinRequests": "Requests"
     },
     "generalTitle": "General Settings",
     "generalDescription": "Basic system parameters",
@@ -672,12 +748,14 @@
       "roleAdmin": "Administrator",
       "roleManager": "Manager",
       "roleStaff": "Staff",
+      "roleDepartmentManager": "Department Manager",
       "roles": {
         "admin": "Administrator",
         "manager": "Manager",
         "staff": "Staff",
         "SUPER_ADMIN": "Super Administrator",
         "HOTEL_ADMIN": "Hotel Administrator",
+        "DEPARTMENT_MANAGER": "Department Manager",
         "STAFF": "Staff"
       },
       "statuses": {
@@ -742,13 +820,32 @@
       "enabled": "Enabled",
       "testConnection": "Test Connection",
       "scheduleTime": "Schedule Time",
+      "scheduleSettings": "Notification Schedule",
+      "sendTime": "Daily report send time",
+      "timezoneNote": "Based on hotel timezone",
       "messageTemplates": "Message Templates",
       "dailyReport": "Daily Report",
       "expiryWarning": "Expiry Warning",
       "expiredAlert": "Expired Alert",
       "collectionConfirm": "Collection Confirmation",
       "testSuccess": "Test successful",
-      "testError": "Test failed"
+      "testError": "Test failed",
+      "addBot": "Add bot to chat",
+      "addBotDescription": "Add the bot to a Telegram group chat and link it to a hotel or department to receive notifications.",
+      "setupSteps": "Instructions:",
+      "step1": "Click the \"Add bot to chat\" button below",
+      "step2": "Select a group in Telegram",
+      "step3": "In the group, send the command:",
+      "step4": "To link to a department:",
+      "availableCommands": "Available commands:",
+      "addBotButton": "Add bot to chat",
+      "linkedChats": "Linked chats",
+      "unlinkChat": "Unlink",
+      "noLinkedChats": "No linked chats",
+      "chatType": "Chat type",
+      "linkedTo": "Linked to",
+      "allHotel": "Entire hotel",
+      "department": "Department"
     },
     "importExport": {
       "title": "Import and Export Data",
@@ -780,6 +877,8 @@
       "role": "Role",
       "roleAdmin": "Administrator",
       "roleManager": "Manager",
+      "roleStaff": "Staff",
+      "roleDepartmentManager": "Department Manager",
       "departments": "Accessible Departments"
     },
     "notifications": {
@@ -804,7 +903,15 @@
       "telegramDescription": "Telegram bot settings for notifications",
       "version": "App Version",
       "database": "Database",
-      "connected": "Connected"
+      "connected": "Connected",
+      "disconnected": "Disconnected",
+      "healthStatus": "System Health",
+      "status": "Status",
+      "healthy": "Healthy",
+      "unhealthy": "Unhealthy",
+      "serverTime": "Server Time",
+      "checkHealth": "Check Health",
+      "environment": "Environment"
     }
   },
   "branding": {
@@ -827,7 +934,9 @@
     "preview": "Color preview:",
     "resetToDefault": "Reset to default",
     "confirmReset": "Reset branding to defaults?",
-    "reset": "Branding reset"
+    "reset": "Branding reset",
+    "resetTitle": "Reset branding?",
+    "resetWarning": "All branding settings will be reset to default values."
   },
   "export": {
     "title": "Export Data",
@@ -981,7 +1090,9 @@
       "newExpired": "New Expired Items"
     },
     "noRules": "No rules configured",
-    "deleteConfirm": "Delete rule?"
+    "deleteConfirm": "Delete rule?",
+    "deleteTitle": "Delete rule?",
+    "deleteWarning": "This action cannot be undone."
   },
   "deliveryTemplates": {
     "title": "Delivery Templates",
@@ -1089,9 +1200,15 @@
     "notificationType": "Notification Type",
     "allChannels": "All Channels",
     "deleteConfirm": "Delete rule?",
+    "deleteTitle": "Delete rule?",
+    "deleteWarning": "This action cannot be undone.",
     "beforeDays": "Before",
     "days": "days",
-    "all": "All"
+    "all": "All",
+    "sendTimeTitle": "Notification Send Time",
+    "sendTimeDescription": "Daily reports and notifications will be sent at this time",
+    "sendTimeSaved": "Send time saved",
+    "sendTimeError": "Error saving send time"
   },
   "deptNotifications": {
     "title": "Department Notifications",
@@ -1184,6 +1301,12 @@
     "roleAdmin": "Administrator",
     "roleManager": "Manager",
     "roleStaff": "Staff",
+    "roles": {
+      "SUPER_ADMIN": "Super Administrator",
+      "HOTEL_ADMIN": "Hotel Administrator",
+      "DEPARTMENT_MANAGER": "Department Manager",
+      "STAFF": "Staff"
+    },
     "fillRequired": "Fill in required fields"
   },
   "categorySettings": {
@@ -1211,7 +1334,9 @@
     "shelfLife": "Shelf Life",
     "products": "products",
     "editTemplate": "Edit Template",
-    "confirmDelete": "Delete template?"
+    "confirmDelete": "Delete template?",
+    "deleteTitle": "Delete template?",
+    "deleteWarning": "This action cannot be undone."
   },
   "telegram": {
     "title": "Telegram Settings",
@@ -1234,7 +1359,21 @@
     "variables": "Variables",
     "save": "Save",
     "saving": "Saving...",
-    "saved": "Settings saved"
+    "saved": "Settings saved",
+    "addBot": "Add Bot to Chat",
+    "addBotDescription": "Add the bot to a group chat for notifications. The bot will send alerts about expiring products to the linked chat.",
+    "setupSteps": "Setup Instructions:",
+    "step1": "Click the \"Add Bot to Chat\" button below",
+    "step2": "Select a group in Telegram",
+    "step3": "In the group, send the command:",
+    "step4": "To link to a specific department:",
+    "availableCommands": "Available Commands:",
+    "addBotButton": "Add Bot to Chat",
+    "linkedChats": "Linked Chats",
+    "unlinkChat": "Unlink",
+    "noLinkedChats": "No linked chats",
+    "chatLinked": "Chat linked",
+    "chatUnlinked": "Chat unlinked"
   },
   "fifoCollect": {
     "title": "FIFO Collection",

@@ -28,9 +28,11 @@
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.2",
     "node-cron": "^4.2.1",
+    "nodemailer": "^6.10.1",
     "pg": "^8.11.3",
     "rate-limiter-flexible": "^9.0.1",
-    "uuid": "^9.0.0"
+    "uuid": "^9.0.0",
+    "zod": "^4.3.4"
   },
   "keywords": [
     "freshtrack",

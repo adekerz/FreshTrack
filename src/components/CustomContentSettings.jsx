@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
-import { Upload, Image, Loader2, RotateCcw, Edit3, Check, X } from 'lucide-react'
+import { Upload, Image, RotateCcw, Edit3, Check, X } from 'lucide-react'
+import { SectionLoader, ButtonLoader } from './ui'
 import { useTranslation } from '../context/LanguageContext'
 import { apiFetch, API_BASE_URL } from '../services/api'
 
@@ -107,11 +108,7 @@ export default function CustomContentSettings() {
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-8">
-        <Loader2 className="w-6 h-6 animate-spin text-primary-500" />
-      </div>
-    )
+    return <SectionLoader />
   }
 
   return (
@@ -154,12 +151,9 @@ export default function CustomContentSettings() {
               onClick={() => fileInputRef.current?.click()}
               disabled={uploadingLogo}
               className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 transition-colors"
+              aria-busy={uploadingLogo}
             >
-              {uploadingLogo ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Upload className="w-4 h-4" />
-              )}
+              {uploadingLogo ? <ButtonLoader /> : <Upload className="w-4 h-4" />}
               {t('customContent.uploadLogo') || 'Загрузить'}
             </button>
 
@@ -213,12 +207,9 @@ export default function CustomContentSettings() {
                       onClick={() => saveField(field.key)}
                       disabled={saving}
                       className="p-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+                      aria-busy={saving}
                     >
-                      {saving ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Check className="w-4 h-4" />
-                      )}
+                      {saving ? <ButtonLoader /> : <Check className="w-4 h-4" />}
                     </button>
                     <button
                       onClick={cancelEditing}

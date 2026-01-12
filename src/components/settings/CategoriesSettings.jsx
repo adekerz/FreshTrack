@@ -8,15 +8,24 @@ import { useTranslation } from '../../context/LanguageContext'
 import { useToast } from '../../context/ToastContext'
 import { useProducts } from '../../context/ProductContext'
 import { useHotel } from '../../context/HotelContext'
-import { Plus, X, RefreshCw, Tag, Palette } from 'lucide-react'
+import { Plus, X, RefreshCw, Tag, Palette, AlertTriangle, Trash2 } from 'lucide-react'
+import { ButtonLoader, SectionLoader } from '../ui'
 import { apiFetch } from '../../services/api'
 
 const defaultColors = [
-  '#FF8D6B', '#6B8DFF', '#6BFF8D', '#FF6B8D', '#8D6BFF',
-  '#FFB86B', '#6BFFB8', '#B86BFF', '#FF6BB8', '#6BB8FF'
+  '#FF8D6B',
+  '#6B8DFF',
+  '#6BFF8D',
+  '#FF6B8D',
+  '#8D6BFF',
+  '#FFB86B',
+  '#6BFFB8',
+  '#B86BFF',
+  '#FF6BB8',
+  '#6BB8FF'
 ]
 
-export default function CategoriesSettings() {
+export default function CategoriesSettings({ readOnly = false }) {
   const { t } = useTranslation()
   const { addToast } = useToast()
   const { refresh } = useProducts()
@@ -25,6 +34,8 @@ export default function CategoriesSettings() {
   const [loading, setLoading] = useState(true)
   const [newCategory, setNewCategory] = useState({ name: '', color: '#FF8D6B' })
   const [adding, setAdding] = useState(false)
+  const [deleteConfirm, setDeleteConfirm] = useState(null)
+  const [deleting, setDeleting] = useState(false)
 
   // Перезагружаем категории при смене отеля
   useEffect(() => {
@@ -36,7 +47,8 @@ export default function CategoriesSettings() {
   const fetchCategories = async () => {
     setLoading(true)
     try {
-      const data = await apiFetch('/categories')
+      const hotelQuery = selectedHotelId ? `?hotel_id=${selectedHotelId}` : ''
+      const data = await apiFetch(`/categories${hotelQuery}`)
       setCategories(data.categories || data || [])
     } catch (error) {
       // Fallback to default categories if API fails
@@ -53,53 +65,66 @@ export default function CategoriesSettings() {
   }
   const addCategory = async () => {
     if (!newCategory.name.trim()) return
-    
+
     setAdding(true)
     try {
       await apiFetch('/categories', {
         method: 'POST',
         body: JSON.stringify(newCategory)
       })
-      await fetchCategories()
-      // Обновляем глобальный контекст чтобы категории появились везде
-      await refresh()
-      setNewCategory({ name: '', color: defaultColors[Math.floor(Math.random() * defaultColors.length)] })
+      // Сразу показываем успех и сбрасываем форму
       addToast(t('toast.categoryAdded'), 'success')
+      setNewCategory({
+        name: '',
+        color: defaultColors[Math.floor(Math.random() * defaultColors.length)]
+      })
+      // Обновляем данные в фоне (без await)
+      fetchCategories()
+      refresh()
     } catch (error) {
-      addToast(t('toast.categoryAddError'), 'error')
+      // Показываем реальную ошибку от сервера
+      const errorMessage = error.message || t('toast.categoryAddError')
+      addToast(errorMessage, 'error')
     } finally {
       setAdding(false)
     }
   }
 
   const deleteCategory = async (id, name) => {
-    if (!confirm(`${t('categories.confirmDelete') || 'Удалить категорию'} "${name}"?`)) return
-    
+    setDeleteConfirm({ id, name })
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!deleteConfirm) return
+
+    setDeleting(true)
     try {
-      await apiFetch(`/categories/${id}`, {
+      await apiFetch(`/categories/${deleteConfirm.id}`, {
         method: 'DELETE'
       })
-      await fetchCategories()
-      // Обновляем глобальный контекст
-      await refresh()
+      // Сразу показываем успех и закрываем модалку
       addToast(t('toast.categoryDeleted'), 'success')
+      setDeleteConfirm(null)
+      // Обновляем данные в фоне (без await)
+      fetchCategories()
+      refresh()
     } catch (error) {
       addToast(t('toast.categoryDeleteError'), 'error')
+    } finally {
+      setDeleting(false)
     }
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <RefreshCw className="w-6 h-6 animate-spin text-muted-foreground" />
-      </div>
-    )
+    return <SectionLoader />
   }
 
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-foreground">{t('settings.categories.title') || 'Категории'}</h2>
+        <h2 className="text-xl font-semibold text-foreground">
+          {t('settings.categories.title') || 'Категории'}
+        </h2>
         <p className="text-sm text-muted-foreground mt-1">
           {t('categorySettings.description') || 'Управление категориями товаров'}
           {selectedHotel && (
@@ -110,90 +135,95 @@ export default function CategoriesSettings() {
         </p>
       </div>
 
-      {/* Форма добавления */}
-      <div className="flex flex-col sm:flex-row gap-4 p-4 bg-muted/50 rounded-xl">
-        <div className="flex-1">
-          <input 
-            type="text"
-            placeholder={t('categorySettings.name') || 'Название категории'}
-            value={newCategory.name}
-            onChange={(e) => setNewCategory({...newCategory, name: e.target.value})}
-            className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-card"
-            onKeyPress={(e) => e.key === 'Enter' && addCategory()}
-          />
-        </div>
-        
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <input 
-              type="color"
-              value={newCategory.color}
-              onChange={(e) => setNewCategory({...newCategory, color: e.target.value})}
-              className="w-12 h-10 rounded-lg border border-border cursor-pointer"
-              title={t('categorySettings.selectColor') || 'Выберите цвет'}
-            />
-          </div>
-          
-          <button 
-            onClick={addCategory}
-            disabled={adding || !newCategory.name.trim()}
-            className="flex items-center gap-2 px-6 py-2.5 bg-foreground text-background rounded-lg hover:bg-foreground/90 transition-colors disabled:opacity-50"
-          >
-            {adding ? (
-              <RefreshCw className="w-4 h-4 animate-spin" />
-            ) : (
-              <Plus className="w-4 h-4" />
-            )}
-            {t('common.add') || 'Добавить'}
-          </button>
-        </div>
-      </div>
+      {/* Форма добавления (скрыта в режиме только чтение) */}
+      {!readOnly && (
+        <>
+          <div className="flex flex-col sm:flex-row gap-4 p-4 bg-muted/50 rounded-xl">
+            <div className="flex-1">
+              <input
+                type="text"
+                placeholder={t('categorySettings.name') || 'Название категории'}
+                value={newCategory.name}
+                onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
+                className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-card"
+                onKeyPress={(e) => e.key === 'Enter' && addCategory()}
+              />
+            </div>
 
-      {/* Предустановленные цвета */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-sm text-muted-foreground mr-2">{t('categories.quickColors') || 'Быстрый выбор:'}:</span>
-        {defaultColors.map(color => (
-          <button
-            key={color}
-            onClick={() => setNewCategory({...newCategory, color})}
-            className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 ${
-              newCategory.color === color ? 'border-charcoal ring-2 ring-offset-2 ring-charcoal' : 'border-transparent'
-            }`}
-            style={{ backgroundColor: color }}
-            title={color}
-          />
-        ))}
-      </div>
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <input
+                  type="color"
+                  value={newCategory.color}
+                  onChange={(e) => setNewCategory({ ...newCategory, color: e.target.value })}
+                  className="w-12 h-10 rounded-lg border border-border cursor-pointer"
+                  title={t('categorySettings.selectColor') || 'Выберите цвет'}
+                />
+              </div>
+
+              <button
+                onClick={addCategory}
+                disabled={adding || !newCategory.name.trim()}
+                className="flex items-center gap-2 px-6 py-2.5 bg-foreground text-background rounded-lg hover:bg-foreground/90 transition-colors disabled:opacity-50"
+                aria-busy={adding}
+              >
+                {adding ? <ButtonLoader /> : <Plus className="w-4 h-4" />}
+                {t('common.add') || 'Добавить'}
+              </button>
+            </div>
+          </div>
+
+          {/* Предустановленные цвета */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm text-muted-foreground mr-2">
+              {t('categories.quickColors') || 'Быстрый выбор:'}:
+            </span>
+            {defaultColors.map((color) => (
+              <button
+                key={color}
+                onClick={() => setNewCategory({ ...newCategory, color })}
+                className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 ${
+                  newCategory.color === color
+                    ? 'border-charcoal ring-2 ring-offset-2 ring-charcoal'
+                    : 'border-transparent'
+                }`}
+                style={{ backgroundColor: color }}
+                title={color}
+              />
+            ))}
+          </div>
+        </>
+      )}
 
       {/* Список категорий */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {categories.map(cat => (
-          <div 
-            key={cat.id} 
+        {categories.map((cat) => (
+          <div
+            key={cat.id}
             className="flex items-center justify-between p-4 rounded-xl border-2 bg-card hover:shadow-md transition-shadow"
             style={{ borderColor: cat.color }}
           >
             <div className="flex items-center gap-3">
-              <div 
+              <div
                 className="w-10 h-10 rounded-lg flex items-center justify-center"
                 style={{ backgroundColor: cat.color + '20' }}
               >
                 <Tag className="w-5 h-5" style={{ color: cat.color }} />
               </div>
               <div>
-                <span className="font-medium text-foreground">
-                  {cat.name}
-                </span>
+                <span className="font-medium text-foreground">{cat.name}</span>
                 <p className="text-xs text-muted-foreground">{cat.color}</p>
               </div>
             </div>
-            <button 
-              onClick={() => deleteCategory(cat.id, cat.name)}
-              className="p-2 rounded-lg hover:bg-red-50 text-muted-foreground hover:text-red-600 transition-colors"
-              title={t('common.delete')}
-            >
-              <X className="w-4 h-4" />
-            </button>
+            {!readOnly && (
+              <button
+                onClick={() => deleteCategory(cat.id, cat.name)}
+                className="p-2 rounded-lg hover:bg-red-50 text-muted-foreground hover:text-red-600 transition-colors"
+                title={t('common.delete')}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
           </div>
         ))}
       </div>
@@ -202,6 +232,47 @@ export default function CategoriesSettings() {
         <div className="text-center py-12 text-muted-foreground">
           <Palette className="w-12 h-12 mx-auto mb-4 opacity-50" />
           <p>{t('categories.noCategories') || 'Категории не найдены'}</p>
+        </div>
+      )}
+
+      {/* Модальное окно подтверждения удаления */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-card rounded-xl p-6 max-w-sm w-full mx-4 shadow-xl animate-slide-up">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-14 h-14 rounded-full bg-danger/10 flex items-center justify-center animate-danger-pulse">
+                <AlertTriangle className="w-7 h-7 text-danger animate-danger-shake" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-foreground">
+                  {t('categories.deleteTitle') || 'Удалить категорию?'}
+                </h3>
+                <p className="text-sm text-muted-foreground">{deleteConfirm.name}</p>
+              </div>
+            </div>
+            <p className="text-sm text-muted-foreground mb-6">
+              {t('categories.deleteWarning') ||
+                'Это действие нельзя отменить. Товары останутся без категории.'}
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteConfirm(null)}
+                disabled={deleting}
+                className="flex-1 px-4 py-2 border border-border rounded-lg text-foreground hover:bg-muted disabled:opacity-50"
+              >
+                {t('common.cancel') || 'Отмена'}
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                disabled={deleting}
+                className="flex-1 px-4 py-2 bg-danger text-white rounded-lg hover:bg-danger/90 disabled:opacity-50 flex items-center justify-center gap-2"
+                aria-busy={deleting}
+              >
+                {deleting ? <ButtonLoader /> : <Trash2 className="w-4 h-4" />}
+                {t('common.delete') || 'Удалить'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

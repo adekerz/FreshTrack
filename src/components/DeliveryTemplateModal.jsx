@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { X, Package, Plus, Minus, Calendar, Check, Loader2 } from 'lucide-react'
+import { X, Package, Plus, Minus, Calendar, Check } from 'lucide-react'
+import { SectionLoader, ButtonLoader } from './ui'
 import { useTranslation } from '../context/LanguageContext'
 import { useProducts } from '../context/ProductContext'
 import { apiFetch } from '../services/api'
@@ -98,7 +99,10 @@ export default function DeliveryTemplateModal({ isOpen, onClose, onApply, depart
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       {/* Backdrop */}
-      <div className="fixed inset-0 bg-black/50 dark:bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div
+        className="fixed inset-0 bg-black/50 dark:bg-black/60 backdrop-blur-sm"
+        onClick={onClose}
+      />
 
       {/* Modal */}
       <div className="flex min-h-full items-center justify-center p-4">
@@ -118,10 +122,7 @@ export default function DeliveryTemplateModal({ isOpen, onClose, onApply, depart
                 )}
               </div>
             </div>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-muted rounded-lg transition-colors"
-            >
+            <button onClick={onClose} className="p-2 hover:bg-muted rounded-lg transition-colors">
               <X className="w-5 h-5 text-gray-500" />
             </button>
           </div>
@@ -129,9 +130,7 @@ export default function DeliveryTemplateModal({ isOpen, onClose, onApply, depart
           {/* Content */}
           <div className="p-6 overflow-y-auto max-h-[calc(90vh-180px)]">
             {loading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
-              </div>
+              <SectionLoader />
             ) : !selectedTemplate ? (
               /* Template Selection */
               <div className="space-y-4">
@@ -152,9 +151,7 @@ export default function DeliveryTemplateModal({ isOpen, onClose, onApply, depart
                         className="flex items-center justify-between p-4 border border-border rounded-xl hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/10 transition-colors text-left"
                       >
                         <div>
-                          <h3 className="font-medium text-foreground">
-                            {template.name}
-                          </h3>
+                          <h3 className="font-medium text-foreground">{template.name}</h3>
                           <p className="text-sm text-gray-500">
                             {template.items.length} {t('templates.items') || 'позиций'}
                             {template.departmentId &&
@@ -173,8 +170,10 @@ export default function DeliveryTemplateModal({ isOpen, onClose, onApply, depart
                 {/* Department info */}
                 <div className="p-3 bg-accent/10 rounded-lg">
                   <p className="text-sm text-foreground">
-                    <span className="font-medium">{t('templates.targetDepartment') || 'Целевой отдел'}:</span>{' '}
-                    {departments.find(d => d.id === targetDepartment)?.name || targetDepartment}
+                    <span className="font-medium">
+                      {t('templates.targetDepartment') || 'Целевой отдел'}:
+                    </span>{' '}
+                    {departments.find((d) => d.id === targetDepartment)?.name || targetDepartment}
                   </p>
                 </div>
 
@@ -198,9 +197,7 @@ export default function DeliveryTemplateModal({ isOpen, onClose, onApply, depart
                       className="flex flex-wrap md:flex-nowrap items-center gap-3 p-4 bg-muted/50 rounded-xl"
                     >
                       <div className="flex-1 min-w-[150px]">
-                        <p className="font-medium text-foreground text-sm">
-                          {item.productName}
-                        </p>
+                        <p className="font-medium text-foreground text-sm">{item.productName}</p>
                         <p className="text-xs text-gray-500">{item.category}</p>
                       </div>
 
@@ -276,12 +273,9 @@ export default function DeliveryTemplateModal({ isOpen, onClose, onApply, depart
                   onClick={handleApply}
                   disabled={applying || items.length === 0}
                   className="flex items-center gap-2 px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  aria-busy={applying}
                 >
-                  {applying ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Check className="w-4 h-4" />
-                  )}
+                  {applying ? <ButtonLoader /> : <Check className="w-4 h-4" />}
                   {t('templates.apply') || `Добавить ${items.length} позиций`}
                 </button>
               </div>

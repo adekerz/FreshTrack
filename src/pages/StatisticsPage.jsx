@@ -7,6 +7,7 @@ import { useState, useMemo } from 'react'
 import { useTranslation, useLanguage } from '../context/LanguageContext'
 import { useAuth } from '../context/AuthContext'
 import { useProducts } from '../context/ProductContext'
+import { useThresholds } from '../hooks/useThresholds'
 import ExportButton from '../components/ExportButton'
 import { EXPORT_COLUMNS } from '../utils/exportUtils'
 import { Package, AlertTriangle, CheckCircle, Clock } from 'lucide-react'
@@ -16,6 +17,7 @@ export default function StatisticsPage() {
   const { language } = useLanguage()
   const { user, isHotelAdmin } = useAuth()
   const { getActiveBatches, getStats, departments, categories } = useProducts()
+  const { thresholds } = useThresholds()
   const [selectedPeriod, setSelectedPeriod] = useState('week')
 
   const stats = getStats()
@@ -34,9 +36,13 @@ export default function StatisticsPage() {
     return userDepartments.map((dept) => {
       const deptBatches = batches.filter((b) => b.departmentId === dept.id)
       const expired = deptBatches.filter((b) => b.daysLeft < 0)
-      const critical = deptBatches.filter((b) => b.daysLeft >= 0 && b.daysLeft <= 3)
-      const warning = deptBatches.filter((b) => b.daysLeft > 3 && b.daysLeft <= 7)
-      const good = deptBatches.filter((b) => b.daysLeft > 7)
+      const critical = deptBatches.filter(
+        (b) => b.daysLeft >= 0 && b.daysLeft <= thresholds.critical
+      )
+      const warning = deptBatches.filter(
+        (b) => b.daysLeft > thresholds.critical && b.daysLeft <= thresholds.warning
+      )
+      const good = deptBatches.filter((b) => b.daysLeft > thresholds.warning)
 
       const totalQuantity = deptBatches.reduce((sum, b) => sum + (b.quantity || 0), 0)
 
@@ -88,17 +94,17 @@ export default function StatisticsPage() {
       .filter((b) => {
         // Filter by user's department access (permission-based)
         if (!isHotelAdmin() && !user?.departments?.includes(b.departmentId)) return false
-        return b.daysLeft <= 7
+        return b.daysLeft <= thresholds.warning
       })
       .sort((a, b) => a.daysLeft - b.daysLeft)
       .slice(0, 5)
-  }, [batches, user, isHotelAdmin])
+  }, [batches, user, isHotelAdmin, thresholds.warning])
 
   // Подготовка данных для экспорта (синхронизировано с InventoryPage)
   const exportData = useMemo(() => {
     // Функция для получения названия категории
     const getCategoryName = (categoryId) => {
-      const cat = categories.find(c => c.id === categoryId)
+      const cat = categories.find((c) => c.id === categoryId)
       if (!cat) return '-'
       if (language === 'ru') return cat.nameRu || cat.name || '-'
       if (language === 'kk') return cat.nameKz || cat.name || '-'
@@ -121,13 +127,16 @@ export default function StatisticsPage() {
     }
 
     return batches.map((batch) => {
-      const categoryName = getCategoryName(batch.categoryId) || '-'
+      // Используем categoryName с бэкенда (single source of truth), fallback на локальный поиск
+      const categoryName =
+        batch.categoryName || batch.category_name || getCategoryName(batch.categoryId) || '-'
       const status = batch.status?.status || batch.status
-      
+
       return {
         productName: batch.name || batch.productName,
         category: categoryName,
-        department: departments.find((d) => d.id === batch.departmentId)?.name || batch.departmentId,
+        department:
+          departments.find((d) => d.id === batch.departmentId)?.name || batch.departmentId,
         quantity: batch.quantity || 1,
         unit: batch.unit || 'шт',
         formattedDate: batch.expiryDate
@@ -186,8 +195,12 @@ export default function StatisticsPage() {
       {/* Заголовок */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-light text-foreground">{t('statistics.title')}</h1>
-          <p className="text-muted-foreground text-xs sm:text-sm mt-1">{t('statistics.subtitle')}</p>
+          <h1 className="text-xl sm:text-2xl font-light text-foreground">
+            {t('statistics.title')}
+          </h1>
+          <p className="text-muted-foreground text-xs sm:text-sm mt-1">
+            {t('statistics.subtitle')}
+          </p>
         </div>
 
         <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
@@ -267,7 +280,10 @@ export default function StatisticsPage() {
               <div key={dept.id}>
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2 gap-1">
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: dept.color }} />
+                    <div
+                      className="w-3 h-3 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: dept.color }}
+                    />
                     <span className="text-sm font-medium text-foreground">{dept.name}</span>
                   </div>
                   <div className="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm text-muted-foreground ml-5 sm:ml-0">
@@ -326,12 +342,16 @@ export default function StatisticsPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
         {/* По категориям */}
         <div className="bg-card rounded-xl border border-border p-4 sm:p-6">
-          <h2 className="text-base sm:text-lg font-medium text-foreground mb-3 sm:mb-4">{t('statistics.byCategory')}</h2>
+          <h2 className="text-base sm:text-lg font-medium text-foreground mb-3 sm:mb-4">
+            {t('statistics.byCategory')}
+          </h2>
 
           <div className="space-y-2 sm:space-y-3">
             {categoryStats.map((cat) => (
               <div key={cat.id} className="flex items-center justify-between gap-2">
-                <span className="text-xs sm:text-sm text-foreground truncate flex-1">{cat.name}</span>
+                <span className="text-xs sm:text-sm text-foreground truncate flex-1">
+                  {cat.name}
+                </span>
                 <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
                   <span className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap">
                     {cat.total} {t('statistics.batches')}
@@ -346,14 +366,18 @@ export default function StatisticsPage() {
             ))}
 
             {categoryStats.length === 0 && (
-              <p className="text-xs sm:text-sm text-muted-foreground text-center py-4">{t('statistics.noData')}</p>
+              <p className="text-xs sm:text-sm text-muted-foreground text-center py-4">
+                {t('statistics.noData')}
+              </p>
             )}
           </div>
         </div>
 
         {/* Товары, требующие внимания */}
         <div className="bg-card rounded-xl border border-border p-4 sm:p-6">
-          <h2 className="text-base sm:text-lg font-medium text-foreground mb-3 sm:mb-4">{t('statistics.topAlerts')}</h2>
+          <h2 className="text-base sm:text-lg font-medium text-foreground mb-3 sm:mb-4">
+            {t('statistics.topAlerts')}
+          </h2>
 
           <div className="space-y-2 sm:space-y-3">
             {topAlertProducts.map((batch, index) => {
@@ -388,7 +412,9 @@ export default function StatisticsPage() {
             {topAlertProducts.length === 0 && (
               <div className="text-center py-4">
                 <CheckCircle className="w-6 h-6 sm:w-8 sm:h-8 text-success mx-auto mb-2" />
-                <p className="text-xs sm:text-sm text-muted-foreground">{t('statistics.allGood')}</p>
+                <p className="text-xs sm:text-sm text-muted-foreground">
+                  {t('statistics.allGood')}
+                </p>
               </div>
             )}
           </div>

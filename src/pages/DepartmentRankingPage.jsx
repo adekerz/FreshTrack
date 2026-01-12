@@ -82,8 +82,8 @@ export default function DepartmentRankingPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-playfair text-foreground flex items-center gap-2">
-            <Trophy className="w-6 h-6 text-gold" />
+          <h1 className="text-xl sm:text-2xl font-light text-foreground flex items-center gap-2">
+            <Trophy className="w-6 h-6 text-accent" />
             {t('ranking.title') || 'Рейтинг отделов'}
           </h1>
           <p className="text-muted-foreground">
@@ -197,9 +197,7 @@ export default function DepartmentRankingPage() {
                   <div className="flex items-center gap-3">
                     <div className="w-3 h-3 rounded-full" style={{ backgroundColor: dept.color }} />
                     <div>
-                      <p className="font-medium text-foreground">
-                        {dept.name}
-                      </p>
+                      <p className="font-medium text-foreground">{dept.name}</p>
                       <p className="text-sm text-muted-foreground">
                         {dept.total} {t('common.items')}
                       </p>

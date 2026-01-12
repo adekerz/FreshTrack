@@ -367,9 +367,13 @@ class SSEManager {
 // Singleton instance
 const sseManager = new SSEManager()
 
-// Graceful shutdown
+// Graceful shutdown - only cleanup, don't call process.exit here
+// Let the main process handle the exit
 process.on('SIGTERM', () => sseManager.shutdown())
-process.on('SIGINT', () => sseManager.shutdown())
+process.on('SIGINT', () => {
+  sseManager.shutdown()
+  process.exit(0)
+})
 
 export default sseManager
 export { sseManager, SSEManager }

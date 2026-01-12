@@ -37,6 +37,7 @@
     "save": "Сохранить",
     "cancel": "Отмена",
     "delete": "Удалить",
+    "remove": "Удалить",
     "edit": "Редактировать",
     "add": "Добавить",
     "search": "Поиск",
@@ -78,7 +79,11 @@
     "hoursAgo": "ч. назад",
     "daysAgo": "дн. назад",
     "today": "Сегодня",
-    "attempt": "Попытка"
+    "attempt": "Попытка",
+    "approve": "Одобрить",
+    "reject": "Отклонить",
+    "goToSettings": "Перейти в настройки",
+    "saving": "Сохранение..."
   },
   "toast": {
     "success": "Успешно",
@@ -178,6 +183,7 @@
     "emailPlaceholder": "ваш@email.com",
     "loginOrEmail": "Логин или Email",
     "loginOrEmailPlaceholder": "Введите логин или email",
+    "login": "Логин",
     "password": "Пароль",
     "passwordPlaceholder": "••••••••",
     "signIn": "Войти",
@@ -208,7 +214,75 @@
     "good": "Хороший",
     "strong": "Надёжный",
     "veryStrong": "Очень надёжный",
-    "passwordsMatch": "Пароли совпадают"
+    "passwordsMatch": "Пароли совпадают",
+    "hotelCode": "MARSHA код",
+    "hotelCodeHint": "5 символов, например: TSEXR, WASSX",
+    "invalidHotelCode": "Неверный MARSHA код"
+  },
+  "pending": {
+    "title": "Ожидание подтверждения",
+    "message": "Ваша заявка отправлена администратору. Пожалуйста, дождитесь подтверждения.",
+    "approved": "Заявка одобрена!",
+    "redirecting": "Перенаправление...",
+    "rejected": "Заявка отклонена",
+    "rejectedMessage": "К сожалению, ваша заявка была отклонена администратором.",
+    "reason": "Причина:",
+    "backToLogin": "Вернуться к входу",
+    "requestedHotel": "Запрошенный отель:",
+    "checkStatus": "Проверить статус",
+    "lastChecked": "Последняя проверка:",
+    "logout": "Выйти из аккаунта",
+    "autoRefresh": "Статус обновляется автоматически каждые 30 секунд"
+  },
+  "marshaCode": {
+    "label": "Код MARSHA (Marriott)",
+    "optional": "опционально",
+    "selectCode": "Выбрать код Marriott",
+    "searchPlaceholder": "Поиск по названию, городу или коду...",
+    "suggestionsFound": "Найдены похожие коды:",
+    "suggestedCodes": "Рекомендуемые коды",
+    "searchResults": "Результаты поиска",
+    "noResults": "Ничего не найдено",
+    "tryDifferent": "Попробуйте другой запрос",
+    "startTyping": "Начните вводить для поиска",
+    "searchHint": "Название отеля, город или код",
+    "assigned": "Занят",
+    "brands": {
+      "RZ": "Ritz-Carlton",
+      "XR": "St. Regis",
+      "WH": "W Hotels",
+      "ED": "EDITION",
+      "LC": "Luxury Collection",
+      "MC": "Marriott Hotels",
+      "SI": "Sheraton",
+      "WI": "Westin",
+      "MD": "Le Méridien",
+      "BR": "Renaissance",
+      "AK": "Autograph Collection"
+    }
+  },
+  "joinRequests": {
+    "title": "Заявки на присоединение",
+    "description": "Подтвердите или отклоните запросы сотрудников",
+    "noRequests": "Нет новых заявок",
+    "noRequestsDescription": "Когда сотрудники зарегистрируются с кодом вашего отеля, их заявки появятся здесь",
+    "pendingCount": "{{count}} заявок ожидают рассмотрения",
+    "approveTitle": "Одобрить заявку",
+    "selectRole": "Назначить роль",
+    "selectDepartment": "Назначить в отдел",
+    "chooseDepartment": "Выберите отдел",
+    "rejectTitle": "Отклонить заявку",
+    "rejectReason": "Причина отклонения (опционально)",
+    "rejectPlaceholder": "Укажите причину...",
+    "approvedSuccess": "Заявка одобрена",
+    "rejectedSuccess": "Заявка отклонена"
+  },
+  "roles": {
+    "superAdmin": "Супер-администратор",
+    "hotelAdmin": "Администратор отеля",
+    "departmentManager": "Менеджер отдела",
+    "manager": "Менеджер",
+    "staff": "Сотрудник"
   },
   "dashboard": {
     "title": "Главная",
@@ -233,7 +307,9 @@
     "goodAfternoon": "Добрый день",
     "goodEvening": "Добрый вечер",
     "summary": "Обзор вашего инвентаря",
-    "urgent": "срочно"
+    "urgent": "срочно",
+    "noDepartments": "Отель пока пустой",
+    "noDepartmentsDescription": "Создайте отделы и категории для начала работы с инвентарём."
   },
   "inventory": {
     "title": "Инвентарь",
@@ -263,10 +339,19 @@
     "units": "шт.",
     "applyTemplate": "Применить шаблон",
     "noDepartments": "Нет отделов",
+    "noDepartmentsDescription": "Для этого отеля ещё не созданы отделы. Создайте отдел в настройках.",
     "createDepartment": "Создать отдел",
     "connectingDatabase": "Подключение к базе данных...",
     "empty": "Нет товаров",
     "addFirst": "Добавьте первый товар"
+  },
+  "units": {
+    "pcs": "шт",
+    "kg": "кг",
+    "g": "г",
+    "l": "л",
+    "ml": "мл",
+    "pack": "уп"
   },
   "notifications": {
     "title": "Уведомления",
@@ -283,10 +368,10 @@
     "expiresToday": "Истекает сегодня",
     "expired": "Просрочено",
     "expiredSection": "Просрочено",
-    "urgentSection": "Срочно (3 дня)",
-    "warningSection": "Внимание (7 дней)",
-    "critical": "Срочно (до 3 дней)",
-    "warning": "Внимание (до 7 дней)",
+    "urgentSection": "Срочно",
+    "warningSection": "Внимание",
+    "critical": "Срочно (до {{days}} дней)",
+    "warning": "Внимание (до {{days}} дней)",
     "collect": "Собрать",
     "daysAgo": "{{days}} дней назад",
     "browserNotifications": "Браузерные уведомления",
@@ -305,6 +390,8 @@
       "notRequested": "Не запрошены"
     },
     "empty": "Нет уведомлений",
+    "noDepartments": "Нет данных",
+    "noDepartmentsDescription": "Создайте отделы и добавьте партии для отслеживания сроков годности.",
     "markAllRead": "Прочитать все",
     "clearAll": "Очистить все",
     "items": "уведомлений"
@@ -331,7 +418,9 @@
     "Миксеры": "Миксеры",
     "snacks": "Закуски",
     "Закуски": "Закуски",
-    "quickColors": "Быстрые цвета"
+    "quickColors": "Быстрые цвета",
+    "deleteTitle": "Удалить категорию?",
+    "deleteWarning": "Это действие нельзя отменить. Товары останутся без категории."
   },
   "batch": {
     "manufacturingDate": "Дата производства",
@@ -638,13 +727,16 @@
       "cms": "Контент",
       "rules": "Правила уведомлений",
       "departments": "Отделы",
+      "directories": "Справочники",
       "branding": "Брендинг",
       "general": "Общие",
       "users": "Пользователи",
       "catalog": "Каталог",
       "categories": "Категории",
       "telegram": "Telegram",
-      "importExport": "Импорт/Экспорт"
+      "email": "Email",
+      "importExport": "Импорт/Экспорт",
+      "joinRequests": "Заявки"
     },
     "generalTitle": "Общие настройки",
     "generalDescription": "Основные параметры системы",
@@ -688,12 +780,14 @@
       "roleAdmin": "Администратор",
       "roleManager": "Менеджер",
       "roleStaff": "Сотрудник",
+      "roleDepartmentManager": "Менеджер отдела",
       "roles": {
         "admin": "Администратор",
         "manager": "Менеджер",
         "staff": "Сотрудник",
         "SUPER_ADMIN": "Супер-администратор",
         "HOTEL_ADMIN": "Администратор отеля",
+        "DEPARTMENT_MANAGER": "Менеджер отдела",
         "STAFF": "Сотрудник"
       },
       "statuses": {
@@ -709,6 +803,27 @@
       "confirmDelete": "Удалить пользователя?",
       "confirmBlock": "Заблокировать пользователя?",
       "noUsers": "Нет пользователей"
+    },
+    "departments": {
+      "title": "Управление отделами",
+      "description": "Управление отделами отеля",
+      "add": "Добавить отдел",
+      "newDepartment": "Новый отдел",
+      "name": "Название",
+      "namePlaceholder": "Например: Кухня, Бар, Ресторан",
+      "nameRequired": "Введите название отдела",
+      "users": "пользователей",
+      "noDepartments": "Отделы не найдены",
+      "addFirst": "Добавьте первый отдел для начала работы",
+      "added": "Отдел добавлен",
+      "addError": "Ошибка добавления отдела",
+      "updated": "Отдел обновлён",
+      "updateError": "Ошибка обновления отдела",
+      "deleted": "Отдел удалён",
+      "deleteError": "Ошибка удаления отдела",
+      "deleteConfirmTitle": "Удалить отдел?",
+      "deleteConfirmText": "Все пользователи этого отдела будут отвязаны. Это действие нельзя отменить.",
+      "loadError": "Ошибка загрузки отделов"
     },
     "categories": {
       "title": "Управление категориями",
@@ -758,13 +873,63 @@
       "enabled": "Включено",
       "testConnection": "Тест соединения",
       "scheduleTime": "Время рассылки",
+      "scheduleSettings": "Расписание уведомлений",
+      "sendTime": "Время отправки ежедневного отчёта",
+      "timezoneNote": "По часовому поясу отеля",
       "messageTemplates": "Шаблоны сообщений",
       "dailyReport": "Ежедневный отчёт",
       "expiryWarning": "Предупреждение об истечении",
       "expiredAlert": "Оповещение о просрочке",
       "collectionConfirm": "Подтверждение сбора",
       "testSuccess": "Тест успешен",
-      "testError": "Ошибка теста"
+      "testError": "Ошибка теста",
+      "addBot": "Добавить бота в чат",
+      "addBotDescription": "Добавьте бота в групповой чат Telegram и привяжите его к отелю или отделу для получения уведомлений.",
+      "setupSteps": "Инструкция:",
+      "step1": "Нажмите кнопку \"Добавить бота в чат\" ниже",
+      "step2": "Выберите группу в Telegram",
+      "step3": "В группе отправьте команду:",
+      "step4": "Для привязки к отделу:",
+      "availableCommands": "Доступные команды:",
+      "addBotButton": "Добавить бота в чат",
+      "linkedChats": "Привязанные чаты",
+      "unlinkChat": "Отвязать",
+      "noLinkedChats": "Нет привязанных чатов",
+      "chatType": "Тип чата",
+      "linkedTo": "Привязан к",
+      "allHotel": "Весь отель",
+      "department": "Отдел"
+    },
+    "email": {
+      "title": "Email уведомления",
+      "description": "Настройка отправки уведомлений на email",
+      "infoTitle": "Email уведомления",
+      "infoText": "Настройте SMTP сервер для отправки ежедневных отчётов и мгновенных уведомлений о критических сроках годности на email.",
+      "enableEmail": "Email уведомления",
+      "enabled": "Включено",
+      "disabled": "Отключено",
+      "smtpSettings": "Настройки SMTP",
+      "smtpHost": "SMTP сервер",
+      "smtpPort": "Порт",
+      "smtpUser": "Пользователь",
+      "smtpPassword": "Пароль",
+      "fromEmail": "Email отправителя",
+      "fromName": "Имя отправителя",
+      "useSSL": "Использовать SSL/TLS",
+      "testConnection": "Тест подключения",
+      "schedule": "Расписание отправки",
+      "dailyReport": "Ежедневный отчёт",
+      "dailyReportDesc": "Сводка по срокам годности каждый день",
+      "instantAlerts": "Мгновенные оповещения",
+      "instantAlertsDesc": "Немедленная отправка при критических ситуациях",
+      "saved": "Настройки Email сохранены",
+      "saveError": "Ошибка сохранения настроек"
+    },
+    "directories": {
+      "title": "Справочники",
+      "description": "Управление категориями товаров и отделами",
+      "categories": "Категории",
+      "departments": "Отделы"
     },
     "importExport": {
       "title": "Импорт и экспорт данных",
@@ -796,6 +961,8 @@
       "role": "Роль",
       "roleAdmin": "Администратор",
       "roleManager": "Менеджер",
+      "roleStaff": "Сотрудник",
+      "roleDepartmentManager": "Менеджер отдела",
       "departments": "Доступные отделы"
     },
     "notifications": {
@@ -820,7 +987,15 @@
       "telegramDescription": "Настройки Telegram бота для уведомлений",
       "version": "Версия приложения",
       "database": "База данных",
-      "connected": "Подключена"
+      "connected": "Подключена",
+      "disconnected": "Отключена",
+      "healthStatus": "Статус системы",
+      "status": "Статус",
+      "healthy": "Работает",
+      "unhealthy": "Ошибка",
+      "serverTime": "Время сервера",
+      "checkHealth": "Проверить состояние",
+      "environment": "Окружение"
     }
   },
   "branding": {
@@ -843,7 +1018,21 @@
     "preview": "Превью цветов:",
     "resetToDefault": "Сбросить к умолчанию",
     "confirmReset": "Сбросить брендинг к настройкам по умолчанию?",
-    "reset": "Брендинг сброшен"
+    "reset": "Брендинг сброшен",
+    "resetTitle": "Сбросить брендинг?",
+    "resetWarning": "Все настройки брендинга будут сброшены к значениям по умолчанию.",
+    "loginPage": "Страница входа",
+    "loginPageDescription": "Настройте тексты, отображаемые на странице входа для всех пользователей",
+    "loginTitle": "Заголовок",
+    "loginHighlight": "Выделенное слово",
+    "loginHighlightHint": "Это слово будет выделено акцентным цветом",
+    "loginDescription": "Описание",
+    "loginFeature1": "Особенность 1",
+    "loginFeature2": "Особенность 2",
+    "loginFeature3": "Особенность 3",
+    "loginPreview": "Превью:",
+    "saveLoginBranding": "Сохранить настройки входа",
+    "loginBrandingSaved": "Настройки страницы входа сохранены"
   },
   "export": {
     "title": "Экспорт данных",
@@ -875,7 +1064,12 @@
       "type": "Тип",
       "message": "Сообщение",
       "reason": "Причина",
-      "collectedBy": "Собрал"
+      "collectedBy": "Собрал",
+      "user": "Пользователь",
+      "action": "Действие",
+      "entityType": "Тип объекта",
+      "details": "Детали",
+      "ip": "IP-адрес"
     }
   },
   "import": {
@@ -991,13 +1185,20 @@
     "immediate": "Сразу",
     "daily": "Ежедневно",
     "weekly": "Еженедельно",
+    "sendTimeTitle": "Время отправки уведомлений",
+    "sendTimeDescription": "Все уведомления (Telegram, Email, Push) будут отправляться в указанное время",
+    "sendTimeSaved": "Время отправки сохранено",
+    "sendTimeError": "Ошибка сохранения времени",
+    "timezoneNote": "По часовому поясу сервера (Asia/Almaty)",
     "conditions": {
       "daysToExpiry": "Дней до истечения",
       "quantity": "Количество меньше",
       "newExpired": "Новые просроченные"
     },
     "noRules": "Правила не настроены",
-    "deleteConfirm": "Удалить правило?"
+    "deleteConfirm": "Удалить правило?",
+    "deleteTitle": "Удалить правило?",
+    "deleteWarning": "Это действие нельзя отменить."
   },
   "deliveryTemplates": {
     "title": "Шаблоны поставок",
@@ -1106,9 +1307,15 @@
     "notificationType": "Тип уведомления",
     "allChannels": "Все каналы",
     "deleteConfirm": "Удалить правило?",
+    "deleteTitle": "Удалить правило?",
+    "deleteWarning": "Это действие нельзя отменить.",
     "beforeDays": "За",
     "days": "дней",
-    "all": "Все"
+    "all": "Все",
+    "sendTimeTitle": "Время отправки уведомлений",
+    "sendTimeDescription": "Ежедневные отчёты и уведомления будут отправляться в указанное время",
+    "sendTimeSaved": "Время отправки сохранено",
+    "sendTimeError": "Ошибка сохранения времени"
   },
   "deptNotifications": {
     "title": "Уведомления по отделам",
@@ -1200,6 +1407,12 @@
     "roleAdmin": "Администратор",
     "roleManager": "Менеджер",
     "roleStaff": "Сотрудник",
+    "roles": {
+      "SUPER_ADMIN": "Супер-администратор",
+      "HOTEL_ADMIN": "Администратор отеля",
+      "DEPARTMENT_MANAGER": "Менеджер отдела",
+      "STAFF": "Сотрудник"
+    },
     "fillRequired": "Заполните обязательные поля",
     "confirmDelete": "Удалить пользователя",
     "unblockConfirmTitle": "Разблокировать пользователя?",
@@ -1230,7 +1443,9 @@
     "shelfLife": "Срок (дн.)",
     "products": "товаров",
     "editTemplate": "Редактировать шаблон",
-    "confirmDelete": "Удалить шаблон?"
+    "confirmDelete": "Удалить шаблон?",
+    "deleteTitle": "Удалить шаблон?",
+    "deleteWarning": "Это действие нельзя отменить."
   },
   "telegram": {
     "title": "Настройки Telegram",
@@ -1253,7 +1468,23 @@
     "variables": "Переменные",
     "save": "Сохранить",
     "saving": "Сохранение...",
-    "saved": "Настройки сохранены"
+    "saved": "Настройки сохранены",
+    "addBot": "Добавить бота в чат",
+    "addBotDescription": "Добавьте бота в групповой чат Telegram и привяжите его к отелю или отделу для получения уведомлений.",
+    "setupSteps": "Инструкция:",
+    "step1": "Нажмите кнопку \"Добавить бота в чат\" ниже",
+    "step2": "Выберите группу в Telegram",
+    "step3": "В группе отправьте команду:",
+    "step4": "Для привязки к отделу:",
+    "availableCommands": "Доступные команды:",
+    "addBotButton": "Добавить бота в чат",
+    "linkedChats": "Привязанные чаты",
+    "unlinkChat": "Отвязать",
+    "noLinkedChats": "Нет привязанных чатов",
+    "chatType": "Тип чата",
+    "linkedTo": "Привязан к",
+    "allHotel": "Весь отель",
+    "department": "Отдел"
   },
   "fifoCollect": {
     "title": "FIFO Списание",

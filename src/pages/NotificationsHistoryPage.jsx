@@ -6,6 +6,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from '../context/LanguageContext'
 import { useHotel } from '../context/HotelContext'
+import { SectionLoader } from '../components/ui'
 import {
   Send,
   Filter,
@@ -152,8 +153,12 @@ export default function NotificationsHistoryPage() {
       {/* Заголовок и кнопки */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-light text-foreground">{t('notificationHistory.title')}</h1>
-          <p className="text-muted-foreground text-xs sm:text-sm mt-1">{t('notificationHistory.subtitle')}</p>
+          <h1 className="text-xl sm:text-2xl font-light text-foreground">
+            {t('notificationHistory.title')}
+          </h1>
+          <p className="text-muted-foreground text-xs sm:text-sm mt-1">
+            {t('notificationHistory.subtitle')}
+          </p>
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3">
@@ -186,7 +191,9 @@ export default function NotificationsHistoryPage() {
       {/* Панель фильтров */}
       {showFilters && (
         <div className="bg-card rounded-xl border border-border p-4 sm:p-6 space-y-4">
-          <h3 className="font-medium text-foreground text-sm sm:text-base">{t('notificationHistory.filterOptions')}</h3>
+          <h3 className="font-medium text-foreground text-sm sm:text-base">
+            {t('notificationHistory.filterOptions')}
+          </h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
             {/* Тип уведомления */}
@@ -254,15 +261,15 @@ export default function NotificationsHistoryPage() {
 
       {/* Ошибка */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-3 sm:p-4 text-red-600 text-sm">{error}</div>
+        <div className="bg-red-50 border border-red-200 rounded-xl p-3 sm:p-4 text-red-600 text-sm">
+          {error}
+        </div>
       )}
 
       {/* Таблица/Карточки уведомлений */}
       <div className="bg-card rounded-xl border border-border overflow-hidden">
         {loading && logs.length === 0 ? (
-          <div className="flex items-center justify-center py-12">
-            <RefreshCw className="w-6 h-6 sm:w-8 sm:h-8 text-muted-foreground animate-spin" />
-          </div>
+          <SectionLoader />
         ) : logs.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
             <Send className="w-10 h-10 sm:w-12 sm:h-12 mb-4 opacity-50" />
@@ -389,7 +396,8 @@ export default function NotificationsHistoryPage() {
                       </span>
                       {log.products_count > 0 && (
                         <span className="text-muted-foreground">
-                          {log.products_count} {t('notificationHistory.columns.products').toLowerCase()}
+                          {log.products_count}{' '}
+                          {t('notificationHistory.columns.products').toLowerCase()}
                         </span>
                       )}
                     </div>

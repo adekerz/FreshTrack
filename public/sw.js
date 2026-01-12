@@ -62,6 +62,11 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url)
   
+  // Skip in development mode (Vite dev server)
+  if (url.port === '5173' || url.pathname.includes('/src/') || url.pathname.includes('/@') || url.pathname.includes('node_modules')) {
+    return
+  }
+  
   // Skip non-GET requests
   if (event.request.method !== 'GET') {
     return

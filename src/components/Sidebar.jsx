@@ -1,26 +1,12 @@
 import { useLocation, useNavigate } from 'react-router-dom'
-import {
-  LayoutDashboard,
-  Package,
-  Bell,
-  Leaf,
-  PanelLeftClose,
-  PanelLeftOpen,
-  ClipboardList,
-  BarChart3,
-  Settings,
-  Calendar,
-  FileText,
-  X,
-  LogOut,
-  Globe
-} from 'lucide-react'
+import { Leaf, PanelLeftClose, PanelLeftOpen, X, LogOut, Globe } from 'lucide-react'
 import { useProducts } from '../context/ProductContext'
 import { useAuth } from '../context/AuthContext'
 import { useTranslation, useLanguage } from '../context/LanguageContext'
 import { useBranding } from '../context/BrandingContext'
 import { getStaticUrl } from '../services/api'
 import { cn } from '../utils/classNames'
+import { mainNavItems, moreNavItems, filterNavByRole } from '../config/navigation'
 
 export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose }) {
   const location = useLocation()
@@ -38,95 +24,50 @@ export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose })
       ? getUnreadNotificationsCount()
       : stats.critical + stats.expired
 
-  // Menu items grouped by category (Miller's Law - chunking)
-  // Uses permission-based access control instead of hardcoded roles
+  const userRole = user?.role
+
+  // Основные пункты навигации из централизованной конфигурации
+  const mainItems = mainNavItems.map((item) => ({
+    path: item.path,
+    icon: item.icon,
+    label: t(item.labelKey) || item.fallbackLabel,
+    badge: item.hasBadge && unreadCount > 0 ? unreadCount : null,
+    onboardingId: item.id
+  }))
+
+  // Дополнительные пункты - фильтруем по роли из централизованной конфигурации
+  const reportItems = filterNavByRole(moreNavItems, userRole)
+    .filter((item) => item.group === 'reports')
+    .map((item) => ({
+      path: item.path,
+      icon: item.icon,
+      label: t(item.labelKey) || item.fallbackLabel,
+      onboardingId: item.id
+    }))
+
+  const settingsItem = filterNavByRole(moreNavItems, userRole)
+    .filter((item) => item.group === 'system')
+    .map((item) => ({
+      path: item.path,
+      icon: item.icon,
+      label: t(item.labelKey) || item.fallbackLabel
+    }))
+
+  // Группируем для sidebar
   const navGroups = [
     {
-      label: null, // Main navigation - no label
-      items: [
-        {
-          path: '/',
-          icon: LayoutDashboard,
-          label: t('nav.dashboard'),
-          permission: 'dashboard:read', // All authenticated users
-          onboardingId: 'dashboard'
-        },
-        {
-          path: '/inventory',
-          icon: Package,
-          label: t('nav.inventory'),
-          permission: 'batches:read',
-          onboardingId: 'inventory'
-        },
-        {
-          path: '/notifications',
-          icon: Bell,
-          label: t('nav.notifications'),
-          badge: unreadCount > 0 ? unreadCount : null,
-          permission: 'notifications:read',
-          onboardingId: 'notifications'
-        },
-        {
-          path: '/calendar',
-          icon: Calendar,
-          label: t('nav.calendar') || 'Calendar',
-          permission: 'batches:read'
-        }
-      ]
+      label: null,
+      items: mainItems
     },
     {
-      label: t('nav.reports') || 'Reports',
-      items: [
-        {
-          path: '/statistics',
-          icon: BarChart3,
-          label: t('nav.statistics'),
-          permission: 'reports:read',
-          onboardingId: 'statistics'
-        },
-        {
-          path: '/collection-history',
-          icon: ClipboardList,
-          label: t('nav.collectionHistory'),
-          permission: 'collections:read'
-        },
-        {
-          path: '/audit-logs',
-          icon: FileText,
-          label: t('nav.auditLogs') || 'Audit Log',
-          permission: 'audit:read'
-        }
-      ]
+      label: t('nav.reports') || 'Отчёты',
+      items: reportItems
     },
     {
       label: null,
-      items: [
-        {
-          path: '/settings',
-          icon: Settings,
-          label: t('nav.settings'),
-          permission: 'settings:read'
-        }
-      ]
+      items: settingsItem
     }
-  ]
-
-  // Filter menu items by permission (permission-based access control)
-  const { hasPermission, isHotelAdmin } = useAuth()
-  
-  const filterByPermission = (items) => {
-    if (!user) return []
-    return items.filter(item => {
-      // Dashboard is accessible to all authenticated users
-      if (item.path === '/') return true
-      // Check permission or fallback to isHotelAdmin for reports/settings
-      return hasPermission(item.permission) || 
-             (item.permission?.includes('reports:') && isHotelAdmin()) ||
-             (item.permission?.includes('audit:') && isHotelAdmin()) ||
-             (item.permission?.includes('settings:') && isHotelAdmin()) ||
-             (item.permission?.includes('collections:') && isHotelAdmin())
-    })
-  }
+  ].filter((group) => group.items.length > 0)
 
   const isActive = (path) => {
     if (path === '/') return location.pathname === '/'
@@ -146,7 +87,10 @@ export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose })
     <>
       {/* Оверлей для мобильной версии */}
       {isMobile && isOpen && (
-        <div className="fixed inset-0 bg-black/50 dark:bg-black/60 z-40 lg:hidden" onClick={onClose} />
+        <div
+          className="fixed inset-0 bg-black/50 dark:bg-black/60 z-40 lg:hidden"
+          onClick={onClose}
+        />
       )}
 
       <aside
@@ -169,24 +113,29 @@ export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose })
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 border border-accent flex items-center justify-center flex-shrink-0 overflow-hidden">
               {logoUrl ? (
-                <img 
-                  src={getStaticUrl(logoUrl)} 
-                  alt={siteName || 'Logo'} 
+                <img
+                  src={getStaticUrl(logoUrl)}
+                  alt={siteName || 'Logo'}
                   className="w-full h-full object-contain"
-                  onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }}
+                  onError={(e) => {
+                    e.target.style.display = 'none'
+                    e.target.nextSibling.style.display = 'block'
+                  }}
                 />
               ) : null}
               <Leaf className={`w-5 h-5 text-accent ${logoUrl ? 'hidden' : ''}`} />
             </div>
             {(isOpen || isMobile) && (
-              <span className="font-serif text-xl tracking-wide">{siteName || t('common.appName')}</span>
+              <span className="font-serif text-xl tracking-wide">
+                {siteName || t('common.appName')}
+              </span>
             )}
           </div>
 
           {/* Кнопка закрытия для мобильной версии */}
           {isMobile && (
-            <button 
-              onClick={onClose} 
+            <button
+              onClick={onClose}
               className="p-2 hover:bg-white/10 rounded transition-colors"
               aria-label={t('common.close') || 'Close menu'}
             >
@@ -198,9 +147,10 @@ export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose })
         {/* Main Navigation - Grouped */}
         <nav className="flex-1 px-3 py-4 overflow-y-auto">
           {navGroups.map((group, groupIndex) => {
-            const items = filterByPermission(group.items)
+            // Элементы уже отфильтрованы по роли из централизованной конфигурации
+            const items = group.items
             if (items.length === 0) return null
-            
+
             return (
               <div key={groupIndex} className={groupIndex > 0 ? 'mt-6' : ''}>
                 {/* Group label */}
@@ -212,7 +162,7 @@ export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose })
                 {group.label && !isOpen && !isMobile && (
                   <div className="h-px bg-white/10 mx-4 my-2" />
                 )}
-                
+
                 <ul className="space-y-1">
                   {items.map((item) => (
                     <li key={item.path}>
@@ -220,18 +170,20 @@ export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose })
                         onClick={() => handleNavClick(item.path)}
                         className={cn(
                           'w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 relative group',
-                          isActive(item.path) 
-                            ? 'bg-accent/10 text-accent border-l-4 border-accent -ml-px pl-[15px]' 
+                          isActive(item.path)
+                            ? 'bg-accent/10 text-accent border-l-4 border-accent -ml-px pl-[15px]'
                             : 'hover:bg-white/5 text-cream/80 hover:text-cream'
                         )}
                         title={!isOpen && !isMobile ? item.label : undefined}
                         aria-current={isActive(item.path) ? 'page' : undefined}
                         data-onboarding={item.onboardingId || undefined}
                       >
-                        <item.icon className={cn(
-                          'w-5 h-5 flex-shrink-0 transition-transform duration-200',
-                          isActive(item.path) ? '' : 'group-hover:scale-110'
-                        )} />
+                        <item.icon
+                          className={cn(
+                            'w-5 h-5 flex-shrink-0 transition-transform duration-200',
+                            isActive(item.path) ? '' : 'group-hover:scale-110'
+                          )}
+                        />
                         {(isOpen || isMobile) && (
                           <span className="flex-1 text-left font-medium">{item.label}</span>
                         )}
@@ -239,10 +191,10 @@ export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose })
                         {item.badge && (
                           <span
                             className={cn(
-                              'bg-danger text-white text-xs font-medium rounded-full min-w-[20px] text-center',
-                              isOpen || isMobile 
-                                ? 'px-2 py-0.5' 
-                                : 'absolute -top-1 -right-1 text-[10px] px-1.5 py-0.5'
+                              'bg-danger text-white text-xs font-medium rounded-full min-w-[20px] flex items-center justify-center',
+                              isOpen || isMobile
+                                ? 'px-2 py-0.5 h-5'
+                                : 'absolute -top-1 -right-1 text-[10px] px-1.5 h-4 min-w-[16px]'
                             )}
                           >
                             {item.badge > 99 ? '99+' : item.badge}
@@ -280,7 +232,7 @@ export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose })
                 ))}
               </div>
             </div>
-            
+
             {/* Информация о пользователе */}
             <div className="flex items-center gap-3 px-4 py-2">
               <div className="w-10 h-10 bg-accent/20 rounded-full flex items-center justify-center">
@@ -291,7 +243,7 @@ export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose })
                 <p className="text-xs text-cream/60 truncate">{user.role}</p>
               </div>
             </div>
-            
+
             {/* Кнопка выхода */}
             <button
               onClick={() => {

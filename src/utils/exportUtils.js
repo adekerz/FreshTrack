@@ -194,7 +194,7 @@ export function exportToExcel(data, columns, filename = 'export', sheetName = 'S
         // Применение стиля на основе статуса
         const status = item[col.statusKey] || item.status || item.overallStatus
         const statusValue = (value || '').toLowerCase()
-        
+
         if (status === 'expired' || status === 'today' || statusValue.includes('просроч') || statusValue.includes('истек')) {
           style = 'danger'
         } else if (status === 'critical' || statusValue.includes('критич')) {
@@ -274,7 +274,7 @@ export function exportToPDF(title, data, columns, options = {}) {
     }
     
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       font-size: 10pt;
       line-height: 1.4;
       color: #1A1A1A;
@@ -443,24 +443,23 @@ export function exportToPDF(title, data, columns, options = {}) {
   <h1>${title}</h1>
   ${subtitle ? `<div class="subtitle">${subtitle}</div>` : ''}
   
-  ${
-    summary
+  ${summary
       ? `
   <div class="summary">
     ${Object.entries(summary)
-      .map(
-        ([label, value]) => `
+        .map(
+          ([label, value]) => `
       <div class="summary-item">
         <div class="summary-value">${value}</div>
         <div class="summary-label">${label}</div>
       </div>
     `
-      )
-      .join('')}
+        )
+        .join('')}
   </div>
   `
       : ''
-  }
+    }
   
   <table>
     <thead>
@@ -470,8 +469,8 @@ export function exportToPDF(title, data, columns, options = {}) {
     </thead>
     <tbody>
       ${data
-        .map(
-          (item) => `
+      .map(
+        (item) => `
         <tr>
           ${columns
             .map((col) => {
@@ -506,8 +505,8 @@ export function exportToPDF(title, data, columns, options = {}) {
             .join('')}
         </tr>
       `
-        )
-        .join('')}
+      )
+      .join('')}
     </tbody>
   </table>
   
@@ -520,10 +519,10 @@ export function exportToPDF(title, data, columns, options = {}) {
 
   printWindow.document.write(html)
   printWindow.document.close()
-  
+
   // Фокус на окне и автоматический вызов печати после загрузки
   printWindow.focus()
-  printWindow.onload = function() {
+  printWindow.onload = function () {
     printWindow.focus()
   }
 }
@@ -593,6 +592,15 @@ export const EXPORT_COLUMNS = {
     { key: 'quantity', title: t?.('export.columns.quantity') || 'Количество' },
     { key: 'reason', title: t?.('export.columns.reason') || 'Причина' },
     { key: 'collectedBy', title: t?.('export.columns.collectedBy') || 'Собрал' }
+  ],
+
+  auditLogs: (t) => [
+    { key: 'timestamp', title: t?.('export.columns.date') || 'Дата и время' },
+    { key: 'user_name', title: t?.('export.columns.user') || 'Пользователь' },
+    { key: 'action', title: t?.('export.columns.action') || 'Действие' },
+    { key: 'entity_type', title: t?.('export.columns.entityType') || 'Тип объекта' },
+    { key: 'details', title: t?.('export.columns.details') || 'Детали' },
+    { key: 'ip_address', title: t?.('export.columns.ip') || 'IP-адрес' }
   ]
 }
 

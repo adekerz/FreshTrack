@@ -13,6 +13,7 @@ import { NotificationsProvider } from './context/NotificationsContext'
 import { HotelProvider } from './context/HotelContext'
 import ToastContainer from './components/Toast'
 import './styles/index.css'
+import './styles/loader.css'
 
 // Initialize Axe accessibility testing in development
 if (import.meta.env.MODE === 'development') {
@@ -30,7 +31,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
       basename={basename}
       future={{
         v7_startTransition: true,
-        v7_relativeSplatPath: true,
+        v7_relativeSplatPath: true
       }}
     >
       <ThemeProvider>

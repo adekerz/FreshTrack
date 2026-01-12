@@ -4,18 +4,28 @@ import { createContext, useContext, useState, useEffect, useCallback } from 'rea
 import en from '../locales/en.json'
 import ru from '../locales/ru.json'
 import kk from '../locales/kk.json'
+import fr from '../locales/fr.json'
+import de from '../locales/de.json'
+import es from '../locales/es.json'
+import it from '../locales/it.json'
+import ar from '../locales/ar.json'
 
 const LanguageContext = createContext(null)
 
-// Доступные языки
+// Доступные языки (на основе MARSHA кодов отелей)
 export const languages = [
   { code: 'en', name: 'English', shortName: 'EN' },
   { code: 'ru', name: 'Русский', shortName: 'RU' },
-  { code: 'kk', name: 'Қазақша', shortName: 'KZ' }
+  { code: 'kk', name: 'Қазақша', shortName: 'KZ' },
+  { code: 'fr', name: 'Français', shortName: 'FR' },
+  { code: 'de', name: 'Deutsch', shortName: 'DE' },
+  { code: 'es', name: 'Español', shortName: 'ES' },
+  { code: 'it', name: 'Italiano', shortName: 'IT' },
+  { code: 'ar', name: 'العربية', shortName: 'AR', rtl: true }
 ]
 
 // Словари переводов
-const translations = { en, ru, kk }
+const translations = { en, ru, kk, fr, de, es, it, ar }
 
 // Ключ для localStorage
 const STORAGE_KEY = 'freshtrack_language'
@@ -40,6 +50,9 @@ export function LanguageProvider({ children }) {
     localStorage.setItem(STORAGE_KEY, language)
     // Обновляем атрибут lang на html элементе
     document.documentElement.lang = language
+    // Устанавливаем направление текста для RTL языков (арабский)
+    const langConfig = languages.find((l) => l.code === language)
+    document.documentElement.dir = langConfig?.rtl ? 'rtl' : 'ltr'
   }, [language])
 
   // Функция смены языка

@@ -52,20 +52,28 @@ export async function apiFetch(endpoint, options = {}) {
     url = `${url}${separator}hotel_id=${encodeURIComponent(selectedHotelId)}`
   }
 
-  const defaultOptions = {
-    headers: {
-      'Content-Type': 'application/json'
-    }
+  // Базовые заголовки
+  const defaultHeaders = {
+    'Content-Type': 'application/json'
   }
 
   // Добавляем токен авторизации если есть
   const token = localStorage.getItem('freshtrack_token')
   if (token) {
-    defaultOptions.headers['Authorization'] = `Bearer ${token}`
+    defaultHeaders['Authorization'] = `Bearer ${token}`
+  }
+
+  // Правильно мержим headers: default + пользовательские
+  const mergedOptions = {
+    ...options,
+    headers: {
+      ...defaultHeaders,
+      ...(options.headers || {})
+    }
   }
 
   try {
-    const response = await fetch(url, { ...defaultOptions, ...options })
+    const response = await fetch(url, mergedOptions)
     return handleResponse(response)
   } catch (error) {
     logError(`API [${endpoint}]`, error)
@@ -106,6 +114,16 @@ export async function addProduct(product) {
  */
 export async function updateProduct(id, updates) {
   return apiFetch(`/products/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(updates)
+  })
+}
+
+/**
+ * Обновить категорию
+ */
+export async function updateCategory(id, updates) {
+  return apiFetch(`/categories/${id}`, {
     method: 'PUT',
     body: JSON.stringify(updates)
   })
@@ -190,10 +208,13 @@ export function logout() {
 
 /**
  * Отправить тестовое уведомление в Telegram
+ * @param {string} hotelId - ID отеля для отправки (опционально, для SUPER_ADMIN)
  */
-export async function sendTestTelegramNotification() {
+export async function sendTestTelegramNotification(hotelId) {
+  const body = hotelId ? { hotel_id: hotelId } : {}
   return apiFetch('/notifications/test-telegram', {
-    method: 'POST'
+    method: 'POST',
+    body: JSON.stringify(body)
   })
 }
 

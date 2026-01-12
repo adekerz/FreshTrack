@@ -31,17 +31,22 @@ export default function AddBatchModal({ onClose, preselectedProduct = null }) {
   const [batchData, setBatchData] = useState({
     expiryDate: '',
     quantity: '',
-    noQuantity: false
+    noQuantity: false,
+    unit: 'шт',
+    price: ''
   })
 
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Получить название категории
-  const getCategoryName = useCallback((category) => {
-    if (language === 'ru') return category.nameRu
-    if (language === 'kk') return category.nameKz
-    return category.name
-  }, [language])
+  const getCategoryName = useCallback(
+    (category) => {
+      if (language === 'ru') return category.nameRu
+      if (language === 'kk') return category.nameKz
+      return category.name
+    },
+    [language]
+  )
 
   // Получить доступные категории для отдела
   const availableCategories = useMemo(() => {
@@ -84,7 +89,7 @@ export default function AddBatchModal({ onClose, preselectedProduct = null }) {
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!selectedProduct || !batchData.expiryDate) return
-    
+
     // Если не "нет количества" и количество пустое или <= 0
     if (!batchData.noQuantity && (!batchData.quantity || parseInt(batchData.quantity) <= 0)) return
 
@@ -95,7 +100,11 @@ export default function AddBatchModal({ onClose, preselectedProduct = null }) {
         selectedProduct.id,
         selectedDepartment,
         batchData.expiryDate,
-        batchData.noQuantity ? null : parseInt(batchData.quantity)
+        batchData.noQuantity ? null : parseInt(batchData.quantity),
+        {
+          unit: batchData.unit,
+          price: batchData.price ? parseFloat(batchData.price) : null
+        }
       )
       toast.success(t('toast.batchAdded'), selectedProduct.name)
       onClose()
@@ -132,7 +141,7 @@ export default function AddBatchModal({ onClose, preselectedProduct = null }) {
         {/* Заголовок */}
         <div className="flex items-center justify-between p-6 border-b border-border">
           <div>
-            <h2 className="font-serif text-xl text-foreground">{t('batch.addBatch')}</h2>
+            <h2 className="text-xl font-medium text-foreground">{t('batch.addBatch')}</h2>
             {/* Индикатор шагов */}
             {!preselectedProduct && (
               <div className="flex items-center gap-2 mt-2">
@@ -254,21 +263,40 @@ export default function AddBatchModal({ onClose, preselectedProduct = null }) {
                   <label className="block text-sm text-muted-foreground mb-1">
                     {t('product.quantity')} {!batchData.noQuantity && '*'}
                   </label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={batchData.quantity}
-                    onChange={(e) =>
-                      setBatchData((prev) => ({ ...prev, quantity: e.target.value }))
-                    }
-                    disabled={batchData.noQuantity}
-                    className={`w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:border-accent bg-card text-foreground transition-colors ${
-                      batchData.noQuantity ? 'opacity-50 cursor-not-allowed' : ''
-                    }`}
-                    required={!batchData.noQuantity}
-                    placeholder={batchData.noQuantity ? t('batch.noQuantity') || 'Нет количества' : ''}
-                  />
-                  
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      min="1"
+                      value={batchData.quantity}
+                      onChange={(e) =>
+                        setBatchData((prev) => ({ ...prev, quantity: e.target.value }))
+                      }
+                      disabled={batchData.noQuantity}
+                      className={`flex-1 px-4 py-3 border border-border rounded-lg focus:outline-none focus:border-accent bg-card text-foreground transition-colors ${
+                        batchData.noQuantity ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
+                      required={!batchData.noQuantity}
+                      placeholder={
+                        batchData.noQuantity ? t('batch.noQuantity') || 'Нет количества' : ''
+                      }
+                    />
+                    <select
+                      value={batchData.unit}
+                      onChange={(e) => setBatchData((prev) => ({ ...prev, unit: e.target.value }))}
+                      disabled={batchData.noQuantity}
+                      className={`w-24 px-3 py-3 border border-border rounded-lg focus:outline-none focus:border-accent bg-card text-foreground ${
+                        batchData.noQuantity ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
+                    >
+                      <option value="шт">{t('units.pcs') || 'шт'}</option>
+                      <option value="кг">{t('units.kg') || 'кг'}</option>
+                      <option value="л">{t('units.l') || 'л'}</option>
+                      <option value="г">{t('units.g') || 'г'}</option>
+                      <option value="мл">{t('units.ml') || 'мл'}</option>
+                      <option value="уп">{t('units.pack') || 'уп'}</option>
+                    </select>
+                  </div>
+
                   {/* Переключатель "Нет количества" */}
                   <div className="flex items-center gap-3 mt-3">
                     <input
@@ -276,17 +304,44 @@ export default function AddBatchModal({ onClose, preselectedProduct = null }) {
                       id="noQuantity"
                       checked={batchData.noQuantity}
                       onChange={(e) =>
-                        setBatchData((prev) => ({ 
-                          ...prev, 
+                        setBatchData((prev) => ({
+                          ...prev,
                           noQuantity: e.target.checked,
                           quantity: e.target.checked ? '' : prev.quantity
                         }))
                       }
                       className="quantity-toggle"
                     />
-                    <label htmlFor="noQuantity" className="text-sm text-muted-foreground cursor-pointer select-none">
+                    <label
+                      htmlFor="noQuantity"
+                      className="text-sm text-muted-foreground cursor-pointer select-none"
+                    >
                       {t('batch.noQuantityLabel') || 'Без учёта количества'}
                     </label>
+                  </div>
+                </div>
+
+                {/* Цена (опционально) */}
+                <div>
+                  <label className="block text-sm text-muted-foreground mb-1">
+                    {t('product.price') || 'Цена'}{' '}
+                    <span className="text-muted-foreground/60">
+                      ({t('common.optional') || 'необязательно'})
+                    </span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={batchData.price}
+                      onChange={(e) => setBatchData((prev) => ({ ...prev, price: e.target.value }))}
+                      placeholder="0.00"
+                      className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:border-accent bg-card text-foreground pr-12"
+                    />
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground">
+                      ₸
+                    </span>
                   </div>
                 </div>
 

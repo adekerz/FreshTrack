@@ -1,17 +1,38 @@
 import { useState, useEffect } from 'react'
-import { Bell, Plus, Trash2, Save, Loader2, ToggleLeft, ToggleRight, X } from 'lucide-react'
+import {
+  Bell,
+  Plus,
+  Trash2,
+  Save,
+  ToggleLeft,
+  ToggleRight,
+  X,
+  AlertTriangle,
+  Clock
+} from 'lucide-react'
+import { SectionLoader, ButtonLoader, InlineLoader } from './ui'
 import { useTranslation } from '../context/LanguageContext'
+import { useToast } from '../context/ToastContext'
 import { useProducts } from '../context/ProductContext'
 import { cn } from '../utils/classNames'
 import { apiFetch } from '../services/api'
 
 export default function NotificationRulesSettings() {
   const { t } = useTranslation()
+  const { addToast } = useToast()
   const { departments, categories } = useProducts()
   const [rules, setRules] = useState([])
   const [loading, setLoading] = useState(true)
   const [showAddForm, setShowAddForm] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [deleteConfirm, setDeleteConfirm] = useState(null)
+  const [deleting, setDeleting] = useState(false)
+
+  // Централизованная настройка времени отправки
+  const [sendTime, setSendTime] = useState('09:00')
+  const [sendTimeLoading, setSendTimeLoading] = useState(true)
+  const [sendTimeSaving, setSendTimeSaving] = useState(false)
+
   const [newRule, setNewRule] = useState({
     name: '',
     departmentId: '',
@@ -24,7 +45,51 @@ export default function NotificationRulesSettings() {
 
   useEffect(() => {
     loadRules()
+    loadSendTime()
   }, [])
+
+  // Загрузка централизованного времени отправки
+  const loadSendTime = async () => {
+    setSendTimeLoading(true)
+    try {
+      const data = await apiFetch('/settings/telegram')
+      if (data.sendTime) {
+        setSendTime(data.sendTime)
+      }
+    } catch (error) {
+      // Используем значение по умолчанию
+    } finally {
+      setSendTimeLoading(false)
+    }
+  }
+
+  // Сохранение времени отправки
+  const saveSendTime = async (newTime) => {
+    setSendTimeSaving(true)
+    try {
+      await apiFetch('/settings/telegram', {
+        method: 'PUT',
+        body: JSON.stringify({ sendTime: newTime })
+      })
+      setSendTime(newTime)
+      addToast(t('rules.sendTimeSaved') || 'Время отправки сохранено', 'success')
+    } catch (error) {
+      addToast(t('rules.sendTimeError') || 'Ошибка сохранения времени', 'error')
+    } finally {
+      setSendTimeSaving(false)
+    }
+  }
+
+  // Обработчик изменения времени
+  const handleSendTimeChange = (e) => {
+    const newTime = e.target.value
+    setSendTime(newTime)
+    // Сохраняем с debounce (автосохранение при потере фокуса)
+  }
+
+  const handleSendTimeBlur = () => {
+    saveSendTime(sendTime)
+  }
 
   const loadRules = async () => {
     setLoading(true)
@@ -52,16 +117,25 @@ export default function NotificationRulesSettings() {
     }
   }
 
-  const deleteRule = async (ruleId) => {
-    if (!window.confirm(t('rules.deleteConfirm') || 'Удалить правило?')) return
+  const deleteRule = async (ruleId, ruleName) => {
+    setDeleteConfirm({ id: ruleId, name: ruleName })
+  }
 
+  const handleConfirmDelete = async () => {
+    if (!deleteConfirm) return
+
+    setDeleting(true)
     try {
-      await apiFetch(`/notification-rules/${ruleId}`, {
+      await apiFetch(`/notification-rules/${deleteConfirm.id}`, {
         method: 'DELETE'
       })
-      setRules(rules.filter((rule) => rule.id !== ruleId))
+      setRules(rules.filter((rule) => rule.id !== deleteConfirm.id))
+      setDeleteConfirm(null)
+      addToast(t('rules.deleted') || 'Правило удалено', 'success')
     } catch (error) {
-      // Error logged by apiFetch
+      addToast(t('rules.deleteError') || 'Ошибка удаления правила', 'error')
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -146,15 +220,60 @@ export default function NotificationRulesSettings() {
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-8">
-        <Loader2 className="w-6 h-6 animate-spin text-primary-500" />
-      </div>
-    )
+    return <SectionLoader />
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      {/* Централизованная настройка времени отправки */}
+      <div className="bg-gradient-to-r from-primary-50 to-orange-50 dark:from-primary-900/20 dark:to-orange-900/20 border border-primary-200 dark:border-primary-800 rounded-xl p-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className="p-2 bg-primary-100 dark:bg-primary-900/40 rounded-lg">
+              <Clock className="w-5 h-5 text-primary-600 dark:text-primary-400" />
+            </div>
+            <div>
+              <h4 className="font-medium text-foreground">
+                {t('rules.sendTimeTitle') || 'Время отправки уведомлений'}
+              </h4>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
+                {t('rules.sendTimeDescription') ||
+                  'Ежедневные отчёты и уведомления будут отправляться в указанное время'}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 sm:ml-auto">
+            {sendTimeLoading ? (
+              <InlineLoader />
+            ) : (
+              <>
+                <input
+                  type="time"
+                  value={sendTime}
+                  onChange={handleSendTimeChange}
+                  onBlur={handleSendTimeBlur}
+                  disabled={sendTimeSaving}
+                  className={cn(
+                    'px-3 py-2 text-sm border rounded-lg bg-white dark:bg-gray-800',
+                    'border-gray-300 dark:border-gray-600',
+                    'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500',
+                    'disabled:opacity-50 disabled:cursor-not-allowed',
+                    'min-w-[120px]'
+                  )}
+                />
+                {sendTimeSaving && (
+                  <span className="text-sm text-gray-500 flex items-center gap-1">
+                    <InlineLoader />
+                    {t('common.saving') || 'Сохранение...'}
+                  </span>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -176,9 +295,7 @@ export default function NotificationRulesSettings() {
       {showAddForm && (
         <div className="bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-800 rounded-xl p-4 space-y-4">
           <div className="flex items-center justify-between">
-            <h4 className="font-medium text-foreground">
-              {t('rules.newRule') || 'Новое правило'}
-            </h4>
+            <h4 className="font-medium text-foreground">{t('rules.newRule') || 'Новое правило'}</h4>
             <button
               onClick={() => setShowAddForm(false)}
               className="text-gray-500 hover:text-gray-700"
@@ -297,8 +414,9 @@ export default function NotificationRulesSettings() {
               onClick={addRule}
               disabled={saving || !newRule.name}
               className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 transition-colors text-sm"
+              aria-busy={saving}
             >
-              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              {saving ? <ButtonLoader /> : <Save className="w-4 h-4" />}
               {t('common.save')}
             </button>
           </div>
@@ -331,8 +449,10 @@ export default function NotificationRulesSettings() {
                   {getCategoryName(rule.category)} • {getDepartmentName(rule.departmentId)} •
                   <span className="font-medium">
                     {' '}
-                    {t('rules.warning') || 'Предупреждение'}: {rule.warning_days || rule.warningDays || 7} {t('rules.days') || 'дней'}
-                    {' '}| {t('rules.critical') || 'Критично'}: {rule.critical_days || rule.criticalDays || 3} {t('rules.days') || 'дней'}
+                    {t('rules.warning') || 'Предупреждение'}:{' '}
+                    {rule.warning_days || rule.warningDays || 7} {t('rules.days') || 'дней'} |{' '}
+                    {t('rules.critical') || 'Критично'}:{' '}
+                    {rule.critical_days || rule.criticalDays || 3} {t('rules.days') || 'дней'}
                   </span>
                 </p>
               </div>
@@ -349,17 +469,60 @@ export default function NotificationRulesSettings() {
                     <ToggleLeft className="w-6 h-6 text-gray-400" />
                   )}
                 </button>
-                <button
-                  onClick={() => deleteRule(rule.id)}
-                  className="p-2 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors text-red-500"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                {/* Системные правила нельзя удалять */}
+                {!rule.isSystemRule && (
+                  <button
+                    onClick={() => deleteRule(rule.id, rule.name)}
+                    className="p-2 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors text-red-500"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
               </div>
             </div>
           ))
         )}
       </div>
+
+      {/* Модальное окно подтверждения удаления */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-card rounded-xl p-6 max-w-sm w-full mx-4 shadow-xl animate-slide-up">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-14 h-14 rounded-full bg-danger/10 flex items-center justify-center animate-danger-pulse">
+                <AlertTriangle className="w-7 h-7 text-danger animate-danger-shake" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-foreground">
+                  {t('rules.deleteTitle') || 'Удалить правило?'}
+                </h3>
+                <p className="text-sm text-muted-foreground">{deleteConfirm.name}</p>
+              </div>
+            </div>
+            <p className="text-sm text-muted-foreground mb-6">
+              {t('rules.deleteWarning') || 'Это действие нельзя отменить.'}
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteConfirm(null)}
+                disabled={deleting}
+                className="flex-1 px-4 py-2 border border-border rounded-lg text-foreground hover:bg-muted disabled:opacity-50"
+              >
+                {t('common.cancel') || 'Отмена'}
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                disabled={deleting}
+                className="flex-1 px-4 py-2 bg-danger text-white rounded-lg hover:bg-danger/90 disabled:opacity-50 flex items-center justify-center gap-2"
+                aria-busy={deleting}
+              >
+                {deleting ? <ButtonLoader /> : <Trash2 className="w-4 h-4" />}
+                {t('common.delete') || 'Удалить'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

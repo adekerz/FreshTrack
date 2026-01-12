@@ -147,6 +147,7 @@ export const authMiddleware = async (req, res, next) => {
       name: user.name,
       email: user.email,
       role: user.role,
+      status: user.status || 'active',
       hotel_id: user.hotel_id,
       department_id: user.department_id
     }
@@ -229,11 +230,17 @@ export const adminMiddleware = hotelAdminOnly
 
 /**
  * Hotel isolation middleware - ASYNC
+ * Supports hotel_id from: query params, body, route params, or X-Hotel-Id header
  */
 export const hotelIsolation = async (req, res, next) => {
+  // Get hotel_id from multiple sources (header has priority for SUPER_ADMIN operations)
+  const getHotelIdFromRequest = () => {
+    return req.headers['x-hotel-id'] || req.query.hotel_id || req.body?.hotel_id || req.params?.hotelId || null
+  }
+  
   // Super Admin can access any hotel
   if (req.user?.role === 'SUPER_ADMIN') {
-    req.hotelId = req.query.hotel_id || req.body?.hotel_id || req.params?.hotelId || null
+    req.hotelId = getHotelIdFromRequest()
     
     // If no hotel specified, auto-select first active hotel
     if (!req.hotelId) {
@@ -259,7 +266,7 @@ export const hotelIsolation = async (req, res, next) => {
   
   req.hotelId = req.user.hotel_id
   
-  const requestedHotelId = req.query.hotel_id || req.body?.hotel_id || req.params?.hotelId
+  const requestedHotelId = req.headers['x-hotel-id'] || req.query.hotel_id || req.body?.hotel_id || req.params?.hotelId
   if (requestedHotelId && requestedHotelId !== req.user.hotel_id) {
     return res.status(403).json({ 
       success: false, 

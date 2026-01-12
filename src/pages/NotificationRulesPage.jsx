@@ -19,36 +19,7 @@ import { useHotel } from '../context/HotelContext'
 import { useToast } from '../context/ToastContext'
 import { cn } from '../utils/classNames'
 import { apiFetch } from '../services/api'
-
-const DEFAULT_RULES = [
-  {
-    id: 1,
-    name: 'Критичные товары',
-    condition: 'daysToExpiry',
-    threshold: 3,
-    channels: ['telegram', 'push'],
-    schedule: 'daily',
-    enabled: true
-  },
-  {
-    id: 2,
-    name: 'Просроченные товары',
-    condition: 'newExpired',
-    threshold: 1,
-    channels: ['telegram', 'email'],
-    schedule: 'immediate',
-    enabled: true
-  },
-  {
-    id: 3,
-    name: 'Предупреждение о сроках',
-    condition: 'daysToExpiry',
-    threshold: 7,
-    channels: ['push'],
-    schedule: 'weekly',
-    enabled: false
-  }
-]
+import { PageLoader, ButtonSpinner } from '../components/ui'
 
 export default function NotificationRulesPage() {
   const { t } = useTranslation()
@@ -66,55 +37,131 @@ export default function NotificationRulesPage() {
     schedule: 'daily',
     enabled: true
   })
+  const [deleteConfirm, setDeleteConfirm] = useState(null)
+  const [deleting, setDeleting] = useState(false)
+
+  // Глобальное время отправки уведомлений
+  const [sendTime, setSendTime] = useState('09:00')
+  const [savingSendTime, setSavingSendTime] = useState(false)
 
   // Перезагружаем при смене отеля
   useEffect(() => {
     if (selectedHotelId) {
       loadRules()
+      loadSendTime()
     }
   }, [selectedHotelId])
+
+  // Загрузка времени отправки из настроек
+  const loadSendTime = async () => {
+    try {
+      const data = await apiFetch('/settings/telegram')
+      setSendTime(data.sendTime || '09:00')
+    } catch (error) {
+      console.error('Failed to load send time:', error)
+    }
+  }
+
+  // Сохранение времени отправки
+  const saveSendTime = async (newTime) => {
+    setSavingSendTime(true)
+    try {
+      await apiFetch('/settings/telegram', {
+        method: 'PUT',
+        body: JSON.stringify({ sendTime: newTime })
+      })
+      setSendTime(newTime)
+      addToast(t('notificationRules.sendTimeSaved') || 'Время отправки сохранено', 'success')
+    } catch (error) {
+      addToast(t('notificationRules.sendTimeError') || 'Ошибка сохранения времени', 'error')
+    } finally {
+      setSavingSendTime(false)
+    }
+  }
+
+  // Нормализуем данные из БД (snake_case) в формат UI
+  const normalizeRule = (dbRule) => ({
+    id: dbRule.id,
+    name: dbRule.name,
+    condition: dbRule.type === 'expiry' ? 'daysToExpiry' : dbRule.type,
+    threshold: dbRule.warning_days || dbRule.warningDays || 7,
+    criticalDays: dbRule.critical_days || dbRule.criticalDays || 3,
+    channels: Array.isArray(dbRule.channels)
+      ? dbRule.channels
+      : typeof dbRule.channels === 'string'
+        ? JSON.parse(dbRule.channels)
+        : ['app'],
+    schedule: 'daily', // schedule не хранится в БД, используем дефолт
+    enabled: dbRule.enabled,
+    isSystemRule: dbRule.isSystemRule || dbRule.hotel_id === null
+  })
 
   const loadRules = async () => {
     setLoading(true)
     try {
-      const data = await apiFetch('/settings/notifications/rules')
-      setRules(data.rules || DEFAULT_RULES)
+      const data = await apiFetch('/notification-rules/')
+      // Нормализуем данные и используем только правила из БД
+      const normalizedRules = (data.rules || []).map(normalizeRule)
+      setRules(normalizedRules)
     } catch {
-      // Используем дефолтные правила если API недоступен
-      setRules(DEFAULT_RULES)
+      // При ошибке - пустой список, пользователь может создать правила
+      setRules([])
+      addToast(t('toast.rulesLoadError'), 'error')
     } finally {
       setLoading(false)
     }
   }
 
-  const saveRules = async (newRules) => {
+  // Сохранение отдельного правила через POST /notification-rules/rules
+  const saveRule = async (ruleData) => {
     try {
-      await apiFetch('/settings/notifications/rules', {
-        method: 'PUT',
-        body: JSON.stringify({ rules: newRules })
+      const response = await apiFetch('/notification-rules/rules', {
+        method: 'POST',
+        body: JSON.stringify(ruleData)
       })
+      return response.id
     } catch {
-      // Error already logged by apiFetch
+      throw new Error('Failed to save rule')
     }
   }
 
   const handleToggleRule = async (ruleId) => {
-    const newRules = rules.map((rule) =>
-      rule.id === ruleId ? { ...rule, enabled: !rule.enabled } : rule
-    )
-    setRules(newRules)
-    await saveRules(newRules)
+    try {
+      // Вызываем PATCH endpoint для переключения состояния
+      await apiFetch(`/notification-rules/${ruleId}/toggle`, {
+        method: 'PATCH'
+      })
+      // Обновляем локальный state
+      setRules(
+        rules.map((rule) => (rule.id === ruleId ? { ...rule, enabled: !rule.enabled } : rule))
+      )
+    } catch {
+      addToast(t('toast.ruleToggleError'), 'error')
+    }
   }
 
-  const handleDeleteRule = async (ruleId) => {
-    if (!window.confirm(t('notificationRules.deleteConfirm'))) return
+  const handleDeleteRule = async (ruleId, ruleName) => {
+    setDeleteConfirm({ id: ruleId, name: ruleName })
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!deleteConfirm) return
+
+    setDeleting(true)
     try {
-      const newRules = rules.filter((rule) => rule.id !== ruleId)
-      setRules(newRules)
-      await saveRules(newRules)
+      // Вызываем DELETE endpoint для удаления правила из БД
+      await apiFetch(`/notification-rules/${deleteConfirm.id}`, {
+        method: 'DELETE'
+      })
+
+      // Обновляем локальный state
+      setRules(rules.filter((rule) => rule.id !== deleteConfirm.id))
       addToast(t('toast.ruleDeleted'), 'success')
+      setDeleteConfirm(null)
     } catch (error) {
       addToast(t('toast.ruleDeleteError'), 'error')
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -141,18 +188,23 @@ export default function NotificationRulesPage() {
     if (!formData.name.trim()) return
 
     try {
-      let newRules
-      if (editingRule) {
-        newRules = rules.map((rule) =>
-          rule.id === editingRule ? { ...formData, id: editingRule } : rule
-        )
-      } else {
-        const newId = Math.max(0, ...rules.map((r) => r.id)) + 1
-        newRules = [...rules, { ...formData, id: newId }]
+      // Преобразуем данные формы в формат API
+      const ruleData = {
+        id: editingRule || undefined,
+        name: formData.name,
+        type: formData.condition === 'daysToExpiry' ? 'expiry' : formData.condition,
+        warningDays: formData.threshold,
+        criticalDays: Math.max(1, Math.floor(formData.threshold / 2)),
+        channels: formData.channels,
+        enabled: formData.enabled,
+        description: ''
       }
 
-      setRules(newRules)
-      await saveRules(newRules)
+      await saveRule(ruleData)
+
+      // Перезагружаем список правил с сервера
+      await loadRules()
+
       setShowForm(false)
       setEditingRule(null)
       addToast(t('toast.ruleSaved'), 'success')
@@ -200,11 +252,7 @@ export default function NotificationRulesPage() {
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500"></div>
-      </div>
-    )
+    return <PageLoader message={t('common.loading') || 'Загрузка...'} />
   }
 
   return (
@@ -212,8 +260,8 @@ export default function NotificationRulesPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <Bell className="w-7 h-7 text-primary-500" />
+          <h1 className="text-xl sm:text-2xl font-light text-foreground flex items-center gap-2">
+            <Bell className="w-6 h-6 text-accent" />
             {t('notificationRules.title')}
           </h1>
           <p className="text-muted-foreground mt-1">{t('notificationRules.subtitle')}</p>
@@ -225,6 +273,37 @@ export default function NotificationRulesPage() {
           <Plus className="w-5 h-5" />
           {t('notificationRules.addRule')}
         </button>
+      </div>
+
+      {/* Global Send Time Settings */}
+      <div className="bg-card rounded-xl shadow-lg p-4 md:p-6">
+        <h2 className="font-semibold text-foreground mb-4 flex items-center gap-2">
+          <Clock className="w-5 h-5 text-accent" />
+          {t('notificationRules.sendTimeTitle') || 'Время отправки уведомлений'}
+        </h2>
+        <p className="text-muted-foreground text-sm mb-4">
+          {t('notificationRules.sendTimeDescription') ||
+            'Все уведомления (Telegram, Email, Push) будут отправляться в указанное время'}
+        </p>
+        <div className="flex items-center gap-4">
+          <input
+            type="time"
+            value={sendTime}
+            onChange={(e) => setSendTime(e.target.value)}
+            className="px-4 py-2.5 border border-border rounded-lg bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+          />
+          <button
+            onClick={() => saveSendTime(sendTime)}
+            disabled={savingSendTime}
+            className="flex items-center gap-2 px-4 py-2.5 bg-accent text-white rounded-lg hover:bg-accent/90 transition-colors disabled:opacity-50"
+          >
+            {savingSendTime ? <ButtonSpinner /> : <Save className="w-4 h-4" />}
+            {t('common.save') || 'Сохранить'}
+          </button>
+          <span className="text-sm text-muted-foreground">
+            {t('notificationRules.timezoneNote') || 'По часовому поясу сервера'}
+          </span>
+        </div>
       </div>
 
       {/* Rules List */}
@@ -308,12 +387,15 @@ export default function NotificationRulesPage() {
                   >
                     <Edit2 className="w-5 h-5 text-gray-500" />
                   </button>
-                  <button
-                    onClick={() => handleDeleteRule(rule.id)}
-                    className="p-2 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
-                  >
-                    <Trash2 className="w-5 h-5 text-red-500" />
-                  </button>
+                  {/* Системные правила нельзя удалять */}
+                  {!rule.isSystemRule && (
+                    <button
+                      onClick={() => handleDeleteRule(rule.id, rule.name)}
+                      className="p-2 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
+                    >
+                      <Trash2 className="w-5 h-5 text-red-500" />
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
@@ -329,10 +411,7 @@ export default function NotificationRulesPage() {
               <h2 className="text-lg font-semibold text-foreground">
                 {editingRule ? t('notificationRules.editRule') : t('notificationRules.addRule')}
               </h2>
-              <button
-                onClick={() => setShowForm(false)}
-                className="p-1 hover:bg-muted rounded"
-              >
+              <button onClick={() => setShowForm(false)} className="p-1 hover:bg-muted rounded">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -443,6 +522,45 @@ export default function NotificationRulesPage() {
               >
                 <Save className="w-4 h-4" />
                 {t('common.save')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Модальное окно подтверждения удаления */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-card rounded-xl p-6 max-w-sm w-full mx-4 shadow-xl animate-slide-up">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-14 h-14 rounded-full bg-danger/10 flex items-center justify-center animate-danger-pulse">
+                <AlertTriangle className="w-7 h-7 text-danger animate-danger-shake" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-foreground">
+                  {t('notificationRules.deleteTitle') || 'Удалить правило?'}
+                </h3>
+                <p className="text-sm text-muted-foreground">{deleteConfirm.name}</p>
+              </div>
+            </div>
+            <p className="text-sm text-muted-foreground mb-6">
+              {t('notificationRules.deleteWarning') || 'Это действие нельзя отменить.'}
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteConfirm(null)}
+                disabled={deleting}
+                className="flex-1 px-4 py-2 border border-border rounded-lg text-foreground hover:bg-muted disabled:opacity-50"
+              >
+                {t('common.cancel') || 'Отмена'}
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                disabled={deleting}
+                className="flex-1 px-4 py-2 bg-danger text-white rounded-lg hover:bg-danger/90 disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {deleting ? <ButtonSpinner /> : <Trash2 className="w-4 h-4" />}
+                {t('common.delete') || 'Удалить'}
               </button>
             </div>
           </div>

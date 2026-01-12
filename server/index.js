@@ -15,31 +15,35 @@ import dotenv from 'dotenv'
 dotenv.config()
 
 // Import rate limiter
-import { rateLimitGeneral, rateLimitAuth, rateLimitHeavy } from './middleware/rateLimiter.js'
+import { rateLimitGeneral, rateLimitAuth, rateLimitHeavy, rateLimitPendingStatus } from './middleware/rateLimiter.js'
 
 // Import routes
-import authRouter from './routes/auth.js'
-import hotelsRouter from './routes/hotels.js'
-import departmentsRouter from './routes/departments.js'
-import categoriesRouter from './routes/categories.js'
-import productsRouter from './routes/products.js'
-import batchesRouter from './routes/batches.js'
-import notificationsRouter from './routes/notifications.js'
-import reportsRouter from './routes/reports.js'
-import collectionsRouter from './routes/collections.js'
-import fifoCollectRouter from './routes/fifo-collect.js'
-import auditRouter from './routes/audit.js'
-import settingsRouter from './routes/settings.js'
-import deliveryTemplatesRouter from './routes/delivery-templates.js'
-import writeOffsRouter from './routes/write-offs.js'
-import importRouter from './routes/import.js'
-import exportRouter from './routes/export.js'
-import healthRouter from './routes/health.js'
-import notificationRulesRouter from './routes/notification-rules.js'
-import customContentRouter from './routes/custom-content.js'
-import departmentSettingsRouter from './routes/department-settings.js'
-import telegramRouter from './routes/telegram.js'
-import eventsRouter from './routes/events.js'
+import docsRouter from './routes/docs.js'
+
+// Feature-based modules (new architecture)
+import {
+  authRouter,
+  inventoryRouter,
+  notificationsRouter as notificationsModuleRouter,
+  settingsRouter as settingsModuleRouter,
+  reportsRouter as reportsModuleRouter,
+  hotelsController,
+  departmentsController,
+  collectionsController,
+  fifoCollectController,
+  writeOffsController,
+  auditController,
+  deliveryTemplatesController,
+  notificationRulesController,
+  customContentController,
+  departmentSettingsController,
+  healthController,
+  importController,
+  exportController,
+  telegramController,
+  eventsController,
+  marshaCodesController
+} from './modules/index.js'
 
 // Import notification jobs
 import { startNotificationJobs } from './jobs/notificationJobs.js'
@@ -51,38 +55,32 @@ import { query } from './db/postgres.js'
 const app = express()
 const PORT = process.env.PORT || 3001
 
-// CORS - Restrict origins in production
-const allowedOrigins = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim())
-  : ['http://localhost:5173', 'http://localhost:3000']
+// CORS - зависит от NODE_ENV
+const allowedOrigins =
+  process.env.NODE_ENV === 'production'
+    ? ['https://freshtrack.systems', 'https://www.freshtrack.systems']
+    : ['http://localhost:5173']
 
-app.use(cors({
-  origin: (origin, callback) => {
-    // Allow requests with no origin (mobile apps, curl, Postman, etc.)
-    if (!origin) return callback(null, true)
-    
-    // In development, allow all origins
-    if (process.env.NODE_ENV !== 'production') {
-      return callback(null, true)
-    }
-    
-    // In production, check against allowed origins
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true)
-    }
-    
-    console.warn('[CORS] Blocked origin:', origin)
-    return callback(new Error('Not allowed by CORS'))
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  exposedHeaders: ['Content-Disposition'],
-  maxAge: 86400,
-}))
+console.log(`[CORS] Mode: ${process.env.NODE_ENV || 'development'}`)
+console.log(`[CORS] Allowed origins:`, allowedOrigins)
 
-// Handle preflight requests
-app.options('*', cors())
+app.use(
+  cors({
+    origin(origin, callback) {
+      // Разрешаем запросы без origin (SSE, server-side, Postman)
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true)
+      } else {
+        console.log('[CORS] Blocked origin:', origin)
+        callback(new Error('Not allowed by CORS'))
+      }
+    },
+    credentials: true,
+  })
+)
+
+// Preflight уже обрабатывается cors middleware выше
+// Удаляем дублирующий app.options('*', cors()) - он использовал дефолтные настройки
 
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true }))
@@ -104,35 +102,47 @@ app.use(requestLogger)
 // Rate limiting (before routes)
 app.use('/api', rateLimitGeneral)
 
+// Pending status has lighter rate limit (checked every 30s by pending users)
+app.use('/api/auth/pending-status', rateLimitPendingStatus)
+
 // API Routes - with specific rate limits
+// Feature-based modules (new architecture)
 app.use('/api/auth', rateLimitAuth, authRouter)
-app.use('/api/hotels', hotelsRouter)
-app.use('/api/departments', departmentsRouter)
-app.use('/api/categories', categoriesRouter)
-app.use('/api/products', productsRouter)
-app.use('/api/batches', batchesRouter)
-app.use('/api/notifications', notificationsRouter)
-app.use('/api/reports', reportsRouter)
-app.use('/api/collections', collectionsRouter)
-app.use('/api/fifo-collect', fifoCollectRouter)
-app.use('/api/audit-logs', auditRouter)
-app.use('/api/settings', settingsRouter)
-app.use('/api/delivery-templates', deliveryTemplatesRouter)
-app.use('/api/write-offs', writeOffsRouter)
-app.use('/api/import', importRouter)
-app.use('/api/export', rateLimitHeavy, exportRouter)
-app.use('/api/health', healthRouter)
-app.use('/api/notification-rules', notificationRulesRouter)
-app.use('/api/custom-content', customContentRouter)
-app.use('/api/department-settings', departmentSettingsRouter)
-app.use('/api/telegram', telegramRouter)
-app.use('/api/events', eventsRouter)
+app.use('/api', inventoryRouter) // handles /batches, /products, /categories
+
+// Migrated to feature-based modules
+app.use('/api/hotels', hotelsController)
+app.use('/api/departments', departmentsController)
+app.use('/api/collections', collectionsController)
+app.use('/api/fifo-collect', fifoCollectController)
+app.use('/api/write-offs', writeOffsController)
+app.use('/api/audit-logs', auditController)
+app.use('/api/delivery-templates', deliveryTemplatesController)
+app.use('/api/notification-rules', notificationRulesController)
+app.use('/api/custom-content', customContentController)
+app.use('/api/department-settings', departmentSettingsController)
+app.use('/api/health', healthController)
+app.use('/api/import', importController)
+app.use('/api/export', rateLimitHeavy, exportController)
+
+// Feature-based modules (new architecture)
+app.use('/api/notifications', notificationsModuleRouter)
+app.use('/api/reports', reportsModuleRouter)
+app.use('/api/settings', settingsModuleRouter)
+
+// API Documentation (Swagger UI)
+app.use('/api/docs', docsRouter)
+
+// Fully migrated to feature-based modules
+app.use('/api/telegram', telegramController)
+app.use('/api/events', eventsController)
+app.use('/api/marsha-codes', marshaCodesController)
 
 // Root health check
 app.get('/', async (req, res) => {
   try {
     const dbCheck = await query('SELECT NOW() as time')
-    res.json({ 
+    res.json({
       status: 'ok',
       service: 'FreshTrack API',
       version: '2.0.0',
@@ -140,7 +150,7 @@ app.get('/', async (req, res) => {
       timestamp: dbCheck.rows[0]?.time
     })
   } catch (error) {
-    res.status(503).json({ 
+    res.status(503).json({
       status: 'error',
       service: 'FreshTrack API',
       database: 'disconnected',
@@ -160,7 +170,7 @@ Sentry.setupExpressErrorHandler(app)
 // Global error handler
 app.use((err, req, res, next) => {
   console.error('Server Error:', err)
-  res.status(500).json({ 
+  res.status(500).json({
     error: 'Internal server error',
     message: process.env.NODE_ENV === 'development' ? err.message : undefined,
     sentryId: res.sentry
@@ -171,44 +181,49 @@ app.use((err, req, res, next) => {
 async function startServer() {
   try {
     console.log('📦 Connecting to PostgreSQL database...')
-    
+
     // Test database connection
     const dbTest = await query('SELECT NOW() as time')
     console.log('✅ Database connected:', dbTest.rows[0]?.time)
-    
+
     // Initialize database schema (creates tables if not exist)
     await initDatabase()
     console.log('✅ Database schema initialized')
-    
+
     // Show stats
     const hotels = await getAllHotels()
     const usersResult = await query('SELECT COUNT(*) as count FROM users')
     const productsResult = await query('SELECT COUNT(*) as count FROM products')
-    
+
     console.log(`📊 Data: ${hotels.length} hotels, ${usersResult.rows[0]?.count || 0} users, ${productsResult.rows[0]?.count || 0} products`)
 
     // Start server
     app.listen(PORT, '0.0.0.0', () => {
       console.log(`
-🚀 FreshTrack Server is running!
+🚀 FreshTrack Server v2.0 — Modular Architecture
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 📍 Port: ${PORT}
 🌐 API: http://localhost:${PORT}/api
+📚 Docs: http://localhost:${PORT}/api/docs
 🗄️ Database: PostgreSQL
 
-Available endpoints:
-  - GET  /api/health
-  - POST /api/auth/login
-  - GET  /api/auth/me
-  - GET  /api/hotels
-  - GET  /api/departments
-  - GET  /api/categories  
-  - GET  /api/products
-  - GET  /api/batches
-  - GET  /api/notifications
-  - GET  /api/reports/dashboard
-  - GET  /api/notification-rules
+📦 Modules (21 feature-based):
+  ├─ auth, inventory, notifications, settings, reports
+  ├─ hotels, departments, collections, fifo-collect
+  ├─ write-offs, audit, delivery-templates
+  ├─ notification-rules, custom-content, department-settings
+  ├─ health, import, export, telegram, events, marsha-codes
+  └─ All legacy routes migrated ✓
+
+🔗 Key Endpoints:
+  • Auth:     POST /api/auth/login, GET /api/auth/me
+  • Hotels:   GET /api/hotels, GET /api/departments
+  • Inventory: GET /api/products, GET /api/batches, GET /api/categories
+  • Reports:  GET /api/reports/dashboard
+  • SSE:      GET /api/events/stream
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       `)
-      
+
       // Start notification jobs (Phase 5)
       try {
         startNotificationJobs({

@@ -8,6 +8,7 @@ import { useTranslation } from '../context/LanguageContext'
 import { useAuth } from '../context/AuthContext'
 import { useProducts } from '../context/ProductContext'
 import { useHotel } from '../context/HotelContext'
+import { SectionLoader } from '../components/ui'
 import { Navigate } from 'react-router-dom'
 import { Filter, RefreshCw, ChevronLeft, ChevronRight, ArchiveX, User, Package } from 'lucide-react'
 import { apiFetch } from '../services/api'
@@ -19,10 +20,16 @@ const REASONS = {
   kitchen: { label: 'collectionHistory.reasons.kitchen', color: 'bg-green-100 text-green-800' },
   damaged: { label: 'collectionHistory.reasons.damaged', color: 'bg-orange-100 text-orange-800' },
   return: { label: 'collectionHistory.reasons.return', color: 'bg-blue-100 text-blue-800' },
-  compliment: { label: 'collectionHistory.reasons.compliment', color: 'bg-purple-100 text-purple-800' },
+  compliment: {
+    label: 'collectionHistory.reasons.compliment',
+    color: 'bg-purple-100 text-purple-800'
+  },
   other: { label: 'collectionHistory.reasons.other', color: 'bg-gray-100 text-gray-800' },
   // Legacy reasons (для совместимости со старыми записями)
-  consumption: { label: 'collectionHistory.reasons.consumption', color: 'bg-green-100 text-green-800' },
+  consumption: {
+    label: 'collectionHistory.reasons.consumption',
+    color: 'bg-green-100 text-green-800'
+  },
   minibar: { label: 'collectionHistory.reasons.minibar', color: 'bg-blue-100 text-blue-800' },
   sale: { label: 'collectionHistory.reasons.sale', color: 'bg-purple-100 text-purple-800' },
   manual: { label: 'collectionHistory.reasons.manual', color: 'bg-blue-100 text-blue-800' },
@@ -62,11 +69,11 @@ export default function CollectionHistoryPage() {
     try {
       const data = await apiFetch('/fifo-collect/stats?period=month')
       if (data.success && data.totals) {
-        setStats({ 
+        setStats({
           today: 0, // TODO: API needs today stats
           week: 0,
-          month: data.totals.quantity || 0, 
-          total: data.totals.transactions || 0 
+          month: data.totals.quantity || 0,
+          total: data.totals.transactions || 0
         })
       }
     } catch {
@@ -94,7 +101,7 @@ export default function CollectionHistoryPage() {
         const data = await apiFetch(`/fifo-collect/history?${params}`)
         // Transform collection_history to expected log format
         const historyItems = data.history || []
-        const transformedLogs = historyItems.map(item => ({
+        const transformedLogs = historyItems.map((item) => ({
           id: item.id,
           productName: item.product_name || item.productName || 'Неизвестный товар',
           departmentId: item.department_id || item.departmentId,
@@ -105,12 +112,12 @@ export default function CollectionHistoryPage() {
           collectedAt: item.collected_at || item.collectedAt,
           collectedByName: item.user_name || item.userName || 'Система'
         }))
-        
+
         setLogs(transformedLogs)
         // Calculate pagination from response or estimate
         const total = data.count || historyItems.length
         const totalPages = Math.ceil(total / pagination.limit) || 1
-        setPagination(prev => ({ ...prev, page, total, totalPages }))
+        setPagination((prev) => ({ ...prev, page, total, totalPages }))
       } catch (err) {
         // Error already logged by apiFetch
         setError(err.message)
@@ -193,8 +200,12 @@ export default function CollectionHistoryPage() {
       {/* Заголовок */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-light text-foreground">{t('collectionHistory.title')}</h1>
-          <p className="text-muted-foreground text-xs sm:text-sm mt-1">{t('collectionHistory.subtitle')}</p>
+          <h1 className="text-xl sm:text-2xl font-light text-foreground">
+            {t('collectionHistory.title')}
+          </h1>
+          <p className="text-muted-foreground text-xs sm:text-sm mt-1">
+            {t('collectionHistory.subtitle')}
+          </p>
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3">
@@ -230,19 +241,27 @@ export default function CollectionHistoryPage() {
       {/* Статистика - Bento Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <div className="bg-card rounded-xl border border-border p-3 sm:p-4">
-          <p className="text-xs sm:text-sm text-muted-foreground">{t('collectionHistory.stats.today')}</p>
+          <p className="text-xs sm:text-sm text-muted-foreground">
+            {t('collectionHistory.stats.today')}
+          </p>
           <p className="text-xl sm:text-2xl font-light text-foreground">{stats.today}</p>
         </div>
         <div className="bg-card rounded-xl border border-border p-3 sm:p-4">
-          <p className="text-xs sm:text-sm text-muted-foreground">{t('collectionHistory.stats.week')}</p>
+          <p className="text-xs sm:text-sm text-muted-foreground">
+            {t('collectionHistory.stats.week')}
+          </p>
           <p className="text-xl sm:text-2xl font-light text-foreground">{stats.week}</p>
         </div>
         <div className="bg-card rounded-xl border border-border p-3 sm:p-4">
-          <p className="text-xs sm:text-sm text-muted-foreground">{t('collectionHistory.stats.month')}</p>
+          <p className="text-xs sm:text-sm text-muted-foreground">
+            {t('collectionHistory.stats.month')}
+          </p>
           <p className="text-xl sm:text-2xl font-light text-foreground">{stats.month}</p>
         </div>
         <div className="bg-card rounded-xl border border-border p-3 sm:p-4">
-          <p className="text-xs sm:text-sm text-muted-foreground">{t('collectionHistory.stats.total')}</p>
+          <p className="text-xs sm:text-sm text-muted-foreground">
+            {t('collectionHistory.stats.total')}
+          </p>
           <p className="text-xl sm:text-2xl font-light text-foreground">{stats.total}</p>
         </div>
       </div>
@@ -343,9 +362,7 @@ export default function CollectionHistoryPage() {
       {/* Таблица сборов / Карточки на мобильных */}
       <div className="bg-card rounded-xl border border-border overflow-hidden">
         {loading && logs.length === 0 ? (
-          <div className="flex items-center justify-center py-12">
-            <RefreshCw className="w-8 h-8 text-muted-foreground animate-spin" />
-          </div>
+          <SectionLoader />
         ) : logs.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8 sm:py-12 text-muted-foreground">
             <ArchiveX className="w-10 h-10 sm:w-12 sm:h-12 mb-3 sm:mb-4 opacity-50" />
@@ -358,7 +375,7 @@ export default function CollectionHistoryPage() {
             <div className="sm:hidden divide-y divide-border">
               {logs.map((log) => {
                 const reasonInfo = getReason(log.reason)
-                const dept = departments.find(d => d.id === log.departmentId)
+                const dept = departments.find((d) => d.id === log.departmentId)
                 const department = dept || { name: log.departmentId || 'N/A', color: '#C4A35A' }
 
                 return (
@@ -366,26 +383,38 @@ export default function CollectionHistoryPage() {
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-2 min-w-0">
                         <Package className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                        <span className="text-sm font-medium text-foreground truncate">{log.productName}</span>
+                        <span className="text-sm font-medium text-foreground truncate">
+                          {log.productName}
+                        </span>
                       </div>
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium flex-shrink-0 ${reasonInfo.color}`}>
+                      <span
+                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium flex-shrink-0 ${reasonInfo.color}`}
+                      >
                         {t(reasonInfo.label)}
                       </span>
                     </div>
-                    
+
                     <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full" style={{ backgroundColor: `${department.color}20`, color: department.color }}>
+                      <span
+                        className="inline-flex items-center px-2 py-0.5 rounded-full"
+                        style={{
+                          backgroundColor: `${department.color}20`,
+                          color: department.color
+                        }}
+                      >
                         {department.name}
                       </span>
-                      <span>{log.quantity} {t('inventory.units')}</span>
+                      <span>
+                        {log.quantity} {t('inventory.units')}
+                      </span>
                       <span>•</span>
                       <span>{formatDate(log.collectedAt)}</span>
                     </div>
-                    
+
                     {log.comment && (
                       <p className="text-xs text-muted-foreground line-clamp-2">{log.comment}</p>
                     )}
-                    
+
                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
                       <User className="w-3 h-3" />
                       {log.collectedByName || t('collectionHistory.system')}
@@ -429,7 +458,7 @@ export default function CollectionHistoryPage() {
                 <tbody className="divide-y divide-border">
                   {logs.map((log) => {
                     const reasonInfo = getReason(log.reason)
-                    const dept = departments.find(d => d.id === log.departmentId)
+                    const dept = departments.find((d) => d.id === log.departmentId)
                     const department = dept || { name: log.departmentId || 'N/A', color: '#C4A35A' }
 
                     return (
@@ -440,11 +469,19 @@ export default function CollectionHistoryPage() {
                         <td className="px-4 lg:px-6 py-3 lg:py-4 whitespace-nowrap">
                           <div className="flex items-center gap-2">
                             <Package className="w-4 h-4 text-muted-foreground" />
-                            <span className="text-xs lg:text-sm text-foreground font-medium">{log.productName}</span>
+                            <span className="text-xs lg:text-sm text-foreground font-medium">
+                              {log.productName}
+                            </span>
                           </div>
                         </td>
                         <td className="px-4 lg:px-6 py-3 lg:py-4 whitespace-nowrap hidden md:table-cell">
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: `${department.color}20`, color: department.color }}>
+                          <span
+                            className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
+                            style={{
+                              backgroundColor: `${department.color}20`,
+                              color: department.color
+                            }}
+                          >
                             {department.name}
                           </span>
                         </td>
@@ -455,11 +492,16 @@ export default function CollectionHistoryPage() {
                           {formatDateOnly(log.expiryDate)}
                         </td>
                         <td className="px-4 lg:px-6 py-3 lg:py-4 whitespace-nowrap">
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${reasonInfo.color}`}>
+                          <span
+                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${reasonInfo.color}`}
+                          >
                             {t(reasonInfo.label)}
                           </span>
                         </td>
-                        <td className="px-4 lg:px-6 py-3 lg:py-4 text-xs lg:text-sm text-muted-foreground max-w-xs truncate hidden xl:table-cell" title={log.comment || ''}>
+                        <td
+                          className="px-4 lg:px-6 py-3 lg:py-4 text-xs lg:text-sm text-muted-foreground max-w-xs truncate hidden xl:table-cell"
+                          title={log.comment || ''}
+                        >
                           {log.comment || '-'}
                         </td>
                         <td className="px-4 lg:px-6 py-3 lg:py-4 whitespace-nowrap hidden lg:table-cell">

@@ -21,43 +21,55 @@ export const SettingsKey = {
   // Expiry thresholds
   EXPIRY_CRITICAL_DAYS: 'expiry.critical.days',
   EXPIRY_WARNING_DAYS: 'expiry.warning.days',
-  
+
   // Notification settings
   NOTIFY_EXPIRY_ENABLED: 'notify.expiry.enabled',
   NOTIFY_EXPIRY_DAYS_BEFORE: 'notify.expiry.daysBefore',
   NOTIFY_CHANNELS: 'notify.channels', // ['telegram', 'push', 'email']
   NOTIFY_SCHEDULE: 'notify.schedule', // 'immediate', 'daily', 'weekly'
-  
+  NOTIFY_SEND_TIME: 'notify.sendTime', // '09:00' - время отправки ежедневных уведомлений
+  NOTIFY_TELEGRAM_TIME: 'notify.telegram.sendTime', // '09:00' - время для Telegram
+  NOTIFY_EMAIL_TIME: 'notify.email.sendTime', // '08:00' - время для Email
+
   // Display settings
   DISPLAY_DATE_FORMAT: 'display.dateFormat',
   DISPLAY_LOCALE: 'display.locale',
   DISPLAY_TIMEZONE: 'display.timezone',
-  
+
   // Branding settings (Phase 7.3)
   BRANDING_PRIMARY_COLOR: 'branding.primaryColor',
   BRANDING_SECONDARY_COLOR: 'branding.secondaryColor',
   BRANDING_ACCENT_COLOR: 'branding.accentColor',
+  BRANDING_DANGER_COLOR: 'branding.dangerColor',
   BRANDING_LOGO_URL: 'branding.logoUrl',
   BRANDING_LOGO_DARK: 'branding.logoDark',
   BRANDING_SITE_NAME: 'branding.siteName',
   BRANDING_COMPANY_NAME: 'branding.companyName',
   BRANDING_FAVICON_URL: 'branding.faviconUrl',
   BRANDING_WELCOME_MESSAGE: 'branding.welcomeMessage',
-  
+
+  // Login page branding (Phase 7.5)
+  LOGIN_TITLE: 'branding.login.title',
+  LOGIN_HIGHLIGHT: 'branding.login.highlight',
+  LOGIN_DESCRIPTION: 'branding.login.description',
+  LOGIN_FEATURE_1: 'branding.login.feature1',
+  LOGIN_FEATURE_2: 'branding.login.feature2',
+  LOGIN_FEATURE_3: 'branding.login.feature3',
+
   // Locale settings (Phase 7.4)
   LOCALE_LANGUAGE: 'locale.language',
   LOCALE_DATE_FORMAT: 'locale.dateFormat',
   LOCALE_TIME_FORMAT: 'locale.timeFormat',
   LOCALE_CURRENCY: 'locale.currency',
   LOCALE_TIMEZONE: 'locale.timezone',
-  
+
   // FIFO settings
   FIFO_ENABLED: 'fifo.enabled',
   FIFO_SORT_BY: 'fifo.sortBy', // 'expiry_date', 'production_date'
-  
+
   // Statistics settings
   STATS_DEFAULT_PERIOD: 'stats.defaultPeriod', // 'week', 'month', 'quarter'
-  
+
   // Export settings
   EXPORT_DEFAULT_FORMAT: 'export.defaultFormat', // 'xlsx', 'csv', 'pdf'
 }
@@ -72,28 +84,40 @@ const SYSTEM_DEFAULTS = {
   [SettingsKey.NOTIFY_EXPIRY_DAYS_BEFORE]: [1, 3, 7],
   [SettingsKey.NOTIFY_CHANNELS]: ['telegram', 'push'],
   [SettingsKey.NOTIFY_SCHEDULE]: 'daily',
+  [SettingsKey.NOTIFY_SEND_TIME]: '09:00',
+  [SettingsKey.NOTIFY_TELEGRAM_TIME]: '09:00',
+  [SettingsKey.NOTIFY_EMAIL_TIME]: '08:00',
   [SettingsKey.DISPLAY_DATE_FORMAT]: 'dd.MM.yyyy',
   [SettingsKey.DISPLAY_LOCALE]: 'ru',
   [SettingsKey.DISPLAY_TIMEZONE]: 'Asia/Almaty',
-  
-  // Branding defaults (Phase 7.3)
-  [SettingsKey.BRANDING_PRIMARY_COLOR]: '#3B82F6',  // Blue-500
-  [SettingsKey.BRANDING_SECONDARY_COLOR]: '#10B981', // Emerald-500
-  [SettingsKey.BRANDING_ACCENT_COLOR]: '#F59E0B', // Amber-500
+
+  // Branding defaults (Phase 7.3) - Текущие цвета сайта
+  [SettingsKey.BRANDING_PRIMARY_COLOR]: '#FF8D6B',  // Coral/Salmon
+  [SettingsKey.BRANDING_SECONDARY_COLOR]: '#4A7C59', // Forest Green
+  [SettingsKey.BRANDING_ACCENT_COLOR]: '#F59E0B', // Amber
+  [SettingsKey.BRANDING_DANGER_COLOR]: '#C4554D', // Terracotta Red
   [SettingsKey.BRANDING_LOGO_URL]: '/assets/logo.svg',
   [SettingsKey.BRANDING_LOGO_DARK]: '/assets/logo-dark.svg',
   [SettingsKey.BRANDING_SITE_NAME]: 'FreshTrack',
   [SettingsKey.BRANDING_COMPANY_NAME]: 'FreshTrack Inc.',
   [SettingsKey.BRANDING_FAVICON_URL]: '/favicon.ico',
   [SettingsKey.BRANDING_WELCOME_MESSAGE]: 'Добро пожаловать в FreshTrack!',
-  
+
+  // Login page branding defaults (Phase 7.5)
+  [SettingsKey.LOGIN_TITLE]: 'Точность в каждой',
+  [SettingsKey.LOGIN_HIGHLIGHT]: 'Детали',
+  [SettingsKey.LOGIN_DESCRIPTION]: 'Поднимаем управление запасами на новый уровень. Умный контроль сроков годности, минимизация потерь и максимальная эффективность.',
+  [SettingsKey.LOGIN_FEATURE_1]: 'Безопасно',
+  [SettingsKey.LOGIN_FEATURE_2]: 'Умные оповещения',
+  [SettingsKey.LOGIN_FEATURE_3]: 'Аналитика',
+
   // Locale defaults (Phase 7.4)
   [SettingsKey.LOCALE_LANGUAGE]: 'ru',
   [SettingsKey.LOCALE_DATE_FORMAT]: 'DD.MM.YYYY',
   [SettingsKey.LOCALE_TIME_FORMAT]: 'HH:mm',
   [SettingsKey.LOCALE_CURRENCY]: 'KZT',
   [SettingsKey.LOCALE_TIMEZONE]: 'Asia/Almaty',
-  
+
   [SettingsKey.FIFO_ENABLED]: true,
   [SettingsKey.FIFO_SORT_BY]: 'expiry_date',
   [SettingsKey.STATS_DEFAULT_PERIOD]: 'month',
@@ -119,7 +143,7 @@ function getCacheKey(context) {
  */
 async function fetchSettingsFromDb(context) {
   const { hotelId, departmentId, userId } = context
-  
+
   try {
     // Query all applicable settings with hierarchy
     let queryText = `
@@ -144,16 +168,16 @@ async function fetchSettingsFromDb(context) {
           WHEN 'user' THEN 4 
         END ASC
     `
-    
+
     const result = await query(queryText, [hotelId, departmentId, userId])
-    
+
     // Build settings map with hierarchy override
     const settings = {}
     for (const row of result.rows) {
       // Later entries (higher priority) override earlier ones
       settings[row.key] = parseSettingValue(row.value)
     }
-    
+
     return settings
   } catch (error) {
     // Table might not exist yet, return empty
@@ -167,11 +191,11 @@ async function fetchSettingsFromDb(context) {
  */
 function parseSettingValue(value) {
   if (value === null || value === undefined) return null
-  
+
   try {
     // If it's already an object, return as-is
     if (typeof value === 'object') return value
-    
+
     // Try to parse as JSON
     return JSON.parse(value)
   } catch {
@@ -188,26 +212,26 @@ function parseSettingValue(value) {
 export async function getSettings(context = {}) {
   const cacheKey = getCacheKey(context)
   const cached = settingsCache.get(cacheKey)
-  
+
   if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
     return cached.settings
   }
-  
+
   // Fetch from DB
   const dbSettings = await fetchSettingsFromDb(context)
-  
+
   // Merge with system defaults (defaults are lowest priority)
   const mergedSettings = {
     ...SYSTEM_DEFAULTS,
     ...dbSettings
   }
-  
+
   // Build structured settings object
   const settings = buildStructuredSettings(mergedSettings)
-  
+
   // Cache the result
   settingsCache.set(cacheKey, { settings, timestamp: Date.now() })
-  
+
   return settings
 }
 
@@ -286,13 +310,13 @@ export async function getSetting(key, context = {}) {
  */
 export async function setSetting(key, value, context = {}) {
   const { scope = 'system', hotelId, departmentId, userId } = context
-  
+
   try {
     // Validate scope
     if (scope === 'hotel' && !hotelId) throw new Error('hotelId required for hotel scope')
     if (scope === 'department' && !departmentId) throw new Error('departmentId required for department scope')
     if (scope === 'user' && !userId) throw new Error('userId required for user scope')
-    
+
     // Get current value for before snapshot
     let beforeValue = null
     try {
@@ -309,20 +333,20 @@ export async function setSetting(key, value, context = {}) {
     } catch {
       // Ignore if can't get before value
     }
-    
+
     // Upsert setting
     const valueJson = JSON.stringify(value)
-    
+
     await query(`
       INSERT INTO settings (id, key, value, scope, hotel_id, department_id, user_id, updated_at)
       VALUES (uuid_generate_v4(), $1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP)
       ON CONFLICT (key, scope, COALESCE(hotel_id, '00000000-0000-0000-0000-000000000000'), COALESCE(department_id, '00000000-0000-0000-0000-000000000000'), COALESCE(user_id, '00000000-0000-0000-0000-000000000000'))
       DO UPDATE SET value = $2, updated_at = CURRENT_TIMESTAMP
     `, [key, valueJson, scope, hotelId || null, departmentId || null, userId || null])
-    
+
     // Clear cache
     clearSettingsCache(context)
-    
+
     return { success: true, before: beforeValue, after: value }
   } catch (error) {
     logError('SettingsService', error)
@@ -337,11 +361,11 @@ export async function setSetting(key, value, context = {}) {
  */
 export async function deleteSetting(key, context = {}) {
   const { scope = 'system', hotelId, departmentId, userId } = context
-  
+
   try {
     let queryText = 'DELETE FROM settings WHERE key = $1 AND scope = $2'
     const params = [key, scope]
-    
+
     if (hotelId) {
       queryText += ' AND hotel_id = $' + (params.length + 1)
       params.push(hotelId)
@@ -354,10 +378,10 @@ export async function deleteSetting(key, context = {}) {
       queryText += ' AND user_id = $' + (params.length + 1)
       params.push(userId)
     }
-    
+
     await query(queryText, params)
     clearSettingsCache(context)
-    
+
     return true
   } catch (error) {
     logError('SettingsService', error)
@@ -374,7 +398,7 @@ export function clearSettingsCache(context = null) {
     // Clear specific context cache
     const cacheKey = getCacheKey(context)
     settingsCache.delete(cacheKey)
-    
+
     // Also clear parent caches that might include this context
     if (context.userId) {
       settingsCache.delete(getCacheKey({ ...context, userId: null }))
@@ -407,10 +431,10 @@ export function getSystemDefaults() {
  */
 export async function getAllSettingsForScope(scope, context = {}) {
   const { hotelId, departmentId, userId } = context
-  
+
   let queryText = 'SELECT * FROM settings WHERE scope = $1'
   const params = [scope]
-  
+
   if (scope === 'hotel' && hotelId) {
     queryText += ' AND hotel_id = $2'
     params.push(hotelId)
@@ -421,9 +445,9 @@ export async function getAllSettingsForScope(scope, context = {}) {
     queryText += ' AND user_id = $2'
     params.push(userId)
   }
-  
+
   queryText += ' ORDER BY key'
-  
+
   try {
     const result = await query(queryText, params)
     return result.rows.map(row => ({

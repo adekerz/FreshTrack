@@ -207,6 +207,13 @@
     "veryStrong": "Өте күшті",
     "passwordsMatch": "Құпия сөздер сәйкес келеді"
   },
+  "roles": {
+    "superAdmin": "Бас әкімші",
+    "hotelAdmin": "Қонақ үй әкімшісі",
+    "departmentManager": "Бөлім менеджері",
+    "manager": "Менеджер",
+    "staff": "Қызметкер"
+  },
   "dashboard": {
     "title": "Басты бет",
     "totalBatches": "Барлық партиялар",
@@ -274,10 +281,10 @@
     "expiresToday": "Бүгін аяқталады",
     "expired": "Мерзімі өткен",
     "expiredSection": "Мерзімі өткен",
-    "urgentSection": "Шұғыл (3 күн)",
-    "warningSection": "Ескерту (7 күн)",
-    "critical": "Шұғыл (3 күнге дейін)",
-    "warning": "Ескерту (7 күнге дейін)",
+    "urgentSection": "Шұғыл",
+    "warningSection": "Ескерту",
+    "critical": "Шұғыл ({{days}} күнге дейін)",
+    "warning": "Ескерту ({{days}} күнге дейін)",
     "collect": "Жинау",
     "daysAgo": "{{days}} күн бұрын",
     "browserNotifications": "Браузер хабарландырулары",
@@ -629,12 +636,14 @@
       "roleAdmin": "Әкімші",
       "roleManager": "Менеджер",
       "roleStaff": "Қызметкер",
+      "roleDepartmentManager": "Бөлім менеджері",
       "roles": {
         "admin": "Әкімші",
         "manager": "Менеджер",
         "staff": "Қызметкер",
         "SUPER_ADMIN": "Бас әкімші",
         "HOTEL_ADMIN": "Қонақ үй әкімшісі",
+        "DEPARTMENT_MANAGER": "Бөлім менеджері",
         "STAFF": "Қызметкер"
       },
       "statuses": {
@@ -699,13 +708,32 @@
       "enabled": "Қосылған",
       "testConnection": "Байланысты тексеру",
       "scheduleTime": "Жіберу уақыты",
+      "scheduleSettings": "Хабарландыру кестесі",
+      "sendTime": "Күнделікті есепті жіберу уақыты",
+      "timezoneNote": "Қонақ үй уақыт белдеуі бойынша",
       "messageTemplates": "Хабарлама шаблондары",
       "dailyReport": "Күнделікті есеп",
       "expiryWarning": "Мерзім ескертуі",
       "expiredAlert": "Мерзімі өткен ескертуі",
       "collectionConfirm": "Жинауды растау",
       "testSuccess": "Тест сәтті",
-      "testError": "Тест қатесі"
+      "testError": "Тест қатесі",
+      "addBot": "Ботты чатқа қосу",
+      "addBotDescription": "Ботты Telegram топ чатына қосыңыз және хабарландырулар алу үшін оны қонақ үйіне немесе бөлімшеге байлаңыз.",
+      "setupSteps": "Нұсқаулық:",
+      "step1": "Төмендегі \"Ботты чатқа қосу\" түймесін басыңыз",
+      "step2": "Telegram-да топты таңдаңыз",
+      "step3": "Топта команданы жіберіңіз:",
+      "step4": "Бөлімшеге байлау үшін:",
+      "availableCommands": "Қол жетімді командалар:",
+      "addBotButton": "Ботты чатқа қосу",
+      "linkedChats": "Байланған чаттар",
+      "unlinkChat": "Байланысты алу",
+      "noLinkedChats": "Байланған чаттар жоқ",
+      "chatType": "Чат түрі",
+      "linkedTo": "Байланған",
+      "allHotel": "Бүкіл қонақ үй",
+      "department": "Бөлімше"
     },
     "importExport": {
       "title": "Деректерді импорт және экспорт",
@@ -737,6 +765,8 @@
       "role": "Рөл",
       "roleAdmin": "Әкімші",
       "roleManager": "Менеджер",
+      "roleStaff": "Қызметкер",
+      "roleDepartmentManager": "Бөлім менеджері",
       "departments": "Қолжетімді бөлімдер"
     },
     "notifications": {
@@ -1153,6 +1183,12 @@
     "roleAdmin": "Әкімші",
     "roleManager": "Менеджер",
     "roleStaff": "Қызметкер",
+    "roles": {
+      "SUPER_ADMIN": "Бас әкімші",
+      "HOTEL_ADMIN": "Қонақ үй әкімшісі",
+      "DEPARTMENT_MANAGER": "Бөлім менеджері",
+      "STAFF": "Қызметкер"
+    },
     "fillRequired": "Міндетті өрістерді толтырыңыз"
   },
   "categorySettings": {
@@ -1203,7 +1239,21 @@
     "variables": "Айнымалылар",
     "save": "Сақтау",
     "saving": "Сақталуда...",
-    "saved": "Параметрлер сақталды"
+    "saved": "Параметрлер сақталды",
+    "addBot": "Ботты чатқа қосу",
+    "addBotDescription": "Хабарламалар үшін ботты топтық чатқа қосыңыз. Бот байланыстырылған чатқа мерзімі өтетін өнімдер туралы ескертулер жібереді.",
+    "setupSteps": "Орнату нұсқаулығы:",
+    "step1": "Төмендегі \"Ботты чатқа қосу\" батырмасын басыңыз",
+    "step2": "Telegram-да топты таңдаңыз",
+    "step3": "Топта команданы жіберіңіз:",
+    "step4": "Нақты бөлімге байланыстыру үшін:",
+    "availableCommands": "Қолжетімді командалар:",
+    "addBotButton": "Ботты чатқа қосу",
+    "linkedChats": "Байланыстырылған чаттар",
+    "unlinkChat": "Ажырату",
+    "noLinkedChats": "Байланыстырылған чаттар жоқ",
+    "chatLinked": "Чат байланыстырылды",
+    "chatUnlinked": "Чат ажыратылды"
   },
   "fifoCollect": {
     "title": "FIFO есептен шығару",

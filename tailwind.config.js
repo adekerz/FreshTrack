@@ -22,6 +22,17 @@ export default {
         primary: {
           DEFAULT: 'rgb(var(--primary) / <alpha-value>)',
           foreground: 'rgb(var(--primary-foreground) / <alpha-value>)',
+          // Оттенки на основе accent (#FF8D6B) - НЕ синий!
+          50: '#FFF5F2',
+          100: '#FFE8E0',
+          200: '#FFD4C7',
+          300: '#FFB499',
+          400: '#FF9E80',
+          500: '#FF8D6B',
+          600: '#E67A5C',
+          700: '#CC6B50',
+          800: '#B35C44',
+          900: '#994D38',
         },
         secondary: {
           DEFAULT: 'rgb(var(--secondary) / <alpha-value>)',
@@ -33,7 +44,7 @@ export default {
         },
         border: 'rgb(var(--border) / <alpha-value>)',
         ring: 'rgb(var(--ring) / <alpha-value>)',
-        
+
         // Surface elevation levels (Material Design)
         surface: {
           0: 'rgb(var(--surface-0) / <alpha-value>)',
@@ -42,7 +53,7 @@ export default {
           3: 'rgb(var(--surface-3) / <alpha-value>)',
           hover: 'rgb(var(--surface-hover) / <alpha-value>)',
         },
-        
+
         // Brand colors (keep for backwards compatibility)
         cream: '#FAF8F5',
         sand: '#F5F0E8',

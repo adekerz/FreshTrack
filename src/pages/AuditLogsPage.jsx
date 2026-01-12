@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import {
   FileText,
   Search,
@@ -14,7 +14,6 @@ import {
   ShoppingCart,
   ChevronLeft,
   ChevronRight,
-  Download,
   Filter,
   RefreshCw,
   Calendar,
@@ -26,7 +25,10 @@ import { useTranslation } from '../context/LanguageContext'
 import { useHotel } from '../context/HotelContext'
 import { cn } from '../utils/classNames'
 import { formatDate } from '../utils/dateUtils'
-import { apiFetch, API_BASE_URL } from '../services/api'
+import { apiFetch } from '../services/api'
+import ExportButton from '../components/ExportButton'
+import { EXPORT_COLUMNS } from '../utils/exportUtils'
+import { PageLoader } from '../components/ui'
 
 export default function AuditLogsPage() {
   const { t } = useTranslation()
@@ -66,10 +68,10 @@ export default function AuditLogsPage() {
         ...(filters.dateFrom && { dateFrom: filters.dateFrom }),
         ...(filters.dateTo && { dateTo: filters.dateTo })
       })
-      
+
       const data = await apiFetch(`/audit-logs?${params}`)
       setLogs(data.logs || [])
-      setPagination(prev => ({ ...prev, total: data.total || 0 }))
+      setPagination((prev) => ({ ...prev, total: data.total || 0 }))
     } catch {
       // Error already logged by apiFetch
       setLogs([])
@@ -85,27 +87,7 @@ export default function AuditLogsPage() {
       dateFrom: '',
       dateTo: ''
     })
-    setPagination(prev => ({ ...prev, page: 1 }))
-  }
-
-  const exportLogs = async () => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/export/audit`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('freshtrack_token')}`
-        }
-      })
-      if (response.ok) {
-        const blob = await response.blob()
-        const url = window.URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `audit-logs-${new Date().toISOString().split('T')[0]}.xlsx`
-        a.click()
-      }
-    } catch {
-      // Export error
-    }
+    setPagination((prev) => ({ ...prev, page: 1 }))
   }
 
   const getActionIcon = (action) => {
@@ -116,7 +98,7 @@ export default function AuditLogsPage() {
       case 'logout':
         return <LogOut className="w-4 h-4 text-gray-500" />
       case 'create':
-        return <Plus className="w-4 h-4 text-blue-500" />
+        return <Plus className="w-4 h-4 text-accent" />
       case 'update':
         return <Edit2 className="w-4 h-4 text-yellow-500" />
       case 'delete':
@@ -162,7 +144,7 @@ export default function AuditLogsPage() {
   const getEntityIcon = (entityType) => {
     switch (entityType?.toLowerCase()) {
       case 'product':
-        return <Package className="w-4 h-4 text-blue-500" />
+        return <Package className="w-4 h-4 text-accent" />
       case 'batch':
         return <Database className="w-4 h-4 text-green-500" />
       case 'user':
@@ -173,6 +155,28 @@ export default function AuditLogsPage() {
         return <FileText className="w-4 h-4 text-gray-500" />
     }
   }
+
+  const getEntityLabel = (entityType) => {
+    if (!entityType) return 'Объект'
+    const entities = t('auditLogs.entities') || {}
+    return entities[entityType?.toLowerCase()] || entityType
+  }
+
+  // Подготовка данных для экспорта (после определения helper функций)
+  const exportData = useMemo(() => {
+    return logs.map((log) => ({
+      timestamp: formatDate(log.created_at, 'full'),
+      user_name: log.user_name || 'Система',
+      action: getActionLabel(log.action),
+      entity_type: getEntityLabel(log.entity_type),
+      details: log.details
+        ? typeof log.details === 'string'
+          ? log.details
+          : JSON.stringify(log.details)
+        : '',
+      ip_address: log.ip_address || ''
+    }))
+  }, [logs, t])
 
   const formatTimestamp = (timestamp) => {
     if (!timestamp) return '—'
@@ -231,7 +235,8 @@ export default function AuditLogsPage() {
   })
 
   const totalPages = Math.ceil(pagination.total / pagination.limit)
-  const hasActiveFilters = filters.actionType || filters.entityType || filters.dateFrom || filters.dateTo
+  const hasActiveFilters =
+    filters.actionType || filters.entityType || filters.dateFrom || filters.dateTo
 
   const actionTypes = [
     { value: 'login', label: t('auditLogs.actions.login') || 'Вход' },
@@ -240,7 +245,10 @@ export default function AuditLogsPage() {
     { value: 'update', label: t('auditLogs.actions.update') || 'Обновление' },
     { value: 'delete', label: t('auditLogs.actions.delete') || 'Удаление' },
     { value: 'collect', label: t('auditLogs.actions.collect') || 'Сбор' },
-    { value: 'settingsChange', label: t('auditLogs.actions.settingsChange') || 'Изменение настроек' }
+    {
+      value: 'settingsChange',
+      label: t('auditLogs.actions.settingsChange') || 'Изменение настроек'
+    }
   ]
 
   const entityTypes = [
@@ -252,11 +260,7 @@ export default function AuditLogsPage() {
   ]
 
   if (loading && logs.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500"></div>
-      </div>
-    )
+    return <PageLoader message={t('common.loading') || 'Загрузка...'} />
   }
 
   return (
@@ -282,13 +286,13 @@ export default function AuditLogsPage() {
           >
             <RefreshCw className={cn('w-4 h-4 sm:w-5 sm:h-5', loading && 'animate-spin')} />
           </button>
-          <button
-            onClick={exportLogs}
-            className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent/90 text-sm transition-colors"
-          >
-            <Download className="w-4 h-4" />
-            <span className="hidden sm:inline">{t('common.export') || 'Экспорт'}</span>
-          </button>
+          <ExportButton
+            data={exportData}
+            columns={EXPORT_COLUMNS.auditLogs(t)}
+            filename={`audit-logs_${selectedHotel?.name || 'hotel'}`}
+            title={t('auditLogs.title') || 'Журнал действий'}
+            subtitle={selectedHotel?.name || ''}
+          />
         </div>
       </div>
 
@@ -322,7 +326,14 @@ export default function AuditLogsPage() {
               <span className="hidden sm:inline">{t('common.filters') || 'Фильтры'}</span>
               {hasActiveFilters && (
                 <span className="ml-1 w-5 h-5 bg-accent text-white text-xs rounded-full flex items-center justify-center">
-                  {[filters.actionType, filters.entityType, filters.dateFrom, filters.dateTo].filter(Boolean).length}
+                  {
+                    [
+                      filters.actionType,
+                      filters.entityType,
+                      filters.dateFrom,
+                      filters.dateTo
+                    ].filter(Boolean).length
+                  }
                 </span>
               )}
             </button>
@@ -349,12 +360,14 @@ export default function AuditLogsPage() {
               </label>
               <select
                 value={filters.actionType}
-                onChange={(e) => setFilters(prev => ({ ...prev, actionType: e.target.value }))}
+                onChange={(e) => setFilters((prev) => ({ ...prev, actionType: e.target.value }))}
                 className="w-full px-3 py-2 border border-border rounded-lg bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
               >
                 <option value="">{t('common.all') || 'Все'}</option>
-                {actionTypes.map(type => (
-                  <option key={type.value} value={type.value}>{type.label}</option>
+                {actionTypes.map((type) => (
+                  <option key={type.value} value={type.value}>
+                    {type.label}
+                  </option>
                 ))}
               </select>
             </div>
@@ -366,12 +379,14 @@ export default function AuditLogsPage() {
               </label>
               <select
                 value={filters.entityType}
-                onChange={(e) => setFilters(prev => ({ ...prev, entityType: e.target.value }))}
+                onChange={(e) => setFilters((prev) => ({ ...prev, entityType: e.target.value }))}
                 className="w-full px-3 py-2 border border-border rounded-lg bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
               >
                 <option value="">{t('common.all') || 'Все'}</option>
-                {entityTypes.map(type => (
-                  <option key={type.value} value={type.value}>{type.label}</option>
+                {entityTypes.map((type) => (
+                  <option key={type.value} value={type.value}>
+                    {type.label}
+                  </option>
                 ))}
               </select>
             </div>
@@ -386,7 +401,7 @@ export default function AuditLogsPage() {
                 <input
                   type="date"
                   value={filters.dateFrom}
-                  onChange={(e) => setFilters(prev => ({ ...prev, dateFrom: e.target.value }))}
+                  onChange={(e) => setFilters((prev) => ({ ...prev, dateFrom: e.target.value }))}
                   className="w-full pl-10 pr-3 py-2 border border-border rounded-lg bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
                 />
               </div>
@@ -402,7 +417,7 @@ export default function AuditLogsPage() {
                 <input
                   type="date"
                   value={filters.dateTo}
-                  onChange={(e) => setFilters(prev => ({ ...prev, dateTo: e.target.value }))}
+                  onChange={(e) => setFilters((prev) => ({ ...prev, dateTo: e.target.value }))}
                   className="w-full pl-10 pr-3 py-2 border border-border rounded-lg bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
                 />
               </div>
@@ -414,11 +429,14 @@ export default function AuditLogsPage() {
       {/* Stats */}
       <div className="flex items-center gap-4 text-sm text-muted-foreground">
         <span>
-          {t('common.total') || 'Всего'}: <strong className="text-foreground">{pagination.total}</strong> {t('auditLogs.records') || 'записей'}
+          {t('common.total') || 'Всего'}:{' '}
+          <strong className="text-foreground">{pagination.total}</strong>{' '}
+          {t('auditLogs.records') || 'записей'}
         </span>
         {hasActiveFilters && (
           <span>
-            {t('common.filtered') || 'Отфильтровано'}: <strong className="text-foreground">{filteredLogs.length}</strong>
+            {t('common.filtered') || 'Отфильтровано'}:{' '}
+            <strong className="text-foreground">{filteredLogs.length}</strong>
           </span>
         )}
       </div>
@@ -535,8 +553,8 @@ export default function AuditLogsPage() {
             {/* Mobile Cards */}
             <div className="md:hidden divide-y divide-border">
               {filteredLogs.map((log) => (
-                <div 
-                  key={log.id} 
+                <div
+                  key={log.id}
                   className="p-4 space-y-3 cursor-pointer hover:bg-muted transition-colors"
                   onClick={() => setSelectedLog(log)}
                 >
@@ -565,9 +583,7 @@ export default function AuditLogsPage() {
                   {(log.entity_name || log.target) && (
                     <div className="flex items-center gap-2 text-sm">
                       {getEntityIcon(log.entity_type)}
-                      <span className="text-foreground">
-                        {log.entity_name || log.target}
-                      </span>
+                      <span className="text-foreground">{log.entity_name || log.target}</span>
                     </div>
                   )}
 
@@ -586,19 +602,21 @@ export default function AuditLogsPage() {
         {totalPages > 1 && (
           <div className="flex items-center justify-between px-4 py-3 border-t border-border">
             <div className="text-sm text-muted-foreground">
-              {((pagination.page - 1) * pagination.limit) + 1}—
-              {Math.min(pagination.page * pagination.limit, pagination.total)} {t('common.of') || 'из'}{' '}
-              {pagination.total}
+              {(pagination.page - 1) * pagination.limit + 1}—
+              {Math.min(pagination.page * pagination.limit, pagination.total)}{' '}
+              {t('common.of') || 'из'} {pagination.total}
             </div>
             <div className="flex gap-2">
               <button
-                onClick={() => setPagination(prev => ({ ...prev, page: Math.max(1, prev.page - 1) }))}
+                onClick={() =>
+                  setPagination((prev) => ({ ...prev, page: Math.max(1, prev.page - 1) }))
+                }
                 disabled={pagination.page === 1}
                 className="p-2 rounded-lg hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 <ChevronLeft className="w-5 h-5 text-foreground" />
               </button>
-              
+
               <div className="flex items-center gap-1">
                 {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                   let pageNum
@@ -614,7 +632,7 @@ export default function AuditLogsPage() {
                   return (
                     <button
                       key={pageNum}
-                      onClick={() => setPagination(prev => ({ ...prev, page: pageNum }))}
+                      onClick={() => setPagination((prev) => ({ ...prev, page: pageNum }))}
                       className={cn(
                         'w-8 h-8 rounded-lg text-sm font-medium transition-colors',
                         pageNum === pagination.page
@@ -629,7 +647,9 @@ export default function AuditLogsPage() {
               </div>
 
               <button
-                onClick={() => setPagination(prev => ({ ...prev, page: Math.min(totalPages, prev.page + 1) }))}
+                onClick={() =>
+                  setPagination((prev) => ({ ...prev, page: Math.min(totalPages, prev.page + 1) }))
+                }
                 disabled={pagination.page === totalPages}
                 className="p-2 rounded-lg hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
@@ -655,7 +675,7 @@ export default function AuditLogsPage() {
                 <X className="w-5 h-5 text-foreground" />
               </button>
             </div>
-            
+
             <div className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -722,7 +742,7 @@ export default function AuditLogsPage() {
                         {t('auditLogs.oldValue') || 'Старое значение'}
                       </label>
                       <pre className="mt-1 p-3 bg-danger/10 rounded-lg text-sm text-danger overflow-x-auto">
-                        {typeof selectedLog.old_value === 'object' 
+                        {typeof selectedLog.old_value === 'object'
                           ? JSON.stringify(selectedLog.old_value, null, 2)
                           : selectedLog.old_value}
                       </pre>
@@ -734,7 +754,7 @@ export default function AuditLogsPage() {
                         {t('auditLogs.newValue') || 'Новое значение'}
                       </label>
                       <pre className="mt-1 p-3 bg-success/10 rounded-lg text-sm text-success overflow-x-auto">
-                        {typeof selectedLog.new_value === 'object' 
+                        {typeof selectedLog.new_value === 'object'
                           ? JSON.stringify(selectedLog.new_value, null, 2)
                           : selectedLog.new_value}
                       </pre>
@@ -757,7 +777,10 @@ export default function AuditLogsPage() {
                     <label className="text-sm text-muted-foreground">
                       {t('auditLogs.userAgent') || 'User Agent'}
                     </label>
-                    <p className="text-sm text-muted-foreground truncate" title={selectedLog.user_agent}>
+                    <p
+                      className="text-sm text-muted-foreground truncate"
+                      title={selectedLog.user_agent}
+                    >
                       {selectedLog.user_agent}
                     </p>
                   </div>

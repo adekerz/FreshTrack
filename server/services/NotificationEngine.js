@@ -68,14 +68,14 @@ const RETRY_HOURS = [2, 4, 8] // Exponential backoff: 2h, 4h, 8h
  * NotificationEngine - Centralized notification processing
  */
 export class NotificationEngine {
-  
+
   /**
    * Check all expiring batches and create notifications
    * Called by cron job (hourly)
    */
   static async checkExpiringBatches() {
     logInfo('NotificationEngine', '🔔 Starting expiry check...')
-    
+
     try {
       // Get all enabled notification rules
       const rulesResult = await query(`
@@ -83,26 +83,26 @@ export class NotificationEngine {
         WHERE enabled = true AND type = 'expiry'
         ORDER BY hotel_id NULLS FIRST
       `)
-      
+
       const rules = rulesResult.rows
       logInfo('NotificationEngine', `📋 Found ${rules.length} active expiry rules`)
-      
+
       let totalNotifications = 0
-      
+
       for (const rule of rules) {
         const notifications = await this.processRule(rule)
         totalNotifications += notifications
       }
-      
+
       logInfo('NotificationEngine', `✅ Expiry check complete. Created ${totalNotifications} notifications.`)
       return totalNotifications
-      
+
     } catch (error) {
       logError('NotificationEngine', error)
       throw error
     }
   }
-  
+
   /**
    * Process a single notification rule
    */
@@ -111,17 +111,17 @@ export class NotificationEngine {
     let whereClause = "b.status = 'active'"
     const params = []
     let paramIndex = 1
-    
+
     if (rule.hotel_id) {
       whereClause += ` AND b.hotel_id = $${paramIndex++}`
       params.push(rule.hotel_id)
     }
-    
+
     if (rule.department_id) {
       whereClause += ` AND b.department_id = $${paramIndex++}`
       params.push(rule.department_id)
     }
-    
+
     // Get batches within warning/critical threshold
     const batchesResult = await query(`
       SELECT 
@@ -140,13 +140,13 @@ export class NotificationEngine {
         AND (b.expiry_date - CURRENT_DATE) <= $${paramIndex}
       ORDER BY b.expiry_date ASC
     `, [...params, rule.warning_days])
-    
+
     const batches = batchesResult.rows
     let notificationsCreated = 0
-    
+
     for (const batch of batches) {
       const daysLeft = parseInt(batch.days_left)
-      
+
       // Determine notification type based on thresholds
       let type, priority
       if (daysLeft <= 0) {
@@ -161,39 +161,39 @@ export class NotificationEngine {
       } else {
         continue // Outside thresholds
       }
-      
+
       // Create notifications for all recipients
       const created = await this.createNotificationsForRecipients(rule, batch, type, priority, daysLeft)
       notificationsCreated += created
     }
-    
+
     return notificationsCreated
   }
-  
+
   /**
    * Create notifications for all recipients based on rule
    */
   static async createNotificationsForRecipients(rule, batch, type, priority, daysLeft) {
-    const channels = typeof rule.channels === 'string' 
-      ? JSON.parse(rule.channels) 
+    const channels = typeof rule.channels === 'string'
+      ? JSON.parse(rule.channels)
       : rule.channels
-    
+
     const recipientRoles = typeof rule.recipient_roles === 'string'
       ? JSON.parse(rule.recipient_roles)
       : rule.recipient_roles
-    
+
     let created = 0
-    
+
     // Get users to notify
     const users = await this.getRecipientsForRule(rule, recipientRoles)
-    
+
     for (const user of users) {
       for (const channel of channels) {
         // Check deduplication
         if (await this.isAlreadyNotified(batch.id, user.id, channel)) {
           continue
         }
-        
+
         // Create notification
         await this.createNotification({
           hotelId: batch.hotel_id,
@@ -216,19 +216,19 @@ export class NotificationEngine {
             daysLeft
           }
         })
-        
+
         created++
       }
     }
-    
+
     // Also send to linked Telegram chats (if telegram channel is enabled)
     if (channels.includes(NotificationChannel.TELEGRAM)) {
       await this.sendToLinkedChats(batch, type, daysLeft)
     }
-    
+
     return created
   }
-  
+
   /**
    * Get recipients based on rule and roles
    */
@@ -236,36 +236,36 @@ export class NotificationEngine {
     let whereClause = 'u.is_active = true'
     const params = []
     let paramIndex = 1
-    
+
     if (rule.hotel_id) {
       whereClause += ` AND u.hotel_id = $${paramIndex++}`
       params.push(rule.hotel_id)
     }
-    
+
     if (rule.department_id) {
       whereClause += ` AND (u.department_id = $${paramIndex++} OR u.role = ANY($${paramIndex++}))`
       params.push(rule.department_id)
       params.push(HOTEL_WIDE_ROLES)
     }
-    
+
     whereClause += ` AND u.role = ANY($${paramIndex++})`
     params.push(recipientRoles)
-    
+
     const result = await query(`
       SELECT id, name, email, telegram_chat_id, role, department_id
       FROM users u
       WHERE ${whereClause}
     `, params)
-    
+
     return result.rows
   }
-  
+
   /**
    * Check if notification was already sent (24h deduplication)
    */
   static async isAlreadyNotified(batchId, userId, channel) {
     const hash = this.generateHash(batchId, userId, channel)
-    
+
     const result = await query(`
       SELECT 1 FROM notifications 
       WHERE notification_hash = $1 
@@ -273,10 +273,10 @@ export class NotificationEngine {
         AND status != 'failed'
       LIMIT 1
     `, [hash])
-    
+
     return result.rows.length > 0
   }
-  
+
   /**
    * Generate deduplication hash
    */
@@ -286,7 +286,7 @@ export class NotificationEngine {
       .update(`${batchId}:${userId}:${channel}:${date}`)
       .digest('hex')
   }
-  
+
   /**
    * Create a notification record
    */
@@ -295,7 +295,7 @@ export class NotificationEngine {
   }) {
     const id = uuidv4()
     const hash = this.generateHash(batchId, userId, channel)
-    
+
     await query(`
       INSERT INTO notifications (
         id, hotel_id, user_id, batch_id, rule_id, type, title, message, 
@@ -316,10 +316,10 @@ export class NotificationEngine {
       DeliveryStatus.PENDING,
       hash
     ])
-    
+
     return id
   }
-  
+
   /**
    * Send notification to linked Telegram chats
    */
@@ -327,8 +327,8 @@ export class NotificationEngine {
     try {
       const notifType = type === NotificationType.EXPIRED ? 'expired'
         : type === NotificationType.EXPIRY_CRITICAL ? 'critical'
-        : 'warning'
-      
+          : 'warning'
+
       await TelegramService.sendBatchNotification(
         {
           ...batch,
@@ -344,14 +344,14 @@ export class NotificationEngine {
       logError('NotificationEngine', error)
     }
   }
-  
+
   /**
    * Process pending notification queue
    * Called by cron job (every 5 minutes)
    */
   static async processQueue() {
     logDebug('NotificationEngine', '📤 Processing notification queue...')
-    
+
     try {
       // Get pending notifications ready to send
       const result = await query(`
@@ -363,28 +363,28 @@ export class NotificationEngine {
         ORDER BY n.priority DESC, n.created_at ASC
         LIMIT 100
       `)
-      
+
       const notifications = result.rows
       logDebug('NotificationEngine', `📬 Found ${notifications.length} notifications to process`)
-      
+
       let delivered = 0
       let failed = 0
-      
+
       for (const notification of notifications) {
         const success = await this.sendWithRetry(notification)
         if (success) delivered++
         else failed++
       }
-      
+
       logInfo('NotificationEngine', `✅ Queue processed. Delivered: ${delivered}, Failed: ${failed}`)
       return { delivered, failed }
-      
+
     } catch (error) {
       logError('NotificationEngine', error)
       throw error
     }
   }
-  
+
   /**
    * Send notification with retry logic
    */
@@ -395,14 +395,14 @@ export class NotificationEngine {
         "UPDATE notifications SET status = 'sending' WHERE id = $1",
         [notification.id]
       )
-      
+
       // Check if batch was already written off (cancelled)
       if (notification.batch_id) {
         const batchCheck = await query(
           "SELECT status FROM batches WHERE id = $1",
           [notification.batch_id]
         )
-        
+
         if (batchCheck.rows[0]?.status === 'written_off') {
           // Batch was collected/written off, mark notification as obsolete
           await query(`
@@ -413,32 +413,32 @@ export class NotificationEngine {
           return false
         }
       }
-      
+
       // Dispatch based on channel
       const channels = typeof notification.channels === 'string'
         ? JSON.parse(notification.channels)
         : notification.channels
-      
+
       for (const channel of channels) {
         await this.dispatch(notification, channel)
       }
-      
+
       // Success
       await query(`
         UPDATE notifications 
         SET status = 'delivered', delivered_at = NOW()
         WHERE id = $1
       `, [notification.id])
-      
+
       return true
-      
+
     } catch (error) {
       // Handle retry
       const retryCount = (notification.retry_count || 0) + 1
-      
+
       if (retryCount < MAX_RETRIES) {
         const hoursDelay = RETRY_HOURS[retryCount - 1] || RETRY_HOURS[RETRY_HOURS.length - 1]
-        
+
         await query(`
           UPDATE notifications 
           SET status = 'retry', 
@@ -447,7 +447,7 @@ export class NotificationEngine {
               failure_reason = $3
           WHERE id = $4
         `, [retryCount, hoursDelay, error.message, notification.id])
-        
+
         logDebug('NotificationEngine', `🔄 Notification ${notification.id} scheduled for retry ${retryCount}/${MAX_RETRIES}`)
       } else {
         await query(`
@@ -457,14 +457,14 @@ export class NotificationEngine {
               failure_reason = $2
           WHERE id = $3
         `, [retryCount, `Max retries exceeded: ${error.message}`, notification.id])
-        
+
         logDebug('NotificationEngine', `❌ Notification ${notification.id} failed after ${MAX_RETRIES} retries`)
       }
-      
+
       return false
     }
   }
-  
+
   /**
    * Dispatch notification to specific channel
    */
@@ -473,67 +473,67 @@ export class NotificationEngine {
       case NotificationChannel.APP:
         // App notifications are stored in DB, already done
         return true
-        
+
       case NotificationChannel.TELEGRAM:
         return this.dispatchTelegram(notification)
-        
+
       case NotificationChannel.EMAIL:
         // TODO: Implement email
         logDebug('NotificationEngine', '📧 Email notifications not yet implemented')
         return true
-        
+
       default:
         throw new Error(`Unknown channel: ${channel}`)
     }
   }
-  
+
   /**
    * Dispatch to Telegram
    */
   static async dispatchTelegram(notification) {
     const chatId = notification.telegram_chat_id || notification.user_telegram_id
-    
+
     if (!chatId) {
       throw new Error('User has no Telegram chat ID')
     }
-    
+
     const message = this.formatTelegramMessage(notification)
     const result = await TelegramService.sendMessage(chatId, message)
-    
+
     // Store message ID for potential edit/delete
     await query(
       'UPDATE notifications SET telegram_message_id = $1 WHERE id = $2',
       [result.message_id, notification.id]
     )
-    
+
     return true
   }
-  
+
   /**
    * Format Telegram message
    */
   static formatTelegramMessage(notification) {
     const icon = notification.type === NotificationType.EXPIRED ? '❌'
       : notification.type === NotificationType.EXPIRY_CRITICAL ? '🚨'
-      : notification.type === NotificationType.EXPIRY_WARNING ? '⚠️'
-      : 'ℹ️'
-    
+        : notification.type === NotificationType.EXPIRY_WARNING ? '⚠️'
+          : 'ℹ️'
+
     let message = `${icon} *${notification.title}*\n\n${notification.message}`
-    
+
     const data = typeof notification.data === 'string'
       ? JSON.parse(notification.data)
       : notification.data
-    
+
     if (data) {
       if (data.productName) message += `\n\n📦 *Продукт:* ${data.productName}`
       if (data.quantity) message += `\n📊 *Количество:* ${data.quantity} ${data.unit || 'шт'}`
       if (data.departmentName) message += `\n🏢 *Отдел:* ${data.departmentName}`
       if (data.expiryDate) message += `\n📅 *Срок:* ${data.expiryDate}`
     }
-    
+
     return message
   }
-  
+
   /**
    * Get notification title based on type
    */
@@ -549,16 +549,16 @@ export class NotificationEngine {
         return batch.product_name
     }
   }
-  
+
   /**
    * Get notification message
    */
   static getNotificationMessage(type, batch, daysLeft) {
     const daysText = daysLeft === 0 ? 'сегодня'
       : daysLeft === 1 ? 'завтра'
-      : daysLeft < 0 ? `${Math.abs(daysLeft)} дн. назад`
-      : `через ${daysLeft} дн.`
-    
+        : daysLeft < 0 ? `${Math.abs(daysLeft)} дн. назад`
+          : `через ${daysLeft} дн.`
+
     switch (type) {
       case NotificationType.EXPIRED:
         return `Партия "${batch.product_name}" (${batch.quantity} ${batch.unit || 'шт'}) просрочена. Требуется списание.`
@@ -570,31 +570,40 @@ export class NotificationEngine {
         return `${batch.product_name}: ${batch.quantity} ${batch.unit || 'шт'}`
     }
   }
-  
+
   /**
    * Get notification rules for a hotel
    */
-  static async getRules(hotelId = null) {
-    let queryText = 'SELECT * FROM notification_rules WHERE enabled = true'
+  static async getRules(hotelId = null, includeDisabled = true) {
+    let queryText = 'SELECT * FROM notification_rules WHERE 1=1'
     const params = []
-    
+
+    if (!includeDisabled) {
+      queryText += ' AND enabled = true'
+    }
+
     if (hotelId) {
-      queryText += ' AND (hotel_id = $1 OR hotel_id IS NULL)'
+      queryText += ` AND (hotel_id = $${params.length + 1} OR hotel_id IS NULL)`
       params.push(hotelId)
     }
-    
+
     queryText += ' ORDER BY hotel_id NULLS FIRST, department_id NULLS FIRST'
-    
+
     const result = await query(queryText, params)
-    return result.rows
+
+    // Добавляем флаг isSystemRule для UI
+    return result.rows.map(rule => ({
+      ...rule,
+      isSystemRule: rule.hotel_id === null
+    }))
   }
-  
+
   /**
    * Create or update notification rule
    */
   static async upsertRule(rule) {
     const id = rule.id || uuidv4()
-    
+
     await query(`
       INSERT INTO notification_rules (
         id, hotel_id, department_id, type, name, description,
@@ -626,10 +635,101 @@ export class NotificationEngine {
       JSON.stringify(rule.recipientRoles || ['HOTEL_ADMIN', 'DEPARTMENT_MANAGER']),
       rule.enabled !== false
     ])
-    
+
     return id
   }
-  
+
+  /**
+   * Send daily reports to all linked Telegram chats
+   * Generates summary of inventory status for each hotel
+   */
+  static async sendDailyReports() {
+    logInfo('NotificationEngine', '📊 Generating daily reports...')
+
+    try {
+      // Get all active linked chats
+      const chatsResult = await query(`
+        SELECT DISTINCT tc.chat_id, tc.hotel_id, tc.department_id, tc.chat_title,
+               h.name as hotel_name, d.name as department_name
+        FROM telegram_chats tc
+        LEFT JOIN hotels h ON h.id = tc.hotel_id
+        LEFT JOIN departments d ON d.id = tc.department_id
+        WHERE tc.is_active = true AND tc.hotel_id IS NOT NULL
+      `)
+
+      let totalReportsSent = 0
+
+      for (const chat of chatsResult.rows) {
+        try {
+          // Get inventory summary for this hotel/department
+          const statsQuery = chat.department_id
+            ? `
+              SELECT 
+                COUNT(*) FILTER (WHERE expiry_date > NOW() + INTERVAL '7 days') as good,
+                COUNT(*) FILTER (WHERE expiry_date <= NOW() + INTERVAL '7 days' AND expiry_date > NOW()) as warning,
+                COUNT(*) FILTER (WHERE expiry_date <= NOW()) as expired
+              FROM batches b
+              JOIN products p ON p.id = b.product_id
+              WHERE b.hotel_id = $1 AND p.department_id = $2 AND b.quantity > 0
+            `
+            : `
+              SELECT 
+                COUNT(*) FILTER (WHERE expiry_date > NOW() + INTERVAL '7 days') as good,
+                COUNT(*) FILTER (WHERE expiry_date <= NOW() + INTERVAL '7 days' AND expiry_date > NOW()) as warning,
+                COUNT(*) FILTER (WHERE expiry_date <= NOW()) as expired
+              FROM batches b
+              WHERE b.hotel_id = $1 AND b.quantity > 0
+            `
+
+          const params = chat.department_id ? [chat.hotel_id, chat.department_id] : [chat.hotel_id]
+          const statsResult = await query(statsQuery, params)
+          const stats = statsResult.rows[0] || { good: 0, warning: 0, expired: 0 }
+
+          // Get message template from settings
+          const settingsResult = await query(`
+            SELECT value FROM settings 
+            WHERE key = 'telegram_message_templates' AND hotel_id = $1
+            LIMIT 1
+          `, [chat.hotel_id])
+
+          let templateSettings = {}
+          if (settingsResult.rows.length > 0) {
+            try {
+              templateSettings = JSON.parse(settingsResult.rows[0].value)
+            } catch { }
+          }
+
+          const template = templateSettings.dailyReport ||
+            '📊 Ежедневный отчёт FreshTrack\n\n✅ В норме: {good}\n⚠️ Скоро истекает: {warning}\n🔴 Просрочено: {expired}'
+
+          // Generate message
+          const location = chat.department_name
+            ? `🏨 ${chat.hotel_name} → 🏢 ${chat.department_name}`
+            : `🏨 ${chat.hotel_name}`
+
+          const message = `${location}\n\n${template
+            .replace('{good}', stats.good || 0)
+            .replace('{warning}', stats.warning || 0)
+            .replace('{expired}', stats.expired || 0)}`
+
+          // Send via TelegramService
+          await TelegramService.sendMessage(chat.chat_id, message)
+          totalReportsSent++
+
+          logInfo('NotificationEngine', `📤 Daily report sent to ${chat.chat_title || chat.chat_id}`)
+        } catch (chatError) {
+          logError('NotificationEngine', `Failed to send daily report to chat ${chat.chat_id}`, chatError)
+        }
+      }
+
+      logInfo('NotificationEngine', `✅ Daily reports complete. Sent: ${totalReportsSent}`)
+      return { sent: totalReportsSent }
+    } catch (error) {
+      logError('NotificationEngine', 'Daily reports failed', error)
+      throw error
+    }
+  }
+
   /**
    * Get notification statistics
    */
@@ -637,7 +737,7 @@ export class NotificationEngine {
     let dateFilter = ''
     const params = [hotelId]
     let paramIndex = 2
-    
+
     if (startDate) {
       dateFilter += ` AND DATE(created_at) >= $${paramIndex++}`
       params.push(startDate)
@@ -646,7 +746,7 @@ export class NotificationEngine {
       dateFilter += ` AND DATE(created_at) <= $${paramIndex++}`
       params.push(endDate)
     }
-    
+
     const result = await query(`
       SELECT 
         status,
@@ -658,7 +758,7 @@ export class NotificationEngine {
       GROUP BY status, type, DATE(created_at)
       ORDER BY date DESC
     `, params)
-    
+
     return result.rows
   }
 }

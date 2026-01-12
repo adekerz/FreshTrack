@@ -1,0 +1,69 @@
+{
+  "compilerOptions": {
+    // Базовые настройки
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    
+    // Строгость
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    
+    // JSX для React
+    "jsx": "react-jsx",
+    
+    // Пути (алиасы)
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@features/*": ["src/features/*"],
+      "@shared/*": ["src/shared/*"],
+      "@components/*": ["src/components/*"],
+      "@pages/*": ["src/pages/*"],
+      "@context/*": ["src/context/*"],
+      "@hooks/*": ["src/hooks/*"],
+      "@utils/*": ["src/utils/*"],
+      "@config/*": ["src/config/*"],
+      "@services/*": ["src/services/*"],
+      "@styles/*": ["src/styles/*"],
+      "@types/*": ["src/types/*"]
+    },
+    
+    // Не генерировать файлы (Vite делает это)
+    "noEmit": true,
+    
+    // Включать JS файлы
+    "allowJs": true,
+    "checkJs": false,
+    
+    // Skip library checks для скорости
+    "skipLibCheck": true,
+    
+    // Декораторы (если понадобятся)
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    
+    // Типы
+    "types": ["node", "vite/client"]
+  },
+  "include": [
+    "src/**/*",
+    "vite.config.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "server",
+    "public"
+  ]
+}

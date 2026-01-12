@@ -1,0 +1,672 @@
+openapi: 3.1.0
+info:
+  title: FreshTrack API
+  version: 2.0.0
+  description: |
+    Enterprise Inventory & Expiration Date Management System API
+    
+    ## Authentication
+    All endpoints except `/auth/login` and `/auth/register` require Bearer token authentication.
+    
+    ## Multi-tenancy
+    Data is isolated by hotel_id. Users can only access data from their assigned hotel.
+    
+    ## Permissions
+    Role-based access control (RBAC) with granular permissions per resource and action.
+  contact:
+    name: FreshTrack Support
+    email: support@freshtrack.app
+  license:
+    name: Proprietary
+    
+servers:
+  - url: https://api.freshtrack.app
+    description: Production
+  - url: http://localhost:3001
+    description: Development
+
+tags:
+  - name: Auth
+    description: Authentication and user management
+  - name: Inventory
+    description: Products, batches, and categories
+  - name: Notifications
+    description: Notification management
+  - name: Reports
+    description: Statistics and reporting
+  - name: Settings
+    description: Hierarchical settings system
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      
+  schemas:
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+        details:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              message:
+                type: string
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        login:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          enum: [SUPER_ADMIN, HOTEL_ADMIN, MANAGER, STAFF, VIEWER]
+        hotel_id:
+          type: integer
+        department_id:
+          type: integer
+          nullable: true
+        is_active:
+          type: boolean
+        permissions:
+          type: object
+
+    Product:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        sku:
+          type: string
+        unit:
+          type: string
+          enum: [шт, кг, л, упак, порц]
+        category_id:
+          type: integer
+        department_id:
+          type: integer
+        min_quantity:
+          type: number
+        is_active:
+          type: boolean
+        image_url:
+          type: string
+          nullable: true
+
+    Batch:
+      type: object
+      properties:
+        id:
+          type: integer
+        product_id:
+          type: integer
+        batch_code:
+          type: string
+        quantity:
+          type: number
+        expiry_date:
+          type: string
+          format: date
+        production_date:
+          type: string
+          format: date
+          nullable: true
+        supplier:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [active, collected, written_off, transferred]
+        expiryStatus:
+          type: string
+          enum: [expired, today, critical, warning, good]
+        daysLeft:
+          type: integer
+        statusColor:
+          type: string
+        statusText:
+          type: string
+
+    Category:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        color:
+          type: string
+          pattern: '^#[0-9A-Fa-f]{6}$'
+        icon:
+          type: string
+          nullable: true
+        sort_order:
+          type: integer
+
+    Notification:
+      type: object
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+          enum: [expiry_warning, expiry_critical, low_stock, collection_reminder, system]
+        title:
+          type: string
+        message:
+          type: string
+        batch_id:
+          type: integer
+          nullable: true
+        product_id:
+          type: integer
+          nullable: true
+        is_read:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
+    PaginatedResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items: {}
+        pagination:
+          type: object
+          properties:
+            page:
+              type: integer
+            limit:
+              type: integer
+            total:
+              type: integer
+            totalPages:
+              type: integer
+
+security:
+  - bearerAuth: []
+
+paths:
+  # ========================================
+  # Auth Endpoints
+  # ========================================
+  /api/auth/login:
+    post:
+      tags: [Auth]
+      summary: User login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [login, password]
+              properties:
+                login:
+                  type: string
+                  minLength: 3
+                password:
+                  type: string
+                  minLength: 6
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  token:
+                    type: string
+                  user:
+                    $ref: '#/components/schemas/User'
+        '401':
+          description: Invalid credentials
+
+  /api/auth/me:
+    get:
+      tags: [Auth]
+      summary: Get current user
+      responses:
+        '200':
+          description: Current user info
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  user:
+                    $ref: '#/components/schemas/User'
+
+  /api/auth/users:
+    get:
+      tags: [Auth]
+      summary: List users (admin only)
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, pending, inactive]
+        - name: role
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  users:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+
+  # ========================================
+  # Inventory Endpoints
+  # ========================================
+  /api/products:
+    get:
+      tags: [Inventory]
+      summary: List products
+      parameters:
+        - name: category_id
+          in: query
+          schema:
+            type: integer
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: is_active
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: List of products
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  products:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Product'
+
+    post:
+      tags: [Inventory]
+      summary: Create product
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, unit, category_id]
+              properties:
+                name:
+                  type: string
+                  minLength: 2
+                  maxLength: 200
+                sku:
+                  type: string
+                unit:
+                  type: string
+                  enum: [шт, кг, л, упак, порц]
+                category_id:
+                  type: integer
+                min_quantity:
+                  type: number
+                  minimum: 0
+      responses:
+        '201':
+          description: Product created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  product:
+                    $ref: '#/components/schemas/Product'
+
+  /api/batches:
+    get:
+      tags: [Inventory]
+      summary: List batches
+      parameters:
+        - name: product_id
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, collected, written_off, transferred, expiring, expired, critical, warning]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            maximum: 200
+      responses:
+        '200':
+          description: List of batches with expiry data
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Batch'
+
+    post:
+      tags: [Inventory]
+      summary: Create batch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [product_id, quantity, expiry_date]
+              properties:
+                product_id:
+                  type: integer
+                quantity:
+                  type: number
+                  minimum: 0.001
+                expiry_date:
+                  type: string
+                  format: date
+                production_date:
+                  type: string
+                  format: date
+                batch_code:
+                  type: string
+                supplier:
+                  type: string
+      responses:
+        '201':
+          description: Batch created
+
+  /api/categories:
+    get:
+      tags: [Inventory]
+      summary: List categories
+      responses:
+        '200':
+          description: List of categories
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  categories:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Category'
+
+  # ========================================
+  # Notifications Endpoints
+  # ========================================
+  /api/notifications:
+    get:
+      tags: [Notifications]
+      summary: Get user notifications
+      parameters:
+        - name: unread_only
+          in: query
+          schema:
+            type: boolean
+        - name: type
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of notifications
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  notifications:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Notification'
+                  unreadCount:
+                    type: integer
+
+  /api/notifications/{id}/read:
+    put:
+      tags: [Notifications]
+      summary: Mark notification as read
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Notification marked as read
+
+  /api/notifications/read-all:
+    put:
+      tags: [Notifications]
+      summary: Mark all notifications as read
+      responses:
+        '200':
+          description: All notifications marked as read
+
+  # ========================================
+  # Reports Endpoints
+  # ========================================
+  /api/reports/statistics:
+    get:
+      tags: [Reports]
+      summary: Get statistics
+      parameters:
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: locale
+          in: query
+          schema:
+            type: string
+            enum: [ru, en, kk]
+      responses:
+        '200':
+          description: Statistics data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  byStatus:
+                    type: object
+                  byCategory:
+                    type: object
+                  trends:
+                    type: object
+                  total:
+                    type: integer
+
+  /api/reports/calendar:
+    get:
+      tags: [Reports]
+      summary: Get calendar view data
+      parameters:
+        - name: start_date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Calendar data with batches grouped by expiry date
+
+  /api/reports/dashboard:
+    get:
+      tags: [Reports]
+      summary: Get dashboard summary
+      responses:
+        '200':
+          description: Dashboard data
+
+  # ========================================
+  # Settings Endpoints
+  # ========================================
+  /api/settings/user:
+    get:
+      tags: [Settings]
+      summary: Get aggregated user settings
+      description: Returns settings with hierarchy resolution (User → Department → Hotel → System → Default)
+      responses:
+        '200':
+          description: User settings
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  settings:
+                    type: object
+                  context:
+                    type: object
+
+  /api/settings/user/{key}:
+    put:
+      tags: [Settings]
+      summary: Set user setting
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                value:
+                  description: Setting value (any type)
+      responses:
+        '200':
+          description: Setting updated
+
+  /api/settings/hotel:
+    get:
+      tags: [Settings]
+      summary: Get hotel settings
+      responses:
+        '200':
+          description: Hotel settings
+
+  /api/settings/batch:
+    post:
+      tags: [Settings]
+      summary: Batch update settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [settings, scope]
+              properties:
+                scope:
+                  type: string
+                  enum: [user, department, hotel, system]
+                settings:
+                  type: array
+                  items:
+                    type: object
+                    required: [key, value]
+                    properties:
+                      key:
+                        type: string
+                      value: {}
+      responses:
+        '200':
+          description: Settings updated

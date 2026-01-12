@@ -7,6 +7,7 @@ import { useMemo } from 'react'
 import { useTranslation } from '../context/LanguageContext'
 import { useAuth } from '../context/AuthContext'
 import { useProducts, departments } from '../context/ProductContext'
+import { useThresholds } from '../hooks/useThresholds'
 import {
   TrendingUp,
   TrendingDown,
@@ -22,6 +23,7 @@ export default function AnalyticsPage() {
   const { t } = useTranslation()
   const { user, isHotelAdmin } = useAuth()
   const { getActiveBatches, getStats } = useProducts()
+  const { thresholds } = useThresholds()
 
   const stats = getStats()
   const batches = getActiveBatches()
@@ -127,7 +129,7 @@ export default function AnalyticsPage() {
     return userDepts
       .map((dept) => {
         const deptBatches = filteredBatches.filter((b) => b.departmentId === dept.id)
-        const problemBatches = deptBatches.filter((b) => b.daysLeft <= 3)
+        const problemBatches = deptBatches.filter((b) => b.daysLeft <= thresholds.critical)
         const healthScore =
           deptBatches.length > 0
             ? Math.round(((deptBatches.length - problemBatches.length) / deptBatches.length) * 100)

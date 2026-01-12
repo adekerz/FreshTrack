@@ -7,11 +7,11 @@
  */
 
 import { getAllBatches, getAllProducts, getAllCategories } from '../db/database.js'
-import { 
-  enrichBatchesWithExpiryData, 
-  ExpiryStatus, 
-  StatusColor, 
-  StatusCssClass 
+import {
+  enrichBatchesWithExpiryData,
+  ExpiryStatus,
+  StatusColor,
+  StatusCssClass
 } from './ExpiryService.js'
 
 /**
@@ -87,47 +87,48 @@ export const StatisticsService = {
   async getStatistics(context, options = {}) {
     const { hotelId, departmentId, canAccessAllDepartments } = context
     const { dateRange, locale = 'ru' } = options
-    
+
     if (!hotelId) {
       throw new Error('hotelId required for statistics')
     }
-    
+
     // Build context-aware filter
+    // departmentId is UUID or null, not an object
     const deptFilter = canAccessAllDepartments ? null : departmentId
-    const dbFilters = { department_id: deptFilter }
-    
+
     // Fetch data with context isolation
+    // getAllBatches(hotelId, departmentId, status)
     const [rawBatches, products, categories] = await Promise.all([
-      getAllBatches(hotelId, dbFilters),
-      getAllProducts(hotelId, dbFilters),
+      getAllBatches(hotelId, deptFilter, null),
+      getAllProducts(hotelId),
       getAllCategories(hotelId)
     ])
-    
+
     // Enrich batches with expiry data (Single Source of Truth)
     let batches = await enrichBatchesWithExpiryData(rawBatches, {
       hotelId,
       departmentId: deptFilter,
       locale
     })
-    
+
     // Apply date range filter if provided
     if (dateRange?.from || dateRange?.to) {
       const fromMs = dateRange.from ? new Date(dateRange.from).getTime() : 0
       const toMs = dateRange.to ? new Date(dateRange.to).getTime() : Infinity
-      
+
       batches = batches.filter(b => {
         if (!b.expiry_date) return false
         const expiryMs = new Date(b.expiry_date).getTime()
         return expiryMs >= fromMs && expiryMs <= toMs
       })
     }
-    
+
     // Build category lookup map (ID → category)
     const categoryMap = new Map()
     for (const cat of categories) {
       categoryMap.set(cat.id, cat)
     }
-    
+
     // Build product → category lookup
     const productCategoryMap = new Map()
     for (const product of products) {
@@ -135,16 +136,16 @@ export const StatisticsService = {
         productCategoryMap.set(product.id, product.category_id)
       }
     }
-    
+
     // Calculate byStatus
     const byStatus = this._calculateByStatus(batches, locale)
-    
+
     // Calculate byCategory (no "Other" - direct category_id resolution)
     const byCategory = this._calculateByCategory(batches, products, categoryMap, locale)
-    
+
     // Calculate trends (last 30 days by default)
     const trends = this._calculateTrends(batches, options.trendDays || 30)
-    
+
     // Calculate totals
     const total = {
       batches: batches.length,
@@ -153,7 +154,7 @@ export const StatisticsService = {
       totalQuantity: batches.reduce((sum, b) => sum + (b.quantity || 0), 0),
       healthScore: this._calculateHealthScore(byStatus)
     }
-    
+
     return {
       byStatus,
       byCategory,
@@ -166,7 +167,7 @@ export const StatisticsService = {
       }
     }
   },
-  
+
   /**
    * Calculate statistics grouped by expiry status
    * @private
@@ -179,7 +180,7 @@ export const StatisticsService = {
       [ExpiryStatus.WARNING]: { count: 0, quantity: 0 },
       [ExpiryStatus.GOOD]: { count: 0, quantity: 0 }
     }
-    
+
     for (const batch of batches) {
       const status = batch.expiryStatus || ExpiryStatus.GOOD
       if (statusCounts[status]) {
@@ -187,9 +188,9 @@ export const StatisticsService = {
         statusCounts[status].quantity += batch.quantity || 0
       }
     }
-    
+
     const total = batches.length || 1 // Avoid division by zero
-    
+
     // Order: EXPIRED → TODAY → CRITICAL → WARNING → GOOD
     const statusOrder = [
       ExpiryStatus.EXPIRED,
@@ -198,7 +199,7 @@ export const StatisticsService = {
       ExpiryStatus.WARNING,
       ExpiryStatus.GOOD
     ]
-    
+
     return statusOrder.map(status => ({
       status,
       label: getStatusLabel(status, locale),
@@ -209,7 +210,7 @@ export const StatisticsService = {
       percentage: Math.round((statusCounts[status].count / total) * 100)
     }))
   },
-  
+
   /**
    * Calculate statistics grouped by category
    * No "Other" category - uses direct category_id from batch/product
@@ -221,36 +222,36 @@ export const StatisticsService = {
     for (const product of products) {
       const catId = product.category_id
       if (!catId) continue
-      
+
       if (!productsByCategory.has(catId)) {
         productsByCategory.set(catId, [])
       }
       productsByCategory.get(catId).push(product)
     }
-    
+
     // Group batches by category (via product's category)
     const batchesByCategory = new Map()
     for (const batch of batches) {
       // category_id is now included directly in batch query
       const catId = batch.category_id || null
       if (!catId) continue
-      
+
       if (!batchesByCategory.has(catId)) {
         batchesByCategory.set(catId, [])
       }
       batchesByCategory.get(catId).push(batch)
     }
-    
+
     // Build result array
     const result = []
-    
+
     for (const [categoryId, category] of categoryMap) {
       const catBatches = batchesByCategory.get(categoryId) || []
       const catProducts = productsByCategory.get(categoryId) || []
-      
+
       // Skip empty categories
       if (catBatches.length === 0 && catProducts.length === 0) continue
-      
+
       // Calculate status breakdown for this category
       const statusBreakdown = {
         expired: 0,
@@ -258,12 +259,12 @@ export const StatisticsService = {
         warning: 0,
         good: 0
       }
-      
+
       let totalQuantity = 0
       for (const batch of catBatches) {
         totalQuantity += batch.quantity || 0
         const status = batch.expiryStatus
-        
+
         if (status === ExpiryStatus.EXPIRED || status === ExpiryStatus.TODAY) {
           statusBreakdown.expired++
         } else if (status === ExpiryStatus.CRITICAL) {
@@ -274,11 +275,11 @@ export const StatisticsService = {
           statusBreakdown.good++
         }
       }
-      
+
       // Get localized name
       const nameKey = locale === 'en' ? 'name_en' : (locale === 'kk' ? 'name_kk' : 'name')
       const categoryName = category[nameKey] || category.name || 'Unknown'
-      
+
       result.push({
         categoryId,
         categoryName,
@@ -290,13 +291,13 @@ export const StatisticsService = {
         byStatus: statusBreakdown
       })
     }
-    
+
     // Sort by batch count descending
     result.sort((a, b) => b.batchCount - a.batchCount)
-    
+
     return result
   },
-  
+
   /**
    * Calculate trend data for charts
    * Groups batches by expiry date for the next N days
@@ -305,20 +306,24 @@ export const StatisticsService = {
   _calculateTrends(batches, days = 30) {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
-    
+
     const trends = []
-    
+
     for (let i = 0; i < days; i++) {
       const targetDate = new Date(today)
       targetDate.setDate(targetDate.getDate() + i)
       const dateKey = targetDate.toISOString().split('T')[0]
-      
+
       const dayBatches = batches.filter(b => {
         if (!b.expiry_date) return false
-        const expiryDate = b.expiry_date.split('T')[0]
+        // Handle both Date objects and ISO strings
+        const expiryDateStr = b.expiry_date instanceof Date
+          ? b.expiry_date.toISOString()
+          : String(b.expiry_date)
+        const expiryDate = expiryDateStr.split('T')[0]
         return expiryDate === dateKey
       })
-      
+
       const point = {
         date: dateKey,
         expired: 0,
@@ -327,7 +332,7 @@ export const StatisticsService = {
         good: 0,
         total: dayBatches.length
       }
-      
+
       for (const batch of dayBatches) {
         const status = batch.expiryStatus
         if (status === ExpiryStatus.EXPIRED || status === ExpiryStatus.TODAY) {
@@ -340,13 +345,13 @@ export const StatisticsService = {
           point.good++
         }
       }
-      
+
       trends.push(point)
     }
-    
+
     return trends
   },
-  
+
   /**
    * Calculate health score (0-100)
    * @private
@@ -354,22 +359,22 @@ export const StatisticsService = {
   _calculateHealthScore(byStatus) {
     const goodCount = byStatus.find(s => s.status === ExpiryStatus.GOOD)?.count || 0
     const total = byStatus.reduce((sum, s) => sum + s.count, 0)
-    
+
     if (total === 0) return 100
     return Math.round((goodCount / total) * 100)
   },
-  
+
   /**
    * Get quick summary stats (for dashboard widgets)
    */
   async getQuickStats(context) {
     const stats = await this.getStatistics(context, { trendDays: 7 })
-    
+
     const expiredCount = stats.byStatus.find(s => s.status === ExpiryStatus.EXPIRED)?.count || 0
     const todayCount = stats.byStatus.find(s => s.status === ExpiryStatus.TODAY)?.count || 0
     const criticalCount = stats.byStatus.find(s => s.status === ExpiryStatus.CRITICAL)?.count || 0
     const warningCount = stats.byStatus.find(s => s.status === ExpiryStatus.WARNING)?.count || 0
-    
+
     return {
       totalBatches: stats.total.batches,
       totalProducts: stats.total.products,

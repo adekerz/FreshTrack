@@ -7,7 +7,7 @@ export const UserRole = {
   SUPER_ADMIN: 'SUPER_ADMIN',
   HOTEL_ADMIN: 'HOTEL_ADMIN',
   DEPARTMENT_MANAGER: 'DEPARTMENT_MANAGER',
-  USER: 'USER'
+  STAFF: 'STAFF'
 }
 
 // Roles that have hotel-wide access

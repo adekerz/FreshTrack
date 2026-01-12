@@ -7,7 +7,7 @@
  */
 
 import { query } from '../db/database.js'
-import { sendCustomMessage } from './telegram.js'
+import { sendCustomMessage } from './TelegramService.js'
 import { logInfo, logError } from '../utils/logger.js'
 
 /**

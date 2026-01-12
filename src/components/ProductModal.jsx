@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { X, Plus, Check, Calendar, Package, User, Trash2, AlertTriangle, Zap } from 'lucide-react'
+import { ButtonLoader } from './ui'
 import { useProducts, categories } from '../context/ProductContext'
 import { useAuth } from '../context/AuthContext'
 import { useTranslation, useLanguage } from '../context/LanguageContext'
@@ -21,9 +22,13 @@ const statusBorderColors = {
 export default function ProductModal({ product, onClose }) {
   const { t } = useTranslation()
   const { language } = useLanguage()
-  const { hasPermission } = useAuth()
-  const { getBatchesByProduct, collectBatch, deleteBatch, addBatch, deleteProduct, refresh } = useProducts()
+  const { hasPermission, user } = useAuth()
+  const { getBatchesByProduct, collectBatch, deleteBatch, addBatch, deleteProduct, refresh } =
+    useProducts()
   const { addToast } = useToast()
+
+  // Проверка роли STAFF
+  const isStaff = user?.role === 'STAFF'
 
   const [showAddForm, setShowAddForm] = useState(false)
   const [showFIFOModal, setShowFIFOModal] = useState(false)
@@ -39,7 +44,7 @@ export default function ProductModal({ product, onClose }) {
   const batches = getBatchesByProduct(product.name, product.departmentId)
   const activeBatches = batches.filter((b) => !b.isCollected)
   const collectedBatches = batches.filter((b) => b.isCollected)
-  
+
   // Общее количество для FIFO списания (только партии с учётом количества)
   const totalAvailableQuantity = activeBatches.reduce((sum, b) => sum + (b.quantity || 0), 0)
 
@@ -108,16 +113,17 @@ export default function ProductModal({ product, onClose }) {
   // Удаление товара
   const handleDeleteProduct = async () => {
     if (!product.id) return
-    
+
     setDeleting(true)
     try {
       await deleteProduct(product.id)
+      // Сразу показываем успех и закрываем модалку
       addToast(t('toast.productDeleted'), 'success')
+      setShowDeleteConfirm(false)
       onClose()
     } catch (error) {
       logError('Error deleting product:', error)
       addToast(t('toast.productDeleteError'), 'error')
-    } finally {
       setDeleting(false)
       setShowDeleteConfirm(false)
     }
@@ -149,7 +155,7 @@ export default function ProductModal({ product, onClose }) {
         {/* Заголовок */}
         <div className="flex items-center justify-between p-6 border-b border-border">
           <div>
-            <h2 className="font-serif text-2xl text-foreground">{product.name}</h2>
+            <h2 className="text-2xl font-medium text-foreground">{product.name}</h2>
             <span className="text-sm text-muted-foreground bg-muted px-2 py-0.5 rounded mt-1 inline-block">
               {getCategoryName()}
             </span>
@@ -163,7 +169,9 @@ export default function ProductModal({ product, onClose }) {
                 title={t('fifoCollect.title') || 'FIFO Списание'}
               >
                 <Zap className="w-4 h-4" />
-                <span className="hidden sm:inline">{t('fifoCollect.title') || 'FIFO Списание'}</span>
+                <span className="hidden sm:inline">
+                  {t('fifoCollect.title') || 'FIFO Списание'}
+                </span>
               </button>
             )}
             {canDeleteProduct && (
@@ -217,9 +225,7 @@ export default function ProductModal({ product, onClose }) {
                         {/* Дата истечения срока */}
                         <div className="flex items-center gap-2 text-foreground mb-1">
                           <Calendar className="w-4 h-4 text-muted-foreground" />
-                          <span className="font-medium">
-                            {formatDateDisplay(batch.expiryDate)}
-                          </span>
+                          <span className="font-medium">{formatDateDisplay(batch.expiryDate)}</span>
                         </div>
 
                         {/* Количество */}
@@ -228,7 +234,7 @@ export default function ProductModal({ product, onClose }) {
                           <span>
                             {t('product.quantity')}:{' '}
                             <strong className="text-foreground">
-                              {batch.quantity === null || batch.quantity === undefined 
+                              {batch.quantity === null || batch.quantity === undefined
                                 ? t('product.noQuantity') || 'Без учёта'
                                 : `${batch.quantity} ${t('inventory.units')}`}
                             </strong>
@@ -267,16 +273,18 @@ export default function ProductModal({ product, onClose }) {
                         </div>
                       </div>
 
-                      {/* Кнопка удаления */}
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => deleteBatch(batch.id)}
-                          className="p-1.5 text-muted-foreground hover:text-danger transition-colors"
-                          title={t('common.delete')}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
+                      {/* Кнопка удаления - только для админов и менеджеров (не STAFF) */}
+                      {!isStaff && (
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => deleteBatch(batch.id)}
+                            className="p-1.5 text-muted-foreground hover:text-danger transition-colors"
+                            title={t('common.delete')}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -299,12 +307,12 @@ export default function ProductModal({ product, onClose }) {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Check className="w-4 h-4 text-success" />
-                        <span>
-                          {formatDateDisplay(batch.expiryDate)}
-                        </span>
+                        <span>{formatDateDisplay(batch.expiryDate)}</span>
                         <span>•</span>
                         <span>
-                          {batch.quantity === null ? t('product.noQuantity') || 'Без учёта' : `${batch.quantity} ${t('inventory.units')}`}
+                          {batch.quantity === null
+                            ? t('product.noQuantity') || 'Без учёта'
+                            : `${batch.quantity} ${t('inventory.units')}`}
                         </span>
                       </div>
                       <div className="text-xs text-muted-foreground">
@@ -358,17 +366,19 @@ export default function ProductModal({ product, onClose }) {
                     type="number"
                     min="1"
                     value={newBatch.quantity}
-                    onChange={(e) =>
-                      setNewBatch((prev) => ({ ...prev, quantity: e.target.value }))
-                    }
+                    onChange={(e) => setNewBatch((prev) => ({ ...prev, quantity: e.target.value }))}
                     disabled={newBatch.noQuantity}
                     className={`w-full px-3 py-2 border border-border rounded focus:outline-none focus:border-accent transition-colors ${
-                      newBatch.noQuantity ? 'bg-muted text-muted-foreground cursor-not-allowed' : 'bg-card text-foreground'
+                      newBatch.noQuantity
+                        ? 'bg-muted text-muted-foreground cursor-not-allowed'
+                        : 'bg-card text-foreground'
                     }`}
                     required={!newBatch.noQuantity}
-                    placeholder={newBatch.noQuantity ? t('batch.noQuantity') || 'Нет количества' : ''}
+                    placeholder={
+                      newBatch.noQuantity ? t('batch.noQuantity') || 'Нет количества' : ''
+                    }
                   />
-                  
+
                   {/* Переключатель "Нет количества" */}
                   <div className="flex items-center gap-3 mt-2">
                     <input
@@ -376,15 +386,18 @@ export default function ProductModal({ product, onClose }) {
                       id="noQuantityProduct"
                       checked={newBatch.noQuantity}
                       onChange={(e) =>
-                        setNewBatch((prev) => ({ 
-                          ...prev, 
+                        setNewBatch((prev) => ({
+                          ...prev,
                           noQuantity: e.target.checked,
                           quantity: e.target.checked ? '' : prev.quantity
                         }))
                       }
                       className="quantity-toggle"
                     />
-                    <label htmlFor="noQuantityProduct" className="text-sm text-muted-foreground cursor-pointer select-none">
+                    <label
+                      htmlFor="noQuantityProduct"
+                      className="text-sm text-muted-foreground cursor-pointer select-none"
+                    >
                       {t('batch.noQuantityLabel') || 'Без учёта количества'}
                     </label>
                   </div>
@@ -435,16 +448,15 @@ export default function ProductModal({ product, onClose }) {
                 <h3 className="font-semibold text-foreground">
                   {t('product.deleteConfirmTitle') || 'Удалить товар?'}
                 </h3>
-                <p className="text-sm text-muted-foreground">
-                  {product.name}
-                </p>
+                <p className="text-sm text-muted-foreground">{product.name}</p>
               </div>
             </div>
-            
+
             <p className="text-sm text-muted-foreground mb-6">
-              {t('product.deleteConfirmMessage') || 'Это действие нельзя отменить. Все партии этого товара также будут удалены.'}
+              {t('product.deleteConfirmMessage') ||
+                'Это действие нельзя отменить. Все партии этого товара также будут удалены.'}
             </p>
-            
+
             <div className="flex gap-3">
               <button
                 onClick={() => setShowDeleteConfirm(false)}
@@ -457,12 +469,9 @@ export default function ProductModal({ product, onClose }) {
                 onClick={handleDeleteProduct}
                 disabled={deleting}
                 className="flex-1 px-4 py-2 bg-danger text-white rounded-lg hover:bg-danger/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                aria-busy={deleting}
               >
-                {deleting ? (
-                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                ) : (
-                  <Trash2 className="w-4 h-4" />
-                )}
+                {deleting ? <ButtonLoader /> : <Trash2 className="w-4 h-4" />}
                 {t('common.delete') || 'Удалить'}
               </button>
             </div>
