@@ -28,9 +28,12 @@ export function getStaticUrl(path) {
  * Обработка ответа от сервера
  * Включает глобальную обработку 401/403/404
  */
-async function handleResponse(response) {
+async function handleResponse(response, endpoint = '') {
   // Глобальная обработка ошибок аутентификации и доступа
-  if (response.status === 401) {
+  // Исключаем auth endpoints (login/register) из глобальной обработки 401
+  const isAuthEndpoint = endpoint.includes('/auth/login') || endpoint.includes('/auth/register')
+
+  if (response.status === 401 && !isAuthEndpoint) {
     // Токен истёк или невалиден — очищаем и редиректим
     localStorage.removeItem('freshtrack_token')
     localStorage.removeItem('freshtrack_user')
@@ -141,7 +144,7 @@ export async function apiFetch(endpoint, options = {}) {
         continue
       }
 
-      return handleResponse(response)
+      return handleResponse(response, endpoint)
     } catch (error) {
       lastError = error
 
