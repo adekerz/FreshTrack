@@ -246,10 +246,10 @@ export class AuthService {
       if (data.hotelCode && !hotelId) {
         const codeUpper = data.hotelCode.toUpperCase().trim()
 
-        // Ищем по code ИЛИ marsha_code отеля
+        // Ищем по marsha_code отеля
         const hotelByCode = await dbQuery(`
           SELECT id FROM hotels 
-          WHERE (UPPER(code) = $1 OR UPPER(marsha_code) = $1) AND is_active = true
+          WHERE UPPER(marsha_code) = $1 AND is_active = true
         `, [codeUpper])
 
         if (hotelByCode.rows.length > 0) {
