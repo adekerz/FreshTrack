@@ -189,11 +189,10 @@ export function startNotificationJobs(options = {}) {
     if (!TelegramService.isConfigured()) {
       logInfo('NotificationJobs', '⏸️ Telegram polling skipped: TELEGRAM_BOT_TOKEN not configured')
     } else {
-      const started = await TelegramService.startPolling(2000)  // Poll every 2 seconds
-      if (started) {
-        telegramPolling = true
-        logInfo('NotificationJobs', '🔄 Telegram polling started')
-      }
+      // Start polling (runs in background, no need to await)
+      TelegramService.startPolling(2000)  // Poll every 2 seconds
+      telegramPolling = true
+      logInfo('NotificationJobs', '🔄 Telegram polling started')
     }
   }
 
