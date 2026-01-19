@@ -69,7 +69,7 @@ export default function SettingsPage() {
     enableWeekends: true
   })
 
-  // Языки
+  // Языки - все 8 поддерживаемых
   const languages = [
     { code: 'ru', name: 'Русский', flag: '🇷🇺' },
     { code: 'en', name: 'English', flag: '🇺🇸' },
@@ -345,7 +345,7 @@ export default function SettingsPage() {
             <button
               key={lang.code}
               onClick={() => changeLanguage(lang.code)}
-              className={`flex items-center gap-3 p-4 rounded-lg border transition-all ${
+              className={`flex items-center gap-2 sm:gap-3 p-3 sm:p-4 rounded-lg border transition-all ${
                 language === lang.code
                   ? 'border-accent bg-accent/5'
                   : 'border-border hover:border-muted-foreground'

@@ -255,7 +255,7 @@ export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose })
             </div>
 
             {/* Информация о пользователе */}
-            <div className="flex items-center gap-3 px-4 py-2">
+            <div className="flex items-center gap-3 px-2 py-2">
               <div className="w-10 h-10 bg-accent/20 rounded-full flex items-center justify-center">
                 <span className="text-accent font-medium">{user.name?.charAt(0) || 'U'}</span>
               </div>
@@ -271,7 +271,7 @@ export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose })
                 logout()
                 if (onClose) onClose()
               }}
-              className="w-full flex items-center gap-3 px-4 py-3 mt-2 text-cream/60 hover:text-danger hover:bg-white/5 rounded transition-colors"
+              className="w-full flex items-center gap-3 px-2 py-3 mt-2 text-cream/60 hover:text-danger hover:bg-white/5 rounded transition-colors"
             >
               <LogOut className="w-5 h-5" />
               <span>{t('header.signOut')}</span>

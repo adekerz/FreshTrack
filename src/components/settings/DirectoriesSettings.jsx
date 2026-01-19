@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react'
 import { useTranslation } from '../../context/LanguageContext'
 import { useToast } from '../../context/ToastContext'
 import { useHotel } from '../../context/HotelContext'
+import { useProducts } from '../../context/ProductContext'
 import { GridLoader, ButtonSpinner } from '../ui'
 import { Tags, Building2, Plus, X, Edit2, Trash2, Check, AlertTriangle, Users } from 'lucide-react'
 import { cn } from '../../utils/classNames'
@@ -23,6 +24,7 @@ function DepartmentsContent() {
   const { t } = useTranslation()
   const { addToast } = useToast()
   const { selectedHotelId, selectedHotel } = useHotel()
+  const { refresh: refreshProducts } = useProducts()
 
   const [departments, setDepartments] = useState([])
   const [loading, setLoading] = useState(true)
@@ -72,6 +74,7 @@ function DepartmentsContent() {
       addToast(t('settings.departments.added') || 'Отдел добавлен', 'success')
       setNewDepartment({ name: '' })
       setShowAddForm(false)
+      refreshProducts()
       fetchDepartments()
     } catch (error) {
       addToast(error.message || t('settings.departments.addError') || 'Ошибка добавления', 'error')
@@ -174,6 +177,7 @@ function DepartmentsContent() {
             <button
               onClick={() => {
                 setShowAddForm(false)
+      refreshProducts()
                 setNewDepartment({ name: '' })
               }}
               className="px-4 py-2 text-muted-foreground hover:text-foreground"

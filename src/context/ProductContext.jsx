@@ -231,34 +231,62 @@ export function ProductProvider({ children }) {
       logDebug('🏢 Departments:', deptData.length)
       logDebug('📂 Categories:', catData.length)
 
-      if (productsData.length > 0 && deptData.length > 0) {
+
+      if (deptData.length > 0) {
         // Строим каталог: department -> category -> products
-        // Продукты в БД не привязаны к отделам, поэтому показываем их во всех отделах
+        // ВАЖНО: Товары привязаны к конкретным отделам через department_id
+        // Товары без department_id НЕ показываются в отделах
         const newCatalog = {}
 
         deptData.forEach((dept) => {
           newCatalog[dept.id] = {}
+          
+          // Фильтруем товары ТОЛЬКО для этого отдела
+          const deptProducts = productsData.filter((p) => {
+            const pDeptId = p.departmentId || p.department_id
+            return pDeptId === dept.id
+          })
+
           catData.forEach((cat) => {
-            // Добавляем продукты этой категории для каждого отдела
-            const categoryProducts = productsData.filter((p) => {
+            // Добавляем товары этой категории И этого отдела
+            const categoryProducts = deptProducts.filter((p) => {
               const pCatId = p.categoryId || p.category_id
               return pCatId === cat.id
             })
 
-            newCatalog[dept.id][cat.id] = categoryProducts.map((product) => ({
+            if (categoryProducts.length > 0) {
+              newCatalog[dept.id][cat.id] = categoryProducts.map((product) => ({
+                id: product.id,
+                name: product.name,
+                barcode: product.barcode,
+                defaultShelfLife: product.defaultShelfLife || product.default_shelf_life,
+                unit: product.unit || 'шт',
+                departmentId: product.departmentId || product.department_id
+              }))
+            }
+          })
+
+          // Также добавляем товары без категории
+          const uncategorizedProducts = deptProducts.filter((p) => {
+            const pCatId = p.categoryId || p.category_id
+            return !pCatId
+          })
+          if (uncategorizedProducts.length > 0) {
+            newCatalog[dept.id]['uncategorized'] = uncategorizedProducts.map((product) => ({
               id: product.id,
               name: product.name,
               barcode: product.barcode,
               defaultShelfLife: product.defaultShelfLife || product.default_shelf_life,
-              unit: product.unit || 'шт'
+              unit: product.unit || 'шт',
+              departmentId: product.departmentId || product.department_id
             }))
-          })
+          }
         })
 
-        logDebug('📋 New catalog built')
+        logDebug('📋 New catalog built with department isolation')
         setCatalog(newCatalog)
       } else {
-        logWarn('⚠️ No products or departments loaded')
+        logWarn('⚠️ No departments loaded')
       }
     } catch (err) {
       logError('fetchAllData', err)

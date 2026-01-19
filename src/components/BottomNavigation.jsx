@@ -276,5 +276,4 @@ export default function BottomNavigation() {
         </div>
       </nav>
     </>
-  )
-}
+  )}

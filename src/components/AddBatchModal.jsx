@@ -49,14 +49,12 @@ export default function AddBatchModal({ onClose, preselectedProduct = null }) {
   )
 
   // Получить доступные категории для отдела
+  // Показываем ВСЕ категории, даже пустые (для создания новых товаров в новых отделах)
   const availableCategories = useMemo(() => {
     if (!selectedDepartment) return []
-    const deptCatalog = catalog[selectedDepartment] || {}
-    return categories.filter((cat) => {
-      const products = deptCatalog[cat.id] || []
-      return products.length > 0
-    })
-  }, [selectedDepartment, catalog, categories])
+    return categories
+  }, [selectedDepartment, categories])
+
 
   // Получить товары категории
   const getProductsInCategory = () => {
