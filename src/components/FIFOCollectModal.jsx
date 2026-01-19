@@ -156,10 +156,15 @@ export default function FIFOCollectModal({
       />
 
       {/* Modal */}
-      <div className="flex min-h-full items-center justify-center p-4">
-        <div className="relative bg-card rounded-2xl shadow-elevated w-full max-w-md max-h-[90vh] flex flex-col animate-slide-up">
+      <div className="flex min-h-full items-end sm:items-center justify-center sm:p-4">
+        <div className="relative bg-card rounded-t-2xl sm:rounded-2xl shadow-elevated w-full sm:max-w-md max-h-[90vh] flex flex-col animate-slide-up">
+          {/* Drag handle for mobile */}
+          <div className="flex justify-center pt-3 pb-1 sm:hidden">
+            <div className="w-10 h-1 bg-muted-foreground/30 rounded-full" />
+          </div>
+
           {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-border">
+          <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-border sm:pt-6">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-gold/10 rounded-lg">
                 <Zap className="w-5 h-5 text-gold" />
@@ -177,7 +182,7 @@ export default function FIFOCollectModal({
           </div>
 
           {/* Content */}
-          <form onSubmit={handleSubmit} className="p-6 space-y-6 overflow-y-auto flex-1">
+          <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 sm:space-y-6 overflow-y-auto flex-1">
             {/* Информация о наличии */}
             <div className="bg-muted rounded-xl p-4">
               <div className="flex items-center justify-between">
@@ -344,11 +349,11 @@ export default function FIFOCollectModal({
           </form>
 
           {/* Footer - Actions */}
-          <div className="flex gap-3 p-6 border-t border-border">
+          <div className="flex flex-col-reverse sm:flex-row gap-3 p-4 sm:p-6 border-t border-border safe-bottom">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-3 border border-border text-foreground rounded-xl hover:bg-muted transition-colors"
+              className="flex-1 px-4 py-3 min-h-[48px] border border-border text-foreground rounded-xl hover:bg-muted transition-colors active:scale-[0.98]"
             >
               {t('common.cancel') || 'Отмена'}
             </button>
@@ -356,13 +361,13 @@ export default function FIFOCollectModal({
               type="button"
               onClick={handleSubmit}
               disabled={isSubmitting || !isValidQuantity}
-              className="flex-1 px-4 py-3 bg-warning text-white rounded-xl hover:bg-warning/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="flex-1 px-4 py-3 min-h-[48px] bg-warning text-white rounded-xl hover:bg-warning/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 active:scale-[0.98]"
               aria-busy={isSubmitting}
             >
               {isSubmitting ? (
                 <>
                   <ButtonLoader />
-                  {t('common.processing') || 'Обработка...'}
+                  <span className="hidden sm:inline">{t('common.processing') || 'Обработка...'}</span>
                 </>
               ) : (
                 <>

@@ -1,287 +1,204 @@
-import { useState, useRef, useEffect } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
-import { Plus, LogOut, Send, ChevronDown, Package, FolderPlus, Leaf, Search } from 'lucide-react'
+/**
+ * Header Component
+ * Responsive header with search, notifications, and user menu
+ * Mobile-first design with collapsible search
+ */
+
+import { useState, useEffect } from 'react'
+import { Menu, Search, X, Bell, Moon, Sun, User, LogOut, Settings, ChevronDown } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { useTranslation } from '../context/LanguageContext'
+import { useTheme } from '../context/ThemeContext'
 import { useProducts } from '../context/ProductContext'
-import { useHotel } from '../context/HotelContext'
-import { useTranslation, useLanguage } from '../context/LanguageContext'
-import { useBranding } from '../context/BrandingContext'
-import AddBatchModal from './AddBatchModal'
-import AddCustomProductModal from './AddCustomProductModal'
-import LanguageSwitcher from './LanguageSwitcher'
-import ThemeSwitcher from './ThemeSwitcher'
 import GlobalSearch from './GlobalSearch'
 import NotificationBell from './NotificationBell'
 import HotelSelector from './HotelSelector'
-import { sendTestTelegramNotification } from '../services/api'
+import Sidebar from './Sidebar'
+import { cn } from '../utils/classNames'
 
 export default function Header() {
-  const location = useLocation()
   const navigate = useNavigate()
-  const { user, logout, hotelName } = useAuth()
-  const { getExpiringBatches } = useProducts()
-  const { showHotelSelector, selectedHotelId, selectedHotel } = useHotel()
+  const { user, logout } = useAuth()
   const { t } = useTranslation()
-  const { language } = useLanguage()
-  const { siteName } = useBranding()
-  const [showDropdown, setShowDropdown] = useState(false)
-  const [showAddBatchModal, setShowAddBatchModal] = useState(false)
-  const [showAddProductModal, setShowAddProductModal] = useState(false)
-  const [telegramStatus, setTelegramStatus] = useState(null)
+  const { theme, toggleTheme } = useTheme()
+  const { getStats } = useProducts()
+  
   const [showMobileSearch, setShowMobileSearch] = useState(false)
-  const dropdownRef = useRef(null)
+  const [showUserMenu, setShowUserMenu] = useState(false)
+  const [showMobileSidebar, setShowMobileSidebar] = useState(false)
+  
+  const stats = getStats()
+  const alertCount = stats.critical + stats.expired
 
-  // Count of expiring items for notification badge
-  const expiringCount = getExpiringBatches?.()?.length || 0
-
-  // Закрытие dropdown при клике вне его
+  // Close menus on outside click
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setShowDropdown(false)
+    const handleClickOutside = (e) => {
+      if (!e.target.closest('[data-user-menu]')) {
+        setShowUserMenu(false)
       }
     }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
+    document.addEventListener('click', handleClickOutside)
+    return () => document.removeEventListener('click', handleClickOutside)
   }, [])
 
-  const getPageTitle = () => {
-    if (location.pathname === '/') return t('nav.dashboard')
-    if (location.pathname.startsWith('/inventory')) return t('nav.inventory')
-    if (location.pathname === '/notifications/history') return t('notificationHistory.title')
-    if (location.pathname === '/notifications') return t('nav.notifications')
-    if (location.pathname === '/collection-history') return t('nav.collectionHistory')
-    if (location.pathname === '/statistics') return t('nav.statistics')
-    if (location.pathname === '/analytics') return t('nav.analytics')
-    if (location.pathname === '/settings') return t('nav.settings')
-    return siteName || 'FreshTrack'
-  }
-
-  // Форматирование даты в зависимости от языка
-  const getLocalizedDate = () => {
-    const localeMap = {
-      en: 'en-US',
-      ru: 'ru-RU',
-      kk: 'kk-KZ'
-    }
-    return new Date().toLocaleDateString(localeMap[language] || 'en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    })
-  }
-
-  // Тестовая отправка уведомления в Telegram для выбранного отеля
-  const handleTestTelegram = async () => {
-    try {
-      setTelegramStatus('sending')
-      console.log('📤 Testing Telegram for hotel:', selectedHotelId, selectedHotel?.name)
-      await sendTestTelegramNotification(selectedHotelId)
-      setTelegramStatus('success')
-      setTimeout(() => setTelegramStatus(null), 3000)
-    } catch (error) {
-      console.error('Telegram test error:', error)
-      // Показываем понятное сообщение в зависимости от ошибки
-      const errorMessage = error?.message || ''
-      if (errorMessage.includes('привязанных') || errorMessage.includes('No linked')) {
-        setTelegramStatus('no_chats')
-      } else {
-        setTelegramStatus('error')
+  // Close mobile search on escape
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') {
+        setShowMobileSearch(false)
       }
-      setTimeout(() => setTelegramStatus(null), 5000)
     }
-  }
+    document.addEventListener('keydown', handleEscape)
+    return () => document.removeEventListener('keydown', handleEscape)
+  }, [])
 
   return (
     <>
-      <header className="bg-card border-b border-border px-4 lg:px-8 py-3 sm:py-4 flex items-center justify-between sticky top-0 z-10 transition-colors duration-300">
-        {/* Left side: logo on mobile + title */}
-        <div className="flex items-center gap-3">
-          {/* Logo - mobile only */}
-          <div className="sm:hidden flex items-center gap-2">
-            <div className="w-8 h-8 border border-accent flex items-center justify-center flex-shrink-0">
-              <Leaf className="w-4 h-4 text-accent" />
+      <header className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm border-b border-border">
+        <div className="flex items-center justify-between h-14 sm:h-16 px-3 sm:px-6">
+          {/* Left section - Mobile menu + Hotel selector */}
+          <div className="flex items-center gap-2 sm:gap-4">
+            {/* Mobile menu button */}
+            <button
+              onClick={() => setShowMobileSidebar(true)}
+              className="sm:hidden p-2 -ml-2 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-colors"
+              aria-label={t('nav.openMenu') || 'Open menu'}
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+
+            {/* Hotel Selector */}
+            <div className="hidden xs:block">
+              <HotelSelector />
             </div>
           </div>
 
-          <div className="hidden sm:block">
-            <div className="flex items-center gap-2">
-              <h1 className="text-lg sm:text-xl lg:text-2xl font-light text-foreground">
-                {getPageTitle()}
-              </h1>
-              {hotelName && (
-                <span className="text-sm text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-full hidden lg:inline-block">
-                  {hotelName}
-                </span>
-              )}
-            </div>
-            <p className="text-xs lg:text-sm text-muted-foreground">{getLocalizedDate()}</p>
-          </div>
-
-          {/* Hotel Selector for SUPER_ADMIN - показываем на всех размерах */}
-          {showHotelSelector && <HotelSelector className="hidden sm:block" />}
-        </div>
-
-        <div className="flex items-center gap-2 lg:gap-3">
-          {/* Mobile search button */}
-          <button
-            onClick={() => setShowMobileSearch(!showMobileSearch)}
-            className="sm:hidden p-2 hover:bg-muted rounded-lg transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
-            aria-label={t('search.placeholder')}
-          >
-            <Search className={`w-5 h-5 ${showMobileSearch ? 'text-accent' : 'text-foreground'}`} />
-          </button>
-
-          {/* Global search - desktop only */}
-          <div className="hidden sm:flex items-center">
+          {/* Center - Search (desktop) */}
+          <div className="hidden sm:flex flex-1 justify-center max-w-md mx-4">
             <GlobalSearch />
           </div>
 
-          {/* Theme switcher */}
-          <ThemeSwitcher variant="toggle" />
-
-          {/* Real-time Notification bell with SSE - только для SUPER_ADMIN */}
-          {user?.role === 'SUPER_ADMIN' && <NotificationBell />}
-
-          {/* Add dropdown menu */}
-          <div className="relative" ref={dropdownRef}>
+          {/* Right section - Actions */}
+          <div className="flex items-center gap-1 sm:gap-2">
+            {/* Mobile search toggle */}
             <button
-              onClick={() => setShowDropdown(!showDropdown)}
-              className="flex items-center gap-1 sm:gap-2 text-sm text-foreground hover:text-accent transition-colors"
+              onClick={() => setShowMobileSearch(true)}
+              className="sm:hidden p-2 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-colors"
+              aria-label={t('search.open') || 'Search'}
             >
-              <Plus className="w-4 h-4" />
-              <span className="hidden sm:inline">{t('header.addBatch')}</span>
-              <ChevronDown
-                className={`w-3 h-3 transition-transform ${showDropdown ? 'rotate-180' : ''}`}
-              />
+              <Search className="w-5 h-5" />
             </button>
 
-            {showDropdown && (
-              <div className="absolute right-0 top-full mt-2 w-56 bg-card border border-border rounded-lg shadow-lg py-2 z-50">
-                <button
-                  onClick={() => {
-                    setShowAddBatchModal(true)
-                    setShowDropdown(false)
-                  }}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-muted transition-colors text-left"
-                >
-                  <Package className="w-4 h-4 text-accent" />
-                  <div>
-                    <p className="font-medium">{t('header.addBatch')}</p>
-                    <p className="text-xs text-muted-foreground">{t('header.addBatchDesc')}</p>
+            {/* Theme toggle */}
+            <button
+              onClick={toggleTheme}
+              className="p-2 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-colors"
+              aria-label={theme === 'dark' ? t('theme.light') : t('theme.dark')}
+            >
+              {theme === 'dark' ? (
+                <Sun className="w-5 h-5" />
+              ) : (
+                <Moon className="w-5 h-5" />
+              )}
+            </button>
+
+            {/* Notifications */}
+            <NotificationBell />
+
+            {/* User menu (desktop) */}
+            <div className="relative hidden sm:block" data-user-menu>
+              <button
+                onClick={() => setShowUserMenu(!showUserMenu)}
+                className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted transition-colors"
+              >
+                <div className="w-8 h-8 bg-accent/20 rounded-full flex items-center justify-center">
+                  <span className="text-accent font-medium text-sm">
+                    {user?.name?.charAt(0) || 'U'}
+                  </span>
+                </div>
+                <span className="text-sm font-medium text-foreground hidden md:inline max-w-[100px] truncate">
+                  {user?.name?.split(' ')[0]}
+                </span>
+                <ChevronDown className={cn(
+                  'w-4 h-4 text-muted-foreground transition-transform',
+                  showUserMenu && 'rotate-180'
+                )} />
+              </button>
+
+              {/* Dropdown menu */}
+              {showUserMenu && (
+                <div className="absolute right-0 top-full mt-2 w-56 bg-card rounded-xl shadow-lg border border-border py-2 animate-fade-in z-50">
+                  {/* User info */}
+                  <div className="px-4 py-2 border-b border-border">
+                    <p className="text-sm font-medium text-foreground truncate">{user?.name}</p>
+                    <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
                   </div>
-                </button>
-                {/* Добавление товара - только для админов и менеджеров (не STAFF) */}
-                {user?.role !== 'STAFF' && (
-                  <>
-                    <div className="h-px bg-border mx-3 my-1" />
+
+                  {/* Menu items */}
+                  <div className="py-1">
                     <button
                       onClick={() => {
-                        setShowAddProductModal(true)
-                        setShowDropdown(false)
+                        navigate('/settings')
+                        setShowUserMenu(false)
                       }}
-                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-muted transition-colors text-left"
+                      className="w-full flex items-center gap-3 px-4 py-2 text-sm text-foreground hover:bg-muted transition-colors"
                     >
-                      <FolderPlus className="w-4 h-4 text-success" />
-                      <div>
-                        <p className="font-medium">{t('header.newProduct')}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {t('header.newProductDesc')}
-                        </p>
-                      </div>
+                      <Settings className="w-4 h-4" />
+                      {t('nav.settings') || 'Settings'}
                     </button>
-                  </>
-                )}
-              </div>
-            )}
-          </div>
+                  </div>
 
-          {/* Telegram test - только для SUPER_ADMIN */}
-          {user?.role === 'SUPER_ADMIN' && (
-            <div className="relative">
-              <button
-                onClick={handleTestTelegram}
-                disabled={telegramStatus === 'sending'}
-                className={`flex items-center gap-1 sm:gap-2 text-sm transition-colors ${
-                  telegramStatus === 'success'
-                    ? 'text-success'
-                    : telegramStatus === 'error' || telegramStatus === 'no_chats'
-                      ? 'text-danger'
-                      : 'text-foreground hover:text-accent'
-                }`}
-                title={`${t('header.testTelegram')}${selectedHotel ? ` → ${selectedHotel.name}` : ''}`}
-              >
-                <Send className="w-4 h-4" />
-                <span className="hidden lg:inline">
-                  {telegramStatus === 'sending' ? '...' : t('header.testTelegram')}
-                </span>
-              </button>
-              {/* Подсказка при отсутствии чатов */}
-              {telegramStatus === 'no_chats' && (
-                <div className="absolute top-full right-0 mt-2 w-72 p-3 bg-card border border-danger/30 rounded-lg shadow-lg text-xs z-50">
-                  <p className="text-danger font-medium mb-1">
-                    Нет привязанных Telegram чатов
-                    {selectedHotel ? ` для ${selectedHotel.name}` : ''}
-                  </p>
-                  <p className="text-muted-foreground">
-                    Добавьте @freshtracksystemsbot в группу и отправьте:{' '}
-                    <code className="bg-muted px-1 rounded">
-                      /link {selectedHotel?.marsha_code || 'MARSHA_КОД'}
-                    </code>
-                  </p>
+                  {/* Logout */}
+                  <div className="border-t border-border pt-1">
+                    <button
+                      onClick={() => {
+                        logout()
+                        setShowUserMenu(false)
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-2 text-sm text-danger hover:bg-danger/10 transition-colors"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      {t('header.signOut') || 'Sign out'}
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
-          )}
-
-          <div className="hidden sm:block h-8 w-px bg-border" />
-
-          {/* Language switcher - только на десктопе */}
-          <div className="hidden sm:block">
-            <LanguageSwitcher />
-          </div>
-
-          <div className="hidden sm:block h-8 w-px bg-border" />
-
-          {/* User info - скрыто на мобильных, доступно через More меню */}
-          <div className="hidden sm:flex items-center gap-3">
-            <div className="text-right">
-              <p className="text-sm font-medium text-foreground">{user?.name}</p>
-              <p className="text-xs text-muted-foreground">
-                {user?.role === 'SUPER_ADMIN'
-                  ? t('settings.profile.roleAdmin')
-                  : user?.role === 'HOTEL_ADMIN'
-                    ? t('settings.profile.roleAdmin')
-                    : user?.role === 'DEPARTMENT_MANAGER'
-                      ? t('settings.profile.roleDepartmentManager')
-                      : user?.role === 'STAFF'
-                        ? t('settings.profile.roleStaff')
-                        : t('settings.profile.roleManager')}
-              </p>
-            </div>
-            <button
-              onClick={logout}
-              className="p-2 hover:bg-muted rounded transition-colors"
-              title={t('header.signOut')}
-            >
-              <LogOut className="w-4 h-4 text-muted-foreground" />
-            </button>
           </div>
         </div>
+
+        {/* Mobile search overlay */}
+        {showMobileSearch && (
+          <div className="fixed inset-0 z-50 bg-background sm:hidden animate-fade-in">
+            <div className="flex items-center gap-3 p-3 border-b border-border">
+              <button
+                onClick={() => setShowMobileSearch(false)}
+                className="p-2 -ml-2 text-muted-foreground hover:text-foreground rounded-lg"
+                aria-label={t('common.close') || 'Close'}
+              >
+                <X className="w-5 h-5" />
+              </button>
+              <div className="flex-1">
+                <GlobalSearch 
+                  autoFocus 
+                  fullWidth 
+                  onSearch={() => setShowMobileSearch(false)} 
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </header>
 
-      {/* Мобильный поиск - раскрывается под хедером */}
-      {showMobileSearch && (
-        <div className="sm:hidden bg-card border-b border-border px-4 py-3 sticky top-[57px] z-10">
-          <GlobalSearch onSearch={() => setShowMobileSearch(false)} autoFocus fullWidth />
-        </div>
-      )}
-
-      {showAddBatchModal && <AddBatchModal onClose={() => setShowAddBatchModal(false)} />}
-
-      {showAddProductModal && (
-        <AddCustomProductModal onClose={() => setShowAddProductModal(false)} />
+      {/* Mobile Sidebar */}
+      {showMobileSidebar && (
+        <Sidebar 
+          isOpen={showMobileSidebar} 
+          onToggle={() => {}} 
+          isMobile 
+          onClose={() => setShowMobileSidebar(false)} 
+        />
       )}
     </>
   )

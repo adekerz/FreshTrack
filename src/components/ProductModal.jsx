@@ -148,15 +148,20 @@ export default function ProductModal({ product, onClose }) {
 
   return createPortal(
     <div
-      className="fixed inset-0 bg-charcoal/50 dark:bg-black/60 flex items-center justify-center z-[55] p-4"
+      className="fixed inset-0 bg-charcoal/50 dark:bg-black/60 flex items-end sm:items-center justify-center z-[55] sm:p-4"
       onClick={handleOverlayClick}
     >
-      <div className="bg-card rounded-lg w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col animate-slide-up relative z-[55]">
+      <div className="bg-card rounded-t-2xl sm:rounded-lg w-full sm:max-w-2xl max-h-[90vh] overflow-hidden flex flex-col animate-slide-up relative z-[55]">
+        {/* Drag handle for mobile */}
+        <div className="flex justify-center pt-3 pb-1 sm:hidden">
+          <div className="w-10 h-1 bg-muted-foreground/30 rounded-full" />
+        </div>
+
         {/* Заголовок */}
-        <div className="flex items-center justify-between p-6 border-b border-border">
-          <div>
-            <h2 className="text-2xl font-medium text-foreground">{product.name}</h2>
-            <span className="text-sm text-muted-foreground bg-muted px-2 py-0.5 rounded mt-1 inline-block">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-border sm:pt-6">
+          <div className="min-w-0 flex-1">
+            <h2 className="text-lg sm:text-2xl font-medium text-foreground truncate">{product.name}</h2>
+            <span className="text-xs sm:text-sm text-muted-foreground bg-muted px-2 py-0.5 rounded mt-1 inline-block">
               {getCategoryName()}
             </span>
           </div>
@@ -193,18 +198,18 @@ export default function ProductModal({ product, onClose }) {
         </div>
 
         {/* Контент со скроллом */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6">
           {/* Статистика */}
-          <div className="flex gap-4 mb-6">
-            <div className="bg-background rounded-lg p-4 flex-1 border border-border">
-              <div className="text-2xl font-medium text-foreground">{activeBatches.length}</div>
-              <div className="text-sm text-muted-foreground">{t('product.activeBatches')}</div>
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
+            <div className="bg-background rounded-lg p-3 sm:p-4 border border-border">
+              <div className="text-xl sm:text-2xl font-medium text-foreground">{activeBatches.length}</div>
+              <div className="text-xs sm:text-sm text-muted-foreground">{t('product.activeBatches')}</div>
             </div>
-            <div className="bg-background rounded-lg p-4 flex-1 border border-border">
-              <div className="text-2xl font-medium text-foreground">
+            <div className="bg-background rounded-lg p-3 sm:p-4 border border-border">
+              <div className="text-xl sm:text-2xl font-medium text-foreground">
                 {activeBatches.reduce((sum, b) => sum + b.quantity, 0)}
               </div>
-              <div className="text-sm text-muted-foreground">{t('product.totalUnits')}</div>
+              <div className="text-xs sm:text-sm text-muted-foreground">{t('product.totalUnits')}</div>
             </div>
           </div>
 
@@ -423,7 +428,7 @@ export default function ProductModal({ product, onClose }) {
         </div>
 
         {/* Футер */}
-        <div className="p-6 border-t border-border bg-muted">
+        <div className="p-4 sm:p-6 border-t border-border bg-muted safe-bottom">
           {!showAddForm && (
             <button
               onClick={() => setShowAddForm(true)}

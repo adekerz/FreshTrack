@@ -134,14 +134,19 @@ export default function AddBatchModal({ onClose, preselectedProduct = null }) {
 
   return (
     <div
-      className="fixed inset-0 bg-charcoal/50 dark:bg-black/60 flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-charcoal/50 dark:bg-black/60 flex items-end sm:items-center justify-center z-50 sm:p-4"
       onClick={handleOverlayClick}
     >
-      <div className="bg-card rounded-lg w-full max-w-lg overflow-hidden animate-slide-up">
+      <div className="bg-card rounded-t-2xl sm:rounded-lg w-full sm:max-w-lg max-h-[90vh] sm:max-h-[85vh] overflow-hidden animate-slide-up flex flex-col">
+        {/* Drag handle for mobile */}
+        <div className="flex justify-center pt-3 pb-1 sm:hidden">
+          <div className="w-10 h-1 bg-muted-foreground/30 rounded-full" />
+        </div>
+
         {/* Заголовок */}
-        <div className="flex items-center justify-between p-6 border-b border-border">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-border">
           <div>
-            <h2 className="text-xl font-medium text-foreground">{t('batch.addBatch')}</h2>
+            <h2 className="text-lg sm:text-xl font-medium text-foreground">{t('batch.addBatch')}</h2>
             {/* Индикатор шагов */}
             {!preselectedProduct && (
               <div className="flex items-center gap-2 mt-2">
@@ -158,14 +163,14 @@ export default function AddBatchModal({ onClose, preselectedProduct = null }) {
           </div>
           <button
             onClick={onClose}
-            className="text-muted-foreground hover:text-foreground transition-colors p-2"
+            className="text-muted-foreground hover:text-foreground transition-colors p-2 -mr-2 rounded-lg hover:bg-muted"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Контент */}
-        <div className="p-6">
+        <div className="p-4 sm:p-6 flex-1 overflow-y-auto">
           {/* Шаг 1: Выбор отдела */}
           {step === 1 && (
             <div className="animate-fade-in">
@@ -345,18 +350,18 @@ export default function AddBatchModal({ onClose, preselectedProduct = null }) {
                   </div>
                 </div>
 
-                <div className="flex gap-3 pt-4">
+                <div className="flex flex-col-reverse sm:flex-row gap-3 pt-4">
                   <button
                     type="button"
                     onClick={handleBack}
-                    className="flex-1 py-3 border border-border text-muted-foreground rounded-lg hover:border-foreground hover:text-foreground transition-colors"
+                    className="flex-1 py-3 min-h-[48px] border border-border text-muted-foreground rounded-lg hover:border-foreground hover:text-foreground transition-colors active:scale-[0.98]"
                   >
                     {t('common.back')}
                   </button>
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="flex-1 py-3 bg-accent text-white rounded-lg hover:bg-accent/90 transition-colors disabled:opacity-50"
+                    className="flex-1 py-3 min-h-[48px] bg-accent text-white rounded-lg hover:bg-accent/90 transition-colors disabled:opacity-50 active:scale-[0.98]"
                   >
                     {t('batch.addBatch')}
                   </button>

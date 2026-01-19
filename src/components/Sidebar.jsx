@@ -218,22 +218,37 @@ export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose })
         {/* User info (мобильная версия) */}
         {isMobile && user && (
           <div className="px-4 py-4 border-t border-white/10">
-            {/* Переключатель языка */}
-            <div className="flex items-center gap-2 px-4 py-2 mb-2">
-              <Globe className="w-4 h-4 text-cream/60" />
-              <div className="flex gap-1">
-                {['ru', 'en', 'kk'].map((lang) => (
+            {/* Переключатель языка - все 8 языков */}
+            <div className="px-2 py-2 mb-3">
+              <div className="flex items-center gap-2 mb-2">
+                <Globe className="w-4 h-4 text-cream/60" />
+                <span className="text-xs text-cream/60 uppercase tracking-wide">
+                  {t('header.language') || 'Язык'}
+                </span>
+              </div>
+              <div className="grid grid-cols-4 gap-1">
+                {[
+                  { code: 'ru', label: 'RU', flag: '🇷🇺' },
+                  { code: 'en', label: 'EN', flag: '🇺🇸' },
+                  { code: 'kk', label: 'KZ', flag: '🇰🇿' },
+                  { code: 'de', label: 'DE', flag: '🇩🇪' },
+                  { code: 'fr', label: 'FR', flag: '🇫🇷' },
+                  { code: 'es', label: 'ES', flag: '🇪🇸' },
+                  { code: 'it', label: 'IT', flag: '🇮🇹' },
+                  { code: 'ar', label: 'AR', flag: '🇸🇦' },
+                ].map((lang) => (
                   <button
-                    key={lang}
-                    onClick={() => changeLanguage(lang)}
+                    key={lang.code}
+                    onClick={() => changeLanguage(lang.code)}
                     className={cn(
-                      'px-2 py-1 text-xs rounded transition-colors',
-                      language === lang
-                        ? 'bg-accent text-foreground font-medium'
-                        : 'text-cream/60 hover:text-cream'
+                      'flex items-center justify-center gap-0.5 px-1.5 py-1.5 text-xs rounded transition-colors',
+                      language === lang.code
+                        ? 'bg-accent text-white font-medium'
+                        : 'text-cream/60 hover:text-cream hover:bg-white/10'
                     )}
                   >
-                    {lang.toUpperCase()}
+                    <span>{lang.flag}</span>
+                    <span>{lang.label}</span>
                   </button>
                 ))}
               </div>

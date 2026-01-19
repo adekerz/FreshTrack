@@ -89,40 +89,40 @@ export default function BottomNavigation() {
               </div>
             </div>
 
-            {/* Переключатель языка */}
-            <div className="flex items-center gap-3 px-4 py-3 mb-2">
-              <Globe className="w-5 h-5 text-foreground" />
-              <span className="text-sm font-medium text-foreground flex-1">
-                {t('header.language') || 'Язык'}
-              </span>
-              <div className="flex gap-1 bg-muted rounded-lg p-1">
-                <button
-                  onClick={() => changeLanguage('ru')}
-                  className={cn(
-                    'px-2 py-1 text-xs font-medium rounded-md transition-colors',
-                    language === 'ru' ? 'bg-card text-accent shadow-sm' : 'text-muted-foreground'
-                  )}
-                >
-                  RU
-                </button>
-                <button
-                  onClick={() => changeLanguage('kk')}
-                  className={cn(
-                    'px-2 py-1 text-xs font-medium rounded-md transition-colors',
-                    language === 'kk' ? 'bg-card text-accent shadow-sm' : 'text-muted-foreground'
-                  )}
-                >
-                  KZ
-                </button>
-                <button
-                  onClick={() => changeLanguage('en')}
-                  className={cn(
-                    'px-2 py-1 text-xs font-medium rounded-md transition-colors',
-                    language === 'en' ? 'bg-card text-accent shadow-sm' : 'text-muted-foreground'
-                  )}
-                >
-                  EN
-                </button>
+
+            {/* Переключатель языка - все 8 языков */}
+            <div className="px-4 py-3 mb-2">
+              <div className="flex items-center gap-2 mb-2">
+                <Globe className="w-4 h-4 text-muted-foreground" />
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  {t('header.language') || 'Язык'}
+                </span>
+              </div>
+              <div className="grid grid-cols-4 gap-1.5">
+                {[
+                  { code: 'ru', label: 'RU', flag: '🇷🇺' },
+                  { code: 'en', label: 'EN', flag: '🇺🇸' },
+                  { code: 'kk', label: 'KZ', flag: '🇰🇿' },
+                  { code: 'de', label: 'DE', flag: '🇩🇪' },
+                  { code: 'fr', label: 'FR', flag: '🇫🇷' },
+                  { code: 'es', label: 'ES', flag: '🇪🇸' },
+                  { code: 'it', label: 'IT', flag: '🇮🇹' },
+                  { code: 'ar', label: 'AR', flag: '🇸🇦' },
+                ].map((lang) => (
+                  <button
+                    key={lang.code}
+                    onClick={() => changeLanguage(lang.code)}
+                    className={cn(
+                      'flex items-center justify-center gap-1 px-2 py-2 text-xs font-medium rounded-lg transition-all min-h-[40px]',
+                      language === lang.code 
+                        ? 'bg-accent text-white shadow-sm' 
+                        : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                    )}
+                  >
+                    <span>{lang.flag}</span>
+                    <span>{lang.label}</span>
+                  </button>
+                ))}
               </div>
             </div>
 

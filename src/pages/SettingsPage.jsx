@@ -73,7 +73,12 @@ export default function SettingsPage() {
   const languages = [
     { code: 'ru', name: 'Русский', flag: '🇷🇺' },
     { code: 'en', name: 'English', flag: '🇺🇸' },
-    { code: 'kk', name: 'Қазақша', flag: '🇰🇿' }
+    { code: 'kk', name: 'Қазақша', flag: '🇰🇿' },
+    { code: 'de', name: 'Deutsch', flag: '🇩🇪' },
+    { code: 'fr', name: 'Français', flag: '🇫🇷' },
+    { code: 'es', name: 'Español', flag: '🇪🇸' },
+    { code: 'it', name: 'Italiano', flag: '🇮🇹' },
+    { code: 'ar', name: 'العربية', flag: '🇸🇦' },
   ]
 
   // Проверка прав доступа к управлению настройками (только админы)
@@ -335,7 +340,7 @@ export default function SettingsPage() {
       <div>
         <h3 className="text-lg font-medium text-foreground mb-4">{t('settings.language.title')}</h3>
 
-        <div className="grid sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {languages.map((lang) => (
             <button
               key={lang.code}
