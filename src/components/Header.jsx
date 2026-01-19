@@ -225,7 +225,7 @@ export default function Header() {
                     {selectedHotel ? ` для ${selectedHotel.name}` : ''}
                   </p>
                   <p className="text-muted-foreground">
-                    Добавьте @adekerzbot в группу и отправьте:{' '}
+                    Добавьте @freshtracksystemsbot в группу и отправьте:{' '}
                     <code className="bg-muted px-1 rounded">
                       /link {selectedHotel?.marsha_code || 'MARSHA_КОД'}
                     </code>

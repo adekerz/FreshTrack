@@ -23,7 +23,7 @@ import {
   BellOff
 } from 'lucide-react'
 
-const BOT_USERNAME = 'adekerzbot' // Имя бота
+const BOT_USERNAME = 'freshtracksystemsbot' // Имя бота
 
 export default function TelegramSettings() {
   const { t } = useTranslation()

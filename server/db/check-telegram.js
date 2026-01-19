@@ -10,7 +10,7 @@ async function check() {
         if (chats.rows.length === 0) {
             console.log('\n⚠️  No Telegram chats linked!')
             console.log('To link a chat:')
-            console.log('1. Add bot @adekerzbot to your Telegram group')
+            console.log('1. Add bot @freshtracksystemsbot to your Telegram group')
             console.log('2. Send /link HOTEL_CODE in the group')
         }
 

@@ -392,7 +392,7 @@ router.post('/test-telegram', authMiddleware, hotelIsolation, departmentIsolatio
     if (targetChats.length === 0) {
       return res.status(400).json({
         success: false,
-        error: 'Нет привязанных Telegram чатов. Добавьте бота @adekerzbot в чат и используйте /link hotel:RC-ASTANA'
+        error: 'Нет привязанных Telegram чатов. Добавьте бота @freshtracksystemsbot в чат и используйте /link MARSHA_CODE'
       })
     }
 

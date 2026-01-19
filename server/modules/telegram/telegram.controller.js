@@ -117,7 +117,7 @@ router.post('/chats', authMiddleware, requirePermission('settings', 'write'), as
     } catch (telegramError) {
       return res.status(400).json({
         success: false,
-        error: `Cannot send message to chat. Make sure bot @adekerzbot is added to the chat. Error: ${telegramError.message}`
+        error: `Cannot send message to chat. Make sure bot @freshtracksystemsbot is added to the chat. Error: ${telegramError.message}`
       })
     }
 
