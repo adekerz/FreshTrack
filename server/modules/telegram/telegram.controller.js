@@ -19,10 +19,20 @@ const router = express.Router()
 // ═══════════════════════════════════════════════════════════════
 router.get('/status', authMiddleware, async (req, res) => {
   try {
+    // Check if Telegram is configured
+    if (!TelegramService.isConfigured()) {
+      return res.json({
+        success: false,
+        configured: false,
+        error: 'Telegram not configured. Set TELEGRAM_BOT_TOKEN environment variable.'
+      })
+    }
+
     const botInfo = await TelegramService.getMe()
 
     res.json({
       success: true,
+      configured: true,
       bot: {
         id: botInfo.id,
         username: botInfo.username,
@@ -180,6 +190,15 @@ router.delete('/chats/:chatId', authMiddleware, requirePermission('settings', 'w
 // ═══════════════════════════════════════════════════════════════
 router.post('/test', authMiddleware, requirePermission('settings', 'write'), async (req, res) => {
   try {
+    // Check if Telegram is configured
+    if (!TelegramService.isConfigured()) {
+      return res.status(400).json({
+        success: false,
+        configured: false,
+        error: 'Telegram not configured. Set TELEGRAM_BOT_TOKEN environment variable on the server.'
+      })
+    }
+
     const { chatId } = req.body
     const { hotel_id } = req.user
 

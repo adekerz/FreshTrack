@@ -352,6 +352,11 @@ router.post('/jobs/run-queue', requirePermission(PermissionResource.SETTINGS, Pe
 
 router.post('/telegram-webhook', async (req, res) => {
   try {
+    // Skip if Telegram is not configured
+    if (!TelegramService.isConfigured()) {
+      return res.sendStatus(200)
+    }
+
     const update = req.body
 
     if (update) {
@@ -382,6 +387,15 @@ router.get('/stats', requirePermission(PermissionResource.SETTINGS, PermissionAc
 
 router.post('/test-telegram', requirePermission(PermissionResource.SETTINGS, PermissionAction.UPDATE), async (req, res) => {
   try {
+    // Check if Telegram is configured
+    if (!TelegramService.isConfigured()) {
+      return res.status(400).json({
+        success: false,
+        configured: false,
+        error: 'Telegram not configured. Set TELEGRAM_BOT_TOKEN environment variable on the server.'
+      })
+    }
+
     const { chatId, message } = req.body
 
     if (!chatId) {

@@ -8,11 +8,17 @@
  * - Retry logic with exponential backoff
  */
 
-import { logError, logInfo, logDebug } from '../utils/logger.js'
+import { logError, logInfo, logDebug, logWarn } from '../utils/logger.js'
 import { query } from '../db/database.js'
 
-const BOT_TOKEN = '7792952266:AAHWSDqKWBkFOtvmmjOlre_pR84bBnV9I4Y'
-const TELEGRAM_API = `https://api.telegram.org/bot${BOT_TOKEN}`
+// SECURITY: Bot token must be set via environment variable
+const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN
+const TELEGRAM_API = BOT_TOKEN ? `https://api.telegram.org/bot${BOT_TOKEN}` : null
+
+// Warn if token is not configured (but don't crash - Telegram is optional)
+if (!BOT_TOKEN) {
+  logWarn('TelegramService', '⚠️ TELEGRAM_BOT_TOKEN not configured. Telegram features will be disabled.')
+}
 
 /**
  * Telegram message priority icons
@@ -37,6 +43,12 @@ export class TelegramService {
    * @param {Object} options - Additional options
    */
   static async sendMessage(chatId, text, options = {}) {
+    // Graceful handling when Telegram is not configured
+    if (!this.isConfigured()) {
+      logWarn('TelegramService', 'sendMessage skipped: Telegram not configured')
+      return { ok: false, skipped: true, reason: 'not_configured' }
+    }
+
     const {
       disableNotification = false,
       replyMarkup = null
@@ -57,9 +69,21 @@ export class TelegramService {
   }
 
   /**
+   * Check if Telegram is configured
+   */
+  static isConfigured() {
+    return !!BOT_TOKEN && !!TELEGRAM_API
+  }
+
+  /**
    * Make API call to Telegram with timeout and retry
    */
   static async apiCall(method, payload = {}, retries = 2) {
+    // Check if Telegram is configured
+    if (!this.isConfigured()) {
+      throw new Error('Telegram not configured: TELEGRAM_BOT_TOKEN environment variable is missing')
+    }
+
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), 15000) // 15 sec timeout
 
@@ -101,6 +125,9 @@ export class TelegramService {
    * Get bot info
    */
   static async getMe() {
+    if (!this.isConfigured()) {
+      throw new Error('Telegram not configured: TELEGRAM_BOT_TOKEN environment variable is missing')
+    }
     return this.apiCall('getMe')
   }
 
@@ -621,6 +648,11 @@ _Пример: /link TSEXR:Бар_
    * Used by NotificationService
    */
   static async sendBatchNotification(batch, notificationType, hotelId, departmentId) {
+    // Skip if Telegram is not configured
+    if (!this.isConfigured()) {
+      return { success: false, skipped: true, error: 'Telegram not configured' }
+    }
+
     const chats = await this.getChatsForContext(hotelId, departmentId)
 
     if (chats.length === 0) {
@@ -700,6 +732,12 @@ _Пример: /link TSEXR:Бар_
    * Start polling for updates (for development/testing)
    */
   static async startPolling(intervalMs = 1000) {
+    // Skip polling if Telegram is not configured
+    if (!this.isConfigured()) {
+      logWarn('TelegramService', '⏸️ Telegram polling skipped: TELEGRAM_BOT_TOKEN not configured')
+      return false
+    }
+
     logInfo('TelegramService', '🔄 Starting Telegram polling...')
 
     let offset = 0
@@ -735,6 +773,7 @@ _Пример: /link TSEXR:Бар_
     }
 
     poll()
+    return true
   }
 
   /**
@@ -784,6 +823,11 @@ export function initTelegramBot(enablePolling = false) {
  */
 export async function sendCustomMessage(text, parseMode = 'Markdown') {
   try {
+    // Skip if Telegram is not configured
+    if (!TelegramService.isConfigured()) {
+      return { success: false, skipped: true, error: 'Telegram not configured: TELEGRAM_BOT_TOKEN missing' }
+    }
+
     // Try to get default chat from settings or env
     const defaultChatId = process.env.TELEGRAM_CHAT_ID
     if (!defaultChatId) {

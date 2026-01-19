@@ -183,10 +183,18 @@ export function startNotificationJobs(options = {}) {
   })
 
   // Telegram polling (for development/small deployments)
+  // WARNING: Only ONE server can use polling at a time! 
+  // For production, use webhooks instead.
   if (enableTelegramPolling && !telegramPolling) {
-    telegramPolling = true
-    TelegramService.startPolling(2000)  // Poll every 2 seconds
-    logInfo('NotificationJobs', '🔄 Telegram polling started')
+    if (!TelegramService.isConfigured()) {
+      logInfo('NotificationJobs', '⏸️ Telegram polling skipped: TELEGRAM_BOT_TOKEN not configured')
+    } else {
+      const started = await TelegramService.startPolling(2000)  // Poll every 2 seconds
+      if (started) {
+        telegramPolling = true
+        logInfo('NotificationJobs', '🔄 Telegram polling started')
+      }
+    }
   }
 
   logInfo('NotificationJobs', '✅ Notification jobs started successfully')
