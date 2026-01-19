@@ -23,6 +23,39 @@ import {
 
 const router = Router()
 
+// ═══════════════════════════════════════════════════════════════
+// PUBLIC ENDPOINTS (no auth required)
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * POST /api/notification-rules/telegram-webhook
+ * Telegram webhook - receives updates from Telegram
+ * MUST be public (no auth) for Telegram to call it
+ */
+router.post('/telegram-webhook', async (req, res) => {
+  try {
+    // Skip if Telegram is not configured
+    if (!TelegramService.isConfigured()) {
+      return res.sendStatus(200)
+    }
+
+    const update = req.body
+
+    if (update) {
+      await TelegramService.processUpdate(update)
+    }
+
+    res.sendStatus(200)
+  } catch (error) {
+    logError('Telegram webhook error', error)
+    res.sendStatus(200)
+  }
+})
+
+// ═══════════════════════════════════════════════════════════════
+// PROTECTED ENDPOINTS (auth required)
+// ═══════════════════════════════════════════════════════════════
+
 router.use(authMiddleware)
 router.use(hotelIsolation)
 
@@ -343,30 +376,6 @@ router.post('/jobs/run-queue', requirePermission(PermissionResource.SETTINGS, Pe
   } catch (error) {
     logError('Run queue process error', error)
     res.status(500).json({ success: false, error: 'Failed to run queue process' })
-  }
-})
-
-// ═══════════════════════════════════════════════════════════════
-// TELEGRAM WEBHOOK
-// ═══════════════════════════════════════════════════════════════
-
-router.post('/telegram-webhook', async (req, res) => {
-  try {
-    // Skip if Telegram is not configured
-    if (!TelegramService.isConfigured()) {
-      return res.sendStatus(200)
-    }
-
-    const update = req.body
-
-    if (update) {
-      await TelegramService.processUpdate(update)
-    }
-
-    res.sendStatus(200)
-  } catch (error) {
-    logError('Telegram webhook error', error)
-    res.sendStatus(200)
   }
 })
 

@@ -582,4 +582,33 @@ router.get('/status', authMiddleware, async (req, res) => {
   }
 })
 
+/**
+ * POST /api/notifications/telegram-webhook
+ * Telegram webhook endpoint - receives updates from Telegram
+ * This endpoint must be PUBLIC (no auth) for Telegram to call it
+ */
+router.post('/telegram-webhook', async (req, res) => {
+  try {
+    const { TelegramService } = await import('../../services/TelegramService.js')
+    
+    // Skip if Telegram is not configured
+    if (!TelegramService.isConfigured()) {
+      return res.sendStatus(200)
+    }
+
+    const update = req.body
+
+    if (update) {
+      await TelegramService.processUpdate(update)
+    }
+
+    // Always return 200 to Telegram (even on errors)
+    res.sendStatus(200)
+  } catch (error) {
+    logError('Telegram webhook error', error)
+    // Return 200 anyway to prevent Telegram from retrying
+    res.sendStatus(200)
+  }
+})
+
 export default router
