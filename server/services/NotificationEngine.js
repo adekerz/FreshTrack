@@ -14,7 +14,7 @@ import crypto from 'crypto'
 import { query } from '../db/database.js'
 import { v4 as uuidv4 } from 'uuid'
 import { HOTEL_WIDE_ROLES } from '../utils/constants.js'
-import { logError, logInfo, logDebug } from '../utils/logger.js'
+import { logError, logInfo, logDebug, logWarn } from '../utils/logger.js'
 import { TelegramService } from './TelegramService.js'
 import { getExpiryStatus, enrichBatchWithExpiryData } from './ExpiryService.js'
 
@@ -255,6 +255,7 @@ export class NotificationEngine {
       SELECT id, name, email, telegram_chat_id, role, department_id
       FROM users u
       WHERE ${whereClause}
+        AND (email IS NULL OR (email_valid IS NOT FALSE AND email_blocked IS NOT TRUE))
     `, params)
 
     return result.rows
@@ -478,9 +479,7 @@ export class NotificationEngine {
         return this.dispatchTelegram(notification)
 
       case NotificationChannel.EMAIL:
-        // TODO: Implement email
-        logDebug('NotificationEngine', '📧 Email notifications not yet implemented')
-        return true
+        return this.dispatchEmail(notification)
 
       default:
         throw new Error(`Unknown channel: ${channel}`)
@@ -507,6 +506,235 @@ export class NotificationEngine {
     )
 
     return true
+  }
+
+  /**
+   * Dispatch to Email
+   */
+  static async dispatchEmail(notification) {
+    try {
+      // Получаем email пользователя (проверяем статус)
+      const userResult = await query(
+        'SELECT email, name FROM users WHERE id = $1 AND email IS NOT NULL AND (email_valid IS NOT FALSE AND email_blocked IS NOT TRUE)',
+        [notification.user_id]
+      )
+
+      if (userResult.rows.length === 0 || !userResult.rows[0].email) {
+        throw new Error('User has no valid email address')
+      }
+
+      const user = userResult.rows[0]
+
+      // Форматируем email сообщение
+      const emailHtml = this.formatEmailMessage(notification, user)
+      const emailText = this.formatEmailMessageText(notification, user)
+
+      // Импортируем EmailService
+      const { sendEmail, EMAIL_FROM } = await import('./EmailService.js')
+
+      // Отправляем email через EmailService (по умолчанию использует system@)
+      await sendEmail({
+        to: user.email,
+        from: EMAIL_FROM.system, // 99% писем идут от system@
+        subject: notification.title || 'Уведомление FreshTrack',
+        html: emailHtml,
+        text: emailText
+      })
+
+      logInfo('NotificationEngine', `📧 Email sent to ${user.email}: ${notification.title}`)
+      return true
+    } catch (error) {
+      logError('NotificationEngine', 'Failed to send email', error)
+      throw error
+    }
+  }
+
+  /**
+   * Format notification as HTML email
+   */
+  static formatEmailMessage(notification, user) {
+    const priorityColors = {
+      critical: '#DC2626', // red
+      warning: '#F59E0B', // amber
+      info: '#3B82F6' // blue
+    }
+
+    const priority = notification.priority || 'info'
+    const color = priorityColors[priority] || priorityColors.info
+    const icon = priority === 'critical' ? '🔴' : priority === 'warning' ? '⚠️' : 'ℹ️'
+
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      background-color: #f5f5f5;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 32px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    .header {
+      border-left: 4px solid ${color};
+      padding-left: 16px;
+      margin-bottom: 24px;
+    }
+    .title {
+      font-size: 24px;
+      font-weight: 600;
+      color: #1a1a1a;
+      margin: 0 0 8px 0;
+    }
+    .priority {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      background: ${color}15;
+      color: ${color};
+      margin-top: 8px;
+    }
+    .content {
+      margin: 24px 0;
+      padding: 20px;
+      background: #f9fafb;
+      border-radius: 8px;
+    }
+    .message {
+      font-size: 16px;
+      line-height: 1.6;
+      color: #4b5563;
+    }
+    .details {
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid #e5e7eb;
+    }
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      font-size: 14px;
+    }
+    .detail-label {
+      color: #6b7280;
+      font-weight: 500;
+    }
+    .detail-value {
+      color: #1f2937;
+    }
+    .footer {
+      margin-top: 32px;
+      padding-top: 24px;
+      border-top: 1px solid #e5e7eb;
+      text-align: center;
+      color: #9ca3af;
+      font-size: 12px;
+    }
+    .button {
+      display: inline-block;
+      margin-top: 20px;
+      padding: 12px 24px;
+      background: #FF8D6B;
+      color: #ffffff !important;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1 class="title">${icon} ${notification.title || 'Уведомление FreshTrack'}</h1>
+      <span class="priority">${priority.toUpperCase()}</span>
+    </div>
+    
+    <div class="content">
+      <div class="message">
+        ${notification.message || ''}
+      </div>
+      
+      ${notification.data ? `
+      <div class="details">
+        ${notification.data.productName ? `
+        <div class="detail-row">
+          <span class="detail-label">Продукт:</span>
+          <span class="detail-value">${notification.data.productName}</span>
+        </div>
+        ` : ''}
+        ${notification.data.quantity ? `
+        <div class="detail-row">
+          <span class="detail-label">Количество:</span>
+          <span class="detail-value">${notification.data.quantity} ${notification.data.unit || 'шт'}</span>
+        </div>
+        ` : ''}
+        ${notification.data.expiryDate ? `
+        <div class="detail-row">
+          <span class="detail-label">Срок годности:</span>
+          <span class="detail-value">${notification.data.expiryDate}</span>
+        </div>
+        ` : ''}
+        ${notification.data.daysLeft !== undefined ? `
+        <div class="detail-row">
+          <span class="detail-label">Осталось дней:</span>
+          <span class="detail-value">${notification.data.daysLeft}</span>
+        </div>
+        ` : ''}
+      </div>
+      ` : ''}
+    </div>
+    
+    <div class="footer">
+      <p>Это автоматическое уведомление от FreshTrack.</p>
+      <p>Вы получили это письмо, так как являетесь получателем уведомлений о состоянии инвентаря.</p>
+    </div>
+  </div>
+</body>
+</html>
+    `
+  }
+
+  /**
+   * Format notification as plain text email
+   */
+  static formatEmailMessageText(notification, user) {
+    let text = `${notification.title || 'Уведомление FreshTrack'}\n\n`
+    text += `${notification.message || ''}\n\n`
+    
+    if (notification.data) {
+      text += 'Детали:\n'
+      if (notification.data.productName) {
+        text += `Продукт: ${notification.data.productName}\n`
+      }
+      if (notification.data.quantity) {
+        text += `Количество: ${notification.data.quantity} ${notification.data.unit || 'шт'}\n`
+      }
+      if (notification.data.expiryDate) {
+        text += `Срок годности: ${notification.data.expiryDate}\n`
+      }
+      if (notification.data.daysLeft !== undefined) {
+        text += `Осталось дней: ${notification.data.daysLeft}\n`
+      }
+    }
+    
+    text += '\n---\n'
+    text += 'Это автоматическое уведомление от FreshTrack.'
+    
+    return text
   }
 
   /**
@@ -573,8 +801,11 @@ export class NotificationEngine {
 
   /**
    * Get notification rules for a hotel
+   * @param {string} hotelId - Hotel ID (required)
+   * @param {string} departmentId - Optional department ID to filter by
+   * @param {boolean} includeDisabled - Include disabled rules
    */
-  static async getRules(hotelId = null, includeDisabled = true) {
+  static async getRules(hotelId = null, departmentId = null, includeDisabled = true) {
     let queryText = 'SELECT * FROM notification_rules WHERE 1=1'
     const params = []
 
@@ -587,14 +818,21 @@ export class NotificationEngine {
       params.push(hotelId)
     }
 
+    if (departmentId) {
+      queryText += ` AND (department_id = $${params.length + 1} OR department_id IS NULL)`
+      params.push(departmentId)
+    }
+
     queryText += ' ORDER BY hotel_id NULLS FIRST, department_id NULLS FIRST'
 
     const result = await query(queryText, params)
 
-    // Добавляем флаг isSystemRule для UI
+    // Добавляем флаги для UI
     return result.rows.map(rule => ({
       ...rule,
-      isSystemRule: rule.hotel_id === null
+      isSystemRule: rule.hotel_id === null,
+      isHotelRule: rule.hotel_id !== null && rule.department_id === null,
+      isDepartmentRule: rule.department_id !== null
     }))
   }
 
@@ -604,11 +842,29 @@ export class NotificationEngine {
   static async upsertRule(rule) {
     const id = rule.id || uuidv4()
 
+    // Ensure channels is an array
+    let channels = rule.channels || ['app']
+    if (typeof channels === 'string') {
+      try {
+        channels = JSON.parse(channels)
+      } catch (e) {
+        logWarn('NotificationEngine', `Invalid channels format, using default: ${channels}`)
+        channels = ['app']
+      }
+    }
+    if (!Array.isArray(channels)) {
+      logWarn('NotificationEngine', `Channels is not an array: ${typeof channels}, using default`)
+      channels = ['app']
+    }
+
+    const channelsJson = JSON.stringify(channels)
+    logDebug('NotificationEngine', `Saving rule ${id}: channels=${channelsJson}`)
+
     await query(`
       INSERT INTO notification_rules (
         id, hotel_id, department_id, type, name, description,
         warning_days, critical_days, channels, recipient_roles, enabled
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10::jsonb, $11)
       ON CONFLICT (
         COALESCE(hotel_id, '00000000-0000-0000-0000-000000000000'),
         COALESCE(department_id, '00000000-0000-0000-0000-000000000000'),
@@ -631,7 +887,7 @@ export class NotificationEngine {
       rule.description || null,
       rule.warningDays || 7,
       rule.criticalDays || 3,
-      JSON.stringify(rule.channels || ['app']),
+      channelsJson,
       JSON.stringify(rule.recipientRoles || ['HOTEL_ADMIN', 'DEPARTMENT_MANAGER']),
       rule.enabled !== false
     ])
@@ -640,13 +896,213 @@ export class NotificationEngine {
   }
 
   /**
-   * Send daily reports to all linked Telegram chats
+   * Send expiry warning emails to departments
+   * Groups products by department and sends one email per department
+   * Only sends if email channel is enabled
+   */
+  static async sendExpiryWarningEmails() {
+    logInfo('NotificationEngine', '📧 Sending expiry warning emails...')
+
+    try {
+      // Check if email channel is enabled globally
+      const emailEnabledResult = await query(`
+        SELECT value FROM settings 
+        WHERE key = 'notify.channels.email' AND scope = 'hotel'
+        LIMIT 1
+      `)
+      
+      const emailEnabled = emailEnabledResult.rows.length > 0 && 
+        (emailEnabledResult.rows[0].value === 'true' || emailEnabledResult.rows[0].value === true)
+      
+      if (!emailEnabled) {
+        logDebug('NotificationEngine', 'Email channel disabled, skipping expiry warning emails')
+        return { sent: 0 }
+      }
+
+      // First, get all active expiry rules for debugging
+      const allRulesResult = await query(`
+        SELECT id, name, type, channels, enabled, hotel_id, department_id 
+        FROM notification_rules 
+        WHERE enabled = true AND type = 'expiry' AND hotel_id IS NOT NULL
+      `)
+      
+      logDebug('NotificationEngine', `Found ${allRulesResult.rows.length} active expiry rules`)
+      
+      // Log channels for debugging
+      for (const rule of allRulesResult.rows) {
+        logDebug('NotificationEngine', `Rule ${rule.id} (${rule.name}): channels=${JSON.stringify(rule.channels)}, type=${typeof rule.channels}`)
+      }
+      
+      // Get all active notification rules with email channel enabled
+      // Try multiple SQL syntaxes for checking array membership
+      let rulesResult
+      try {
+        // Method 1: Check if JSONB array contains string
+        rulesResult = await query(`
+          SELECT * FROM notification_rules 
+          WHERE enabled = true 
+            AND type = 'expiry'
+            AND (channels::jsonb @> '"email"'::jsonb 
+                 OR channels::jsonb ? 'email'
+                 OR channels::jsonb @> '["email"]'::jsonb)
+            AND hotel_id IS NOT NULL
+        `)
+      } catch (queryError) {
+        logError('NotificationEngine', 'Error querying email rules, trying alternative syntax', queryError)
+        // Fallback: Get all rules and filter in JS
+        const allRules = await query(`
+          SELECT * FROM notification_rules 
+          WHERE enabled = true 
+            AND type = 'expiry'
+            AND hotel_id IS NOT NULL
+        `)
+        rulesResult = {
+          rows: allRules.rows.filter(rule => {
+            const channels = rule.channels
+            if (!channels) return false
+            // Handle both array and object formats
+            if (Array.isArray(channels)) {
+              return channels.includes('email')
+            }
+            if (typeof channels === 'string') {
+              try {
+                const parsed = JSON.parse(channels)
+                return Array.isArray(parsed) && parsed.includes('email')
+              } catch (e) {
+                return false
+              }
+            }
+            return false
+          })
+        }
+      }
+
+      logDebug('NotificationEngine', `Found ${rulesResult.rows.length} rules with email channel`)
+      
+      if (rulesResult.rows.length === 0) {
+        logInfo('NotificationEngine', '📧 No active email rules found')
+        logInfo('NotificationEngine', `💡 Hint: Make sure notification rule has 'email' in channels array: ["email", "telegram"]`)
+        return { sent: 0 }
+      }
+      
+      logInfo('NotificationEngine', `📧 Found ${rulesResult.rows.length} active email rules for expiry warnings`)
+
+      let totalEmailsSent = 0
+
+      for (const rule of rulesResult.rows) {
+        try {
+          // Get expiring batches for this rule's scope
+          // warning_days comes from DB (safe to use in INTERVAL)
+          const warningDays = parseInt(rule.warning_days) || 7
+          const params = [rule.hotel_id]
+          let queryText = `
+            SELECT 
+              b.id,
+              b.product_id,
+              b.department_id,
+              b.expiry_date,
+              b.quantity,
+              b.unit,
+              p.name as product_name,
+              d.name as department_name,
+              d.email as department_email,
+              h.name as hotel_name,
+              h.id as hotel_id,
+              EXTRACT(DAY FROM (b.expiry_date - CURRENT_DATE))::INTEGER as days_until_expiry
+            FROM batches b
+            JOIN products p ON p.id = b.product_id
+            LEFT JOIN departments d ON d.id = b.department_id
+            LEFT JOIN hotels h ON h.id = b.hotel_id
+            WHERE b.quantity > 0
+              AND b.expiry_date IS NOT NULL
+              AND b.expiry_date <= CURRENT_DATE + INTERVAL '${warningDays} days'
+              AND b.expiry_date > CURRENT_DATE
+              AND b.hotel_id = $1
+          `
+          
+          if (rule.department_id) {
+            params.push(rule.department_id)
+            queryText += ` AND b.department_id = $${params.length}`
+          }
+          
+          queryText += ` ORDER BY b.expiry_date ASC, d.name, p.name`
+          
+          const batchesResult = await query(queryText, params)
+
+          const batches = batchesResult.rows
+
+          if (batches.length === 0) {
+            logDebug('NotificationEngine', `No expiring products for rule ${rule.id}`)
+            continue
+          }
+
+          // Group batches by department
+          const byDepartment = {}
+          for (const batch of batches) {
+            const deptId = batch.department_id || 'no-department'
+            if (!byDepartment[deptId]) {
+              byDepartment[deptId] = {
+                department: {
+                  id: batch.department_id,
+                  name: batch.department_name || 'Без отдела',
+                  email: batch.department_email || null
+                },
+                hotel: { id: batch.hotel_id, name: batch.hotel_name },
+                products: []
+              }
+            }
+            byDepartment[deptId].products.push(batch)
+          }
+
+          const { sendExpiryWarningEmail, resolveEmailRecipient } = await import('./EmailService.js')
+
+          for (const [deptId, deptData] of Object.entries(byDepartment)) {
+            // Skip batches without a department (no department inbox)
+            if (deptId === 'no-department') {
+              logDebug('NotificationEngine', 'Skipping expiry email for batches without department')
+              continue
+            }
+
+            const to = resolveEmailRecipient('DEPARTMENT', { department: deptData.department })
+            if (!to) continue
+
+            await sendExpiryWarningEmail({
+              products: deptData.products,
+              department: deptData.department,
+              hotel: deptData.hotel,
+              to
+            })
+
+            totalEmailsSent++
+            logInfo('NotificationEngine', `📧 Sent expiry warning email to ${to} for department ${deptData.department.name}`)
+          }
+
+        } catch (error) {
+          logError('NotificationEngine', `Failed to send expiry warnings for rule ${rule.id}`, error)
+          // Continue with other rules
+        }
+      }
+
+      logInfo('NotificationEngine', `✅ Expiry warning emails sent: ${totalEmailsSent}`)
+      return { sent: totalEmailsSent }
+
+    } catch (error) {
+      logError('NotificationEngine', 'Failed to send expiry warning emails', error)
+      return { sent: 0, error: error.message }
+    }
+  }
+
+  /**
+   * Send daily reports to all linked Telegram chats and email
    * Generates summary of inventory status for each hotel
    */
   static async sendDailyReports() {
     logInfo('NotificationEngine', '📊 Generating daily reports...')
 
     try {
+      // 1. Send Telegram reports (existing logic)
+      let telegramReportsSent = 0
+
       // Get all active linked chats
       const chatsResult = await query(`
         SELECT DISTINCT tc.chat_id, tc.hotel_id, tc.department_id, tc.chat_title,
@@ -685,17 +1141,33 @@ export class NotificationEngine {
           const statsResult = await query(statsQuery, params)
           const stats = statsResult.rows[0] || { good: 0, warning: 0, expired: 0 }
 
-          // Get message template from settings
-          const settingsResult = await query(`
+          // Check if Telegram channel is enabled
+          const telegramEnabledResult = await query(`
             SELECT value FROM settings 
-            WHERE key = 'telegram_message_templates' AND hotel_id = $1
+            WHERE key = 'notify.channels.telegram' AND hotel_id = $1
+            LIMIT 1
+          `, [chat.hotel_id])
+          
+          const telegramEnabled = telegramEnabledResult.rows.length === 0 || 
+            (telegramEnabledResult.rows[0].value !== 'false' && telegramEnabledResult.rows[0].value !== false)
+          
+          if (!telegramEnabled) {
+            logDebug('NotificationEngine', `Telegram channel disabled for hotel ${chat.hotel_id}, skipping`)
+            continue
+          }
+
+          // Get unified message template from settings (prefer notify.templates, fallback to telegram_message_templates)
+          const templatesResult = await query(`
+            SELECT value FROM settings 
+            WHERE key IN ('notify.templates', 'telegram_message_templates') AND hotel_id = $1
+            ORDER BY CASE WHEN key = 'notify.templates' THEN 1 ELSE 2 END
             LIMIT 1
           `, [chat.hotel_id])
 
           let templateSettings = {}
-          if (settingsResult.rows.length > 0) {
+          if (templatesResult.rows.length > 0) {
             try {
-              templateSettings = JSON.parse(settingsResult.rows[0].value)
+              templateSettings = JSON.parse(templatesResult.rows[0].value)
             } catch { }
           }
 
@@ -722,8 +1194,92 @@ export class NotificationEngine {
         }
       }
 
-      logInfo('NotificationEngine', `✅ Daily reports complete. Sent: ${totalReportsSent}`)
-      return { sent: totalReportsSent }
+      telegramReportsSent = totalReportsSent
+
+      // 2. Send email daily reports (system emails → department.email, one per department)
+      // Only if email channel is enabled
+      let emailReportsSent = 0
+      try {
+        // Check if email channel is enabled globally
+        const emailEnabledResult = await query(`
+          SELECT value FROM settings 
+          WHERE key = 'notify.channels.email' AND scope = 'hotel'
+          LIMIT 1
+        `)
+        
+        const emailEnabled = emailEnabledResult.rows.length > 0 && 
+          (emailEnabledResult.rows[0].value === 'true' || emailEnabledResult.rows[0].value === true)
+        
+        if (!emailEnabled) {
+          logDebug('NotificationEngine', 'Email channel disabled, skipping email daily reports')
+        } else {
+          const deptsResult = await query(`
+            SELECT d.id, d.name, d.email, d.hotel_id, h.name as hotel_name
+            FROM departments d
+            JOIN hotels h ON h.id = d.hotel_id
+            WHERE d.is_active = true AND h.is_active = true
+              AND d.email IS NOT NULL AND TRIM(d.email) != ''
+          `)
+
+          const { sendDailyReportEmail, resolveEmailRecipient } = await import('./EmailService.js')
+
+          for (const row of deptsResult.rows) {
+            const department = { id: row.id, name: row.name, email: row.email }
+            const hotel = { id: row.hotel_id, name: row.hotel_name }
+            const to = resolveEmailRecipient('DEPARTMENT', { department })
+            if (!to) continue
+
+            try {
+              const statsResult = await query(`
+                SELECT 
+                  COUNT(*) FILTER (WHERE b.expiry_date > CURRENT_DATE) as total_batches,
+                  COUNT(*) FILTER (WHERE b.expiry_date <= CURRENT_DATE + INTERVAL '7 days' AND b.expiry_date > CURRENT_DATE) as expiring_batches,
+                  COUNT(*) FILTER (WHERE b.expiry_date <= CURRENT_DATE) as expired_batches,
+                  (
+                    SELECT COUNT(*)::int
+                    FROM collection_history ch
+                    WHERE ch.hotel_id = $1 AND ch.department_id = $2
+                      AND DATE(ch.collected_at) = CURRENT_DATE
+                  ) as collections_today
+                FROM batches b
+                WHERE b.hotel_id = $1 AND b.department_id = $2 AND b.quantity > 0
+              `, [row.hotel_id, row.id])
+
+              const s = statsResult.rows[0] || {
+                total_batches: 0,
+                expiring_batches: 0,
+                expired_batches: 0,
+                collections_today: 0
+              }
+
+              await sendDailyReportEmail({
+                stats: {
+                  totalBatches: parseInt(s.total_batches) || 0,
+                  expiringBatches: parseInt(s.expiring_batches) || 0,
+                  expiredBatches: parseInt(s.expired_batches) || 0,
+                  collectionsToday: parseInt(s.collections_today) || 0,
+                  hotel,
+                  department
+                },
+                to
+              })
+              emailReportsSent++
+              logInfo('NotificationEngine', `📧 Daily report sent to ${to} for department ${department.name}`)
+            } catch (emailError) {
+              logError('NotificationEngine', `Failed to send daily report to ${to} (${department.name})`, emailError)
+            }
+          }
+        }
+      } catch (error) {
+        logError('NotificationEngine', 'Failed to send email daily reports', error)
+      }
+
+      logInfo('NotificationEngine', `✅ Daily reports complete. Telegram: ${telegramReportsSent}, Email: ${emailReportsSent}`)
+      return { 
+        sent: telegramReportsSent + emailReportsSent,
+        telegram: telegramReportsSent,
+        email: emailReportsSent
+      }
     } catch (error) {
       logError('NotificationEngine', 'Daily reports failed', error)
       throw error

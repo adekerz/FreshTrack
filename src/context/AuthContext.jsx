@@ -32,12 +32,22 @@ export function AuthProvider({ children }) {
       setAuthError({ type: 'forbidden', message: event.detail?.message, url: event.detail?.url })
     }
 
+    const handleUserUpdated = (event) => {
+      console.log('[Auth] User updated event received:', event.detail)
+      // Update user in context
+      if (event.detail) {
+        setUser(event.detail)
+      }
+    }
+
     window.addEventListener('auth:unauthorized', handleUnauthorized)
     window.addEventListener('auth:forbidden', handleForbidden)
+    window.addEventListener('auth:userUpdated', handleUserUpdated)
 
     return () => {
       window.removeEventListener('auth:unauthorized', handleUnauthorized)
       window.removeEventListener('auth:forbidden', handleForbidden)
+      window.removeEventListener('auth:userUpdated', handleUserUpdated)
     }
   }, [])
 
@@ -69,13 +79,27 @@ export function AuthProvider({ children }) {
           })
 
           if (response.ok) {
-            const data = await response.json()
-            if (data.user) {
-              // Update with fresh data from server
-              setUser(data.user)
-              localStorage.setItem('freshtrack_user', JSON.stringify(data.user))
+            // Проверяем Content-Type перед парсингом JSON
+            const contentType = response.headers.get('content-type')
+            if (contentType && contentType.includes('application/json')) {
+              try {
+                const data = await response.json()
+                if (data.user) {
+                  // Update with fresh data from server
+                  setUser(data.user)
+                  localStorage.setItem('freshtrack_user', JSON.stringify(data.user))
+                } else {
+                  // Fallback to cached user if server returns no user
+                  setUser(JSON.parse(savedUser))
+                }
+              } catch (parseError) {
+                // JSON parse error - use cached data
+                console.warn('[Auth] Failed to parse JSON response, using cached data')
+                setUser(JSON.parse(savedUser))
+              }
             } else {
-              // Fallback to cached user if server returns no user
+              // Server returned non-JSON (likely HTML error page) - use cached data
+              console.warn('[Auth] Server returned non-JSON response, using cached data')
               setUser(JSON.parse(savedUser))
             }
           } else if (response.status === 401) {
@@ -86,11 +110,14 @@ export function AuthProvider({ children }) {
             setUser(null)
           } else {
             // Server error - use cached data
+            console.warn(`[Auth] Server returned status ${response.status}, using cached data`)
             setUser(JSON.parse(savedUser))
           }
         } catch (e) {
-          // Network error - use cached data
-          console.warn('[Auth] Failed to refresh user, using cached data:', e.message)
+          // Network error - use cached data (only log if not a common network error)
+          if (!e.message.includes('fetch') && !e.message.includes('network')) {
+            console.warn('[Auth] Failed to refresh user, using cached data:', e.message)
+          }
           try {
             setUser(JSON.parse(savedUser))
           } catch {
@@ -119,6 +146,16 @@ export function AuthProvider({ children }) {
         setToken(response.token)
         localStorage.setItem('freshtrack_user', JSON.stringify(userData))
         localStorage.setItem('freshtrack_token', response.token)
+        
+        // Check if user must change password (first login with temporary password)
+        if (userData.mustChangePassword) {
+          return { 
+            success: true, 
+            mustChangePassword: true,
+            email: userData.email 
+          }
+        }
+        
         return { success: true }
       }
 
@@ -319,7 +356,9 @@ export function AuthProvider({ children }) {
    * Update user data
    */
   const updateUser = (userData) => {
-    const updatedUser = { ...user, ...userData }
+    // If userData is a complete user object, use it directly
+    // Otherwise merge with current user
+    const updatedUser = userData.id ? userData : { ...user, ...userData }
     setUser(updatedUser)
     localStorage.setItem('freshtrack_user', JSON.stringify(updatedUser))
   }

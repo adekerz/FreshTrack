@@ -6,6 +6,8 @@ import { useProducts, categories } from '../context/ProductContext'
 import { useAuth } from '../context/AuthContext'
 import { useTranslation, useLanguage } from '../context/LanguageContext'
 import { useToast } from '../context/ToastContext'
+import { useHotel } from '../context/HotelContext'
+import { useAddBatch, useDeleteBatch, useDeleteProduct } from '../hooks/useInventory'
 import { format, parseISO } from 'date-fns'
 import FIFOCollectModal from './FIFOCollectModal'
 import { logError } from '../utils/logger'
@@ -23,9 +25,14 @@ export default function ProductModal({ product, onClose }) {
   const { t } = useTranslation()
   const { language } = useLanguage()
   const { hasPermission, user, isStaff } = useAuth()
-  const { getBatchesByProduct, collectBatch, deleteBatch, addBatch, deleteProduct, refresh } =
-    useProducts()
+  const { selectedHotelId } = useHotel()
+  const { getBatchesByProduct } = useProducts()
   const { addToast } = useToast()
+
+  // === REACT QUERY MUTATIONS ===
+  const { mutate: addBatchMutation, isPending: isAddingBatch } = useAddBatch(selectedHotelId)
+  const { mutate: deleteBatchMutation } = useDeleteBatch(selectedHotelId)
+  const { mutate: deleteProductMutation, isPending: isDeletingProduct } = useDeleteProduct(selectedHotelId)
 
   // Проверка роли STAFF через helper функцию
   const userIsStaff = isStaff()
@@ -33,7 +40,6 @@ export default function ProductModal({ product, onClose }) {
   const [showAddForm, setShowAddForm] = useState(false)
   const [showFIFOModal, setShowFIFOModal] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-  const [deleting, setDeleting] = useState(false)
   const [newBatch, setNewBatch] = useState({
     expiryDate: '',
     quantity: '',
@@ -78,26 +84,41 @@ export default function ProductModal({ product, onClose }) {
   }
 
   // Обработка добавления партии
-  const handleAddBatch = async (e) => {
+  const handleAddBatch = (e) => {
     e.preventDefault()
     if (!newBatch.expiryDate) return
+    
+    // Защита от старых дат: год должен быть >= 2026
+    const year = parseInt(newBatch.expiryDate.split('-')[0], 10)
+    if (year < 2026) {
+      addToast('Год должен быть 2026 или позже', 'error')
+      return
+    }
+    
     if (!newBatch.noQuantity && (!newBatch.quantity || parseInt(newBatch.quantity) <= 0)) return
 
-    try {
-      await addBatch(
-        product.id || product.name, // productId или имя
-        product.departmentId,
-        newBatch.expiryDate,
-        newBatch.noQuantity ? null : parseInt(newBatch.quantity)
-      )
-
-      setNewBatch({ expiryDate: '', quantity: '', noQuantity: false })
-      setShowAddForm(false)
-      addToast(t('toast.batchAdded'), 'success')
-    } catch (error) {
-      logError('Error adding batch:', error)
-      addToast(t('toast.batchAddError'), 'error')
-    }
+    // ✨ React Query mutation with optimistic update
+    addBatchMutation(
+      {
+        productName: product.name,
+        department: product.departmentId,
+        category: product.categoryId,
+        quantity: newBatch.noQuantity ? null : parseInt(newBatch.quantity),
+        expiryDate: newBatch.expiryDate
+      },
+      {
+        onSuccess: () => {
+          setNewBatch({ expiryDate: '', quantity: '', noQuantity: false })
+          setShowAddForm(false)
+          addToast(t('toast.batchAdded'), 'success')
+          // React Query автоматически обновит список партий
+        },
+        onError: (error) => {
+          logError('Error adding batch:', error)
+          addToast(t('toast.batchAddError'), 'error')
+        }
+      }
+    )
   }
 
   // Закрытие по клику на оверлей
@@ -111,22 +132,23 @@ export default function ProductModal({ product, onClose }) {
   const canDeleteProduct = hasPermission('products:delete')
 
   // Удаление товара
-  const handleDeleteProduct = async () => {
+  const handleDeleteProduct = () => {
     if (!product.id) return
 
-    setDeleting(true)
-    try {
-      await deleteProduct(product.id)
-      // Сразу показываем успех и закрываем модалку
-      addToast(t('toast.productDeleted'), 'success')
-      setShowDeleteConfirm(false)
-      onClose()
-    } catch (error) {
-      logError('Error deleting product:', error)
-      addToast(t('toast.productDeleteError'), 'error')
-      setDeleting(false)
-      setShowDeleteConfirm(false)
-    }
+    // ✨ React Query mutation with optimistic update
+    deleteProductMutation(product.id, {
+      onSuccess: () => {
+        addToast(t('toast.productDeleted'), 'success')
+        setShowDeleteConfirm(false)
+        onClose()
+        // React Query автоматически обновит каталог и удалит связанные партии
+      },
+      onError: (error) => {
+        logError('Error deleting product:', error)
+        addToast(t('toast.productDeleteError'), 'error')
+        setShowDeleteConfirm(false)
+      }
+    })
   }
 
   // Если открыт FIFO модал - рендерим только его
@@ -140,7 +162,7 @@ export default function ProductModal({ product, onClose }) {
         onClose={() => setShowFIFOModal(false)}
         onSuccess={() => {
           setShowFIFOModal(false)
-          refresh()
+          // React Query автоматически обновит данные через invalidation в FIFOCollectModal
         }}
       />
     )
@@ -279,10 +301,21 @@ export default function ProductModal({ product, onClose }) {
                       </div>
 
                       {/* Кнопка удаления - только для админов и менеджеров (не STAFF) */}
-                      {!isStaff && (
+                      {!userIsStaff && (
                         <div className="flex items-center gap-2">
                           <button
-                            onClick={() => deleteBatch(batch.id)}
+                            onClick={() => {
+                              // ✨ React Query mutation with optimistic update
+                              deleteBatchMutation(batch.id, {
+                                onSuccess: () => {
+                                  addToast(t('toast.batchDeleted') || 'Партия удалена', 'success')
+                                  // React Query автоматически обновит список
+                                },
+                                onError: (error) => {
+                                  addToast(t('toast.batchDeleteError') || 'Ошибка удаления', 'error')
+                                }
+                              })
+                            }}
                             className="p-1.5 text-muted-foreground hover:text-danger transition-colors"
                             title={t('common.delete')}
                           >
@@ -356,6 +389,7 @@ export default function ProductModal({ product, onClose }) {
                   <input
                     type="date"
                     value={newBatch.expiryDate}
+                    min="2026-01-01"
                     onChange={(e) =>
                       setNewBatch((prev) => ({ ...prev, expiryDate: e.target.value }))
                     }
@@ -465,18 +499,18 @@ export default function ProductModal({ product, onClose }) {
             <div className="flex gap-3">
               <button
                 onClick={() => setShowDeleteConfirm(false)}
-                disabled={deleting}
+                disabled={isDeletingProduct}
                 className="flex-1 px-4 py-2 border border-border rounded-lg text-foreground hover:bg-muted transition-colors disabled:opacity-50"
               >
                 {t('common.cancel') || 'Отмена'}
               </button>
               <button
                 onClick={handleDeleteProduct}
-                disabled={deleting}
+                disabled={isDeletingProduct}
                 className="flex-1 px-4 py-2 bg-danger text-white rounded-lg hover:bg-danger/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                aria-busy={deleting}
+                aria-busy={isDeletingProduct}
               >
-                {deleting ? <ButtonLoader /> : <Trash2 className="w-4 h-4" />}
+                {isDeletingProduct ? <ButtonLoader /> : <Trash2 className="w-4 h-4" />}
                 {t('common.delete') || 'Удалить'}
               </button>
             </div>

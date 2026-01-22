@@ -164,7 +164,8 @@
     "noResults": "Nessun risultato trovato",
     "products": "Prodotti",
     "departments": "Reparti",
-    "productsCount": "prodotti"
+    "productsCount": "prodotti",
+    "open": "Apri ricerca"
   },
   "header": {
     "addBatch": "Aggiungi lotto",
@@ -335,7 +336,14 @@
       "notRequested": "Non richiesto"
     },
     "noDepartments": "Nessun reparto",
-    "noDepartmentsDescription": "Nessun reparto configurato. Crea reparti nelle impostazioni."
+    "noDepartmentsDescription": "Nessun reparto configurato. Crea reparti nelle impostazioni.",
+    "test": {
+      "label": "Testa notifica",
+      "title": "Notifica di test",
+      "message": "Questa è una notifica di test per verificare che il sistema funzioni correttamente.",
+      "sent": "Notifica di test inviata con successo",
+      "error": "Errore nell'invio della notifica di test"
+    }
   },
   "departments": {
     "honor-bar": "Honor Bar"
@@ -434,10 +442,158 @@
   "settings": {
     "title": "Impostazioni",
     "subtitle": "Gestisci profilo e sistema",
+    "profile": "Profilo",
+    "departments": "Reparti",
+    "categories": "Categorie",
+    "export": "Esporta",
+    "branding": "Branding",
+    "brandingDescription": "Personalizza logo e colori del sistema",
+    "generalTitle": "Impostazioni Generali",
+    "generalDescription": "Parametri di base del sistema",
+    "tabs": {
+      "profile": "Profilo",
+      "language": "Lingua",
+      "general": "Generale",
+      "users": "Utenti",
+      "joinRequests": "Richieste di adesione",
+      "directories": "Directory",
+      "categories": "Categorie",
+      "templates": "Modelli",
+      "rules": "Regole di notifica",
+      "notifications": "Notifiche",
+      "telegram": "Telegram",
+      "email": "E-mail",
+      "branding": "Branding",
+      "cache": "Cache",
+      "importExport": "Import/Export",
+      "system": "Sistema"
+    },
+    "profile": {
+      "title": "Profilo Utente",
+      "login": "Accedi",
+      "role": "Ruolo",
+      "departments": "Reparti"
+    },
+    "language": {
+      "title": "Lingua dell'Interfaccia"
+    },
+    "onboarding": {
+      "title": "Onboarding",
+      "description": "Fai un tour del sistema",
+      "restart": "Riavvia il Tour"
+    },
+    "directories": {
+      "title": "Directory",
+      "description": "Gestisci categorie e reparti",
+      "categories": "Categorie",
+      "departments": "Reparti"
+    },
+    "categories": {
+      "title": "Categorie di Prodotti"
+    },
+    "templates": {
+      "title": "Modelli di Consegna"
+    },
+    "telegram": {
+      "title": "Impostazioni Telegram",
+      "sendTime": "Ora di invio notifiche",
+      "sendTimeLabel": "I rapporti giornalieri verranno inviati alle:",
+      "timezone": "Fuso orario",
+      "sendTest": "Invia notifica di test ora",
+      "refreshStatus": "Aggiorna stato",
+      "status": "Stato",
+      "scheduledTime": "Ora programmata",
+      "currentTime": "Ora attuale (Astana)",
+      "nextRun": "Prossima esecuzione",
+      "cronExpression": "Espressione cron",
+      "testing": "Invio in corso...",
+      "messageTemplates": "Modelli di messaggi",
+      "templatesHint": "Usa variabili tra parentesi graffe"
+    },
+    "notifications": {
+      "title": "Notifiche",
+      "description": "Configura canali di consegna e modelli di messaggi",
+      "channels": "Canali di consegna",
+      "enabled": "Abilitato",
+      "disabled": "Disabilitato",
+      "templates": "Modelli di messaggi",
+      "templatesHint": "Modelli unificati per tutti i canali di consegna. Usa variabili tra parentesi graffe.",
+      "schedule": "Piano di invio",
+      "sendTime": "Ora di invio del report giornaliero",
+      "saved": "Impostazioni notifiche salvate",
+      "saveError": "Errore nel salvataggio delle impostazioni",
+      "emailNote": "Le notifiche email vengono inviate agli indirizzi email dei reparti (department.email)",
+      "warningDays": "Giorni avviso",
+      "criticalDays": "Giorni critici",
+      "days": "giorni",
+      "time": "Ora di notifica",
+      "weekends": "Invia notifiche nei weekend"
+    },
+    "email": {
+      "title": "Impostazioni Email",
+      "description": "Configura notifiche email",
+      "infoTitle": "Informazioni",
+      "infoText": "Le notifiche email verranno inviate quando si avvicinano le date di scadenza dei prodotti",
+      "enableEmail": "Abilita Notifiche Email",
+      "enabled": "Email Abilitata",
+      "disabled": "Email Disabilitata",
+      "smtpSettings": "Impostazioni SMTP",
+      "smtpHost": "Server SMTP",
+      "smtpPort": "Porta SMTP",
+      "smtpUser": "Nome Utente",
+      "smtpPassword": "Password",
+      "fromEmail": "Email Mittente",
+      "fromName": "Nome Mittente",
+      "useSSL": "Usa SSL",
+      "testConnection": "Test Connessione",
+      "schedule": "Pianificazione Invio",
+      "dailyReport": "Report Giornaliero",
+      "dailyReportDesc": "Invia riepilogo giornaliero dei prodotti in scadenza",
+      "instantAlerts": "Avvisi Istantanei",
+      "instantAlertsDesc": "Invia notifiche immediatamente quando vengono rilevati problemi"
+    },
+    "importExport": {
+      "title": "Importa ed Esporta Dati"
+    },
+    "system": {
+      "title": "Informazioni di Sistema",
+      "healthStatus": "Stato del Sistema",
+      "checkHealth": "Verifica Stato",
+      "version": "Versione",
+      "environment": "Ambiente",
+      "status": "Stato",
+      "unhealthy": "Non Salutare",
+      "database": "Database",
+      "disconnected": "Disconnesso"
+    },
     "saved": "Impostazioni salvate",
     "saveError": "Errore nel salvataggio",
     "profileLabel": "Profilo",
-    "departments": "Reparti",
+    "departments": {
+      "title": "Gestione reparti",
+      "description": "Gestione dei reparti dell'hotel",
+      "add": "Aggiungi reparto",
+      "newDepartment": "Nuovo reparto",
+      "name": "Nome",
+      "namePlaceholder": "Es: Cucina, Bar, Ristorante",
+      "emailPlaceholder": "E-mail reparto (es. kitchen@hotel.com) — report e avvisi",
+      "nameRequired": "Inserisci il nome del reparto",
+      "users": "utenti",
+      "noDepartments": "Nessun reparto trovato",
+      "addFirst": "Aggiungi il primo reparto per iniziare",
+      "added": "Reparto aggiunto",
+      "addError": "Errore nell'aggiunta del reparto",
+      "updated": "Reparto aggiornato",
+      "updateError": "Errore nell'aggiornamento del reparto",
+      "deleted": "Reparto eliminato",
+      "deleteError": "Errore nell'eliminazione del reparto",
+      "deleteConfirmTitle": "Eliminare il reparto?",
+      "deleteConfirmText": "Tutti gli utenti di questo reparto verranno scollegati. Questa azione non può essere annullata.",
+      "loadError": "Errore nel caricamento dei reparti",
+      "cannotDelete": "Impossibile eliminare il reparto",
+      "hasActiveBatches": "Il reparto ha {{count}} lotti attivi. Si prega di raccogliere o eliminare tutti i lotti prima di eliminare il reparto.",
+      "clearBatchesFirst": "Prima cancella tutti i lotti"
+    },
     "categoriesLabel": "Categorie",
     "export": "Esporta",
     "branding": "Branding",
@@ -633,13 +789,20 @@
     },
     "profile": {
       "title": "Informazioni profilo",
+      "name": "Nome",
+      "email": "Email",
+      "emailPlaceholder": "example@email.com",
+      "emailHint": "Aggiungi un'email per ricevere notifiche",
+      "noEmail": "Email non specificata",
       "login": "Username",
       "role": "Ruolo",
       "roleAdmin": "Amministratore",
       "roleManager": "Manager",
       "roleStaff": "Personale",
       "roleDepartmentManager": "Responsabile reparto",
-      "departments": "Reparti disponibili"
+      "departments": "Reparti disponibili",
+      "saved": "Profilo aggiornato",
+      "saveError": "Errore nel salvataggio"
     },
     "notifications": {
       "title": "Impostazioni notifiche",
@@ -702,26 +865,23 @@
     "dateFormat": "Formato data",
     "timezone": "Fuso orario",
     "defaultLanguage": "Lingua predefinita",
-    "departments": {
-      "title": "Gestione reparti",
-      "description": "Gestione dei reparti dell'hotel",
-      "add": "Aggiungi reparto",
-      "newDepartment": "Nuovo reparto",
-      "name": "Nome",
-      "namePlaceholder": "Es: Cucina, Bar, Ristorante",
-      "nameRequired": "Inserisci il nome del reparto",
-      "users": "utenti",
-      "noDepartments": "Nessun reparto trovato",
-      "addFirst": "Aggiungi il primo reparto per iniziare",
-      "added": "Reparto aggiunto",
-      "addError": "Errore nell'aggiunta del reparto",
-      "updated": "Reparto aggiornato",
-      "updateError": "Errore nell'aggiornamento del reparto",
-      "deleted": "Reparto eliminato",
-      "deleteError": "Errore nell'eliminazione del reparto",
-      "deleteConfirmTitle": "Eliminare il reparto?",
-      "deleteConfirmText": "Tutti gli utenti di questo reparto verranno scollegati. Questa azione non può essere annullata.",
-      "loadError": "Errore nel caricamento dei reparti"
+    "cache": {
+      "title": "Cache Management",
+      "description": "Offline cache for working without internet",
+      "size": "Size",
+      "storedQueries": "Stored",
+      "activeQueries": "Active",
+      "enabled": "Offline mode enabled - data available without internet",
+      "empty": "Cache is empty - use the app to create cache",
+      "refreshAll": "Refresh All",
+      "clear": "Clear Cache",
+      "clearing": "Clearing...",
+      "confirmClear": "Clear all cache? Data will be reloaded on next launch.",
+      "cleared": "Cache cleared",
+      "clearError": "Cache clear error",
+      "refreshing": "Refreshing data...",
+      "infoTitle": "How it works:",
+      "info": "React Query automatically saves data to localStorage. When connection is lost, you continue to see the last loaded data. Changes sync automatically when internet is restored."
     }
   },
   "notificationRules": {
@@ -905,6 +1065,25 @@
       "compliment": "Omaggio per l'ospite",
       "other": "Altro"
     }
+  },
+  "fastIntake": {
+    "title": "Inserimento rapido",
+    "modeOn": "Modalità rapida",
+    "modeOff": "Modalità rapida",
+    "switchToStandard": "Passa alla modalità standard",
+    "switchToFast": "Passa alla modalità inserimento rapido",
+    "hint": "Suggerimento:",
+    "hintText": "Usa Tab o Invio per spostarti tra i campi. Invio sulla data di scadenza salva l'articolo istantaneamente.",
+    "searchProduct": "Prodotto",
+    "searchPlaceholder": "Inizia a digitare il nome del prodotto...",
+    "quantity": "Quantità",
+    "expiryDate": "Data di scadenza",
+    "expiryHint": "(GG.MM.AA o Invio per l'ultimo usato)",
+    "useLastExpiry": "Usa ultima data di scadenza",
+    "saveAndNext": "Salva e continua",
+    "sessionHistory": "Aggiunto in questa sessione",
+    "totalAdded": "Aggiunto: {{count}} articoli",
+    "itemAdded": "{{name}} × {{qty}} aggiunto"
   },
   "units": {
     "pcs": "pz",
@@ -1467,7 +1646,13 @@
     "editTemplate": "Modifica modello",
     "confirmDelete": "Eliminare il modello?",
     "deleteTitle": "Eliminare il modello?",
-    "deleteWarning": "Questa azione non può essere annullata."
+    "deleteWarning": "Questa azione non può essere annullata.",
+    "selectTemplate": "Seleziona un modello da applicare:",
+    "items": "articoli",
+    "targetDepartment": "Reparto destinazione",
+    "changeTemplate": "Cambia modello",
+    "itemsToAdd": "articoli da aggiungere",
+    "apply": "Applica modello"
   },
   "telegram": {
     "title": "Impostazioni Telegram",
@@ -1481,6 +1666,14 @@
     "testError": "Errore di invio",
     "schedule": "Pianificazione",
     "scheduleTime": "Orario report giornaliero",
+    "sendTime": "Ora di invio notifiche",
+    "sendTimeLabel": "I rapporti giornalieri verranno inviati alle:",
+    "timezone": "Fuso orario",
+    "status": "Stato",
+    "scheduledTime": "Ora programmata",
+    "currentTime": "Ora attuale (Astana)",
+    "cronExpression": "Espressione cron",
+    "sendTest": "Invia notifica di test ora",
     "messageTemplates": "Modelli messaggi",
     "templatesHint": "Usa variabili tra parentesi graffe",
     "dailyReport": "Report giornaliero",

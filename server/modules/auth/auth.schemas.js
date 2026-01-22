@@ -87,8 +87,8 @@ export const RegisterRequestSchema = z.object({
  */
 export const CreateUserRequestSchema = z.object({
   login: loginSchema,
-  email: emailSchema,
-  password: passwordSchema,
+  email: emailSchema.optional().nullable(), // Optional - but required if password is auto-generated
+  password: passwordSchema.optional(), // Optional - if not provided, temporary password will be generated
   name: nameSchema,
   role: UserRole,
   // Поддержка обоих форматов: camelCase и snake_case

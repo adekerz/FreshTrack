@@ -64,7 +64,14 @@ export default function TemplatesSettings({ readOnly = false }) {
         apiFetch(`/delivery-templates${hotelQuery}`),
         apiFetch(`/products/catalog${hotelQuery}`)
       ])
-      setTemplates(templatesData.templates || templatesData || [])
+      // Парсим items для каждого шаблона, если это JSON-строка
+      const templates = (templatesData.templates || templatesData || []).map(template => ({
+        ...template,
+        items: typeof template.items === 'string' 
+          ? JSON.parse(template.items) 
+          : template.items || []
+      }))
+      setTemplates(templates)
       setProducts(productsData.products || productsData || [])
     } catch (error) {
       setTemplates([])
@@ -162,8 +169,7 @@ export default function TemplatesSettings({ readOnly = false }) {
         {
           product_id: product.id,
           product_name: product.name,
-          default_quantity: 10,
-          shelf_life_days: 30
+          default_quantity: 1
         }
       ]
     })
@@ -399,24 +405,6 @@ export default function TemplatesSettings({ readOnly = false }) {
                                 updateTemplateItem(
                                   item.product_id,
                                   'default_quantity',
-                                  e.target.value
-                                )
-                              }
-                              className="w-16 px-2 py-1 border border-border rounded text-center text-sm bg-card"
-                            />
-                          </div>
-                          <div>
-                            <label className="text-xs text-muted-foreground">
-                              {t('templates.shelfLife') || 'Срок'}
-                            </label>
-                            <input
-                              type="number"
-                              min="1"
-                              value={item.shelf_life_days}
-                              onChange={(e) =>
-                                updateTemplateItem(
-                                  item.product_id,
-                                  'shelf_life_days',
                                   e.target.value
                                 )
                               }

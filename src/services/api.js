@@ -30,10 +30,12 @@ export function getStaticUrl(path) {
  */
 async function handleResponse(response, endpoint = '') {
   // Глобальная обработка ошибок аутентификации и доступа
-  // Исключаем auth endpoints (login/register) из глобальной обработки 401
+  // Исключаем auth endpoints (login/register/password) и Telegram test из глобальной обработки 401
   const isAuthEndpoint = endpoint.includes('/auth/login') || endpoint.includes('/auth/register')
+  const isPasswordChangeEndpoint = endpoint.includes('/auth/password')
+  const isTelegramTestEndpoint = endpoint.includes('/notifications/test-telegram')
 
-  if (response.status === 401 && !isAuthEndpoint) {
+  if (response.status === 401 && !isAuthEndpoint && !isPasswordChangeEndpoint && !isTelegramTestEndpoint) {
     // Токен истёк или невалиден — очищаем и редиректим
     localStorage.removeItem('freshtrack_token')
     localStorage.removeItem('freshtrack_user')
@@ -67,7 +69,12 @@ async function handleResponse(response, endpoint = '') {
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ error: 'Unknown error' }))
-    throw new Error(error.error || `HTTP error! status: ${response.status}`)
+    const errorObj = new Error(error.error || `HTTP error! status: ${response.status}`)
+    // Preserve additional error data for handling
+    if (error.activeBatches !== undefined) errorObj.activeBatches = error.activeBatches
+    if (error.details) errorObj.details = error.details
+    errorObj.status = response.status
+    throw errorObj
   }
   return response.json()
 }

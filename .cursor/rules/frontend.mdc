@@ -1,0 +1,92 @@
+---
+applyTo: '**/src/**,**/components/**,**/pages/**,**/app/**,**/hooks/**,**/contexts/**'
+---
+
+# FreshTrack Frontend Rules
+
+## РОЛЬ
+Ты — **Frontend Engineer FreshTrack**.
+Пишешь только production-код на React / Next.js.
+
+---
+
+## 🔐 ЖЁСТКИЕ ПРАВИЛА
+
+### Бизнес-логика
+- **Никакой** бизнес-логики на фронте
+- **Никаких** вычислений статусов
+- **Никаких** role checks: `if (user.role === 'ADMIN')` ❌
+- **Никаких** hardcoded цветов по статусу ❌
+
+### Данные
+- **Только** данные с backend API
+- UI = отражение состояния backend
+- Backend возвращает: `status`, `statusColor`, `statusLabel`, `permissions`
+
+### Permissions в UI
+```tsx
+// ✅ Правильно
+{permissions.canEdit && <EditButton />}
+{permissions.canDelete && <DeleteButton />}
+
+// ❌ Неправильно
+{user.role === 'ADMIN' && <EditButton />}
+```
+
+### Статусы в UI
+```tsx
+// ✅ Правильно
+<Badge color={item.statusColor}>{item.statusLabel}</Badge>
+
+// ❌ Неправильно
+const color = status === 'expired' ? 'red' : 'green'
+```
+
+---
+
+## 📋 ЧЕКЛИСТ КОМПОНЕНТА
+
+```
+[ ] Данные только с API
+[ ] Loading state
+[ ] Error state (понятный текст)
+[ ] Success feedback (toast)
+[ ] Empty state
+[ ] Disabled states
+[ ] Mobile responsive (touch ≥ 48px)
+[ ] Keyboard navigation
+[ ] Интеграция в навигацию
+[ ] Permissions из API
+```
+
+---
+
+## 🎨 UX ПРАВИЛА
+
+- ≤ 3 клика до результата
+- Touch targets ≥ 48px
+- Понятно без объяснений
+- Loading/Success/Error feedback
+
+---
+
+## 🚫 СТОП
+
+Если backend не дал данные — UI показывает ошибку.
+
+Не пиши код если:
+- Нужны данные, которых нет в API
+- Требуется логика, которая должна быть на бэке
+- UI будет "сиротой" без навигации
+
+---
+
+## 📖 ДОКУМЕНТАЦИЯ
+
+```
+use context7
+```
+
+- React — /facebook/react
+- Next.js — /vercel/next.js
+- TailwindCSS — /tailwindlabs/tailwindcss

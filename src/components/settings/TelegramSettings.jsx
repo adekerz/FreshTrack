@@ -11,16 +11,13 @@ import { SectionLoader } from '../ui'
 import { apiFetch } from '../../services/api'
 import {
   Save,
-  RefreshCw,
   Check,
   AlertCircle,
   MessageSquare,
   ExternalLink,
   Users,
   Trash2,
-  Bot,
-  Bell,
-  BellOff
+  Bot
 } from 'lucide-react'
 
 const BOT_USERNAME = 'freshtracksystemsbot' // Имя бота
@@ -30,7 +27,6 @@ export default function TelegramSettings() {
   const { addToast } = useToast()
   const { selectedHotelId, selectedHotel } = useHotel()
   const [settings, setSettings] = useState({
-    sendTime: '09:00',
     messageTemplates: {
       dailyReport:
         '📊 Ежедневный отчёт FreshTrack\n\n✅ В норме: {good}\n⚠️ Скоро истекает: {warning}\n🔴 Просрочено: {expired}',
@@ -59,7 +55,6 @@ export default function TelegramSettings() {
       if (data) {
         setSettings((prev) => ({
           ...prev,
-          sendTime: data.sendTime || prev.sendTime,
           messageTemplates: data.messageTemplates
             ? { ...prev.messageTemplates, ...data.messageTemplates }
             : prev.messageTemplates

@@ -80,7 +80,7 @@ router.post('/', authMiddleware, requirePermission(PermissionResource.DEPARTMENT
       return res.status(400).json({ success: false, error: 'Validation failed', details: validation.errors })
     }
 
-    const { name, description, settings } = validation.data
+    const { name, description, settings, email } = validation.data
 
     // hotel_id: из header X-Hotel-Id, query, body, или из пользователя
     const hotel_id = req.headers['x-hotel-id'] ||
@@ -95,8 +95,16 @@ router.post('/', authMiddleware, requirePermission(PermissionResource.DEPARTMENT
     // Генерируем уникальный код департамента
     const code = await generateDepartmentCode(hotel_id)
 
+    // Handle empty string as null for description
+    const departmentDescription = description === '' ? null : description
+
     const department = await createDepartment({
-      name, description, settings, hotel_id, code
+      name,
+      description: departmentDescription,
+      settings,
+      hotel_id,
+      code,
+      email: email && String(email).trim() ? String(email).trim() : null
     })
 
     await logAudit({
@@ -108,7 +116,18 @@ router.post('/', authMiddleware, requirePermission(PermissionResource.DEPARTMENT
     res.status(201).json({ success: true, department })
   } catch (error) {
     logError('Create department error', error)
-    res.status(500).json({ success: false, error: 'Failed to create department' })
+    console.error('[Departments] Create error details:', {
+      name,
+      description: departmentDescription,
+      hotel_id,
+      error: error.message,
+      stack: error.stack
+    })
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to create department',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    })
   }
 })
 
@@ -136,12 +155,17 @@ router.put('/:id', authMiddleware, requirePermission(PermissionResource.DEPARTME
       return res.status(400).json({ success: false, error: 'Validation failed', details: validation.errors })
     }
 
-    const { name, description, settings, is_active } = validation.data
+    const { name, description, settings, is_active, email } = validation.data
     const updates = {}
     if (name !== undefined) updates.name = name
-    if (description !== undefined) updates.description = description
+    if (description !== undefined) {
+      updates.description = description === '' ? null : description
+    }
     if (settings !== undefined) updates.settings = settings
     if (is_active !== undefined) updates.is_active = is_active
+    if (email !== undefined) {
+      updates.email = email === '' || email === null ? null : String(email).trim()
+    }
 
     const success = await updateDepartment(req.params.id, updates)
     if (success) {
@@ -154,7 +178,17 @@ router.put('/:id', authMiddleware, requirePermission(PermissionResource.DEPARTME
     res.json({ success })
   } catch (error) {
     logError('Update department error', error)
-    res.status(500).json({ success: false, error: 'Failed to update department' })
+    console.error('[Departments] Update error details:', {
+      departmentId: req.params.id,
+      updates,
+      error: error.message,
+      stack: error.stack
+    })
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to update department',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    })
   }
 })
 
@@ -172,6 +206,23 @@ router.delete('/:id', authMiddleware, requirePermission(PermissionResource.DEPAR
       return res.status(403).json({ success: false, error: 'Access denied' })
     }
 
+    // Check if department has active batches
+    const activeBatchesResult = await dbQuery(
+      `SELECT COUNT(*) as count FROM batches b
+       JOIN products p ON b.product_id = p.id
+       WHERE p.department_id = $1 AND b.status = 'active'`,
+      [req.params.id]
+    )
+    
+    const activeBatchesCount = parseInt(activeBatchesResult.rows[0].count)
+    if (activeBatchesCount > 0) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Cannot delete department with active batches',
+        activeBatches: activeBatchesCount
+      })
+    }
+
     const success = await deleteDepartment(req.params.id)
     if (success) {
       await logAudit({
@@ -183,7 +234,16 @@ router.delete('/:id', authMiddleware, requirePermission(PermissionResource.DEPAR
     res.json({ success })
   } catch (error) {
     logError('Delete department error', error)
-    res.status(500).json({ success: false, error: 'Failed to delete department' })
+    console.error('[Departments] Delete error details:', {
+      departmentId: req.params.id,
+      error: error.message,
+      stack: error.stack
+    })
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to delete department',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    })
   }
 })
 

@@ -8,6 +8,8 @@ import { useTranslation } from '../../context/LanguageContext'
 import { useToast } from '../../context/ToastContext'
 import { useHotel } from '../../context/HotelContext'
 import { useProducts } from '../../context/ProductContext'
+import { useQueryClient } from '@tanstack/react-query'
+import { queryKeys } from '../../lib/queryKeys'
 import { GridLoader, ButtonSpinner } from '../ui'
 import { Tags, Building2, Plus, X, Edit2, Trash2, Check, AlertTriangle, Users } from 'lucide-react'
 import { cn } from '../../utils/classNames'
@@ -25,14 +27,17 @@ function DepartmentsContent() {
   const { addToast } = useToast()
   const { selectedHotelId, selectedHotel } = useHotel()
   const { refresh: refreshProducts } = useProducts()
+  const queryClient = useQueryClient()
 
   const [departments, setDepartments] = useState([])
   const [loading, setLoading] = useState(true)
-  const [newDepartment, setNewDepartment] = useState({ name: '' })
+  const [newDepartment, setNewDepartment] = useState({ name: '', description: '', email: '' })
   const [adding, setAdding] = useState(false)
   const [showAddForm, setShowAddForm] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [editName, setEditName] = useState('')
+  const [editDescription, setEditDescription] = useState('')
+  const [editEmail, setEditEmail] = useState('')
   const [deleteConfirm, setDeleteConfirm] = useState(null)
   const [deleting, setDeleting] = useState(false)
 
@@ -67,13 +72,19 @@ function DepartmentsContent() {
         method: 'POST',
         body: JSON.stringify({
           name: newDepartment.name.trim(),
+          description: newDepartment.description.trim() || null,
+          email: newDepartment.email.trim() || null,
           hotel_id: selectedHotelId
         })
       })
 
       addToast(t('settings.departments.added') || 'Отдел добавлен', 'success')
-      setNewDepartment({ name: '' })
+      setNewDepartment({ name: '', description: '', email: '' })
       setShowAddForm(false)
+      // Invalidate departments query to refresh inventory
+      if (selectedHotelId) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.departments(selectedHotelId) })
+      }
       refreshProducts()
       fetchDepartments()
     } catch (error) {
@@ -86,11 +97,15 @@ function DepartmentsContent() {
   const startEditing = (dept) => {
     setEditingId(dept.id)
     setEditName(dept.name)
+    setEditDescription(dept.description || '')
+    setEditEmail(dept.email || '')
   }
 
   const cancelEditing = () => {
     setEditingId(null)
     setEditName('')
+    setEditDescription('')
+    setEditEmail('')
   }
 
   const saveEdit = async (deptId) => {
@@ -99,11 +114,23 @@ function DepartmentsContent() {
     try {
       await apiFetch(`/departments/${deptId}`, {
         method: 'PUT',
-        body: JSON.stringify({ name: editName.trim() })
+        body: JSON.stringify({
+          name: editName.trim(),
+          description: editDescription.trim() || null,
+          email: editEmail.trim() || null
+        })
       })
 
       addToast(t('settings.departments.updated') || 'Отдел обновлён', 'success')
       setEditingId(null)
+      setEditName('')
+      setEditDescription('')
+      setEditEmail('')
+      // Invalidate departments query to refresh inventory
+      if (selectedHotelId) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.departments(selectedHotelId) })
+      }
+      refreshProducts()
       fetchDepartments()
     } catch (error) {
       addToast(error.message || 'Ошибка обновления', 'error')
@@ -115,12 +142,40 @@ function DepartmentsContent() {
 
     setDeleting(true)
     try {
-      await apiFetch(`/departments/${deleteConfirm.id}`, { method: 'DELETE' })
-      addToast(t('settings.departments.deleted') || 'Отдел удалён', 'success')
-      setDeleteConfirm(null)
-      fetchDepartments()
+      const response = await apiFetch(`/departments/${deleteConfirm.id}`, { method: 'DELETE' })
+      
+      // Success
+      if (response.success !== false) {
+        addToast(t('settings.departments.deleted') || 'Отдел удалён', 'success')
+        setDeleteConfirm(null)
+        // Invalidate departments query to refresh inventory
+        if (selectedHotelId) {
+          queryClient.invalidateQueries({ queryKey: queryKeys.departments(selectedHotelId) })
+        }
+        refreshProducts()
+        fetchDepartments()
+      } else {
+        // Check for active batches error
+        if (response.activeBatches !== undefined && response.activeBatches > 0) {
+          const errorMsg = t('settings.departments.hasActiveBatches', { count: response.activeBatches }) 
+            || `В отделе есть ${response.activeBatches} активных партий. Сначала очистите отдел от партий.`
+          addToast(errorMsg, 'error')
+        } else {
+          addToast(response.error || 'Ошибка удаления отдела', 'error')
+        }
+        setDeleteConfirm(null)
+      }
     } catch (error) {
-      addToast(error.message || 'Ошибка удаления', 'error')
+      // Handle network/API errors (400, 404, 500, etc.)
+      // Check if error contains activeBatches info (from API response)
+      if (error.activeBatches !== undefined && error.activeBatches > 0) {
+        const errorMsg = t('settings.departments.hasActiveBatches', { count: error.activeBatches }) 
+          || `В отделе есть ${error.activeBatches} активных партий. Сначала очистите отдел от партий.`
+        addToast(errorMsg, 'error')
+      } else {
+        addToast(error.message || 'Ошибка удаления', 'error')
+      }
+      setDeleteConfirm(null)
     } finally {
       setDeleting(false)
     }
@@ -157,12 +212,30 @@ function DepartmentsContent() {
           <input
             type="text"
             value={newDepartment.name}
-            onChange={(e) => setNewDepartment({ name: e.target.value })}
+            onChange={(e) => setNewDepartment({ ...newDepartment, name: e.target.value })}
             placeholder={t('settings.departments.namePlaceholder') || 'Название отдела'}
             className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-accent/50"
             disabled={adding}
-            onKeyDown={(e) => e.key === 'Enter' && addDepartment()}
             autoFocus
+          />
+
+          <input
+            type="text"
+            value={newDepartment.description}
+            onChange={(e) => setNewDepartment({ ...newDepartment, description: e.target.value })}
+            placeholder={t('settings.departments.descriptionPlaceholder') || 'Описание (например: Minibar, Other)'}
+            className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-accent/50"
+            disabled={adding}
+          />
+
+          <input
+            type="email"
+            value={newDepartment.email}
+            onChange={(e) => setNewDepartment({ ...newDepartment, email: e.target.value })}
+            placeholder={t('settings.departments.emailPlaceholder') || 'Почта отдела (напр. kitchen@hotel.com)'}
+            className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-accent/50"
+            disabled={adding}
+            onKeyDown={(e) => e.key === 'Enter' && addDepartment()}
           />
 
           <div className="flex items-center gap-2">
@@ -177,8 +250,8 @@ function DepartmentsContent() {
             <button
               onClick={() => {
                 setShowAddForm(false)
-      refreshProducts()
-                setNewDepartment({ name: '' })
+                refreshProducts()
+                setNewDepartment({ name: '', description: '', email: '' })
               }}
               className="px-4 py-2 text-muted-foreground hover:text-foreground"
             >
@@ -210,20 +283,43 @@ function DepartmentsContent() {
                 </div>
 
                 {editingId === dept.id ? (
-                  <input
-                    type="text"
-                    value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
-                    className="flex-1 px-3 py-1.5 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-accent/50"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') saveEdit(dept.id)
-                      if (e.key === 'Escape') cancelEditing()
-                    }}
-                    autoFocus
-                  />
+                  <div className="flex-1 space-y-2">
+                    <input
+                      type="text"
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      placeholder={t('settings.departments.namePlaceholder') || 'Название отдела'}
+                      className="w-full px-3 py-1.5 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-accent/50"
+                      autoFocus
+                    />
+                    <input
+                      type="text"
+                      value={editDescription}
+                      onChange={(e) => setEditDescription(e.target.value)}
+                      placeholder={t('settings.departments.descriptionPlaceholder') || 'Описание (например: Minibar, Other)'}
+                      className="w-full px-3 py-1.5 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-accent/50"
+                    />
+                    <input
+                      type="email"
+                      value={editEmail}
+                      onChange={(e) => setEditEmail(e.target.value)}
+                      placeholder={t('settings.departments.emailPlaceholder') || 'Почта отдела (напр. kitchen@hotel.com)'}
+                      className="w-full px-3 py-1.5 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-accent/50"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') saveEdit(dept.id)
+                        if (e.key === 'Escape') cancelEditing()
+                      }}
+                    />
+                  </div>
                 ) : (
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-foreground truncate">{dept.name}</p>
+                    {dept.description && (
+                      <p className="text-sm text-muted-foreground truncate">{dept.description}</p>
+                    )}
+                    {dept.email && (
+                      <p className="text-sm text-muted-foreground truncate">{dept.email}</p>
+                    )}
                     {dept.user_count > 0 && (
                       <p className="text-sm text-muted-foreground flex items-center gap-1">
                         <Users className="w-3 h-3" />

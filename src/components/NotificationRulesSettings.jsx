@@ -392,13 +392,27 @@ export default function NotificationRulesSettings() {
               </label>
               <select
                 value={newRule.notificationType}
-                onChange={(e) => setNewRule({ ...newRule, notificationType: e.target.value })}
+                onChange={(e) => {
+                  const notificationType = e.target.value
+                  // Преобразуем тип уведомления в массив каналов
+                  let channels = ['app']
+                  if (notificationType === 'all') {
+                    channels = ['app', 'telegram', 'email']
+                  } else if (notificationType === 'telegram') {
+                    channels = ['app', 'telegram']
+                  } else if (notificationType === 'email') {
+                    channels = ['app', 'email']
+                  } else if (notificationType === 'push') {
+                    channels = ['app', 'push']
+                  }
+                  setNewRule({ ...newRule, notificationType, channels })
+                }}
                 className="w-full px-3 py-2 border border-border rounded-lg bg-card text-foreground text-sm"
               >
                 <option value="all">{t('rules.allChannels') || 'Все каналы'}</option>
                 <option value="telegram">Telegram</option>
-                <option value="push">Push</option>
                 <option value="email">Email</option>
+                <option value="push">Push</option>
               </select>
             </div>
           </div>
@@ -443,7 +457,26 @@ export default function NotificationRulesSettings() {
               <div className="flex-1">
                 <div className="flex items-center gap-2">
                   <p className="font-medium text-foreground">{rule.name}</p>
-                  {getNotificationTypeBadge(rule.notificationType)}
+                  {rule.channels && Array.isArray(rule.channels) && (
+                    <div className="flex gap-1 flex-wrap">
+                      {rule.channels.includes('email') && (
+                        <span className="px-2 py-0.5 bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 text-xs rounded">
+                          Email
+                        </span>
+                      )}
+                      {rule.channels.includes('telegram') && (
+                        <span className="px-2 py-0.5 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 text-xs rounded">
+                          Telegram
+                        </span>
+                      )}
+                      {rule.channels.includes('app') && (
+                        <span className="px-2 py-0.5 bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 text-xs rounded">
+                          App
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  {!rule.channels && getNotificationTypeBadge(rule.notificationType)}
                 </div>
                 <p className="text-sm text-gray-500 mt-1">
                   {getCategoryName(rule.category)} • {getDepartmentName(rule.departmentId)} •

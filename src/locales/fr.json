@@ -164,7 +164,8 @@
     "noResults": "Aucun résultat trouvé",
     "products": "Produits",
     "departments": "Départements",
-    "productsCount": "produits"
+    "productsCount": "produits",
+    "open": "Ouvrir la recherche"
   },
   "header": {
     "addBatch": "Ajouter un lot",
@@ -335,7 +336,14 @@
       "notRequested": "Non demandé"
     },
     "noDepartments": "Aucun département",
-    "noDepartmentsDescription": "Aucun département n'est configuré. Créez des départements dans les paramètres."
+    "noDepartmentsDescription": "Aucun département n'est configuré. Créez des départements dans les paramètres.",
+    "test": {
+      "label": "Tester la notification",
+      "title": "Notification de test",
+      "message": "Ceci est une notification de test pour vérifier que le système fonctionne correctement.",
+      "sent": "Notification de test envoyée avec succès",
+      "error": "Échec de l'envoi de la notification de test"
+    }
   },
   "departments": {
     "honor-bar": "Honor Bar"
@@ -434,10 +442,158 @@
   "settings": {
     "title": "Paramètres",
     "subtitle": "Gérer le profil et le système",
+    "profile": "Profil",
+    "departments": "Départements",
+    "categories": "Catégories",
+    "export": "Exporter",
+    "branding": "Image de marque",
+    "brandingDescription": "Personnaliser le logo et les couleurs du système",
+    "generalTitle": "Paramètres Généraux",
+    "generalDescription": "Paramètres de base du système",
+    "tabs": {
+      "profile": "Profil",
+      "language": "Langue",
+      "general": "Général",
+      "users": "Utilisateurs",
+      "joinRequests": "Demandes d'adhésion",
+      "directories": "Répertoires",
+      "categories": "Catégories",
+      "templates": "Modèles",
+      "rules": "Règles de notification",
+      "notifications": "Notifications",
+      "telegram": "Telegram",
+      "email": "E-mail",
+      "branding": "Image de marque",
+      "cache": "Cache",
+      "importExport": "Import/Export",
+      "system": "Système"
+    },
+    "profile": {
+      "title": "Profil Utilisateur",
+      "login": "Connexion",
+      "role": "Rôle",
+      "departments": "Départements"
+    },
+    "language": {
+      "title": "Langue de l'Interface"
+    },
+    "onboarding": {
+      "title": "Intégration",
+      "description": "Effectuer une visite du système",
+      "restart": "Redémarrer la Visite"
+    },
+    "directories": {
+      "title": "Répertoires",
+      "description": "Gérer les catégories et départements",
+      "categories": "Catégories",
+      "departments": "Départements"
+    },
+    "categories": {
+      "title": "Catégories de Produits"
+    },
+    "templates": {
+      "title": "Modèles de Livraison"
+    },
+    "telegram": {
+      "title": "Paramètres Telegram",
+      "sendTime": "Heure d'envoi des notifications",
+      "sendTimeLabel": "Les rapports quotidiens seront envoyés à:",
+      "timezone": "Fuseau horaire",
+      "sendTest": "Envoyer une notification de test maintenant",
+      "refreshStatus": "Actualiser le statut",
+      "status": "Statut",
+      "scheduledTime": "Heure programmée",
+      "currentTime": "Heure actuelle (Astana)",
+      "nextRun": "Prochaine exécution",
+      "cronExpression": "Expression cron",
+      "testing": "Envoi en cours...",
+      "messageTemplates": "Modèles de messages",
+      "templatesHint": "Utilisez des variables entre accolades"
+    },
+    "notifications": {
+      "title": "Notifications",
+      "description": "Configurer les canaux de livraison et les modèles de messages",
+      "channels": "Canaux de livraison",
+      "enabled": "Activé",
+      "disabled": "Désactivé",
+      "templates": "Modèles de messages",
+      "templatesHint": "Modèles unifiés pour tous les canaux de livraison. Utilisez des variables entre accolades.",
+      "schedule": "Plan d'envoi",
+      "sendTime": "Heure d'envoi du rapport quotidien",
+      "saved": "Paramètres de notification enregistrés",
+      "saveError": "Erreur lors de l'enregistrement des paramètres",
+      "emailNote": "Les notifications par e-mail sont envoyées aux adresses e-mail des départements (department.email)",
+      "warningDays": "Jours d'avertissement",
+      "criticalDays": "Jours critiques",
+      "days": "jours",
+      "time": "Heure de notification",
+      "weekends": "Envoyer des notifications le week-end"
+    },
+    "email": {
+      "title": "Paramètres Email",
+      "description": "Configurer les notifications par email",
+      "infoTitle": "Information",
+      "infoText": "Les notifications par email seront envoyées lorsque les dates d'expiration des produits approchent",
+      "enableEmail": "Activer les Notifications Email",
+      "enabled": "Email Activé",
+      "disabled": "Email Désactivé",
+      "smtpSettings": "Paramètres SMTP",
+      "smtpHost": "Serveur SMTP",
+      "smtpPort": "Port SMTP",
+      "smtpUser": "Nom d'Utilisateur",
+      "smtpPassword": "Mot de Passe",
+      "fromEmail": "Email de l'Expéditeur",
+      "fromName": "Nom de l'Expéditeur",
+      "useSSL": "Utiliser SSL",
+      "testConnection": "Tester la Connexion",
+      "schedule": "Planification d'Envoi",
+      "dailyReport": "Rapport Quotidien",
+      "dailyReportDesc": "Envoyer un résumé quotidien des produits expirant",
+      "instantAlerts": "Alertes Instantanées",
+      "instantAlertsDesc": "Envoyer des notifications immédiatement lorsque des problèmes sont détectés"
+    },
+    "importExport": {
+      "title": "Importer et Exporter des Données"
+    },
+    "system": {
+      "title": "Informations Système",
+      "healthStatus": "État du Système",
+      "checkHealth": "Vérifier l'État",
+      "version": "Version",
+      "environment": "Environnement",
+      "status": "Statut",
+      "unhealthy": "Malsain",
+      "database": "Base de Données",
+      "disconnected": "Déconnecté"
+    },
     "saved": "Paramètres enregistrés",
     "saveError": "Erreur lors de l'enregistrement",
     "profileLabel": "Profil",
-    "departments": "Départements",
+    "departments": {
+      "title": "Gestion des départements",
+      "description": "Gestion des départements de l'hôtel",
+      "add": "Ajouter un département",
+      "newDepartment": "Nouveau département",
+      "name": "Nom",
+      "namePlaceholder": "Ex: Cuisine, Bar, Restaurant",
+      "emailPlaceholder": "E-mail du département (ex. kitchen@hotel.com) — rapports et alertes",
+      "nameRequired": "Entrez le nom du département",
+      "users": "utilisateurs",
+      "noDepartments": "Aucun département trouvé",
+      "addFirst": "Ajoutez le premier département pour commencer",
+      "added": "Département ajouté",
+      "addError": "Erreur lors de l'ajout du département",
+      "updated": "Département mis à jour",
+      "updateError": "Erreur lors de la mise à jour du département",
+      "deleted": "Département supprimé",
+      "deleteError": "Erreur lors de la suppression du département",
+      "deleteConfirmTitle": "Supprimer le département ?",
+      "deleteConfirmText": "Tous les utilisateurs de ce département seront déliés. Cette action ne peut pas être annulée.",
+      "loadError": "Erreur lors du chargement des départements",
+      "cannotDelete": "Impossible de supprimer le département",
+      "hasActiveBatches": "Le département a {{count}} lots actifs. Veuillez collecter ou supprimer tous les lots avant de supprimer le département.",
+      "clearBatchesFirst": "Effacez d'abord tous les lots"
+    },
     "categoriesLabel": "Catégories",
     "export": "Exporter",
     "branding": "Image de marque",
@@ -633,13 +789,20 @@
     },
     "profile": {
       "title": "Informations du profil",
+      "name": "Nom",
+      "email": "Email",
+      "emailPlaceholder": "example@email.com",
+      "emailHint": "Ajoutez un email pour recevoir des notifications",
+      "noEmail": "Email non spécifié",
       "login": "Identifiant",
       "role": "Rôle",
       "roleAdmin": "Administrateur",
       "roleManager": "Gestionnaire",
       "roleStaff": "Personnel",
       "roleDepartmentManager": "Chef de département",
-      "departments": "Départements disponibles"
+      "departments": "Départements disponibles",
+      "saved": "Profil mis à jour",
+      "saveError": "Erreur de sauvegarde"
     },
     "notifications": {
       "title": "Paramètres de notification",
@@ -702,26 +865,23 @@
     "dateFormat": "Format de date",
     "timezone": "Fuseau horaire",
     "defaultLanguage": "Langue par défaut",
-    "departments": {
-      "title": "Gestion des départements",
-      "description": "Gestion des départements de l'hôtel",
-      "add": "Ajouter un département",
-      "newDepartment": "Nouveau département",
-      "name": "Nom",
-      "namePlaceholder": "Ex: Cuisine, Bar, Restaurant",
-      "nameRequired": "Entrez le nom du département",
-      "users": "utilisateurs",
-      "noDepartments": "Aucun département trouvé",
-      "addFirst": "Ajoutez le premier département pour commencer",
-      "added": "Département ajouté",
-      "addError": "Erreur lors de l'ajout du département",
-      "updated": "Département mis à jour",
-      "updateError": "Erreur lors de la mise à jour du département",
-      "deleted": "Département supprimé",
-      "deleteError": "Erreur lors de la suppression du département",
-      "deleteConfirmTitle": "Supprimer le département ?",
-      "deleteConfirmText": "Tous les utilisateurs de ce département seront déliés. Cette action ne peut pas être annulée.",
-      "loadError": "Erreur lors du chargement des départements"
+    "cache": {
+      "title": "Cache Management",
+      "description": "Offline cache for working without internet",
+      "size": "Size",
+      "storedQueries": "Stored",
+      "activeQueries": "Active",
+      "enabled": "Offline mode enabled - data available without internet",
+      "empty": "Cache is empty - use the app to create cache",
+      "refreshAll": "Refresh All",
+      "clear": "Clear Cache",
+      "clearing": "Clearing...",
+      "confirmClear": "Clear all cache? Data will be reloaded on next launch.",
+      "cleared": "Cache cleared",
+      "clearError": "Cache clear error",
+      "refreshing": "Refreshing data...",
+      "infoTitle": "How it works:",
+      "info": "React Query automatically saves data to localStorage. When connection is lost, you continue to see the last loaded data. Changes sync automatically when internet is restored."
     }
   },
   "notificationRules": {
@@ -909,6 +1069,25 @@
       "compliment": "Offert au client",
       "other": "Autre"
     }
+  },
+  "fastIntake": {
+    "title": "Saisie rapide",
+    "modeOn": "Mode rapide",
+    "modeOff": "Mode rapide",
+    "switchToStandard": "Passer en mode standard",
+    "switchToFast": "Passer en mode saisie rapide",
+    "hint": "Astuce :",
+    "hintText": "Utilisez Tab ou Entrée pour naviguer entre les champs. Entrée sur la date d'expiration enregistre l'article instantanément.",
+    "searchProduct": "Produit",
+    "searchPlaceholder": "Commencez à taper le nom du produit...",
+    "quantity": "Quantité",
+    "expiryDate": "Date d'expiration",
+    "expiryHint": "(JJ.MM.AA ou Entrée pour la dernière utilisée)",
+    "useLastExpiry": "Utiliser la dernière date d'expiration",
+    "saveAndNext": "Enregistrer et suivant",
+    "sessionHistory": "Ajouté cette session",
+    "totalAdded": "Ajouté : {{count}} articles",
+    "itemAdded": "{{name}} × {{qty}} ajouté"
   },
   "units": {
     "pcs": "pcs",
@@ -1471,7 +1650,13 @@
     "editTemplate": "Modifier le modèle",
     "confirmDelete": "Supprimer le modèle ?",
     "deleteTitle": "Supprimer le modèle ?",
-    "deleteWarning": "Cette action est irréversible."
+    "deleteWarning": "Cette action est irréversible.",
+    "selectTemplate": "Sélectionnez un modèle à appliquer:",
+    "items": "articles",
+    "targetDepartment": "Département cible",
+    "changeTemplate": "Changer de modèle",
+    "itemsToAdd": "articles à ajouter",
+    "apply": "Appliquer le modèle"
   },
   "telegram": {
     "title": "Paramètres Telegram",
@@ -1485,6 +1670,14 @@
     "testError": "Erreur d'envoi",
     "schedule": "Planification",
     "scheduleTime": "Heure du rapport quotidien",
+    "sendTime": "Heure d'envoi des notifications",
+    "sendTimeLabel": "Les rapports quotidiens seront envoyés à:",
+    "timezone": "Fuseau horaire",
+    "status": "Statut",
+    "scheduledTime": "Heure programmée",
+    "currentTime": "Heure actuelle (Astana)",
+    "cronExpression": "Expression cron",
+    "sendTest": "Envoyer une notification de test maintenant",
     "messageTemplates": "Modèles de messages",
     "templatesHint": "Utilisez des variables entre accolades",
     "dailyReport": "Rapport quotidien",

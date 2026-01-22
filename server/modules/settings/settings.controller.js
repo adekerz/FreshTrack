@@ -30,7 +30,7 @@ import {
 } from '../../services/SettingsService.js'
 import { getHotelThresholds } from '../../services/ExpiryService.js'
 import sseManager from '../../services/SSEManager.js'
-import { logError, logInfo } from '../../utils/logger.js'
+import { logError, logInfo, logDebug } from '../../utils/logger.js'
 import { query as dbQuery } from '../../db/postgres.js'
 
 const router = Router()
@@ -472,55 +472,100 @@ router.get('/telegram', authMiddleware, hotelIsolation, async (req, res) => {
  */
 router.put('/telegram', authMiddleware, hotelIsolation, requirePermission(PermissionResource.SETTINGS, PermissionAction.UPDATE), async (req, res) => {
   try {
-    const { messageTemplates, sendTime } = req.body
+    const { messageTemplates, sendTime, timezone } = req.body
+    logInfo('PUT /telegram', `Received update: sendTime=${sendTime}, timezone=${timezone}, templatesUpdated=${!!messageTemplates}`)
 
     if (messageTemplates) {
       await setSetting('telegram_message_templates', messageTemplates, {
         scope: 'hotel',
         hotelId: req.hotelId
       })
+      logDebug('PUT /telegram', 'Message templates saved')
+    }
+
+    // Сохраняем часовой пояс (если передан)
+    if (timezone && typeof timezone === 'string') {
+      logInfo('PUT /telegram', `💾 Saving timezone: ${timezone}`)
+      
+      // Сохраняем в SYSTEM scope (приоритет для планировщика)
+      await setSetting('locale.timezone', timezone, {
+        scope: 'system'
+      })
+      logDebug('PUT /telegram', '✅ Timezone saved to system scope')
+      
+      // Также сохраняем для отеля
+      await setSetting('locale.timezone', timezone, {
+        scope: 'hotel',
+        hotelId: req.hotelId
+      })
+      logDebug('PUT /telegram', '✅ Timezone saved to hotel scope')
+      
+      // Очищаем кеш
+      clearSettingsCache()
     }
 
     // Сохраняем время отправки уведомлений (глобально для всей системы)
     if (sendTime) {
-      // Сохраняем глобально (system scope) для планировщика
+      // Валидация формата
+      if (!/^([01]\d|2[0-3]):([0-5]\d)$/.test(sendTime)) {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'Invalid time format. Expected HH:MM (00:00 - 23:59)' 
+        })
+      }
+      
+      logInfo('PUT /telegram', `💾 Saving send time: ${sendTime}`)
+      
+      // Сохраняем в SYSTEM scope (приоритет для планировщика)
       await setSetting('notify.telegram.sendTime', sendTime, {
         scope: 'system'
       })
-      // Также сохраняем для отеля
+      logDebug('PUT /telegram', '✅ Saved to system scope')
+      
+      // Также сохраняем для отеля (для истории/аудита)
       await setSetting('notify.telegram.sendTime', sendTime, {
         scope: 'hotel',
         hotelId: req.hotelId
       })
-
-      // Очищаем весь кеш настроек, чтобы изменения были видны сразу
+      logDebug('PUT /telegram', '✅ Saved to hotel scope')
+      
+      // КРИТИЧЕСКИ ВАЖНО: очищаем кеш ПЕРЕД перепланированием
       clearSettingsCache()
-
-      // Перепланируем ежедневный отчёт с новым временем
+      logDebug('PUT /telegram', '🗑️ Cache cleared')
+      
+      // Перепланируем задачу
       try {
         const { rescheduleDailyReport } = await import('../../jobs/notificationJobs.js')
         await rescheduleDailyReport()
-        logInfo('Telegram settings', `Daily report rescheduled to ${sendTime}`)
+        logInfo('PUT /telegram', `✅ Daily report rescheduled to ${sendTime}`)
       } catch (jobError) {
-        logError('Failed to reschedule daily report', jobError)
+        logError('PUT /telegram', 'Failed to reschedule', jobError)
+        // Не падаем, просто логируем
       }
     }
 
     await logAudit({
       hotel_id: req.hotelId,
       user_id: req.user.id,
-      user_name: req.user.name,
+      user_name: req.user.name || req.user.login || 'Unknown',
       action: 'update',
       entity_type: 'telegram_settings',
       entity_id: req.hotelId,
-      details: { updated: true, sendTime },
+      details: { sendTime, timezone, templatesUpdated: !!messageTemplates },
       ip_address: req.ip
     })
 
-    res.json({ success: true })
+    res.json({ 
+      success: true,
+      message: sendTime ? `Notifications rescheduled to ${sendTime}` : 'Settings saved'
+    })
   } catch (error) {
-    logError('Update telegram settings error', error)
-    res.status(500).json({ success: false, error: 'Failed to update telegram settings' })
+    logError('PUT /telegram', error)
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to update telegram settings',
+      details: error.message 
+    })
   }
 })
 
@@ -630,6 +675,97 @@ router.delete('/telegram/chats/:chatId', authMiddleware, hotelIsolation, require
   } catch (error) {
     logError('Delete telegram chat error', error)
     res.status(500).json({ success: false, error: 'Failed to unlink telegram chat' })
+  }
+})
+
+/**
+ * POST /api/settings/telegram/test-notification
+ * Отправить тестовое уведомление СЕЙЧАС (не ждать расписания)
+ */
+router.post('/telegram/test-notification', authMiddleware, hotelIsolation, requirePermission(PermissionResource.SETTINGS, PermissionAction.UPDATE), async (req, res) => {
+  try {
+    logInfo('POST /test-notification', '🧪 Manual test notification triggered')
+    
+    // Импортируем NotificationEngine
+    const { NotificationEngine } = await import('../../services/NotificationEngine.js')
+    
+    // Выполняем полный цикл уведомлений СЕЙЧАС
+    const results = {
+      expiryCheck: 0,
+      queueProcessed: { delivered: 0, failed: 0 },
+      dailyReports: { sent: 0 }
+    }
+    
+    try {
+      results.expiryCheck = await NotificationEngine.checkExpiringBatches()
+      logInfo('POST /test-notification', `📦 Expiry check: ${results.expiryCheck} notifications created`)
+    } catch (err) {
+      logError('POST /test-notification', 'Expiry check failed', err)
+    }
+    
+    try {
+      results.queueProcessed = await NotificationEngine.processQueue()
+      logInfo('POST /test-notification', `📤 Queue: ${results.queueProcessed.delivered} delivered, ${results.queueProcessed.failed} failed`)
+    } catch (err) {
+      logError('POST /test-notification', 'Queue processing failed', err)
+    }
+    
+    try {
+      results.dailyReports = await NotificationEngine.sendDailyReports()
+      logInfo('POST /test-notification', `📊 Daily reports: ${results.dailyReports.sent} sent`)
+    } catch (err) {
+      logError('POST /test-notification', 'Daily reports failed', err)
+    }
+    
+    await logAudit({
+      hotel_id: req.hotelId,
+      user_id: req.user.id,
+      user_name: req.user.name,
+      action: 'test_notification',
+      entity_type: 'telegram_notifications',
+      entity_id: null,
+      details: results,
+      ip_address: req.ip
+    })
+    
+    res.json({ 
+      success: true, 
+      message: 'Test notifications sent',
+      results 
+    })
+  } catch (error) {
+    logError('POST /test-notification', error)
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to send test notification',
+      details: error.message
+    })
+  }
+})
+
+/**
+ * GET /api/settings/telegram/schedule-status
+ * Проверить текущее состояние планировщика
+ */
+router.get('/telegram/schedule-status', authMiddleware, hotelIsolation, async (req, res) => {
+  try {
+    const { getScheduleStatus } = await import('../../jobs/notificationJobs.js')
+    
+    const status = await getScheduleStatus()
+    
+    res.json({
+      success: true,
+      sendTime: status.sendTime,
+      timezone: status.timezone,
+      currentTime: new Date().toLocaleString('ru-RU', { timeZone: status.timezone }),
+      isScheduled: status.isScheduled,
+      cronExpression: status.cronExpression,
+      nextRun: status.nextRun,
+      nextRunLocal: status.nextRunLocal
+    })
+  } catch (error) {
+    logError('GET /schedule-status', error)
+    res.status(500).json({ success: false, error: error.message })
   }
 })
 
@@ -1255,6 +1391,363 @@ router.put('/notifications/rules', authMiddleware, hotelIsolation, requirePermis
   } catch (error) {
     logError('Update notification rules error', error)
     res.status(500).json({ success: false, error: 'Failed to update notification rules' })
+  }
+})
+
+// ========================================
+// Unified Notifications Settings
+// ========================================
+
+/**
+ * GET /api/settings/notifications
+ * Get unified notification settings (channels, templates, schedule)
+ */
+router.get('/notifications', authMiddleware, hotelIsolation, requirePermission(PermissionResource.SETTINGS, PermissionAction.READ), async (req, res) => {
+  try {
+    const context = {
+      hotelId: req.hotelId,
+      departmentId: req.departmentId,
+      userId: req.user?.id
+    }
+
+    const allSettings = await getHierarchicalSettings(context)
+
+    // Get channel enabled states
+    const telegramEnabled = allSettings.raw?.['notify.channels.telegram'] ?? 
+      allSettings.notify?.channels?.telegram ?? true // Default to true if telegram settings exist
+    const emailEnabled = allSettings.raw?.['notify.channels.email'] ?? 
+      allSettings.notify?.channels?.email ?? false
+
+    // Get unified templates (from telegram settings for now, will be migrated)
+    const templates = allSettings.telegram?.messageTemplates ??
+      allSettings.raw?.['telegram.messageTemplates'] ??
+      allSettings.raw?.['telegram_message_templates'] ??
+      allSettings.raw?.['notify.templates'] ??
+      {
+        dailyReport: '📊 Ежедневный отчёт FreshTrack\n\n✅ В норме: {good}\n⚠️ Скоро истекает: {warning}\n🔴 Просрочено: {expired}',
+        expiryWarning: '⚠️ Внимание! {product} истекает {date} ({quantity} шт)',
+        expiredAlert: '🔴 ПРОСРОЧЕНО: {product} — {quantity} шт',
+        collectionConfirm: '✅ Собрано: {product} — {quantity} шт\nПричина: {reason}'
+      }
+
+    // Get send time
+    const sendTime = allSettings.raw?.['notify.sendTime'] ??
+      allSettings.raw?.['notify.telegram.sendTime'] ??
+      '09:00'
+
+    // Get timezone
+    const timezone = allSettings.raw?.['locale.timezone'] ??
+      allSettings.locale?.timezone ??
+      'Asia/Almaty'
+
+    res.json({
+      success: true,
+      channels: {
+        telegram: { enabled: Boolean(telegramEnabled) },
+        email: { enabled: Boolean(emailEnabled) }
+      },
+      templates,
+      sendTime,
+      timezone
+    })
+  } catch (error) {
+    logError('Get notifications settings error', error)
+    res.status(500).json({ success: false, error: 'Failed to get notifications settings' })
+  }
+})
+
+/**
+ * PUT /api/settings/notifications
+ * Update unified notification settings
+ */
+router.put('/notifications', authMiddleware, hotelIsolation, requirePermission(PermissionResource.SETTINGS, PermissionAction.UPDATE), async (req, res) => {
+  try {
+    const { channels, templates, sendTime, timezone } = req.body
+
+    // Save channel enabled states
+    if (channels) {
+      if (channels.telegram?.enabled !== undefined) {
+        await setSetting('notify.channels.telegram', channels.telegram.enabled, {
+          scope: 'hotel',
+          hotelId: req.hotelId
+        })
+      }
+      if (channels.email?.enabled !== undefined) {
+        await setSetting('notify.channels.email', channels.email.enabled, {
+          scope: 'hotel',
+          hotelId: req.hotelId
+        })
+      }
+    }
+
+    // Save unified templates
+    if (templates) {
+      // Save as unified templates
+      await setSetting('notify.templates', templates, {
+        scope: 'hotel',
+        hotelId: req.hotelId
+      })
+      // Also save to telegram_message_templates for backward compatibility
+      await setSetting('telegram_message_templates', templates, {
+        scope: 'hotel',
+        hotelId: req.hotelId
+      })
+    }
+
+    // Save timezone
+    if (timezone && typeof timezone === 'string') {
+      await setSetting('locale.timezone', timezone, {
+        scope: 'system'
+      })
+      await setSetting('locale.timezone', timezone, {
+        scope: 'hotel',
+        hotelId: req.hotelId
+      })
+      clearSettingsCache()
+    }
+
+    // Save send time and reschedule
+    if (sendTime) {
+      if (!/^([01]\d|2[0-3]):([0-5]\d)$/.test(sendTime)) {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'Invalid time format. Expected HH:MM (00:00 - 23:59)' 
+        })
+      }
+      
+      await setSetting('notify.sendTime', sendTime, {
+        scope: 'system'
+      })
+      await setSetting('notify.sendTime', sendTime, {
+        scope: 'hotel',
+        hotelId: req.hotelId
+      })
+      // Also save to telegram for backward compatibility
+      await setSetting('notify.telegram.sendTime', sendTime, {
+        scope: 'system'
+      })
+      
+      clearSettingsCache()
+      
+      // Reschedule daily report
+      try {
+        const { rescheduleDailyReport } = await import('../../jobs/notificationJobs.js')
+        await rescheduleDailyReport()
+        logInfo('PUT /notifications', `✅ Daily report rescheduled to ${sendTime}`)
+      } catch (jobError) {
+        logError('PUT /notifications', 'Failed to reschedule', jobError)
+      }
+    }
+
+    await logAudit({
+      hotel_id: req.hotelId,
+      user_id: req.user.id,
+      user_name: req.user.name || req.user.login || 'Unknown',
+      action: 'update',
+      entity_type: 'notifications_settings',
+      entity_id: req.hotelId,
+      details: { channels, templatesUpdated: !!templates, sendTime, timezone },
+      ip_address: req.ip
+    })
+
+    res.json({ 
+      success: true,
+      message: sendTime ? `Notifications rescheduled to ${sendTime}` : 'Settings saved'
+    })
+  } catch (error) {
+    logError('PUT /notifications', error)
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to update notifications settings',
+      details: error.message 
+    })
+  }
+})
+
+// ========================================
+// Email Settings (SYSTEM EMAIL only) - DEPRECATED
+// ========================================
+
+/**
+ * GET /api/settings/email
+ * Get email settings for SYSTEM notifications (not user emails)
+ */
+router.get('/email', authMiddleware, hotelIsolation, requirePermission(PermissionResource.SETTINGS, PermissionAction.READ), async (req, res) => {
+  try {
+    const context = {
+      hotelId: req.hotelId,
+      departmentId: req.departmentId,
+      userId: req.user?.id
+    }
+
+    const allSettings = await getHierarchicalSettings(context)
+
+    // Email settings for SYSTEM notifications
+    const settings = {
+      enabled: allSettings.raw?.['email.enabled'] ?? allSettings.email?.enabled ?? false,
+      smtpHost: allSettings.raw?.['email.smtpHost'] ?? allSettings.email?.smtpHost ?? process.env.SMTP_HOST ?? '',
+      smtpPort: allSettings.raw?.['email.smtpPort'] ?? allSettings.email?.smtpPort ?? parseInt(process.env.SMTP_PORT || '587'),
+      smtpSecure: allSettings.raw?.['email.smtpSecure'] ?? allSettings.email?.smtpSecure ?? (process.env.SMTP_SECURE === 'true'),
+      smtpUser: allSettings.raw?.['email.smtpUser'] ?? allSettings.email?.smtpUser ?? process.env.SMTP_USER ?? '',
+      smtpPassword: allSettings.raw?.['email.smtpPassword'] ?? allSettings.email?.smtpPassword ?? process.env.SMTP_PASS ?? '',
+      fromEmail: allSettings.raw?.['email.fromEmail'] ?? allSettings.email?.fromEmail ?? process.env.EMAIL_FROM ?? 'no-reply@freshtrack.systems',
+      fromName: allSettings.raw?.['email.fromName'] ?? allSettings.email?.fromName ?? 'FreshTrack',
+      dailyReportTime: allSettings.raw?.['email.dailyReportTime'] ?? allSettings.email?.dailyReportTime ?? '08:00',
+      dailyReportEnabled: allSettings.raw?.['email.dailyReportEnabled'] ?? allSettings.email?.dailyReportEnabled ?? true,
+      instantAlertsEnabled: allSettings.raw?.['email.instantAlertsEnabled'] ?? allSettings.email?.instantAlertsEnabled ?? true
+    }
+
+    res.json({ success: true, settings })
+  } catch (error) {
+    logError('Get email settings error', error)
+    res.status(500).json({ success: false, error: 'Failed to get email settings' })
+  }
+})
+
+/**
+ * PUT /api/settings/email
+ * Update email settings for SYSTEM notifications
+ */
+router.put('/email', authMiddleware, hotelIsolation, requirePermission(PermissionResource.SETTINGS, PermissionAction.UPDATE), async (req, res) => {
+  try {
+    const { settings } = req.body
+
+    if (!settings || typeof settings !== 'object') {
+      return res.status(400).json({ success: false, error: 'Settings object is required' })
+    }
+
+    const emailKeys = [
+      'email.enabled',
+      'email.smtpHost',
+      'email.smtpPort',
+      'email.smtpSecure',
+      'email.smtpUser',
+      'email.smtpPassword',
+      'email.fromEmail',
+      'email.fromName',
+      'email.dailyReportTime',
+      'email.dailyReportEnabled',
+      'email.instantAlertsEnabled'
+    ]
+
+    const results = []
+    for (const [key, value] of Object.entries(settings)) {
+      const dbKey = `email.${key}`
+      if (emailKeys.includes(dbKey)) {
+        await setSetting(dbKey, value, {
+          scope: 'hotel',
+          hotelId: req.hotelId
+        })
+        results.push({ key: dbKey, success: true })
+      }
+    }
+
+    // If dailyReportTime changed, reschedule the job
+    if (settings.dailyReportTime) {
+      try {
+        const { rescheduleDailyReport } = await import('../../jobs/notificationJobs.js')
+        await rescheduleDailyReport()
+        logInfo('PUT /email', `✅ Daily report rescheduled to ${settings.dailyReportTime}`)
+      } catch (jobError) {
+        logError('PUT /email', 'Failed to reschedule daily report', jobError)
+      }
+    }
+
+    await logAudit({
+      hotel_id: req.hotelId,
+      user_id: req.user.id,
+      user_name: req.user.name,
+      action: 'update',
+      entity_type: 'email_settings',
+      entity_id: req.hotelId,
+      details: { updatedKeys: results.map(r => r.key) },
+      ip_address: req.ip
+    })
+
+    res.json({ success: true, results })
+  } catch (error) {
+    logError('Update email settings error', error)
+    res.status(500).json({ success: false, error: 'Failed to update email settings' })
+  }
+})
+
+/**
+ * POST /api/settings/email/test
+ * Test email connection by sending a test email to department inbox
+ */
+router.post('/email/test', authMiddleware, hotelIsolation, requirePermission(PermissionResource.SETTINGS, PermissionAction.UPDATE), async (req, res) => {
+  try {
+    const { settings } = req.body
+
+    // Get department email for testing
+    const deptResult = await dbQuery(`
+      SELECT d.id, d.name, d.email
+      FROM departments d
+      WHERE d.hotel_id = $1 AND d.is_active = true AND d.email IS NOT NULL AND TRIM(d.email) != ''
+      LIMIT 1
+    `, [req.hotelId])
+
+    if (deptResult.rows.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'No department with email found. Please set email for at least one department first.'
+      })
+    }
+
+    const testDepartment = deptResult.rows[0]
+    const testEmail = testDepartment.email
+
+    // Temporarily override env vars if settings provided
+    if (settings) {
+      if (settings.smtpHost) process.env.SMTP_HOST = settings.smtpHost
+      if (settings.smtpPort) process.env.SMTP_PORT = String(settings.smtpPort)
+      if (settings.smtpSecure !== undefined) process.env.SMTP_SECURE = String(settings.smtpSecure)
+      if (settings.smtpUser) process.env.SMTP_USER = settings.smtpUser
+      if (settings.smtpPassword) process.env.SMTP_PASS = settings.smtpPassword
+      if (settings.fromEmail) process.env.EMAIL_FROM = settings.fromEmail
+    }
+
+    const { sendEmail, EMAIL_FROM } = await import('../../services/EmailService.js')
+
+    await sendEmail({
+      to: testEmail,
+      from: settings?.fromEmail ? `${settings.fromName || 'FreshTrack'} <${settings.fromEmail}>` : EMAIL_FROM.noreply,
+      subject: 'FreshTrack: Тестовое письмо',
+      html: `
+        <h2>Тестовое письмо</h2>
+        <p>Это тестовое письмо от FreshTrack для проверки настроек SYSTEM email.</p>
+        <p>Если вы получили это письмо, значит настройки SMTP работают корректно.</p>
+        <p><strong>Отдел:</strong> ${testDepartment.name}</p>
+        <p><strong>Email отдела:</strong> ${testEmail}</p>
+        <p style="color: #666; font-size: 12px; margin-top: 24px;">
+          Это системное письмо. На этот адрес будут приходить уведомления о сроках годности и ежедневные отчёты.
+        </p>
+      `,
+      text: `Тестовое письмо от FreshTrack\n\nЭто тестовое письмо для проверки настроек SYSTEM email.\n\nОтдел: ${testDepartment.name}\nEmail отдела: ${testEmail}`
+    })
+
+    await logAudit({
+      hotel_id: req.hotelId,
+      user_id: req.user.id,
+      user_name: req.user.name,
+      action: 'test_email',
+      entity_type: 'email_settings',
+      entity_id: null,
+      details: { testEmail, department: testDepartment.name },
+      ip_address: req.ip
+    })
+
+    res.json({
+      success: true,
+      message: `Тестовое письмо отправлено на ${testEmail} (${testDepartment.name})`
+    })
+  } catch (error) {
+    logError('Test email error', error)
+    res.status(500).json({
+      success: false,
+      error: 'Failed to send test email',
+      details: error.message
+    })
   }
 })
 

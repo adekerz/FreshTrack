@@ -8,24 +8,28 @@
  */
 
 import { useState, useEffect } from 'react'
-import { Search, X, Moon, Sun, LogOut, Settings, ChevronDown } from 'lucide-react'
+import { Search, X, Moon, Sun, LogOut, Settings, ChevronDown, Zap } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useTranslation } from '../context/LanguageContext'
 import { useTheme } from '../context/ThemeContext'
+import { useToast } from '../context/ToastContext'
 import GlobalSearch from './GlobalSearch'
 import NotificationBell from './NotificationBell'
 import HotelSelector from './HotelSelector'
 import { cn } from '../utils/classNames'
+import { apiFetch } from '../services/api'
 
 export default function Header() {
   const navigate = useNavigate()
   const { user, logout } = useAuth()
   const { t } = useTranslation()
   const { theme, toggleTheme } = useTheme()
+  const { addToast } = useToast()
   
   const [showMobileSearch, setShowMobileSearch] = useState(false)
   const [showUserMenu, setShowUserMenu] = useState(false)
+  const [testingNotification, setTestingNotification] = useState(false)
 
   // Close menus on outside click
   useEffect(() => {
@@ -48,6 +52,55 @@ export default function Header() {
     document.addEventListener('keydown', handleEscape)
     return () => document.removeEventListener('keydown', handleEscape)
   }, [])
+
+  // Test notification handler
+  const handleTestNotification = async () => {
+    setTestingNotification(true)
+    try {
+      const result = await apiFetch('/notifications/test-telegram', {
+        method: 'POST',
+        body: JSON.stringify({})
+      })
+      
+      if (result.success && result.sentTo > 0) {
+        const message = result.sentTo === 1
+          ? t('notifications.test.sent') || 'Тестовое уведомление отправлено'
+          : `Тестовое уведомление отправлено в ${result.sentTo} чат(ов)`
+        addToast(message, 'success')
+      } else {
+        // Показываем конкретную ошибку от сервера
+        const errorMessage = result.error || 
+          (result.totalChats === 0 
+            ? 'Нет привязанных Telegram чатов. Добавьте бота в чат и используйте /link MARSHA_CODE'
+            : t('notifications.test.error') || 'Ошибка отправки тестового уведомления')
+        addToast(errorMessage, 'error')
+      }
+    } catch (error) {
+      // Обрабатываем различные типы ошибок
+      let errorMessage = t('notifications.test.error') || 'Ошибка отправки тестового уведомления'
+      
+      if (error.message) {
+        errorMessage = error.message
+      } else if (error.error) {
+        errorMessage = error.error
+      } else if (typeof error === 'string') {
+        errorMessage = error
+      }
+      
+      // Специальные сообщения для известных ошибок
+      if (errorMessage.includes('Unauthorized') || errorMessage.includes('401') || errorMessage.includes('авторизации')) {
+        errorMessage = 'Ошибка авторизации Telegram бота. Проверьте настройки сервера (TELEGRAM_BOT_TOKEN).'
+      } else if (errorMessage.includes('не настроен') || errorMessage.includes('not configured')) {
+        errorMessage = 'Telegram бот не настроен. Обратитесь к администратору.'
+      } else if (errorMessage.includes('привязанных') || errorMessage.includes('чатов')) {
+        errorMessage = 'Нет привязанных Telegram чатов. Добавьте бота @freshtracksystemsbot в чат и используйте /link MARSHA_CODE'
+      }
+      
+      addToast(errorMessage, 'error')
+    } finally {
+      setTestingNotification(false)
+    }
+  }
 
   return (
     <header className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm border-b border-border">
@@ -88,6 +141,17 @@ export default function Header() {
 
           {/* Notifications */}
           <NotificationBell />
+
+          {/* Test Notification Button */}
+          <button
+            onClick={handleTestNotification}
+            disabled={testingNotification}
+            className="p-2 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            aria-label={t('notifications.test.label') || 'Тест уведомлений'}
+            title={t('notifications.test.label') || 'Отправить тестовое уведомление'}
+          >
+            <Zap className={cn('w-5 h-5', testingNotification && 'animate-pulse')} />
+          </button>
 
           {/* User menu (desktop) */}
           <div className="relative hidden sm:block" data-user-menu>

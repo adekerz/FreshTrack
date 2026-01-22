@@ -9,15 +9,74 @@ import { sendDailyAlert, initTelegramBot } from './TelegramService.js'
 import { logError, logInfo, logDebug } from '../utils/logger.js'
 import sseManager from './SSEManager.js'
 import { SSE_EVENTS } from '../utils/constants.js'
+import { query } from '../db/postgres.js'
 
 let dailyJob = null
 
 /**
+ * Get timezone for scheduler (same logic as notificationJobs)
+ */
+async function getTimezone() {
+  try {
+    const settingsResult = await query(`
+      SELECT value FROM settings 
+      WHERE key IN ('locale.timezone', 'display.timezone')
+      AND (hotel_id IS NULL OR scope = 'system')
+      ORDER BY 
+        CASE WHEN key = 'locale.timezone' THEN 0 ELSE 1 END,
+        updated_at DESC NULLS LAST
+      LIMIT 1
+    `)
+    
+    if (settingsResult.rows.length > 0) {
+      try {
+        const timezone = JSON.parse(settingsResult.rows[0].value)
+        if (typeof timezone === 'string' && timezone) {
+          return timezone
+        }
+      } catch {
+        const timezone = settingsResult.rows[0].value
+        if (timezone && typeof timezone === 'string') {
+          return timezone
+        }
+      }
+    }
+    
+    const hotelResult = await query(`
+      SELECT timezone FROM hotels 
+      WHERE is_active = true AND timezone IS NOT NULL
+      ORDER BY created_at ASC
+      LIMIT 1
+    `)
+    
+    if (hotelResult.rows.length > 0 && hotelResult.rows[0].timezone) {
+      return hotelResult.rows[0].timezone
+    }
+    
+    try {
+      return Intl.DateTimeFormat().resolvedOptions().timeZone
+    } catch {
+      return 'Asia/Almaty'
+    }
+  } catch (error) {
+    logError('Scheduler getTimezone', error)
+    try {
+      return Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Almaty'
+    } catch {
+      return 'Asia/Almaty'
+    }
+  }
+}
+
+/**
  * Инициализация планировщика
  */
-export function initScheduler() {
+export async function initScheduler() {
   // Инициализируем Telegram бота
   initTelegramBot()
+
+  // Получаем часовой пояс
+  const timezone = await getTimezone()
 
   // Ежедневная проверка в 9:00 утра
   // Формат cron: минуты часы день месяц день_недели
@@ -25,10 +84,10 @@ export function initScheduler() {
     logInfo('Scheduler', '⏰ Running daily expiry check...')
     await runDailyCheck()
   }, {
-    timezone: 'Asia/Almaty' // Часовой пояс Казахстана
+    timezone: timezone
   })
 
-  logInfo('Scheduler', '📅 Daily check scheduled for 9:00 AM (Asia/Almaty)')
+  logInfo('Scheduler', `📅 Daily check scheduled for 9:00 AM (${timezone})`)
 
   // Также запускаем проверку сразу при старте сервера (опционально)
   // Раскомментируйте если нужна проверка при запуске:
@@ -174,10 +233,12 @@ export function restartScheduler() {
 /**
  * Получить статус планировщика
  */
-export function getSchedulerStatus() {
+export async function getSchedulerStatus() {
+  const timezone = await getTimezone()
   return {
     isRunning: dailyJob !== null,
-    nextRun: dailyJob ? 'Daily at 9:00 AM (Asia/Almaty)' : 'Not scheduled'
+    nextRun: dailyJob ? `Daily at 9:00 AM (${timezone})` : 'Not scheduled',
+    timezone: timezone
   }
 }
 

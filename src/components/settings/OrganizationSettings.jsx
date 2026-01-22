@@ -28,7 +28,8 @@ import {
   Ban,
   Eye,
   EyeOff,
-  AlertTriangle
+  AlertTriangle,
+  Mail
 } from 'lucide-react'
 
 export default function OrganizationSettings() {
@@ -73,6 +74,7 @@ export default function OrganizationSettings() {
   const [creatingUser, setCreatingUser] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [userError, setUserError] = useState(null)
+  const [generatePassword, setGeneratePassword] = useState(true) // Default: auto-generate password
 
   // Delete/Block confirmation
   const [deleteConfirm, setDeleteConfirm] = useState(null)
@@ -189,34 +191,85 @@ export default function OrganizationSettings() {
 
   // User CRUD
   const createUser = async () => {
-    if (!newUser.login || !newUser.password || !newUser.name) {
-      setUserError('Заполните обязательные поля')
+    if (!newUser.login || !newUser.name) {
+      setUserError('Заполните обязательные поля (логин, имя)')
       return
     }
+    
+    // If generatePassword is enabled, password is optional
+    if (!generatePassword && !newUser.password) {
+      setUserError('Укажите пароль или включите автоматическую генерацию')
+      return
+    }
+    
+    // Email is required if generating password (to send it)
+    if (generatePassword && !newUser.email) {
+      setUserError('Email обязателен для отправки временного пароля')
+      return
+    }
+    
     setCreatingUser(true)
     setUserError(null)
     try {
       // На уровне отеля (без departmentId) - автоматически HOTEL_ADMIN
       const effectiveRole = showCreateUser?.departmentId ? newUser.role : 'HOTEL_ADMIN'
 
-      await apiFetch('/auth/users', {
+      const requestBody = {
+        login: newUser.login,
+        name: newUser.name,
+        email: newUser.email,
+        role: effectiveRole,
+        hotel_id: showCreateUser?.hotelId,
+        department_id: showCreateUser?.departmentId
+      }
+      
+      // Only include password if manually set (not auto-generated)
+      if (!generatePassword && newUser.password) {
+        requestBody.password = newUser.password
+      }
+
+      const result = await apiFetch('/auth/users', {
         method: 'POST',
-        body: JSON.stringify({
-          ...newUser,
-          role: effectiveRole,
-          hotel_id: showCreateUser?.hotelId,
-          department_id: showCreateUser?.departmentId
-        })
+        body: JSON.stringify(requestBody)
       })
-      addToast('Пользователь создан', 'success')
+      
+      if (generatePassword && newUser.email) {
+        addToast(`Пользователь создан. Временный пароль отправлен на ${newUser.email}`, 'success')
+      } else {
+        addToast('Пользователь создан', 'success')
+      }
+      
       setShowCreateUser(null)
       setNewUser({ login: '', password: '', name: '', email: '', role: 'STAFF' })
+      setGeneratePassword(true) // Reset to default
+      setShowPassword(false)
       fetchData()
     } catch (error) {
-      setUserError(error.message)
+      setUserError(error.message || 'Ошибка создания пользователя')
       addToast('Ошибка создания пользователя', 'error')
     } finally {
       setCreatingUser(false)
+    }
+  }
+  
+  // Resend password to user
+  const resendPassword = async (userId, userEmail) => {
+    if (!window.confirm(`Отправить новый временный пароль на ${userEmail}?`)) {
+      return
+    }
+    
+    try {
+      const result = await apiFetch(`/auth/users/${userId}/resend-password`, {
+        method: 'POST'
+      })
+      
+      if (result.success || !result.error) {
+        addToast(`Временный пароль отправлен на ${userEmail}`, 'success')
+      } else {
+        addToast('Ошибка отправки пароля', 'error')
+      }
+    } catch (error) {
+      addToast(error.message || 'Ошибка отправки пароля', 'error')
     }
   }
 
@@ -319,6 +372,18 @@ export default function OrganizationSettings() {
         >
           {user.is_active !== false ? 'Активен' : 'Заблок.'}
         </span>
+        {user.email && user.is_active !== false && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              resendPassword(user.id, user.email)
+            }}
+            className="p-1.5 text-muted-foreground hover:text-accent hover:bg-accent/10 rounded transition-colors"
+            title="Переотправить временный пароль"
+          >
+            <Mail className="w-4 h-4" />
+          </button>
+        )}
         <button
           onClick={() =>
             setBlockConfirm({
@@ -770,6 +835,9 @@ export default function OrganizationSettings() {
               onClick={() => {
                 setShowCreateUser(null)
                 setUserError(null)
+                setNewUser({ login: '', password: '', name: '', email: '', role: 'STAFF' })
+                setGeneratePassword(true)
+                setShowPassword(false)
               }}
               className="p-2 hover:bg-muted rounded-lg"
             >
@@ -795,26 +863,53 @@ export default function OrganizationSettings() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-foreground mb-1">Пароль *</label>
-              <div className="relative">
+              <div className="flex items-center gap-2 mb-2">
                 <input
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="••••••••"
-                  value={newUser.password}
-                  onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-                  className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-card pr-10"
+                  type="checkbox"
+                  id="generatePassword"
+                  checked={generatePassword}
+                  onChange={(e) => {
+                    setGeneratePassword(e.target.checked)
+                    if (e.target.checked) {
+                      setNewUser({ ...newUser, password: '' })
+                    }
+                  }}
+                  className="rounded border-border"
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
+                <label htmlFor="generatePassword" className="text-sm font-medium text-foreground cursor-pointer">
+                  Сгенерировать пароль автоматически
+                </label>
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Мин. 8 символов, заглавные, строчные буквы и цифры
-              </p>
+              {generatePassword ? (
+                <div className="bg-info/10 border border-info/20 rounded-lg p-3">
+                  <p className="text-xs text-info">
+                    <strong>Временный пароль будет сгенерирован и отправлен на email.</strong> Пользователь должен будет сменить его при первом входе.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <label className="block text-sm font-medium text-foreground mb-1">Пароль *</label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="••••••••"
+                      value={newUser.password}
+                      onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                      className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-card pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Мин. 8 символов, заглавные, строчные буквы и цифры
+                  </p>
+                </>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-foreground mb-1">Имя *</label>
@@ -827,7 +922,9 @@ export default function OrganizationSettings() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-foreground mb-1">Email</label>
+              <label className="block text-sm font-medium text-foreground mb-1">
+                Email {generatePassword && <span className="text-danger">*</span>}
+              </label>
               <input
                 type="email"
                 placeholder="user@example.com"
@@ -835,6 +932,11 @@ export default function OrganizationSettings() {
                 onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
                 className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-card"
               />
+              {generatePassword && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Обязателен для отправки временного пароля
+                </p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-foreground mb-1">Роль</label>

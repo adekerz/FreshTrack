@@ -11,7 +11,8 @@ export const CreateDepartmentSchema = z.object({
   name: z.string().min(1, 'Name is required').max(100),
   description: z.string().max(500).optional().nullable(),
   hotel_id: z.string().uuid('Invalid hotel ID').optional(),
-  settings: z.object({}).passthrough().optional().nullable()
+  settings: z.object({}).passthrough().optional().nullable(),
+  email: z.string().max(255).optional().nullable()
 })
 
 // Обновление департамента
@@ -19,7 +20,8 @@ export const UpdateDepartmentSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   description: z.string().max(500).optional().nullable(),
   settings: z.object({}).passthrough().optional().nullable(),
-  is_active: z.boolean().optional()
+  is_active: z.boolean().optional(),
+  email: z.string().max(255).optional().nullable()
 })
 
 /**

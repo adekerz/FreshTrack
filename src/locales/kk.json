@@ -157,7 +157,8 @@
     "noResults": "Ештеңе табылмады",
     "products": "Тауарлар",
     "departments": "Бөлімдер",
-    "productsCount": "тауар"
+    "productsCount": "тауар",
+    "open": "Іздеуді ашу"
   },
   "header": {
     "addBatch": "Партия қосу",
@@ -301,6 +302,13 @@
       "disabled": "Хабарландырулар бұғатталған",
       "unsupported": "Браузер қолдамайды",
       "notRequested": "Сұралмаған"
+    },
+    "test": {
+      "label": "Хабарландыруды тестілеу",
+      "title": "Тесттік хабарландыру",
+      "message": "Бұл жүйенің дұрыс жұмыс істеп тұрғанын тексеру үшін тесттік хабарландыру.",
+      "sent": "Тесттік хабарландыру сәтті жіберілді",
+      "error": "Тесттік хабарландыруды жіберу кезінде қате"
     }
   },
   "departments": {
@@ -569,30 +577,154 @@
   "settings": {
     "title": "Баптаулар",
     "subtitle": "Профиль мен жүйені басқару",
+    "profile": "Профиль",
+    "departments": "Бөлімшелер",
+    "categories": "Санаттар",
+    "export": "Экспорт",
+    "branding": "Брендинг",
+    "brandingDescription": "Логотип пен жүйе түстерін баптау",
+    "generalTitle": "Жалпы баптаулар",
+    "generalDescription": "Жүйенің негізгі параметрлері",
+    "tabs": {
+      "profile": "Профиль",
+      "language": "Тіл",
+      "general": "Жалпы",
+      "users": "Пайдаланушылар",
+      "joinRequests": "Қосылу өтініштері",
+      "directories": "Анықтамалар",
+      "categories": "Санаттар",
+      "templates": "Үлгілер",
+      "rules": "Хабарландыру ережелері",
+      "notifications": "Хабарландырулар",
+      "telegram": "Telegram",
+      "email": "Email",
+      "branding": "Брендинг",
+      "cache": "Кэш",
+      "importExport": "Импорт/Экспорт",
+      "system": "Жүйе"
+    },
+    "profile": {
+      "title": "Пайдаланушы профилі",
+      "name": "Аты",
+      "email": "Email",
+      "emailPlaceholder": "example@email.com",
+      "emailHint": "Хабарландырулар алу үшін email қосыңыз",
+      "noEmail": "Email көрсетілмеген",
+      "login": "Кіру",
+      "role": "Рөл",
+      "departments": "Бөлімшелер",
+      "saved": "Профиль жаңартылды",
+      "saveError": "Сақтау қатесі"
+    },
+    "language": {
+      "title": "Интерфейс тілі"
+    },
+    "onboarding": {
+      "title": "Оқыту",
+      "description": "Жүйеге саяхат жасаңыз",
+      "restart": "Турды қайта бастау"
+    },
+    "directories": {
+      "title": "Анықтамалар",
+      "description": "Санаттар мен бөлімшелерді басқару",
+      "categories": "Санаттар",
+      "departments": "Бөлімшелер"
+    },
+    "categories": {
+      "title": "Өнім санаттары"
+    },
+    "templates": {
+      "title": "Жеткізу үлгілері"
+    },
+    "telegram": {
+      "title": "Telegram баптаулары",
+      "sendTime": "Хабарландыру жіберу уақыты",
+      "sendTimeLabel": "Күнделікті есептер мына уақытта жіберіледі:",
+      "timezone": "Уақыт белдеуі",
+      "sendTest": "Қазір тесттік хабарландыру жіберу",
+      "refreshStatus": "Мәртебені жаңарту",
+      "status": "Мәртебе",
+      "scheduledTime": "Белгіленген уақыт",
+      "currentTime": "Ағымдағы уақыт (Астана)",
+      "nextRun": "Келесі орындау",
+      "cronExpression": "Cron өрнегі",
+      "testing": "Жіберілуде...",
+      "messageTemplates": "Хабарлама шаблондары",
+      "templatesHint": "Бұйра жақшаларда айнымалыларды пайдаланыңыз"
+    },
+    "notifications": {
+      "title": "Хабарландырулар",
+      "description": "Жеткізу арналары мен хабарлама шаблондарын баптау",
+      "channels": "Жеткізу арналары",
+      "enabled": "Қосылған",
+      "disabled": "Өшірілген",
+      "templates": "Хабарлама шаблондары",
+      "templatesHint": "Барлық жеткізу арналары үшін бірыңғай шаблондар. Бұйра жақшаларда айнымалыларды пайдаланыңыз.",
+      "schedule": "Жіберу кестесі",
+      "sendTime": "Күнделікті есептерді жіберу уақыты",
+      "saved": "Хабарландыру баптаулары сақталды",
+      "saveError": "Баптауларды сақтау қатесі",
+      "emailNote": "Email хабарландырулар бөлімшелердің email мекенжайларына жіберіледі (department.email)",
+      "warningDays": "Ескерту күндері",
+      "criticalDays": "Маңызды күндер",
+      "days": "күн",
+      "time": "Хабарландыру уақыты",
+      "weekends": "Демалыс күндері хабарлама жіберу"
+    },
+    "email": {
+      "title": "Email баптаулары",
+      "description": "Email хабарландыруларын баптау",
+      "infoTitle": "Ақпарат",
+      "infoText": "Өнімнің мерзімі аяқталған кезде Email хабарландырулар жіберіледі",
+      "enableEmail": "Email хабарландыруларын қосу",
+      "enabled": "Email қосылған",
+      "disabled": "Email өшірілген",
+      "smtpSettings": "SMTP баптаулары",
+      "smtpHost": "SMTP сервері",
+      "smtpPort": "SMTP порты",
+      "smtpUser": "Пайдаланушы аты",
+      "smtpPassword": "Құпия сөз",
+      "fromEmail": "Жіберуші Email",
+      "fromName": "Жіберуші аты",
+      "useSSL": "SSL пайдалану",
+      "testConnection": "Байланысты тексеру",
+      "schedule": "Жіберу кестесі",
+      "dailyReport": "Күнделікті есеп",
+      "dailyReportDesc": "Мерзімі аяқталатын өнімдердің күнделікті қорытындысын жіберу",
+      "instantAlerts": "Лезде хабарландырулар",
+      "instantAlertsDesc": "Мәселелер анықталған кезде лезде хабарландырулар жіберу"
+    },
+    "importExport": {
+      "title": "Деректерді импорттау және экспорттау"
+    },
+    "system": {
+      "title": "Жүйе туралы ақпарат",
+      "healthStatus": "Жүйе күйі",
+      "checkHealth": "Күйді тексеру",
+      "version": "Нұсқа",
+      "environment": "Орта",
+      "status": "Күй",
+      "unhealthy": "Мәселелер",
+      "database": "Дерекқор",
+      "disconnected": "Ажыратылды"
+    },
     "saved": "Баптаулар сақталды",
     "saveError": "Баптауларды сақтау қатесі",
     "profileLabel": "Профиль",
-    "departments": "Бөлімдер",
     "categoriesLabel": "Санаттар",
-    "export": "Экспорт",
-    "tabs": {
-      "profile": "Профиль",
-      "notifications": "Хабарламалар",
-      "language": "Тіл",
-      "system": "Жүйе",
-      "templates": "Жеткізу шаблондары",
-      "notificationRules": "Хабарлама ережелері",
-      "departmentNotifications": "Бөлім хабарламалары",
-      "cms": "Контент",
-      "rules": "Хабарландыру ережелері",
-      "departments": "Бөлімдер",
-      "branding": "Брендинг",
-      "general": "Жалпы",
-      "users": "Пайдаланушылар",
-      "catalog": "Каталог",
-      "categories": "Санаттар",
-      "telegram": "Telegram",
-      "importExport": "Импорт/Экспорт"
+    "departments": {
+      "add": "Бөлімше қосу",
+      "newDepartment": "Жаңа бөлімше",
+      "namePlaceholder": "Бөлімше атауы",
+      "emailPlaceholder": "Бөлімше поштасы (мыс. kitchen@hotel.com) — есептер мен хабарламалар үшін",
+      "added": "Бөлімше қосылды",
+      "updated": "Бөлімше жаңартылды",
+      "deleted": "Бөлімше жойылды",
+      "deleteConfirmTitle": "Бөлімшені жою?",
+      "deleteConfirmText": "Осы бөлімшенің барлық пайдаланушылары ажыратылады. Бұл әрекетті болдырмау мүмкін емес.",
+      "cannotDelete": "Бөлімшені жою мүмкін емес",
+      "hasActiveBatches": "Бөлімшеде {{count}} белсенді партия бар. Бөлімшені жоюдан бұрын барлық партияларды жинаңыз немесе жойыңыз.",
+      "clearBatchesFirst": "Алдымен партияларды тазалаңыз"
     },
     "generalTitle": "Жалпы баптаулар",
     "generalDescription": "Жүйенің негізгі параметрлері",
@@ -733,7 +865,18 @@
       "chatType": "Чат түрі",
       "linkedTo": "Байланған",
       "allHotel": "Бүкіл қонақ үй",
-      "department": "Бөлімше"
+      "department": "Бөлімше",
+      "sendTime": "Хабарландыру жіберу уақыты",
+      "sendTimeLabel": "Күнделікті есептер мына уақытта жіберіледі:",
+      "timezone": "Уақыт белдеуі",
+      "sendTest": "Қазір тесттік хабарландыру жіберу",
+      "refreshStatus": "Мәртебені жаңарту",
+      "status": "Мәртебе",
+      "scheduledTime": "Белгіленген уақыт",
+      "currentTime": "Ағымдағы уақыт (Астана)",
+      "nextRun": "Келесі орындау",
+      "cronExpression": "Cron өрнегі",
+      "testing": "Жіберілуде..."
     },
     "importExport": {
       "title": "Деректерді импорт және экспорт",
@@ -792,6 +935,24 @@
       "version": "Қолданба нұсқасы",
       "database": "Дерекқор",
       "connected": "Қосылған"
+    },
+    "cache": {
+      "title": "Cache Management",
+      "description": "Offline cache for working without internet",
+      "size": "Size",
+      "storedQueries": "Stored",
+      "activeQueries": "Active",
+      "enabled": "Offline mode enabled - data available without internet",
+      "empty": "Cache is empty - use the app to create cache",
+      "refreshAll": "Refresh All",
+      "clear": "Clear Cache",
+      "clearing": "Clearing...",
+      "confirmClear": "Clear all cache? Data will be reloaded on next launch.",
+      "cleared": "Cache cleared",
+      "clearError": "Cache clear error",
+      "refreshing": "Refreshing data...",
+      "infoTitle": "How it works:",
+      "info": "React Query automatically saves data to localStorage. When connection is lost, you continue to see the last loaded data. Changes sync automatically when internet is restored."
     }
   },
   "export": {
@@ -1216,7 +1377,15 @@
     "shelfLife": "Сақтау мерзімі",
     "products": "өнімдер",
     "editTemplate": "Шаблонды өңдеу",
-    "confirmDelete": "Шаблонды жою?"
+    "confirmDelete": "Шаблонды жою?",
+    "deleteTitle": "Шаблонды жою?",
+    "deleteWarning": "Бұл әрекетті болдырмау мүмкін емес.",
+    "selectTemplate": "Қолдану үшін шаблонды таңдаңыз:",
+    "items": "позиция",
+    "targetDepartment": "Мақсатты бөлім",
+    "changeTemplate": "Шаблонды ауыстыру",
+    "itemsToAdd": "позиция қосылады",
+    "apply": "Шаблонды қолдану"
   },
   "telegram": {
     "title": "Telegram параметрлері",
@@ -1230,6 +1399,14 @@
     "testError": "Жіберу қатесі",
     "schedule": "Кесте",
     "scheduleTime": "Күнделікті есеп уақыты",
+    "sendTime": "Хабарландыру жіберу уақыты",
+    "sendTimeLabel": "Күнделікті есептер мына уақытта жіберіледі:",
+    "timezone": "Уақыт белдеуі",
+    "status": "Мәртебе",
+    "scheduledTime": "Белгіленген уақыт",
+    "currentTime": "Ағымдағы уақыт (Астана)",
+    "cronExpression": "Cron өрнегі",
+    "sendTest": "Қазір тесттік хабарландыру жіберу",
     "messageTemplates": "Хабарлама үлгілері",
     "templatesHint": "Жүйелі жақшаларда айнымалыларды қолданыңыз",
     "dailyReport": "Күнделікті есеп",
@@ -1276,5 +1453,24 @@
       "compliment": "Қонаққа комплимент",
       "other": "Басқа"
     }
+  },
+  "fastIntake": {
+    "title": "Жылдам енгізу",
+    "modeOn": "Жылдам режим",
+    "modeOff": "Жылдам режим",
+    "switchToStandard": "Стандартты режимге ауысу",
+    "switchToFast": "Жылдам енгізу режиміне ауысу",
+    "hint": "Кеңес:",
+    "hintText": "Өрістер арасында ауысу үшін Tab немесе Enter пайдаланыңыз. Жарамдылық мерзімінде Enter басу элементті бірден сақтайды.",
+    "searchProduct": "Өнім",
+    "searchPlaceholder": "Өнім атауын теруді бастаңыз...",
+    "quantity": "Саны",
+    "expiryDate": "Жарамдылық мерзімі",
+    "expiryHint": "(КК.АА.ЖЖ немесе Enter соңғы қолданылған үшін)",
+    "useLastExpiry": "Соңғы жарамдылық мерзімін пайдалану",
+    "saveAndNext": "Сақтау және келесі",
+    "sessionHistory": "Осы сессияда қосылды",
+    "totalAdded": "Қосылды: {{count}} элемент",
+    "itemAdded": "{{name}} × {{qty}} қосылды"
   }
 }

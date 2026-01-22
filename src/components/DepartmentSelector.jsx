@@ -103,8 +103,10 @@ export default function DepartmentSelector({
               {/* Название */}
               <h3 className="font-semibold text-text-primary mb-1">{getDeptName(dept)}</h3>
 
-              {/* Тип отдела */}
-              <p className="text-sm text-text-muted capitalize">{dept.type || 'other'}</p>
+              {/* Описание отдела */}
+              {dept.description && (
+                <p className="text-sm text-text-muted">{dept.description}</p>
+              )}
 
               {/* Статистика (опционально) */}
               {showStats && (

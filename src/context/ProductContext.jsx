@@ -1,14 +1,30 @@
 /**
  * FreshTrack Enterprise Product Context
  * Data loaded from API - NO hardcoded data
+ * 
+ * MIGRATED TO REACT QUERY (v5)
+ * - Uses React Query for server state management
+ * - Maintains backward compatibility through wrapper API
+ * - Optimistic updates for better UX
+ * - Automatic caching and synchronization
  */
 
-import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
+import { createContext, useContext, useMemo, useCallback, useEffect, useRef } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { getBatchStatus } from '../utils/dateUtils'
 import { logDebug, logWarn, logError } from '../utils/logger'
-import { apiFetch } from '../services/api'
 import { useHotel } from './HotelContext'
 import { useAuth } from './AuthContext'
+import { invalidateInventoryQueries } from '../lib/queryClient'
+import {
+  useInventoryData,
+  useAddBatch as useAddBatchMutation,
+  useAddBatchesBulk as useAddBatchesBulkMutation,
+  useCollectBatch as useCollectBatchMutation,
+  useDeleteBatch as useDeleteBatchMutation,
+  useAddProduct as useAddProductMutation,
+  useDeleteProduct as useDeleteProductMutation
+} from '../hooks/useInventory'
 
 const ProductContext = createContext(null)
 
@@ -31,281 +47,132 @@ export function ProductProvider({ children }) {
   // Получаем выбранный отель из HotelContext
   const { selectedHotelId, loading: hotelLoading } = useHotel()
   const { user } = useAuth()
+  const queryClient = useQueryClient()
   const prevHotelIdRef = useRef(null)
-  const initialLoadDoneRef = useRef(false)
-  const fetchingRef = useRef(false) // Предотвращает параллельные вызовы
-  const currentFetchHotelRef = useRef(null) // Какой отель сейчас загружается
 
-  // Каталог товаров (только в памяти, без localStorage - данные загружаются с сервера)
-  const [catalog, setCatalog] = useState({})
+  // === REACT QUERY DATA LOADING ===
+  // Заменяет старый fetchAllData - React Query управляет загрузкой, кэшированием и синхронизацией
+  const {
+    batches: batchesData,
+    stats: statsData,
+    departments: departmentsData,
+    categories: categoriesData,
+    products: productsData,
+    loading: queryLoading,
+    error: queryError
+  } = useInventoryData(selectedHotelId)
 
-  // Динамические отделы и категории с сервера
-  const [departmentList, setDepartmentList] = useState([])
-  const [categoryList, setCategoryList] = useState([])
+  // === MUTATIONS ===
+  const addBatchMutation = useAddBatchMutation(selectedHotelId)
+  const addBatchesBulkMutation = useAddBatchesBulkMutation(selectedHotelId)
+  const collectBatchMutation = useCollectBatchMutation(selectedHotelId)
+  const deleteBatchMutation = useDeleteBatchMutation(selectedHotelId)
+  const addProductMutation = useAddProductMutation(selectedHotelId)
+  const deleteProductMutation = useDeleteProductMutation(selectedHotelId)
 
-  // Партии с сервера
-  const [batches, setBatches] = useState([])
-  const [stats, setStats] = useState({
-    total: 0,
-    expired: 0,
-    critical: 0,
-    warning: 0,
-    good: 0,
-    needsAttention: 0
-  })
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-
-  // Загрузка данных с сервера при монтировании и при смене отеля
+  // Очистка кэша при смене отеля (React Query автоматически перезагрузит данные)
   useEffect(() => {
-    const token = localStorage.getItem('freshtrack_token')
-
     // Ждём пока HotelContext загрузится
     if (hotelLoading) return
 
-    // Не загружаем данные для pending пользователей (проверяем status и hotel_id)
+    // Не обрабатываем для pending пользователей
     const isPending =
       user?.status === 'pending' || (!user?.hotel_id && user?.role !== 'SUPER_ADMIN')
-    if (isPending) {
-      setLoading(false)
-      return
-    }
-
-    if (!token) {
-      setLoading(false)
-      return
-    }
+    if (isPending) return
 
     // Для SUPER_ADMIN ждём пока selectedHotelId будет установлен
-    // Это предотвращает запросы без hotel_id
     if (user?.role === 'SUPER_ADMIN' && !selectedHotelId) {
       logDebug('⏳ Waiting for hotel selection (SUPER_ADMIN)...')
       return
     }
 
-    // Первая загрузка - всегда выполняем
-    if (!initialLoadDoneRef.current) {
-      logDebug('🚀 Initial data load for hotel:', selectedHotelId || 'default')
-      initialLoadDoneRef.current = true
-      prevHotelIdRef.current = selectedHotelId
-      fetchAllData(selectedHotelId)
-      return
+    // Если отель изменился, инвалидируем все queries
+    if (prevHotelIdRef.current !== selectedHotelId && prevHotelIdRef.current !== null) {
+      logDebug('🏨 Hotel changed, invalidating queries for new hotel:', selectedHotelId)
+      
+      // React Query автоматически перезагрузит данные благодаря invalidation
+      invalidateInventoryQueries(queryClient, selectedHotelId)
     }
 
-    // Повторные загрузки - только если отель изменился
-    if (prevHotelIdRef.current !== selectedHotelId) {
-      logDebug('🏨 Hotel changed, reloading data for hotel:', selectedHotelId)
+    prevHotelIdRef.current = selectedHotelId
+  }, [selectedHotelId, hotelLoading, user?.status, queryClient])
 
-      // ВАЖНО: Очищаем данные СРАЗУ при смене отеля, чтобы не показывать старые
-      setCatalog({})
-      setDepartmentList([])
-      setCategoryList([])
-      setBatches([])
-      setStats({ total: 0, expired: 0, critical: 0, warning: 0, good: 0, needsAttention: 0 })
+  // === BUILD CATALOG from React Query data ===
+  // Построение каталога из загруженных данных (мемоизировано для оптимизации)
+  const catalog = useMemo(() => {
+    if (!departmentsData || !categoriesData || !productsData) return {}
+    if (departmentsData.length === 0) return {}
 
-      prevHotelIdRef.current = selectedHotelId
-      fetchAllData(selectedHotelId)
-    }
-  }, [selectedHotelId, hotelLoading, user?.status])
+    logDebug('📦 Building catalog from React Query data')
+    logDebug('🏢 Departments:', departmentsData.length)
+    logDebug('📂 Categories:', categoriesData.length)
+    logDebug('🛍️ Products:', productsData.length)
 
-  /**
-   * Загрузить все данные с сервера
-   * @param {number} hotelId - ID выбранного отеля (для SUPER_ADMIN)
-   */
-  const fetchAllData = async (hotelId = null) => {
-    // Запоминаем для какого отеля загружаем
-    currentFetchHotelRef.current = hotelId
+    const newCatalog = {}
 
-    // Если уже идёт загрузка для другого отеля - она станет неактуальной
-    // Не блокируем, просто предупреждаем
-    if (fetchingRef.current) {
-      logDebug('⏳ fetchAllData already in progress, will override with new hotel:', hotelId)
-    }
-
-    fetchingRef.current = true
-
-    try {
-      setLoading(true)
-      setError(null)
-
-      // Формируем query strings
-      // limit=200 (максимум сервера) чтобы загрузить больше партий и продуктов (по умолчанию 50)
-      const baseQuery = hotelId ? `?hotel_id=${hotelId}` : ''
-      const paginatedQuery = hotelId ? `?hotel_id=${hotelId}&limit=200` : '?limit=200'
-
-      // Загружаем батчи, статистику, отделы, категории и продукты параллельно
-      const [batchesRes, statsRes, departmentsRes, categoriesRes, productsRes] = await Promise.all([
-        apiFetch(`/batches${paginatedQuery}`),
-        apiFetch(`/batches/stats${baseQuery}`),
-        apiFetch(`/departments${baseQuery}`).catch(() => ({ departments: [] })),
-        apiFetch(`/categories${baseQuery}`).catch(() => ({ categories: [] })),
-        apiFetch(`/products${paginatedQuery}`).catch(() => [])
-      ])
-
-      // ВАЖНО: Проверяем что отель не сменился пока шёл запрос
-      if (currentFetchHotelRef.current !== hotelId) {
-        logDebug('🔄 Hotel changed during fetch, discarding stale data for:', hotelId)
-        return // Не применяем устаревшие данные
-      }
-
-      // API возвращает { success: true, batches: [...] } или массив
-      const batchesRaw = Array.isArray(batchesRes) ? batchesRes : batchesRes.batches || []
-
-      // Contract validation: проверяем что backend возвращает enriched данные
-      const validateBatchContract = (batch) => {
-        const requiredFields = ['expiryStatus', 'statusColor', 'daysLeft']
-        const missingFields = requiredFields.filter((field) => batch[field] === undefined)
-        if (missingFields.length > 0 && batch.expiry_date) {
-          console.warn(
-            `⚠️ Backend contract warning: Missing enriched fields [${missingFields.join(', ')}] for batch ${batch.id}. Falling back to local calculation.`
-          )
-        }
-        return missingFields.length === 0
-      }
-
-      // Нормализация snake_case → camelCase для совместимости
-      // Backend enriches batches with expiryStatus, statusColor, daysLeft, statusText
-      const batchesData = batchesRaw.map((b) => {
-        const expiryDate = b.expiry_date || b.expiryDate
-
-        // Validate contract (warning only, not blocking)
-        const hasEnrichedData = validateBatchContract(b)
-
-        // Use getBatchStatus which prefers backend data, falls back to local calculation
-        const statusInfo = getBatchStatus(b)
-        return {
-          ...b,
-          productId: b.product_id || b.productId,
-          productName: b.product_name || b.productName,
-          departmentId: b.department_id || b.departmentId,
-          departmentName: b.department_name || b.departmentName,
-          categoryId: b.category_id || b.categoryId,
-          categoryName: b.category_name || b.categoryName,
-          expiryDate,
-          addedBy: b.added_by_name || b.added_by || b.addedBy,
-          collectedAt: b.collected_at || b.collectedAt,
-          collectedBy: b.collected_by || b.collectedBy,
-          hotelId: b.hotel_id || b.hotelId,
-          batchNumber: b.batch_number || b.batchNumber,
-          // Backend Single Source of Truth for expiry data
-          daysLeft: statusInfo.daysLeft,
-          status: statusInfo,
-          expiryStatus: statusInfo.status,
-          statusColor: statusInfo.color,
-          statusText: statusInfo.statusText,
-          isExpired: statusInfo.isExpired,
-          isUrgent: statusInfo.isUrgent,
-          // Flag for debugging
-          _hasEnrichedData: hasEnrichedData
-        }
+    departmentsData.forEach((dept) => {
+      newCatalog[dept.id] = {}
+      
+      // Фильтруем товары ТОЛЬКО для этого отдела
+      const deptProducts = productsData.filter((p) => {
+        const pDeptId = p.departmentId || p.department_id
+        return pDeptId === dept.id
       })
-      setBatches(batchesData)
 
-      // API возвращает { success: true, stats: {...} } или объект
-      const statsData = statsRes.stats || statsRes || {}
-      setStats(statsData)
-
-      // Обновляем динамические отделы (API возвращает { departments: [...] } или массив)
-      const deptData = Array.isArray(departmentsRes)
-        ? departmentsRes
-        : departmentsRes.departments || []
-      if (Array.isArray(deptData)) {
-        setDepartmentList(deptData)
-        // Обновляем legacy export для обратной совместимости
-        departments = deptData
-      }
-
-      // Обновляем динамические категории (API возвращает { categories: [...] })
-      const catData = Array.isArray(categoriesRes) ? categoriesRes : categoriesRes.categories || []
-      if (Array.isArray(catData)) {
-        setCategoryList(catData)
-        categories = catData
-      }
-
-      // Обновляем каталог продуктов из API
-      // API возвращает { items: [...], page, limit } или массив
-      const productsData = Array.isArray(productsRes)
-        ? productsRes
-        : productsRes.items || productsRes.products || []
-      logDebug('📦 Products from API:', productsData.length)
-      logDebug('🏢 Departments:', deptData.length)
-      logDebug('📂 Categories:', catData.length)
-
-
-      if (deptData.length > 0) {
-        // Строим каталог: department -> category -> products
-        // ВАЖНО: Товары привязаны к конкретным отделам через department_id
-        // Товары без department_id НЕ показываются в отделах
-        const newCatalog = {}
-
-        deptData.forEach((dept) => {
-          newCatalog[dept.id] = {}
-          
-          // Фильтруем товары ТОЛЬКО для этого отдела
-          const deptProducts = productsData.filter((p) => {
-            const pDeptId = p.departmentId || p.department_id
-            return pDeptId === dept.id
-          })
-
-          catData.forEach((cat) => {
-            // Добавляем товары этой категории И этого отдела
-            const categoryProducts = deptProducts.filter((p) => {
-              const pCatId = p.categoryId || p.category_id
-              return pCatId === cat.id
-            })
-
-            if (categoryProducts.length > 0) {
-              newCatalog[dept.id][cat.id] = categoryProducts.map((product) => ({
-                id: product.id,
-                name: product.name,
-                barcode: product.barcode,
-                defaultShelfLife: product.defaultShelfLife || product.default_shelf_life,
-                unit: product.unit || 'шт',
-                departmentId: product.departmentId || product.department_id
-              }))
-            }
-          })
-
-          // Также добавляем товары без категории
-          const uncategorizedProducts = deptProducts.filter((p) => {
-            const pCatId = p.categoryId || p.category_id
-            return !pCatId
-          })
-          if (uncategorizedProducts.length > 0) {
-            newCatalog[dept.id]['uncategorized'] = uncategorizedProducts.map((product) => ({
-              id: product.id,
-              name: product.name,
-              barcode: product.barcode,
-              defaultShelfLife: product.defaultShelfLife || product.default_shelf_life,
-              unit: product.unit || 'шт',
-              departmentId: product.departmentId || product.department_id
-            }))
-          }
+      categoriesData.forEach((cat) => {
+        // Добавляем товары этой категории И этого отдела
+        const categoryProducts = deptProducts.filter((p) => {
+          const pCatId = p.categoryId || p.category_id
+          return pCatId === cat.id
         })
 
-        logDebug('📋 New catalog built with department isolation')
-        setCatalog(newCatalog)
-      } else {
-        logWarn('⚠️ No departments loaded')
+        if (categoryProducts.length > 0) {
+          newCatalog[dept.id][cat.id] = categoryProducts.map((product) => ({
+            id: product.id,
+            name: product.name,
+            barcode: product.barcode,
+            defaultShelfLife: product.defaultShelfLife || product.default_shelf_life,
+            unit: product.unit || 'шт',
+            departmentId: product.departmentId || product.department_id
+          }))
+        }
+      })
+
+      // Также добавляем товары без категории
+      const uncategorizedProducts = deptProducts.filter((p) => {
+        const pCatId = p.categoryId || p.category_id
+        return !pCatId
+      })
+      if (uncategorizedProducts.length > 0) {
+        newCatalog[dept.id]['uncategorized'] = uncategorizedProducts.map((product) => ({
+          id: product.id,
+          name: product.name,
+          barcode: product.barcode,
+          defaultShelfLife: product.defaultShelfLife || product.default_shelf_life,
+          unit: product.unit || 'шт',
+          departmentId: product.departmentId || product.department_id
+        }))
       }
-    } catch (err) {
-      logError('fetchAllData', err)
-      setError(err.message)
-    } finally {
-      fetchingRef.current = false
-      setLoading(false)
-    }
-  }
+    })
+
+    return newCatalog
+  }, [departmentsData, categoriesData, productsData])
+
+  // === WRAPPER METHODS for backward compatibility ===
+  // Обертки над React Query mutations, сохраняющие старый API
 
   /**
-   * Обновить данные (вызывать после изменений)
+   * Обновить данные (инвалидация queries)
+   * DEPRECATED: React Query автоматически обновляет данные после мутаций
    */
   const refresh = useCallback(() => {
-    return fetchAllData(selectedHotelId)
-  }, [selectedHotelId])
+    logDebug('🔄 Manual refresh called (invalidating queries)')
+    return invalidateInventoryQueries(queryClient, selectedHotelId)
+  }, [queryClient, selectedHotelId])
 
   /**
    * Добавить партию товара
+   * @deprecated Используйте addBatchMutation напрямую для лучшего контроля
    */
   const addBatch = useCallback(
     async (productIdOrName, departmentId, expiryDate, quantity) => {
@@ -326,167 +193,82 @@ export function ProductProvider({ children }) {
           }
         }
 
-        const newBatchRes = await apiFetch('/batches', {
-          method: 'POST',
-          body: JSON.stringify({
-            productName,
-            department: departmentId,
-            category,
-            quantity: quantity === null || quantity === undefined ? null : parseInt(quantity),
-            expiryDate
-          })
+        // Используем React Query mutation
+        const result = await addBatchMutation.mutateAsync({
+          productName,
+          department: departmentId,
+          category,
+          quantity,
+          expiryDate
         })
 
-        // Нормализация ответа сервера
-        const batchData = newBatchRes.batch || newBatchRes
-        const newBatch = {
-          ...batchData,
-          productId: batchData.product_id || batchData.productId,
-          productName: batchData.product_name || batchData.productName || productName,
-          departmentId: batchData.department_id || batchData.departmentId || departmentId,
-          expiryDate: batchData.expiry_date || batchData.expiryDate || expiryDate
-        }
-
-        // Обновить локальные данные (используем getBatchStatus для временного отображения)
-        const statusInfo = getBatchStatus(newBatch)
-        setBatches((prev) => [
-          ...prev,
-          {
-            ...newBatch,
-            daysLeft: statusInfo.daysLeft,
-            status: statusInfo,
-            expiryStatus: statusInfo.status,
-            statusColor: statusInfo.color,
-            statusText: statusInfo.statusText,
-            isExpired: statusInfo.isExpired,
-            isUrgent: statusInfo.isUrgent
-          }
-        ])
-
-        // Обновить статистику
-        await fetchAllData()
-
-        return newBatch
+        return result
       } catch (err) {
         logError('Error adding batch:', err)
         throw err
       }
     },
-    [catalog]
+    [catalog, addBatchMutation]
   )
 
   /**
    * Отметить партию как собранную
    */
-  const collectBatch = useCallback(async (batchId, reason = 'manual', comment = '') => {
-    try {
-      await apiFetch(`/batches/${batchId}/collect`, {
-        method: 'POST',
-        body: JSON.stringify({ reason, comment })
-      })
-
-      // Удалить из локального списка
-      setBatches((prev) => prev.filter((b) => b.id !== batchId))
-
-      // Обновить статистику
-      await fetchAllData()
-
-      return true
-    } catch (err) {
-      logError('Error collecting batch:', err)
-      throw err
-    }
-  }, [])
+  const collectBatch = useCallback(
+    async (batchId, reason = 'manual', comment = '') => {
+      try {
+        await collectBatchMutation.mutateAsync({ batchId, reason, comment })
+        return true
+      } catch (err) {
+        logError('Error collecting batch:', err)
+        throw err
+      }
+    },
+    [collectBatchMutation]
+  )
 
   /**
    * Удалить партию
    */
-  const deleteBatch = useCallback(async (batchId) => {
-    try {
-      await apiFetch(`/batches/${batchId}`, {
-        method: 'DELETE'
-      })
-
-      // Удалить из локального списка
-      setBatches((prev) => prev.filter((b) => b.id !== batchId))
-
-      // Обновить статистику
-      await fetchAllData()
-
-      return true
-    } catch (err) {
-      logError('Error deleting batch:', err)
-      throw err
-    }
-  }, [])
+  const deleteBatch = useCallback(
+    async (batchId) => {
+      try {
+        await deleteBatchMutation.mutateAsync(batchId)
+        return true
+      } catch (err) {
+        logError('Error deleting batch:', err)
+        throw err
+      }
+    },
+    [deleteBatchMutation]
+  )
 
   /**
    * Добавить новый товар в каталог (сохраняет в БД на сервере)
    */
-  const addCustomProduct = useCallback(async (departmentId, categoryId, name) => {
-    try {
-      // Создать продукт на сервере
-      const response = await apiFetch('/products', {
-        method: 'POST',
-        body: JSON.stringify({
-          name: name.trim(),
-          categoryId: categoryId || null,
-          departmentId: departmentId || null
+  const addCustomProduct = useCallback(
+    async (departmentId, categoryId, name) => {
+      try {
+        const result = await addProductMutation.mutateAsync({
+          name,
+          categoryId,
+          departmentId
         })
-      })
-
-      const newProduct = response.product || response
-
-      // Обновить локальный каталог
-      setCatalog((prev) => {
-        const updated = { ...prev }
-        if (!updated[departmentId]) {
-          updated[departmentId] = {}
-        }
-        if (!updated[departmentId][categoryId]) {
-          updated[departmentId][categoryId] = []
-        }
-        updated[departmentId][categoryId] = [
-          ...updated[departmentId][categoryId],
-          {
-            id: newProduct.id,
-            name: newProduct.name,
-            isCustom: true
-          }
-        ]
-        return updated
-      })
-
-      return newProduct
-    } catch (error) {
-      logError('Error adding custom product:', error)
-
-      // Fallback: добавить только в локальный каталог
-      const productId = `custom-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`
-      const newProduct = { id: productId, name, isCustom: true }
-
-      setCatalog((prev) => {
-        const updated = { ...prev }
-        if (!updated[departmentId]) {
-          updated[departmentId] = {}
-        }
-        if (!updated[departmentId][categoryId]) {
-          updated[departmentId][categoryId] = []
-        }
-        updated[departmentId][categoryId] = [...updated[departmentId][categoryId], newProduct]
-        return updated
-      })
-
-      return newProduct
-    }
-  }, [])
+        return result
+      } catch (error) {
+        logError('Error adding custom product:', error)
+        throw error
+      }
+    },
+    [addProductMutation]
+  )
 
   /**
    * Получить партии по ID продукта
    */
   const getBatchesByProduct = useCallback(
     (productName, departmentId = null) => {
-      return batches
+      return batchesData
         .filter((b) => {
           // Проверяем совпадение имени продукта (productName или name)
           const batchName = b.productName || b.name || b.product_name
@@ -507,7 +289,7 @@ export function ProductProvider({ children }) {
         })
         .sort((a, b) => a.daysLeft - b.daysLeft)
     },
-    [batches]
+    [batchesData]
   )
 
   /**
@@ -525,7 +307,7 @@ export function ProductProvider({ children }) {
       // ТОЛЬКО если у товара есть партии в этом отделе
       Object.entries(departmentCatalog).forEach(([categoryId, categoryProducts]) => {
         categoryProducts.forEach((product) => {
-          const productBatches = batches
+          const productBatches = batchesData
             .filter((b) => {
               // Проверяем совпадение имени продукта
               const nameMatch = b.productName === product.name
@@ -587,7 +369,7 @@ export function ProductProvider({ children }) {
       })
 
       // 2. Добавляем custom товары из батчей, которых нет в каталоге
-      const departmentBatches = batches.filter((b) => {
+      const departmentBatches = batchesData.filter((b) => {
         const batchDeptId = b.departmentId || b.department
         return batchDeptId === departmentId && !addedProductNames.has(b.productName)
       })
@@ -654,7 +436,7 @@ export function ProductProvider({ children }) {
 
       return products
     },
-    [catalog, batches]
+    [catalog, batchesData]
   )
 
   /**
@@ -663,18 +445,18 @@ export function ProductProvider({ children }) {
   const getCategoriesForDepartment = useCallback(
     (departmentId) => {
       const departmentCatalog = catalog[departmentId] || {}
-      return categories.filter(
+      return categoriesData.filter(
         (cat) => departmentCatalog[cat.id] && departmentCatalog[cat.id].length > 0
       )
     },
-    [catalog]
+    [catalog, categoriesData]
   )
 
   /**
    * Получить все активные партии
    */
   const getActiveBatches = useCallback(() => {
-    return batches
+    return batchesData
       .map((b) => {
         const statusInfo = getBatchStatus(b)
         return {
@@ -684,7 +466,7 @@ export function ProductProvider({ children }) {
         }
       })
       .sort((a, b) => a.daysLeft - b.daysLeft)
-  }, [batches])
+  }, [batchesData])
 
   /**
    * Получить партии по статусу
@@ -719,15 +501,15 @@ export function ProductProvider({ children }) {
    * Получить статистику
    */
   const getStats = useCallback(() => {
-    return stats
-  }, [stats])
+    return statsData
+  }, [statsData])
 
   /**
    * Получить количество непрочитанных уведомлений
    */
   const getUnreadNotificationsCount = useCallback(() => {
-    return stats.needsAttention || 0
-  }, [stats])
+    return statsData.needsAttention || 0
+  }, [statsData])
 
   /**
    * Получить алерты (партии требующие внимания)
@@ -744,9 +526,9 @@ export function ProductProvider({ children }) {
         ...b,
         productName: b.productName,
         categoryId: b.category,
-        department: departments.find((d) => d.id === b.department)
+        department: departmentsData.find((d) => d.id === b.department)
       }))
-  }, [getActiveBatches])
+  }, [getActiveBatches, departmentsData])
 
   /**
    * Найти продукт по ID в каталоге
@@ -769,47 +551,36 @@ export function ProductProvider({ children }) {
   /**
    * Удалить товар из каталога (только для SUPER_ADMIN и HOTEL_ADMIN)
    */
-  const deleteProduct = useCallback(async (productId) => {
-    try {
-      await apiFetch(`/products/${productId}`, {
-        method: 'DELETE'
-      })
+  const deleteProduct = useCallback(
+    async (productId) => {
+      try {
+        await deleteProductMutation.mutateAsync(productId)
+        return true
+      } catch (error) {
+        logError('Error deleting product:', error)
+        throw error
+      }
+    },
+    [deleteProductMutation]
+  )
 
-      // Удалить из локального каталога
-      setCatalog((prev) => {
-        const updated = { ...prev }
-        Object.keys(updated).forEach((deptId) => {
-          Object.keys(updated[deptId]).forEach((catId) => {
-            updated[deptId][catId] = updated[deptId][catId].filter(
-              (product) => product.id !== productId
-            )
-          })
-        })
-        return updated
-      })
-
-      // Удалить связанные партии из локального состояния
-      setBatches((prev) =>
-        prev.filter((b) => b.productId !== productId && b.product_id !== productId)
-      )
-
-      return true
-    } catch (error) {
-      logError('Error deleting product:', error)
-      throw error
-    }
-  }, [])
+  // Обновляем legacy exports для обратной совместимости
+  useEffect(() => {
+    departments = departmentsData
+    categories = categoriesData
+  }, [departmentsData, categoriesData])
 
   const value = {
-    // Данные
+    // Данные (из React Query)
     catalog,
-    batches,
-    departments: departmentList,
-    categories: categoryList,
-    loading,
-    error,
+    batches: batchesData,
+    departments: departmentsData,
+    categories: categoriesData,
+    loading: queryLoading,
+    error: queryError,
+    stats: statsData,
 
-    // Операции с партиями
+    // Операции с партиями (обертки над mutations)
     addBatch,
     collectBatch,
     deleteBatch,
@@ -832,8 +603,18 @@ export function ProductProvider({ children }) {
 
     // Хелпер для иконок отделов
     getDepartmentIcon: (deptId) => {
-      const dept = departmentList.find((d) => d.id === deptId || d.code === deptId)
+      const dept = departmentsData.find((d) => d.id === deptId || d.code === deptId)
       return dept?.icon || DEFAULT_DEPARTMENT_ICONS[dept?.type] || DEFAULT_DEPARTMENT_ICONS.default
+    },
+
+    // React Query mutations (для прямого использования в компонентах)
+    mutations: {
+      addBatch: addBatchMutation,
+      addBatchesBulk: addBatchesBulkMutation,
+      collectBatch: collectBatchMutation,
+      deleteBatch: deleteBatchMutation,
+      addProduct: addProductMutation,
+      deleteProduct: deleteProductMutation
     }
   }
 

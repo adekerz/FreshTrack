@@ -44,6 +44,7 @@ import {
   eventsController,
   marshaCodesController
 } from './modules/index.js'
+import { webhooksRouter } from './modules/webhooks/index.js'
 
 // Import notification jobs
 import { startNotificationJobs } from './jobs/notificationJobs.js'
@@ -137,6 +138,9 @@ app.use('/api/docs', docsRouter)
 app.use('/api/telegram', telegramController)
 app.use('/api/events', eventsController)
 app.use('/api/marsha-codes', marshaCodesController)
+
+// Webhooks (no rate limiting - external services)
+app.use('/webhooks', webhooksRouter)
 
 // Root health check
 app.get('/', async (req, res) => {

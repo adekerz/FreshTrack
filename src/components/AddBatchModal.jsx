@@ -3,6 +3,8 @@ import { X, ChevronRight, Wine, Coffee, Utensils, ChefHat, Warehouse, Package } 
 import { useProducts } from '../context/ProductContext'
 import { useTranslation, useLanguage } from '../context/LanguageContext'
 import { useToast } from '../context/ToastContext'
+import { useHotel } from '../context/HotelContext'
+import { useAddBatch } from '../hooks/useInventory'
 import { getDepartmentIcon } from '../utils/departmentUtils'
 
 // Иконки для отделов - универсальный маппинг
@@ -16,8 +18,12 @@ const getDeptIcon = (dept) => {
 export default function AddBatchModal({ onClose, preselectedProduct = null }) {
   const { t } = useTranslation()
   const { language } = useLanguage()
-  const { catalog, addBatch, departments, categories } = useProducts()
+  const { selectedHotelId } = useHotel()
+  const { catalog, departments, categories } = useProducts()
   const toast = useToast()
+  
+  // === REACT QUERY MUTATION ===
+  const { mutate: addBatchMutation, isPending: isSubmitting } = useAddBatch(selectedHotelId)
 
   // Шаги мастера
   const [step, setStep] = useState(preselectedProduct ? 4 : 1)
@@ -35,8 +41,6 @@ export default function AddBatchModal({ onClose, preselectedProduct = null }) {
     unit: 'шт',
     price: ''
   })
-
-  const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Получить название категории
   const getCategoryName = useCallback(
@@ -84,32 +88,40 @@ export default function AddBatchModal({ onClose, preselectedProduct = null }) {
   }
 
   // Отправка формы
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault()
     if (!selectedProduct || !batchData.expiryDate) return
+
+    // Защита от старых дат: год должен быть >= 2026
+    const year = parseInt(batchData.expiryDate.split('-')[0], 10)
+    if (year < 2026) {
+      toast.addToast('Год должен быть 2026 или позже', 'error')
+      return
+    }
 
     // Если не "нет количества" и количество пустое или <= 0
     if (!batchData.noQuantity && (!batchData.quantity || parseInt(batchData.quantity) <= 0)) return
 
-    setIsSubmitting(true)
-
-    try {
-      await addBatch(
-        selectedProduct.id,
-        selectedDepartment,
-        batchData.expiryDate,
-        batchData.noQuantity ? null : parseInt(batchData.quantity),
-        {
-          unit: batchData.unit,
-          price: batchData.price ? parseFloat(batchData.price) : null
+    // ✨ React Query mutation with optimistic update
+    addBatchMutation(
+      {
+        productName: selectedProduct.name,
+        department: selectedDepartment,
+        category: selectedCategory,
+        quantity: batchData.noQuantity ? null : parseInt(batchData.quantity),
+        expiryDate: batchData.expiryDate
+      },
+      {
+        onSuccess: () => {
+          toast.success(t('toast.batchAdded'), selectedProduct.name)
+          onClose()
+          // React Query автоматически обновит инвентарь
+        },
+        onError: (error) => {
+          toast.error(t('toast.error'), error.message || t('toast.somethingWentWrong'))
         }
-      )
-      toast.success(t('toast.batchAdded'), selectedProduct.name)
-      onClose()
-    } catch (error) {
-      toast.error(t('toast.error'), error.message || t('toast.somethingWentWrong'))
-      setIsSubmitting(false)
-    }
+      }
+    )
   }
 
   // Назад
@@ -254,6 +266,7 @@ export default function AddBatchModal({ onClose, preselectedProduct = null }) {
                   <input
                     type="date"
                     value={batchData.expiryDate}
+                    min="2026-01-01"
                     onChange={(e) =>
                       setBatchData((prev) => ({ ...prev, expiryDate: e.target.value }))
                     }

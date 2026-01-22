@@ -5,12 +5,13 @@
  * Updated: 2024-12-14
  */
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useTranslation, useLanguage } from '../context/LanguageContext'
 import { useOnboarding } from '../context/OnboardingContext'
 import { departments } from '../context/ProductContext'
 import { useToast } from '../context/ToastContext'
+import { apiFetch } from '../services/api'
 import {
   User,
   Users,
@@ -37,11 +38,11 @@ import GeneralSettings from '../components/settings/GeneralSettings'
 import OrganizationSettings from '../components/settings/OrganizationSettings'
 import DirectoriesSettings from '../components/settings/DirectoriesSettings'
 import TemplatesSettings from '../components/settings/TemplatesSettings'
-import TelegramSettings from '../components/settings/TelegramSettings'
-import EmailSettings from '../components/settings/EmailSettings'
+import NotificationsSettings from '../components/settings/NotificationsSettings'
 import ImportExportSettings from '../components/settings/ImportExportSettings'
 import BrandingSettings from '../components/settings/BrandingSettings'
 import JoinRequestsSettings from '../components/settings/JoinRequestsSettings'
+import CacheManagement from '../components/settings/CacheManagement'
 
 export default function SettingsPage() {
   const { t } = useTranslation()
@@ -52,7 +53,8 @@ export default function SettingsPage() {
     isHotelAdmin,
     isSuperAdmin,
     isDepartmentManager,
-    isStaff: isStaffRole
+    isStaff: isStaffRole,
+    updateUser
   } = useAuth()
   const { language, changeLanguage } = useLanguage()
   const { startOnboarding, resetOnboarding } = useOnboarding()
@@ -60,6 +62,24 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('profile')
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState(null)
+  
+  // Состояние для профиля
+  const [profileData, setProfileData] = useState({
+    name: user?.name || '',
+    email: user?.email || ''
+  })
+  const [savingProfile, setSavingProfile] = useState(false)
+  const [profileMessage, setProfileMessage] = useState(null)
+
+  // Обновляем profileData при изменении user
+  useEffect(() => {
+    if (user) {
+      setProfileData({
+        name: user.name || '',
+        email: user.email || ''
+      })
+    }
+  }, [user])
 
   // Настройки уведомлений
   const [notificationSettings, setNotificationSettings] = useState({
@@ -137,12 +157,12 @@ export default function SettingsPage() {
     { id: 'directories', icon: Tags, label: t('settings.tabs.directories') || 'Справочники' },
     { id: 'templates', icon: FileBox, label: t('settings.tabs.templates') || 'Шаблоны' },
     { id: 'rules', icon: Bell, label: t('settings.tabs.rules') || 'Правила' },
-    { id: 'telegram', icon: Send, label: t('settings.tabs.telegram') || 'Telegram' },
-    { id: 'email', icon: Mail, label: t('settings.tabs.email') || 'Email' },
+    { id: 'notifications', icon: Bell, label: t('settings.tabs.notifications') || 'Уведомления' },
     { id: 'branding', icon: Palette, label: t('settings.tabs.branding') || 'Брендинг' },
+    { id: 'cache', icon: Database, label: t('settings.tabs.cache') || 'Кэш' },
     {
       id: 'import-export',
-      icon: Database,
+      icon: RefreshCw,
       label: t('settings.tabs.importExport') || 'Импорт/Экспорт'
     }
   ]
@@ -170,72 +190,184 @@ export default function SettingsPage() {
     }
   }
 
+  // Сохранение профиля
+  const handleSaveProfile = async () => {
+    setSavingProfile(true)
+    setProfileMessage(null)
+    
+    try {
+      // Валидация email
+      if (profileData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profileData.email)) {
+        setProfileMessage({ type: 'error', text: 'Неверный формат email адреса' })
+        setSavingProfile(false)
+        return
+      }
+
+      const result = await apiFetch('/auth/me', {
+        method: 'PUT',
+        body: JSON.stringify({
+          name: profileData.name,
+          email: profileData.email || null
+        })
+      })
+
+      if (result.success) {
+        setProfileMessage({ type: 'success', text: t('settings.profile.saved') || 'Профиль обновлен' })
+        addToast(t('settings.profile.saved') || 'Профиль обновлен', 'success')
+        
+        // Обновляем данные пользователя в контексте
+        if (result.user && updateUser) {
+          updateUser(result.user)
+        }
+        
+        setTimeout(() => setProfileMessage(null), 3000)
+      } else {
+        setProfileMessage({ type: 'error', text: result.error || t('settings.profile.saveError') || 'Ошибка сохранения' })
+      }
+    } catch (error) {
+      setProfileMessage({ 
+        type: 'error', 
+        text: error.error || error.message || t('settings.profile.saveError') || 'Ошибка сохранения' 
+      })
+    } finally {
+      setSavingProfile(false)
+    }
+  }
+
   // Рендер профиля
   const renderProfile = () => (
     <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-medium text-foreground mb-4">{t('settings.profile.title')}</h3>
+        <div>
+          <h3 className="text-lg font-medium text-foreground mb-4">{t('settings.profile.title')}</h3>
 
-        <div className="space-y-4">
-          {/* Аватар */}
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 bg-charcoal dark:bg-accent rounded-full flex items-center justify-center text-white text-xl font-light">
-              {user?.name?.[0] || 'U'}
+          {profileMessage && (
+            <div
+              className={`flex items-center gap-2 p-3 rounded-lg mb-4 ${
+                profileMessage.type === 'success'
+                  ? 'bg-success/10 text-success border border-success/20'
+                  : 'bg-danger/10 text-danger border border-danger/20'
+              }`}
+            >
+              {profileMessage.type === 'success' ? (
+                <Check className="w-5 h-5" />
+              ) : (
+                <AlertCircle className="w-5 h-5" />
+              )}
+              {profileMessage.text}
             </div>
-            <div>
-              <p className="font-medium text-foreground">{user?.name}</p>
-              <p className="text-sm text-muted-foreground">{user?.email}</p>
-            </div>
-          </div>
+          )}
 
-          {/* Информация */}
-          <div className="grid sm:grid-cols-2 gap-4 pt-4">
+          <div className="space-y-4">
+            {/* Аватар */}
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 bg-charcoal dark:bg-accent rounded-full flex items-center justify-center text-white text-xl font-light">
+                {profileData.name?.[0] || user?.name?.[0] || 'U'}
+              </div>
+              <div>
+                <p className="font-medium text-foreground">{profileData.name || user?.name}</p>
+                <p className="text-sm text-muted-foreground">
+                  {profileData.email || user?.email || t('settings.profile.noEmail') || 'Email не указан'}
+                </p>
+              </div>
+            </div>
+
+            {/* Информация */}
+            <div className="grid sm:grid-cols-2 gap-4 pt-4">
+              <div>
+                <label className="block text-sm text-muted-foreground mb-1">
+                  {t('settings.profile.name') || 'Имя'}
+                </label>
+                <input
+                  type="text"
+                  value={profileData.name}
+                  onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-muted-foreground mb-1">
+                  {t('settings.profile.email') || 'Email'}
+                </label>
+                <input
+                  type="email"
+                  value={profileData.email}
+                  onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
+                  placeholder={t('settings.profile.emailPlaceholder') || 'example@email.com'}
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+                />
+                {!user?.email && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {t('settings.profile.emailHint') || 'Добавьте email для получения уведомлений'}
+                  </p>
+                )}
+              </div>
+              <div>
+                <label className="block text-sm text-muted-foreground mb-1">
+                  {t('settings.profile.login')}
+                </label>
+                <input
+                  type="text"
+                  value={user?.login || ''}
+                  disabled
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-muted text-muted-foreground"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-muted-foreground mb-1">
+                  {t('settings.profile.role')}
+                </label>
+                <input
+                  type="text"
+                  value={user?.roleLabel || t(`settings.profile.role${user?.role}`) || user?.role}
+                  disabled
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-muted text-muted-foreground"
+                />
+              </div>
+            </div>
+
+            {/* Доступные отделы */}
             <div>
-              <label className="block text-sm text-muted-foreground mb-1">
-                {t('settings.profile.login')}
+              <label className="block text-sm text-muted-foreground mb-2">
+                {t('settings.profile.departments')}
               </label>
-              <input
-                type="text"
-                value={user?.login || ''}
-                disabled
-                className="w-full px-3 py-2 border border-border rounded-lg bg-muted text-muted-foreground"
-              />
+              <div className="flex flex-wrap gap-2">
+                {user?.departments?.map((deptId) => {
+                  const dept = departments.find((d) => d.id === deptId)
+                  return (
+                    <span
+                      key={deptId}
+                      className="px-3 py-1 bg-muted text-foreground text-sm rounded-full"
+                    >
+                      {dept?.name || deptId}
+                    </span>
+                  )
+                })}
+              </div>
             </div>
-            <div>
-              <label className="block text-sm text-muted-foreground mb-1">
-                {t('settings.profile.role')}
-              </label>
-              <input
-                type="text"
-                value={user?.roleLabel || t(`settings.profile.role${user?.role}`) || user?.role}
-                disabled
-                className="w-full px-3 py-2 border border-border rounded-lg bg-muted text-muted-foreground"
-              />
-            </div>
-          </div>
 
-          {/* Доступные отделы */}
-          <div>
-            <label className="block text-sm text-muted-foreground mb-2">
-              {t('settings.profile.departments')}
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {user?.departments?.map((deptId) => {
-                const dept = departments.find((d) => d.id === deptId)
-                return (
-                  <span
-                    key={deptId}
-                    className="px-3 py-1 bg-muted text-foreground text-sm rounded-full"
-                  >
-                    {dept?.name || deptId}
-                  </span>
-                )
-              })}
+            {/* Кнопка сохранения */}
+            <div className="flex justify-end pt-4 border-t border-border">
+              <button
+                onClick={handleSaveProfile}
+                disabled={savingProfile || (profileData.name === user?.name && profileData.email === (user?.email || ''))}
+                className="flex items-center gap-2 px-6 py-2.5 bg-foreground text-background rounded-lg hover:bg-foreground/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {savingProfile ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    {t('common.loading')}
+                  </>
+                ) : (
+                  <>
+                    <Check className="w-4 h-4" />
+                    {t('common.save')}
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>
       </div>
-    </div>
   )
 
   // Рендер настроек уведомлений
@@ -412,11 +544,11 @@ export default function SettingsPage() {
   }
 
   // Автопроверка при открытии вкладки "Система"
-  useState(() => {
+  useEffect(() => {
     if (activeTab === 'system' && !systemHealth) {
       checkSystemHealth()
     }
-  }, [activeTab])
+  }, [activeTab, systemHealth])
 
   const renderSystem = () => (
     <div className="space-y-6">
@@ -651,9 +783,9 @@ export default function SettingsPage() {
           )}
           {activeTab === 'templates' && userIsStaff && <TemplatesSettings readOnly />}
           {activeTab === 'rules' && userIsAdmin && <NotificationRulesSettings />}
-          {activeTab === 'telegram' && userIsAdmin && <TelegramSettings />}
-          {activeTab === 'email' && userIsAdmin && <EmailSettings />}
+          {activeTab === 'notifications' && userIsAdmin && <NotificationsSettings />}
           {activeTab === 'branding' && userIsAdmin && <BrandingSettings />}
+          {activeTab === 'cache' && userIsAdmin && <CacheManagement />}
           {activeTab === 'import-export' && userIsAdmin && <ImportExportSettings />}
           {activeTab === 'system' && userIsSuperAdmin && renderSystem()}
 

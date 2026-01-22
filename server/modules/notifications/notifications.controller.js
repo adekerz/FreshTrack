@@ -369,6 +369,15 @@ router.post('/test-telegram', authMiddleware, hotelIsolation, departmentIsolatio
     console.log('   User:', req.user?.name, 'Hotel ID:', req.hotelId)
 
     const { TelegramService } = await import('../../services/TelegramService.js')
+    
+    // Проверяем, настроен ли Telegram бот
+    if (!TelegramService.isConfigured()) {
+      return res.status(400).json({
+        success: false,
+        error: 'Telegram бот не настроен. Установите переменную окружения TELEGRAM_BOT_TOKEN.'
+      })
+    }
+
     const { chatId } = req.body
 
     let targetChats = []
@@ -403,26 +412,178 @@ router.post('/test-telegram', authMiddleware, hotelIsolation, departmentIsolatio
 📅 ${new Date().toLocaleString('ru-RU', { timeZone: 'Asia/Almaty' })}`
 
     const results = []
+    let hasUnauthorizedError = false
+    
+    // Отправляем Telegram уведомления
     for (const chat of targetChats) {
       try {
         const result = await TelegramService.sendMessage(chat.chat_id, testMessage)
-        results.push({ chatId: chat.chat_id, success: true, messageId: result?.message_id })
+        if (result && !result.skipped) {
+          results.push({ chatId: chat.chat_id, success: true, messageId: result?.message_id })
+        } else {
+          results.push({ chatId: chat.chat_id, success: false, error: 'Telegram не настроен' })
+        }
       } catch (error) {
-        results.push({ chatId: chat.chat_id, success: false, error: error.message })
+        const errorMessage = error.message || String(error)
+        
+        // Определяем тип ошибки
+        if (errorMessage.includes('Unauthorized') || errorMessage.includes('401')) {
+          hasUnauthorizedError = true
+          results.push({ 
+            chatId: chat.chat_id, 
+            success: false, 
+            error: 'Неверный токен Telegram бота. Проверьте переменную окружения TELEGRAM_BOT_TOKEN.' 
+          })
+        } else {
+          results.push({ chatId: chat.chat_id, success: false, error: errorMessage })
+        }
       }
     }
 
     const successCount = results.filter(r => r.success).length
 
+    // Также отправляем email уведомление текущему пользователю
+    let emailSent = false
+    let emailError = null
+    
+    if (req.user && req.user.email) {
+      try {
+        const { sendEmail, EMAIL_FROM } = await import('../../services/EmailService.js')
+        
+        const emailHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      background-color: #f5f5f5;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 32px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    .header {
+      border-left: 4px solid #FF8D6B;
+      padding-left: 16px;
+      margin-bottom: 24px;
+    }
+    .title {
+      font-size: 24px;
+      font-weight: 600;
+      color: #1a1a1a;
+      margin: 0;
+    }
+    .content {
+      margin: 24px 0;
+      padding: 20px;
+      background: #f9fafb;
+      border-radius: 8px;
+    }
+    .message {
+      font-size: 16px;
+      line-height: 1.6;
+      color: #4b5563;
+    }
+    .footer {
+      margin-top: 32px;
+      padding-top: 24px;
+      border-top: 1px solid #e5e7eb;
+      text-align: center;
+      color: #9ca3af;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1 class="title">✅ Тест FreshTrack</h1>
+    </div>
+    
+    <div class="content">
+      <div class="message">
+        Если вы видите это письмо, email уведомления работают правильно!<br><br>
+        📅 ${new Date().toLocaleString('ru-RU', { timeZone: 'Asia/Almaty' })}
+      </div>
+    </div>
+    
+    <div class="footer">
+      <p>Это автоматическое тестовое уведомление от FreshTrack.</p>
+    </div>
+  </div>
+</body>
+</html>
+        `
+        
+        await sendEmail({
+          to: req.user.email,
+          from: EMAIL_FROM.system,
+          subject: '✅ Тест FreshTrack — Email уведомления работают',
+          html: emailHtml,
+          text: 'Если вы видите это письмо, email уведомления работают правильно!'
+        })
+        
+        emailSent = true
+        logInfo('Test notification', `📧 Test email sent to ${req.user.email}`)
+      } catch (error) {
+        emailError = error.message || String(error)
+        logError('Test notification', `Failed to send test email: ${emailError}`)
+      }
+    }
+
+    // Если все попытки завершились ошибкой Unauthorized, возвращаем специальное сообщение
+    // Используем 400 вместо 401, чтобы не путать с ошибкой авторизации пользователя
+    if (hasUnauthorizedError && successCount === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Ошибка авторизации Telegram бота. Проверьте правильность токена TELEGRAM_BOT_TOKEN в настройках сервера.',
+        sentTo: 0,
+        totalChats: targetChats.length,
+        emailSent,
+        emailError,
+        results
+      })
+    }
+
     res.json({
-      success: successCount > 0,
+      success: successCount > 0 || emailSent,
       sentTo: successCount,
       totalChats: targetChats.length,
+      emailSent,
+      emailError: emailError || null,
       results
     })
   } catch (error) {
     logError('Test telegram error', error)
-    res.status(500).json({ success: false, error: error.message || 'Failed to send test message' })
+    
+    // Определяем тип ошибки для более понятного сообщения
+    const errorMessage = error.message || String(error)
+    let userMessage = 'Ошибка отправки тестового сообщения'
+    let statusCode = 500
+    
+    if (errorMessage.includes('Unauthorized') || errorMessage.includes('401')) {
+      userMessage = 'Ошибка авторизации Telegram бота. Проверьте правильность токена TELEGRAM_BOT_TOKEN.'
+      statusCode = 400 // Используем 400 вместо 401, чтобы не путать с ошибкой авторизации пользователя
+    } else if (errorMessage.includes('not configured')) {
+      userMessage = 'Telegram бот не настроен. Установите переменную окружения TELEGRAM_BOT_TOKEN.'
+      statusCode = 400
+    }
+    
+    res.status(statusCode).json({ 
+      success: false, 
+      error: userMessage,
+      details: process.env.NODE_ENV === 'development' ? errorMessage : undefined
+    })
   }
 })
 

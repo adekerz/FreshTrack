@@ -10,20 +10,24 @@ import {
   Plus,
   FileBox,
   ArrowUpDown,
-  ArrowLeft
+  ArrowLeft,
+  Trash2
 } from 'lucide-react'
 import { useProducts } from '../context/ProductContext'
 import { useHotel } from '../context/HotelContext'
 import { useAuth } from '../context/AuthContext'
 import { useTranslation, useLanguage } from '../context/LanguageContext'
+import { useToast } from '../context/ToastContext'
+import { apiFetch } from '../services/api'
 import ProductModal from '../components/ProductModal'
 import AddCustomProductModal from '../components/AddCustomProductModal'
-import DeliveryTemplateModal from '../components/DeliveryTemplateModal'
+import SelectTemplateModal from '../components/SelectTemplateModal'
+import FastIntakeModal from '../components/FastIntakeModal'
 import DepartmentSelector from '../components/DepartmentSelector'
 import ExportButton from '../components/ExportButton'
 import { EXPORT_COLUMNS } from '../utils/exportUtils'
 import { SkeletonInventory, Skeleton } from '../components/Skeleton'
-import { Loader } from '../components/ui'
+import { Loader, ConfirmDialog } from '../components/ui'
 
 // Иконки для отделов - универсальный маппинг
 const ICON_MAP = {
@@ -63,11 +67,16 @@ export default function InventoryPage() {
   const { getProductsByDepartment, catalog, refresh, departments, categories, loading } =
     useProducts()
   const { selectedHotelId } = useHotel()
-  const { user, isStaff } = useAuth()
+  const { user, isStaff, isSuperAdmin } = useAuth()
+  const { addToast } = useToast()
   const prevHotelIdRef = useRef(selectedHotelId)
 
   // Проверка роли STAFF через helper функцию
   const userIsStaff = isStaff()
+  const userIsSuperAdmin = isSuperAdmin()
+  
+  // Check if running in development mode
+  const isDevelopment = import.meta.env.MODE === 'development'
 
   // Состояние выбранного отдела (из URL или null для показа селектора)
   const [selectedDeptId, setSelectedDeptId] = useState(departmentId || null)
@@ -76,8 +85,52 @@ export default function InventoryPage() {
   const [selectedProduct, setSelectedProduct] = useState(null)
   const [showProductModal, setShowProductModal] = useState(false)
   const [showAddCustomModal, setShowAddCustomModal] = useState(false)
-  const [showTemplateModal, setShowTemplateModal] = useState(false)
+  const [showClearAllConfirm, setShowClearAllConfirm] = useState(false)
+  const [clearingBatches, setClearingBatches] = useState(false)
+  // === Template modal state management ===
+  // Two separate modals with clear separation of concerns:
+  // 1. SelectTemplateModal - only selects template (stateless)
+  // 2. FastIntakeModal - fast intake with selected template (stateful)
+  const [showSelectTemplateModal, setShowSelectTemplateModal] = useState(false)
+  const [showFastIntakeModal, setShowFastIntakeModal] = useState(false)
+  const [selectedTemplateId, setSelectedTemplateId] = useState(null)
   const [retryCount, setRetryCount] = useState(0)
+  
+  // Handle template selection - closes selector, opens fast intake
+  const handleTemplateSelect = useCallback((templateId) => {
+    setSelectedTemplateId(templateId)
+    setShowSelectTemplateModal(false)
+    // Use setTimeout to ensure state updates complete before opening next modal
+    setTimeout(() => {
+      setShowFastIntakeModal(true)
+    }, 0)
+  }, [])
+  
+  // Handle "change template" - opens selector, keeps fast intake state
+  const handleChangeTemplate = useCallback(() => {
+    setShowFastIntakeModal(false)
+    setShowSelectTemplateModal(true)
+    // DON'T reset selectedTemplateId here - will be set on new selection
+  }, [])
+  
+  // Handle fast intake close - full reset
+  const handleFastIntakeClose = useCallback(() => {
+    setShowFastIntakeModal(false)
+    setSelectedTemplateId(null)
+  }, [])
+  
+  // DEPRECATED: React Query автоматически обновляет инвентарь через invalidation
+  // Этот callback больше не нужен, но оставлен для обратной совместимости
+  const handleFastApply = useCallback((batches) => {
+    // React Query автоматически обновит данные через фоновую синхронизацию
+    // refresh() больше не нужен - данные обновятся через 2 секунды автоматически
+  }, [])
+  
+  // Handle template selector close - full reset
+  const handleSelectTemplateClose = useCallback(() => {
+    setShowSelectTemplateModal(false)
+    setSelectedTemplateId(null)
+  }, [])
 
   // Если в URL есть departmentId, используем его
   useEffect(() => {
@@ -145,6 +198,53 @@ export default function InventoryPage() {
     // Возвращаем все категории отеля
     // Backend уже фильтрует categories по hotel_id
     return categories
+  }
+
+  // Clear all batches (DEVELOPMENT ONLY - SUPER ADMIN)
+  const handleClearAllBatches = async () => {
+    if (!isDevelopment || !userIsSuperAdmin) return
+    
+    setClearingBatches(true)
+    try {
+      // Use hotel_id from context or localStorage
+      const hotelId = selectedHotelId || localStorage.getItem('freshtrack_selected_hotel')
+      
+      if (!hotelId) {
+        addToast('Не указан отель', 'error')
+        setClearingBatches(false)
+        return
+      }
+      
+      const url = `/batches/clear-all?hotel_id=${hotelId}`
+      
+      console.log('[Clear All Batches] Request:', {
+        url,
+        hotelId,
+        isDevelopment,
+        userIsSuperAdmin,
+        userRole: user?.role
+      })
+      
+      const response = await apiFetch(url, {
+        method: 'DELETE'
+      })
+      
+      console.log('[Clear All Batches] Response:', response)
+      
+      addToast(
+        t('inventory.allBatchesCleared', { count: response.deleted || 0 }) || 
+        `Удалено ${response.deleted || 0} партий`,
+        'success'
+      )
+      refresh()
+      setShowClearAllConfirm(false)
+    } catch (error) {
+      console.error('[Clear All Batches] Error:', error)
+      const errorMessage = error.message || error.error || 'Ошибка очистки партий'
+      addToast(errorMessage, 'error')
+    } finally {
+      setClearingBatches(false)
+    }
   }
 
   // Получить отфильтрованные и отсортированные товары
@@ -397,15 +497,26 @@ export default function InventoryPage() {
             }
           />
           <button
-            onClick={() => setShowTemplateModal(true)}
+            onClick={() => setShowSelectTemplateModal(true)}
             className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground hover:text-accent transition-colors"
             title={t('inventory.applyTemplate')}
           >
             <FileBox className="w-4 h-4" />
             <span className="hidden sm:inline">{t('inventory.applyTemplate')}</span>
           </button>
+          {/* Clear All Batches - DEVELOPMENT ONLY - SUPER ADMIN */}
+          {isDevelopment && userIsSuperAdmin && (
+            <button
+              onClick={() => setShowClearAllConfirm(true)}
+              className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground hover:text-accent transition-colors"
+              title={t('inventory.clearAll') || 'Очистить все партии'}
+            >
+              <Trash2 className="w-4 h-4" />
+              <span className="hidden sm:inline">{t('inventory.clearAll') || 'Очистить все'}</span>
+            </button>
+          )}
           {/* Добавление товара - только для админов и менеджеров (не STAFF) */}
-          {!isStaff && (
+          {!userIsStaff && (
             <button
               onClick={() => setShowAddCustomModal(true)}
               className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground hover:text-accent transition-colors"
@@ -560,15 +671,39 @@ export default function InventoryPage() {
         />
       )}
 
-      {showTemplateModal && (
-        <DeliveryTemplateModal
+      {/* Template Selection Modal - stateless */}
+      {showSelectTemplateModal && (
+        <SelectTemplateModal
           isOpen={true}
+          onSelect={handleTemplateSelect}
+          onClose={handleSelectTemplateClose}
+        />
+      )}
+
+      {/* Fast Intake Modal - stateful with selected template */}
+      {showFastIntakeModal && selectedTemplateId && (
+        <FastIntakeModal
+          isOpen={true}
+          templateId={selectedTemplateId}
           departmentId={selectedDeptId}
-          onClose={() => setShowTemplateModal(false)}
-          onApply={() => {
-            refresh()
-            setShowTemplateModal(false)
-          }}
+          onChangeTemplate={handleChangeTemplate}
+          onClose={handleFastIntakeClose}
+          onFastApply={handleFastApply}
+        />
+      )}
+
+      {/* Clear All Batches Confirmation Dialog */}
+      {isDevelopment && userIsSuperAdmin && (
+        <ConfirmDialog
+          isOpen={showClearAllConfirm}
+          onClose={() => setShowClearAllConfirm(false)}
+          onConfirm={handleClearAllBatches}
+          title={t('inventory.clearAll') || 'Очистить все партии'}
+          description={t('inventory.confirmClearAll') || 'ВНИМАНИЕ! Это удалит ВСЕ активные партии из инвентаря. Это действие нельзя отменить.'}
+          confirmLabel={t('common.confirm') || 'Подтвердить'}
+          cancelLabel={t('common.cancel') || 'Отмена'}
+          variant="danger"
+          loading={clearingBatches}
         />
       )}
     </div>

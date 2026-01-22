@@ -23,7 +23,7 @@ import {
 import MarshaCodeService from '../../services/MarshaCodeService.js'
 import { generateToken } from '../../middleware/auth.js'
 import { PermissionService } from '../../services/PermissionService.js'
-import { logError } from '../../utils/logger.js'
+import { logError, logInfo } from '../../utils/logger.js'
 
 /**
  * Результат операции
@@ -88,7 +88,12 @@ export class AuthService {
   static async formatUserResponse(user, includePermissions = true) {
     let hotel = null
     if (user.hotel_id) {
-      hotel = await getHotelById(user.hotel_id)
+      try {
+        hotel = await getHotelById(user.hotel_id)
+      } catch (error) {
+        logError('AuthService.formatUserResponse', `Failed to get hotel ${user.hotel_id}`, error)
+        // Continue without hotel info
+      }
     }
 
     // Role labels for localization (Russian)
@@ -115,10 +120,11 @@ export class AuthService {
       hotel: hotel ? {
         id: hotel.id,
         name: hotel.name,
-        marsha_code: hotel.marsha_code
+        marsha_code: hotel.marsha_code || null
       } : null,
       telegram_chat_id: user.telegram_chat_id,
-      is_active: user.is_active !== false
+      is_active: user.is_active !== false,
+      mustChangePassword: user.must_change_password || false
     }
 
     if (includePermissions) {
@@ -210,7 +216,7 @@ export class AuthService {
         ip_address: ipAddress
       })
 
-      // Форматировать ответ
+      // Форматировать ответ (mustChangePassword уже включен в formatUserResponse)
       const userData = await this.formatUserResponse(user, true)
 
       return ServiceResult.ok({
@@ -303,6 +309,10 @@ export class AuthService {
   /**
    * Смена пароля
    */
+  /**
+   * Change password (for first-time login or password reset)
+   * Resets must_change_password flag when password is changed
+   */
   static async changePassword(userId, currentPassword, newPassword, ipAddress = null) {
     try {
       const user = await getUserById(userId)
@@ -316,8 +326,18 @@ export class AuthService {
         return ServiceResult.error('Неверный текущий пароль', 401)
       }
 
-      // Обновить пароль
-      await dbUpdateUser(userId, { password: newPassword })
+      // Validate new password
+      const { validatePassword } = await import('../../utils/passwordGenerator.js')
+      const validation = validatePassword(newPassword)
+      if (!validation.isValid) {
+        return ServiceResult.error('Пароль не соответствует требованиям', 400)
+      }
+
+      // Обновить пароль и сбросить must_change_password
+      await dbUpdateUser(userId, { 
+        password: newPassword,
+        must_change_password: false 
+      })
 
       // Логирование
       await logAudit({
@@ -380,6 +400,7 @@ export class AuthService {
 
   /**
    * Создать пользователя
+   * If password is not provided, generates temporary password and sends email
    */
   static async createUser(data, creator, ipAddress = null) {
     try {
@@ -389,9 +410,12 @@ export class AuthService {
         return ServiceResult.error('User with this login already exists')
       }
 
-      const existingEmail = await getUserByLoginOrEmail(data.email)
-      if (existingEmail) {
-        return ServiceResult.error('User with this email already exists')
+      // Check email uniqueness only if email is provided and not empty
+      if (data.email && data.email.trim()) {
+        const existingEmail = await getUserByLoginOrEmail(data.email.trim().toLowerCase())
+        if (existingEmail) {
+          return ServiceResult.error('User with this email already exists')
+        }
       }
 
       // Определить hotel_id (поддержка camelCase и snake_case)
@@ -403,16 +427,69 @@ export class AuthService {
       // Определить department_id (поддержка camelCase и snake_case)
       const departmentId = data.departmentId || data.department_id
 
+      // Generate temporary password if not provided
+      let password = data.password
+      let mustChangePassword = false
+      let temporaryPassword = null
+
+      if (!password) {
+        // Email is required if generating password (to send it)
+        if (!data.email || !data.email.trim()) {
+          return ServiceResult.error('Email is required when password is auto-generated')
+        }
+        
+        const { generateTemporaryPassword } = await import('../../utils/passwordGenerator.js')
+        temporaryPassword = generateTemporaryPassword(12)
+        password = temporaryPassword
+        mustChangePassword = true
+        logInfo('AuthService', `Generated temporary password for user ${data.email}`)
+      }
+
       // Создать пользователя
       const newUser = await dbCreateUser({
         login: data.login,
-        email: data.email,
-        password: data.password,
+        email: data.email ? data.email.trim().toLowerCase() : null, // Normalize email
+        password: password,
         name: data.name,
         role: data.role,
         hotel_id: hotelId,
-        department_id: departmentId
+        department_id: departmentId,
+        must_change_password: mustChangePassword
       })
+      
+      // Ensure newUser has all required fields for formatUserResponse
+      if (!newUser.status) {
+        newUser.status = 'active'
+      }
+      if (newUser.is_active === undefined) {
+        newUser.is_active = true
+      }
+
+      // Send welcome email with temporary password if generated
+      if (temporaryPassword && data.email) {
+        try {
+          const { sendWelcomeEmailWithPassword } = await import('../../services/EmailService.js')
+          
+          // Get hotel name using dbQuery (already imported at top of file)
+          const hotelResult = await dbQuery('SELECT name FROM hotels WHERE id = $1', [hotelId])
+          const hotelName = hotelResult.rows[0]?.name || 'FreshTrack'
+          
+          const loginUrl = process.env.APP_URL || 'http://localhost:5173/login'
+          
+          await sendWelcomeEmailWithPassword({
+            to: data.email,
+            userName: data.name,
+            temporaryPassword,
+            hotelName,
+            loginUrl
+          })
+          
+          logInfo('AuthService', `Welcome email with password sent to ${data.email}`)
+        } catch (emailError) {
+          logError('AuthService', `Failed to send welcome email to ${data.email}`, emailError)
+          // Don't fail user creation if email fails - admin can resend password
+        }
+      }
 
       // Логирование
       await logAudit({
@@ -425,16 +502,39 @@ export class AuthService {
         details: {
           login: newUser.login,
           role: newUser.role,
-          created_by: creator.login
+          created_by: creator.login,
+          temporaryPasswordSent: !!temporaryPassword
         },
         ip_address: ipAddress
       })
 
-      const userData = await this.formatUserResponse(newUser, false)
-      return ServiceResult.created({ user: userData })
+      try {
+        const userData = await this.formatUserResponse(newUser, false)
+        return ServiceResult.created({ 
+          user: userData,
+          message: temporaryPassword ? `User created. Temporary password sent to ${data.email}` : 'User created'
+        })
+      } catch (formatError) {
+        logError('AuthService.createUser', `Failed to format user response: ${formatError.message}`, formatError)
+        // Return basic user data if formatting fails
+        return ServiceResult.created({
+          user: {
+            id: newUser.id,
+            login: newUser.login,
+            name: newUser.name,
+            email: newUser.email,
+            role: newUser.role,
+            hotel_id: newUser.hotel_id,
+            department_id: newUser.department_id,
+            mustChangePassword: newUser.must_change_password || false
+          },
+          message: temporaryPassword ? `User created. Temporary password sent to ${data.email}` : 'User created'
+        })
+      }
     } catch (error) {
       logError('AuthService.createUser', error)
-      return ServiceResult.error('Failed to create user', 500)
+      logError('AuthService.createUser', `Error details: ${error.message}`, error.stack)
+      return ServiceResult.error(`Failed to create user: ${error.message}`, 500)
     }
   }
 
@@ -449,19 +549,28 @@ export class AuthService {
       }
 
       // Обновить
-      const updatedUser = await dbUpdateUser(userId, data)
+      const updateResult = await dbUpdateUser(userId, data)
+      if (!updateResult) {
+        return ServiceResult.error('Failed to update user', 500)
+      }
+
+      // Получаем обновленного пользователя
+      const updatedUser = await getUserById(userId)
+      if (!updatedUser) {
+        return ServiceResult.notFound('User not found after update')
+      }
 
       // Логирование
       await logAudit({
         hotel_id: user.hotel_id,
         user_id: editor.id,
-        user_name: editor.name || editor.login,
+        user_name: editor.name || editor.login || 'Unknown',
         action: 'update',
         entity_type: 'user',
         entity_id: userId,
         details: {
           changes: Object.keys(data).filter(k => data[k] !== undefined),
-          updated_by: editor.login
+          updated_by: editor.login || 'Unknown'
         },
         ip_address: ipAddress
       })
@@ -566,15 +675,32 @@ export class AuthService {
       const hotelId = requestingUser.hotel_id
       const users = await getAllUsers(hotelId)
 
-      // Форматировать ответ
+      // Форматировать ответ с обработкой ошибок для каждого пользователя
       const formattedUsers = await Promise.all(
-        users.map(u => this.formatUserResponse(u, false))
+        users.map(async (u) => {
+          try {
+            return await this.formatUserResponse(u, false)
+          } catch (formatError) {
+            logError('AuthService.getUsers', `Failed to format user ${u.id}: ${formatError.message}`, formatError)
+            // Return basic user data if formatting fails
+            return {
+              id: u.id,
+              login: u.login,
+              name: u.name,
+              email: u.email,
+              role: u.role,
+              hotel_id: u.hotel_id,
+              department_id: u.department_id,
+              mustChangePassword: u.must_change_password || false
+            }
+          }
+        })
       )
 
       return ServiceResult.ok({ users: formattedUsers })
     } catch (error) {
-      logError('AuthService.getUsers', error)
-      return ServiceResult.error('Failed to get users', 500)
+      logError('AuthService.getUsers', `Failed to get users: ${error.message}`, error)
+      return ServiceResult.error(`Failed to get users: ${error.message}`, 500)
     }
   }
 }

@@ -9,6 +9,7 @@ import { PageLoader, FullscreenLoader, Loader } from './components/ui'
 // Eager loading для критичных страниц
 import LoginPage from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
+import ChangePasswordPage from './pages/ChangePasswordPage'
 
 // Lazy loading для вторичных страниц (уменьшает initial bundle)
 const RegisterPage = lazy(() => import('./pages/RegisterPage'))
@@ -71,6 +72,18 @@ function App() {
     )
   }
 
+  // User must change password - show only change password page
+  if (user?.mustChangePassword) {
+    return (
+      <Suspense fallback={<SuspenseFallback />}>
+        <Routes>
+          <Route path="/change-password" element={<ChangePasswordPage />} />
+          <Route path="*" element={<Navigate to="/change-password" replace />} />
+        </Routes>
+      </Suspense>
+    )
+  }
+
   return (
     <ErrorBoundary>
       <Layout>
@@ -78,6 +91,7 @@ function App() {
           <Routes>
             {/* Общедоступные страницы (для всех авторизованных) */}
             <Route path="/" element={<DashboardPage />} />
+            <Route path="/change-password" element={<ChangePasswordPage />} />
             <Route path="/inventory" element={<InventoryPage />} />
             <Route path="/notifications" element={<NotificationsPage />} />
             <Route path="/calendar" element={<CalendarPage />} />

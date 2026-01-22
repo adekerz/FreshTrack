@@ -1,6 +1,7 @@
 /**
- * EmailSettings - Настройки Email уведомлений
- * Конфигурация SMTP и шаблонов email сообщений
+ * EmailSettings - Настройки SYSTEM Email уведомлений
+ * Конфигурация SMTP для системных уведомлений (сроки годности, ежедневные отчёты)
+ * Получатель: department.email (не user.email)
  */
 
 import { useState, useEffect } from 'react'
@@ -60,10 +61,25 @@ export default function EmailSettings() {
     try {
       const data = await apiFetch('/settings/email')
       if (data?.settings) {
-        setSettings((prev) => ({ ...prev, ...data.settings }))
+        // Ensure all values are properly typed and have defaults
+        setSettings((prev) => ({
+          ...prev,
+          enabled: data.settings.enabled ?? false,
+          smtpHost: data.settings.smtpHost ?? '',
+          smtpPort: typeof data.settings.smtpPort === 'number' ? data.settings.smtpPort : parseInt(data.settings.smtpPort) || 587,
+          smtpSecure: data.settings.smtpSecure ?? false,
+          smtpUser: data.settings.smtpUser ?? '',
+          smtpPassword: data.settings.smtpPassword ?? '',
+          fromEmail: data.settings.fromEmail ?? '',
+          fromName: data.settings.fromName ?? '',
+          dailyReportTime: data.settings.dailyReportTime ?? '08:00',
+          dailyReportEnabled: data.settings.dailyReportEnabled ?? true,
+          instantAlertsEnabled: data.settings.instantAlertsEnabled ?? true
+        }))
       }
     } catch (error) {
-      // Email settings might not exist yet
+      // Email settings might not exist yet - use defaults
+      console.warn('Failed to load email settings:', error)
     } finally {
       setLoading(false)
     }
@@ -72,13 +88,23 @@ export default function EmailSettings() {
   const saveSettings = async () => {
     setSaving(true)
     try {
+      // Ensure proper types before sending
+      const settingsToSave = {
+        ...settings,
+        smtpPort: typeof settings.smtpPort === 'number' ? settings.smtpPort : parseInt(settings.smtpPort) || 587,
+        smtpSecure: Boolean(settings.smtpSecure),
+        enabled: Boolean(settings.enabled),
+        dailyReportEnabled: Boolean(settings.dailyReportEnabled),
+        instantAlertsEnabled: Boolean(settings.instantAlertsEnabled)
+      }
+      
       await apiFetch('/settings/email', {
         method: 'PUT',
-        body: JSON.stringify({ settings })
+        body: JSON.stringify({ settings: settingsToSave })
       })
       addToast(t('settings.email.saved') || 'Настройки Email сохранены', 'success')
     } catch (error) {
-      addToast(t('settings.email.saveError') || 'Ошибка сохранения настроек', 'error')
+      addToast(error.message || t('settings.email.saveError') || 'Ошибка сохранения настроек', 'error')
     } finally {
       setSaving(false)
     }
@@ -88,15 +114,22 @@ export default function EmailSettings() {
     setTesting(true)
     setTestResult(null)
     try {
+      // Ensure proper types before sending
+      const settingsToTest = {
+        ...settings,
+        smtpPort: typeof settings.smtpPort === 'number' ? settings.smtpPort : parseInt(settings.smtpPort) || 587,
+        smtpSecure: Boolean(settings.smtpSecure)
+      }
+      
       const result = await apiFetch('/settings/email/test', {
         method: 'POST',
-        body: JSON.stringify({ settings })
+        body: JSON.stringify({ settings: settingsToTest })
       })
       setTestResult({ success: true, message: result.message || 'Тестовое письмо отправлено' })
       addToast('Тестовое письмо отправлено', 'success')
     } catch (error) {
       setTestResult({ success: false, message: error.message || 'Ошибка подключения' })
-      addToast('Ошибка отправки', 'error')
+      addToast(error.message || 'Ошибка отправки', 'error')
     } finally {
       setTesting(false)
     }
@@ -120,10 +153,10 @@ export default function EmailSettings() {
       <div>
         <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
           <Mail className="w-5 h-5" />
-          {t('settings.email.title') || 'Email уведомления'}
+          {t('settings.email.title') || 'Системные Email уведомления'}
         </h2>
         <p className="text-sm text-muted-foreground mt-1">
-          {t('settings.email.description') || 'Настройка отправки уведомлений на email'}
+          {t('settings.email.description') || 'Настройка SMTP для системных уведомлений (сроки годности, ежедневные отчёты)'}
         </p>
       </div>
 
@@ -132,11 +165,11 @@ export default function EmailSettings() {
         <Info className="w-5 h-5 text-info mt-0.5 flex-shrink-0" />
         <div>
           <p className="text-sm text-foreground font-medium">
-            {t('settings.email.infoTitle') || 'Email уведомления'}
+            {t('settings.email.infoTitle') || 'Системные Email уведомления'}
           </p>
           <p className="text-sm text-muted-foreground mt-1">
             {t('settings.email.infoText') ||
-              'Настройте SMTP сервер для отправки ежедневных отчётов и мгновенных уведомлений о критических сроках годности на email.'}
+              'Настройте SMTP сервер для отправки системных уведомлений. Письма отправляются на email отдела (department.email), а не на email пользователей. Убедитесь, что у отделов настроены email адреса.'}
           </p>
         </div>
       </div>
@@ -160,11 +193,11 @@ export default function EmailSettings() {
             </div>
             <div>
               <p className="font-medium text-foreground">
-                {t('settings.email.enableEmail') || 'Email уведомления'}
+                {t('settings.email.enableEmail') || 'Системные Email уведомления'}
               </p>
               <p className="text-sm text-muted-foreground">
                 {settings.enabled
-                  ? t('settings.email.enabled') || 'Включено'
+                  ? t('settings.email.enabled') || 'Включено — письма отправляются на email отдела'
                   : t('settings.email.disabled') || 'Отключено'}
               </p>
             </div>
@@ -215,8 +248,13 @@ export default function EmailSettings() {
               </label>
               <input
                 type="number"
-                value={settings.smtpPort}
-                onChange={(e) => updateSetting('smtpPort', parseInt(e.target.value) || 587)}
+                value={settings.smtpPort || 587}
+                onChange={(e) => {
+                  const port = e.target.value ? parseInt(e.target.value) : 587
+                  updateSetting('smtpPort', isNaN(port) ? 587 : port)
+                }}
+                min="1"
+                max="65535"
                 className="w-full px-3 py-2 border border-border rounded-lg bg-background
                   focus:outline-none focus:ring-2 focus:ring-accent/50"
               />
@@ -261,16 +299,19 @@ export default function EmailSettings() {
 
             <div>
               <label className="block text-sm font-medium text-foreground mb-1.5">
-                {t('settings.email.fromEmail') || 'Email отправителя'}
+                {t('settings.email.fromEmail') || 'Email отправителя (system)'}
               </label>
               <input
                 type="email"
                 value={settings.fromEmail}
                 onChange={(e) => updateSetting('fromEmail', e.target.value)}
-                placeholder="noreply@example.com"
+                placeholder="no-reply@freshtrack.systems"
                 className="w-full px-3 py-2 border border-border rounded-lg bg-background
                   focus:outline-none focus:ring-2 focus:ring-accent/50"
               />
+              <p className="text-xs text-muted-foreground mt-1">
+                Email отправителя для системных уведомлений (system / no-reply)
+              </p>
             </div>
 
             <div>
@@ -303,6 +344,11 @@ export default function EmailSettings() {
 
           {/* Тест подключения */}
           <div className="pt-4 border-t border-border">
+            <div className="mb-3 p-3 bg-muted/30 rounded-lg">
+              <p className="text-sm text-muted-foreground">
+                <strong>Примечание:</strong> Тестовое письмо будет отправлено на email первого активного отдела с настроенным email адресом.
+              </p>
+            </div>
             <button
               onClick={testConnection}
               disabled={testing || !settings.smtpHost || !settings.smtpUser}
@@ -310,7 +356,7 @@ export default function EmailSettings() {
                 hover:bg-muted/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {testing ? <ButtonSpinner /> : <TestTube className="w-4 h-4" />}
-              {t('settings.email.testConnection') || 'Тест подключения'}
+              {t('settings.email.testConnection') || 'Тест подключения (отправить на email отдела)'}
             </button>
 
             {testResult && (
@@ -349,14 +395,20 @@ export default function EmailSettings() {
                   {t('settings.email.dailyReport') || 'Ежедневный отчёт'}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  {t('settings.email.dailyReportDesc') || 'Сводка по срокам годности каждый день'}
+                  {t('settings.email.dailyReportDesc') || 'Сводка по срокам годности отправляется на email отдела каждый день'}
                 </p>
               </div>
               <div className="flex items-center gap-3">
                 <input
                   type="time"
-                  value={settings.dailyReportTime}
-                  onChange={(e) => updateSetting('dailyReportTime', e.target.value)}
+                  value={settings.dailyReportTime || '08:00'}
+                  onChange={(e) => {
+                    const time = e.target.value || '08:00'
+                    // Ensure format is HH:MM
+                    if (/^([01]\d|2[0-3]):([0-5]\d)$/.test(time)) {
+                      updateSetting('dailyReportTime', time)
+                    }
+                  }}
                   disabled={!settings.dailyReportEnabled}
                   className="px-2 py-1 border border-border rounded-lg bg-background text-sm"
                 />
@@ -384,7 +436,7 @@ export default function EmailSettings() {
                 </p>
                 <p className="text-sm text-muted-foreground">
                   {t('settings.email.instantAlertsDesc') ||
-                    'Немедленная отправка при критических ситуациях'}
+                    'Немедленная отправка на email отдела при критических ситуациях (истекающие товары)'}
                 </p>
               </div>
               <button

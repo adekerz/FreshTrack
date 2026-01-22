@@ -3,6 +3,8 @@ import { X, Wine, Coffee, Utensils, ChefHat, Warehouse, Package } from 'lucide-r
 import { useProducts } from '../context/ProductContext'
 import { useTranslation, useLanguage } from '../context/LanguageContext'
 import { useToast } from '../context/ToastContext'
+import { useHotel } from '../context/HotelContext'
+import { useAddProduct } from '../hooks/useInventory'
 
 // Иконки для отделов - универсальный маппинг
 const ICON_MAP = { Wine, Coffee, Utensils, ChefHat, Warehouse, Package }
@@ -21,13 +23,16 @@ const getDeptIcon = (dept) => {
 export default function AddCustomProductModal({ onClose, departmentId = null }) {
   const { t } = useTranslation()
   const { language } = useLanguage()
-  const { addCustomProduct, departments, categories } = useProducts()
+  const { selectedHotelId } = useHotel()
+  const { departments, categories } = useProducts()
   const { addToast } = useToast()
+  
+  // === REACT QUERY MUTATION ===
+  const { mutate: addProductMutation, isPending: isSubmitting } = useAddProduct(selectedHotelId)
 
   const [selectedDepartment, setSelectedDepartment] = useState(departmentId)
   const [selectedCategory, setSelectedCategory] = useState(null)
   const [productName, setProductName] = useState('')
-  const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
 
   // Получить название категории
@@ -38,7 +43,7 @@ export default function AddCustomProductModal({ onClose, departmentId = null }) 
   }
 
   // Отправка формы
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault()
 
     if (!selectedDepartment) {
@@ -54,18 +59,27 @@ export default function AddCustomProductModal({ onClose, departmentId = null }) 
       return
     }
 
-    setIsSubmitting(true)
     setError('')
 
-    try {
-      await addCustomProduct(selectedDepartment, selectedCategory, productName.trim())
-      addToast(t('toast.productAdded'), 'success')
-      onClose()
-    } catch (err) {
-      setError(err.message || 'Error adding product')
-      addToast(t('toast.productAddError'), 'error')
-      setIsSubmitting(false)
-    }
+    // ✨ React Query mutation with optimistic update
+    addProductMutation(
+      {
+        name: productName.trim(),
+        categoryId: selectedCategory,
+        departmentId: selectedDepartment
+      },
+      {
+        onSuccess: () => {
+          addToast(t('toast.productAdded'), 'success')
+          onClose()
+          // React Query автоматически обновит каталог
+        },
+        onError: (err) => {
+          setError(err.message || 'Error adding product')
+          addToast(t('toast.productAddError'), 'error')
+        }
+      }
+    )
   }
 
   // Закрытие по оверлею

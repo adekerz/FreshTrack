@@ -12,7 +12,7 @@
 import cron from 'node-cron'
 import { NotificationEngine } from '../services/NotificationEngine.js'
 import { TelegramService } from '../services/TelegramService.js'
-import { logInfo, logError } from '../utils/logger.js'
+import { logInfo, logError, logDebug, logWarn } from '../utils/logger.js'
 import { query } from '../db/postgres.js'
 
 let expiryCheckJob = null
@@ -20,6 +20,75 @@ let queueProcessJob = null
 let dailyReportJob = null
 let telegramPolling = false
 let currentSendTime = '09:00'
+let currentTimezone = null // Будет определяться автоматически
+
+/**
+ * Get timezone for notifications
+ * Priority: Hotel timezone → Settings timezone → System timezone
+ */
+async function getTimezone() {
+  try {
+    // 1. Пытаемся получить из настроек отеля (если есть активный отель)
+    const settingsResult = await query(`
+      SELECT value FROM settings 
+      WHERE key IN ('locale.timezone', 'display.timezone')
+      AND (hotel_id IS NULL OR scope = 'system')
+      ORDER BY 
+        CASE WHEN key = 'locale.timezone' THEN 0 ELSE 1 END,
+        updated_at DESC NULLS LAST
+      LIMIT 1
+    `)
+    
+    if (settingsResult.rows.length > 0) {
+      try {
+        const timezone = JSON.parse(settingsResult.rows[0].value)
+        if (typeof timezone === 'string' && timezone) {
+          logDebug('getTimezone', `✅ Found timezone from settings: ${timezone}`)
+          return timezone
+        }
+      } catch {
+        const timezone = settingsResult.rows[0].value
+        if (timezone && typeof timezone === 'string') {
+          logDebug('getTimezone', `✅ Found timezone from settings: ${timezone}`)
+          return timezone
+        }
+      }
+    }
+    
+    // 2. Пытаемся получить из таблицы hotels (первый активный отель)
+    const hotelResult = await query(`
+      SELECT timezone FROM hotels 
+      WHERE is_active = true AND timezone IS NOT NULL
+      ORDER BY created_at ASC
+      LIMIT 1
+    `)
+    
+    if (hotelResult.rows.length > 0 && hotelResult.rows[0].timezone) {
+      const timezone = hotelResult.rows[0].timezone
+      logDebug('getTimezone', `✅ Found timezone from hotel: ${timezone}`)
+      return timezone
+    }
+    
+    // 3. Используем системный часовой пояс сервера
+    try {
+      const systemTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone
+      logDebug('getTimezone', `✅ Using system timezone: ${systemTimezone}`)
+      return systemTimezone
+    } catch {
+      // 4. Fallback на Asia/Almaty если ничего не найдено
+      logWarn('getTimezone', '⚠️ Could not determine timezone, using fallback: Asia/Almaty')
+      return 'Asia/Almaty'
+    }
+  } catch (error) {
+    logError('getTimezone', error)
+    // Fallback
+    try {
+      return Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Almaty'
+    } catch {
+      return 'Asia/Almaty'
+    }
+  }
+}
 
 /**
  * Convert time string (HH:MM) to cron expression for daily run
@@ -33,35 +102,79 @@ function timeToCronExpression(timeStr) {
  * Get daily send time from settings
  */
 async function getDailySendTime() {
+  logDebug('getDailySendTime', '🔍 Starting search for send time...')
+  
   try {
-    // Get global settings - check both with NULL hotel_id and scope='system'
+    // Проверяем ВСЕ возможные ключи напрямую из БД
+    logDebug('getDailySendTime', '📊 Querying database for send time...')
+    
+    // Получаем все записи с нужными ключами
+    const dbCheck = await query(`
+      SELECT key, value, scope, hotel_id, updated_at 
+      FROM settings 
+      WHERE key IN ('notify.telegram.sendTime', 'notify.sendTime')
+      ORDER BY 
+        CASE scope 
+          WHEN 'system' THEN 1 
+          WHEN 'hotel' THEN 2 
+          ELSE 3 
+        END,
+        CASE WHEN key = 'notify.telegram.sendTime' THEN 0 ELSE 1 END,
+        updated_at DESC NULLS LAST
+    `)
+    
+    logDebug('getDailySendTime', `🗄️ Direct DB check found ${dbCheck.rows.length} records:`)
+    dbCheck.rows.forEach((row, idx) => {
+      logDebug('getDailySendTime', `  [${idx + 1}] key="${row.key}", scope="${row.scope}", value="${row.value}", hotel_id="${row.hotel_id}"`)
+    })
+    
+    // Приоритет: notify.telegram.sendTime (system) > notify.sendTime (system) > остальное
     const result = await query(
       `SELECT value FROM settings 
        WHERE key IN ('notify.telegram.sendTime', 'notify.sendTime') 
        AND (hotel_id IS NULL OR scope = 'system')
        ORDER BY 
          CASE WHEN key = 'notify.telegram.sendTime' THEN 0 ELSE 1 END,
+         CASE scope 
+           WHEN 'system' THEN 0 
+           ELSE 1 
+         END,
          updated_at DESC NULLS LAST
        LIMIT 1`
     )
+    
     if (result.rows.length > 0) {
+      let sendTime = null
+      
       try {
         // Try to parse as JSON first (in case it's wrapped in quotes)
         const parsed = JSON.parse(result.rows[0].value)
-        return typeof parsed === 'string' ? parsed : '09:00'
+        sendTime = typeof parsed === 'string' ? parsed : null
       } catch {
         // If not JSON, return as-is
         const value = result.rows[0].value
         // Validate time format HH:MM
-        if (value && /^\d{2}:\d{2}$/.test(value)) {
-          return value
+        if (value && /^([01]\d|2[0-3]):([0-5]\d)$/.test(value)) {
+          sendTime = value
         }
-        return '09:00'
       }
+      
+      if (sendTime) {
+        logInfo('getDailySendTime', `✅ Resolved send time: ${sendTime}`)
+        return sendTime
+      } else {
+        logWarn('getDailySendTime', `⚠️ Invalid time format from DB: "${result.rows[0].value}", using default`)
+      }
+    } else {
+      logDebug('getDailySendTime', '📭 No send time found in database, using default')
     }
-    return '09:00'
+    
+    const defaultTime = '09:00'
+    logInfo('getDailySendTime', `✅ Using default send time: ${defaultTime}`)
+    return defaultTime
   } catch (error) {
-    logError('NotificationJobs', 'Failed to get send time from settings', error)
+    logError('getDailySendTime', error)
+    logInfo('getDailySendTime', '✅ Falling back to default: 09:00')
     return '09:00'
   }
 }
@@ -70,56 +183,106 @@ async function getDailySendTime() {
  * Reschedule daily report job with new time
  */
 export async function rescheduleDailyReport() {
-  const newSendTime = await getDailySendTime()
-
-  logInfo('NotificationJobs', `📅 Send time from DB: "${newSendTime}", current: "${currentSendTime}"`)
-
-  if (newSendTime === currentSendTime && dailyReportJob) {
-    logInfo('NotificationJobs', `Send time unchanged: ${currentSendTime}`)
-    return
-  }
-
-  currentSendTime = newSendTime
-  const cronExpr = timeToCronExpression(newSendTime)
-
-  // Stop existing job if running
-  if (dailyReportJob) {
-    dailyReportJob.stop()
-    logInfo('NotificationJobs', '🔄 Rescheduling daily report job...')
-  }
-
-  // Create new job with updated schedule
-  // This now also runs expiry check before sending reports
-  dailyReportJob = cron.schedule(cronExpr, async () => {
-    logInfo('NotificationJobs', `📊 Running daily notifications at ${currentSendTime}...`)
-    try {
-      // Step 1: Check expiring batches and create notifications
-      logInfo('NotificationJobs', '⏰ Running expiry check...')
-      const expiryCount = await NotificationEngine.checkExpiringBatches()
-      logInfo('NotificationJobs', `✅ Expiry check complete. Created ${expiryCount} notifications.`)
-
-      // Step 2: Process queue to send pending notifications
-      const queueResult = await NotificationEngine.processQueue()
-      logInfo('NotificationJobs', `📤 Queue processed: ${queueResult.delivered} delivered, ${queueResult.failed} failed`)
-
-      // Step 3: Send daily reports
-      await NotificationEngine.sendDailyReports()
-      logInfo('NotificationJobs', '✅ Daily reports sent successfully')
-    } catch (error) {
-      logError('NotificationJobs', 'Daily notification job error', error)
+  logInfo('rescheduleDailyReport', '🔄 Starting reschedule...')
+  
+  try {
+    const newSendTime = await getDailySendTime()
+    const timezone = await getTimezone()
+    
+    logInfo('rescheduleDailyReport', `⏰ New send time: ${newSendTime}`)
+    logInfo('rescheduleDailyReport', `🌍 Timezone: ${timezone}`)
+    
+    // Валидация формата
+    if (!/^([01]\d|2[0-3]):([0-5]\d)$/.test(newSendTime)) {
+      throw new Error(`Invalid time format: ${newSendTime}. Expected HH:MM`)
     }
-  }, {
-    scheduled: true,
-    timezone: 'Asia/Almaty'
-  })
+    
+    logInfo('rescheduleDailyReport', `📅 Send time from DB: "${newSendTime}", current: "${currentSendTime}"`)
 
-  logInfo('NotificationJobs', `📊 Daily notifications scheduled: ${cronExpr} (${newSendTime}) [timezone: Asia/Almaty]`)
+    // Проверяем, нужно ли перепланировать
+    if (newSendTime === currentSendTime && timezone === currentTimezone && dailyReportJob) {
+      logInfo('rescheduleDailyReport', `✅ Send time and timezone unchanged: ${currentSendTime} (${currentTimezone}), no reschedule needed`)
+      return
+    }
 
-  // Log next run time for debugging
-  if (dailyReportJob) {
+    const cronExpr = timeToCronExpression(newSendTime)
+    logInfo('rescheduleDailyReport', `📅 Cron expression: ${cronExpr}`)
+
+    // Останавливаем старую задачу
+    if (dailyReportJob) {
+      logDebug('rescheduleDailyReport', '🛑 Stopping existing job...')
+      dailyReportJob.stop()
+      dailyReportJob = null
+      logDebug('rescheduleDailyReport', '✅ Old job stopped')
+    }
+
+    // Обновляем текущее время и часовой пояс
+    currentSendTime = newSendTime
+    currentTimezone = timezone
+
+    // Создаем новую задачу
+    logDebug('rescheduleDailyReport', '🔨 Creating new cron job...')
+    
+    dailyReportJob = cron.schedule(cronExpr, async () => {
+      logInfo('dailyReportJob', `🔔 Daily report job triggered at ${new Date().toISOString()}`)
+      
+      try {
+        // 1. Проверка истекающих партий
+        logInfo('dailyReportJob', '⏰ Running expiry check...')
+        const expiryCount = await NotificationEngine.checkExpiringBatches()
+        logInfo('dailyReportJob', `📦 Checked batches, created ${expiryCount} notifications`)
+        
+        // 2. Отправка email-уведомлений о истекающих товарах
+        logInfo('dailyReportJob', '📧 Sending expiry warning emails...')
+        try {
+          const emailWarningsResult = await NotificationEngine.sendExpiryWarningEmails()
+          logInfo('dailyReportJob', `📧 Sent ${emailWarningsResult.sent || 0} expiry warning emails`)
+        } catch (error) {
+          logError('dailyReportJob', 'Failed to send expiry warning emails', error)
+          // Continue - email is secondary channel
+        }
+        
+        // 3. Обработка очереди
+        logInfo('dailyReportJob', '📤 Processing notification queue...')
+        const queueResult = await NotificationEngine.processQueue()
+        logInfo('dailyReportJob', `📤 Processed queue: ${queueResult.delivered} delivered, ${queueResult.failed} failed`)
+        
+        // 4. Ежедневные отчеты (Telegram + Email)
+        logInfo('dailyReportJob', '📊 Sending daily reports...')
+        const reportResult = await NotificationEngine.sendDailyReports()
+        logInfo('dailyReportJob', `📊 Sent ${reportResult.sent || 0} daily reports (Telegram: ${reportResult.telegram || 0}, Email: ${reportResult.email || 0})`)
+        
+        logInfo('dailyReportJob', '✅ Daily notification cycle completed successfully')
+      } catch (error) {
+        logError('dailyReportJob', error)
+      }
+    }, {
+      scheduled: true,
+      timezone: timezone
+    })
+    
+    logInfo('rescheduleDailyReport', `✅ Job rescheduled successfully for ${newSendTime} (${cronExpr}) in timezone ${timezone}`)
+    
+    // Логируем текущее время и следующее выполнение
     const now = new Date()
-    const localTime = now.toLocaleString('ru-RU', { timeZone: 'Asia/Almaty' })
-    logInfo('NotificationJobs', `⏰ Current time in Asia/Almaty: ${localTime}`)
+    const localTime = now.toLocaleString('ru-RU', { timeZone: timezone })
+    logInfo('rescheduleDailyReport', `🌍 Timezone: ${timezone} (current time: ${localTime})`)
+    
+    if (dailyReportJob && dailyReportJob.nextDate) {
+      try {
+        const nextRun = dailyReportJob.nextDate()
+        if (nextRun) {
+          const nextRunLocal = nextRun.toLocaleString('ru-RU', { timeZone: timezone })
+          logInfo('rescheduleDailyReport', `⏭️ Next run scheduled: ${nextRunLocal} (${nextRun.toISOString()})`)
+        }
+      } catch (err) {
+        logDebug('rescheduleDailyReport', 'Could not determine next run time', err)
+      }
+    }
+    
+  } catch (error) {
+    logError('rescheduleDailyReport', error)
+    throw error
   }
 }
 
@@ -137,44 +300,61 @@ export function startNotificationJobs(options = {}) {
 
   logInfo('NotificationJobs', '🚀 Starting notification jobs...')
 
+  // Получаем часовой пояс для всех задач
+  getTimezone().then(tz => {
+    currentTimezone = tz
+    logInfo('NotificationJobs', `🌍 Using timezone: ${tz}`)
+  }).catch(err => {
+    logError('NotificationJobs', 'Failed to get timezone', err)
+    currentTimezone = 'Asia/Almaty'
+  })
+
   // Expiry check job (hourly) - DISABLED by default
   // Now expiry check runs together with daily report at configured sendTime
   if (enableExpiryCheck) {
-    expiryCheckJob = cron.schedule(expiryCheckSchedule, async () => {
-      logInfo('NotificationJobs', `⏰ Running expiry check...`)
-      try {
-        const count = await NotificationEngine.checkExpiringBatches()
-        logInfo('NotificationJobs', `✅ Expiry check complete. Created ${count} notifications.`)
-      } catch (error) {
-        logError('NotificationJobs', error)
-      }
-    }, {
-      scheduled: true,
-      timezone: 'Asia/Almaty'
-    })
+    getTimezone().then(timezone => {
+      expiryCheckJob = cron.schedule(expiryCheckSchedule, async () => {
+        logInfo('NotificationJobs', `⏰ Running expiry check...`)
+        try {
+          const count = await NotificationEngine.checkExpiringBatches()
+          logInfo('NotificationJobs', `✅ Expiry check complete. Created ${count} notifications.`)
+        } catch (error) {
+          logError('NotificationJobs', error)
+        }
+      }, {
+        scheduled: true,
+        timezone: timezone
+      })
 
-    logInfo('NotificationJobs', `📅 Expiry check scheduled: ${expiryCheckSchedule}`)
+      logInfo('NotificationJobs', `📅 Expiry check scheduled: ${expiryCheckSchedule} (${timezone})`)
+    }).catch(err => {
+      logError('NotificationJobs', 'Failed to schedule expiry check', err)
+    })
   } else {
     logInfo('NotificationJobs', `📅 Hourly expiry check DISABLED (runs with daily report at sendTime)`)
   }
 
   // Queue processing job (every 5 minutes)
   if (enableQueueProcess) {
-    queueProcessJob = cron.schedule(queueProcessSchedule, async () => {
-      try {
-        const result = await NotificationEngine.processQueue()
-        if (result.delivered > 0 || result.failed > 0) {
-          logInfo('NotificationJobs', `📤 Queue processed: ${result.delivered} delivered, ${result.failed} failed`)
+    getTimezone().then(timezone => {
+      queueProcessJob = cron.schedule(queueProcessSchedule, async () => {
+        try {
+          const result = await NotificationEngine.processQueue()
+          if (result.delivered > 0 || result.failed > 0) {
+            logInfo('NotificationJobs', `📤 Queue processed: ${result.delivered} delivered, ${result.failed} failed`)
+          }
+        } catch (error) {
+          logError('NotificationJobs', error)
         }
-      } catch (error) {
-        logError('NotificationJobs', error)
-      }
-    }, {
-      scheduled: true,
-      timezone: 'Asia/Almaty'
-    })
+      }, {
+        scheduled: true,
+        timezone: timezone
+      })
 
-    logInfo('NotificationJobs', `📤 Queue processing scheduled: ${queueProcessSchedule}`)
+      logInfo('NotificationJobs', `📤 Queue processing scheduled: ${queueProcessSchedule} (${timezone})`)
+    }).catch(err => {
+      logError('NotificationJobs', 'Failed to schedule queue processing', err)
+    })
   }
 
   // Daily report job - uses sendTime from settings
@@ -278,6 +458,34 @@ export function getJobStatus() {
   }
 }
 
+/**
+ * Get current schedule status (for debugging and UI)
+ */
+export async function getScheduleStatus() {
+  const sendTime = await getDailySendTime()
+  const timezone = await getTimezone()
+  const cronExpr = timeToCronExpression(sendTime)
+  
+  let nextRun = null
+  if (dailyReportJob && dailyReportJob.nextDate) {
+    try {
+      nextRun = dailyReportJob.nextDate()
+    } catch (err) {
+      logDebug('getScheduleStatus', 'Could not get next run time', err)
+    }
+  }
+  
+  return {
+    isScheduled: !!dailyReportJob,
+    sendTime,
+    cronExpression: cronExpr,
+    nextRun: nextRun ? nextRun.toISOString() : null,
+    nextRunLocal: nextRun ? nextRun.toLocaleString('ru-RU', { timeZone: timezone }) : null,
+    timezone: timezone,
+    currentSendTime: currentSendTime
+  }
+}
+
 export default {
   startNotificationJobs,
   stopNotificationJobs,
@@ -285,5 +493,6 @@ export default {
   runQueueProcessNow,
   runDailyReportNow,
   rescheduleDailyReport,
-  getJobStatus
+  getJobStatus,
+  getScheduleStatus
 }

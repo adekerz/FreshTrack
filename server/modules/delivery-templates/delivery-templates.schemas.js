@@ -18,11 +18,10 @@ export const CreateTemplateSchema = z.object({
     shelf_life_days: z.number().optional(),
     product_name: z.string().optional()
   }).transform(item => ({
-    productId: item.productId || item.product_id,
-    quantity: item.quantity || item.default_quantity,
-    expiryDate: item.expiryDate,
-    shelf_life_days: item.shelf_life_days,
-    product_name: item.product_name
+    product_id: item.product_id || item.productId,
+    product_name: item.product_name,
+    default_quantity: item.default_quantity || item.quantity || 1,
+    shelf_life_days: item.shelf_life_days
   }))).optional(),
   schedule: z.object({}).passthrough().optional().nullable(),
   notes: z.string().max(1000).optional().nullable()
@@ -34,10 +33,18 @@ export const UpdateTemplateSchema = z.object({
   supplier: z.string().max(100).optional().nullable(),
   department_id: z.string().uuid().optional().nullable(),
   items: z.array(z.object({
-    productId: z.string().uuid(),
+    productId: z.string().uuid().optional(),
+    product_id: z.string().uuid().optional(),
     quantity: z.number().positive().optional(),
-    expiryDate: z.string().optional()
-  })).optional(),
+    default_quantity: z.number().positive().optional(),
+    product_name: z.string().optional(),
+    shelf_life_days: z.number().optional()
+  }).transform(item => ({
+    product_id: item.product_id || item.productId,
+    product_name: item.product_name,
+    default_quantity: item.default_quantity || item.quantity || 1,
+    shelf_life_days: item.shelf_life_days
+  }))).optional(),
   schedule: z.object({}).passthrough().optional().nullable(),
   notes: z.string().max(1000).optional().nullable(),
   is_active: z.boolean().optional()

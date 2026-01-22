@@ -164,7 +164,8 @@
     "noResults": "Keine Ergebnisse gefunden",
     "products": "Produkte",
     "departments": "Abteilungen",
-    "productsCount": "Produkte"
+    "productsCount": "Produkte",
+    "open": "Suche öffnen"
   },
   "header": {
     "addBatch": "Charge hinzufügen",
@@ -335,7 +336,14 @@
       "notRequested": "Nicht angefordert"
     },
     "noDepartments": "Keine Daten",
-    "noDepartmentsDescription": "Erstellen Sie Abteilungen und fügen Sie Chargen hinzu, um Verfallsdaten zu verfolgen."
+    "noDepartmentsDescription": "Erstellen Sie Abteilungen und fügen Sie Chargen hinzu, um Verfallsdaten zu verfolgen.",
+    "test": {
+      "label": "Benachrichtigung testen",
+      "title": "Testbenachrichtigung",
+      "message": "Dies ist eine Testbenachrichtigung zur Überprüfung, ob das System ordnungsgemäß funktioniert.",
+      "sent": "Testbenachrichtigung erfolgreich gesendet",
+      "error": "Fehler beim Senden der Testbenachrichtigung"
+    }
   },
   "batch": {
     "manufacturingDate": "Herstellungsdatum",
@@ -408,35 +416,148 @@
   "settings": {
     "title": "Einstellungen",
     "subtitle": "Profil und System verwalten",
+    "profile": "Profil",
+    "departments": "Abteilungen",
+    "categories": "Kategorien",
+    "export": "Exportieren",
+    "branding": "Markenbildung",
+    "brandingDescription": "App-Erscheinung anpassen",
+    "generalTitle": "Allgemeine Einstellungen",
+    "generalDescription": "Grundlegende Systemparameter",
+    "tabs": {
+      "profile": "Profil",
+      "language": "Sprache",
+      "general": "Allgemein",
+      "users": "Benutzer",
+      "joinRequests": "Beitrittsanfragen",
+      "directories": "Verzeichnisse",
+      "categories": "Kategorien",
+      "templates": "Vorlagen",
+      "rules": "Benachrichtigungsregeln",
+      "notifications": "Benachrichtigungen",
+      "telegram": "Telegram",
+      "email": "E-Mail",
+      "branding": "Branding",
+      "cache": "Cache",
+      "importExport": "Import/Export",
+      "system": "System"
+    },
+    "profile": {
+      "title": "Benutzerprofil",
+      "login": "Anmeldung",
+      "role": "Rolle",
+      "departments": "Abteilungen"
+    },
+    "language": {
+      "title": "Oberflächensprache"
+    },
+    "onboarding": {
+      "title": "Einarbeitung",
+      "description": "Nehmen Sie an einer Systemtour teil",
+      "restart": "Tour neu starten"
+    },
+    "directories": {
+      "title": "Verzeichnisse",
+      "description": "Kategorien und Abteilungen verwalten",
+      "categories": "Kategorien",
+      "departments": "Abteilungen"
+    },
+    "categories": {
+      "title": "Produktkategorien"
+    },
+    "departments": {
+      "add": "Abteilung hinzufügen",
+      "newDepartment": "Neue Abteilung",
+      "namePlaceholder": "Abteilungsname",
+      "emailPlaceholder": "Abteilungs-E-Mail (z. B. kitchen@hotel.com) — für Berichte und Benachrichtigungen",
+      "added": "Abteilung hinzugefügt",
+      "updated": "Abteilung aktualisiert",
+      "deleted": "Abteilung gelöscht",
+      "deleteConfirmTitle": "Abteilung löschen?",
+      "deleteConfirmText": "Alle Benutzer dieser Abteilung werden getrennt. Diese Aktion kann nicht rückgängig gemacht werden.",
+      "cannotDelete": "Abteilung kann nicht gelöscht werden",
+      "hasActiveBatches": "Abteilung hat {{count}} aktive Chargen. Bitte sammeln oder löschen Sie alle Chargen, bevor Sie die Abteilung löschen.",
+      "clearBatchesFirst": "Löschen Sie zuerst alle Chargen"
+    },
+    "templates": {
+      "title": "Liefervorlagen"
+    },
+    "telegram": {
+      "title": "Telegram-Einstellungen",
+      "sendTime": "Benachrichtigungszeit",
+      "sendTimeLabel": "Tägliche Berichte werden gesendet um:",
+      "timezone": "Zeitzone",
+      "sendTest": "Jetzt Testbenachrichtigung senden",
+      "refreshStatus": "Status aktualisieren",
+      "status": "Status",
+      "scheduledTime": "Geplante Zeit",
+      "currentTime": "Aktuelle Zeit (Astana)",
+      "nextRun": "Nächste Ausführung",
+      "cronExpression": "Cron-Ausdruck",
+      "testing": "Wird gesendet...",
+      "messageTemplates": "Nachrichtenvorlagen",
+      "templatesHint": "Verwenden Sie Variablen in geschweiften Klammern"
+    },
+    "notifications": {
+      "title": "Benachrichtigungen",
+      "description": "Zustellungskanäle und Nachrichtenvorlagen konfigurieren",
+      "channels": "Zustellungskanäle",
+      "enabled": "Aktiviert",
+      "disabled": "Deaktiviert",
+      "templates": "Nachrichtenvorlagen",
+      "templatesHint": "Einheitliche Vorlagen für alle Zustellungskanäle. Verwenden Sie Variablen in geschweiften Klammern.",
+      "schedule": "Versandplan",
+      "sendTime": "Tagesbericht Versandzeit",
+      "saved": "Benachrichtigungseinstellungen gespeichert",
+      "saveError": "Fehler beim Speichern der Einstellungen",
+      "emailNote": "E-Mail-Benachrichtigungen werden an Abteilungs-E-Mail-Adressen gesendet (department.email)",
+      "warningDays": "Warntage",
+      "criticalDays": "Kritische Tage",
+      "days": "Tage",
+      "time": "Benachrichtigungszeit",
+      "weekends": "Am Wochenende benachrichtigen"
+    },
+    "email": {
+      "title": "E-Mail-Einstellungen",
+      "description": "E-Mail-Benachrichtigungen konfigurieren",
+      "infoTitle": "Information",
+      "infoText": "E-Mail-Benachrichtigungen werden gesendet, wenn Ablaufdaten von Produkten bevorstehen",
+      "enableEmail": "E-Mail-Benachrichtigungen aktivieren",
+      "enabled": "E-Mail aktiviert",
+      "disabled": "E-Mail deaktiviert",
+      "smtpSettings": "SMTP-Einstellungen",
+      "smtpHost": "SMTP-Server",
+      "smtpPort": "SMTP-Port",
+      "smtpUser": "Benutzername",
+      "smtpPassword": "Passwort",
+      "fromEmail": "Absender-E-Mail",
+      "fromName": "Absendername",
+      "useSSL": "SSL verwenden",
+      "testConnection": "Verbindung testen",
+      "schedule": "Sendeplan",
+      "dailyReport": "Täglicher Bericht",
+      "dailyReportDesc": "Tägliche Zusammenfassung ablaufender Produkte senden",
+      "instantAlerts": "Sofortige Alarme",
+      "instantAlertsDesc": "Benachrichtigungen sofort senden, wenn Probleme erkannt werden"
+    },
+    "importExport": {
+      "title": "Daten importieren und exportieren"
+    },
+    "system": {
+      "title": "Systeminformationen",
+      "healthStatus": "Systemzustand",
+      "checkHealth": "Zustand prüfen",
+      "version": "Version",
+      "environment": "Umgebung",
+      "status": "Status",
+      "unhealthy": "Ungesund",
+      "database": "Datenbank",
+      "disconnected": "Getrennt"
+    },
     "saved": "Einstellungen gespeichert",
     "saveError": "Fehler beim Speichern",
     "profileLabel": "Profil",
     "categoriesLabel": "Kategorien",
-    "export": "Exportieren",
-    "branding": "Markenbildung",
-    "brandingDescription": "App-Erscheinung anpassen",
-    "tabs": {
-      "profile": "Profil",
-      "notifications": "Benachrichtigungen",
-      "language": "Sprache",
-      "system": "System",
-      "templates": "Liefervorlagen",
-      "notificationRules": "Benachrichtigungsregeln",
-      "departmentNotifications": "Abteilungsbenachrichtigungen",
-      "cms": "Inhalt",
-      "rules": "Benachrichtigungsregeln",
-      "departments": "Abteilungen",
-      "directories": "Verzeichnisse",
-      "branding": "Markenbildung",
-      "general": "Allgemein",
-      "users": "Benutzer",
-      "catalog": "Katalog",
-      "categories": "Kategorien",
-      "telegram": "Telegram",
-      "email": "E-Mail",
-      "importExport": "Import/Export",
-      "joinRequests": "Anfragen"
-    },
     "generalTitle": "Allgemeine Einstellungen",
     "generalDescription": "Grundlegende Systemparameter",
     "siteName": "Seitenname",
@@ -656,13 +777,20 @@
     },
     "profile": {
       "title": "Profilinformationen",
+      "name": "Name",
+      "email": "Email",
+      "emailPlaceholder": "example@email.com",
+      "emailHint": "E-Mail hinzufügen, um Benachrichtigungen zu erhalten",
+      "noEmail": "E-Mail nicht angegeben",
       "login": "Anmeldename",
       "role": "Rolle",
       "roleAdmin": "Administrator",
       "roleManager": "Manager",
       "roleStaff": "Mitarbeiter",
       "roleDepartmentManager": "Abteilungsleiter",
-      "departments": "Verfügbare Abteilungen"
+      "departments": "Verfügbare Abteilungen",
+      "saved": "Profil aktualisiert",
+      "saveError": "Fehler beim Speichern"
     },
     "notifications": {
       "title": "Benachrichtigungseinstellungen",
@@ -695,6 +823,24 @@
       "serverTime": "Serverzeit",
       "checkHealth": "Zustand prüfen",
       "environment": "Umgebung"
+    },
+    "cache": {
+      "title": "Cache Management",
+      "description": "Offline cache for working without internet",
+      "size": "Size",
+      "storedQueries": "Stored",
+      "activeQueries": "Active",
+      "enabled": "Offline mode enabled - data available without internet",
+      "empty": "Cache is empty - use the app to create cache",
+      "refreshAll": "Refresh All",
+      "clear": "Clear Cache",
+      "clearing": "Clearing...",
+      "confirmClear": "Clear all cache? Data will be reloaded on next launch.",
+      "cleared": "Cache cleared",
+      "clearError": "Cache clear error",
+      "refreshing": "Refreshing data...",
+      "infoTitle": "How it works:",
+      "info": "React Query automatically saves data to localStorage. When connection is lost, you continue to see the last loaded data. Changes sync automatically when internet is restored."
     }
   },
   "telegram": {
@@ -709,6 +855,14 @@
     "testError": "Sendefehler",
     "schedule": "Zeitplan",
     "scheduleTime": "Zeit des Tagesberichts",
+    "sendTime": "Benachrichtigungszeit",
+    "sendTimeLabel": "Tägliche Berichte werden gesendet um:",
+    "timezone": "Zeitzone",
+    "status": "Status",
+    "scheduledTime": "Geplante Zeit",
+    "currentTime": "Aktuelle Zeit (Astana)",
+    "cronExpression": "Cron-Ausdruck",
+    "sendTest": "Jetzt Testbenachrichtigung senden",
     "messageTemplates": "Nachrichtenvorlagen",
     "templatesHint": "Verwenden Sie Variablen in geschweiften Klammern",
     "dailyReport": "Tagesbericht",
@@ -902,6 +1056,25 @@
       "compliment": "Gastgeschenk",
       "other": "Sonstiges"
     }
+  },
+  "fastIntake": {
+    "title": "Schnelleingabe",
+    "modeOn": "Schnellmodus",
+    "modeOff": "Schnellmodus",
+    "switchToStandard": "Zum Standardmodus wechseln",
+    "switchToFast": "Zum Schnelleingabemodus wechseln",
+    "hint": "Tipp:",
+    "hintText": "Verwenden Sie Tab oder Enter, um zwischen Feldern zu wechseln. Enter beim Ablaufdatum speichert den Artikel sofort.",
+    "searchProduct": "Produkt",
+    "searchPlaceholder": "Produktname eingeben...",
+    "quantity": "Menge",
+    "expiryDate": "Ablaufdatum",
+    "expiryHint": "(TT.MM.JJ oder Enter für zuletzt verwendetes)",
+    "useLastExpiry": "Letztes Ablaufdatum verwenden",
+    "saveAndNext": "Speichern & Weiter",
+    "sessionHistory": "In dieser Sitzung hinzugefügt",
+    "totalAdded": "Hinzugefügt: {{count}} Artikel",
+    "itemAdded": "{{name}} × {{qty}} hinzugefügt"
   },
   "units": {
     "pcs": "Stk",
@@ -1490,7 +1663,13 @@
     "editTemplate": "Vorlage bearbeiten",
     "confirmDelete": "Vorlage löschen?",
     "deleteTitle": "Vorlage löschen?",
-    "deleteWarning": "Diese Aktion kann nicht rückgängig gemacht werden."
+    "deleteWarning": "Diese Aktion kann nicht rückgängig gemacht werden.",
+    "selectTemplate": "Vorlage zum Anwenden auswählen:",
+    "items": "Positionen",
+    "targetDepartment": "Zielabteilung",
+    "changeTemplate": "Vorlage wechseln",
+    "itemsToAdd": "Positionen werden hinzugefügt",
+    "apply": "Vorlage anwenden"
   },
   "offline": {
     "message": "Keine Verbindung — Änderungen werden bei Wiederherstellung synchronisiert",

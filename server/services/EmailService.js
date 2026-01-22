@@ -7,15 +7,62 @@
  * - RESEND_API_KEY: Resend API key
  * - SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS: SMTP settings
  * - SENDGRID_API_KEY: SendGrid API key
- * - EMAIL_FROM: Default sender email
  */
 
 import nodemailer from 'nodemailer'
+import { Resend } from 'resend'
+import { logInfo, logWarn, logError } from '../utils/logger.js'
+
+// Email configuration - единый источник правды
+export const EMAIL_FROM = {
+  system: 'FreshTrack System <system@freshtrack.systems>',
+  noreply: 'FreshTrack <no-reply@freshtrack.systems>',
+}
+
+// По умолчанию используем system@ для всех писем
+const DEFAULT_FROM = EMAIL_FROM.system
 
 // Email provider configuration
-const EMAIL_PROVIDER = process.env.EMAIL_PROVIDER || 'smtp'
-const EMAIL_FROM = process.env.EMAIL_FROM || 'FreshTrack <noreply@freshtrack.app>'
+const EMAIL_PROVIDER = process.env.EMAIL_PROVIDER || 'resend'
 const APP_URL = process.env.APP_URL || 'http://localhost:5173'
+
+// Initialize Resend client (singleton)
+let resendClient = null
+if (EMAIL_PROVIDER === 'resend' && process.env.RESEND_API_KEY) {
+  resendClient = new Resend(process.env.RESEND_API_KEY)
+  console.log('✅ Resend client initialized')
+} else if (EMAIL_PROVIDER === 'resend') {
+  console.warn('⚠️ Resend provider selected but RESEND_API_KEY not found')
+}
+
+/**
+ * Get Resend client instance (for webhook verification, etc.)
+ */
+export function getResendClient() {
+  return resendClient
+}
+
+/**
+ * Recipient resolver: USER vs DEPARTMENT.
+ * USER: auth, invites → user.email.
+ * DEPARTMENT: expiry alerts, daily reports → department.email.
+ * If DEPARTMENT and department.email missing → null and log warning.
+ */
+export function resolveEmailRecipient(target, { user, department }) {
+  if (target === 'USER') {
+    if (!user?.email || typeof user.email !== 'string' || !String(user.email).trim()) return null
+    return String(user.email).trim()
+  }
+  if (target === 'DEPARTMENT') {
+    const email = department?.email
+    if (!email || typeof email !== 'string' || !String(email).trim()) {
+      logWarn('EmailService', `Department ${department?.name ?? 'unknown'} has no email; skipping system email`)
+      return null
+    }
+    return String(email).trim()
+  }
+  return null
+}
 
 // Transporter instance
 let transporter = null
@@ -75,44 +122,44 @@ async function initTransporter() {
  * Send email via Resend API
  */
 async function sendViaResend(options) {
-  const response = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      from: options.from || EMAIL_FROM,
-      to: Array.isArray(options.to) ? options.to : [options.to],
-      subject: options.subject,
-      html: options.html,
-      text: options.text
-    })
-  })
-
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(`Resend error: ${error.message || response.statusText}`)
+  if (!resendClient) {
+    throw new Error('Resend client not initialized. Check RESEND_API_KEY environment variable.')
   }
 
-  return response.json()
+  const result = await resendClient.emails.send({
+    from: options.from || DEFAULT_FROM,
+    to: Array.isArray(options.to) ? options.to : [options.to],
+    subject: options.subject,
+    html: options.html,
+    text: options.text
+  })
+
+  return result
 }
 
 /**
  * Send email (universal method)
  */
 export async function sendEmail(options) {
-  const { to, subject, html, text } = options
+  const { to, subject, html, text, from } = options
 
   try {
+    // Определяем отправителя: если не указан явно, используем DEFAULT_FROM
+    const sender = from || DEFAULT_FROM
+
     if (EMAIL_PROVIDER === 'resend') {
-      return await sendViaResend(options)
+      const result = await sendViaResend({
+        ...options,
+        from: sender
+      })
+      console.log(`📧 Email sent via Resend to ${to}: ${subject}`)
+      return result
     }
 
     await initTransporter()
     
     const result = await transporter.sendMail({
-      from: options.from || EMAIL_FROM,
+      from: sender,
       to,
       subject,
       html,
@@ -256,6 +303,106 @@ export async function sendWelcomeEmail(user, hotel = null) {
 }
 
 /**
+ * Send welcome email with temporary password (USER email)
+ * Used when admin creates a new user
+ */
+export async function sendWelcomeEmailWithPassword({ to, userName, temporaryPassword, hotelName, loginUrl }) {
+  if (!to || !userName || !temporaryPassword) {
+    logWarn('EmailService', 'Missing required parameters for welcome email with password')
+    return null
+  }
+
+  const loginUrlFinal = loginUrl || `${APP_URL}/login`
+  const hotelNameFinal = hotelName || 'FreshTrack'
+
+  const content = `
+    <h2 style="margin-top: 0;">🎉 Добро пожаловать в FreshTrack!</h2>
+    <p>Здравствуйте, <strong>${userName}</strong>!</p>
+    
+    <p>Для вас создан аккаунт в системе FreshTrack для отеля <strong>${hotelNameFinal}</strong>.</p>
+    
+    <div style="background: white; border: 2px solid #FF8D6B; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center;">
+      <p style="margin: 0 0 10px 0; font-weight: 600;">Ваш временный пароль:</p>
+      <div style="font-size: 24px; font-weight: bold; color: #FF8D6B; font-family: monospace; letter-spacing: 2px; word-break: break-all;">
+        ${temporaryPassword}
+      </div>
+    </div>
+    
+    <div style="background: #FEF3C7; border-left: 4px solid #F59E0B; padding: 15px; margin: 20px 0;">
+      <p style="margin: 0;"><strong>⚠️ Важно!</strong> Это временный пароль. При первом входе система попросит вас изменить его на постоянный.</p>
+    </div>
+    
+    <p style="text-align: center; margin-top: 24px;">
+      <a href="${loginUrlFinal}" class="button">Войти в систему</a>
+    </p>
+    
+    <h3 style="margin-top: 30px;">📋 Инструкция:</h3>
+    <ol style="line-height: 1.8;">
+      <li>Перейдите по ссылке выше или откройте <a href="${loginUrlFinal}">${loginUrlFinal}</a></li>
+      <li>Введите ваш email: <strong>${to}</strong></li>
+      <li>Введите временный пароль (скопируйте из письма)</li>
+      <li>Придумайте новый надежный пароль</li>
+      <li>Начните работу с системой!</li>
+    </ol>
+    
+    <div style="background: #FEF3C7; border-left: 4px solid #F59E0B; padding: 15px; margin: 20px 0;">
+      <p style="margin: 0 0 10px 0;"><strong>🔒 Требования к паролю:</strong></p>
+      <ul style="margin: 0; padding-left: 20px; line-height: 1.8;">
+        <li>Минимум 8 символов</li>
+        <li>Хотя бы одна заглавная буква (A-Z)</li>
+        <li>Хотя бы одна строчная буква (a-z)</li>
+        <li>Хотя бы одна цифра (0-9)</li>
+        <li>Хотя бы один спецсимвол (!@#$%^&*-_=+)</li>
+      </ul>
+    </div>
+    
+    <p>Если у вас возникли вопросы, свяжитесь с администратором вашего отеля.</p>
+    
+    <p>С уважением,<br><strong>Команда FreshTrack</strong></p>
+  `
+
+  const text = `
+Добро пожаловать в FreshTrack!
+
+Здравствуйте, ${userName}!
+
+Для вас создан аккаунт в системе FreshTrack для отеля ${hotelNameFinal}.
+
+Ваш временный пароль: ${temporaryPassword}
+
+⚠️ ВАЖНО! Это временный пароль. При первом входе система попросит вас изменить его.
+
+Инструкция:
+1. Откройте: ${loginUrlFinal}
+2. Введите ваш email: ${to}
+3. Введите временный пароль
+4. Придумайте новый надежный пароль
+
+Требования к паролю:
+- Минимум 8 символов
+- Заглавные и строчные буквы
+- Цифры
+- Спецсимволы (!@#$%^&*-_=+)
+
+С уважением,
+Команда FreshTrack
+  `
+
+  try {
+    return await sendEmail({
+      to,
+      from: EMAIL_FROM.noreply,
+      subject: `Добро пожаловать в FreshTrack - ${hotelNameFinal}`,
+      html: emailTemplate(content, { title: 'Добро пожаловать' }),
+      text
+    })
+  } catch (error) {
+    logError('EmailService', `Failed to send welcome email with password to ${to}`, error)
+    throw error
+  }
+}
+
+/**
  * Join request approved email
  */
 export async function sendJoinApprovedEmail(user, hotel, department = null) {
@@ -317,6 +464,7 @@ export async function sendPasswordResetEmail(user, resetToken) {
 
   return sendEmail({
     to: user.email,
+    from: EMAIL_FROM.noreply, // no-reply для auth писем
     subject: 'Сброс пароля FreshTrack 🔐',
     html: emailTemplate(content, { title: 'Сброс пароля' })
   })
@@ -338,6 +486,7 @@ export async function sendVerificationEmail(user, verificationCode) {
 
   return sendEmail({
     to: user.email,
+    from: EMAIL_FROM.noreply, // no-reply для auth писем
     subject: 'Подтверждение email — FreshTrack',
     html: emailTemplate(content, { title: 'Подтверждение email' })
   })
@@ -420,16 +569,320 @@ export async function sendExpiryReportEmail(admin, report) {
   })
 }
 
+// ═══════════════════════════════════════════════════════════════
+// SYSTEM EMAIL TEMPLATES
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * System email base layout
+ * Used for system-level notifications (expiry warnings, daily reports)
+ */
+function systemEmailLayout(content, options = {}) {
+  const { title = 'FreshTrack System' } = options
+  
+  return `
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${title}</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      background-color: #f5f5f5;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .card {
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 32px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 24px;
+      padding-bottom: 24px;
+      border-bottom: 2px solid #f0f0f0;
+    }
+    .header h1 {
+      color: #FF8D6B;
+      font-size: 28px;
+      margin: 0 0 8px 0;
+    }
+    .header p {
+      color: #666;
+      font-size: 14px;
+      margin: 0;
+    }
+    .content {
+      margin-bottom: 24px;
+    }
+    .button {
+      display: inline-block;
+      background: #FF8D6B;
+      color: #ffffff !important;
+      text-decoration: none;
+      padding: 14px 28px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 16px;
+      text-align: center;
+    }
+    .button:hover {
+      background: #E67D5B;
+    }
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+    }
+    .table th,
+    .table td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #eee;
+    }
+    .table th {
+      background: #f8f9fa;
+      font-weight: 600;
+      color: #333;
+    }
+    .table tr:hover {
+      background: #f8f9fa;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .badge-warning {
+      background: #FEF3C7;
+      color: #D97706;
+    }
+    .badge-critical {
+      background: #FEE2E2;
+      color: #DC2626;
+    }
+    .footer {
+      text-align: center;
+      color: #888;
+      font-size: 12px;
+      margin-top: 24px;
+      padding-top: 24px;
+      border-top: 1px solid #eee;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <div class="header">
+        <h1>🍊 FreshTrack</h1>
+        <p>System Notification</p>
+      </div>
+      <div class="content">
+        ${content}
+      </div>
+      <div class="footer">
+        <p>© ${new Date().getFullYear()} FreshTrack. Все права защищены.</p>
+        <p>Это автоматическое системное письмо, не отвечайте на него.</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+  `
+}
+
+/**
+ * Expiry warning email template
+ * Products expiring soon notification
+ */
+function expiryWarningTemplate(products, department, hotel) {
+  const productRows = products.map(p => `
+    <tr>
+      <td><strong>${p.product_name || 'Unknown'}</strong></td>
+      <td>${p.department_name || department?.name || 'N/A'}</td>
+      <td>${new Date(p.expiry_date).toLocaleDateString('ru-RU')}</td>
+      <td>${p.quantity} ${p.unit || 'шт.'}</td>
+      <td>
+        <span class="badge ${p.days_until_expiry <= 3 ? 'badge-critical' : 'badge-warning'}">
+          ${p.days_until_expiry} дн.
+        </span>
+      </td>
+    </tr>
+  `).join('')
+
+  const content = `
+    <h2 style="margin-top: 0;">⚠️ Товары с истекающим сроком годности</h2>
+    <p>Уважаемые коллеги!</p>
+    <p>В отделе <strong>${department?.name || 'N/A'}</strong> отеля <strong>${hotel?.name || 'N/A'}</strong> обнаружены товары, срок годности которых истекает в ближайшее время.</p>
+    
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Товар</th>
+          <th>Отдел</th>
+          <th>Дата истечения</th>
+          <th>Количество</th>
+          <th>Осталось дней</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${productRows}
+      </tbody>
+    </table>
+    
+    <p style="text-align: center; margin-top: 24px;">
+      <a href="${APP_URL}/inventory" class="button">Открыть FreshTrack</a>
+    </p>
+    
+    <p style="color: #666; font-size: 14px; margin-top: 24px;">
+      Пожалуйста, проверьте эти товары и примите необходимые меры.
+    </p>
+  `
+
+  return systemEmailLayout(content, { title: 'Товары с истекающим сроком' })
+}
+
+/**
+ * Daily inventory summary email template
+ * System-level daily report
+ */
+function dailyReportTemplate(stats) {
+  const {
+    totalBatches = 0,
+    expiringBatches = 0,
+    expiredBatches = 0,
+    collectionsToday = 0,
+    hotel = null,
+    department = null
+  } = stats
+
+  const content = `
+    <h2 style="margin-top: 0;">📊 Ежедневный отчёт по инвентарю</h2>
+    <p>Отчёт за ${new Date().toLocaleDateString('ru-RU', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+    ${hotel ? `<p><strong>Отель:</strong> ${hotel.name}</p>` : ''}
+    ${department?.name ? `<p><strong>Отдел:</strong> ${department.name}</p>` : ''}
+    
+    <table class="table">
+      <tr>
+        <td><strong>Всего активных партий</strong></td>
+        <td style="text-align: right; font-size: 24px; font-weight: bold;">${totalBatches}</td>
+      </tr>
+      <tr>
+        <td><strong>Партий с истекающим сроком</strong></td>
+        <td style="text-align: right; font-size: 24px; font-weight: bold; color: #D97706;">${expiringBatches}</td>
+      </tr>
+      <tr>
+        <td><strong>Просроченных партий</strong></td>
+        <td style="text-align: right; font-size: 24px; font-weight: bold; color: #DC2626;">${expiredBatches}</td>
+      </tr>
+      <tr>
+        <td><strong>Списаний за сутки</strong></td>
+        <td style="text-align: right; font-size: 24px; font-weight: bold; color: #059669;">${collectionsToday}</td>
+      </tr>
+    </table>
+    
+    <p style="text-align: center; margin-top: 24px;">
+      <a href="${APP_URL}/inventory" class="button">Открыть инвентарь</a>
+    </p>
+  `
+
+  return systemEmailLayout(content, { title: 'Ежедневный отчёт' })
+}
+
+/**
+ * Send system email (expiry warning)
+ * @param {Object} params - Email parameters
+ * @param {Array} params.products - Products expiring soon
+ * @param {Object} params.department - Department object
+ * @param {Object} params.hotel - Hotel object
+ * @param {string|Array} params.to - Recipient email(s)
+ */
+export async function sendExpiryWarningEmail({ products, department, hotel, to }) {
+  if (!products || products.length === 0) {
+    logInfo('EmailService', 'No products to notify about - skipping email')
+    return null
+  }
+
+  if (!to || (Array.isArray(to) && to.length === 0)) {
+    logWarn('EmailService', 'No recipient email provided for expiry warning')
+    return null
+  }
+
+  const html = expiryWarningTemplate(products, department, hotel)
+  const text = `Товары с истекающим сроком годности\n\n${products.map(p => 
+    `- ${p.product_name}: истекает ${new Date(p.expiry_date).toLocaleDateString('ru-RU')}, осталось ${p.days_until_expiry} дней`
+  ).join('\n')}`
+
+  try {
+    return await sendEmail({
+      to,
+      from: EMAIL_FROM.noreply,
+      subject: `FreshTrack: Товары с истекающим сроком (${products.length})`,
+      html,
+      text
+    })
+  } catch (error) {
+    logError('EmailService', `Failed to send expiry warning email`, error)
+    throw error
+  }
+}
+
+/**
+ * Send daily system report (system email → department inbox).
+ * @param {Object} params - Report parameters
+ * @param {Object} params.stats - Statistics object
+ * @param {string} params.to - Recipient email (department.email); required.
+ */
+export async function sendDailyReportEmail({ stats, to }) {
+  if (!to || (Array.isArray(to) && to.length === 0)) {
+    logWarn('EmailService', 'No recipient (department.email) for daily report; skipping')
+    return null
+  }
+
+  const html = dailyReportTemplate(stats)
+  const text = `Ежедневный отчёт по инвентарю\n\nВсего партий: ${stats.totalBatches || 0}\nИстекающих: ${stats.expiringBatches || 0}\nПросроченных: ${stats.expiredBatches || 0}\nСписаний: ${stats.collectionsToday || 0}`
+
+  try {
+    return await sendEmail({
+      to,
+      from: EMAIL_FROM.noreply,
+      subject: `FreshTrack: Ежедневный отчёт по инвентарю - ${new Date().toLocaleDateString('ru-RU')}`,
+      html,
+      text
+    })
+  } catch (error) {
+    logError('EmailService', `Failed to send daily report email`, error)
+    throw error
+  }
+}
+
 // Initialize on import
 initTransporter().catch(console.error)
 
 export default {
   sendEmail,
   sendWelcomeEmail,
+  sendWelcomeEmailWithPassword,
   sendJoinApprovedEmail,
   sendJoinRejectedEmail,
   sendPasswordResetEmail,
   sendVerificationEmail,
   sendNewJoinRequestEmail,
-  sendExpiryReportEmail
+  sendExpiryReportEmail,
+  sendExpiryWarningEmail,
+  sendDailyReportEmail
 }

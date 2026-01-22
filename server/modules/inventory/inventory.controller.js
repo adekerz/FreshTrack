@@ -369,32 +369,72 @@ router.post('/batches', authMiddleware, requirePermission('batches', 'create'), 
     if (daysUntilExpiry <= 0) status = 'expired'
     else if (daysUntilExpiry <= 3) status = 'expiring'
 
-    const result = await dbQuery(`
-      INSERT INTO batches (
-        hotel_id, department_id, product_id, quantity,
-        expiry_date, batch_number, status, added_by
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-      RETURNING *
-    `, [
-      hotelId,
-      departmentId,
-      productId,
-      data.quantity || 1,
-      data.expiryDate,
-      data.batchNumber || null,
-      status,
-      req.user.id
-    ])
+    // Check if batch with same product_id, expiry_date, and department_id already exists
+    const existingBatch = await dbQuery(`
+      SELECT * FROM batches 
+      WHERE product_id = $1 
+        AND expiry_date = $2 
+        AND department_id = $3 
+        AND status = 'active'
+      LIMIT 1
+    `, [productId, data.expiryDate, departmentId])
 
-    await logAudit({
-      hotel_id: hotelId,
-      user_id: req.user.id,
-      user_name: req.user.name || req.user.login,
-      action: 'create',
-      entity_type: 'batch',
-      entity_id: result.rows[0].id,
-      details: { productId, quantity: data.quantity }
-    })
+    let result
+    if (existingBatch.rows.length > 0) {
+      // Update existing batch - add quantities together
+      const batch = existingBatch.rows[0]
+      const newQuantity = (batch.quantity || 0) + (data.quantity || 1)
+      
+      result = await dbQuery(`
+        UPDATE batches 
+        SET quantity = $1, updated_at = CURRENT_TIMESTAMP
+        WHERE id = $2
+        RETURNING *
+      `, [newQuantity, batch.id])
+      
+      await logAudit({
+        hotel_id: hotelId,
+        user_id: req.user.id,
+        user_name: req.user.name || req.user.login,
+        action: 'update',
+        entity_type: 'batch',
+        entity_id: batch.id,
+        details: { 
+          productId, 
+          quantityAdded: data.quantity || 1,
+          newQuantity,
+          reason: 'merged_same_expiry'
+        }
+      })
+    } else {
+      // Create new batch
+      result = await dbQuery(`
+        INSERT INTO batches (
+          hotel_id, department_id, product_id, quantity,
+          expiry_date, batch_number, status, added_by
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        RETURNING *
+      `, [
+        hotelId,
+        departmentId,
+        productId,
+        data.quantity || 1,
+        data.expiryDate,
+        data.batchNumber || null,
+        status,
+        req.user.id
+      ])
+      
+      await logAudit({
+        hotel_id: hotelId,
+        user_id: req.user.id,
+        user_name: req.user.name || req.user.login,
+        action: 'create',
+        entity_type: 'batch',
+        entity_id: result.rows[0].id,
+        details: { productId, quantity: data.quantity }
+      })
+    }
 
     res.status(201).json(result.rows[0])
 
@@ -604,6 +644,87 @@ router.post('/batches/:id/collect', authMiddleware, requirePermission('batches',
   } catch (error) {
     console.error('[Inventory] Collect batch error:', error)
     res.status(500).json({ error: 'Ошибка сервера' })
+  }
+})
+
+/**
+ * DELETE /api/batches/clear-all
+ * DEVELOPMENT ONLY - SUPER ADMIN
+ * Clear all active batches for a hotel (for testing purposes)
+ * IMPORTANT: This route must be registered BEFORE /batches/:id to avoid route conflict
+ */
+router.delete('/batches/clear-all', authMiddleware, async (req, res) => {
+  try {
+    // Only allow in development and for super admin
+    // Check both NODE_ENV and MODE for development
+    const isDev = process.env.NODE_ENV === 'development' || process.env.MODE === 'development'
+    if (!isDev) {
+      console.log('[Clear All Batches] Not in development mode:', {
+        NODE_ENV: process.env.NODE_ENV,
+        MODE: process.env.MODE
+      })
+      return res.status(403).json({ error: 'This endpoint is only available in development mode' })
+    }
+
+    if (!isSuperAdmin(req.user)) {
+      console.log('[Clear All Batches] Not super admin:', req.user.role)
+      return res.status(403).json({ error: 'Only super admin can clear all batches' })
+    }
+
+    // Get hotel_id from query params explicitly (for DELETE requests)
+    const hotelId = req.query.hotel_id || req.query.hotelId || req.user.hotel_id || req.user.hotelId
+    
+    console.log('[Clear All Batches] Request:', {
+      query: req.query,
+      userHotelId: req.user.hotel_id || req.user.hotelId,
+      resolvedHotelId: hotelId,
+      userId: req.user.id,
+      userRole: req.user.role
+    })
+    
+    if (!hotelId) {
+      return res.status(400).json({ 
+        error: 'Hotel ID is required',
+        details: {
+          query: req.query,
+          userHotelId: req.user.hotel_id || req.user.hotelId
+        }
+      })
+    }
+
+    // Delete all active batches for the hotel
+    console.log('[Clear All Batches] Executing DELETE query for hotel_id:', hotelId)
+    
+    const result = await dbQuery(
+      `DELETE FROM batches WHERE hotel_id = $1 AND status = 'active' RETURNING id`,
+      [hotelId]
+    )
+
+    console.log('[Clear All Batches] Deleted batches:', result.rows.length)
+
+    await logAudit({
+      hotel_id: hotelId,
+      user_id: req.user.id,
+      user_name: req.user.name || req.user.login,
+      action: 'delete',
+      entity_type: 'batch',
+      entity_id: null,
+      details: { 
+        action: 'clear_all_batches',
+        deleted: result.rows.length,
+        environment: 'development'
+      }
+    })
+
+    res.json({ 
+      success: true, 
+      deleted: result.rows.length,
+      message: `Deleted ${result.rows.length} batches` 
+    })
+
+  } catch (error) {
+    console.error('[Inventory] Clear all batches error:', error)
+    res.status(500).json({ error: 'Failed to clear batches' })
   }
 })
 

@@ -12,11 +12,13 @@ import {
   Mail,
   MessageSquare,
   Smartphone,
-  AlertTriangle
+  AlertTriangle,
+  Lock
 } from 'lucide-react'
 import { useTranslation } from '../context/LanguageContext'
 import { useHotel } from '../context/HotelContext'
 import { useToast } from '../context/ToastContext'
+import { useAuth } from '../context/AuthContext'
 import { cn } from '../utils/classNames'
 import { apiFetch } from '../services/api'
 import { PageLoader, ButtonSpinner } from '../components/ui'
@@ -25,6 +27,7 @@ export default function NotificationRulesPage() {
   const { t } = useTranslation()
   const { addToast } = useToast()
   const { selectedHotelId, selectedHotel } = useHotel()
+  const { user, isAdmin } = useAuth()
   const [rules, setRules] = useState([])
   const [loading, setLoading] = useState(true)
   const [editingRule, setEditingRule] = useState(null)
@@ -46,11 +49,11 @@ export default function NotificationRulesPage() {
 
   // Перезагружаем при смене отеля
   useEffect(() => {
-    if (selectedHotelId) {
+    if (selectedHotelId && isAdmin()) {
       loadRules()
       loadSendTime()
     }
-  }, [selectedHotelId])
+  }, [selectedHotelId, isAdmin])
 
   // Загрузка времени отправки из настроек
   const loadSendTime = async () => {
@@ -249,6 +252,24 @@ export default function NotificationRulesPage() {
       default:
         return <Bell className="w-4 h-4" />
     }
+  }
+
+  // Проверка доступа: только SUPER_ADMIN и HOTEL_ADMIN
+  if (!isAdmin()) {
+    return (
+      <div className="space-y-6 p-4 md:p-6">
+        <div className="bg-card rounded-xl shadow-lg p-8 text-center">
+          <Lock className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-foreground mb-2">
+            {t('notificationRules.accessDenied') || 'Доступ запрещен'}
+          </h2>
+          <p className="text-muted-foreground">
+            {t('notificationRules.accessDeniedMessage') || 
+              'Управление правилами уведомлений доступно только для супер-администраторов и администраторов отеля.'}
+          </p>
+        </div>
+      </div>
+    )
   }
 
   if (loading) {

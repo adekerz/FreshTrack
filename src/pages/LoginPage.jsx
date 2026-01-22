@@ -67,8 +67,15 @@ export default function LoginPage() {
     const result = await login(identifier, password)
 
     if (result.success) {
-      addToast(t('toast.loginSuccess'), 'success')
-      navigate('/')
+      if (result.mustChangePassword) {
+        // Redirect to change password page for first login
+        navigate('/change-password', { 
+          state: { firstLogin: true, email: result.email || identifier } 
+        })
+      } else {
+        addToast(t('toast.loginSuccess'), 'success')
+        navigate('/')
+      }
     } else {
       setError(result.error || t('auth.invalidCredentials'))
       addToast(t('toast.loginError'), 'error')

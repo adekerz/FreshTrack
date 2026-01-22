@@ -170,6 +170,14 @@ export async function initDatabase() {
       { num: '024', name: '024_full_department_manager_permissions.sql', desc: 'dept manager full' },
       { num: '025', name: '025_telegram_chat_thresholds.sql', desc: 'telegram thresholds' },
       { num: '026', name: '026_seed_marsha_codes.sql', desc: 'seed MARSHA codes data' },
+      { num: '027', name: '027_unique_active_marsha_index.sql', desc: 'unique active marsha index' },
+      { num: '028', name: '028_external_ids_integration.sql', desc: 'external IDs integration' },
+      { num: '029', name: '029_protect_marsha_code.sql', desc: 'protect marsha code' },
+      { num: '030', name: '030_department_description.sql', desc: 'department description field' },
+      { num: '031', name: '031_email_status_tracking.sql', desc: 'email status tracking' },
+      { num: '032', name: '032_department_email.sql', desc: 'department email field' },
+      { num: '033', name: '033_add_must_change_password.sql', desc: 'must change password field' },
+      { num: '034', name: '034_set_dev_department_emails.sql', desc: 'set dev department emails' },
     ]
 
     for (const migration of additionalMigrations) {
@@ -485,7 +493,7 @@ export async function logAudit(data) {
       uuidv4(),
       hotel_id || null,
       user_id || null,
-      user_name,
+      user_name || 'System', // Default to 'System' if user_name is not provided
       action,
       entity_type || null,
       entity_id || null,
@@ -504,7 +512,7 @@ export async function logAudit(data) {
         uuidv4(),
         hotel_id || null,
         user_id || null,
-        user_name,
+        user_name || 'System', // Default to 'System' if user_name is not provided
         action,
         entity_type || null,
         entity_id || null,
@@ -569,7 +577,7 @@ export async function getUserByLoginOrEmail(identifier) {
 export async function getAllUsers(hotelId = null) {
   if (hotelId) {
     const result = await query(`
-      SELECT id, login, name, email, role, hotel_id, department_id, telegram_chat_id, is_active, created_at 
+      SELECT id, login, name, email, role, hotel_id, department_id, telegram_chat_id, is_active, status, must_change_password, created_at 
       FROM users 
       WHERE hotel_id = $1 OR hotel_id IS NULL
       ORDER BY created_at DESC
@@ -577,7 +585,7 @@ export async function getAllUsers(hotelId = null) {
     return result.rows
   }
   const result = await query(`
-    SELECT id, login, name, email, role, hotel_id, department_id, telegram_chat_id, is_active, created_at 
+    SELECT id, login, name, email, role, hotel_id, department_id, telegram_chat_id, is_active, status, must_change_password, created_at 
     FROM users 
     ORDER BY created_at DESC
   `)
@@ -585,17 +593,20 @@ export async function getAllUsers(hotelId = null) {
 }
 
 export async function createUser(user) {
-  const { login, name, email, password, role, hotel_id, department_id, status } = user
+  const { login, name, email, password, role, hotel_id, department_id, status, must_change_password } = user
   const id = uuidv4()
   const hashedPassword = bcrypt.hashSync(password, 10)
   const userStatus = status || 'active'
+  const mustChangePassword = must_change_password !== undefined ? must_change_password : false
+  // Normalize email: empty string -> null
+  const normalizedEmail = email && email.trim() ? email.trim().toLowerCase() : null
 
   await query(`
-    INSERT INTO users (id, login, name, email, password, role, hotel_id, department_id, is_active, status) 
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, TRUE, $9)
-  `, [id, login, name, email, hashedPassword, role || 'STAFF', hotel_id, department_id, userStatus])
+    INSERT INTO users (id, login, name, email, password, role, hotel_id, department_id, is_active, status, must_change_password) 
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, TRUE, $9, $10)
+  `, [id, login, name, normalizedEmail, hashedPassword, role || 'STAFF', hotel_id, department_id, userStatus, mustChangePassword])
 
-  return { id, login, name, email, role: role || 'STAFF', hotel_id, department_id, status: userStatus }
+  return { id, login, name, email: normalizedEmail, role: role || 'STAFF', hotel_id, department_id, status: userStatus, must_change_password: mustChangePassword }
 }
 
 export async function updateUser(id, updates) {
@@ -604,7 +615,13 @@ export async function updateUser(id, updates) {
   let paramIndex = 1
 
   if (updates.name !== undefined) { fields.push(`name = $${paramIndex++}`); values.push(updates.name) }
-  if (updates.email !== undefined) { fields.push(`email = $${paramIndex++}`); values.push(updates.email) }
+  if (updates.email !== undefined) { 
+    fields.push(`email = $${paramIndex++}`); 
+    values.push(updates.email)
+    // Reset email status when email is updated
+    fields.push(`email_valid = TRUE`)
+    fields.push(`email_blocked = FALSE`)
+  }
   if (updates.role !== undefined) { fields.push(`role = $${paramIndex++}`); values.push(updates.role) }
   if (updates.department_id !== undefined) { fields.push(`department_id = $${paramIndex++}`); values.push(updates.department_id) }
   if (updates.password !== undefined) {
@@ -613,6 +630,9 @@ export async function updateUser(id, updates) {
   }
   if (updates.is_active !== undefined) { fields.push(`is_active = $${paramIndex++}`); values.push(updates.is_active) }
   if (updates.telegram_chat_id !== undefined) { fields.push(`telegram_chat_id = $${paramIndex++}`); values.push(updates.telegram_chat_id) }
+  if (updates.email_valid !== undefined) { fields.push(`email_valid = $${paramIndex++}`); values.push(updates.email_valid) }
+  if (updates.email_blocked !== undefined) { fields.push(`email_blocked = $${paramIndex++}`); values.push(updates.email_blocked) }
+  if (updates.must_change_password !== undefined) { fields.push(`must_change_password = $${paramIndex++}`); values.push(updates.must_change_password) }
 
   if (fields.length === 0) return false
 
@@ -718,15 +738,15 @@ export async function getDepartmentById(id) {
 }
 
 export async function createDepartment(dept) {
-  const { hotel_id, name, name_en, name_kk, type, color, icon } = dept
+  const { hotel_id, name, description, name_en, name_kk, type, color, icon, email } = dept
   const id = uuidv4()
 
   await query(`
-    INSERT INTO departments (id, hotel_id, name, name_en, name_kk, type, color, icon) 
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-  `, [id, hotel_id, name, name_en, name_kk, type || 'other', color || '#FF8D6B', icon || 'package'])
+    INSERT INTO departments (id, hotel_id, name, description, name_en, name_kk, type, color, icon, email) 
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+  `, [id, hotel_id, name, description || null, name_en, name_kk, type || 'other', color || '#FF8D6B', icon || 'package', email || null])
 
-  return { id, hotel_id, name, name_en, name_kk, type, color, icon }
+  return { id, hotel_id, name, description, name_en, name_kk, type, color, icon, email }
 }
 
 export async function updateDepartment(id, updates) {
@@ -735,12 +755,20 @@ export async function updateDepartment(id, updates) {
   let paramIndex = 1
 
   if (updates.name !== undefined) { fields.push(`name = $${paramIndex++}`); values.push(updates.name) }
+  if (updates.description !== undefined) { 
+    fields.push(`description = $${paramIndex++}`); 
+    values.push(updates.description === null || updates.description === '' ? null : updates.description) 
+  }
   if (updates.name_en !== undefined) { fields.push(`name_en = $${paramIndex++}`); values.push(updates.name_en) }
   if (updates.name_kk !== undefined) { fields.push(`name_kk = $${paramIndex++}`); values.push(updates.name_kk) }
   if (updates.type !== undefined) { fields.push(`type = $${paramIndex++}`); values.push(updates.type) }
   if (updates.color !== undefined) { fields.push(`color = $${paramIndex++}`); values.push(updates.color) }
   if (updates.icon !== undefined) { fields.push(`icon = $${paramIndex++}`); values.push(updates.icon) }
   if (updates.is_active !== undefined) { fields.push(`is_active = $${paramIndex++}`); values.push(updates.is_active) }
+  if (updates.email !== undefined) {
+    fields.push(`email = $${paramIndex++}`)
+    values.push(updates.email === null || updates.email === '' ? null : String(updates.email).trim())
+  }
 
   if (fields.length === 0) return false
 

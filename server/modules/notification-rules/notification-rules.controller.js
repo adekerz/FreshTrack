@@ -63,9 +63,42 @@ router.use(hotelIsolation)
 // NOTIFICATION RULES
 // ═══════════════════════════════════════════════════════════════
 
-router.get('/', requirePermission(PermissionResource.SETTINGS, PermissionAction.READ), async (req, res) => {
+/**
+ * Middleware: Check if user is SUPER_ADMIN or HOTEL_ADMIN
+ */
+function requireAdminRole(req, res, next) {
+  if (!req.user) {
+    return res.status(401).json({ success: false, error: 'Authentication required' })
+  }
+  
+  if (req.user.role !== 'SUPER_ADMIN' && req.user.role !== 'HOTEL_ADMIN') {
+    return res.status(403).json({ 
+      success: false, 
+      error: 'Access denied. Only SUPER_ADMIN and HOTEL_ADMIN can manage notification rules.' 
+    })
+  }
+  
+  next()
+}
+
+router.get('/', requireAdminRole, requirePermission(PermissionResource.SETTINGS, PermissionAction.READ), async (req, res) => {
   try {
-    const rules = await NotificationEngine.getRules(req.hotelId)
+    // SUPER_ADMIN может видеть правила всех отелей, HOTEL_ADMIN - только своего
+    const hotelId = req.user.role === 'SUPER_ADMIN' ? (req.query.hotel_id || req.hotelId) : req.hotelId
+    const departmentId = req.query.department_id || null
+    
+    let rules = await NotificationEngine.getRules(hotelId)
+    
+    // Фильтруем по отделу, если указан
+    if (departmentId) {
+      rules = rules.filter(rule => 
+        rule.department_id === departmentId || rule.department_id === null
+      )
+    } else {
+      // Если отдел не указан, показываем только правила отеля (без привязки к отделу)
+      rules = rules.filter(rule => rule.department_id === null)
+    }
+    
     res.json({ success: true, rules })
   } catch (error) {
     logError('Get notification rules error', error)
@@ -73,9 +106,21 @@ router.get('/', requirePermission(PermissionResource.SETTINGS, PermissionAction.
   }
 })
 
-router.get('/rules', requirePermission(PermissionResource.SETTINGS, PermissionAction.READ), async (req, res) => {
+router.get('/rules', requireAdminRole, requirePermission(PermissionResource.SETTINGS, PermissionAction.READ), async (req, res) => {
   try {
-    const rules = await NotificationEngine.getRules(req.hotelId)
+    const hotelId = req.user.role === 'SUPER_ADMIN' ? (req.query.hotel_id || req.hotelId) : req.hotelId
+    const departmentId = req.query.department_id || null
+    
+    let rules = await NotificationEngine.getRules(hotelId)
+    
+    if (departmentId) {
+      rules = rules.filter(rule => 
+        rule.department_id === departmentId || rule.department_id === null
+      )
+    } else {
+      rules = rules.filter(rule => rule.department_id === null)
+    }
+    
     res.json({ success: true, rules })
   } catch (error) {
     logError('Get notification rules error', error)
@@ -83,7 +128,7 @@ router.get('/rules', requirePermission(PermissionResource.SETTINGS, PermissionAc
   }
 })
 
-router.post('/rules', requirePermission(PermissionResource.SETTINGS, PermissionAction.UPDATE), async (req, res) => {
+router.post('/rules', requireAdminRole, requirePermission(PermissionResource.SETTINGS, PermissionAction.UPDATE), async (req, res) => {
   try {
     const {
       id, type, name, description,
@@ -92,9 +137,22 @@ router.post('/rules', requirePermission(PermissionResource.SETTINGS, PermissionA
       departmentId, enabled
     } = req.body
 
+    // Проверяем, что HOTEL_ADMIN может создавать правила только для своего отеля
+    const targetHotelId = req.user.role === 'SUPER_ADMIN' 
+      ? (req.body.hotelId || req.hotelId) 
+      : req.hotelId
+    
+    // Проверяем, что HOTEL_ADMIN не может создавать правила для других отелей
+    if (req.user.role === 'HOTEL_ADMIN' && req.body.hotelId && req.body.hotelId !== req.hotelId) {
+      return res.status(403).json({ 
+        success: false, 
+        error: 'HOTEL_ADMIN can only create rules for their own hotel' 
+      })
+    }
+    
     const ruleId = await NotificationEngine.upsertRule({
       id,
-      hotelId: req.hotelId,
+      hotelId: targetHotelId,
       departmentId,
       type,
       name,
@@ -111,11 +169,14 @@ router.post('/rules', requirePermission(PermissionResource.SETTINGS, PermissionA
 
     // Audit logging
     await logAudit({
-      userId: req.user.id,
-      action: id ? 'UPDATE' : 'CREATE',
-      resource: 'NotificationRule',
-      resourceId: ruleId,
-      details: { type, name, warningDays, criticalDays, channels, enabled }
+      hotel_id: req.hotelId,
+      user_id: req.user.id,
+      user_name: req.user.name || req.user.login || 'Unknown',
+      action: id ? 'update' : 'create',
+      entity_type: 'notification_rule',
+      entity_id: ruleId,
+      details: { type, name, warningDays, criticalDays, channels, enabled },
+      ip_address: req.ip
     })
 
     res.json({ success: true, id: ruleId })
@@ -125,7 +186,7 @@ router.post('/rules', requirePermission(PermissionResource.SETTINGS, PermissionA
   }
 })
 
-router.patch('/:id/toggle', requirePermission(PermissionResource.SETTINGS, PermissionAction.UPDATE), async (req, res) => {
+router.patch('/:id/toggle', requireAdminRole, requirePermission(PermissionResource.SETTINGS, PermissionAction.UPDATE), async (req, res) => {
   try {
     const { id } = req.params
 
@@ -161,11 +222,14 @@ router.patch('/:id/toggle', requirePermission(PermissionResource.SETTINGS, Permi
 
         // Audit logging
         await logAudit({
-          userId: req.user.id,
-          action: 'TOGGLE',
-          resource: 'NotificationRule',
-          resourceId: copyRule.id,
-          details: { enabled: newEnabled, type: rule.type }
+          hotel_id: req.hotelId,
+          user_id: req.user.id,
+          user_name: req.user.name || req.user.login || 'Unknown',
+          action: 'toggle',
+          entity_type: 'notification_rule',
+          entity_id: copyRule.id,
+          details: { enabled: newEnabled, type: rule.type },
+          ip_address: req.ip
         })
 
         return res.json({ success: true, isActive: newEnabled })
@@ -182,11 +246,14 @@ router.patch('/:id/toggle', requirePermission(PermissionResource.SETTINGS, Permi
 
         // Audit logging
         await logAudit({
-          userId: req.user.id,
-          action: 'CREATE',
-          resource: 'NotificationRule',
-          resourceId: insertResult.rows[0]?.id,
-          details: { enabled: newEnabled, type: rule.type, copiedFrom: id }
+          hotel_id: req.hotelId,
+          user_id: req.user.id,
+          user_name: req.user.name || req.user.login || 'Unknown',
+          action: 'create',
+          entity_type: 'notification_rule',
+          entity_id: insertResult.rows[0]?.id,
+          details: { enabled: newEnabled, type: rule.type, copiedFrom: id },
+          ip_address: req.ip
         })
 
         return res.json({ success: true, isActive: newEnabled })
@@ -206,11 +273,14 @@ router.patch('/:id/toggle', requirePermission(PermissionResource.SETTINGS, Permi
 
       // Audit logging
       await logAudit({
-        userId: req.user.id,
-        action: 'TOGGLE',
-        resource: 'NotificationRule',
-        resourceId: id,
-        details: { enabled: newEnabled, type: rule.type }
+        hotel_id: req.hotelId,
+        user_id: req.user.id,
+        user_name: req.user.name || req.user.login || 'Unknown',
+        action: 'toggle',
+        entity_type: 'notification_rule',
+        entity_id: id,
+        details: { enabled: newEnabled, type: rule.type },
+        ip_address: req.ip
       })
 
       return res.json({ success: true, isActive: newEnabled })
@@ -221,7 +291,7 @@ router.patch('/:id/toggle', requirePermission(PermissionResource.SETTINGS, Permi
   }
 })
 
-router.delete('/:id', requirePermission(PermissionResource.SETTINGS, PermissionAction.DELETE), async (req, res) => {
+router.delete('/:id', requireAdminRole, requirePermission(PermissionResource.SETTINGS, PermissionAction.DELETE), async (req, res) => {
   try {
     // Проверяем что это не системное правило
     const rule = await query(
@@ -245,11 +315,14 @@ router.delete('/:id', requirePermission(PermissionResource.SETTINGS, PermissionA
 
     // Audit logging
     await logAudit({
-      userId: req.user.id,
-      action: 'DELETE',
-      resource: 'NotificationRule',
-      resourceId: req.params.id,
-      details: {}
+      hotel_id: req.hotelId,
+      user_id: req.user.id,
+      user_name: req.user.name || req.user.login || 'Unknown',
+      action: 'delete',
+      entity_type: 'notification_rule',
+      entity_id: req.params.id,
+      details: {},
+      ip_address: req.ip
     })
 
     res.json({ success: true })
@@ -259,7 +332,7 @@ router.delete('/:id', requirePermission(PermissionResource.SETTINGS, PermissionA
   }
 })
 
-router.delete('/rules/:id', requirePermission(PermissionResource.SETTINGS, PermissionAction.DELETE), async (req, res) => {
+router.delete('/rules/:id', requireAdminRole, requirePermission(PermissionResource.SETTINGS, PermissionAction.DELETE), async (req, res) => {
   try {
     // Проверяем что это не системное правило
     const rule = await query(

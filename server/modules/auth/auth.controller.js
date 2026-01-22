@@ -402,12 +402,13 @@ router.post('/join-requests/:id/approve', authMiddleware, requirePermission('use
 
     await logAudit({
       user_id: req.user.id,
-      user_name: req.user.name,
+      user_name: req.user.name || req.user.login,
       hotel_id: jr.hotel_id,
       action: 'APPROVE',
       entity_type: 'JoinRequest',
       entity_id: id,
-      details: { userId: jr.user_id, role, departmentId }
+      details: { userId: jr.user_id, role, departmentId },
+      ip_address: req.ip
     })
 
     res.json({ success: true, message: 'Заявка одобрена' })
@@ -452,12 +453,13 @@ router.post('/join-requests/:id/reject', authMiddleware, requirePermission('user
 
     await logAudit({
       user_id: req.user.id,
-      user_name: req.user.name,
+      user_name: req.user.name || req.user.login,
       hotel_id: jr.hotel_id,
       action: 'REJECT',
       entity_type: 'JoinRequest',
       entity_id: id,
-      details: { userId: jr.user_id, notes }
+      details: { userId: jr.user_id, notes },
+      ip_address: req.ip
     })
 
     res.json({ success: true, message: 'Заявка отклонена' })
@@ -494,6 +496,69 @@ router.get('/me', authMiddleware, async (req, res) => {
 })
 
 /**
+ * PUT /api/auth/me
+ * Обновить свой профиль (имя, email)
+ */
+router.put('/me', authMiddleware, async (req, res) => {
+  try {
+    const { name, email } = req.body
+
+    // Валидация email если указан
+    if (email !== undefined) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (email && !emailRegex.test(email)) {
+        return res.status(400).json({
+          error: 'Неверный формат email адреса'
+        })
+      }
+
+      // Проверка уникальности email (если указан)
+      if (email) {
+        const { getUserByLoginOrEmail } = await import('../../db/database.js')
+        const existingUser = await getUserByLoginOrEmail(email)
+        if (existingUser && existingUser.id !== req.user.id) {
+          return res.status(400).json({
+            error: 'Пользователь с таким email уже существует'
+          })
+        }
+      }
+    }
+
+    // Подготавливаем данные для обновления
+    const updateData = {}
+    if (name !== undefined) updateData.name = name
+    if (email !== undefined) updateData.email = email || null
+
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({
+        error: 'Необходимо указать хотя бы одно поле для обновления'
+      })
+    }
+
+    // Обновляем пользователя
+    const result = await AuthService.updateUser(req.user.id, updateData, req.user, req.ip)
+
+    if (!result.success) {
+      return res.status(result.statusCode).json({
+        error: result.error
+      })
+    }
+
+    // logAudit уже вызывается внутри AuthService.updateUser, дублировать не нужно
+
+    res.json({
+      success: true,
+      user: result.data.user,
+      message: 'Профиль обновлен'
+    })
+
+  } catch (error) {
+    console.error('[Auth] Update me error:', error)
+    res.status(500).json({ error: 'Ошибка сервера' })
+  }
+})
+
+/**
  * PUT /api/auth/password
  * Смена пароля текущего пользователя
  */
@@ -521,11 +586,14 @@ router.put('/password', authMiddleware, async (req, res) => {
     }
 
     await logAudit({
-      userId: req.user.id,
+      hotel_id: req.user.hotel_id,
+      user_id: req.user.id,
+      user_name: req.user.name || req.user.login,
       action: 'UPDATE',
-      resource: 'User',
-      resourceId: req.user.id,
-      details: { field: 'password' }
+      entity_type: 'user',
+      entity_id: req.user.id,
+      details: { field: 'password' },
+      ip_address: req.ip
     })
 
     res.json({ message: 'Пароль изменён' })
@@ -593,7 +661,7 @@ router.post('/users', authMiddleware, requirePermission('users', 'create'), asyn
       })
     }
 
-    const result = await AuthService.createUser(validation.data, req.user)
+    const result = await AuthService.createUser(validation.data, req.user, req.ip)
 
     if (!result.success) {
       return res.status(result.statusCode).json({
@@ -601,22 +669,98 @@ router.post('/users', authMiddleware, requirePermission('users', 'create'), asyn
       })
     }
 
-    await logAudit({
-      userId: req.user.id,
-      action: 'CREATE',
-      resource: 'User',
-      resourceId: result.data.id,
-      details: {
-        login: result.data.login,
-        role: result.data.role
-      }
-    })
-
+    // AuthService.createUser already logs audit, so we just return the data
     res.status(201).json(result.data)
 
   } catch (error) {
     console.error('[Auth] Create user error:', error)
-    res.status(500).json({ error: 'Ошибка сервера' })
+    console.error('[Auth] Error stack:', error.stack)
+    res.status(500).json({ 
+      error: 'Ошибка сервера',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    })
+  }
+})
+
+/**
+ * POST /api/users/:id/resend-password
+ * Resend temporary password to user
+ */
+router.post('/users/:id/resend-password', authMiddleware, requirePermission('users', 'update'), async (req, res) => {
+  try {
+    const { id } = req.params
+    
+    // Get user using dbQuery (already imported)
+    const userResult = await dbQuery(`
+      SELECT id, name, email, hotel_id, must_change_password 
+      FROM users 
+      WHERE id = $1
+    `, [id])
+    
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'User not found' })
+    }
+    
+    const user = userResult.rows[0]
+    
+    // Check hotel isolation
+    if (req.user.role !== 'SUPER_ADMIN' && req.user.hotel_id !== user.hotel_id) {
+      return res.status(403).json({ success: false, error: 'Access denied' })
+    }
+    
+    // Generate new temporary password
+    const { generateTemporaryPassword } = await import('../../utils/passwordGenerator.js')
+    const temporaryPassword = generateTemporaryPassword(12)
+    const bcrypt = await import('bcryptjs')
+    const hashedPassword = bcrypt.hashSync(temporaryPassword, 10)
+    
+    // Update user password and set must_change_password flag
+    await dbQuery(`
+      UPDATE users 
+      SET password = $1, must_change_password = true, updated_at = NOW()
+      WHERE id = $2
+    `, [hashedPassword, id])
+    
+    // Get hotel name
+    const hotelResult = await dbQuery('SELECT name FROM hotels WHERE id = $1', [user.hotel_id])
+    const hotelName = hotelResult.rows[0]?.name || 'FreshTrack'
+    
+    const loginUrl = process.env.APP_URL || 'http://localhost:5173/login'
+    
+    // Send email
+    const { sendWelcomeEmailWithPassword } = await import('../../services/EmailService.js')
+    await sendWelcomeEmailWithPassword({
+      to: user.email,
+      userName: user.name,
+      temporaryPassword,
+      hotelName,
+      loginUrl
+    })
+    
+    await logAudit({
+      hotel_id: user.hotel_id,
+      user_id: req.user.id,
+      user_name: req.user.name || req.user.login,
+      action: 'resend_password',
+      entity_type: 'user',
+      entity_id: id,
+      details: { userEmail: user.email },
+      ip_address: req.ip
+    })
+    
+    res.json({ 
+      success: true, 
+      message: `Temporary password sent to ${user.email}` 
+    })
+    
+  } catch (error) {
+    console.error('[Auth] Resend password error:', error)
+    console.error('[Auth] Error stack:', error.stack)
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to resend password',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    })
   }
 })
 
@@ -672,11 +816,14 @@ router.put('/users/:id', authMiddleware, requirePermission('users', 'update'), a
     }
 
     await logAudit({
-      userId: req.user.id,
+      hotel_id: req.user.hotel_id,
+      user_id: req.user.id,
+      user_name: req.user.name || req.user.login,
       action: 'UPDATE',
-      resource: 'User',
-      resourceId: userId,
-      details: { changes: Object.keys(validation.data) }
+      entity_type: 'user',
+      entity_id: userId,
+      details: { changes: Object.keys(validation.data) },
+      ip_address: req.ip
     })
 
     res.json(result.data)
@@ -715,11 +862,14 @@ router.delete('/users/:id', authMiddleware, requirePermission('users', 'delete')
     }
 
     await logAudit({
-      userId: req.user.id,
+      hotel_id: req.user.hotel_id,
+      user_id: req.user.id,
+      user_name: req.user.name || req.user.login,
       action: 'DELETE',
-      resource: 'User',
-      resourceId: userId,
-      details: {}
+      entity_type: 'user',
+      entity_id: userId,
+      details: {},
+      ip_address: req.ip
     })
 
     res.json({ message: 'Пользователь удалён' })
@@ -758,11 +908,14 @@ router.patch('/users/:id/toggle', authMiddleware, requirePermission('users', 'up
     }
 
     await logAudit({
-      userId: req.user.id,
+      hotel_id: req.user.hotel_id,
+      user_id: req.user.id,
+      user_name: req.user.name || req.user.login,
       action: 'UPDATE',
-      resource: 'User',
-      resourceId: userId,
-      details: { isActive: result.data.isActive }
+      entity_type: 'user',
+      entity_id: userId,
+      details: { isActive: result.data.isActive },
+      ip_address: req.ip
     })
 
     res.json(result.data)
