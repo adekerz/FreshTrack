@@ -17,6 +17,7 @@ import { useProducts } from '../context/ProductContext'
 import { logError } from '../utils/logger'
 import { cn } from '../utils/classNames'
 import { apiFetch } from '../services/api'
+import { useDebouncedCallback } from '../hooks/useDebounce'
 import SettingsLayout, { SettingsSection } from './settings/SettingsLayout'
 
 export default function NotificationRulesSettings() {
@@ -44,6 +45,10 @@ export default function NotificationRulesSettings() {
     notificationType: 'all',
     channels: ['app']
   })
+
+  const debouncedUpdateNewRule = useDebouncedCallback((updates) => {
+    setNewRule((prev) => ({ ...prev, ...updates }))
+  }, 300)
 
   useEffect(() => {
     loadRules()
@@ -277,9 +282,9 @@ export default function NotificationRulesSettings() {
                   type="number"
                   min={1}
                   max={365}
-                  value={newRule.warningDays}
+                  defaultValue={newRule.warningDays}
                   onChange={(e) =>
-                    setNewRule({ ...newRule, warningDays: parseInt(e.target.value, 10) || 7 })
+                    debouncedUpdateNewRule({ warningDays: parseInt(e.target.value, 10) || 7 })
                   }
                   className="w-full px-3 py-2 border border-border rounded-lg bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                 />
@@ -293,9 +298,9 @@ export default function NotificationRulesSettings() {
                   type="number"
                   min={1}
                   max={365}
-                  value={newRule.criticalDays}
+                  defaultValue={newRule.criticalDays}
                   onChange={(e) =>
-                    setNewRule({ ...newRule, criticalDays: parseInt(e.target.value, 10) || 3 })
+                    debouncedUpdateNewRule({ criticalDays: parseInt(e.target.value, 10) || 3 })
                   }
                   className="w-full px-3 py-2 border border-border rounded-lg bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                 />

@@ -235,6 +235,7 @@ function MessageTemplatesPanel({ templates, onChange }) {
 }
 
 function getNextSendTime(timeString) {
+  if (!timeString) return null
   const [hours, minutes] = timeString.split(':').map(Number)
   const now = new Date()
   const next = new Date()
@@ -245,52 +246,88 @@ function getNextSendTime(timeString) {
 
 function SchedulePanel({ sendTime, onChange }) {
   const { t } = useTranslation()
+  const { addToast } = useToast()
   const nextSend = getNextSendTime(sendTime)
   const now = new Date()
-  const msUntil = nextSend - now
+  const msUntil = nextSend ? nextSend - now : 0
   const hoursUntil = Math.floor(msUntil / (1000 * 60 * 60))
   const minutesUntil = Math.floor((msUntil % (1000 * 60 * 60)) / (1000 * 60))
 
+  const sendTestNotification = async () => {
+    try {
+      await apiFetch('/settings/telegram/test-notification', { method: 'POST' })
+      addToast('Тестовое уведомление отправлено', 'success')
+    } catch (error) {
+      addToast('Ошибка отправки: ' + error.message, 'error')
+    }
+  }
+
   return (
-    <SettingsSection title={t('telegram.schedule') || 'Время отправки уведомлений'}>
+    <SettingsSection
+      title={t('telegram.schedule') || 'Расписание'}
+      description="Настройте когда система будет отправлять ежедневные отчеты"
+    >
       <div className="space-y-4">
         <div>
           <label htmlFor="telegram-send-time" className="block text-sm font-medium text-foreground mb-2">
             Ежедневные отчёты будут отправляться в:
           </label>
-          <div className="flex items-center gap-4 flex-wrap">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
             <input
               id="telegram-send-time"
               type="time"
               value={sendTime}
               onChange={(e) => onChange(e.target.value)}
+              aria-describedby="timezone-info"
               className="px-4 py-2.5 border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
-              aria-describedby="telegram-send-time-help"
             />
-            <div id="telegram-send-time-help" className="text-sm text-muted-foreground">
-              <div>🌍 Часовой пояс: {SERVER_TIMEZONE}</div>
-              <div className="font-mono text-xs">
-                Сейчас: {now.toLocaleTimeString('ru-RU', { timeZone: SERVER_TIMEZONE })}
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="bg-accent/10 border border-accent/30 rounded-lg p-4">
-          <div className="flex items-center gap-3">
-            <Clock className="w-5 h-5 text-accent" aria-hidden="true" />
-            <div>
-              <div className="text-sm font-medium text-foreground">
-                Следующая отправка через {hoursUntil}ч {minutesUntil}м
-              </div>
-              <div className="text-xs text-muted-foreground">
-                {nextSend.toLocaleString('ru-RU', {
-                  dateStyle: 'short',
-                  timeStyle: 'short',
-                  timeZone: SERVER_TIMEZONE
+            <div id="timezone-info" className="text-sm text-muted-foreground">
+              <div>🌍 Временная зона: <strong>{SERVER_TIMEZONE}</strong></div>
+              <div className="font-mono text-xs mt-1">
+                Текущее время сервера: {now.toLocaleTimeString('ru-RU', {
+                  timeZone: SERVER_TIMEZONE,
+                  hour: '2-digit',
+                  minute: '2-digit'
                 })}
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Visual countdown */}
+        {nextSend && (
+          <div className="bg-accent/10 border border-accent/30 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <Clock className="w-5 h-5 text-accent flex-shrink-0 mt-0.5" aria-hidden="true" />
+              <div className="flex-1">
+                <div className="text-sm font-medium text-foreground">
+                  Следующая отправка через {hoursUntil}ч {minutesUntil}м
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  {nextSend.toLocaleString('ru-RU', {
+                    dateStyle: 'short',
+                    timeStyle: 'short',
+                    timeZone: SERVER_TIMEZONE
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Test button */}
+        <div className="pt-4 border-t border-border">
+          <button
+            type="button"
+            onClick={sendTestNotification}
+            className="flex items-center gap-2 px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
+          >
+            <Send className="w-4 h-4" aria-hidden="true" />
+            {t('telegram.sendTest') || 'Отправить тестовое уведомление сейчас'}
+          </button>
+          <p className="text-xs text-muted-foreground mt-2">
+            {t('telegram.sendTestDesc') || 'Отправит уведомление во все активные Telegram чаты без ожидания расписания'}
+          </p>
         </div>
       </div>
     </SettingsSection>
