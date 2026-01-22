@@ -31,6 +31,7 @@ import {
   AlertTriangle,
   Mail
 } from 'lucide-react'
+import SettingsLayout from './SettingsLayout'
 
 export default function OrganizationSettings() {
   const { t } = useTranslation()
@@ -421,12 +422,11 @@ export default function OrganizationSettings() {
   // For non-SuperAdmin - show only users table
   if (!isSuperAdmin) {
     return (
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h2 className="text-xl font-semibold text-foreground">Пользователи</h2>
-            <p className="text-sm text-muted-foreground mt-1">Управление учётными записями</p>
-          </div>
+      <SettingsLayout
+        title="Пользователи"
+        description="Управление учётными записями"
+        icon={Users}
+        headerActions={
           <button
             onClick={() => setShowCreateUser({ hotelId: currentUser?.hotel_id })}
             className="flex items-center gap-2 px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent/90 transition-colors"
@@ -434,7 +434,8 @@ export default function OrganizationSettings() {
             <UserPlus className="w-4 h-4" />
             Создать
           </button>
-        </div>
+        }
+      >
 
         <div className="space-y-2">
           {allUsers.length === 0 ? (
@@ -448,18 +449,17 @@ export default function OrganizationSettings() {
         {renderCreateUserModal()}
         {renderBlockConfirmModal()}
         {renderDeleteConfirmModal()}
-      </div>
+      </SettingsLayout>
     )
   }
 
   // SuperAdmin view - hotels with departments and users
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-xl font-semibold text-foreground">Структура организации</h2>
-          <p className="text-sm text-muted-foreground mt-1">Отели, департаменты и пользователи</p>
-        </div>
+    <SettingsLayout
+      title="Структура организации"
+      description="Отели, департаменты и пользователи"
+      icon={Building2}
+      headerActions={
         <button
           onClick={() => setShowCreateHotel(true)}
           className="flex items-center gap-2 px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent/90 transition-colors"
@@ -467,7 +467,8 @@ export default function OrganizationSettings() {
           <Plus className="w-4 h-4" />
           Создать отель
         </button>
-      </div>
+      }
+    >
 
       {/* Hotels list */}
       <div className="space-y-4">
@@ -672,7 +673,7 @@ export default function OrganizationSettings() {
       {renderCreateUserModal()}
       {renderBlockConfirmModal()}
       {renderDeleteConfirmModal()}
-    </div>
+    </SettingsLayout>
   )
 
   // Modal render functions

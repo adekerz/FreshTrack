@@ -25,6 +25,10 @@ import {
   ChevronUp
 } from 'lucide-react'
 import { cn } from '../../utils/classNames'
+import SettingsLayout, { SettingsSection } from './SettingsLayout'
+import { Tabs, TabsList, Tab, TabPanel } from '../ui/Tabs'
+import TemplateEditor from './TemplateEditor'
+import { useSimpleUnsavedChanges } from '../../hooks/useUnsavedChanges'
 
 const BOT_USERNAME = 'freshtracksystemsbot'
 
@@ -59,12 +63,23 @@ export default function NotificationsSettings() {
     email: false
   })
 
+  // Track unsaved changes
+  const [initialSettings, setInitialSettings] = useState(settings)
+  const hasUnsavedChanges = useSimpleUnsavedChanges(initialSettings, settings)
+
   useEffect(() => {
     if (selectedHotelId) {
       loadSettings()
       loadLinkedChats()
     }
   }, [selectedHotelId])
+
+  // Update initial settings when loaded
+  useEffect(() => {
+    if (!loading && settings.templates && Object.keys(settings.templates).length > 0) {
+      setInitialSettings(settings)
+    }
+  }, [loading, settings])
 
   const loadSettings = async () => {
     setLoading(true)
@@ -117,25 +132,19 @@ export default function NotificationsSettings() {
   }
 
   const saveSettings = async () => {
-    setSaving(true)
-    try {
-      // Сохраняем настройки уведомлений (каналы и шаблоны)
-      await apiFetch('/settings/notifications', {
-        method: 'PUT',
-        body: JSON.stringify({
-          channels: settings.channels,
-          templates: settings.templates,
-          sendTime: settings.sendTime,
-          timezone: settings.timezone
-        })
+    // Сохраняем настройки уведомлений (каналы и шаблоны)
+    await apiFetch('/settings/notifications', {
+      method: 'PUT',
+      body: JSON.stringify({
+        channels: settings.channels,
+        templates: settings.templates,
+        sendTime: settings.sendTime,
+        timezone: settings.timezone
       })
+    })
 
-      addToast(t('settings.notifications.saved') || 'Настройки уведомлений сохранены', 'success')
-    } catch (error) {
-      addToast(error.message || t('settings.notifications.saveError') || 'Ошибка сохранения', 'error')
-    } finally {
-      setSaving(false)
-    }
+    setInitialSettings(settings)
+    return { message: t('settings.notifications.saved') || 'Настройки уведомлений сохранены' }
   }
 
   const updateChannel = (channel, enabled) => {
@@ -182,31 +191,20 @@ export default function NotificationsSettings() {
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <GridLoader size="md" />
-      </div>
-    )
+    return <SettingsLayout loading />
   }
 
   return (
-    <div className="space-y-6">
-      {/* Заголовок */}
-      <div>
-        <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
-          <Bell className="w-5 h-5" />
-          {t('settings.notifications.title') || 'Уведомления'}
-        </h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          {t('settings.notifications.description') || 'Настройка каналов доставки и шаблонов сообщений'}
-        </p>
-      </div>
+    <SettingsLayout
+      title={t('settings.notifications.title') || 'Уведомления'}
+      description={t('settings.notifications.description') || 'Настройка каналов доставки и шаблонов сообщений'}
+      icon={Bell}
+      onSave={saveSettings}
+      saveButtonText={hasUnsavedChanges ? '● ' + (t('common.save') || 'Сохранить') : (t('common.save') || 'Сохранить')}
+    >
 
       {/* Каналы доставки */}
-      <div className="space-y-4">
-        <h3 className="font-medium text-foreground">
-          {t('settings.notifications.channels') || 'Каналы доставки'}
-        </h3>
+      <SettingsSection title={t('settings.notifications.channels') || 'Каналы доставки'}>
 
         {/* Telegram */}
         <div className="p-4 border border-border rounded-lg bg-card">
@@ -386,76 +384,53 @@ export default function NotificationsSettings() {
             </div>
           )}
         </div>
-      </div>
+      </SettingsSection>
 
       {/* Единые шаблоны сообщений */}
-      <div className="p-6 border border-border rounded-xl bg-card">
-        <h3 className="font-medium text-foreground mb-2 flex items-center gap-2">
-          <MessageSquare className="w-5 h-5" />
-          {t('settings.notifications.templates') || 'Шаблоны сообщений'}
-        </h3>
-        <p className="text-sm text-muted-foreground mb-6">
-          {t('settings.notifications.templatesHint') || 'Единые шаблоны для всех каналов доставки. Используйте переменные в фигурных скобках.'}
-        </p>
+      <SettingsSection
+        title={t('settings.notifications.templates') || 'Шаблоны сообщений'}
+        description={t('settings.notifications.templatesHint') || 'Единые шаблоны для всех каналов доставки. Используйте переменные в фигурных скобках.'}
+        icon={MessageSquare}
+      >
+        <Tabs value="templates" onChange={() => {}}>
+          <TabsList>
+            <Tab value="templates">{t('settings.notifications.templates') || 'Шаблоны'}</Tab>
+          </TabsList>
+          <TabPanel value="templates">
 
-        <div className="space-y-6">
-          {/* Ежедневный отчёт */}
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
-              {t('telegram.dailyReport') || 'Ежедневный отчёт'}
-            </label>
-            <textarea
+          <div className="space-y-6">
+            <TemplateEditor
+              label={t('telegram.dailyReport') || 'Ежедневный отчёт'}
               value={settings.templates.dailyReport}
-              onChange={(e) => updateTemplate('dailyReport', e.target.value)}
-              className="w-full px-4 py-3 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent resize-none h-32 font-mono text-sm"
+              onChange={(value) => updateTemplate('dailyReport', value)}
+              availableVars={['good', 'warning', 'expired', 'total']}
+              rows={5}
             />
-            <p className="text-xs text-muted-foreground mt-1">
-              {t('telegram.variables') || 'Переменные'}: {'{good}'}, {'{warning}'}, {'{expired}'}, {'{total}'}
-            </p>
-          </div>
 
-          {/* Предупреждение об истечении */}
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
-              {t('telegram.expiryWarning') || 'Предупреждение об истечении'}
-            </label>
-            <textarea
+            <TemplateEditor
+              label={t('telegram.expiryWarning') || 'Предупреждение об истечении'}
               value={settings.templates.expiryWarning}
-              onChange={(e) => updateTemplate('expiryWarning', e.target.value)}
-              className="w-full px-4 py-3 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent resize-none h-24 font-mono text-sm"
+              onChange={(value) => updateTemplate('expiryWarning', value)}
+              availableVars={['product', 'date', 'quantity']}
+              rows={3}
             />
-            <p className="text-xs text-muted-foreground mt-1">
-              {t('telegram.variables') || 'Переменные'}: {'{product}'}, {'{date}'}, {'{quantity}'}
-            </p>
-          </div>
 
-          {/* Просрочено */}
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
-              {t('telegram.expiredAlert') || 'Уведомление о просрочке'}
-            </label>
-            <textarea
+            <TemplateEditor
+              label={t('telegram.expiredAlert') || 'Уведомление о просрочке'}
               value={settings.templates.expiredAlert}
-              onChange={(e) => updateTemplate('expiredAlert', e.target.value)}
-              className="w-full px-4 py-3 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent resize-none h-24 font-mono text-sm"
+              onChange={(value) => updateTemplate('expiredAlert', value)}
+              availableVars={['product', 'quantity']}
+              rows={3}
             />
-          </div>
 
-          {/* Подтверждение сбора */}
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
-              {t('telegram.collectionConfirm') || 'Подтверждение сбора'}
-            </label>
-            <textarea
+            <TemplateEditor
+              label={t('telegram.collectionConfirm') || 'Подтверждение сбора'}
               value={settings.templates.collectionConfirm}
-              onChange={(e) => updateTemplate('collectionConfirm', e.target.value)}
-              className="w-full px-4 py-3 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent resize-none h-24 font-mono text-sm"
+              onChange={(value) => updateTemplate('collectionConfirm', value)}
+              availableVars={['product', 'quantity', 'reason']}
+              rows={3}
             />
-            <p className="text-xs text-muted-foreground mt-1">
-              {t('telegram.variables') || 'Переменные'}: {'{product}'}, {'{quantity}'}, {'{reason}'}
-            </p>
           </div>
-        </div>
       </div>
 
       {/* Расписание */}
@@ -477,20 +452,9 @@ export default function NotificationsSettings() {
               className="px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-accent/20"
             />
           </div>
-        </div>
-      </div>
-
-      {/* Кнопка сохранения */}
-      <div className="flex justify-end">
-        <button
-          onClick={saveSettings}
-          disabled={saving}
-          className="flex items-center gap-2 px-6 py-2.5 bg-accent text-white rounded-lg hover:bg-accent/90 transition-colors disabled:opacity-50"
-        >
-          {saving ? <ButtonSpinner /> : <Save className="w-4 h-4" />}
-          {saving ? t('common.saving') || 'Сохранение...' : t('common.save') || 'Сохранить'}
-        </button>
-      </div>
-    </div>
+          </TabPanel>
+        </Tabs>
+      </SettingsSection>
+    </SettingsLayout>
   )
 }

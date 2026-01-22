@@ -19,6 +19,7 @@ import {
   AlertCircle,
   RefreshCw
 } from 'lucide-react'
+import SettingsLayout, { SettingsSection } from './SettingsLayout'
 
 export default function ImportExportSettings() {
   const { t } = useTranslation()
@@ -133,18 +134,13 @@ export default function ImportExportSettings() {
   ]
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h2 className="text-xl font-semibold text-foreground">
-          {t('settings.importExport.title') || 'Импорт/Экспорт'}
-        </h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          {t('import.description') || 'Массовые операции с данными'}
-        </p>
-      </div>
-
+    <SettingsLayout
+      title={t('settings.importExport.title') || 'Импорт/Экспорт'}
+      description={t('import.description') || 'Массовые операции с данными'}
+      icon={RefreshCw}
+    >
       {/* Импорт */}
-      <div className="p-6 border border-border rounded-xl bg-card">
+      <SettingsSection title={t('import.title') || 'Импорт данных'} icon={Upload}>
         <h3 className="font-medium text-foreground mb-4 flex items-center gap-2">
           <Upload className="w-5 h-5" />
           {t('import.title') || 'Импорт данных'}
@@ -226,11 +222,11 @@ export default function ImportExportSettings() {
             </div>
           </div>
         )}
-      </div>
+      </SettingsSection>
 
       {/* Экспорт */}
-      <div className="p-6 border border-border rounded-xl bg-card">
-        <h3 className="font-medium text-foreground mb-4 flex items-center gap-2">
+      <SettingsSection title={t('export.title') || 'Экспорт данных'} icon={Download}>
+        <div className="space-y-4">
           <Download className="w-5 h-5" />
           {t('export.title') || 'Экспорт данных'}
         </h3>
@@ -259,7 +255,7 @@ export default function ImportExportSettings() {
             </button>
           ))}
         </div>
-      </div>
-    </div>
+      </SettingsSection>
+    </SettingsLayout>
   )
 }

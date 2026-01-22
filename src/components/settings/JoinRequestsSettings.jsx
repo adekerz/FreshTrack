@@ -17,6 +17,7 @@ import {
   ChevronDown,
   Shield
 } from 'lucide-react'
+import SettingsLayout from './SettingsLayout'
 
 export default function JoinRequestsSettings() {
   const { t } = useTranslation()
@@ -165,32 +166,21 @@ export default function JoinRequestsSettings() {
   }
 
   if (loading) {
-    return (
-      <div className="animate-pulse space-y-4">
-        <div className="h-8 bg-muted rounded w-1/3" />
-        <div className="h-20 bg-muted rounded" />
-        <div className="h-20 bg-muted rounded" />
-      </div>
-    )
+    return <SettingsLayout loading />
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-medium text-foreground mb-1">
-            {t('joinRequests.title') || 'Заявки на присоединение'}
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            {t('joinRequests.description') || 'Подтвердите или отклоните запросы сотрудников'}
-          </p>
-        </div>
+    <SettingsLayout
+      title={t('joinRequests.title') || 'Заявки на присоединение'}
+      description={t('joinRequests.description') || 'Подтвердите или отклоните запросы сотрудников'}
+      icon={UserPlus}
+      headerActions={
         <Button variant="outline" size="sm" onClick={handleRefresh} loading={refreshing}>
           {!refreshing && <RefreshCw className="w-4 h-4 mr-2" />}
           {t('common.refresh') || 'Обновить'}
         </Button>
-      </div>
+      }
+    >
 
       {/* Requests list */}
       {requests.length === 0 ? (
@@ -428,6 +418,6 @@ export default function JoinRequestsSettings() {
           </div>
         </div>
       </Modal>
-    </div>
+    </SettingsLayout>
   )
 }

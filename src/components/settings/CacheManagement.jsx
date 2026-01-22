@@ -14,6 +14,7 @@ import {
   getPersistedCacheInfo,
   clearPersistedCache
 } from '../../lib/queryPersistence'
+import SettingsLayout, { SettingsSection } from './SettingsLayout'
 
 export default function CacheManagement() {
   const { t } = useTranslation()
@@ -84,18 +85,15 @@ export default function CacheManagement() {
   }
 
   if (!cacheInfo) {
-    return (
-      <div className="bg-card rounded-lg border border-border p-6">
-        <div className="animate-pulse space-y-3">
-          <div className="h-4 bg-muted rounded w-1/3"></div>
-          <div className="h-20 bg-muted rounded"></div>
-        </div>
-      </div>
-    )
+    return <SettingsLayout loading />
   }
 
   return (
-    <div className="bg-card rounded-lg border border-border p-6">
+    <SettingsLayout
+      title={t('settings.cache.title') || 'Управление кэшем'}
+      description={t('settings.cache.description') || 'Offline кэш для работы без интернета'}
+      icon={Database}
+    >
       {/* Заголовок */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
@@ -211,6 +209,6 @@ export default function CacheManagement() {
             'Изменения синхронизируются автоматически при восстановлении интернета.'}
         </p>
       </div>
-    </div>
+    </SettingsLayout>
   )
 }
