@@ -141,10 +141,6 @@ export default function ImportExportSettings() {
     >
       {/* Импорт */}
       <SettingsSection title={t('import.title') || 'Импорт данных'} icon={Upload}>
-        <h3 className="font-medium text-foreground mb-4 flex items-center gap-2">
-          <Upload className="w-5 h-5" />
-          {t('import.title') || 'Импорт данных'}
-        </h3>
 
         <div className="space-y-4">
           <div className="border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-accent/50 transition-colors">
@@ -227,9 +223,6 @@ export default function ImportExportSettings() {
       {/* Экспорт */}
       <SettingsSection title={t('export.title') || 'Экспорт данных'} icon={Download}>
         <div className="space-y-4">
-          <Download className="w-5 h-5" />
-          {t('export.title') || 'Экспорт данных'}
-        </h3>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {exportOptions.map(({ type, icon: Icon, label, desc }) => (

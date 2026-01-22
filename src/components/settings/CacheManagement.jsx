@@ -94,22 +94,6 @@ export default function CacheManagement() {
       description={t('settings.cache.description') || 'Offline кэш для работы без интернета'}
       icon={Database}
     >
-      {/* Заголовок */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-            <Database className="w-5 h-5 text-primary" />
-          </div>
-          <div>
-            <h3 className="text-lg font-medium text-foreground">
-              {t('settings.cache.title') || 'Управление кэшем'}
-            </h3>
-            <p className="text-sm text-muted-foreground">
-              {t('settings.cache.description') || 'Offline кэш для работы без интернета'}
-            </p>
-          </div>
-        </div>
-      </div>
 
       {/* Статистика кэша */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
