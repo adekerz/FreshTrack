@@ -32,6 +32,7 @@ export { default as OfflineIndicator, useOnlineStatus, usePendingSync } from './
 export { default as MobileInventoryCard, MobileInventoryList } from './MobileInventoryCard'
 export { default as PullToRefresh, usePullToRefresh } from './PullToRefresh'
 export { default as TouchButton, IconButton } from './TouchButton'
+export { Tabs, TabsList, Tab, TabPanel } from './Tabs'
 
 // Unified Loader — единственный loader в проекте
 export {
