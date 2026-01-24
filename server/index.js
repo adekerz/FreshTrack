@@ -56,25 +56,40 @@ import { query } from './db/postgres.js'
 const app = express()
 const PORT = process.env.PORT || 3001
 
-// CORS - зависит от NODE_ENV
-const allowedOrigins =
+// CORS - NODE_ENV + CORS_ORIGINS (comma-separated, e.g. Vercel preview URLs)
+const baseOrigins =
   process.env.NODE_ENV === 'production'
     ? ['https://freshtrack.systems', 'https://www.freshtrack.systems']
     : ['http://localhost:5173']
+const extraOrigins = (process.env.CORS_ORIGINS || '')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean)
+const allowedOrigins = [...baseOrigins, ...extraOrigins]
 
 console.log(`[CORS] Mode: ${process.env.NODE_ENV || 'development'}`)
 console.log(`[CORS] Allowed origins:`, allowedOrigins)
 
+// *.vercel.app preview deployments (e.g. fresh-track-xxx-adekerzs-projects.vercel.app)
+const vercelPreview = /^https:\/\/[a-z0-9-]+\.vercel\.app$/
+
 app.use(
   cors({
     origin(origin, callback) {
-      // Разрешаем запросы без origin (SSE, server-side, Postman)
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (!origin) {
         callback(null, true)
-      } else {
-        console.log('[CORS] Blocked origin:', origin)
-        callback(new Error('Not allowed by CORS'))
+        return
       }
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true)
+        return
+      }
+      if (process.env.NODE_ENV === 'production' && vercelPreview.test(origin)) {
+        callback(null, true)
+        return
+      }
+      console.log('[CORS] Blocked origin:', origin)
+      callback(new Error('Not allowed by CORS'))
     },
     credentials: true,
   })
