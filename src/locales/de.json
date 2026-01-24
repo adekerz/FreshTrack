@@ -416,6 +416,8 @@
   "settings": {
     "title": "Einstellungen",
     "subtitle": "Profil und System verwalten",
+    "saved": "Einstellungen gespeichert",
+    "saveError": "Fehler beim Speichern",
     "profile": "Profil",
     "departments": "Abteilungen",
     "categories": "Kategorien",
@@ -515,7 +517,8 @@
       "criticalDays": "Kritische Tage",
       "days": "Tage",
       "time": "Benachrichtigungszeit",
-      "weekends": "Am Wochenende benachrichtigen"
+      "weekends": "Am Wochenende benachrichtigen",
+      "userNote": "Benachrichtigungseinstellungen (Warntage, kritische Tage, Sendezeit) werden vom Administrator im Abschnitt \"Benachrichtigungsregeln\" verwaltet."
     },
     "email": {
       "title": "E-Mail-Einstellungen",
@@ -1514,6 +1517,7 @@
   "rules": {
     "noRules": "Keine konfigurierten Regeln",
     "title": "Benachrichtigungsregeln",
+    "description": "Benachrichtigungsregeln für verschiedene Ereignisse konfigurieren",
     "add": "Hinzufügen",
     "newRule": "Neue Regel",
     "name": "Name",

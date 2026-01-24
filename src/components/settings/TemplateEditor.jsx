@@ -56,16 +56,20 @@ export default function TemplateEditor({
   }
 
   const generatePreview = () => {
-    const sampleData = {
-      good: '45',
-      warning: '12',
-      expired: '3',
-      total: '60',
-      product: 'Молоко 3.2%',
+    const allSamples = {
+      good: '5',
+      warning: '3',
+      expired: '1',
+      total: '8',
       date: '15.02.2026',
-      quantity: '5',
-      reason: 'Истек срок годности'
+      department: 'Кухня',
+      expiringList: '⚠️ Истекают в ближайшее время:\n  • Молоко 3.2% — 2 шт. (истекает 20.02.2026, осталось 5 дн.)\n  • Хлеб белый — 1 шт. (истекает 18.02.2026, осталось 3 дн.)',
+      expiredList: '🔴 Просрочено:\n  • Йогурт — 1 шт. (просрочено с 10.02.2026, 5 дн. назад)'
     }
+
+    const sampleData = Object.fromEntries(
+      Object.entries(allSamples).filter(([k]) => availableVars.includes(k))
+    )
 
     let preview = escapeHtml(value)
     Object.entries(sampleData).forEach(([key, val]) => {

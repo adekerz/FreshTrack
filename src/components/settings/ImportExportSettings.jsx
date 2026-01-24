@@ -223,15 +223,14 @@ export default function ImportExportSettings() {
       {/* Экспорт */}
       <SettingsSection title={t('export.title') || 'Экспорт данных'} icon={Download}>
         <div className="space-y-4">
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {exportOptions.map(({ type, icon: Icon, label, desc }) => (
-            <button
-              key={type}
-              onClick={() => handleExport(type)}
-              disabled={exporting === type}
-              className="flex items-start gap-4 p-4 border border-border rounded-xl hover:border-accent hover:bg-accent/5 transition-colors text-left disabled:opacity-50 group"
-            >
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {exportOptions.map(({ type, icon: Icon, label, desc }) => (
+              <button
+                key={type}
+                onClick={() => handleExport(type)}
+                disabled={exporting === type}
+                className="flex items-start gap-4 p-4 border border-border rounded-xl hover:border-accent hover:bg-accent/5 transition-colors text-left disabled:opacity-50 group"
+              >
               <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center shrink-0 group-hover:bg-accent/10 transition-colors">
                 {exporting === type ? (
                   <Loader size="medium" />
@@ -247,6 +246,7 @@ export default function ImportExportSettings() {
               </div>
             </button>
           ))}
+        </div>
         </div>
       </SettingsSection>
     </SettingsLayout>

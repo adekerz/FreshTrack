@@ -7,10 +7,9 @@ import {
   ToggleLeft,
   ToggleRight,
   X,
-  AlertTriangle,
-  Clock
+  AlertTriangle
 } from 'lucide-react'
-import { ButtonLoader, InlineLoader } from './ui'
+import { ButtonLoader } from './ui'
 import { useTranslation } from '../context/LanguageContext'
 import { useToast } from '../context/ToastContext'
 import { useProducts } from '../context/ProductContext'
@@ -32,10 +31,6 @@ export default function NotificationRulesSettings() {
   const [deleteConfirm, setDeleteConfirm] = useState(null)
   const [deleting, setDeleting] = useState(false)
 
-  const [sendTime, setSendTime] = useState('09:00')
-  const [sendTimeLoading, setSendTimeLoading] = useState(true)
-  const [sendTimeSaving, setSendTimeSaving] = useState(false)
-
   const [newRule, setNewRule] = useState({
     name: '',
     departmentId: '',
@@ -52,39 +47,7 @@ export default function NotificationRulesSettings() {
 
   useEffect(() => {
     loadRules()
-    loadSendTime()
   }, [])
-
-  const loadSendTime = async () => {
-    setSendTimeLoading(true)
-    try {
-      const data = await apiFetch('/settings/telegram')
-      if (data?.sendTime) setSendTime(data.sendTime)
-    } catch {
-      // use default
-    } finally {
-      setSendTimeLoading(false)
-    }
-  }
-
-  const saveSendTime = async (newTime) => {
-    setSendTimeSaving(true)
-    try {
-      await apiFetch('/settings/telegram', {
-        method: 'PUT',
-        body: JSON.stringify({ sendTime: newTime })
-      })
-      setSendTime(newTime)
-      addToast(t('rules.sendTimeSaved') || 'Время отправки сохранено', 'success')
-    } catch (error) {
-      addToast(error?.message || t('rules.sendTimeError') || 'Ошибка сохранения времени', 'error')
-    } finally {
-      setSendTimeSaving(false)
-    }
-  }
-
-  const handleSendTimeChange = (e) => setSendTime(e.target.value)
-  const handleSendTimeBlur = () => saveSendTime(sendTime)
 
   const loadRules = async () => {
     setLoading(true)
@@ -190,62 +153,12 @@ export default function NotificationRulesSettings() {
     <>
       <SettingsLayout
         title={t('rules.title') || 'Правила уведомлений'}
-        description={t('rules.sendTimeDescription') || 'Ежедневные отчёты и уведомления отправляются в указанное время'}
+        description={t('rules.description') || 'Настройка правил уведомлений для различных событий'}
         icon={Bell}
         loading={loading}
         hideSaveButton
         headerActions={headerActions}
       >
-        <SettingsSection>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div className="flex items-start gap-3">
-              <div className="p-2 bg-accent/10 rounded-lg">
-                <Clock className="w-5 h-5 text-accent" aria-hidden="true" />
-              </div>
-              <div>
-                <h4 className="font-medium text-foreground">
-                  {t('rules.sendTimeTitle') || 'Время отправки уведомлений'}
-                </h4>
-                <p className="text-sm text-muted-foreground mt-0.5">
-                  {t('rules.sendTimeDescription') ||
-                    'Ежедневные отчёты и уведомления будут отправляться в указанное время'}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 sm:ml-auto">
-              {sendTimeLoading ? (
-                <InlineLoader />
-              ) : (
-                <>
-                  <label htmlFor="rules-send-time" className="sr-only">
-                    {t('rules.sendTimeTitle') || 'Время отправки'}
-                  </label>
-                  <input
-                    id="rules-send-time"
-                    type="time"
-                    value={sendTime}
-                    onChange={handleSendTimeChange}
-                    onBlur={handleSendTimeBlur}
-                    disabled={sendTimeSaving}
-                    className={cn(
-                      'px-3 py-2 text-sm border rounded-lg bg-card text-foreground',
-                      'border-border focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent',
-                      'disabled:opacity-50 disabled:cursor-not-allowed min-w-[120px]'
-                    )}
-                    aria-busy={sendTimeSaving}
-                  />
-                  {sendTimeSaving && (
-                    <span className="text-sm text-muted-foreground flex items-center gap-1">
-                      <InlineLoader />
-                      {t('common.saving') || 'Сохранение...'}
-                    </span>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
-        </SettingsSection>
-
         {showAddForm && (
           <div className="p-6 border border-border rounded-xl bg-card space-y-4">
             <div className="flex justify-between items-center">

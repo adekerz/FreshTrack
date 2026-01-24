@@ -689,6 +689,8 @@
   "settings": {
     "title": "Settings",
     "subtitle": "System management and configuration",
+    "saved": "Settings saved",
+    "saveError": "Save error",
     "profile": "Profile",
     "departments": "Departments",
     "categories": "Categories",
@@ -734,7 +736,8 @@
     "onboarding": {
       "title": "Onboarding",
       "description": "Take a tour of the system",
-      "restart": "Restart Tour"
+      "restart": "Restart Tour",
+      "restarted": "Tour restarted"
     },
     "directories": {
       "title": "Directories",
@@ -797,7 +800,8 @@
       "criticalDays": "Critical days",
       "days": "days",
       "time": "Notification time",
-      "weekends": "Send notifications on weekends"
+      "weekends": "Send notifications on weekends",
+      "userNote": "Notification settings (warning days, critical days, send time) are managed by the administrator in the \"Notification Rules\" section."
     },
     "email": {
       "title": "Email Settings",
@@ -1126,6 +1130,7 @@
   "rules": {
     "noRules": "No rules configured",
     "title": "Notification Rules",
+    "description": "Configure notification rules for various events",
     "add": "Add",
     "newRule": "New Rule",
     "name": "Name",

@@ -81,13 +81,7 @@ export default function SettingsPage() {
     }
   }, [user])
 
-  // Настройки уведомлений
-  const [notificationSettings, setNotificationSettings] = useState({
-    warningDays: 7,
-    criticalDays: 3,
-    notificationTime: '09:00',
-    enableWeekends: true
-  })
+  // Настройки уведомлений (удалены - теперь управляются через правила уведомлений)
 
   // Языки - все 8 поддерживаемых
   const languages = [
@@ -370,98 +364,17 @@ export default function SettingsPage() {
       </div>
   )
 
-  // Рендер настроек уведомлений
+  // Рендер настроек уведомлений (для обычных пользователей)
+  // Настройки уведомлений теперь управляются администратором через правила уведомлений
   const renderNotifications = () => (
     <div className="space-y-6">
-      <div>
+      <div className="p-6 border border-border rounded-xl bg-card">
         <h3 className="text-lg font-medium text-foreground mb-4">
           {t('settings.notifications.title')}
         </h3>
-
-        <div className="space-y-4">
-          {/* Дни предупреждения */}
-          <div>
-            <label className="block text-sm text-muted-foreground mb-1">
-              {t('settings.notifications.warningDays')}
-            </label>
-            <select
-              value={notificationSettings.warningDays}
-              onChange={(e) =>
-                setNotificationSettings((prev) => ({
-                  ...prev,
-                  warningDays: parseInt(e.target.value)
-                }))
-              }
-              className="w-full sm:w-48 px-3 py-2 border border-border rounded-lg bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
-            >
-              {[3, 5, 7, 10, 14].map((days) => (
-                <option key={days} value={days}>
-                  {days} {t('settings.notifications.days')}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Критические дни */}
-          <div>
-            <label className="block text-sm text-muted-foreground mb-1">
-              {t('settings.notifications.criticalDays')}
-            </label>
-            <select
-              value={notificationSettings.criticalDays}
-              onChange={(e) =>
-                setNotificationSettings((prev) => ({
-                  ...prev,
-                  criticalDays: parseInt(e.target.value)
-                }))
-              }
-              className="w-full sm:w-48 px-3 py-2 border border-border rounded-lg bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
-            >
-              {[1, 2, 3, 5].map((days) => (
-                <option key={days} value={days}>
-                  {days} {t('settings.notifications.days')}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Время уведомления */}
-          <div>
-            <label className="block text-sm text-muted-foreground mb-1">
-              {t('settings.notifications.time')}
-            </label>
-            <input
-              type="time"
-              value={notificationSettings.notificationTime}
-              onChange={(e) =>
-                setNotificationSettings((prev) => ({
-                  ...prev,
-                  notificationTime: e.target.value
-                }))
-              }
-              className="w-full sm:w-48 px-3 py-2 border border-border rounded-lg bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
-            />
-          </div>
-
-          {/* Выходные */}
-          <div className="flex items-center gap-3">
-            <input
-              type="checkbox"
-              id="weekends"
-              checked={notificationSettings.enableWeekends}
-              onChange={(e) =>
-                setNotificationSettings((prev) => ({
-                  ...prev,
-                  enableWeekends: e.target.checked
-                }))
-              }
-              className="w-4 h-4 text-accent border-border rounded focus:ring-accent"
-            />
-            <label htmlFor="weekends" className="text-sm text-foreground">
-              {t('settings.notifications.weekends')}
-            </label>
-          </div>
-        </div>
+        <p className="text-muted-foreground">
+          {t('settings.notifications.userNote') || 'Настройки уведомлений (дни предупреждения, критические дни, время отправки) управляются администратором в разделе "Правила уведомлений".'}
+        </p>
       </div>
     </div>
   )
@@ -766,7 +679,7 @@ export default function SettingsPage() {
         {/* Контент */}
         <div className="flex-1 bg-card rounded-xl border border-border p-4 sm:p-6">
           {activeTab === 'profile' && renderProfile()}
-          {activeTab === 'notifications' && renderNotifications()}
+          {activeTab === 'notifications' && !userIsAdmin && renderNotifications()}
           {activeTab === 'language' && renderLanguage()}
           {activeTab === 'general' && userIsAdmin && <GeneralSettings />}
           {activeTab === 'users' && userIsAdmin && <OrganizationSettings />}
@@ -789,18 +702,7 @@ export default function SettingsPage() {
           {activeTab === 'import-export' && userIsAdmin && <ImportExportSettings />}
           {activeTab === 'system' && userIsSuperAdmin && renderSystem()}
 
-          {/* Кнопка сохранения (только для вкладок уведомлений у обычных пользователей) */}
-          {activeTab === 'notifications' && !userIsAdmin && (
-            <div className="flex justify-end pt-4 sm:pt-6 mt-4 sm:mt-6 border-t border-border">
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="flex items-center gap-2 px-4 sm:px-6 py-2 bg-foreground text-background rounded-lg text-xs sm:text-sm hover:bg-foreground/90 transition-colors disabled:opacity-50 w-full sm:w-auto justify-center"
-              >
-                {saving ? t('common.loading') : t('common.save')}
-              </button>
-            </div>
-          )}
+          {/* Кнопка сохранения удалена - настройки уведомлений теперь управляются через правила уведомлений */}
         </div>
       </div>
     </div>

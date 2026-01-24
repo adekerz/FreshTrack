@@ -1,7 +1,8 @@
 import { useState, useCallback } from 'react'
-import { Save, AlertCircle, Loader2 } from 'lucide-react'
+import { Save, AlertCircle } from 'lucide-react'
 import { useToast } from '../../context/ToastContext'
 import { useTranslation } from '../../context/LanguageContext'
+import { SectionLoader, ButtonLoader } from '../ui'
 
 /**
  * Universal layout for all settings pages
@@ -25,6 +26,7 @@ export default function SettingsLayout({
   onSave,
   loading = false,
   saveButtonText,
+  saveDisabled = false,
   hideSaveButton = false,
   actionsLeft,
   headerExtra,
@@ -113,9 +115,10 @@ export default function SettingsLayout({
 
       {/* Content */}
       {loading ? (
-        <div className="flex items-center justify-center py-12" aria-busy="true">
-          <Loader2 className="w-8 h-8 text-accent animate-spin" aria-hidden="true" />
-        </div>
+        <SectionLoader
+          message={t('common.loading') || 'Загрузка...'}
+          className="py-12"
+        />
       ) : (
         <div className="space-y-6">
           {children}
@@ -133,13 +136,13 @@ export default function SettingsLayout({
               <button
                 type="button"
                 onClick={handleSave}
-                disabled={saving}
+                disabled={saving || saveDisabled}
                 aria-busy={saving}
                 className="flex items-center gap-2 px-6 py-2.5 bg-foreground text-background rounded-lg hover:bg-foreground/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
               >
                 {saving ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+                    <ButtonLoader />
                     {t('common.saving') || 'Сохранение...'}
                   </>
                 ) : (

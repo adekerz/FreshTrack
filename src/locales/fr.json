@@ -442,6 +442,8 @@
   "settings": {
     "title": "Paramètres",
     "subtitle": "Gérer le profil et le système",
+    "saved": "Paramètres enregistrés",
+    "saveError": "Erreur lors de l'enregistrement",
     "profile": "Profil",
     "departments": "Départements",
     "categories": "Catégories",
@@ -527,7 +529,8 @@
       "criticalDays": "Jours critiques",
       "days": "jours",
       "time": "Heure de notification",
-      "weekends": "Envoyer des notifications le week-end"
+      "weekends": "Envoyer des notifications le week-end",
+      "userNote": "Les paramètres de notification (jours d'avertissement, jours critiques, heure d'envoi) sont gérés par l'administrateur dans la section \"Règles de notification\"."
     },
     "email": {
       "title": "Paramètres Email",
@@ -1501,6 +1504,7 @@
   "rules": {
     "noRules": "Aucune règle configurée",
     "title": "Règles de notification",
+    "description": "Configurer les règles de notification pour divers événements",
     "add": "Ajouter",
     "newRule": "Nouvelle règle",
     "name": "Nom",

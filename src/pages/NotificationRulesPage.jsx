@@ -8,7 +8,6 @@ import {
   X,
   ToggleLeft,
   ToggleRight,
-  Clock,
   Mail,
   MessageSquare,
   Smartphone,
@@ -43,44 +42,12 @@ export default function NotificationRulesPage() {
   const [deleteConfirm, setDeleteConfirm] = useState(null)
   const [deleting, setDeleting] = useState(false)
 
-  // Глобальное время отправки уведомлений
-  const [sendTime, setSendTime] = useState('09:00')
-  const [savingSendTime, setSavingSendTime] = useState(false)
-
   // Перезагружаем при смене отеля
   useEffect(() => {
     if (selectedHotelId && isAdmin()) {
       loadRules()
-      loadSendTime()
     }
   }, [selectedHotelId, isAdmin])
-
-  // Загрузка времени отправки из настроек
-  const loadSendTime = async () => {
-    try {
-      const data = await apiFetch('/settings/telegram')
-      setSendTime(data.sendTime || '09:00')
-    } catch (error) {
-      console.error('Failed to load send time:', error)
-    }
-  }
-
-  // Сохранение времени отправки
-  const saveSendTime = async (newTime) => {
-    setSavingSendTime(true)
-    try {
-      await apiFetch('/settings/telegram', {
-        method: 'PUT',
-        body: JSON.stringify({ sendTime: newTime })
-      })
-      setSendTime(newTime)
-      addToast(t('notificationRules.sendTimeSaved') || 'Время отправки сохранено', 'success')
-    } catch (error) {
-      addToast(t('notificationRules.sendTimeError') || 'Ошибка сохранения времени', 'error')
-    } finally {
-      setSavingSendTime(false)
-    }
-  }
 
   // Нормализуем данные из БД (snake_case) в формат UI
   const normalizeRule = (dbRule) => ({
@@ -294,37 +261,6 @@ export default function NotificationRulesPage() {
           <Plus className="w-5 h-5" />
           {t('notificationRules.addRule')}
         </button>
-      </div>
-
-      {/* Global Send Time Settings */}
-      <div className="bg-card rounded-xl shadow-lg p-4 md:p-6">
-        <h2 className="font-semibold text-foreground mb-4 flex items-center gap-2">
-          <Clock className="w-5 h-5 text-accent" />
-          {t('notificationRules.sendTimeTitle') || 'Время отправки уведомлений'}
-        </h2>
-        <p className="text-muted-foreground text-sm mb-4">
-          {t('notificationRules.sendTimeDescription') ||
-            'Все уведомления (Telegram, Email, Push) будут отправляться в указанное время'}
-        </p>
-        <div className="flex items-center gap-4">
-          <input
-            type="time"
-            value={sendTime}
-            onChange={(e) => setSendTime(e.target.value)}
-            className="px-4 py-2.5 border border-border rounded-lg bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
-          />
-          <button
-            onClick={() => saveSendTime(sendTime)}
-            disabled={savingSendTime}
-            className="flex items-center gap-2 px-4 py-2.5 bg-accent text-white rounded-lg hover:bg-accent/90 transition-colors disabled:opacity-50"
-          >
-            {savingSendTime ? <ButtonSpinner /> : <Save className="w-4 h-4" />}
-            {t('common.save') || 'Сохранить'}
-          </button>
-          <span className="text-sm text-muted-foreground">
-            {t('notificationRules.timezoneNote') || 'По часовому поясу сервера'}
-          </span>
-        </div>
       </div>
 
       {/* Rules List */}

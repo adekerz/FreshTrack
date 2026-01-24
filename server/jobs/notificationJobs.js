@@ -3,9 +3,9 @@
  * Background jobs for notification processing
  * 
  * Schedule:
- * - Expiry check: Every hour (0 * * * *)
- * - Queue processing: Every 5 minutes (* /5 * * * *)
  * - Daily report: At configured sendTime (default 09:00)
+ *   Notifications are sent only once per day as an aggregated report
+ *   No per-item or real-time alerts by design (anti-spam UX)
  * - Telegram polling: Continuous (for development)
  */
 
@@ -15,8 +15,6 @@ import { TelegramService } from '../services/TelegramService.js'
 import { logInfo, logError, logDebug, logWarn } from '../utils/logger.js'
 import { query } from '../db/postgres.js'
 
-let expiryCheckJob = null
-let queueProcessJob = null
 let dailyReportJob = null
 let telegramPolling = false
 let currentSendTime = '09:00'
@@ -227,29 +225,10 @@ export async function rescheduleDailyReport() {
       logInfo('dailyReportJob', `🔔 Daily report job triggered at ${new Date().toISOString()}`)
       
       try {
-        // 1. Проверка истекающих партий
-        logInfo('dailyReportJob', '⏰ Running expiry check...')
-        const expiryCount = await NotificationEngine.checkExpiringBatches()
-        logInfo('dailyReportJob', `📦 Checked batches, created ${expiryCount} notifications`)
-        
-        // 2. Отправка email-уведомлений о истекающих товарах
-        logInfo('dailyReportJob', '📧 Sending expiry warning emails...')
-        try {
-          const emailWarningsResult = await NotificationEngine.sendExpiryWarningEmails()
-          logInfo('dailyReportJob', `📧 Sent ${emailWarningsResult.sent || 0} expiry warning emails`)
-        } catch (error) {
-          logError('dailyReportJob', 'Failed to send expiry warning emails', error)
-          // Continue - email is secondary channel
-        }
-        
-        // 3. Обработка очереди
-        logInfo('dailyReportJob', '📤 Processing notification queue...')
-        const queueResult = await NotificationEngine.processQueue()
-        logInfo('dailyReportJob', `📤 Processed queue: ${queueResult.delivered} delivered, ${queueResult.failed} failed`)
-        
-        // 4. Ежедневные отчеты (Telegram + Email)
-        logInfo('dailyReportJob', '📊 Sending daily reports...')
-        const reportResult = await NotificationEngine.sendDailyReports()
+        // Notifications are sent only once per day as an aggregated report
+        // No per-item or real-time alerts by design (anti-spam UX)
+        logInfo('dailyReportJob', '📊 Sending daily aggregated report...')
+        const reportResult = await NotificationEngine.sendDailyReport()
         logInfo('dailyReportJob', `📊 Sent ${reportResult.sent || 0} daily reports (Telegram: ${reportResult.telegram || 0}, Email: ${reportResult.email || 0})`)
         
         logInfo('dailyReportJob', '✅ Daily notification cycle completed successfully')
@@ -309,53 +288,9 @@ export function startNotificationJobs(options = {}) {
     currentTimezone = 'Asia/Almaty'
   })
 
-  // Expiry check job (hourly) - DISABLED by default
-  // Now expiry check runs together with daily report at configured sendTime
-  if (enableExpiryCheck) {
-    getTimezone().then(timezone => {
-      expiryCheckJob = cron.schedule(expiryCheckSchedule, async () => {
-        logInfo('NotificationJobs', `⏰ Running expiry check...`)
-        try {
-          const count = await NotificationEngine.checkExpiringBatches()
-          logInfo('NotificationJobs', `✅ Expiry check complete. Created ${count} notifications.`)
-        } catch (error) {
-          logError('NotificationJobs', error)
-        }
-      }, {
-        scheduled: true,
-        timezone: timezone
-      })
-
-      logInfo('NotificationJobs', `📅 Expiry check scheduled: ${expiryCheckSchedule} (${timezone})`)
-    }).catch(err => {
-      logError('NotificationJobs', 'Failed to schedule expiry check', err)
-    })
-  } else {
-    logInfo('NotificationJobs', `📅 Hourly expiry check DISABLED (runs with daily report at sendTime)`)
-  }
-
-  // Queue processing job (every 5 minutes)
-  if (enableQueueProcess) {
-    getTimezone().then(timezone => {
-      queueProcessJob = cron.schedule(queueProcessSchedule, async () => {
-        try {
-          const result = await NotificationEngine.processQueue()
-          if (result.delivered > 0 || result.failed > 0) {
-            logInfo('NotificationJobs', `📤 Queue processed: ${result.delivered} delivered, ${result.failed} failed`)
-          }
-        } catch (error) {
-          logError('NotificationJobs', error)
-        }
-      }, {
-        scheduled: true,
-        timezone: timezone
-      })
-
-      logInfo('NotificationJobs', `📤 Queue processing scheduled: ${queueProcessSchedule} (${timezone})`)
-    }).catch(err => {
-      logError('NotificationJobs', 'Failed to schedule queue processing', err)
-    })
-  }
+  // Expiry check and queue processing jobs REMOVED
+  // All notifications are sent only once per day as aggregated reports via sendDailyReport()
+  logInfo('NotificationJobs', `📅 Hourly expiry check and queue processing DISABLED (all notifications via daily report)`)
 
   // Daily report job - uses sendTime from settings
   rescheduleDailyReport().catch(err => {
@@ -379,8 +314,6 @@ export function startNotificationJobs(options = {}) {
   logInfo('NotificationJobs', '✅ Notification jobs started successfully')
 
   return {
-    expiryCheckJob,
-    queueProcessJob,
     dailyReportJob,
     telegramPolling
   }
@@ -391,16 +324,6 @@ export function startNotificationJobs(options = {}) {
  */
 export function stopNotificationJobs() {
   logInfo('NotificationJobs', '🛑 Stopping notification jobs...')
-
-  if (expiryCheckJob) {
-    expiryCheckJob.stop()
-    expiryCheckJob = null
-  }
-
-  if (queueProcessJob) {
-    queueProcessJob.stop()
-    queueProcessJob = null
-  }
 
   if (dailyReportJob) {
     dailyReportJob.stop()
@@ -413,27 +336,35 @@ export function stopNotificationJobs() {
 }
 
 /**
- * Run expiry check immediately (manual trigger)
- */
-export async function runExpiryCheckNow() {
-  logInfo('NotificationJobs', '🔔 Running manual expiry check...')
-  return NotificationEngine.checkExpiringBatches()
-}
-
-/**
- * Run queue processing immediately (manual trigger)
- */
-export async function runQueueProcessNow() {
-  logInfo('NotificationJobs', '📤 Running manual queue processing...')
-  return NotificationEngine.processQueue()
-}
-
-/**
  * Run daily report immediately (manual trigger)
+ * This is the only notification method - sends aggregated daily report
  */
 export async function runDailyReportNow() {
   logInfo('NotificationJobs', '📊 Running manual daily report...')
-  return NotificationEngine.sendDailyReports()
+  return NotificationEngine.sendDailyReport()
+}
+
+/**
+ * Run expiry check now (manual trigger).
+ * Delegates to daily report; returns notificationsCreated for API compatibility.
+ */
+export async function runExpiryCheckNow() {
+  logInfo('NotificationJobs', '🔄 Running manual expiry check (via daily report)...')
+  const result = await NotificationEngine.sendDailyReport()
+  return result?.sent ?? 0
+}
+
+/**
+ * Run queue process now (manual trigger).
+ * Delegates to daily report; returns { delivered, failed } for API compatibility.
+ */
+export async function runQueueProcessNow() {
+  logInfo('NotificationJobs', '📤 Running manual queue process (via daily report)...')
+  const result = await NotificationEngine.sendDailyReport()
+  return {
+    delivered: (result?.telegram ?? 0) + (result?.email ?? 0),
+    failed: 0
+  }
 }
 
 /**
@@ -441,14 +372,6 @@ export async function runDailyReportNow() {
  */
 export function getJobStatus() {
   return {
-    expiryCheck: {
-      running: expiryCheckJob !== null,
-      nextRun: expiryCheckJob?.nextDate?.()?.toISOString() || null
-    },
-    queueProcess: {
-      running: queueProcessJob !== null,
-      nextRun: queueProcessJob?.nextDate?.()?.toISOString() || null
-    },
     dailyReport: {
       running: dailyReportJob !== null,
       nextRun: dailyReportJob?.nextDate?.()?.toISOString() || null,
@@ -489,9 +412,9 @@ export async function getScheduleStatus() {
 export default {
   startNotificationJobs,
   stopNotificationJobs,
+  runDailyReportNow,
   runExpiryCheckNow,
   runQueueProcessNow,
-  runDailyReportNow,
   rescheduleDailyReport,
   getJobStatus,
   getScheduleStatus

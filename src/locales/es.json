@@ -442,6 +442,8 @@
   "settings": {
     "title": "Configuración",
     "subtitle": "Gestionar perfil y sistema",
+    "saved": "Configuración guardada",
+    "saveError": "Error al guardar",
     "profile": "Perfil",
     "departments": "Departamentos",
     "categories": "Categorías",
@@ -1501,6 +1503,7 @@
   "rules": {
     "noRules": "Sin reglas configuradas",
     "title": "Reglas de notificación",
+    "description": "Configurar reglas de notificación para varios eventos",
     "add": "Añadir",
     "newRule": "Nueva regla",
     "name": "Nombre",

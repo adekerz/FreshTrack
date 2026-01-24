@@ -424,10 +424,7 @@ router.put('/general', authMiddleware, hotelIsolation, requirePermission(Permiss
 
 const TELEGRAM_DEFAULTS = {
   messageTemplates: {
-    dailyReport: '📊 Ежедневный отчёт FreshTrack\n\n✅ В норме: {good}\n⚠️ Скоро истекает: {warning}\n🔴 Просрочено: {expired}',
-    expiryWarning: '⚠️ Внимание! {product} истекает {date} ({quantity} шт)',
-    expiredAlert: '🔴 ПРОСРОЧЕНО: {product} — {quantity} шт',
-    collectionConfirm: '✅ Собрано: {product} — {quantity} шт\nПричина: {reason}'
+    dailyReport: '📊 Ежедневный отчёт FreshTrack\n{department}\n\nДата: {date}\n\n✅ В норме: {good}\n⚠️ Скоро истекает: {warning}\n🔴 Просрочено: {expired}\n📦 Всего партий: {total}\n\n{expiringList}\n\n{expiredList}'
   }
 }
 
@@ -681,6 +678,9 @@ router.delete('/telegram/chats/:chatId', authMiddleware, hotelIsolation, require
 /**
  * POST /api/settings/telegram/test-notification
  * Отправить тестовое уведомление СЕЙЧАС (не ждать расписания)
+ * 
+ * Notifications are sent only once per day as an aggregated report
+ * No per-item or real-time alerts by design (anti-spam UX)
  */
 router.post('/telegram/test-notification', authMiddleware, hotelIsolation, requirePermission(PermissionResource.SETTINGS, PermissionAction.UPDATE), async (req, res) => {
   try {
@@ -689,32 +689,15 @@ router.post('/telegram/test-notification', authMiddleware, hotelIsolation, requi
     // Импортируем NotificationEngine
     const { NotificationEngine } = await import('../../services/NotificationEngine.js')
     
-    // Выполняем полный цикл уведомлений СЕЙЧАС
-    const results = {
-      expiryCheck: 0,
-      queueProcessed: { delivered: 0, failed: 0 },
-      dailyReports: { sent: 0 }
-    }
+    // Send daily aggregated report (only notification method)
+    let results = { sent: 0, telegram: 0, email: 0 }
     
     try {
-      results.expiryCheck = await NotificationEngine.checkExpiringBatches()
-      logInfo('POST /test-notification', `📦 Expiry check: ${results.expiryCheck} notifications created`)
+      results = await NotificationEngine.sendDailyReport()
+      logInfo('POST /test-notification', `📊 Daily report: ${results.sent} sent (Telegram: ${results.telegram}, Email: ${results.email})`)
     } catch (err) {
-      logError('POST /test-notification', 'Expiry check failed', err)
-    }
-    
-    try {
-      results.queueProcessed = await NotificationEngine.processQueue()
-      logInfo('POST /test-notification', `📤 Queue: ${results.queueProcessed.delivered} delivered, ${results.queueProcessed.failed} failed`)
-    } catch (err) {
-      logError('POST /test-notification', 'Queue processing failed', err)
-    }
-    
-    try {
-      results.dailyReports = await NotificationEngine.sendDailyReports()
-      logInfo('POST /test-notification', `📊 Daily reports: ${results.dailyReports.sent} sent`)
-    } catch (err) {
-      logError('POST /test-notification', 'Daily reports failed', err)
+      logError('POST /test-notification', 'Daily report failed', err)
+      throw err
     }
     
     await logAudit({
@@ -730,7 +713,7 @@ router.post('/telegram/test-notification', authMiddleware, hotelIsolation, requi
     
     res.json({ 
       success: true, 
-      message: 'Test notifications sent',
+      message: 'Test notification sent (daily aggregated report)',
       results 
     })
   } catch (error) {
@@ -1418,17 +1401,18 @@ router.get('/notifications', authMiddleware, hotelIsolation, requirePermission(P
     const emailEnabled = allSettings.raw?.['notify.channels.email'] ?? 
       allSettings.notify?.channels?.email ?? false
 
-    // Get unified templates (from telegram settings for now, will be migrated)
-    const templates = allSettings.telegram?.messageTemplates ??
+    // Unified templates: prefer notify.templates (what PUT saves) then legacy keys
+    const defaultTemplates = {
+      dailyReport: '📊 Ежедневный отчёт FreshTrack\n{department}\n\nДата: {date}\n\n✅ В норме: {good}\n⚠️ Скоро истекает: {warning}\n🔴 Просрочено: {expired}\n📦 Всего партий: {total}\n\n{expiringList}\n\n{expiredList}'
+    }
+    const templates = allSettings.raw?.['notify.templates'] ??
+      allSettings.telegram?.messageTemplates ??
       allSettings.raw?.['telegram.messageTemplates'] ??
       allSettings.raw?.['telegram_message_templates'] ??
-      allSettings.raw?.['notify.templates'] ??
-      {
-        dailyReport: '📊 Ежедневный отчёт FreshTrack\n\n✅ В норме: {good}\n⚠️ Скоро истекает: {warning}\n🔴 Просрочено: {expired}',
-        expiryWarning: '⚠️ Внимание! {product} истекает {date} ({quantity} шт)',
-        expiredAlert: '🔴 ПРОСРОЧЕНО: {product} — {quantity} шт',
-        collectionConfirm: '✅ Собрано: {product} — {quantity} шт\nПричина: {reason}'
-      }
+      defaultTemplates
+    const templatesNormalized = templates?.dailyReport != null
+      ? { dailyReport: templates.dailyReport }
+      : defaultTemplates
 
     // Get send time
     const sendTime = allSettings.raw?.['notify.sendTime'] ??
@@ -1446,7 +1430,7 @@ router.get('/notifications', authMiddleware, hotelIsolation, requirePermission(P
         telegram: { enabled: Boolean(telegramEnabled) },
         email: { enabled: Boolean(emailEnabled) }
       },
-      templates,
+      templates: templatesNormalized,
       sendTime,
       timezone
     })

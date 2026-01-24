@@ -588,21 +588,24 @@ router.post('/test-telegram', authMiddleware, hotelIsolation, departmentIsolatio
 })
 
 /**
- * POST /api/notifications/check-expiring
- * Запустить проверку истекающих партий
+ * POST /api/notifications/send-daily-report
+ * Отправить ежедневный агрегированный отчёт
+ * 
+ * Notifications are sent only once per day as an aggregated report
+ * No per-item or real-time alerts by design (anti-spam UX)
  */
-router.post('/check-expiring', authMiddleware, requirePermission(PermissionResource.NOTIFICATIONS, PermissionAction.WRITE), async (req, res) => {
+router.post('/send-daily-report', authMiddleware, requirePermission(PermissionResource.NOTIFICATIONS, PermissionAction.WRITE), async (req, res) => {
   try {
     const { NotificationEngine } = await import('../../services/NotificationEngine.js')
-    const count = await NotificationEngine.checkExpiringBatches()
+    const result = await NotificationEngine.sendDailyReport()
 
     res.json({
       success: true,
-      message: 'Expiry check complete',
-      notificationsCreated: count
+      message: 'Daily report sent',
+      results: result
     })
   } catch (error) {
-    logError('Expiry check error', error)
+    logError('Daily report error', error)
     res.status(500).json({ success: false, error: error.message })
   }
 })

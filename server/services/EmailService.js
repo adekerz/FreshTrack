@@ -12,6 +12,7 @@
 import nodemailer from 'nodemailer'
 import { Resend } from 'resend'
 import { logInfo, logWarn, logError } from '../utils/logger.js'
+import { query } from '../db/database.js'
 
 // Email configuration - единый источник правды
 export const EMAIL_FROM = {
@@ -706,69 +707,113 @@ function systemEmailLayout(content, options = {}) {
 }
 
 /**
- * Expiry warning email template
- * Products expiring soon notification
+ * Get unified templates from settings
+ * @param {string} hotelId - Hotel ID
+ * @returns {Promise<Object>} Templates object
  */
-function expiryWarningTemplate(products, department, hotel) {
-  const productRows = products.map(p => `
-    <tr>
-      <td><strong>${p.product_name || 'Unknown'}</strong></td>
-      <td>${p.department_name || department?.name || 'N/A'}</td>
-      <td>${new Date(p.expiry_date).toLocaleDateString('ru-RU')}</td>
-      <td>${p.quantity} ${p.unit || 'шт.'}</td>
-      <td>
-        <span class="badge ${p.days_until_expiry <= 3 ? 'badge-critical' : 'badge-warning'}">
-          ${p.days_until_expiry} дн.
-        </span>
-      </td>
-    </tr>
-  `).join('')
+async function getUnifiedTemplates(hotelId) {
+  try {
+    const templatesResult = await query(`
+      SELECT value FROM settings 
+      WHERE key IN ('notify.templates', 'telegram_message_templates') AND hotel_id = $1
+      ORDER BY CASE WHEN key = 'notify.templates' THEN 1 ELSE 2 END
+      LIMIT 1
+    `, [hotelId])
 
-  const content = `
-    <h2 style="margin-top: 0;">⚠️ Товары с истекающим сроком годности</h2>
-    <p>Уважаемые коллеги!</p>
-    <p>В отделе <strong>${department?.name || 'N/A'}</strong> отеля <strong>${hotel?.name || 'N/A'}</strong> обнаружены товары, срок годности которых истекает в ближайшее время.</p>
-    
-    <table class="table">
-      <thead>
-        <tr>
-          <th>Товар</th>
-          <th>Отдел</th>
-          <th>Дата истечения</th>
-          <th>Количество</th>
-          <th>Осталось дней</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${productRows}
-      </tbody>
-    </table>
-    
-    <p style="text-align: center; margin-top: 24px;">
-      <a href="${APP_URL}/inventory" class="button">Открыть FreshTrack</a>
-    </p>
-    
-    <p style="color: #666; font-size: 14px; margin-top: 24px;">
-      Пожалуйста, проверьте эти товары и примите необходимые меры.
-    </p>
-  `
+    if (templatesResult.rows.length > 0) {
+      try {
+        return JSON.parse(templatesResult.rows[0].value)
+      } catch {
+        return {}
+      }
+    }
+  } catch (error) {
+    logWarn('EmailService', 'Failed to load templates from settings', error)
+  }
 
-  return systemEmailLayout(content, { title: 'Товары с истекающим сроком' })
+  return {
+    dailyReport: '📊 Ежедневный отчёт FreshTrack\n{department}\n\nДата: {date}\n\n✅ В норме: {good}\n⚠️ Скоро истекает: {warning}\n🔴 Просрочено: {expired}\n📦 Всего партий: {total}\n\n{expiringList}\n\n{expiredList}'
+  }
+}
+
+/**
+ * Convert text template to HTML (preserving line breaks and emojis)
+ * @param {string} text - Text template
+ * @returns {string} HTML formatted text
+ */
+function textToHtml(text) {
+  if (!text) return ''
+  
+  return text
+    .replace(/\n/g, '<br>')
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
 }
 
 /**
  * Daily inventory summary email template
- * System-level daily report
+ * Uses unified templates from settings
  */
-function dailyReportTemplate(stats) {
+async function dailyReportTemplate(stats, hotelId = null) {
   const {
     totalBatches = 0,
     expiringBatches = 0,
     expiredBatches = 0,
     collectionsToday = 0,
     hotel = null,
-    department = null
+    department = null,
+    expiringList = [],
+    expiredList = []
   } = stats
+
+  // Get unified template from settings
+  const templates = hotelId ? await getUnifiedTemplates(hotelId) : {}
+  const templateText = templates.dailyReport ||
+    '📊 Ежедневный отчёт FreshTrack\n{department}\n\nДата: {date}\n\n✅ В норме: {good}\n⚠️ Скоро истекает: {warning}\n🔴 Просрочено: {expired}\n📦 Всего партий: {total}\n\n{expiringList}\n\n{expiredList}'
+
+  // Format aggregated lists
+  const formatExpiringList = () => {
+    if (!expiringList || expiringList.length === 0) return ''
+    const items = expiringList.map(b => {
+      const date = new Date(b.expiry_date).toLocaleDateString('ru-RU')
+      return `  • ${b.product_name} — ${b.quantity} ${b.unit || 'шт.'} (истекает ${date}, осталось ${b.days_left} дн.)`
+    }).join('\n')
+    return `⚠️ Истекают в ближайшее время:\n${items}`
+  }
+
+  const formatExpiredList = () => {
+    if (!expiredList || expiredList.length === 0) return ''
+    const items = expiredList.map(b => {
+      const date = new Date(b.expiry_date).toLocaleDateString('ru-RU')
+      return `  • ${b.product_name} — ${b.quantity} ${b.unit || 'шт.'} (просрочено с ${date}, ${b.days_overdue} дн. назад)`
+    }).join('\n')
+    return `🔴 Просрочено:\n${items}`
+  }
+
+  // Replace variables (using stats mapping: good = totalBatches - expiringBatches - expiredBatches)
+  const good = Math.max(0, totalBatches - expiringBatches - expiredBatches)
+  const currentDate = new Date().toLocaleDateString('ru-RU', { 
+    weekday: 'long', 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+  })
+  const expiringListText = formatExpiringList()
+  const expiredListText = formatExpiredList()
+  const departmentText = department?.name || ''
+
+  const formattedTemplate = templateText
+    .replace(/{good}/g, good)
+    .replace(/{warning}/g, expiringBatches)
+    .replace(/{expired}/g, expiredBatches)
+    .replace(/{total}/g, totalBatches)
+    .replace(/{date}/g, currentDate)
+    .replace(/{expiringList}/g, expiringListText)
+    .replace(/{expiredList}/g, expiredListText)
+    .replace(/{department}/g, departmentText)
+
+  // Convert to HTML
+  const templateHtml = textToHtml(formattedTemplate)
 
   const content = `
     <h2 style="margin-top: 0;">📊 Ежедневный отчёт по инвентарю</h2>
@@ -776,19 +821,11 @@ function dailyReportTemplate(stats) {
     ${hotel ? `<p><strong>Отель:</strong> ${hotel.name}</p>` : ''}
     ${department?.name ? `<p><strong>Отдел:</strong> ${department.name}</p>` : ''}
     
-    <table class="table">
-      <tr>
-        <td><strong>Всего активных партий</strong></td>
-        <td style="text-align: right; font-size: 24px; font-weight: bold;">${totalBatches}</td>
-      </tr>
-      <tr>
-        <td><strong>Партий с истекающим сроком</strong></td>
-        <td style="text-align: right; font-size: 24px; font-weight: bold; color: #D97706;">${expiringBatches}</td>
-      </tr>
-      <tr>
-        <td><strong>Просроченных партий</strong></td>
-        <td style="text-align: right; font-size: 24px; font-weight: bold; color: #DC2626;">${expiredBatches}</td>
-      </tr>
+    <div style="background: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0;">
+      ${templateHtml}
+    </div>
+    
+    <table class="table" style="margin-top: 20px;">
       <tr>
         <td><strong>Списаний за сутки</strong></td>
         <td style="text-align: right; font-size: 24px; font-weight: bold; color: #059669;">${collectionsToday}</td>
@@ -804,47 +841,10 @@ function dailyReportTemplate(stats) {
 }
 
 /**
- * Send system email (expiry warning)
- * @param {Object} params - Email parameters
- * @param {Array} params.products - Products expiring soon
- * @param {Object} params.department - Department object
- * @param {Object} params.hotel - Hotel object
- * @param {string|Array} params.to - Recipient email(s)
- */
-export async function sendExpiryWarningEmail({ products, department, hotel, to }) {
-  if (!products || products.length === 0) {
-    logInfo('EmailService', 'No products to notify about - skipping email')
-    return null
-  }
-
-  if (!to || (Array.isArray(to) && to.length === 0)) {
-    logWarn('EmailService', 'No recipient email provided for expiry warning')
-    return null
-  }
-
-  const html = expiryWarningTemplate(products, department, hotel)
-  const text = `Товары с истекающим сроком годности\n\n${products.map(p => 
-    `- ${p.product_name}: истекает ${new Date(p.expiry_date).toLocaleDateString('ru-RU')}, осталось ${p.days_until_expiry} дней`
-  ).join('\n')}`
-
-  try {
-    return await sendEmail({
-      to,
-      from: EMAIL_FROM.noreply,
-      subject: `FreshTrack: Товары с истекающим сроком (${products.length})`,
-      html,
-      text
-    })
-  } catch (error) {
-    logError('EmailService', `Failed to send expiry warning email`, error)
-    throw error
-  }
-}
-
-/**
  * Send daily system report (system email → department inbox).
+ * Uses unified templates from settings.
  * @param {Object} params - Report parameters
- * @param {Object} params.stats - Statistics object
+ * @param {Object} params.stats - Statistics object (must include hotel.id for template loading)
  * @param {string} params.to - Recipient email (department.email); required.
  */
 export async function sendDailyReportEmail({ stats, to }) {
@@ -853,8 +853,56 @@ export async function sendDailyReportEmail({ stats, to }) {
     return null
   }
 
-  const html = dailyReportTemplate(stats)
-  const text = `Ежедневный отчёт по инвентарю\n\nВсего партий: ${stats.totalBatches || 0}\nИстекающих: ${stats.expiringBatches || 0}\nПросроченных: ${stats.expiredBatches || 0}\nСписаний: ${stats.collectionsToday || 0}`
+  const hotelId = stats.hotel?.id || null
+  const html = await dailyReportTemplate(stats, hotelId)
+  
+  // Generate text version from template
+  const templates = hotelId ? await getUnifiedTemplates(hotelId) : {}
+  const templateText = templates.dailyReport ||
+    '📊 Ежедневный отчёт FreshTrack\n{department}\n\nДата: {date}\n\n✅ В норме: {good}\n⚠️ Скоро истекает: {warning}\n🔴 Просрочено: {expired}\n📦 Всего партий: {total}\n\n{expiringList}\n\n{expiredList}'
+
+  const good = Math.max(0, (stats.totalBatches || 0) - (stats.expiringBatches || 0) - (stats.expiredBatches || 0))
+  const currentDate = new Date().toLocaleDateString('ru-RU', { 
+    weekday: 'long', 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+  })
+  
+  // Format lists for text version
+  const formatExpiringList = () => {
+    if (!stats.expiringList || stats.expiringList.length === 0) return ''
+    const items = stats.expiringList.map(b => {
+      const date = new Date(b.expiry_date).toLocaleDateString('ru-RU')
+      return `  • ${b.product_name} — ${b.quantity} ${b.unit || 'шт.'} (истекает ${date}, осталось ${b.days_left} дн.)`
+    }).join('\n')
+    return `⚠️ Истекают в ближайшее время:\n${items}`
+  }
+
+  const formatExpiredList = () => {
+    if (!stats.expiredList || stats.expiredList.length === 0) return ''
+    const items = stats.expiredList.map(b => {
+      const date = new Date(b.expiry_date).toLocaleDateString('ru-RU')
+      return `  • ${b.product_name} — ${b.quantity} ${b.unit || 'шт.'} (просрочено с ${date}, ${b.days_overdue} дн. назад)`
+    }).join('\n')
+    return `🔴 Просрочено:\n${items}`
+  }
+  
+  const expiringListText = formatExpiringList()
+  const expiredListText = formatExpiredList()
+  const departmentText = stats.department?.name || ''
+
+  const text = templateText
+    .replace(/{good}/g, good)
+    .replace(/{warning}/g, stats.expiringBatches || 0)
+    .replace(/{expired}/g, stats.expiredBatches || 0)
+    .replace(/{total}/g, stats.totalBatches || 0)
+    .replace(/{date}/g, currentDate)
+    .replace(/{expiringList}/g, expiringListText)
+    .replace(/{expiredList}/g, expiredListText)
+    .replace(/{department}/g, departmentText)
+
+  const textReport = `Ежедневный отчёт по инвентарю\n\n${text}\n\nСписаний за сутки: ${stats.collectionsToday || 0}`
 
   try {
     return await sendEmail({
@@ -862,7 +910,7 @@ export async function sendDailyReportEmail({ stats, to }) {
       from: EMAIL_FROM.noreply,
       subject: `FreshTrack: Ежедневный отчёт по инвентарю - ${new Date().toLocaleDateString('ru-RU')}`,
       html,
-      text
+      text: textReport
     })
   } catch (error) {
     logError('EmailService', `Failed to send daily report email`, error)
@@ -883,6 +931,5 @@ export default {
   sendVerificationEmail,
   sendNewJoinRequestEmail,
   sendExpiryReportEmail,
-  sendExpiryWarningEmail,
   sendDailyReportEmail
 }

@@ -442,6 +442,8 @@
   "settings": {
     "title": "Impostazioni",
     "subtitle": "Gestisci profilo e sistema",
+    "saved": "Impostazioni salvate",
+    "saveError": "Errore nel salvataggio",
     "profile": "Profilo",
     "departments": "Reparti",
     "categories": "Categorie",
@@ -1497,6 +1499,7 @@
   "rules": {
     "noRules": "Nessuna regola configurata",
     "title": "Regole di notifica",
+    "description": "Configura regole di notifica per vari eventi",
     "add": "Aggiungi",
     "newRule": "Nuova regola",
     "name": "Nome",

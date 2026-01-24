@@ -8,11 +8,7 @@ import { useTranslation } from '../../context/LanguageContext'
 import { useToast } from '../../context/ToastContext'
 import { useHotel } from '../../context/HotelContext'
 import { apiFetch } from '../../services/api'
-import { GridLoader, ButtonSpinner } from '../ui'
 import {
-  Save,
-  Check,
-  AlertCircle,
   Bell,
   MessageSquare,
   Mail,
@@ -26,7 +22,6 @@ import {
 } from 'lucide-react'
 import { cn } from '../../utils/classNames'
 import SettingsLayout, { SettingsSection } from './SettingsLayout'
-import { Tabs, TabsList, Tab, TabPanel } from '../ui/Tabs'
 import TemplateEditor from './TemplateEditor'
 import { useSimpleUnsavedChanges } from '../../hooks/useUnsavedChanges'
 
@@ -35,7 +30,7 @@ const BOT_USERNAME = 'freshtracksystemsbot'
 export default function NotificationsSettings() {
   const { t } = useTranslation()
   const { addToast } = useToast()
-  const { selectedHotelId, selectedHotel } = useHotel()
+  const { selectedHotelId } = useHotel()
 
   const [settings, setSettings] = useState({
     // Каналы доставки
@@ -45,10 +40,7 @@ export default function NotificationsSettings() {
     },
     // Единые шаблоны сообщений
     templates: {
-      dailyReport: '📊 Ежедневный отчёт FreshTrack\n\n✅ В норме: {good}\n⚠️ Скоро истекает: {warning}\n🔴 Просрочено: {expired}',
-      expiryWarning: '⚠️ Внимание! {product} истекает {date} ({quantity} шт)',
-      expiredAlert: '🔴 ПРОСРОЧЕНО: {product} — {quantity} шт',
-      collectionConfirm: '✅ Собрано: {product} — {quantity} шт\nПричина: {reason}'
+      dailyReport: '📊 Ежедневный отчёт FreshTrack\n{department}\n\nДата: {date}\n\n✅ В норме: {good}\n⚠️ Скоро истекает: {warning}\n🔴 Просрочено: {expired}\n📦 Всего партий: {total}\n\n{expiringList}\n\n{expiredList}'
     },
     // Расписание
     sendTime: '09:00',
@@ -57,7 +49,6 @@ export default function NotificationsSettings() {
 
   const [linkedChats, setLinkedChats] = useState([])
   const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
   const [expandedChannels, setExpandedChannels] = useState({
     telegram: false,
     email: false
@@ -74,12 +65,14 @@ export default function NotificationsSettings() {
     }
   }, [selectedHotelId])
 
-  // Update initial settings when loaded
   useEffect(() => {
-    if (!loading && settings.templates && Object.keys(settings.templates).length > 0) {
+    if (!loading) {
       setInitialSettings(settings)
     }
-  }, [loading, settings])
+    // Only run when loading changes (after fetch). Do NOT depend on settings,
+    // or we'd overwrite initial on every edit and break unsaved detection.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading])
 
   const loadSettings = async () => {
     setLoading(true)
@@ -91,7 +84,7 @@ export default function NotificationsSettings() {
         setSettings((prev) => ({
           ...prev,
           channels: data.channels || prev.channels,
-          templates: data.templates || prev.templates,
+          templates: { dailyReport: data.templates?.dailyReport ?? prev.templates.dailyReport },
           sendTime: data.sendTime || prev.sendTime,
           timezone: data.timezone || prev.timezone
         }))
@@ -106,11 +99,13 @@ export default function NotificationsSettings() {
         if (telegramData) {
           setSettings((prev) => ({
             ...prev,
-            templates: telegramData.messageTemplates || prev.templates,
+            templates: {
+              dailyReport: telegramData.messageTemplates?.dailyReport ?? prev.templates.dailyReport
+            },
             sendTime: telegramData.sendTime || prev.sendTime,
             channels: {
               ...prev.channels,
-              telegram: { enabled: true } // Telegram считается включённым, если есть настройки
+              telegram: { enabled: true }
             }
           }))
         }
@@ -137,7 +132,7 @@ export default function NotificationsSettings() {
       method: 'PUT',
       body: JSON.stringify({
         channels: settings.channels,
-        templates: settings.templates,
+        templates: { dailyReport: settings.templates.dailyReport },
         sendTime: settings.sendTime,
         timezone: settings.timezone
       })
@@ -158,12 +153,10 @@ export default function NotificationsSettings() {
   }
 
   const updateTemplate = (key, value) => {
+    if (key !== 'dailyReport') return
     setSettings((prev) => ({
       ...prev,
-      templates: {
-        ...prev.templates,
-        [key]: value
-      }
+      templates: { ...prev.templates, dailyReport: value }
     }))
   }
 
@@ -197,18 +190,26 @@ export default function NotificationsSettings() {
   return (
     <SettingsLayout
       title={t('settings.notifications.title') || 'Уведомления'}
-      description={t('settings.notifications.description') || 'Настройка каналов доставки и шаблонов сообщений'}
+      description="Ежедневные сводки и критические уведомления без лишнего шума"
       icon={Bell}
       onSave={saveSettings}
       saveButtonText={hasUnsavedChanges ? '● ' + (t('common.save') || 'Сохранить') : (t('common.save') || 'Сохранить')}
+      saveDisabled={!hasUnsavedChanges}
     >
+      {/* Info: одна сводка в день */}
+      <div className="p-4 rounded-lg bg-muted/30 border border-border/40">
+        <p className="text-sm text-muted-foreground whitespace-pre-line">
+          FreshTrack отправляет только одну сводку в день.
+          Это снижает шум и помогает не пропускать важное.
+        </p>
+      </div>
 
       {/* Каналы доставки */}
       <SettingsSection title={t('settings.notifications.channels') || 'Каналы доставки'}>
 
         {/* Telegram */}
         <div className="p-4 border border-border rounded-lg bg-card">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div
                 className={cn(
@@ -234,8 +235,10 @@ export default function NotificationsSettings() {
             </div>
             <div className="flex items-center gap-3">
               <button
+                type="button"
                 onClick={() => toggleChannelExpanded('telegram')}
                 className="p-2 text-muted-foreground hover:text-foreground"
+                aria-label={expandedChannels.telegram ? 'Свернуть' : 'Развернуть'}
               >
                 {expandedChannels.telegram ? (
                   <ChevronUp className="w-4 h-4" />
@@ -244,6 +247,7 @@ export default function NotificationsSettings() {
                 )}
               </button>
               <button
+                type="button"
                 onClick={() => updateChannel('telegram', !settings.channels.telegram.enabled)}
                 className={cn(
                   'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
@@ -260,76 +264,88 @@ export default function NotificationsSettings() {
             </div>
           </div>
 
-          {expandedChannels.telegram && settings.channels.telegram.enabled && (
+          {expandedChannels.telegram && (
             <div className="mt-4 pt-4 border-t border-border space-y-4">
-              {/* Добавить бота в чат */}
-              <div className="p-4 bg-muted/30 rounded-lg">
-                <h4 className="font-medium text-foreground mb-2 flex items-center gap-2">
-                  <Bot className="w-4 h-4" />
-                  {t('telegram.addBot') || 'Добавить бота в чат'}
-                </h4>
-                <p className="text-sm text-muted-foreground mb-3">
-                  {t('telegram.addBotDescription') || 'Добавьте бота в групповой чат Telegram для получения уведомлений.'}
-                </p>
-                <button
-                  onClick={openAddBotLink}
-                  className="flex items-center gap-2 px-4 py-2 bg-[#0088cc] text-white rounded-lg hover:bg-[#0088cc]/90 transition-colors text-sm"
-                >
-                  <ExternalLink className="w-4 h-4" />
-                  {t('telegram.addBotButton') || 'Добавить бота в чат'}
-                </button>
-              </div>
-
-              {/* Привязанные чаты */}
-              {linkedChats.length > 0 && (
-                <div>
-                  <h4 className="font-medium text-foreground mb-2 flex items-center gap-2">
-                    <Users className="w-4 h-4" />
-                    {t('telegram.linkedChats') || 'Привязанные чаты'} ({linkedChats.length})
-                  </h4>
-                  <div className="space-y-2">
-                    {linkedChats.map((chat) => (
-                      <div
-                        key={chat.chat_id}
-                        className="flex items-center justify-between p-2 bg-muted/30 rounded-lg"
-                      >
-                        <div className="flex items-center gap-2 min-w-0 flex-1">
-                          {chat.chat_photo_url ? (
-                            <img
-                              src={chat.chat_photo_url}
-                              alt={chat.chat_title}
-                              className="w-8 h-8 rounded-full flex-shrink-0"
-                            />
-                          ) : (
-                            <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center flex-shrink-0">
-                              <MessageSquare className="w-4 h-4 text-accent" />
-                            </div>
-                          )}
-                          <div className="min-w-0">
-                            <div className="text-sm font-medium text-foreground truncate">
-                              {chat.chat_title || 'Чат'}
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              {chat.hotel_name && (
-                                <>
-                                  🏨 {chat.hotel_name}
-                                  {chat.department_name && <span> → 🏢 {chat.department_name}</span>}
-                                </>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => unlinkChat(chat.chat_id)}
-                          className="p-1.5 text-muted-foreground hover:text-danger hover:bg-danger/10 rounded transition-colors"
-                          title={t('telegram.unlinkChat') || 'Отвязать чат'}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ))}
+              {settings.channels.telegram.enabled ? (
+                <>
+                  <div className="p-4 bg-muted/30 rounded-lg">
+                    <h4 className="font-medium text-foreground mb-2 flex items-center gap-2">
+                      <Bot className="w-4 h-4" />
+                      {t('telegram.addBot') || 'Добавить бота в чат'}
+                    </h4>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      {t('telegram.addBotDescription') || 'Добавьте бота в групповой чат Telegram для получения уведомлений.'}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={openAddBotLink}
+                      className="flex items-center gap-2 px-4 py-2 bg-[#0088cc] text-white rounded-lg hover:bg-[#0088cc]/90 transition-colors text-sm"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                      {t('telegram.addBotButton') || 'Добавить бота в чат'}
+                    </button>
                   </div>
-                </div>
+
+                  {linkedChats.length > 0 && (
+                    <div>
+                      <h4 className="font-medium text-foreground mb-2 flex items-center gap-2">
+                        <Users className="w-4 h-4" />
+                        {t('telegram.linkedChats') || 'Привязанные чаты'} ({linkedChats.length})
+                      </h4>
+                      <div className="space-y-2">
+                        {linkedChats.map((chat) => (
+                          <div
+                            key={chat.chat_id}
+                            className="flex items-center justify-between p-2 bg-muted/30 rounded-lg"
+                          >
+                            <div className="flex items-center gap-2 min-w-0 flex-1">
+                              {chat.chat_photo_url ? (
+                                <img
+                                  src={chat.chat_photo_url}
+                                  alt={chat.chat_title}
+                                  className="w-8 h-8 rounded-full flex-shrink-0"
+                                />
+                              ) : (
+                                <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center flex-shrink-0">
+                                  <MessageSquare className="w-4 h-4 text-accent" />
+                                </div>
+                              )}
+                              <div className="min-w-0">
+                                <div className="text-sm font-medium text-foreground truncate">
+                                  {chat.chat_title || 'Чат'}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  {chat.hotel_name && (
+                                    <>
+                                      🏨 {chat.hotel_name}
+                                      {chat.department_name && <span> → 🏢 {chat.department_name}</span>}
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => unlinkChat(chat.chat_id)}
+                              className="p-1.5 text-muted-foreground hover:text-danger hover:bg-danger/10 rounded transition-colors"
+                              title={t('telegram.unlinkChat') || 'Отвязать чат'}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <p className="text-sm text-muted-foreground">
+                    Уведомления приходят один раз в день в виде сводки.
+                  </p>
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Включите канал, чтобы настроить получение ежедневных сводок.
+                </p>
               )}
             </div>
           )}
@@ -361,77 +377,66 @@ export default function NotificationsSettings() {
                 </p>
               </div>
             </div>
-            <button
-              onClick={() => updateChannel('email', !settings.channels.email.enabled)}
-              className={cn(
-                'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
-                settings.channels.email.enabled ? 'bg-accent' : 'bg-muted-foreground/30'
-              )}
-            >
-              <span
-                className={cn(
-                  'inline-block h-4 w-4 transform rounded-full bg-white transition-transform',
-                  settings.channels.email.enabled ? 'translate-x-6' : 'translate-x-1'
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => toggleChannelExpanded('email')}
+                className="p-2 text-muted-foreground hover:text-foreground"
+                aria-label={expandedChannels.email ? 'Свернуть' : 'Развернуть'}
+              >
+                {expandedChannels.email ? (
+                  <ChevronUp className="w-4 h-4" />
+                ) : (
+                  <ChevronDown className="w-4 h-4" />
                 )}
-              />
-            </button>
+              </button>
+              <button
+                type="button"
+                onClick={() => updateChannel('email', !settings.channels.email.enabled)}
+                className={cn(
+                  'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
+                  settings.channels.email.enabled ? 'bg-accent' : 'bg-muted-foreground/30'
+                )}
+              >
+                <span
+                  className={cn(
+                    'inline-block h-4 w-4 transform rounded-full bg-white transition-transform',
+                    settings.channels.email.enabled ? 'translate-x-6' : 'translate-x-1'
+                  )}
+                />
+              </button>
+            </div>
           </div>
-          {expandedChannels.email && settings.channels.email.enabled && (
+          {expandedChannels.email && (
             <div className="mt-4 pt-4 border-t border-border">
-              <p className="text-sm text-muted-foreground">
-                {t('settings.notifications.emailNote') || 'Email уведомления отправляются на адреса отделов (department.email)'}
-              </p>
+              {settings.channels.email.enabled ? (
+                <p className="text-sm text-muted-foreground">
+                  Email уведомления отправляются на адреса отделов.
+                </p>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Включите канал, чтобы получать ежедневные сводки на почту отделов.
+                </p>
+              )}
             </div>
           )}
         </div>
       </SettingsSection>
 
-      {/* Единые шаблоны сообщений */}
+      {/* Шаблоны сообщений */}
       <SettingsSection
         title={t('settings.notifications.templates') || 'Шаблоны сообщений'}
-        description={t('settings.notifications.templatesHint') || 'Единые шаблоны для всех каналов доставки. Используйте переменные в фигурных скобках.'}
+        description="Один шаблон используется для Email и Telegram."
         icon={MessageSquare}
       >
-        <Tabs value="templates" onChange={() => {}}>
-          <TabsList>
-            <Tab value="templates">{t('settings.notifications.templates') || 'Шаблоны'}</Tab>
-          </TabsList>
-          <TabPanel value="templates">
-
-          <div className="space-y-6">
-            <TemplateEditor
-              label={t('telegram.dailyReport') || 'Ежедневный отчёт'}
-              value={settings.templates.dailyReport}
-              onChange={(value) => updateTemplate('dailyReport', value)}
-              availableVars={['good', 'warning', 'expired', 'total']}
-              rows={5}
-            />
-
-            <TemplateEditor
-              label={t('telegram.expiryWarning') || 'Предупреждение об истечении'}
-              value={settings.templates.expiryWarning}
-              onChange={(value) => updateTemplate('expiryWarning', value)}
-              availableVars={['product', 'date', 'quantity']}
-              rows={3}
-            />
-
-            <TemplateEditor
-              label={t('telegram.expiredAlert') || 'Уведомление о просрочке'}
-              value={settings.templates.expiredAlert}
-              onChange={(value) => updateTemplate('expiredAlert', value)}
-              availableVars={['product', 'quantity']}
-              rows={3}
-            />
-
-            <TemplateEditor
-              label={t('telegram.collectionConfirm') || 'Подтверждение сбора'}
-              value={settings.templates.collectionConfirm}
-              onChange={(value) => updateTemplate('collectionConfirm', value)}
-              availableVars={['product', 'quantity', 'reason']}
-              rows={3}
-            />
-          </div>
-      </div>
+        <TemplateEditor
+          label={t('telegram.dailyReport') || 'Ежедневный отчёт'}
+          value={settings.templates.dailyReport}
+          onChange={(value) => updateTemplate('dailyReport', value)}
+          availableVars={['good', 'warning', 'expired', 'total', 'date', 'expiringList', 'expiredList', 'department']}
+          rows={8}
+        />
+      </SettingsSection>
 
       {/* Расписание */}
       <div className="p-6 border border-border rounded-xl bg-card">
@@ -451,10 +456,12 @@ export default function NotificationsSettings() {
               onChange={(e) => setSettings((prev) => ({ ...prev, sendTime: e.target.value }))}
               className="px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-accent/20"
             />
+            <p className="mt-2 text-sm text-muted-foreground">
+              Даже при наличии просроченных товаров уведомления не дублируются.
+            </p>
           </div>
-          </TabPanel>
-        </Tabs>
-      </SettingsSection>
+        </div>
+      </div>
     </SettingsLayout>
   )
 }
