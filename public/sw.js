@@ -14,6 +14,7 @@ const PRECACHE_URLS = [
   '/manifest.json',
   '/favicon.svg',
   '/icons/icon.svg',
+  '/apple-touch-icon.png',
 ]
 
 // API endpoints для кеширования

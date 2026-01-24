@@ -21,7 +21,8 @@
     "test:server": "vitest run --config vitest.server.config.ts",
     "test:all": "vitest run && vitest run --config vitest.server.config.ts",
     "lighthouse": "lighthouse http://localhost:5173 --output html --output-path ./reports/lighthouse.html --chrome-flags=\"--headless\"",
-    "lighthouse:ci": "lighthouse http://localhost:5173 --output json --output-path ./reports/lighthouse.json --budget-path=./lighthouse-budget.json"
+    "lighthouse:ci": "lighthouse http://localhost:5173 --output json --output-path ./reports/lighthouse.json --budget-path=./lighthouse-budget.json",
+    "generate-apple-touch-icon": "node scripts/generate-apple-touch-icon.mjs"
   },
   "dependencies": {
     "@sentry/node": "^10.32.1",
@@ -68,6 +69,7 @@
     "lighthouse": "^11.4.0",
     "postcss": "^8.4.31",
     "prettier": "^3.7.4",
+    "sharp": "^0.33.5",
     "tailwindcss": "^3.3.5",
     "terser": "^5.44.1",
     "typescript": "^5.9.3",
