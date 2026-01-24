@@ -13,6 +13,7 @@ const PRECACHE_URLS = [
   '/index.html',
   '/manifest.json',
   '/favicon.svg',
+  '/icons/icon.svg',
 ]
 
 // API endpoints для кеширования
