@@ -5,7 +5,7 @@
  */
 
 import { Package } from 'lucide-react'
-import Button from './Button'
+import TouchButton from './TouchButton'
 
 export default function EmptyState({
   icon: Icon = Package,
@@ -32,9 +32,9 @@ export default function EmptyState({
       )}
 
       {actionLabel && onAction && (
-        <Button onClick={onAction} variant="primary">
+        <TouchButton onClick={onAction} variant="primary">
           {actionLabel}
-        </Button>
+        </TouchButton>
       )}
     </div>
   )

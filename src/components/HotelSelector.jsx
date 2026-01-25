@@ -67,8 +67,12 @@ export default function HotelSelector({ className = '' }) {
   return (
     <div ref={dropdownRef} className={`relative ${className}`}>
       <button
+        type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30 rounded-lg hover:from-amber-500/20 hover:to-orange-500/20 transition-colors min-w-[180px]"
+        aria-expanded={isOpen}
+        aria-haspopup="listbox"
+        aria-label={selectedHotel?.name ? `Отель: ${selectedHotel.name}` : 'Выберите отель'}
+        className="flex items-center gap-2 px-3 py-2 min-h-[44px] bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30 rounded-lg hover:from-amber-500/20 hover:to-orange-500/20 transition-colors min-w-[180px] touch-manipulation"
       >
         <Building2 className="w-4 h-4 text-amber-600 dark:text-amber-400" />
         <span className="text-sm font-medium text-foreground flex-1 text-left truncate">
@@ -83,13 +87,13 @@ export default function HotelSelector({ className = '' }) {
         <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-lg z-50 py-1 max-h-60 overflow-y-auto">
           {hotels.map((hotel) => (
             <button
+              type="button"
               key={hotel.id}
               onClick={() => {
                 selectHotel(hotel.id)
                 setIsOpen(false)
-                // ProductContext автоматически перезагрузит данные через useEffect
               }}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-muted transition-colors ${
+              className={`w-full flex items-center gap-3 px-3 py-2.5 min-h-[44px] text-left hover:bg-muted transition-colors touch-manipulation ${
                 selectedHotel?.id === hotel.id ? 'bg-accent/10' : ''
               }`}
             >

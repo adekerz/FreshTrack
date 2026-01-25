@@ -325,7 +325,7 @@ export default function AuditLogsPage() {
               <Filter className="w-4 h-4" />
               <span className="hidden sm:inline">{t('common.filters') || 'Фильтры'}</span>
               {hasActiveFilters && (
-                <span className="ml-1 w-5 h-5 bg-accent text-white text-xs rounded-full flex items-center justify-center">
+                <span className="ml-1 w-5 h-5 bg-accent-button text-white text-xs rounded-full flex items-center justify-center">
                   {
                     [
                       filters.actionType,
@@ -636,7 +636,7 @@ export default function AuditLogsPage() {
                       className={cn(
                         'w-8 h-8 rounded-lg text-sm font-medium transition-colors',
                         pageNum === pagination.page
-                          ? 'bg-accent text-white'
+                          ? 'bg-accent-button text-white'
                           : 'hover:bg-muted text-foreground'
                       )}
                     >

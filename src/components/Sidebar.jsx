@@ -1,5 +1,6 @@
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Leaf, PanelLeftClose, PanelLeftOpen, X, LogOut, Globe } from 'lucide-react'
+import TouchButton from './ui/TouchButton'
 import { useProducts } from '../context/ProductContext'
 import { useAuth } from '../context/AuthContext'
 import { useTranslation, useLanguage } from '../context/LanguageContext'
@@ -8,7 +9,7 @@ import { getStaticUrl } from '../services/api'
 import { cn } from '../utils/classNames'
 import { mainNavItems, moreNavItems, filterNavByRole } from '../config/navigation'
 
-export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose }) {
+export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose, embedded = false }) {
   const location = useLocation()
   const navigate = useNavigate()
   const { getStats, getUnreadNotificationsCount } = useProducts()
@@ -91,8 +92,8 @@ export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose })
 
   return (
     <>
-      {/* Оверлей для мобильной версии */}
-      {isMobile && isOpen && (
+      {/* Оверлей для мобильной версии (пропускаем при embedded — оверлей у MobileSidebar) */}
+      {isMobile && isOpen && !embedded && (
         <div
           className="fixed inset-0 bg-black/50 dark:bg-black/60 z-40 lg:hidden"
           onClick={onClose}
@@ -102,19 +103,21 @@ export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose })
       <aside
         className={cn(
           'bg-charcoal text-cream transition-all duration-300 flex flex-col h-full',
-          // Мобильная версия
-          isMobile
+          embedded && 'relative w-full',
+          // Мобильная версия (не embedded)
+          isMobile && !embedded
             ? cn(
                 'fixed left-0 top-0 bottom-0 z-50 w-72',
                 isOpen ? 'translate-x-0' : '-translate-x-full'
               )
-            : cn(
+            : !embedded && cn(
                 // Десктопная версия
                 isOpen ? 'w-64' : 'w-20'
               )
         )}
       >
         {/* Logo */}
+        {!embedded && (
         <div className="p-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 border border-accent flex items-center justify-center flex-shrink-0 overflow-hidden">
@@ -138,20 +141,22 @@ export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose })
             )}
           </div>
 
-          {/* Кнопка закрытия для мобильной версии */}
-          {isMobile && (
-            <button
+          {/* Кнопка закрытия для мобильной версии (не показываем при embedded) */}
+          {isMobile && !embedded && (
+            <TouchButton
+              variant="ghost"
+              size="icon"
               onClick={onClose}
-              className="p-2 hover:bg-white/10 rounded transition-colors"
+              className="p-2 hover:bg-white/10 rounded text-cream/80 hover:text-cream"
               aria-label={t('common.close') || 'Close menu'}
-            >
-              <X className="w-5 h-5" aria-hidden="true" />
-            </button>
+              icon={X}
+            />
           )}
         </div>
+        )}
 
         {/* Main Navigation - Grouped */}
-        <nav className="flex-1 px-3 py-4 overflow-y-auto">
+        <nav className={cn('flex-1 overflow-y-auto', embedded ? 'px-3 pt-2 pb-4' : 'px-3 py-4')}>
           {navGroups.map((group, groupIndex) => {
             // Элементы уже отфильтрованы по роли из централизованной конфигурации
             const items = group.items
@@ -172,10 +177,11 @@ export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose })
                 <ul className="space-y-1">
                   {items.map((item) => (
                     <li key={item.path}>
-                      <button
+                      <TouchButton
+                        variant="ghost"
                         onClick={() => handleNavClick(item.path)}
                         className={cn(
-                          'w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 relative group',
+                          'w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 relative group h-auto min-h-[44px] justify-start',
                           isActive(item.path)
                             ? 'bg-accent/10 text-accent border-l-4 border-accent -ml-px pl-[15px]'
                             : 'hover:bg-white/5 text-cream/80 hover:text-cream'
@@ -183,17 +189,12 @@ export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose })
                         title={!isOpen && !isMobile ? item.label : undefined}
                         aria-current={isActive(item.path) ? 'page' : undefined}
                         data-onboarding={item.onboardingId || undefined}
+                        icon={item.icon}
+                        iconPosition="left"
                       >
-                        <item.icon
-                          className={cn(
-                            'w-5 h-5 flex-shrink-0 transition-transform duration-200',
-                            isActive(item.path) ? '' : 'group-hover:scale-110'
-                          )}
-                        />
                         {(isOpen || isMobile) && (
                           <span className="flex-1 text-left font-medium">{item.label}</span>
                         )}
-                        {/* Badge for notifications */}
                         {item.badge && (
                           <span
                             className={cn(
@@ -206,7 +207,7 @@ export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose })
                             {item.badge > 99 ? '99+' : item.badge}
                           </span>
                         )}
-                      </button>
+                      </TouchButton>
                     </li>
                   ))}
                 </ul>
@@ -237,19 +238,21 @@ export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose })
                   { code: 'it', label: 'IT', flag: '🇮🇹' },
                   { code: 'ar', label: 'AR', flag: '🇸🇦' },
                 ].map((lang) => (
-                  <button
+                  <TouchButton
                     key={lang.code}
+                    variant="ghost"
+                    size="small"
                     onClick={() => changeLanguage(lang.code)}
                     className={cn(
-                      'flex items-center justify-center gap-0.5 px-1.5 py-1.5 text-xs rounded transition-colors',
+                      'flex items-center justify-center gap-0.5 px-1.5 py-1.5 text-xs min-h-0 h-auto',
                       language === lang.code
-                        ? 'bg-accent text-white font-medium'
+                        ? 'bg-accent-button text-white font-medium'
                         : 'text-cream/60 hover:text-cream hover:bg-white/10'
                     )}
                   >
                     <span>{lang.flag}</span>
                     <span>{lang.label}</span>
-                  </button>
+                  </TouchButton>
                 ))}
               </div>
             </div>
@@ -266,33 +269,32 @@ export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose })
             </div>
 
             {/* Кнопка выхода */}
-            <button
+            <TouchButton
+              variant="ghost"
               onClick={() => {
                 logout()
                 if (onClose) onClose()
               }}
-              className="w-full flex items-center gap-3 px-2 py-3 mt-2 text-cream/60 hover:text-danger hover:bg-white/5 rounded transition-colors"
+              className="w-full justify-start gap-3 px-2 py-3 mt-2 text-cream/60 hover:text-danger hover:bg-white/5 rounded h-auto min-h-[44px]"
+              icon={LogOut}
+              iconPosition="left"
             >
-              <LogOut className="w-5 h-5" />
-              <span>{t('header.signOut')}</span>
-            </button>
+              {t('header.signOut')}
+            </TouchButton>
           </div>
         )}
 
-        {/* Toggle Button (только для десктопа) */}
-        {!isMobile && (
+        {/* Toggle Button (только для десктопа, не при embedded) */}
+        {!isMobile && !embedded && (
           <div className="p-4 border-t border-white/10">
-            <button
+            <TouchButton
+              variant="ghost"
+              size="icon"
               onClick={onToggle}
-              className="w-full flex items-center justify-center p-2 hover:bg-white/5 rounded transition-colors"
+              className="w-full rounded text-cream/80 hover:text-cream hover:bg-white/5"
               title={isOpen ? t('sidebar.collapse') : t('sidebar.expand')}
-            >
-              {isOpen ? (
-                <PanelLeftClose className="w-5 h-5" />
-              ) : (
-                <PanelLeftOpen className="w-5 h-5" />
-              )}
-            </button>
+              icon={isOpen ? PanelLeftClose : PanelLeftOpen}
+            />
           </div>
         )}
       </aside>

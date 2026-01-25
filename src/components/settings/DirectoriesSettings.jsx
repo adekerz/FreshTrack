@@ -195,7 +195,7 @@ function DepartmentsContent() {
       {!showAddForm && (
         <button
           onClick={() => setShowAddForm(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent/90 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-accent-button text-white rounded-lg hover:bg-accent-button/90 transition-colors"
         >
           <Plus className="w-4 h-4" />
           {t('settings.departments.add') || 'Добавить отдел'}
@@ -242,7 +242,7 @@ function DepartmentsContent() {
             <button
               onClick={addDepartment}
               disabled={adding || !newDepartment.name.trim()}
-              className="flex items-center gap-2 px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent/90 disabled:opacity-50"
+              className="flex items-center gap-2 px-4 py-2 bg-accent-button text-white rounded-lg hover:bg-accent-button/90 disabled:opacity-50"
             >
               {adding ? <ButtonSpinner /> : <Plus className="w-4 h-4" />}
               {t('common.add') || 'Добавить'}

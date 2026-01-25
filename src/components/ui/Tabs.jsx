@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useRef, useEffect } from 'react'
+import TouchButton from './TouchButton'
 
 const TabsContext = createContext(null)
 
@@ -60,22 +61,25 @@ export function Tab({ value, children, icon: Icon }) {
   }
 
   return (
-    <button
+    <TouchButton
       type="button"
       role="tab"
       aria-selected={isActive}
       tabIndex={isActive ? 0 : -1}
       onClick={() => onChange(value)}
       onKeyDown={handleKeyDown}
-      className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 ${
+      variant="ghost"
+      size="small"
+      icon={Icon}
+      iconPosition="left"
+      className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium min-h-0 h-auto ${
         isActive
           ? 'bg-background text-foreground shadow-sm'
           : 'text-muted-foreground hover:text-foreground'
       }`}
     >
-      {Icon && <Icon className="w-4 h-4" aria-hidden="true" />}
       {children}
-    </button>
+    </TouchButton>
   )
 }
 

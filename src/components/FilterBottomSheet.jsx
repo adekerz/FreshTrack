@@ -7,7 +7,7 @@
 import { useState } from 'react'
 import { Filter, X } from 'lucide-react'
 import BottomSheet, { BottomSheetActions, FilterChips } from './ui/BottomSheet'
-import { Button } from './ui'
+import { TouchButton, TouchSelect } from './ui'
 import { cn } from '../utils/classNames'
 import { useTranslation } from '../context/LanguageContext'
 
@@ -81,52 +81,30 @@ export default function FilterBottomSheet({
         {/* Категория */}
         {categories.length > 0 && (
           <FilterSection title={t('common.category') || 'Категория'}>
-            <select
+            <TouchSelect
+              label={null}
+              placeholder={t('common.all') || 'Все'}
               value={localFilters.category || ''}
-              onChange={(e) => setLocalFilters(prev => ({ 
-                ...prev, 
-                category: e.target.value || null 
-              }))}
-              className={cn(
-                'w-full h-12 px-4 rounded-xl border border-border',
-                'bg-card text-foreground',
-                'focus:border-accent focus:ring-2 focus:ring-accent/30 focus:outline-none',
-                'text-base' // Предотвращает zoom на iOS
-              )}
-            >
-              <option value="">{t('common.all') || 'Все'}</option>
-              {categories.map(cat => (
-                <option key={cat.id} value={cat.id}>
-                  {cat.name}
-                </option>
-              ))}
-            </select>
+              onChange={(v) =>
+                setLocalFilters((prev) => ({ ...prev, category: v || null }))
+              }
+              options={categories.map((cat) => ({ value: cat.id, label: cat.name }))}
+            />
           </FilterSection>
         )}
 
         {/* Отдел */}
         {departments.length > 0 && (
           <FilterSection title={t('common.department') || 'Отдел'}>
-            <select
+            <TouchSelect
+              label={null}
+              placeholder={t('common.allDepartments') || 'Все отделы'}
               value={localFilters.department || ''}
-              onChange={(e) => setLocalFilters(prev => ({ 
-                ...prev, 
-                department: e.target.value || null 
-              }))}
-              className={cn(
-                'w-full h-12 px-4 rounded-xl border border-border',
-                'bg-card text-foreground',
-                'focus:border-accent focus:ring-2 focus:ring-accent/30 focus:outline-none',
-                'text-base'
-              )}
-            >
-              <option value="">{t('common.allDepartments') || 'Все отделы'}</option>
-              {departments.map(dept => (
-                <option key={dept.id} value={dept.id}>
-                  {dept.name}
-                </option>
-              ))}
-            </select>
+              onChange={(v) =>
+                setLocalFilters((prev) => ({ ...prev, department: v || null }))
+              }
+              options={departments.map((dept) => ({ value: dept.id, label: dept.name }))}
+            />
           </FilterSection>
         )}
 
@@ -143,21 +121,17 @@ export default function FilterBottomSheet({
       {/* Sticky actions */}
       <BottomSheetActions>
         <div className="flex gap-3">
-          <Button
+          <TouchButton
             variant="secondary"
             onClick={handleClear}
             disabled={!hasActiveFilters}
             fullWidth
           >
             {t('common.reset') || 'Сбросить'}
-          </Button>
-          <Button
-            variant="primary"
-            onClick={handleApply}
-            fullWidth
-          >
+          </TouchButton>
+          <TouchButton variant="primary" onClick={handleApply} fullWidth>
             {t('common.apply') || 'Применить'}
-          </Button>
+          </TouchButton>
         </div>
       </BottomSheetActions>
     </BottomSheet>
@@ -179,41 +153,32 @@ function FilterSection({ title, children }) {
 /**
  * FilterButton - кнопка открытия фильтров (для header)
  */
-export function FilterButton({ 
-  onClick, 
-  activeCount = 0,
-  className = '' 
-}) {
+export function FilterButton({ onClick, activeCount = 0, className = '' }) {
   const { t } = useTranslation()
 
   return (
-    <button
-      onClick={onClick}
-      className={cn(
-        'relative flex items-center justify-center',
-        'h-12 w-12 rounded-xl',
-        'bg-card border border-border',
-        'text-foreground',
-        'touch-manipulation active:scale-95',
-        'transition-all duration-200',
-        activeCount > 0 && 'border-accent bg-accent/5',
-        className
-      )}
-      aria-label={t('common.filters') || 'Фильтры'}
-    >
-      <Filter className="w-5 h-5" />
-      
+    <div className={cn('relative', className)}>
+      <TouchButton
+        variant="ghost"
+        size="icon"
+        onClick={onClick}
+        className={cn(
+          'h-12 w-12 rounded-xl bg-card border border-border text-foreground',
+          activeCount > 0 && 'border-accent bg-accent/5'
+        )}
+        aria-label={t('common.filters') || 'Фильтры'}
+        icon={Filter}
+      />
       {activeCount > 0 && (
-        <span className={cn(
-          'absolute -top-1 -right-1',
-          'min-w-[18px] h-[18px]',
-          'flex items-center justify-center',
-          'bg-accent text-white text-xs font-bold',
-          'rounded-full px-1'
-        )}>
+        <span
+          className={cn(
+            'absolute -top-1 -right-1 min-w-[18px] h-[18px]',
+            'flex items-center justify-center bg-accent-button text-white text-xs font-bold rounded-full px-1'
+          )}
+        >
           {activeCount}
         </span>
       )}
-    </button>
+    </div>
   )
 }

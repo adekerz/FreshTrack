@@ -61,6 +61,8 @@ export default {
         warmgray: '#6B6560',
         accent: '#FF8D6B',
         'accent-light': '#FFB499',
+        /** Darker accent for buttons with white text (WCAG AA ≥4.5:1) */
+        'accent-button': '#B85A3A',
         success: 'rgb(var(--success) / <alpha-value>)',
         warning: 'rgb(var(--warning) / <alpha-value>)',
         danger: 'rgb(var(--danger) / <alpha-value>)',

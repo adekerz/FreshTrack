@@ -6,6 +6,7 @@
 
 import { Minus, Plus } from 'lucide-react'
 import { cn } from '../../utils/classNames'
+import TouchButton from './TouchButton'
 
 export default function QuantityStepper({
   value = 0,
@@ -75,23 +76,16 @@ export default function QuantityStepper({
       )}
       
       <div className="flex items-center gap-3">
-        <button
+        <TouchButton
           type="button"
+          variant="secondary"
+          size="icon"
           onClick={handleDecrease}
           disabled={disabled || value <= min}
           aria-label="Уменьшить количество"
-          className={cn(
-            sizeConfig.button,
-            'flex items-center justify-center rounded-xl',
-            'bg-muted text-foreground',
-            'transition-all duration-150',
-            'active:scale-95 touch-manipulation',
-            'disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100',
-            'hover:bg-muted/80 focus:ring-2 focus:ring-accent/50 focus:outline-none'
-          )}
-        >
-          <Minus className={sizeConfig.icon} strokeWidth={2.5} />
-        </button>
+          icon={Minus}
+          className={cn(sizeConfig.button, 'rounded-xl')}
+        />
 
         <input
           type="number"
@@ -115,23 +109,16 @@ export default function QuantityStepper({
           )}
         />
 
-        <button
+        <TouchButton
           type="button"
+          variant="secondary"
+          size="icon"
           onClick={handleIncrease}
           disabled={disabled || value >= max}
           aria-label="Увеличить количество"
-          className={cn(
-            sizeConfig.button,
-            'flex items-center justify-center rounded-xl',
-            'bg-muted text-foreground',
-            'transition-all duration-150',
-            'active:scale-95 touch-manipulation',
-            'disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100',
-            'hover:bg-muted/80 focus:ring-2 focus:ring-accent/50 focus:outline-none'
-          )}
-        >
-          <Plus className={sizeConfig.icon} strokeWidth={2.5} />
-        </button>
+          icon={Plus}
+          className={cn(sizeConfig.button, 'rounded-xl')}
+        />
       </div>
 
       {error && (

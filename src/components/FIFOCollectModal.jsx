@@ -176,13 +176,18 @@ export default function FIFOCollectModal({
                 <p className="text-sm text-muted-foreground">{product.name}</p>
               </div>
             </div>
-            <button onClick={onClose} className="p-2 hover:bg-muted rounded-lg transition-colors">
+            <button
+              onClick={onClose}
+              className="flex items-center justify-center min-h-[44px] min-w-[44px] p-2 hover:bg-muted rounded-lg transition-colors touch-manipulation"
+              aria-label={t('common.close') || 'Закрыть'}
+              type="button"
+            >
               <X className="w-5 h-5 text-muted-foreground" />
             </button>
           </div>
 
           {/* Content */}
-          <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 sm:space-y-6 overflow-y-auto flex-1">
+          <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 sm:space-y-6 overflow-y-auto flex-1 overscroll-contain">
             {/* Информация о наличии */}
             <div className="bg-muted rounded-xl p-4">
               <div className="flex items-center justify-between">

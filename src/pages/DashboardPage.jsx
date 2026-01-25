@@ -21,7 +21,7 @@ import { useTranslation } from '../context/LanguageContext'
 import { useThresholds } from '../hooks/useThresholds'
 import { format, parseISO } from 'date-fns'
 import { SkeletonDashboard } from '../components/Skeleton'
-import { Loader } from '../components/ui'
+import { Loader, TouchButton } from '../components/ui'
 import AddBatchModal from '../components/AddBatchModal'
 
 // Иконки для отделов - универсальный маппинг
@@ -134,7 +134,7 @@ export default function DashboardPage() {
           </div>
           <Link
             to="/settings"
-            className="mt-2 px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent/90 transition-colors"
+            className="mt-2 px-4 py-2 bg-accent-button text-white rounded-lg hover:bg-accent-button/90 transition-colors"
           >
             {t('common.goToSettings') || 'Перейти в настройки'}
           </Link>
@@ -204,15 +204,17 @@ export default function DashboardPage() {
 
           {/* Quick Actions - Fitts Law: Large targets for common actions */}
           <div className="flex gap-2 sm:gap-3">
-            <button
+            <TouchButton
               onClick={() => setShowAddBatchModal(true)}
-              className="flex items-center gap-2 px-4 py-2.5 bg-accent text-white rounded-lg hover:bg-accent/90 active:scale-[0.98] transition-all text-sm font-medium min-h-[44px]"
+              variant="primary"
+              size="default"
+              icon={Plus}
+              className="text-sm font-medium"
               data-onboarding="add-batch"
             >
-              <Plus className="w-4 h-4" />
               <span className="hidden sm:inline">{t('header.addBatch')}</span>
               <span className="sm:hidden">{t('common.add') || 'Add'}</span>
-            </button>
+            </TouchButton>
             {alerts.length > 0 && (
               <Link
                 to="/notifications"

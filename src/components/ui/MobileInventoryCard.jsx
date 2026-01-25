@@ -149,7 +149,7 @@ export default function MobileInventoryCard({
                   }}
                   className={cn(
                     'flex-1 py-2.5 px-4 rounded-lg',
-                    'bg-accent text-white font-medium text-sm',
+                    'bg-accent-button text-white font-medium text-sm',
                     'touch-manipulation active:scale-[0.98]',
                     'transition-transform'
                   )}

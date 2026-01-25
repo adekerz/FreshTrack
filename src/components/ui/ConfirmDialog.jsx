@@ -7,7 +7,7 @@
 import { useRef, useEffect } from 'react'
 import { AlertTriangle, Trash2, Info } from 'lucide-react'
 import Modal from './Modal'
-import Button from './Button'
+import TouchButton from './TouchButton'
 
 const icons = {
   danger: Trash2,
@@ -73,7 +73,7 @@ export default function ConfirmDialog({
         )}
 
         <div className="flex gap-3">
-          <Button
+          <TouchButton
             ref={cancelRef}
             variant="secondary"
             onClick={onClose}
@@ -81,15 +81,15 @@ export default function ConfirmDialog({
             disabled={loading}
           >
             {cancelLabel}
-          </Button>
-          <Button
+          </TouchButton>
+          <TouchButton
             variant={variant === 'danger' ? 'danger' : 'primary'}
             onClick={handleConfirm}
             fullWidth
             loading={loading}
           >
             {confirmLabel}
-          </Button>
+          </TouchButton>
         </div>
       </div>
     </Modal>

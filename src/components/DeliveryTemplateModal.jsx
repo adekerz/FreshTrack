@@ -14,7 +14,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { X, Package, Plus, Minus, Calendar, Check, Zap, ArrowRight, History } from 'lucide-react'
-import { SectionLoader, ButtonLoader } from './ui'
+import { SectionLoader, TouchButton } from './ui'
 import { useTranslation } from '../context/LanguageContext'
 import { useProducts } from '../context/ProductContext'
 import { useToast } from '../context/ToastContext'
@@ -337,35 +337,34 @@ export default function DeliveryTemplateModal({
             <div className="flex items-center gap-2">
               {/* Переключатель Fast Intake Mode - только иконка на мобильных */}
               {selectedTemplate && (
-                <button
+                <TouchButton
+                  variant="ghost"
+                  size="small"
                   onClick={() => {
                     const newMode = !fastIntakeMode
                     setFastIntakeMode(newMode)
                     fastModeRef.current = newMode
-                    // При переключении сбрасываем форму
-                    if (newMode) {
-                      resetFastIntakeForm()
-                    }
+                    if (newMode) resetFastIntakeForm()
                   }}
-                  className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                    fastIntakeMode 
-                      ? 'bg-amber-500 text-white' 
-                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                  className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-sm font-medium min-h-0 h-auto ${
+                    fastIntakeMode ? 'bg-amber-500 text-white hover:bg-amber-600' : 'bg-muted text-muted-foreground hover:bg-muted/80'
                   }`}
+                  icon={Zap}
+                  iconPosition="left"
                 >
-                  <Zap className="w-4 h-4" />
                   <span className="hidden sm:inline text-xs">
                     {fastIntakeMode ? 'Быстрый' : 'Стандарт'}
                   </span>
-                </button>
+                </TouchButton>
               )}
-              
-              <button 
-                onClick={onClose} 
-                className="p-2 hover:bg-muted rounded-lg transition-colors"
-              >
-                <X className="w-5 h-5 text-gray-500" />
-              </button>
+
+              <TouchButton
+                variant="ghost"
+                size="icon"
+                onClick={onClose}
+                className="p-2 min-w-0 min-h-0 text-muted-foreground hover:bg-muted"
+                icon={X}
+              />
             </div>
           </div>
 
@@ -400,25 +399,29 @@ export default function DeliveryTemplateModal({
                         </div>
                         
                         {/* Быстрый режим - главная кнопка */}
-                        <button
+                        <TouchButton
+                          variant="primary"
+                          size="small"
                           onClick={() => {
                             selectTemplate(template)
                             setFastIntakeMode(true)
                             fastModeRef.current = true
                           }}
-                          className="flex items-center gap-1.5 px-3 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors text-sm font-medium touch-manipulation"
+                          className="flex items-center gap-1.5 px-3 py-2 bg-amber-500 text-white hover:bg-amber-600 min-h-0 h-auto"
+                          icon={Zap}
+                          iconPosition="left"
                         >
-                          <Zap className="w-4 h-4" />
                           <span className="hidden sm:inline">Быстрый</span>
-                        </button>
-                        
+                        </TouchButton>
+
                         {/* Стандартный режим */}
-                        <button
+                        <TouchButton
+                          variant="secondary"
+                          size="small"
                           onClick={() => selectTemplate(template)}
-                          className="flex items-center gap-1.5 px-3 py-2 bg-muted text-muted-foreground rounded-lg hover:bg-muted/80 transition-colors text-sm touch-manipulation"
-                        >
-                          <Package className="w-4 h-4" />
-                        </button>
+                          className="px-3 py-2 min-h-0 h-auto"
+                          icon={Package}
+                        />
                       </div>
                     ))}
                   </div>
@@ -436,12 +439,14 @@ export default function DeliveryTemplateModal({
                   <h3 className="font-medium text-foreground">
                     {t('templates.products') || 'Товары'} ({items.length})
                   </h3>
-                  <button
+                  <TouchButton
+                    variant="ghost"
+                    size="small"
                     onClick={() => setSelectedTemplate(null)}
-                    className="text-sm text-red-500 hover:text-red-600 hover:underline transition-colors"
+                    className="text-sm text-danger hover:text-danger/80 hover:underline min-h-0 h-auto"
                   >
                     {t('templates.changeTemplate') || 'Сменить шаблон'}
-                  </button>
+                  </TouchButton>
                 </div>
 
                 {/* Список товаров из шаблона - редактирование в строке */}
@@ -462,14 +467,15 @@ export default function DeliveryTemplateModal({
                       <div className="flex items-center gap-3 w-full sm:w-auto flex-wrap sm:flex-nowrap">
                         {/* Количество с +/- кнопками */}
                         <div className="flex items-center gap-1 sm:gap-0.5 shrink-0">
-                          <button
+                          <TouchButton
                             type="button"
+                            variant="secondary"
+                            size="small"
                             onClick={() => updateItem(index, 'quantity', Math.max(1, item.quantity - 1))}
-                            className="p-2 sm:p-1.5 rounded-lg bg-muted hover:bg-muted/80 transition-colors touch-manipulation active:scale-95"
+                            className="p-2 sm:p-1.5 rounded-lg min-h-0 min-w-0"
                             aria-label="Уменьшить количество"
-                          >
-                            <Minus className="w-5 h-5 sm:w-4 sm:h-4" />
-                          </button>
+                            icon={Minus}
+                          />
                           <input
                             type="number"
                             inputMode="numeric"
@@ -492,14 +498,15 @@ export default function DeliveryTemplateModal({
                             className="w-16 sm:w-14 text-center px-1 py-2 sm:py-1.5 border border-border rounded-lg bg-card text-foreground text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500"
                             min="1"
                           />
-                          <button
+                          <TouchButton
                             type="button"
+                            variant="secondary"
+                            size="small"
                             onClick={() => updateItem(index, 'quantity', item.quantity + 1)}
-                            className="p-2 sm:p-1.5 rounded-lg bg-muted hover:bg-muted/80 transition-colors touch-manipulation active:scale-95"
+                            className="p-2 sm:p-1.5 rounded-lg min-h-0 min-w-0"
                             aria-label="Увеличить количество"
-                          >
-                            <Plus className="w-5 h-5 sm:w-4 sm:h-4" />
-                          </button>
+                            icon={Plus}
+                          />
                         </div>
 
                         {/* Срок годности */}
@@ -606,43 +613,41 @@ export default function DeliveryTemplateModal({
                         </div>
 
                         {/* Удалить товар */}
-                        <button
+                        <TouchButton
                           type="button"
+                          variant="ghost"
+                          size="small"
                           onClick={() => removeItem(index)}
-                          className="p-2 sm:p-1.5 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg shrink-0 transition-colors touch-manipulation active:scale-95"
+                          className="p-2 sm:p-1.5 min-h-0 min-w-0 text-danger hover:bg-danger/10 rounded-lg shrink-0"
                           aria-label="Удалить товар"
-                        >
-                          <X className="w-5 h-5 sm:w-4 sm:h-4" />
-                        </button>
+                          icon={X}
+                        />
                       </div>
                     </div>
                   ))}
                 </div>
 
                 {/* Кнопка "Сохранить и далее" - большая, янтарная */}
-                <button
+                <TouchButton
+                  variant="primary"
+                  size="large"
+                  fullWidth
+                  loading={applying}
+                  disabled={applying || items.length === 0}
                   onClick={async () => {
                     if (!targetDepartment || items.length === 0) return
-                    
-                    // Проверка на старые даты (год < 2026)
                     const invalidItems = items.filter(item => {
                       const year = parseInt(item.expiryDate?.split('-')[0], 10)
                       return year < 2026
                     })
-                    
                     if (invalidItems.length > 0) {
                       addToast(`${invalidItems.length} товар(ов) с годом до 2026. Исправьте даты.`, 'error')
                       return
                     }
-                    
-                    // Сохраняем состояние ПЕРЕД началом операции (для восстановления формы после сохранения)
                     const currentTemplate = selectedTemplate
                     const wasFastMode = fastModeRef.current || fastIntakeMode
-                    
-                    // ЯВНО сохраняем быстрый режим в ref для надежности
                     fastModeRef.current = true
                     setFastIntakeMode(true)
-                    
                     setApplying(true)
                     try {
                       const result = await apiFetch(`/delivery-templates/${selectedTemplate.id}/apply`, {
@@ -656,14 +661,8 @@ export default function DeliveryTemplateModal({
                           departmentId: targetDepartment
                         })
                       })
-
                       if (result.success) {
-                        // 1. Сохраняем последний срок годности для автозаполнения
-                        if (items.length > 0) {
-                          setGlobalLastExpiry(items[0].expiryDate)
-                        }
-                        
-                        // 2. Добавляем товары в историю сессии
+                        if (items.length > 0) setGlobalLastExpiry(items[0].expiryDate)
                         const newHistoryEntries = items.map((item, idx) => ({
                           id: Date.now() + idx,
                           productName: item.productName,
@@ -672,27 +671,19 @@ export default function DeliveryTemplateModal({
                           timestamp: new Date()
                         }))
                         setSessionHistory(prev => [...newHistoryEntries, ...prev])
-                        
-                        // 3. Показываем уведомление
                         addToast(
-                          t('fastIntake.totalAdded', { count: items.length }) || 
-                          `Добавлено: ${items.length} позиций`,
+                          t('fastIntake.totalAdded', { count: items.length }) || `Добавлено: ${items.length} позиций`,
                           'success'
                         )
-                        
-                        // 4. Перезагружаем шаблон для следующей итерации
                         if (currentTemplate && wasFastMode) {
                           fastModeRef.current = true
                           setFastIntakeMode(true)
                           selectTemplate(currentTemplate)
                         }
-                        
-                        // 5. Обновляем инвентарь БЕЗ закрытия модалки
                         onFastApply?.(result.batches)
                       }
                     } catch (error) {
-                      const errorMessage = error?.message || t('toast.batchAddError') || 'Ошибка добавления партии'
-                      addToast(errorMessage, 'error')
+                      addToast(error?.message || t('toast.batchAddError') || 'Ошибка добавления партии', 'error')
                       if (fastIntakeMode || fastModeRef.current) {
                         setFastIntakeMode(true)
                         fastModeRef.current = true
@@ -701,15 +692,14 @@ export default function DeliveryTemplateModal({
                       setApplying(false)
                     }
                   }}
-                  disabled={applying || items.length === 0}
-                  className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-amber-500 text-white rounded-xl hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-bold text-lg touch-manipulation active:scale-[0.98]"
-                  aria-busy={applying}
+                  className="w-full gap-3 px-6 py-4 bg-amber-500 text-white hover:bg-amber-600 rounded-xl font-bold text-lg"
+                  icon={Check}
+                  iconPosition="left"
                   aria-label={t('fastIntake.saveAndNext') || 'Сохранить и далее'}
                 >
-                  {applying ? <ButtonLoader /> : <Check className="w-6 h-6" />}
                   {t('fastIntake.saveAndNext') || 'Сохранить и далее'}
                   <ArrowRight className="w-5 h-5" />
-                </button>
+                </TouchButton>
 
                 {/* История сессии - компактная, без редактирования */}
                 {sessionHistory.length > 0 && (
@@ -757,12 +747,14 @@ export default function DeliveryTemplateModal({
                     <h3 className="font-medium text-foreground">
                       {t('templates.products') || 'Товары'}
                     </h3>
-                    <button
+                    <TouchButton
+                      variant="ghost"
+                      size="small"
                       onClick={() => setSelectedTemplate(null)}
-                      className="text-sm text-primary-600 hover:underline"
+                      className="text-sm text-accent hover:underline min-h-0 h-auto"
                     >
                       {t('templates.changeTemplate') || 'Сменить шаблон'}
-                    </button>
+                    </TouchButton>
                   </div>
 
                   {items.map((item, index) => (
@@ -777,15 +769,16 @@ export default function DeliveryTemplateModal({
 
                       {/* Количество */}
                       <div className="flex items-center gap-2">
-                        <button
+                        <TouchButton
                           type="button"
+                          variant="secondary"
+                          size="small"
                           onClick={() =>
                             updateItem(index, 'quantity', Math.max(1, item.quantity - 1))
                           }
-                          className="p-1 rounded bg-muted hover:bg-muted/80"
-                        >
-                          <Minus className="w-4 h-4" />
-                        </button>
+                          className="p-1 min-h-0 min-w-0 rounded"
+                          icon={Minus}
+                        />
                         <input
                           type="number"
                           value={item.quantity}
@@ -795,13 +788,14 @@ export default function DeliveryTemplateModal({
                           className="w-16 text-center px-2 py-1 border border-border rounded bg-card text-foreground text-sm"
                           min="1"
                         />
-                        <button
+                        <TouchButton
                           type="button"
+                          variant="secondary"
+                          size="small"
                           onClick={() => updateItem(index, 'quantity', item.quantity + 1)}
-                          className="p-1 rounded bg-muted hover:bg-muted/80"
-                        >
-                          <Plus className="w-4 h-4" />
-                        </button>
+                          className="p-1 min-h-0 min-w-0 rounded"
+                          icon={Plus}
+                        />
                       </div>
 
                       {/* Срок годности */}
@@ -817,13 +811,14 @@ export default function DeliveryTemplateModal({
                       </div>
 
                       {/* Удалить */}
-                      <button
+                      <TouchButton
                         type="button"
+                        variant="ghost"
+                        size="small"
                         onClick={() => removeItem(index)}
-                        className="p-1 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 rounded"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
+                        className="p-1 min-h-0 min-w-0 text-danger hover:bg-danger/10 rounded"
+                        icon={X}
+                      />
                     </div>
                   ))}
                 </div>
@@ -838,21 +833,20 @@ export default function DeliveryTemplateModal({
                 {items.length} {t('templates.itemsToAdd') || 'позиций будет добавлено'}
               </div>
               <div className="flex gap-3">
-                <button
-                  onClick={onClose}
-                  className="px-4 py-2 text-muted-foreground hover:bg-muted rounded-lg transition-colors"
-                >
+                <TouchButton variant="ghost" size="small" onClick={onClose}>
                   {t('common.cancel')}
-                </button>
-                <button
+                </TouchButton>
+                <TouchButton
+                  variant="primary"
+                  size="small"
                   onClick={handleApply}
                   disabled={applying || items.length === 0}
-                  className="flex items-center gap-2 px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  aria-busy={applying}
+                  loading={applying}
+                  icon={Check}
+                  iconPosition="left"
                 >
-                  {applying ? <ButtonLoader /> : <Check className="w-4 h-4" />}
                   {t('templates.apply') || `Добавить ${items.length} позиций`}
-                </button>
+                </TouchButton>
               </div>
             </div>
           )}
@@ -866,12 +860,9 @@ export default function DeliveryTemplateModal({
                   : 'Выберите товар'
                 }
               </div>
-              <button
-                onClick={onClose}
-                className="px-4 py-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
-              >
+              <TouchButton variant="ghost" size="small" onClick={onClose}>
                 Закрыть
-              </button>
+              </TouchButton>
             </div>
           )}
         </div>

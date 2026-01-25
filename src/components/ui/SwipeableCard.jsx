@@ -89,7 +89,7 @@ export default function SwipeableCard({
             onClick={() => handleAction(onEdit)}
             className={cn(
               'flex items-center justify-center',
-              'bg-accent text-white',
+              'bg-accent-button text-white',
               'touch-manipulation transition-opacity',
               'min-h-[48px]'
             )}

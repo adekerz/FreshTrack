@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext'
 import { useTranslation, useLanguage } from '../context/LanguageContext'
 import { cn } from '../utils/classNames'
 import { mainNavItems, moreNavItems, filterNavByRole } from '../config/navigation'
+import { TouchButton } from './ui'
 
 export default function BottomNavigation() {
   const location = useLocation()
@@ -109,19 +110,21 @@ export default function BottomNavigation() {
                   { code: 'it', label: 'IT', flag: '🇮🇹' },
                   { code: 'ar', label: 'AR', flag: '🇸🇦' },
                 ].map((lang) => (
-                  <button
+                  <TouchButton
                     key={lang.code}
+                    variant="ghost"
+                    size="small"
                     onClick={() => changeLanguage(lang.code)}
                     className={cn(
-                      'flex items-center justify-center gap-1 px-2 py-2 text-xs font-medium rounded-lg transition-all min-h-[40px]',
-                      language === lang.code 
-                        ? 'bg-accent text-white shadow-sm' 
+                      'flex items-center justify-center gap-1 px-2 py-2 text-xs font-medium rounded-lg min-h-[40px] min-w-0',
+                      language === lang.code
+                        ? 'bg-accent-button text-white shadow-sm'
                         : 'bg-muted text-muted-foreground hover:bg-muted/80'
                     )}
                   >
                     <span>{lang.flag}</span>
                     <span>{lang.label}</span>
-                  </button>
+                  </TouchButton>
                 ))}
               </div>
             </div>
@@ -132,31 +135,35 @@ export default function BottomNavigation() {
                 location.pathname === path || (path !== '/' && location.pathname.startsWith(path))
 
               return (
-                <button
+                <TouchButton
                   key={path}
+                  variant="ghost"
                   onClick={() => handleNavClick(path)}
                   className={cn(
-                    'w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors',
+                    'w-full justify-start gap-3 px-4 py-3 rounded-lg h-auto min-h-[44px]',
                     isActive ? 'bg-accent/10 text-accent' : 'text-foreground hover:bg-muted'
                   )}
+                  icon={Icon}
+                  iconPosition="left"
                 >
-                  <Icon className="w-5 h-5" />
                   <span className="text-sm font-medium">{label}</span>
-                </button>
+                </TouchButton>
               )
             })}
 
             {/* Кнопка выхода */}
-            <button
+            <TouchButton
+              variant="ghost"
               onClick={() => {
                 setShowMore(false)
                 logout()
               }}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-danger hover:bg-danger/10 mt-2 border-t border-border pt-4"
+              className="w-full justify-start gap-3 px-4 py-3 rounded-lg text-danger hover:bg-danger/10 mt-2 border-t border-border pt-4 h-auto min-h-[44px]"
+              icon={LogOut}
+              iconPosition="left"
             >
-              <LogOut className="w-5 h-5" />
               <span className="text-sm font-medium">{t('header.signOut') || 'Выйти'}</span>
-            </button>
+            </TouchButton>
           </div>
         </div>
       )}
@@ -195,17 +202,14 @@ export default function BottomNavigation() {
             const isActive = index === activeIndex && !isMoreActive
 
             return (
-              <button
+              <TouchButton
                 key={path}
+                variant="ghost"
                 onClick={() => handleNavClick(path)}
                 aria-current={isActive ? 'page' : undefined}
                 aria-label={badge ? `${label}, ${badge} ${t('notifications.new') || 'new'}` : label}
                 className={cn(
-                  'flex flex-col items-center justify-center',
-                  'min-w-[64px] min-h-[56px] py-2 px-3', // Fitts's Law: 48px+ touch targets
-                  'rounded-lg transition-all',
-                  'active:scale-95 touch-manipulation',
-                  '-webkit-tap-highlight-color-transparent',
+                  'flex flex-col items-center justify-center min-w-[64px] min-h-[56px] py-2 px-3 rounded-lg h-auto',
                   isActive ? 'text-accent' : 'text-muted-foreground active:bg-muted'
                 )}
               >
@@ -214,20 +218,15 @@ export default function BottomNavigation() {
                     className={cn('w-6 h-6 transition-all duration-200', isActive && 'scale-110')}
                     strokeWidth={isActive ? 2.5 : 2}
                   />
-
                   {badge && (
                     <span
-                      className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] 
-                        flex items-center justify-center 
-                        bg-danger text-white text-[10px] font-bold 
-                        rounded-full px-1 animate-pulse-soft"
+                      className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] flex items-center justify-center bg-danger text-white text-[10px] font-bold rounded-full px-1 animate-pulse-soft"
                       aria-hidden="true"
                     >
                       {badge > 99 ? '99+' : badge}
                     </span>
                   )}
                 </div>
-
                 <span
                   className={cn(
                     'text-[10px] mt-1 font-medium transition-colors',
@@ -236,34 +235,23 @@ export default function BottomNavigation() {
                 >
                   {label}
                 </span>
-              </button>
+              </TouchButton>
             )
           })}
 
           {/* Кнопка "Ещё" */}
-          <button
+          <TouchButton
+            variant="ghost"
             onClick={() => setShowMore(!showMore)}
             aria-expanded={showMore}
             aria-haspopup="true"
             aria-label={t('nav.more') || 'More options'}
+            icon={showMore ? X : MoreHorizontal}
             className={cn(
-              'flex flex-col items-center justify-center',
-              'min-w-[64px] min-h-[56px] py-2 px-3',
-              'rounded-lg transition-all',
-              'active:scale-95 tap-highlight-transparent',
+              'flex flex-col items-center justify-center min-w-[64px] min-h-[56px] py-2 px-3 rounded-lg h-auto',
               showMore || isMoreActive ? 'text-accent' : 'text-muted-foreground active:bg-muted'
             )}
           >
-            <div className="relative">
-              {showMore ? (
-                <X className="w-6 h-6 transition-all duration-200" strokeWidth={2.5} />
-              ) : (
-                <MoreHorizontal
-                  className={cn('w-6 h-6 transition-all duration-200', isMoreActive && 'scale-110')}
-                  strokeWidth={isMoreActive ? 2.5 : 2}
-                />
-              )}
-            </div>
             <span
               className={cn(
                 'text-[10px] mt-1 font-medium transition-colors',
@@ -272,7 +260,7 @@ export default function BottomNavigation() {
             >
               {t('nav.more') || 'Ещё'}
             </span>
-          </button>
+          </TouchButton>
         </div>
       </nav>
     </>

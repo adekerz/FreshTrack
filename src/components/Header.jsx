@@ -17,6 +17,7 @@ import { useToast } from '../context/ToastContext'
 import GlobalSearch from './GlobalSearch'
 import NotificationBell from './NotificationBell'
 import HotelSelector from './HotelSelector'
+import { TouchButton } from './ui'
 import { cn } from '../utils/classNames'
 import { apiFetch } from '../services/api'
 
@@ -103,7 +104,7 @@ export default function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm border-b border-border">
+    <header className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm border-b border-border" role="banner">
       <div className="flex items-center justify-between h-14 sm:h-16 px-3 sm:px-6">
         {/* Left section - Hotel selector (visible on all sizes) */}
         <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-shrink">
@@ -118,46 +119,49 @@ export default function Header() {
         {/* Right section - Actions */}
         <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
           {/* Mobile search toggle */}
-          <button
+          <TouchButton
+            variant="ghost"
+            size="icon"
             onClick={() => setShowMobileSearch(true)}
-            className="sm:hidden p-2 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-colors touch-target"
+            className="sm:hidden text-muted-foreground hover:text-foreground"
             aria-label={t('search.open') || 'Search'}
-          >
-            <Search className="w-5 h-5" />
-          </button>
+            icon={Search}
+          />
 
           {/* Theme toggle */}
-          <button
+          <TouchButton
+            variant="ghost"
+            size="icon"
             onClick={toggleTheme}
-            className="p-2 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-colors"
+            className="text-muted-foreground hover:text-foreground"
             aria-label={theme === 'dark' ? t('theme.light') : t('theme.dark')}
-          >
-            {theme === 'dark' ? (
-              <Sun className="w-5 h-5" />
-            ) : (
-              <Moon className="w-5 h-5" />
-            )}
-          </button>
+            icon={theme === 'dark' ? Sun : Moon}
+          />
 
           {/* Notifications */}
           <NotificationBell />
 
           {/* Test Notification Button */}
-          <button
+          <TouchButton
+            variant="ghost"
+            size="icon"
             onClick={handleTestNotification}
             disabled={testingNotification}
-            className="p-2 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            loading={testingNotification}
+            className="text-muted-foreground hover:text-foreground"
             aria-label={t('notifications.test.label') || 'Тест уведомлений'}
             title={t('notifications.test.label') || 'Отправить тестовое уведомление'}
-          >
-            <Zap className={cn('w-5 h-5', testingNotification && 'animate-pulse')} />
-          </button>
+            icon={Zap}
+          />
 
           {/* User menu (desktop) */}
           <div className="relative hidden sm:block" data-user-menu>
-            <button
+            <TouchButton
+              variant="ghost"
               onClick={() => setShowUserMenu(!showUserMenu)}
-              className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted transition-colors"
+              className="flex items-center gap-2 p-2 min-h-[44px] rounded-lg hover:bg-muted"
+              aria-expanded={showUserMenu}
+              aria-haspopup="menu"
             >
               <div className="w-8 h-8 bg-accent/20 rounded-full flex items-center justify-center">
                 <span className="text-accent font-medium text-sm">
@@ -171,7 +175,7 @@ export default function Header() {
                 'w-4 h-4 text-muted-foreground transition-transform',
                 showUserMenu && 'rotate-180'
               )} />
-            </button>
+            </TouchButton>
 
             {/* Dropdown menu */}
             {showUserMenu && (
@@ -184,30 +188,34 @@ export default function Header() {
 
                 {/* Menu items */}
                 <div className="py-1">
-                  <button
+                  <TouchButton
+                    variant="ghost"
                     onClick={() => {
                       navigate('/settings')
                       setShowUserMenu(false)
                     }}
-                    className="w-full flex items-center gap-3 px-4 py-2 text-sm text-foreground hover:bg-muted transition-colors"
+                    className="w-full justify-start gap-3 px-4 py-2 text-sm h-auto min-h-[44px] rounded-none"
+                    icon={Settings}
+                    iconPosition="left"
                   >
-                    <Settings className="w-4 h-4" />
                     {t('nav.settings') || 'Settings'}
-                  </button>
+                  </TouchButton>
                 </div>
 
                 {/* Logout */}
                 <div className="border-t border-border pt-1">
-                  <button
+                  <TouchButton
+                    variant="ghost"
                     onClick={() => {
                       logout()
                       setShowUserMenu(false)
                     }}
-                    className="w-full flex items-center gap-3 px-4 py-2 text-sm text-danger hover:bg-danger/10 transition-colors"
+                    className="w-full justify-start gap-3 px-4 py-2 text-sm text-danger hover:bg-danger/10 h-auto min-h-[44px] rounded-none"
+                    icon={LogOut}
+                    iconPosition="left"
                   >
-                    <LogOut className="w-4 h-4" />
                     {t('header.signOut') || 'Sign out'}
-                  </button>
+                  </TouchButton>
                 </div>
               </div>
             )}
@@ -219,13 +227,14 @@ export default function Header() {
       {showMobileSearch && (
         <div className="fixed inset-0 z-50 bg-background sm:hidden animate-fade-in">
           <div className="flex items-center gap-3 p-3 border-b border-border">
-            <button
+            <TouchButton
+              variant="ghost"
+              size="icon"
               onClick={() => setShowMobileSearch(false)}
-              className="p-2 -ml-2 text-muted-foreground hover:text-foreground rounded-lg"
+              className="-ml-2 text-muted-foreground hover:text-foreground"
               aria-label={t('common.close') || 'Close'}
-            >
-              <X className="w-5 h-5" />
-            </button>
+              icon={X}
+            />
             <div className="flex-1">
               <GlobalSearch 
                 autoFocus 

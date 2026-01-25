@@ -1,12 +1,14 @@
 /**
  * TouchButton Component
- * Простой touch-оптимизированный button с Material Design стандартами
- * 48px минимальный размер, haptic feedback, active states
+ * Touch-optimized button (Apple HIG min 44×44px):
+ * - Minimum 44×44px touch target, active feedback, loading state
  */
 
 import { forwardRef } from 'react'
-import { ButtonLoader } from './GridLoader'
+import { Loader2 } from 'lucide-react'
 import { cn } from '../../utils/classNames'
+
+const sizeMap = { sm: 'small', md: 'default', default: 'default', lg: 'large', icon: 'icon' }
 
 const TouchButton = forwardRef(
   (
@@ -14,7 +16,7 @@ const TouchButton = forwardRef(
       children,
       onClick,
       variant = 'primary',
-      size = 'md',
+      size = 'default',
       icon: Icon,
       iconPosition = 'left',
       loading = false,
@@ -25,69 +27,31 @@ const TouchButton = forwardRef(
     },
     ref
   ) => {
+    const s = sizeMap[size] ?? size
+
     const handleClick = (e) => {
       if (disabled || loading) return
-
-      // Haptic feedback на поддерживаемых устройствах
-      if (navigator.vibrate) {
-        navigator.vibrate(10)
-      }
-
+      if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(10)
       onClick?.(e)
     }
 
     const variants = {
-      primary: cn(
-        'bg-accent text-white',
-        'hover:bg-accent/90',
-        'active:bg-accent/80',
-        'focus:ring-accent/50'
-      ),
-      secondary: cn(
-        'bg-muted text-foreground border border-border',
-        'hover:bg-muted/80',
-        'active:bg-muted/60',
-        'focus:ring-muted-foreground/30'
-      ),
-      ghost: cn(
-        'bg-transparent text-foreground',
-        'hover:bg-muted/50',
-        'active:bg-muted',
-        'focus:ring-muted-foreground/30'
-      ),
-      danger: cn(
-        'bg-danger text-white',
-        'hover:bg-danger/90',
-        'active:bg-danger/80',
-        'focus:ring-danger/50'
-      ),
-      success: cn(
-        'bg-success text-white',
-        'hover:bg-success/90',
-        'active:bg-success/80',
-        'focus:ring-success/50'
-      ),
-      outline: cn(
-        'bg-transparent border-2 border-accent text-accent',
-        'hover:bg-accent/5',
-        'active:bg-accent/10',
-        'focus:ring-accent/50'
-      )
+      primary: 'bg-accent-button text-white hover:bg-accent-button/90 focus:ring-accent/20',
+      secondary: 'bg-muted text-foreground hover:bg-muted/80 focus:ring-muted',
+      danger: 'bg-danger text-white hover:bg-danger/90 focus:ring-danger/20',
+      ghost: 'bg-transparent hover:bg-muted focus:ring-muted',
+      success: 'bg-success text-white hover:bg-success/90 focus:ring-success/20',
+      outline: 'bg-transparent border-2 border-accent text-accent hover:bg-accent/5 focus:ring-accent/20',
     }
 
     const sizes = {
-      sm: 'min-h-[40px] min-w-[40px] px-3 py-2 text-sm gap-1.5',
-      md: 'min-h-[48px] min-w-[48px] px-4 py-2.5 text-base gap-2',
-      lg: 'min-h-[56px] min-w-[56px] px-6 py-3 text-lg gap-2.5',
-      icon: 'min-h-[48px] min-w-[48px] p-0'
+      small: 'min-h-[36px] min-w-[36px] px-3 py-1.5 text-sm gap-1.5',
+      default: 'min-h-[44px] min-w-[44px] px-4 py-2.5 text-base gap-2',
+      large: 'min-h-[52px] min-w-[52px] px-6 py-3 text-lg gap-2.5',
+      icon: 'min-h-[44px] min-w-[44px] p-0',
     }
 
-    const iconSizes = {
-      sm: 'w-4 h-4',
-      md: 'w-5 h-5',
-      lg: 'w-6 h-6',
-      icon: 'w-6 h-6'
-    }
+    const iconSizes = { small: 'w-4 h-4', default: 'w-5 h-5', large: 'w-6 h-6', icon: 'w-5 h-5' }
 
     return (
       <button
@@ -95,46 +59,23 @@ const TouchButton = forwardRef(
         onClick={handleClick}
         disabled={disabled || loading}
         className={cn(
-          // Base styles
-          'inline-flex items-center justify-center',
-          'font-medium rounded-xl',
-          'transition-all duration-150',
-
-          // Touch optimizations
-          'touch-manipulation',
-          '-webkit-tap-highlight-color-transparent',
-          'select-none',
-
-          // Active state (scale down)
-          'active:scale-[0.97]',
-
-          // Focus state
-          'focus:outline-none focus:ring-2 focus:ring-offset-2',
-
-          // Disabled state
+          'inline-flex items-center justify-center font-medium rounded-lg',
+          'transition-all duration-150 touch-manipulation select-none',
+          '[&::-webkit-tap-highlight-color]:transparent',
+          'active:scale-95 focus:outline-none focus:ring-2 focus:ring-offset-2',
           'disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100',
-
-          // Variant & Size
-          variants[variant],
-          sizes[size],
-
-          // Width
+          variants[variant] ?? variants.primary,
+          sizes[s] ?? sizes.default,
           fullWidth && 'w-full',
-
           className
         )}
         aria-busy={loading}
         {...props}
       >
-        {loading ? (
-          <ButtonLoader />
-        ) : (
-          <>
-            {Icon && iconPosition === 'left' && <Icon className={iconSizes[size]} />}
-            {children}
-            {Icon && iconPosition === 'right' && <Icon className={iconSizes[size]} />}
-          </>
-        )}
+        {loading && <Loader2 className={cn('animate-spin flex-shrink-0', iconSizes[s] ?? 'w-5 h-5')} />}
+        {!loading && Icon && iconPosition === 'left' && <Icon className={iconSizes[s] ?? 'w-5 h-5'} />}
+        {!loading && children}
+        {!loading && Icon && iconPosition === 'right' && <Icon className={iconSizes[s] ?? 'w-5 h-5'} />}
       </button>
     )
   }

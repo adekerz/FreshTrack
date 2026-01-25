@@ -23,8 +23,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.json" />
 
-    <!-- Preconnect to external domains for performance -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <!-- Preconnect to external domains for performance (crossorigin so preconnect is used for font CSS) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 
     <!-- Preload critical fonts -->
@@ -32,10 +32,12 @@
       rel="preload"
       as="style"
       href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Inter:wght@400;500;600&display=swap"
+      crossorigin
     />
     <link
       href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Inter:wght@400;500;600&display=swap"
       rel="stylesheet"
+      crossorigin
     />
 
     <title>FreshTrack | Enterprise Inventory Management</title>

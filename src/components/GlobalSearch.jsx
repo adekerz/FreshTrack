@@ -165,8 +165,11 @@ export default function GlobalSearch({ onSearch, autoFocus = false, fullWidth = 
     <div className={cn("relative", fullWidth && "w-full")} ref={containerRef}>
       {/* Поле поиска */}
       <div
+        role="button"
+        tabIndex={0}
+        aria-label={t('search.placeholder')}
         className={cn(
-          'flex items-center gap-2 px-4 py-2 rounded-lg border transition-all cursor-pointer',
+          'flex items-center gap-2 px-4 min-h-[44px] py-2 rounded-lg border transition-all cursor-pointer touch-manipulation',
           fullWidth 
             ? 'bg-card border-border w-full'
             : isOpen
@@ -177,8 +180,15 @@ export default function GlobalSearch({ onSearch, autoFocus = false, fullWidth = 
           setIsOpen(true)
           setTimeout(() => inputRef.current?.focus(), 100)
         }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            setIsOpen(true)
+            setTimeout(() => inputRef.current?.focus(), 100)
+          }
+        }}
       >
-        <Search className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+        <Search className="w-4 h-4 text-muted-foreground flex-shrink-0" aria-hidden />
 
         {(isOpen || fullWidth) ? (
           <input
@@ -196,13 +206,15 @@ export default function GlobalSearch({ onSearch, autoFocus = false, fullWidth = 
 
         {(isOpen || fullWidth) && query && (
           <button
+            type="button"
             onClick={(e) => {
               e.stopPropagation()
               setQuery('')
             }}
-            className="p-0.5 hover:bg-muted rounded"
+            className="min-h-[44px] min-w-[44px] flex items-center justify-center hover:bg-muted rounded touch-manipulation"
+            aria-label={t('search.clear') || 'Clear search'}
           >
-            <X className="w-3 h-3 text-muted-foreground" />
+            <X className="w-4 h-4 text-muted-foreground" />
           </button>
         )}
       </div>
@@ -227,9 +239,10 @@ export default function GlobalSearch({ onSearch, autoFocus = false, fullWidth = 
                   </div>
                   {results.products.map((product, index) => (
                     <button
+                      type="button"
                       key={`${product.id}-${product.departmentId}-${index}`}
                       onClick={() => handleProductClick(product)}
-                      className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted transition-colors text-left"
+                      className="w-full flex items-center gap-3 px-3 min-h-[44px] py-2 rounded-lg hover:bg-muted transition-colors text-left touch-manipulation"
                     >
                       <Package className="w-4 h-4 text-accent flex-shrink-0" />
                       <div className="flex-1 min-w-0">
@@ -259,9 +272,10 @@ export default function GlobalSearch({ onSearch, autoFocus = false, fullWidth = 
                   </div>
                   {results.departments.map((dept) => (
                     <button
+                      type="button"
                       key={dept.id}
                       onClick={() => handleDepartmentClick(dept)}
-                      className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted transition-colors text-left"
+                      className="w-full flex items-center gap-3 px-3 min-h-[44px] py-2 rounded-lg hover:bg-muted transition-colors text-left touch-manipulation"
                     >
                       <Store className="w-4 h-4 flex-shrink-0" style={{ color: dept.color }} />
                       <div className="flex-1 min-w-0">

@@ -5,13 +5,14 @@ import ProtectedRoute from './components/ProtectedRoute'
 import ErrorBoundary from './components/ErrorBoundary'
 import Layout from './components/Layout'
 import { PageLoader, FullscreenLoader, Loader } from './components/ui'
+import MobileDebugHelper from './components/dev/MobileDebugHelper'
 
-// Eager loading для критичных страниц
+// Eager loading для критичных страниц (auth, change password)
 import LoginPage from './pages/LoginPage'
-import DashboardPage from './pages/DashboardPage'
 import ChangePasswordPage from './pages/ChangePasswordPage'
 
-// Lazy loading для вторичных страниц (уменьшает initial bundle)
+// Lazy loading для страниц (Phase 5 — code splitting, не загружаются пока не нужны)
+const DashboardPage = lazy(() => import('./pages/DashboardPage'))
 const RegisterPage = lazy(() => import('./pages/RegisterPage'))
 const PendingApprovalPage = lazy(() => import('./pages/PendingApprovalPage'))
 const InventoryPage = lazy(() => import('./pages/InventoryPage'))
@@ -85,10 +86,12 @@ function App() {
   }
 
   return (
-    <ErrorBoundary>
-      <Layout>
-        <Suspense fallback={<SuspenseFallback />}>
-          <Routes>
+    <>
+      {process.env.NODE_ENV === 'development' && <MobileDebugHelper />}
+      <ErrorBoundary>
+        <Layout>
+          <Suspense fallback={<SuspenseFallback />}>
+            <Routes>
             {/* Общедоступные страницы (для всех авторизованных) */}
             <Route path="/" element={<DashboardPage />} />
             <Route path="/change-password" element={<ChangePasswordPage />} />
@@ -142,6 +145,7 @@ function App() {
         </Suspense>
       </Layout>
     </ErrorBoundary>
+    </>
   )
 }
 

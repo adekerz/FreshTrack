@@ -14,7 +14,7 @@ import {
 import { useAuth } from '../context/AuthContext'
 import { useTranslation } from '../context/LanguageContext'
 import { useToast } from '../context/ToastContext'
-import { Input, Button, ButtonLoader } from '../components/ui'
+import { Input, TouchButton, ButtonLoader } from '../components/ui'
 import { apiFetch } from '../services/api'
 
 export default function RegisterPage() {
@@ -399,20 +399,17 @@ export default function RegisterPage() {
             </div>
 
             <div className="pt-4 animate-fade-in-up" style={{ animationDelay: '350ms' }}>
-              <Button
+              <TouchButton
                 type="submit"
                 variant="primary"
-                size="lg"
+                size="large"
                 loading={isLoading}
-                className="w-full"
+                fullWidth
+                icon={ArrowRight}
+                iconPosition="right"
               >
-                {!isLoading && (
-                  <>
-                    <span>{t('auth.createAccount')}</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </>
-                )}
-              </Button>
+                {t('auth.createAccount')}
+              </TouchButton>
             </div>
 
             <div className="text-center animate-fade-in-up" style={{ animationDelay: '350ms' }}>

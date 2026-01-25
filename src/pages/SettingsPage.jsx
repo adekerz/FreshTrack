@@ -6,6 +6,7 @@
  */
 
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useTranslation, useLanguage } from '../context/LanguageContext'
 import { useOnboarding } from '../context/OnboardingContext'
@@ -44,6 +45,11 @@ import BrandingSettings from '../components/settings/BrandingSettings'
 import JoinRequestsSettings from '../components/settings/JoinRequestsSettings'
 import CacheManagement from '../components/settings/CacheManagement'
 
+const SETTINGS_TAB_IDS = new Set([
+  'profile', 'language', 'general', 'users', 'join-requests', 'directories',
+  'templates', 'rules', 'notifications', 'branding', 'cache', 'import-export', 'system'
+])
+
 export default function SettingsPage() {
   const { t } = useTranslation()
   const {
@@ -59,9 +65,15 @@ export default function SettingsPage() {
   const { language, changeLanguage } = useLanguage()
   const { startOnboarding, resetOnboarding } = useOnboarding()
   const { addToast } = useToast()
+  const [searchParams] = useSearchParams()
   const [activeTab, setActiveTab] = useState('profile')
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState(null)
+
+  useEffect(() => {
+    const tab = searchParams.get('tab')
+    if (tab && SETTINGS_TAB_IDS.has(tab)) setActiveTab(tab)
+  }, [searchParams])
   
   // Состояние для профиля
   const [profileData, setProfileData] = useState({

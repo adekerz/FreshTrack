@@ -287,35 +287,35 @@ export default function FastIntakeModal({
         }}
       />
 
-      {/* Modal */}
-      <div className="flex min-h-full items-center justify-center p-4">
-        <div className="relative bg-card rounded-2xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-hidden">
-          {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-border">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-900/30">
+      {/* Modal — mobile: slide-up bottom sheet; desktop: centered */}
+      <div className="flex min-h-full items-end sm:items-center justify-center p-0 sm:p-4">
+        <div className="relative bg-card rounded-t-2xl sm:rounded-2xl shadow-xl w-full sm:max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+          {/* Header — sticky on mobile */}
+          <div className="sticky top-0 z-10 flex items-center justify-between p-4 sm:p-6 border-b border-border flex-shrink-0 bg-card">
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-900/30 shrink-0">
                 <Zap className="w-5 h-5 text-amber-600 dark:text-amber-400" />
               </div>
-              <div>
-                <h2 className="text-lg font-semibold text-foreground">
+              <div className="min-w-0">
+                <h2 className="text-lg font-semibold text-foreground truncate">
                   {t('fastIntake.title') || 'Быстрый ввод'}
                 </h2>
                 {template && (
-                  <p className="text-sm text-gray-500">{template.name}</p>
+                  <p className="text-sm text-gray-500 truncate">{template.name}</p>
                 )}
               </div>
             </div>
-            
-            <button 
-              onClick={onClose} 
-              className="p-2 hover:bg-muted rounded-lg transition-colors"
+            <button
+              onClick={onClose}
+              className="flex items-center justify-center min-h-[44px] min-w-[44px] p-2 hover:bg-muted rounded-lg transition-colors touch-manipulation shrink-0"
+              aria-label={t('common.close') || 'Закрыть'}
             >
               <X className="w-5 h-5 text-gray-500" />
             </button>
           </div>
 
-          {/* Content */}
-          <div className="p-6 overflow-y-auto max-h-[calc(90vh-180px)]">
+          {/* Content — scrollable */}
+          <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6">
             {loading ? (
               <SectionLoader />
             ) : !template ? (

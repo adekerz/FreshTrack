@@ -7,6 +7,7 @@
 import { useState } from 'react'
 import { Plus } from 'lucide-react'
 import { cn } from '../../utils/classNames'
+import TouchButton from './TouchButton'
 
 export default function FAB({
   onClick,
@@ -20,7 +21,7 @@ export default function FAB({
   loading = false,
 }) {
   const variants = {
-    primary: 'bg-accent text-white shadow-lg hover:bg-accent/90 active:bg-accent/80',
+    primary: 'bg-accent-button text-white shadow-lg hover:bg-accent-button/90 active:bg-accent-button/80',
     secondary: 'bg-card text-foreground shadow-lg border border-border hover:bg-muted',
     danger: 'bg-danger text-white shadow-lg hover:bg-danger/90 active:bg-danger/80',
   }
@@ -47,46 +48,35 @@ export default function FAB({
   }
 
   return (
-    <button
+    <TouchButton
       onClick={onClick}
       disabled={disabled || loading}
+      loading={loading}
       aria-label={label}
+      variant={variant === 'primary' ? 'primary' : variant === 'danger' ? 'danger' : 'secondary'}
+      size="icon"
+      icon={size === 'extended' ? undefined : Icon}
       className={cn(
         'fixed z-30',
         'flex items-center justify-center gap-2',
         'rounded-full',
-        'transition-all duration-200',
-        'touch-manipulation',
-        'active:scale-95',
-        'focus:outline-none focus:ring-2 focus:ring-accent/50 focus:ring-offset-2',
-        'disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100',
         variants[variant],
-        size === 'extended' ? sizes.extended : `${sizes[size]} rounded-full`,
+        size === 'extended' ? `${sizes.extended} rounded-full` : sizes[size],
         positions[position],
-        'safe-bottom', // Safe area для notch устройств
+        'safe-bottom',
         className
       )}
       style={{
-        // Дополнительный отступ для safe area на iOS
         bottom: 'calc(5rem + env(safe-area-inset-bottom, 0px))',
       }}
     >
-      {loading ? (
-        <div className="animate-spin">
-          <div className={cn(
-            'border-2 border-current border-t-transparent rounded-full',
-            iconSizes[size]
-          )} />
-        </div>
-      ) : (
+      {size === 'extended' && !loading && (
         <>
-          <Icon className={iconSizes[size]} strokeWidth={2.5} />
-          {size === 'extended' && (
-            <span className="font-medium text-sm">{label}</span>
-          )}
+          <Icon className={iconSizes.extended} strokeWidth={2.5} />
+          <span className="font-medium text-sm">{label}</span>
         </>
       )}
-    </button>
+    </TouchButton>
   )
 }
 
@@ -132,48 +122,31 @@ export function SpeedDial({
             <span className="bg-card shadow-md px-3 py-1.5 rounded-lg text-sm font-medium text-foreground">
               {action.label}
             </span>
-            <button
+            <TouchButton
+              variant="secondary"
+              size="icon"
               onClick={() => handleAction(action)}
-              className={cn(
-                'h-12 w-12 rounded-full',
-                'bg-card shadow-lg',
-                'flex items-center justify-center',
-                'text-foreground',
-                'transition-all duration-200',
-                'touch-manipulation active:scale-95',
-                'hover:bg-muted'
-              )}
+              className="h-12 w-12 rounded-full bg-card shadow-lg"
               aria-label={action.label}
-            >
-              <action.icon className="w-5 h-5" />
-            </button>
+              icon={action.icon}
+            />
           </div>
         ))}
       </div>
 
       {/* Main FAB */}
-      <button
+      <TouchButton
+        variant="primary"
+        size="icon"
         onClick={toggleOpen}
         aria-expanded={isOpen}
         aria-label={label}
         className={cn(
-          'relative z-30',
-          'h-14 w-14 rounded-full',
-          'bg-accent text-white shadow-lg',
-          'flex items-center justify-center',
-          'transition-all duration-200',
-          'touch-manipulation active:scale-95',
-          'focus:outline-none focus:ring-2 focus:ring-accent/50 focus:ring-offset-2'
+          'relative z-30 h-14 w-14 rounded-full shadow-lg',
+          isOpen && '[&>svg]:rotate-45'
         )}
-      >
-        <MainIcon
-          className={cn(
-            'w-6 h-6 transition-transform duration-200',
-            isOpen && 'rotate-45'
-          )}
-          strokeWidth={2.5}
-        />
-      </button>
+        icon={MainIcon}
+      />
     </div>
   )
 }

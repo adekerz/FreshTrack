@@ -5,6 +5,16 @@
 /* ===== CSS CUSTOM PROPERTIES - MATERIAL DESIGN BASED ===== */
 @layer base {
   :root {
+    /* Mobile-first typography */
+    --font-size-xs: 0.75rem;
+    --font-size-sm: 0.875rem;
+    --font-size-base: 1rem;
+    --font-size-lg: 1.125rem;
+    --font-size-xl: 1.25rem;
+    --font-size-2xl: 1.5rem;
+    --font-size-3xl: 1.875rem;
+    --font-size-4xl: 2.25rem;
+
     /* Light theme - FreshTrack brand colors */
     --background: 250 248 245;         /* #FAF8F5 cream */
     --foreground: 26 26 26;            /* #1A1A1A charcoal */
@@ -116,9 +126,31 @@ button:active, .touchable:active, [role="button"]:active {
 
 body {
   font-family: 'Inter', sans-serif;
+  font-size: var(--font-size-base);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   background-color: rgb(var(--background));
   color: rgb(var(--foreground));
   transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+h1 { font-size: var(--font-size-3xl); line-height: 1.2; }
+h2 { font-size: var(--font-size-2xl); line-height: 1.3; }
+h3 { font-size: var(--font-size-xl); line-height: 1.4; }
+h4 { font-size: var(--font-size-lg); line-height: 1.5; }
+
+.touch-spacing { padding: 1rem; }
+
+/* Desktop typography scale-up */
+@media (min-width: 768px) {
+  :root {
+    --font-size-base: 0.9375rem;
+    --font-size-2xl: 1.75rem;
+    --font-size-3xl: 2rem;
+    --font-size-4xl: 2.5rem;
+  }
+  .touch-spacing { padding: 1.5rem; }
 }
 
 /* Custom scrollbar - Light mode */
@@ -137,6 +169,18 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: rgb(var(--muted-foreground) / 0.5);
+}
+
+/* Hide scrollbar on mobile but keep functionality (Phase 6.1) */
+@media (max-width: 768px) {
+  * {
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
+  }
+
+  *::-webkit-scrollbar {
+    display: none; /* Chrome/Safari */
+  }
 }
 
 /* Animations */
@@ -309,7 +353,26 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   .safe-right {
     padding-right: env(safe-area-inset-right);
   }
-  
+
+  /* Safe area insets for iPhone notch / bottom bar (Phase 6.2) */
+  @supports (padding: max(0px)) {
+    .safe-area-inset-top {
+      padding-top: max(1rem, env(safe-area-inset-top));
+    }
+
+    .safe-area-inset-bottom {
+      padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+    }
+
+    .safe-area-inset-left {
+      padding-left: max(1rem, env(safe-area-inset-left));
+    }
+
+    .safe-area-inset-right {
+      padding-right: max(1rem, env(safe-area-inset-right));
+    }
+  }
+
   /* Touch-friendly targets - Material Design 48px minimum */
   .touch-target {
     @apply min-h-[48px] min-w-[48px];

@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import Sidebar from './Sidebar'
+import MobileSidebar from './layout/MobileSidebar'
+import MobileBottomNav from './layout/MobileBottomNav'
 import Header from './Header'
-import BottomNavigation from './BottomNavigation'
 import NotificationPermissionBanner from './NotificationPermissionBanner'
 import Breadcrumbs from './Breadcrumbs'
 import OnboardingTour from './OnboardingTour'
@@ -10,6 +11,7 @@ import { useTranslation } from '../context/LanguageContext'
 
 export default function Layout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
   const { t } = useTranslation()
 
   return (
@@ -26,6 +28,20 @@ export default function Layout({ children }) {
         {t('a11y.skipToContent') || 'Skip to main content'}
       </a>
 
+      {/* Mobile Sidebar - hamburger, slide-in, swipe-to-close */}
+      <MobileSidebar
+        isOpen={mobileSidebarOpen}
+        onClose={() => setMobileSidebarOpen(false)}
+        onOpen={() => setMobileSidebarOpen(true)}
+      >
+        <Sidebar
+          isMobile
+          embedded
+          isOpen
+          onClose={() => setMobileSidebarOpen(false)}
+        />
+      </MobileSidebar>
+
       {/* Desktop Sidebar - скрыт на мобильных */}
       <div className="hidden sm:block">
         <Sidebar isOpen={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} />
@@ -39,8 +55,8 @@ export default function Layout({ children }) {
         </div>
       </main>
 
-      {/* Bottom Navigation - только на мобильных */}
-      <BottomNavigation />
+      {/* Mobile bottom nav - только < lg (Phase 4) */}
+      <MobileBottomNav />
 
       {/* Push Notification Permission Banner */}
       <NotificationPermissionBanner />

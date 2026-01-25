@@ -289,7 +289,7 @@ export default function ChangePasswordPage() {
                 type="submit"
                 disabled={loading || !Object.values(validation).every(v => v === true)}
                 className={cn(
-                  "flex-1 px-6 py-3 bg-accent text-white rounded-lg hover:bg-accent/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium",
+                  "flex-1 px-6 py-3 bg-accent-button text-white rounded-lg hover:bg-accent-button/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium",
                   !Object.values(validation).every(v => v === true) && "opacity-50 cursor-not-allowed"
                 )}
               >

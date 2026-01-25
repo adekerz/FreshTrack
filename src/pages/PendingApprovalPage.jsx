@@ -4,7 +4,7 @@ import { Leaf, Clock, RefreshCw, LogOut, CheckCircle, XCircle, Building2 } from 
 import { useTranslation } from '../context/LanguageContext'
 import { useAuth } from '../context/AuthContext'
 import { apiFetch } from '../services/api'
-import { Button } from '../components/ui'
+import { TouchButton } from '../components/ui'
 
 export default function PendingApprovalPage() {
   const navigate = useNavigate()
@@ -170,10 +170,9 @@ export default function PendingApprovalPage() {
                   <p className="text-sm">{status.data.notes}</p>
                 </div>
               )}
-              <Button onClick={handleLogout} variant="outline" className="w-full">
-                <LogOut className="w-4 h-4 mr-2" />
+              <TouchButton onClick={handleLogout} variant="outline" fullWidth icon={LogOut} iconPosition="left">
                 {t('pending.backToLogin') || 'Вернуться к входу'}
-              </Button>
+              </TouchButton>
             </div>
           )}
 
@@ -204,15 +203,16 @@ export default function PendingApprovalPage() {
               )}
 
               <div className="flex flex-col gap-3">
-                <Button
+                <TouchButton
                   onClick={checkStatus}
                   variant="outline"
                   loading={isRefreshing}
-                  className="w-full"
+                  fullWidth
+                  icon={RefreshCw}
+                  iconPosition="left"
                 >
-                  {!isRefreshing && <RefreshCw className="w-4 h-4 mr-2" />}
                   {t('pending.checkStatus') || 'Проверить статус'}
-                </Button>
+                </TouchButton>
 
                 {lastChecked && (
                   <p className="text-xs text-muted-foreground">
@@ -221,10 +221,9 @@ export default function PendingApprovalPage() {
                 )}
 
                 <div className="border-t border-border pt-4 mt-2">
-                  <Button onClick={handleLogout} variant="ghost" size="sm" className="w-full">
-                    <LogOut className="w-4 h-4 mr-2" />
+                  <TouchButton onClick={handleLogout} variant="ghost" size="small" fullWidth icon={LogOut} iconPosition="left">
                     {t('pending.logout') || 'Выйти из аккаунта'}
-                  </Button>
+                  </TouchButton>
                 </div>
               </div>
             </div>
@@ -239,19 +238,19 @@ export default function PendingApprovalPage() {
               <h1 className="font-serif text-2xl mb-2">Ошибка загрузки</h1>
               <p className="text-muted-foreground mb-6">{status.error}</p>
               <div className="flex flex-col gap-3">
-                <Button
+                <TouchButton
                   onClick={checkStatus}
                   variant="outline"
                   loading={isRefreshing}
-                  className="w-full"
+                  fullWidth
+                  icon={RefreshCw}
+                  iconPosition="left"
                 >
-                  {!isRefreshing && <RefreshCw className="w-4 h-4 mr-2" />}
                   Повторить
-                </Button>
-                <Button onClick={handleLogout} variant="ghost" size="sm" className="w-full">
-                  <LogOut className="w-4 h-4 mr-2" />
+                </TouchButton>
+                <TouchButton onClick={handleLogout} variant="ghost" size="small" fullWidth icon={LogOut} iconPosition="left">
                   {t('pending.logout') || 'Выйти из аккаунта'}
-                </Button>
+                </TouchButton>
               </div>
             </div>
           )}

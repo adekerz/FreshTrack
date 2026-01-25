@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { X, Plus, Check, Calendar, Package, User, Trash2, AlertTriangle, Zap } from 'lucide-react'
-import { ButtonLoader } from './ui'
+import { ButtonLoader, TouchButton } from './ui'
 import { useProducts, categories } from '../context/ProductContext'
 import { useAuth } from '../context/AuthContext'
 import { useTranslation, useLanguage } from '../context/LanguageContext'
@@ -190,32 +190,37 @@ export default function ProductModal({ product, onClose }) {
           <div className="flex items-center gap-2">
             {/* FIFO Quick Collection Button - только если есть партии с количеством */}
             {totalAvailableQuantity > 0 && (
-              <button
+              <TouchButton
+                variant="primary"
+                size="small"
                 onClick={() => setShowFIFOModal(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-warning text-white rounded-lg hover:bg-warning/90 transition-colors shadow-sm"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-warning text-white hover:bg-warning/90 shadow-sm"
                 title={t('fifoCollect.title') || 'FIFO Списание'}
+                icon={Zap}
+                iconPosition="left"
               >
-                <Zap className="w-4 h-4" />
                 <span className="hidden sm:inline">
                   {t('fifoCollect.title') || 'FIFO Списание'}
                 </span>
-              </button>
+              </TouchButton>
             )}
             {canDeleteProduct && (
-              <button
+              <TouchButton
+                variant="ghost"
+                size="icon"
                 onClick={() => setShowDeleteConfirm(true)}
-                className="text-muted-foreground hover:text-danger transition-colors p-2"
+                className="text-muted-foreground hover:text-danger p-2 min-w-0 min-h-0"
                 title={t('product.delete') || 'Удалить товар'}
-              >
-                <Trash2 className="w-5 h-5" />
-              </button>
+                icon={Trash2}
+              />
             )}
-            <button
+            <TouchButton
+              variant="ghost"
+              size="icon"
               onClick={onClose}
-              className="text-muted-foreground hover:text-foreground transition-colors p-2"
-            >
-              <X className="w-5 h-5" />
-            </button>
+              className="text-muted-foreground hover:text-foreground p-2 min-w-0 min-h-0"
+              icon={X}
+            />
           </div>
         </div>
 
@@ -303,24 +308,23 @@ export default function ProductModal({ product, onClose }) {
                       {/* Кнопка удаления - только для админов и менеджеров (не STAFF) */}
                       {!userIsStaff && (
                         <div className="flex items-center gap-2">
-                          <button
+                          <TouchButton
+                            variant="ghost"
+                            size="small"
                             onClick={() => {
-                              // ✨ React Query mutation with optimistic update
                               deleteBatchMutation(batch.id, {
                                 onSuccess: () => {
                                   addToast(t('toast.batchDeleted') || 'Партия удалена', 'success')
-                                  // React Query автоматически обновит список
                                 },
-                                onError: (error) => {
+                                onError: () => {
                                   addToast(t('toast.batchDeleteError') || 'Ошибка удаления', 'error')
                                 }
                               })
                             }}
-                            className="p-1.5 text-muted-foreground hover:text-danger transition-colors"
+                            className="p-1.5 min-w-0 min-h-0 text-muted-foreground hover:text-danger"
                             title={t('common.delete')}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                            icon={Trash2}
+                          />
                         </div>
                       )}
                     </div>
@@ -442,19 +446,23 @@ export default function ProductModal({ product, onClose }) {
                   </div>
                 </div>
                 <div className="flex gap-2 justify-end">
-                  <button
+                  <TouchButton
                     type="button"
+                    variant="ghost"
+                    size="small"
                     onClick={() => setShowAddForm(false)}
-                    className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground"
                   >
                     {t('common.cancel')}
-                  </button>
-                  <button
+                  </TouchButton>
+                  <TouchButton
                     type="submit"
-                    className="px-4 py-2 text-sm bg-accent text-white rounded hover:bg-accent/90 transition-colors"
+                    variant="primary"
+                    size="small"
+                    className="px-4 py-2 text-sm"
                   >
                     {t('common.add')}
-                  </button>
+                  </TouchButton>
                 </div>
               </form>
             </div>
@@ -464,13 +472,16 @@ export default function ProductModal({ product, onClose }) {
         {/* Футер */}
         <div className="p-4 sm:p-6 border-t border-border bg-muted safe-bottom">
           {!showAddForm && (
-            <button
+            <TouchButton
+              variant="primary"
+              fullWidth
               onClick={() => setShowAddForm(true)}
-              className="w-full flex items-center justify-center gap-2 py-3 bg-foreground text-background rounded-lg hover:bg-foreground/90 transition-colors"
+              className="bg-foreground text-background hover:bg-foreground/90"
+              icon={Plus}
+              iconPosition="left"
             >
-              <Plus className="w-5 h-5" />
               {t('product.addBatch')}
-            </button>
+            </TouchButton>
           )}
         </div>
       </div>
@@ -497,22 +508,25 @@ export default function ProductModal({ product, onClose }) {
             </p>
 
             <div className="flex gap-3">
-              <button
+              <TouchButton
+                variant="secondary"
+                fullWidth
                 onClick={() => setShowDeleteConfirm(false)}
                 disabled={isDeletingProduct}
-                className="flex-1 px-4 py-2 border border-border rounded-lg text-foreground hover:bg-muted transition-colors disabled:opacity-50"
               >
                 {t('common.cancel') || 'Отмена'}
-              </button>
-              <button
+              </TouchButton>
+              <TouchButton
+                variant="danger"
+                fullWidth
                 onClick={handleDeleteProduct}
                 disabled={isDeletingProduct}
-                className="flex-1 px-4 py-2 bg-danger text-white rounded-lg hover:bg-danger/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                aria-busy={isDeletingProduct}
+                loading={isDeletingProduct}
+                icon={Trash2}
+                iconPosition="left"
               >
-                {isDeletingProduct ? <ButtonLoader /> : <Trash2 className="w-4 h-4" />}
                 {t('common.delete') || 'Удалить'}
-              </button>
+              </TouchButton>
             </div>
           </div>
         </div>

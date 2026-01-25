@@ -262,7 +262,7 @@ export default function BrandingSettings() {
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploadingLogo}
-                className="flex items-center gap-2 px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent/90 disabled:opacity-50 transition-colors focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
+                className="flex items-center gap-2 px-4 py-2 bg-accent-button text-white rounded-lg hover:bg-accent-button/90 disabled:opacity-50 transition-colors focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
                 aria-busy={uploadingLogo}
               >
                 {uploadingLogo ? <ButtonLoader /> : <Upload className="w-4 h-4" aria-hidden="true" />}

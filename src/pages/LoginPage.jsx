@@ -13,7 +13,7 @@ import {
 import { useAuth } from '../context/AuthContext'
 import { useTranslation } from '../context/LanguageContext'
 import { useToast } from '../context/ToastContext'
-import { Input, Button, ButtonLoader } from '../components/ui'
+import { Input, TouchButton, ButtonLoader } from '../components/ui'
 import { API_BASE_URL } from '../services/api'
 
 export default function LoginPage() {
@@ -207,20 +207,17 @@ export default function LoginPage() {
             </div>
 
             <div className="animate-fade-in-up pt-2" style={{ animationDelay: '300ms' }}>
-              <Button
+              <TouchButton
                 type="submit"
                 variant="primary"
-                size="lg"
+                size="large"
                 loading={isLoading}
-                className="w-full"
+                fullWidth
+                icon={ArrowRight}
+                iconPosition="right"
               >
-                {!isLoading && (
-                  <>
-                    <span>{t('auth.signIn')}</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </>
-                )}
-              </Button>
+                {t('auth.signIn')}
+              </TouchButton>
             </div>
 
             <div

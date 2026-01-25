@@ -27,7 +27,8 @@ import DepartmentSelector from '../components/DepartmentSelector'
 import ExportButton from '../components/ExportButton'
 import { EXPORT_COLUMNS } from '../utils/exportUtils'
 import { SkeletonInventory, Skeleton } from '../components/Skeleton'
-import { Loader, ConfirmDialog } from '../components/ui'
+import { Loader, ConfirmDialog, TouchButton } from '../components/ui'
+import { usePullToRefresh } from '../hooks/usePullToRefresh'
 
 // Иконки для отделов - универсальный маппинг
 const ICON_MAP = {
@@ -67,6 +68,7 @@ export default function InventoryPage() {
   const { getProductsByDepartment, catalog, refresh, departments, categories, loading } =
     useProducts()
   const { selectedHotelId } = useHotel()
+  const { isRefreshing, pullDistance } = usePullToRefresh(refresh)
   const { user, isStaff, isSuperAdmin } = useAuth()
   const { addToast } = useToast()
   const prevHotelIdRef = useRef(selectedHotelId)
@@ -420,12 +422,13 @@ export default function InventoryPage() {
                 'Для этого отеля ещё не созданы отделы. Создайте отдел в настройках.'}
             </p>
           </div>
-          <button
+          <TouchButton
+            variant="primary"
             onClick={() => navigate('/settings')}
-            className="mt-2 px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent/90 transition-colors"
+            className="mt-2"
           >
             {t('common.goToSettings') || 'Перейти в настройки'}
-          </button>
+          </TouchButton>
         </div>
       </div>
     )
@@ -452,19 +455,39 @@ export default function InventoryPage() {
   }
 
   return (
-    <div className="p-3 sm:p-4 md:p-8 animate-fade-in">
-      {/* Заголовок */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-8">
+    <>
+      {/* Pull-to-refresh indicator */}
+      {pullDistance > 0 && (
+        <div
+          className="fixed left-0 right-0 top-0 z-30 flex items-center justify-center py-4 bg-card/95 backdrop-blur-sm border-b border-border transition-opacity"
+          style={{ height: Math.min(pullDistance, 80) }}
+          role="status"
+          aria-live="polite"
+        >
+          {pullDistance >= 80 ? (
+            <Loader className="w-6 h-6 text-accent" />
+          ) : (
+            <span className="text-sm text-muted-foreground">
+              {t('common.pullToRefresh') || 'Потяните для обновления'}
+            </span>
+          )}
+        </div>
+      )}
+      <div className="p-3 sm:p-4 md:p-8 animate-fade-in">
+        {/* Заголовок */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-8">
         <div className="flex items-center gap-2 sm:gap-4">
           {/* Кнопка назад если несколько отделов */}
           {departments.length > 1 && (
-            <button
+            <TouchButton
+              variant="ghost"
+              size="icon"
               onClick={handleBackToDepartments}
-              className="p-2 rounded-lg hover:bg-surface-secondary transition-colors"
+              className="rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted"
               title={t('common.back') || 'Назад'}
-            >
-              <ArrowLeft className="w-5 h-5 text-text-secondary" />
-            </button>
+              aria-label={t('common.back') || 'Назад'}
+              icon={ArrowLeft}
+            />
           )}
           <div className="flex items-center gap-2 sm:gap-3">
             <div
@@ -496,35 +519,44 @@ export default function InventoryPage() {
                 : ''
             }
           />
-          <button
+          <TouchButton
+            variant="ghost"
+            size="small"
             onClick={() => setShowSelectTemplateModal(true)}
-            className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground hover:text-accent transition-colors"
+            className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground hover:text-accent min-h-0 h-auto"
             title={t('inventory.applyTemplate')}
+            icon={FileBox}
+            iconPosition="left"
           >
-            <FileBox className="w-4 h-4" />
             <span className="hidden sm:inline">{t('inventory.applyTemplate')}</span>
-          </button>
+          </TouchButton>
           {/* Clear All Batches - DEVELOPMENT ONLY - SUPER ADMIN */}
           {isDevelopment && userIsSuperAdmin && (
-            <button
+            <TouchButton
+              variant="ghost"
+              size="small"
               onClick={() => setShowClearAllConfirm(true)}
-              className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground hover:text-accent transition-colors"
+              className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground hover:text-accent min-h-0 h-auto"
               title={t('inventory.clearAll') || 'Очистить все партии'}
+              icon={Trash2}
+              iconPosition="left"
             >
-              <Trash2 className="w-4 h-4" />
               <span className="hidden sm:inline">{t('inventory.clearAll') || 'Очистить все'}</span>
-            </button>
+            </TouchButton>
           )}
           {/* Добавление товара - только для админов и менеджеров (не STAFF) */}
           {!userIsStaff && (
-            <button
+            <TouchButton
+              variant="ghost"
+              size="small"
               onClick={() => setShowAddCustomModal(true)}
-              className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground hover:text-accent transition-colors"
+              className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground hover:text-accent min-h-0 h-auto"
               title={t('inventory.addNewProduct')}
+              icon={Plus}
+              iconPosition="left"
             >
-              <Plus className="w-4 h-4" />
               <span className="hidden sm:inline">{t('inventory.addNewProduct')}</span>
-            </button>
+            </TouchButton>
           )}
         </div>
       </div>
@@ -533,28 +565,32 @@ export default function InventoryPage() {
       <div className="flex flex-col sm:flex-row gap-3 mb-4 sm:mb-8">
         {/* Категории */}
         <div className="flex gap-2 flex-wrap overflow-x-auto pb-2 flex-1">
-          <button
+          <TouchButton
+            variant="ghost"
+            size="small"
             onClick={() => setSelectedCategory('all')}
-            className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm transition-all whitespace-nowrap flex-shrink-0 ${
+            className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm whitespace-nowrap flex-shrink-0 min-h-0 h-auto ${
               selectedCategory === 'all'
-                ? 'bg-foreground text-background'
+                ? 'bg-foreground text-background hover:bg-foreground/90'
                 : 'bg-transparent border border-border text-muted-foreground hover:border-foreground hover:text-foreground'
             }`}
           >
             {t('common.all')}
-          </button>
+          </TouchButton>
           {availableCategories.map((cat) => (
-            <button
+            <TouchButton
               key={cat.id}
+              variant="ghost"
+              size="small"
               onClick={() => setSelectedCategory(cat.id)}
-              className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm transition-all whitespace-nowrap flex-shrink-0 ${
+              className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm whitespace-nowrap flex-shrink-0 min-h-0 h-auto ${
                 selectedCategory === cat.id
-                  ? 'bg-foreground text-background'
+                  ? 'bg-foreground text-background hover:bg-foreground/90'
                   : 'bg-transparent border border-border text-muted-foreground hover:border-foreground hover:text-foreground'
               }`}
             >
               {getCategoryName(cat)}
-            </button>
+            </TouchButton>
           ))}
         </div>
 
@@ -590,10 +626,11 @@ export default function InventoryPage() {
             const displayCategoryName =
               product.categoryName || (category ? getCategoryName(category) : null)
             return (
-              <button
+              <TouchButton
                 key={product.id}
+                variant="ghost"
                 onClick={() => handleProductClick(product)}
-                className="bg-card border border-border rounded-lg p-3 sm:p-4 text-left transition-all hover:shadow-md hover:border-accent group"
+                className="w-full h-auto min-h-0 justify-start items-stretch bg-card border border-border rounded-lg p-3 sm:p-4 text-left hover:shadow-md hover:border-accent group"
               >
                 {/* Статус индикатор */}
                 <div className="flex items-start justify-between mb-2 sm:mb-3">
@@ -647,7 +684,7 @@ export default function InventoryPage() {
                     <span className="truncate">{t('inventory.expiringSoon')}</span>
                   </div>
                 )}
-              </button>
+              </TouchButton>
             )
           })}
         </div>
@@ -706,6 +743,7 @@ export default function InventoryPage() {
           loading={clearingBatches}
         />
       )}
-    </div>
+      </div>
+    </>
   )
 }

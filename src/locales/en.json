@@ -53,6 +53,7 @@
     "items": "items",
     "item": "item",
     "refresh": "Refresh",
+    "pullToRefresh": "Pull to refresh",
     "reset": "Reset",
     "apply": "Apply",
     "quantity": "Quantity",
@@ -162,6 +163,7 @@
     "placeholder": "Search products...",
     "hint": "Start typing to search",
     "noResults": "No results found",
+    "clear": "Clear search",
     "products": "Products",
     "departments": "Departments",
     "productsCount": "products",
@@ -801,7 +803,12 @@
       "days": "days",
       "time": "Notification time",
       "weekends": "Send notifications on weekends",
-      "userNote": "Notification settings (warning days, critical days, send time) are managed by the administrator in the \"Notification Rules\" section."
+      "userNote": "Notification settings (warning days, critical days, send time) are managed by the administrator in the \"Notification Rules\" section.",
+      "departmentEmailNotLinked": "Department email not linked",
+      "departmentEmailNotLinkedDetail": "Departments \"{{names}}\" have no email. Daily reports are not sent there.",
+      "departmentEmailHint": "How to link:",
+      "gotoDirectories": "Settings → Directories → Departments",
+      "departmentEmailField": "\"Department email\" field"
     },
     "email": {
       "title": "Email Settings",

@@ -9,7 +9,7 @@ import {
   X,
   AlertTriangle
 } from 'lucide-react'
-import { ButtonLoader } from './ui'
+import { ButtonLoader, TouchButton } from './ui'
 import { useTranslation } from '../context/LanguageContext'
 import { useToast } from '../context/ToastContext'
 import { useProducts } from '../context/ProductContext'
@@ -139,14 +139,16 @@ export default function NotificationRulesSettings() {
   }
 
   const headerActions = (
-    <button
+    <TouchButton
       type="button"
+      variant="primary"
+      size="small"
       onClick={() => setShowAddForm(true)}
-      className="flex items-center gap-1 px-3 py-1.5 text-sm bg-accent text-white rounded-lg hover:bg-accent/90 transition-colors focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
+      icon={Plus}
+      iconPosition="left"
     >
-      <Plus className="w-4 h-4" aria-hidden="true" />
       {t('rules.add') || 'Добавить'}
-    </button>
+    </TouchButton>
   )
 
   return (
@@ -163,14 +165,15 @@ export default function NotificationRulesSettings() {
           <div className="p-6 border border-border rounded-xl bg-card space-y-4">
             <div className="flex justify-between items-center">
               <h4 className="font-medium text-foreground">{t('rules.newRule') || 'Новое правило'}</h4>
-              <button
+              <TouchButton
                 type="button"
+                variant="ghost"
+                size="icon"
                 onClick={() => setShowAddForm(false)}
-                className="p-1 text-muted-foreground hover:text-foreground focus:outline-none focus:ring-2 focus:ring-accent rounded"
+                className="p-1 min-w-0 min-h-0 text-muted-foreground hover:text-foreground"
                 aria-label={t('common.close') || 'Закрыть'}
-              >
-                <X className="w-5 h-5" aria-hidden="true" />
-              </button>
+                icon={X}
+              />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -276,23 +279,26 @@ export default function NotificationRulesSettings() {
               </div>
             </div>
             <div className="flex justify-end gap-2 pt-2">
-              <button
+              <TouchButton
                 type="button"
+                variant="ghost"
+                size="small"
                 onClick={() => setShowAddForm(false)}
-                className="px-4 py-2 text-muted-foreground hover:bg-muted rounded-lg transition-colors text-sm focus:outline-none focus:ring-2 focus:ring-accent"
               >
                 {t('common.cancel') || 'Отмена'}
-              </button>
-              <button
+              </TouchButton>
+              <TouchButton
                 type="button"
+                variant="primary"
+                size="small"
                 onClick={addRule}
                 disabled={saving || !newRule.name}
-                className="flex items-center gap-2 px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent/90 disabled:opacity-50 transition-colors text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
-                aria-busy={saving}
+                loading={saving}
+                icon={Save}
+                iconPosition="left"
               >
-                {saving ? <ButtonLoader /> : <Save className="w-4 h-4" aria-hidden="true" />}
                 {t('common.save') || 'Сохранить'}
-              </button>
+              </TouchButton>
             </div>
           </div>
         )}
@@ -347,28 +353,29 @@ export default function NotificationRulesSettings() {
                   </p>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
-                  <button
+                  <TouchButton
                     type="button"
+                    variant="ghost"
+                    size="icon"
                     onClick={() => toggleRule(rule.id)}
-                    className="p-2 hover:bg-muted rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-accent"
+                    className={cn(
+                      'p-2 min-w-0 min-h-0',
+                      (rule.isActive ?? rule.enabled) && 'text-success'
+                    )}
                     aria-label={(rule.isActive ?? rule.enabled) ? t('rules.disable') || 'Выключить' : t('rules.enable') || 'Включить'}
                     title={(rule.isActive ?? rule.enabled) ? t('rules.disable') || 'Выключить' : t('rules.enable') || 'Включить'}
-                  >
-                    {(rule.isActive ?? rule.enabled) ? (
-                      <ToggleRight className="w-6 h-6 text-success" aria-hidden="true" />
-                    ) : (
-                      <ToggleLeft className="w-6 h-6 text-muted-foreground" aria-hidden="true" />
-                    )}
-                  </button>
+                    icon={(rule.isActive ?? rule.enabled) ? ToggleRight : ToggleLeft}
+                  />
                   {!rule.isSystemRule && (
-                    <button
+                    <TouchButton
                       type="button"
+                      variant="ghost"
+                      size="icon"
                       onClick={() => deleteRule(rule.id, rule.name)}
-                      className="p-2 hover:bg-danger/10 rounded-lg transition-colors text-danger focus:outline-none focus:ring-2 focus:ring-danger"
+                      className="p-2 min-w-0 min-h-0 text-danger hover:bg-danger/10"
                       aria-label={t('common.delete') || 'Удалить'}
-                    >
-                      <Trash2 className="w-4 h-4" aria-hidden="true" />
-                    </button>
+                      icon={Trash2}
+                    />
                   )}
                 </div>
               </div>
@@ -395,24 +402,27 @@ export default function NotificationRulesSettings() {
               {t('rules.deleteWarning') || 'Это действие нельзя отменить.'}
             </p>
             <div className="flex gap-3">
-              <button
+              <TouchButton
                 type="button"
+                variant="secondary"
+                fullWidth
                 onClick={() => setDeleteConfirm(null)}
                 disabled={deleting}
-                className="flex-1 px-4 py-2 border border-border rounded-lg text-foreground hover:bg-muted disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-accent"
               >
                 {t('common.cancel') || 'Отмена'}
-              </button>
-              <button
+              </TouchButton>
+              <TouchButton
                 type="button"
+                variant="danger"
+                fullWidth
                 onClick={handleConfirmDelete}
                 disabled={deleting}
-                className="flex-1 px-4 py-2 bg-danger text-white rounded-lg hover:bg-danger/90 disabled:opacity-50 flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-danger focus:ring-offset-2"
-                aria-busy={deleting}
+                loading={deleting}
+                icon={Trash2}
+                iconPosition="left"
               >
-                {deleting ? <ButtonLoader /> : <Trash2 className="w-4 h-4" aria-hidden="true" />}
                 {t('common.delete') || 'Удалить'}
-              </button>
+              </TouchButton>
             </div>
           </div>
         </div>

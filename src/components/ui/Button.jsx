@@ -8,7 +8,7 @@ import { forwardRef } from 'react'
 import { ButtonLoader } from './GridLoader'
 
 const variants = {
-  primary: 'bg-accent text-white hover:bg-accent/90 active:bg-accent/80 focus:ring-accent/50',
+  primary: 'bg-accent-button text-white hover:bg-accent-button/90 active:bg-accent-button/80 focus:ring-accent/50',
   secondary:
     'bg-card text-foreground border border-border hover:bg-muted active:bg-muted/80 focus:ring-muted-foreground/30',
   ghost: 'text-foreground hover:bg-muted active:bg-muted/80 focus:ring-muted-foreground/30',

@@ -8,7 +8,7 @@ import { createPortal } from 'react-dom'
 import { X, ChevronLeft, ChevronRight, Sparkles, Check } from 'lucide-react'
 import { useOnboarding, onboardingSteps } from '../context/OnboardingContext'
 import { useTranslation } from '../context/LanguageContext'
-import { Button } from './ui'
+import { TouchButton } from './ui'
 import { cn } from '../utils/classNames'
 
 export default function OnboardingTour() {
@@ -219,13 +219,15 @@ export default function OnboardingTour() {
         }}
       >
         {/* Close button */}
-        <button
+        <TouchButton
+          variant="ghost"
+          size="small"
           onClick={skipOnboarding}
-          className="absolute top-3 right-3 p-1 text-muted-foreground hover:text-foreground transition-colors"
+          className="absolute top-3 right-3 text-muted-foreground hover:text-foreground"
           aria-label={t('common.close')}
         >
           <X className="w-5 h-5" />
-        </button>
+        </TouchButton>
 
         {/* Icon */}
         <div className="w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center mb-4">
@@ -264,46 +266,34 @@ export default function OnboardingTour() {
         {/* Navigation */}
         <div className="flex items-center gap-3">
           {!isFirstStep && (
-            <Button
+            <TouchButton
               variant="ghost"
-              size="sm"
+              size="small"
               onClick={prevStep}
               className="flex-1"
+              icon={ChevronLeft}
+              iconPosition="left"
             >
-              <ChevronLeft className="w-4 h-4 mr-1" />
               {t('common.back')}
-            </Button>
-          )}
-          
-          {isFirstStep && !isLastStep && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={skipOnboarding}
-              className="flex-1"
-            >
-              {t('onboarding.skip') || 'Skip tour'}
-            </Button>
+            </TouchButton>
           )}
 
-          <Button
+          {isFirstStep && !isLastStep && (
+            <TouchButton variant="ghost" size="small" onClick={skipOnboarding} className="flex-1">
+              {t('onboarding.skip') || 'Skip tour'}
+            </TouchButton>
+          )}
+
+          <TouchButton
             variant="primary"
-            size="sm"
+            size="small"
             onClick={nextStep}
             className="flex-1"
+            icon={isLastStep ? Check : ChevronRight}
+            iconPosition="right"
           >
-            {isLastStep ? (
-              <>
-                {t('onboarding.getStarted') || 'Get Started'}
-                <Check className="w-4 h-4 ml-1" />
-              </>
-            ) : (
-              <>
-                {t('common.next')}
-                <ChevronRight className="w-4 h-4 ml-1" />
-              </>
-            )}
-          </Button>
+            {isLastStep ? t('onboarding.getStarted') || 'Get Started' : t('common.next')}
+          </TouchButton>
         </div>
       </div>
     </div>,

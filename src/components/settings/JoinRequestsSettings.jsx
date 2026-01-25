@@ -3,7 +3,7 @@ import { useTranslation } from '../../context/LanguageContext'
 import { useToast } from '../../context/ToastContext'
 import { useAuth } from '../../context/AuthContext'
 import { apiFetch } from '../../services/api'
-import { Button, Modal } from '../ui'
+import { TouchButton, Modal } from '../ui'
 import {
   UserPlus,
   Check,
@@ -347,15 +347,17 @@ export default function JoinRequestsSettings() {
           )}
 
           <div className="flex gap-3 pt-4">
-            <Button
+            <TouchButton
               variant="outline"
               className="flex-1"
               onClick={() => setApproveModal({ open: false, request: null })}
             >
               {t('common.cancel') || 'Отмена'}
-            </Button>
-            <Button
+            </TouchButton>
+            <TouchButton
               variant="primary"
+              icon={Check}
+              iconPosition="left"
               className="flex-1"
               onClick={handleApprove}
               disabled={
@@ -364,9 +366,8 @@ export default function JoinRequestsSettings() {
               }
               loading={processingId === approveModal.request?.id}
             >
-              <Check className="w-4 h-4 mr-2" />
               {t('common.approve') || 'Одобрить'}
-            </Button>
+            </TouchButton>
           </div>
         </div>
       </Modal>
@@ -399,22 +400,23 @@ export default function JoinRequestsSettings() {
           </div>
 
           <div className="flex gap-3 pt-4">
-            <Button
+            <TouchButton
               variant="outline"
               className="flex-1"
               onClick={() => setRejectModal({ open: false, request: null })}
             >
               {t('common.cancel') || 'Отмена'}
-            </Button>
-            <Button
+            </TouchButton>
+            <TouchButton
               variant="danger"
+              icon={X}
+              iconPosition="left"
               className="flex-1"
               onClick={handleReject}
               loading={processingId === rejectModal.request?.id}
             >
-              <X className="w-4 h-4 mr-2" />
               {t('common.reject') || 'Отклонить'}
-            </Button>
+            </TouchButton>
           </div>
         </div>
       </Modal>

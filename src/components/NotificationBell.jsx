@@ -200,10 +200,11 @@ export default function NotificationBell() {
     <div className="relative">
       {/* Bell Button */}
       <button
+        type="button"
         ref={buttonRef}
         onClick={() => setIsOpen(!isOpen)}
         className={`
-          relative p-2 rounded-lg transition-colors
+          relative min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg transition-colors touch-manipulation
           hover:bg-muted focus:outline-none focus:ring-2 focus:ring-accent/50
           ${hasCritical ? 'animate-pulse' : ''}
         `}

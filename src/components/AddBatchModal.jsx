@@ -6,6 +6,7 @@ import { useToast } from '../context/ToastContext'
 import { useHotel } from '../context/HotelContext'
 import { useAddBatch } from '../hooks/useInventory'
 import { getDepartmentIcon } from '../utils/departmentUtils'
+import { TouchInput, TouchSelect, TouchButton } from './ui'
 
 // Иконки для отделов - универсальный маппинг
 const ICON_MAP = { Wine, Coffee, Utensils, ChefHat, Warehouse, Package }
@@ -171,12 +172,15 @@ export default function AddBatchModal({ onClose, preselectedProduct = null }) {
               </div>
             )}
           </div>
-          <button
+          <TouchButton
+            variant="ghost"
+            size="small"
             onClick={onClose}
-            className="text-muted-foreground hover:text-foreground transition-colors p-2 -mr-2 rounded-lg hover:bg-muted"
+            className="min-w-0 min-h-0 p-2 -mr-2 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted"
+            aria-label={t('common.close') || 'Закрыть'}
           >
             <X className="w-5 h-5" />
-          </button>
+          </TouchButton>
         </div>
 
         {/* Контент */}
@@ -189,10 +193,11 @@ export default function AddBatchModal({ onClose, preselectedProduct = null }) {
                 {departments.map((dept) => {
                   const Icon = getDeptIcon(dept)
                   return (
-                    <button
+                    <TouchButton
                       key={dept.id}
+                      variant="ghost"
                       onClick={() => handleDepartmentSelect(dept.id)}
-                      className="w-full flex items-center justify-between p-4 bg-background border border-border rounded-lg hover:border-accent transition-colors group"
+                      className="w-full flex items-center justify-between p-4 bg-background border border-border rounded-lg hover:border-accent transition-colors group h-auto min-h-[44px]"
                     >
                       <div className="flex items-center gap-3">
                         <div
@@ -204,7 +209,7 @@ export default function AddBatchModal({ onClose, preselectedProduct = null }) {
                         <span className="font-medium text-foreground">{dept.name}</span>
                       </div>
                       <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-accent transition-colors" />
-                    </button>
+                    </TouchButton>
                   )
                 })}
               </div>
@@ -217,14 +222,15 @@ export default function AddBatchModal({ onClose, preselectedProduct = null }) {
               <p className="text-muted-foreground mb-4">{t('batch.selectCategory')}</p>
               <div className="space-y-2">
                 {availableCategories.map((cat) => (
-                  <button
+                  <TouchButton
                     key={cat.id}
+                    variant="ghost"
                     onClick={() => handleCategorySelect(cat.id)}
-                    className="w-full flex items-center justify-between p-4 bg-background border border-border rounded-lg hover:border-accent transition-colors group"
+                    className="w-full flex items-center justify-between p-4 bg-background border border-border rounded-lg hover:border-accent transition-colors group h-auto min-h-[44px]"
                   >
                     <span className="font-medium text-foreground">{getCategoryName(cat)}</span>
                     <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-accent transition-colors" />
-                  </button>
+                  </TouchButton>
                 ))}
               </div>
             </div>
@@ -236,14 +242,15 @@ export default function AddBatchModal({ onClose, preselectedProduct = null }) {
               <p className="text-muted-foreground mb-4">{t('batch.selectProduct')}</p>
               <div className="space-y-2 max-h-64 overflow-y-auto">
                 {getProductsInCategory().map((product) => (
-                  <button
+                  <TouchButton
                     key={product.id}
+                    variant="ghost"
                     onClick={() => handleProductSelect(product)}
-                    className="w-full flex items-center justify-between p-4 bg-background border border-border rounded-lg hover:border-accent transition-colors group"
+                    className="w-full flex items-center justify-between p-4 bg-background border border-border rounded-lg hover:border-accent transition-colors group h-auto min-h-[44px]"
                   >
                     <span className="font-medium text-foreground">{product.name}</span>
                     <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-accent transition-colors" />
-                  </button>
+                  </TouchButton>
                 ))}
               </div>
             </div>
@@ -259,58 +266,50 @@ export default function AddBatchModal({ onClose, preselectedProduct = null }) {
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-sm text-muted-foreground mb-1">
-                    {t('product.expiryDate')} *
-                  </label>
-                  <input
-                    type="date"
-                    value={batchData.expiryDate}
-                    min="2026-01-01"
-                    onChange={(e) =>
-                      setBatchData((prev) => ({ ...prev, expiryDate: e.target.value }))
-                    }
-                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:border-accent bg-card text-foreground"
-                    required
-                  />
-                </div>
+                <TouchInput
+                  type="date"
+                  label={`${t('product.expiryDate')} *`}
+                  value={batchData.expiryDate}
+                  min="2026-01-01"
+                  onChange={(e) =>
+                    setBatchData((prev) => ({ ...prev, expiryDate: e.target.value }))
+                  }
+                  required
+                />
 
                 <div>
-                  <label className="block text-sm text-muted-foreground mb-1">
-                    {t('product.quantity')} {!batchData.noQuantity && '*'}
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="number"
-                      min="1"
-                      value={batchData.quantity}
-                      onChange={(e) =>
-                        setBatchData((prev) => ({ ...prev, quantity: e.target.value }))
-                      }
-                      disabled={batchData.noQuantity}
-                      className={`flex-1 px-4 py-3 border border-border rounded-lg focus:outline-none focus:border-accent bg-card text-foreground transition-colors ${
-                        batchData.noQuantity ? 'opacity-50 cursor-not-allowed' : ''
-                      }`}
-                      required={!batchData.noQuantity}
-                      placeholder={
-                        batchData.noQuantity ? t('batch.noQuantity') || 'Нет количества' : ''
-                      }
-                    />
-                    <select
+                  <TouchInput
+                    type="number"
+                    inputMode="numeric"
+                    label={`${t('product.quantity')} ${!batchData.noQuantity ? '*' : ''}`}
+                    min="1"
+                    value={batchData.quantity}
+                    onChange={(e) =>
+                      setBatchData((prev) => ({ ...prev, quantity: e.target.value }))
+                    }
+                    disabled={batchData.noQuantity}
+                    required={!batchData.noQuantity}
+                    placeholder={
+                      batchData.noQuantity ? t('batch.noQuantity') || 'Нет количества' : ''
+                    }
+                    containerClassName="mb-2"
+                  />
+                  <div className="flex gap-2 flex-wrap mb-2">
+                    <TouchSelect
+                      label={t('product.unit') || 'Ед.'}
                       value={batchData.unit}
-                      onChange={(e) => setBatchData((prev) => ({ ...prev, unit: e.target.value }))}
+                      onChange={(v) => setBatchData((prev) => ({ ...prev, unit: v }))}
                       disabled={batchData.noQuantity}
-                      className={`w-24 px-3 py-3 border border-border rounded-lg focus:outline-none focus:border-accent bg-card text-foreground ${
-                        batchData.noQuantity ? 'opacity-50 cursor-not-allowed' : ''
-                      }`}
-                    >
-                      <option value="шт">{t('units.pcs') || 'шт'}</option>
-                      <option value="кг">{t('units.kg') || 'кг'}</option>
-                      <option value="л">{t('units.l') || 'л'}</option>
-                      <option value="г">{t('units.g') || 'г'}</option>
-                      <option value="мл">{t('units.ml') || 'мл'}</option>
-                      <option value="уп">{t('units.pack') || 'уп'}</option>
-                    </select>
+                      options={[
+                        { value: 'шт', label: t('units.pcs') || 'шт' },
+                        { value: 'кг', label: t('units.kg') || 'кг' },
+                        { value: 'л', label: t('units.l') || 'л' },
+                        { value: 'г', label: t('units.g') || 'г' },
+                        { value: 'мл', label: t('units.ml') || 'мл' },
+                        { value: 'уп', label: t('units.pack') || 'уп' },
+                      ]}
+                      className="w-28"
+                    />
                   </div>
 
                   {/* Переключатель "Нет количества" */}
@@ -337,45 +336,35 @@ export default function AddBatchModal({ onClose, preselectedProduct = null }) {
                   </div>
                 </div>
 
-                {/* Цена (опционально) */}
-                <div>
-                  <label className="block text-sm text-muted-foreground mb-1">
-                    {t('product.price') || 'Цена'}{' '}
-                    <span className="text-muted-foreground/60">
-                      ({t('common.optional') || 'необязательно'})
-                    </span>
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={batchData.price}
-                      onChange={(e) => setBatchData((prev) => ({ ...prev, price: e.target.value }))}
-                      placeholder="0.00"
-                      className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:border-accent bg-card text-foreground pr-12"
-                    />
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground">
-                      ₸
-                    </span>
-                  </div>
-                </div>
+                <TouchInput
+                  type="number"
+                  inputMode="decimal"
+                  label={`${t('product.price') || 'Цена'} (${t('common.optional') || 'необязательно'})`}
+                  min="0"
+                  step="0.01"
+                  value={batchData.price}
+                  onChange={(e) => setBatchData((prev) => ({ ...prev, price: e.target.value }))}
+                  placeholder="0.00 ₸"
+                />
 
                 <div className="flex flex-col-reverse sm:flex-row gap-3 pt-4">
-                  <button
+                  <TouchButton
                     type="button"
+                    variant="secondary"
                     onClick={handleBack}
-                    className="flex-1 py-3 min-h-[48px] border border-border text-muted-foreground rounded-lg hover:border-foreground hover:text-foreground transition-colors active:scale-[0.98]"
+                    fullWidth
                   >
                     {t('common.back')}
-                  </button>
-                  <button
+                  </TouchButton>
+                  <TouchButton
                     type="submit"
+                    variant="primary"
                     disabled={isSubmitting}
-                    className="flex-1 py-3 min-h-[48px] bg-accent text-white rounded-lg hover:bg-accent/90 transition-colors disabled:opacity-50 active:scale-[0.98]"
+                    loading={isSubmitting}
+                    fullWidth
                   >
                     {t('batch.addBatch')}
-                  </button>
+                  </TouchButton>
                 </div>
               </form>
             </div>
@@ -383,12 +372,14 @@ export default function AddBatchModal({ onClose, preselectedProduct = null }) {
 
           {/* Кнопка назад для шагов 2-3 */}
           {step > 1 && step < 4 && (
-            <button
+            <TouchButton
+              variant="ghost"
+              size="small"
               onClick={handleBack}
-              className="mt-4 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              className="mt-4 text-sm text-muted-foreground hover:text-foreground"
             >
               ← {t('common.back')}
-            </button>
+            </TouchButton>
           )}
         </div>
       </div>

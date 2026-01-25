@@ -93,6 +93,67 @@ export function SkeletonTableRow({ columns = 5, className }) {
 }
 
 /**
+ * Table skeleton
+ */
+export function SkeletonTable({ rows = 5, columns = 4, className = '' }) {
+  return (
+    <div className={cn('bg-card rounded-xl border border-border overflow-hidden', className)}>
+      <table className="w-full">
+        <thead>
+          <tr className="border-b border-border bg-muted">
+            {Array.from({ length: columns }).map((_, i) => (
+              <th key={i} className="px-4 py-3 text-left">
+                <Skeleton className="h-4 w-20" />
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {Array.from({ length: rows }).map((_, i) => (
+            <SkeletonTableRow key={i} columns={columns} />
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+/**
+ * Stat card skeleton
+ */
+export function SkeletonStat({ className = '' }) {
+  return (
+    <div className={cn('bg-card rounded-xl border border-border p-4', className)}>
+      <div className="flex items-center justify-between mb-3">
+        <Skeleton className="h-10 w-10 rounded-full" />
+        <Skeleton className="h-4 w-12" />
+      </div>
+      <Skeleton className="h-8 w-20 mb-1" />
+      <Skeleton className="h-4 w-16" />
+    </div>
+  )
+}
+
+/**
+ * List skeleton
+ */
+export function SkeletonList({ items = 3, className = '' }) {
+  return (
+    <div className={cn('space-y-3', className)}>
+      {Array.from({ length: items }).map((_, i) => (
+        <div key={i} className="flex items-center gap-3">
+          <SkeletonAvatar size="sm" />
+          <div className="flex-1">
+            <Skeleton className="h-4 w-3/4 mb-1" />
+            <Skeleton className="h-3 w-1/2" />
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+/**
  * Product/Batch row skeleton - matches batch list layout
  */
 export function SkeletonBatchRow({ className }) {

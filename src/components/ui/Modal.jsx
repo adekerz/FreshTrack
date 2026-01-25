@@ -9,6 +9,7 @@ import { useEffect, useRef, useCallback, useId } from 'react'
 import { X } from 'lucide-react'
 import { createPortal } from 'react-dom'
 import { trapFocus, announce, prefersReducedMotion } from '../../utils/a11y'
+import TouchButton from './TouchButton'
 
 export default function Modal({
   isOpen,
@@ -31,12 +32,12 @@ export default function Modal({
   const descId = `modal-desc-${uniqueId}`
   const reducedMotion = prefersReducedMotion()
 
-  const sizes = {
-    sm: 'max-w-md',
-    md: 'max-w-lg',
-    lg: 'max-w-2xl',
-    xl: 'max-w-4xl',
-    full: 'max-w-[calc(100vw-2rem)] md:max-w-[calc(100vw-4rem)]',
+  const sizeClasses = {
+    sm: 'sm:max-w-md',
+    md: 'sm:max-w-lg',
+    lg: 'sm:max-w-2xl',
+    xl: 'sm:max-w-4xl',
+    full: 'sm:max-w-[calc(100vw-2rem)] md:max-w-[calc(100vw-4rem)]',
   }
 
   // Handle escape key
@@ -87,7 +88,7 @@ export default function Modal({
 
   return createPortal(
     <div
-      className={`fixed inset-0 z-50 flex items-center justify-center p-4 ${reducedMotion ? '' : 'animate-fade-in'}`}
+      className={`fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 ${reducedMotion ? '' : 'animate-fade-in'}`}
       onClick={handleBackdropClick}
       role="dialog"
       aria-modal="true"
@@ -97,25 +98,27 @@ export default function Modal({
     >
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/50 dark:bg-black/60 backdrop-blur-sm" aria-hidden="true" />
-      
-      {/* Modal */}
+
+      {/* Modal: mobile slide-up bottom sheet, desktop centered */}
       <div
         ref={modalRef}
         className={`
-          relative w-full ${sizes[size]}
-          bg-card rounded-2xl shadow-soft-lg
+          relative w-full flex flex-col
+          max-h-[90vh] sm:max-h-[85vh]
+          rounded-t-2xl sm:rounded-2xl
+          ${sizeClasses[size] ?? sizeClasses.md}
+          bg-card shadow-soft-lg
           ${reducedMotion ? '' : 'animate-scale-in'}
-          max-h-[calc(100vh-2rem)] flex flex-col
-          transition-colors duration-300
+          transition-colors duration-300 overflow-hidden
           ${className}
         `}
       >
-        {/* Header */}
+        {/* Header — sticky on mobile */}
         {(title || showCloseButton) && (
-          <div className="flex items-start justify-between p-4 md:p-6 border-b border-border flex-shrink-0">
-            <div>
+          <div className="relative sticky top-0 z-10 flex items-start justify-between p-4 sm:p-6 border-b border-border flex-shrink-0 bg-card">
+            <div className="min-w-0 flex-1">
               {title && (
-                <h2 id={titleId} className="text-xl font-semibold text-foreground">
+                <h2 id={titleId} className="text-xl font-semibold text-foreground truncate pr-10">
                   {title}
                 </h2>
               )}
@@ -126,26 +129,27 @@ export default function Modal({
               )}
             </div>
             {showCloseButton && (
-              <button
+              <TouchButton
+                variant="ghost"
+                size="icon"
                 onClick={onClose}
-                className="p-2 -m-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-accent"
+                className="absolute top-4 right-4 sm:relative sm:top-0 sm:right-0 -m-2 p-2 text-muted-foreground hover:text-foreground hover:bg-muted"
                 aria-label="Close dialog"
                 type="button"
-              >
-                <X className="w-5 h-5" aria-hidden="true" />
-              </button>
+                icon={X}
+              />
             )}
           </div>
         )}
 
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-4 md:p-6">
+        {/* Content — scrollable */}
+        <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6">
           {children}
         </div>
 
-        {/* Footer */}
+        {/* Footer — sticky on mobile */}
         {footer && (
-          <div className="flex items-center justify-end gap-3 p-4 md:p-6 border-t border-border flex-shrink-0">
+          <div className="sticky bottom-0 flex items-center justify-end gap-3 p-4 sm:p-6 border-t border-border flex-shrink-0 bg-card">
             {footer}
           </div>
         )}

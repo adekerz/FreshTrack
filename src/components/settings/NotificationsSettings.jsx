@@ -18,8 +18,10 @@ import {
   Users,
   Trash2,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  AlertTriangle
 } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { cn } from '../../utils/classNames'
 import SettingsLayout, { SettingsSection } from './SettingsLayout'
 import TemplateEditor from './TemplateEditor'
@@ -48,6 +50,7 @@ export default function NotificationsSettings() {
   })
 
   const [linkedChats, setLinkedChats] = useState([])
+  const [departments, setDepartments] = useState([])
   const [loading, setLoading] = useState(true)
   const [expandedChannels, setExpandedChannels] = useState({
     telegram: false,
@@ -62,8 +65,19 @@ export default function NotificationsSettings() {
     if (selectedHotelId) {
       loadSettings()
       loadLinkedChats()
+      loadDepartments()
     }
   }, [selectedHotelId])
+
+  const loadDepartments = async () => {
+    try {
+      const hotelQuery = selectedHotelId ? `?hotel_id=${selectedHotelId}` : ''
+      const data = await apiFetch(`/departments${hotelQuery}`)
+      setDepartments(data.departments || [])
+    } catch {
+      setDepartments([])
+    }
+  }
 
   useEffect(() => {
     if (!loading) {
@@ -203,6 +217,42 @@ export default function NotificationsSettings() {
           Это снижает шум и помогает не пропускать важное.
         </p>
       </div>
+
+      {/* Предупреждение: почта отдела не привязана */}
+      {(() => {
+        const departmentsWithoutEmail = (departments || []).filter(
+          (d) => !d.email || !String(d.email).trim()
+        )
+        if (departmentsWithoutEmail.length === 0) return null
+        const names = departmentsWithoutEmail.map((d) => d.name).join(', ')
+        return (
+          <div className="p-4 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
+            <div className="flex gap-3">
+              <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+              <div className="text-sm">
+                <p className="font-medium text-amber-800 dark:text-amber-200 mb-1">
+                  {t('settings.notifications.departmentEmailNotLinked') || 'Почта отдела не привязана'}
+                </p>
+                <p className="text-amber-700 dark:text-amber-300 mb-2">
+                  {t('settings.notifications.departmentEmailNotLinkedDetail', { names }) ||
+                    `У отделов «${names}» не указана почта. Ежедневные отчёты на email туда не отправляются.`}
+                </p>
+                <p className="text-amber-600 dark:text-amber-400">
+                  {t('settings.notifications.departmentEmailHint') || 'Как привязать:'}{' '}
+                  <Link
+                    to="/settings?tab=directories"
+                    className="font-medium underline hover:no-underline"
+                  >
+                    {t('settings.notifications.gotoDirectories') || 'Настройки → Справочники → Отделы'}
+                  </Link>
+                  {' → '}
+                  {t('settings.notifications.departmentEmailField') || 'поле «Почта отдела»'}
+                </p>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
 
       {/* Каналы доставки */}
       <SettingsSection title={t('settings.notifications.channels') || 'Каналы доставки'}>

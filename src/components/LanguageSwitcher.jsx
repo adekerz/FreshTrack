@@ -89,7 +89,7 @@ export default function LanguageSwitcher() {
             <span
               className={cn(
                 'w-6 h-6 flex items-center justify-center rounded text-xs font-medium',
-                language === lang.code ? 'bg-accent text-white' : 'bg-muted text-muted-foreground'
+                language === lang.code ? 'bg-accent-button text-white' : 'bg-muted text-muted-foreground'
               )}
             >
               {lang.shortName}

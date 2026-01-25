@@ -86,7 +86,7 @@ export default function NotificationPermissionBanner() {
             <button
               onClick={handleRequestPermission}
               disabled={requesting}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-accent text-white rounded-lg text-sm font-medium hover:bg-accent/90 transition-colors disabled:opacity-50"
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-accent-button text-white rounded-lg text-sm font-medium hover:bg-accent-button/90 transition-colors disabled:opacity-50"
               aria-busy={requesting}
             >
               {requesting ? (
