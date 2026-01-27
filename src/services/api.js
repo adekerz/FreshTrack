@@ -21,7 +21,15 @@ export function getStaticUrl(path) {
   if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:')) {
     return path // уже полный URL
   }
-  return `${SERVER_BASE_URL}${path}`
+  
+  // Если путь начинается с /uploads, это файл с бэкенда (API)
+  if (path.startsWith('/uploads')) {
+    return `${SERVER_BASE_URL}${path}`
+  }
+  
+  // Для остальных путей (статические файлы фронтенда) используем относительный путь
+  // Браузер автоматически загрузит их с текущего домена (фронтенда)
+  return path
 }
 
 /**

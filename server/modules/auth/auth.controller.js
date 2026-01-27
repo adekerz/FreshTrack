@@ -1298,12 +1298,24 @@ router.post('/mfa/setup', authMiddleware, async (req, res) => {
 router.post('/mfa/verify-setup', authMiddleware, async (req, res) => {
   try {
     const { token } = req.body
-    const { id: userId } = req.user
+    const { id: userId, mfa_enabled } = req.user
     const ipAddress = req.ip
     const userAgent = req.get('user-agent')
     
+    // Проверяем, что MFA еще не включено
+    if (mfa_enabled) {
+      return res.status(400).json({ success: false, error: 'MFA is already enabled' })
+    }
+    
+    // Проверяем формат токена
     if (!token || typeof token !== 'string' || !/^\d{6}$/.test(token)) {
       return res.status(400).json({ success: false, error: 'Invalid code format. Must be 6 digits.' })
+    }
+    
+    // Проверяем, что секрет установлен (после setup)
+    const userResult = await dbQuery('SELECT mfa_secret FROM users WHERE id = $1', [userId])
+    if (userResult.rows.length === 0 || !userResult.rows[0].mfa_secret) {
+      return res.status(400).json({ success: false, error: 'MFA setup not completed. Please run setup first.' })
     }
     
     // Проверяем код
