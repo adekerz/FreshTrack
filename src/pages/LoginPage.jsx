@@ -174,7 +174,7 @@ export default function LoginPage() {
                     setMfaCode(code)
                     handleMFAVerify()
                   }}
-                  disabled={loading}
+                  disabled={isLoading}
                 />
               ) : (
                 <input
@@ -202,7 +202,7 @@ export default function LoginPage() {
               onClick={handleMFAVerify}
               variant="primary"
               size="large"
-              loading={loading}
+              loading={isLoading}
               fullWidth
             >
               Verify
