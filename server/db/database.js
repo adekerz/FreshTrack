@@ -178,6 +178,18 @@ export async function initDatabase() {
       { num: '032', name: '032_department_email.sql', desc: 'department email field' },
       { num: '033', name: '033_add_must_change_password.sql', desc: 'must change password field' },
       { num: '034', name: '034_set_dev_department_emails.sql', desc: 'set dev department emails' },
+      { num: '035', name: '035_department_email_verification.sql', desc: 'department email verification' },
+      { num: '036', name: '036_user_email_verification.sql', desc: 'user email verification' },
+      { num: '037', name: '037_mfa_for_superadmin.sql', desc: 'MFA for superadmin' },
+      { num: '038', name: '038_audit_trail_integrity.sql', desc: 'audit trail integrity' },
+      { num: '039', name: '039_audit_archival_instead_of_delete.sql', desc: 'audit archival' },
+      { num: '040', name: '040_mfa_grace_period.sql', desc: 'MFA grace period' },
+      { num: '041', name: '041_department_email_confirmation.sql', desc: 'department email confirmation' },
+      { num: '042', name: '042_mfa_recovery_requests.sql', desc: 'MFA recovery requests' },
+      { num: '043', name: '043_consolidate_email_fields.sql', desc: 'consolidate email fields' },
+      { num: '044', name: '044_mfa_emergency_recovery.sql', desc: 'MFA emergency recovery' },
+      { num: '045', name: '045_user_email_verification_token.sql', desc: 'user email verification token' },
+      { num: '046', name: '046_fix_audit_hash_function_types.sql', desc: 'fix audit hash function types' },
     ]
 
     for (const migration of additionalMigrations) {

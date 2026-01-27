@@ -11,10 +11,23 @@ import cron from 'node-cron'
  * Cleanup expired email verification tokens
  * Runs every hour
  * Note: After migration 043, departments no longer use code-based verification
- * Users use link-based verification with email_verification_token
+ * Users use link-based verification with email_verification_token (migration 045)
  */
 export async function cleanupExpiredVerificationCodes() {
   try {
+    // Check if email_verification_token column exists (migration 045)
+    const columnCheck = await query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'users' 
+        AND column_name = 'email_verification_token'
+    `)
+    
+    if (columnCheck.rows.length === 0) {
+      // Column doesn't exist yet, migration 045 not applied
+      return
+    }
+    
     // Cleanup expired user verification tokens (older than 7 days)
     const expiredDate = new Date()
     expiredDate.setDate(expiredDate.getDate() - 7)
@@ -30,7 +43,10 @@ export async function cleanupExpiredVerificationCodes() {
       logInfo('Cleanup', `Cleaned up ${userResult.rowCount} expired user verification tokens`)
     }
   } catch (error) {
-    console.error('Cleanup expired codes error:', error)
+    // Only log if it's not a "column doesn't exist" error
+    if (!error.message?.includes('does not exist')) {
+      console.error('Cleanup expired codes error:', error)
+    }
   }
 }
 
