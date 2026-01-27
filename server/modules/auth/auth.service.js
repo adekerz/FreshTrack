@@ -26,6 +26,7 @@ import MarshaCodeService from '../../services/MarshaCodeService.js'
 import { generateToken } from '../../middleware/auth.js'
 import { PermissionService } from '../../services/PermissionService.js'
 import { logError, logInfo } from '../../utils/logger.js'
+import jwt from 'jsonwebtoken'
 
 /**
  * Результат операции
@@ -206,7 +207,6 @@ export class AuthService {
 
       // Если MFA включен → возвращаем partial token
       if (user.mfa_enabled) {
-        const jwt = await import('jsonwebtoken')
         const partialToken = jwt.sign(
           { userId: user.id, mfaPending: true },
           process.env.JWT_SECRET,
