@@ -19,8 +19,10 @@ import {
   authMiddleware, 
   requirePermission,
   PermissionResource,
-  PermissionAction
+  PermissionAction,
+  superAdminOnly
 } from '../../middleware/auth.js'
+import { requireMFA } from '../../middleware/requireMFA.js'
 import { CreateHotelSchema, UpdateHotelSchema, validate } from './hotels.schemas.js'
 
 const router = Router()
@@ -28,9 +30,13 @@ const router = Router()
 /**
  * GET /api/hotels
  */
-router.get('/', authMiddleware, requirePermission(PermissionResource.HOTELS, PermissionAction.READ), async (req, res) => {
-  try {
-    if (req.user.role === 'SUPER_ADMIN') {
+router.get('/', 
+  authMiddleware, 
+  requirePermission(PermissionResource.HOTELS, PermissionAction.READ),
+  requireMFA, // MFA required for SUPER_ADMIN
+  async (req, res) => {
+    try {
+      if (req.user.role === 'SUPER_ADMIN') {
       const hotels = await getAllHotels()
       res.json({ success: true, hotels })
     } else if (req.user.hotel_id) {
@@ -67,7 +73,11 @@ router.get('/:id', authMiddleware, async (req, res) => {
 /**
  * POST /api/hotels
  */
-router.post('/', authMiddleware, requirePermission(PermissionResource.HOTELS, PermissionAction.CREATE), async (req, res) => {
+router.post('/', 
+  authMiddleware, 
+  requirePermission(PermissionResource.HOTELS, PermissionAction.CREATE),
+  requireMFA, // MFA required for SUPER_ADMIN
+  async (req, res) => {
   try {
     const validation = validate(CreateHotelSchema, req.body)
     if (!validation.isValid) {
@@ -157,7 +167,11 @@ router.put('/:id', authMiddleware, requirePermission(PermissionResource.HOTELS, 
 /**
  * DELETE /api/hotels/:id
  */
-router.delete('/:id', authMiddleware, requirePermission(PermissionResource.HOTELS, PermissionAction.DELETE), async (req, res) => {
+router.delete('/:id', 
+  authMiddleware, 
+  requirePermission(PermissionResource.HOTELS, PermissionAction.DELETE),
+  requireMFA, // MFA required for SUPER_ADMIN
+  async (req, res) => {
   try {
     const hotel = await getHotelById(req.params.id)
     if (!hotel) {

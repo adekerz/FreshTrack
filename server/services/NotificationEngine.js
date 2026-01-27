@@ -11,7 +11,7 @@
 
 import { query } from '../db/database.js'
 import { v4 as uuidv4 } from 'uuid'
-import { logError, logInfo, logDebug } from '../utils/logger.js'
+import { logError, logInfo, logDebug, logWarn } from '../utils/logger.js'
 import { TelegramService } from './TelegramService.js'
 import { sendDailyReportEmail, resolveEmailRecipient } from './EmailService.js'
 
@@ -52,9 +52,9 @@ export class NotificationEngine {
 
       for (const hotel of hotels) {
         try {
-          // Get departments for this hotel
+          // Get departments for this hotel (with email confirmation status)
           const deptsResult = await query(`
-            SELECT id, name, email FROM departments 
+            SELECT id, name, email, email_confirmed FROM departments 
             WHERE hotel_id = $1 AND is_active = true
           `, [hotel.id])
           const departments = deptsResult.rows
@@ -62,10 +62,10 @@ export class NotificationEngine {
           // Process each department + hotel-wide (чаты без привязки к отделу)
           const scopes = departments.length > 0
             ? [
-                ...departments.map(d => ({ type: 'department', ...d, hotel })),
-                { type: 'hotel', id: null, name: null, email: null, hotel }
+                ...departments.map(d => ({ type: 'department', ...d, hotel, email_confirmed: d.email_confirmed || false })),
+                { type: 'hotel', id: null, name: null, email: null, hotel, email_verified: false }
               ]
-            : [{ type: 'hotel', id: null, name: null, email: null, hotel }]
+            : [{ type: 'hotel', id: null, name: null, email: null, hotel, email_verified: false }]
 
           for (const scope of scopes) {
             // 1. Get batches for this scope
@@ -302,6 +302,12 @@ export class NotificationEngine {
                emailEnabledResult.rows[0].value === true)
 
             if (emailEnabled && scope.type === 'department' && scope.email) {
+              // Check if department email is confirmed
+              if (!scope.email_confirmed) {
+                logWarn('NotificationEngine', `Skipping unconfirmed department email: ${scope.email} (department: ${scope.name})`)
+                continue
+              }
+
               const department = { id: scope.id, name: scope.name, email: scope.email }
               const to = resolveEmailRecipient('DEPARTMENT', { department })
               

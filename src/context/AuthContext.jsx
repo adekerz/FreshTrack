@@ -139,6 +139,15 @@ export function AuthProvider({ children }) {
     try {
       const response = await authAPI.login(identifier, password)
 
+      // Check if MFA is required
+      if (response.requiresMFA) {
+        return {
+          success: true,
+          requiresMFA: true,
+          partialToken: response.partialToken
+        }
+      }
+
       // API returns { user, token } on success
       if (response.user && response.token) {
         const userData = response.user

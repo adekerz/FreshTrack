@@ -5,7 +5,7 @@
  */
 
 import { Router } from 'express'
-import { logError } from '../../utils/logger.js'
+import { logError, logInfo, logWarn } from '../../utils/logger.js'
 import { query as dbQuery } from '../../db/postgres.js'
 import {
   getAllDepartments,
@@ -22,6 +22,9 @@ import {
   PermissionAction
 } from '../../middleware/auth.js'
 import { CreateDepartmentSchema, UpdateDepartmentSchema, validate } from './departments.schemas.js'
+import { sendVerificationEmail } from '../../services/EmailService.js'
+import { RateLimiterMemory } from 'rate-limiter-flexible'
+import crypto from 'crypto'
 
 const router = Router()
 
@@ -257,5 +260,236 @@ async function generateDepartmentCode(hotelId) {
   const count = result.rows[0]?.count || 0
   return `DEPT-${String(count + 1).padStart(3, '0')}`
 }
+
+// ═══════════════════════════════════════════════════════════════
+// EMAIL VERIFICATION ENDPOINTS
+// ═══════════════════════════════════════════════════════════════
+
+// Rate limiter for verification code sending (3 per hour per department)
+const sendCodeLimiter = new RateLimiterMemory({
+  points: 3,
+  duration: 60 * 60, // 1 hour
+  blockDuration: 60 * 60 // Block for 1 hour if exceeded
+})
+
+// Rate limiter for verification attempts (5 per 15 minutes per department)
+const verifyCodeLimiter = new RateLimiterMemory({
+  points: 5,
+  duration: 15 * 60, // 15 minutes
+  blockDuration: 60 * 60 // Block for 1 hour if exceeded
+})
+
+/**
+ * POST /api/departments/:id/send-verification-code
+ * @deprecated Use POST /api/departments/:id/send-confirmation instead
+ * Code-based verification was removed in migration 043.
+ * Use simplified confirmation flow via /send-confirmation endpoint.
+ */
+router.post('/:id/send-verification-code', authMiddleware, requirePermission(PermissionResource.DEPARTMENTS, PermissionAction.UPDATE, {
+  getTargetHotelId: async (req) => {
+    const dept = await getDepartmentById(req.params.id)
+    return dept?.hotel_id
+  }
+}), async (req, res) => {
+  return res.status(410).json({
+    success: false,
+    error: 'DEPRECATED',
+    message: 'This endpoint is deprecated. Use POST /api/departments/:id/send-confirmation instead.',
+    deprecated: true,
+    alternative: '/api/departments/:id/send-confirmation'
+  })
+})
+
+/**
+ * POST /api/departments/:id/verify-email
+ * @deprecated Use simplified confirmation flow via /send-confirmation instead
+ * Code-based verification was removed in migration 043.
+ */
+router.post('/:id/verify-email', authMiddleware, requirePermission(PermissionResource.DEPARTMENTS, PermissionAction.UPDATE, {
+  getTargetHotelId: async (req) => {
+    const dept = await getDepartmentById(req.params.id)
+    return dept?.hotel_id
+  }
+}), async (req, res) => {
+  return res.status(410).json({
+    success: false,
+    error: 'DEPRECATED',
+    message: 'This endpoint is deprecated. Use simplified confirmation flow via /send-confirmation instead.',
+    deprecated: true,
+    alternative: '/api/departments/:id/send-confirmation'
+  })
+})
+
+/**
+ * GET /api/departments/:id/verification-status
+ * Get email verification status for department
+ */
+router.get('/:id/verification-status', authMiddleware, requirePermission(PermissionResource.DEPARTMENTS, PermissionAction.READ, {
+  getTargetHotelId: async (req) => {
+    const dept = await getDepartmentById(req.params.id)
+    return dept?.hotel_id
+  }
+}), async (req, res) => {
+  try {
+    const department = await getDepartmentById(req.params.id)
+    if (!department) {
+      return res.status(404).json({ success: false, error: 'Department not found' })
+    }
+
+    if (req.user.role !== 'SUPER_ADMIN' && req.user.hotel_id !== department.hotel_id) {
+      return res.status(403).json({ success: false, error: 'Access denied' })
+    }
+
+    res.json({
+      success: true,
+      verified: department.email_confirmed || false,
+      email: department.email,
+      email_confirmed: department.email_confirmed || false,
+      email_confirmed_at: department.email_confirmed_at ? new Date(department.email_confirmed_at).toISOString() : null
+    })
+  } catch (error) {
+    logError('Get verification status error', error)
+    res.status(500).json({ success: false, error: 'Failed to get verification status' })
+  }
+})
+
+// ═══════════════════════════════════════════════════════════════
+// DEPARTMENT EMAIL CONFIRMATION (Simplified)
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * POST /api/departments/:id/send-confirmation
+ * Send confirmation email to department (no codes, just confirmation)
+ */
+router.post('/:id/send-confirmation',
+  authMiddleware,
+  requirePermission(PermissionResource.DEPARTMENTS, PermissionAction.UPDATE),
+  async (req, res) => {
+    try {
+      const { id } = req.params
+      const department = await getDepartmentById(id)
+      
+      if (!department) {
+        return res.status(404).json({ success: false, error: 'Department not found' })
+      }
+      
+      if (!department.email) {
+        return res.status(400).json({ success: false, error: 'No email configured for this department' })
+      }
+      
+      // Генерация unsubscribe token
+      const unsubToken = crypto.randomBytes(32).toString('hex')
+      const appUrl = process.env.APP_URL || 'http://localhost:5173'
+      const unsubscribeLink = `${appUrl}/api/departments/${id}/unsubscribe?token=${unsubToken}`
+      
+      // Обновляем department
+      await dbQuery(
+        `UPDATE departments 
+         SET email_unsubscribe_token = $1,
+             email_confirmed = TRUE,
+             email_confirmed_at = NOW()
+         WHERE id = $2`,
+        [unsubToken, id]
+      )
+      
+      // Получаем hotel name
+      const hotelResult = await dbQuery('SELECT name FROM hotels WHERE id = $1', [department.hotel_id])
+      const hotelName = hotelResult.rows[0]?.name || 'Hotel'
+      
+      // Отправка простого confirmation email
+      await sendVerificationEmail({
+        user: { name: department.name },
+        verificationLink: null,
+        target: 'DEPARTMENT',
+        email: department.email,
+        departmentName: department.name,
+        hotelName: hotelName,
+        unsubscribeLink: unsubscribeLink
+      })
+      
+      await logAudit({
+        hotel_id: department.hotel_id,
+        user_id: req.user.id,
+        user_name: req.user.name || req.user.login,
+        action: 'send_confirmation',
+        entity_type: 'department',
+        entity_id: id,
+        details: { email: department.email },
+        ip_address: req.ip
+      })
+      
+      res.json({ success: true, message: 'Confirmation email sent' })
+    } catch (error) {
+      logError('Send department confirmation error', error)
+      res.status(500).json({ success: false, error: error.message })
+    }
+  }
+)
+
+/**
+ * GET /api/departments/:id/unsubscribe
+ * Unsubscribe from department emails
+ */
+router.get('/:id/unsubscribe',
+  async (req, res) => {
+    try {
+      const { id } = req.params
+      const { token } = req.query
+      
+      if (!token) {
+        return res.status(400).send(`
+          <html>
+            <body style="font-family: sans-serif; text-align: center; padding: 50px;">
+              <h2>Invalid Request</h2>
+              <p>Missing unsubscribe token.</p>
+            </body>
+          </html>
+        `)
+      }
+      
+      const result = await dbQuery(
+        `UPDATE departments
+         SET email_confirmed = FALSE,
+             email_confirmed_at = NULL
+         WHERE id = $1 AND email_unsubscribe_token = $2
+         RETURNING id, name`,
+        [id, token]
+      )
+      
+      if (result.rows.length === 0) {
+        return res.status(400).send(`
+          <html>
+            <body style="font-family: sans-serif; text-align: center; padding: 50px;">
+              <h2>Invalid or Expired Link</h2>
+              <p>The unsubscribe link is invalid or has expired.</p>
+            </body>
+          </html>
+        `)
+      }
+      
+      res.send(`
+        <html>
+          <body style="font-family: sans-serif; text-align: center; padding: 50px;">
+            <h2 style="color: #059669;">✓ Unsubscribed</h2>
+            <p>You will no longer receive daily reports at this email address.</p>
+            <p style="color: #666; font-size: 14px; margin-top: 30px;">
+              Contact your hotel administrator to re-enable email notifications.
+            </p>
+          </body>
+        </html>
+      `)
+    } catch (error) {
+      logError('Unsubscribe error', error)
+      res.status(500).send(`
+        <html>
+          <body style="font-family: sans-serif; text-align: center; padding: 50px;">
+            <h2>Error</h2>
+            <p>An error occurred while processing your request.</p>
+          </body>
+        </html>
+      `)
+    }
+  }
+)
 
 export default router

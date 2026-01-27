@@ -472,24 +472,110 @@ export async function sendPasswordResetEmail(user, resetToken) {
 }
 
 /**
- * Email verification
+ * Email verification (simplified - uses confirmation links, not codes)
+ * @param {Object} params - Verification parameters
+ * @param {Object} params.user - User object (for USER target) or department name (for DEPARTMENT target)
+ * @param {string} params.verificationLink - Verification URL with token (preferred)
+ * @param {string} params.verificationCode - 6-digit code (DEPRECATED - kept for backward compatibility)
+ * @param {string} params.target - 'USER' or 'DEPARTMENT'
+ * @param {string} params.email - Recipient email (required for DEPARTMENT, optional for USER)
  */
-export async function sendVerificationEmail(user, verificationCode) {
-  const content = `
-    <h2>Подтверждение email 📧</h2>
-    <p>Привет, <strong>${user.name}</strong>!</p>
-    <p>Для подтверждения вашего email адреса введите код:</p>
-    <div class="code">${verificationCode}</div>
-    <p style="text-align: center; margin-top: 16px; color: #888;">
-      Код действителен 15 минут
-    </p>
-  `
+export async function sendVerificationEmail({ user, verificationLink, verificationCode, target = 'USER', email = null, departmentName, hotelName, unsubscribeLink }) {
+  // Determine recipient email
+  const recipientEmail = email || (user?.email)
+  if (!recipientEmail) {
+    throw new Error('Email address is required for verification')
+  }
 
+  // Determine content based on target
+  let content
+  if (target === 'DEPARTMENT') {
+    // Department email confirmation (simplified - no codes, just confirmation)
+    const deptName = departmentName || user?.name || 'отдела'
+    const hName = hotelName || 'Hotel'
+    const unsubLink = unsubscribeLink || ''
+    
+    content = `
+      <h2>Daily Reports Enabled 📧</h2>
+      <p>You will now receive daily inventory reports at this email address.</p>
+      
+      <p><strong>Hotel:</strong> ${hName}</p>
+      <p><strong>Department:</strong> ${deptName}</p>
+      
+      <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;">
+      
+      <p style="color: #666; font-size: 14px;">
+        If this email address is incorrect, 
+        <a href="${unsubLink}" style="color: #FF8D6B;">click here to unsubscribe</a>.
+      </p>
+    `
+  } else {
+    // USER target (default)
+    if (verificationLink) {
+      content = `
+        <h2>Подтверждение email 📧</h2>
+        <p>Привет, <strong>${user?.name || 'пользователь'}</strong>!</p>
+        <p>Для подтверждения вашего email адреса нажмите на кнопку:</p>
+        <div style="text-align: center; margin: 32px 0;">
+          <a href="${verificationLink}" 
+             style="display: inline-block; padding: 16px 32px; background-color: #FF8D6B; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
+            Подтвердить Email
+          </a>
+        </div>
+        <p style="text-align: center; color: #666; font-size: 12px; margin-top: 16px;">
+          Или скопируйте ссылку: <br>
+          <span style="word-break: break-all; color: #333;">${verificationLink}</span>
+        </p>
+        <p style="text-align: center; margin-top: 16px; color: #888;">
+          Ссылка действительна 24 часа
+        </p>
+        <p style="text-align: center; margin-top: 16px; color: #dc2626; font-size: 14px;">
+          ⚠️ Если вы не запрашивали подтверждение, игнорируйте письмо
+        </p>
+      `
+    } else {
+      // Fallback to code (DEPRECATED)
+      content = `
+        <h2>Подтверждение email 📧</h2>
+        <p>Привет, <strong>${user?.name || 'пользователь'}</strong>!</p>
+        <p>Для подтверждения вашего email адреса введите код:</p>
+        <h1 style="font-size: 48px; letter-spacing: 8px; text-align: center; color: #FF8D6B; margin: 24px 0;">${verificationCode}</h1>
+        <p style="text-align: center; margin-top: 16px; color: #888;">
+          Код действителен 30 минут
+        </p>
+      `
+    }
+  }
+
+  // Department email confirmation (simplified - no codes)
+  if (target === 'DEPARTMENT' && verificationLink === null && email) {
+    const departmentName = user?.name || 'отдела'
+    const hotelName = email.hotelName || 'Hotel'
+    const unsubscribeLink = email.unsubscribeLink || ''
+    
+    content = `
+      <h2>Daily Reports Enabled 📧</h2>
+      <p>You will now receive daily inventory reports at this email address.</p>
+      
+      <p><strong>Hotel:</strong> ${hotelName}</p>
+      <p><strong>Department:</strong> ${departmentName}</p>
+      
+      <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;">
+      
+      <p style="color: #666; font-size: 14px;">
+        If this email address is incorrect, 
+        <a href="${unsubscribeLink}" style="color: #FF8D6B;">click here to unsubscribe</a>.
+      </p>
+    `
+  }
+  
   return sendEmail({
-    to: user.email,
+    to: recipientEmail,
     from: EMAIL_FROM.noreply, // no-reply для auth писем
-    subject: 'Подтверждение email — FreshTrack',
-    html: emailTemplate(content, { title: 'Подтверждение email' })
+    subject: target === 'DEPARTMENT' 
+      ? 'Daily Reports Enabled — FreshTrack'
+      : 'Подтверждение email — FreshTrack',
+    html: emailTemplate(content, { title: target === 'DEPARTMENT' ? 'Daily Reports Enabled' : 'Подтверждение email' })
   })
 }
 

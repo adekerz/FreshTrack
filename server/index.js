@@ -10,12 +10,17 @@ import * as Sentry from '@sentry/node'
 import express from 'express'
 import cors from 'cors'
 import dotenv from 'dotenv'
+import helmet from 'helmet'
 
 // Load environment variables
 dotenv.config()
 
+// Validate required environment variables
+import { validateRequiredEnv } from './utils/validateEnv.js'
+validateRequiredEnv()
+
 // Import rate limiter
-import { rateLimitGeneral, rateLimitAuth, rateLimitHeavy, rateLimitPendingStatus } from './middleware/rateLimiter.js'
+import { rateLimitGeneral, rateLimitAuth, rateLimitHeavy, rateLimitPendingStatus, rateLimitWebhook, rateLimitLogin } from './middleware/rateLimiter.js'
 
 // Import routes
 import docsRouter from './routes/docs.js'
@@ -42,12 +47,16 @@ import {
   exportController,
   telegramController,
   eventsController,
-  marshaCodesController
+  marshaCodesController,
+  gdprController
 } from './modules/index.js'
 import { webhooksRouter } from './modules/webhooks/index.js'
 
 // Import notification jobs
 import { startNotificationJobs } from './jobs/notificationJobs.js'
+import { startCleanupJobs } from './jobs/cleanupJobs.js'
+import { startAuditVerificationJob } from './jobs/auditVerificationJob.js'
+import { startDataRetentionJob } from './jobs/dataRetentionJob.js'
 
 // Import database
 import { initDatabase, getAllHotels } from './db/database.js'
@@ -76,22 +85,37 @@ const vercelPreview = /^https:\/\/[a-z0-9-]+\.vercel\.app$/
 app.use(
   cors({
     origin(origin, callback) {
+      // Same-origin requests don't send Origin header
       if (!origin) {
+        // Allow in dev
+        if (process.env.NODE_ENV === 'development') {
+          callback(null, true)
+          return
+        }
+        
+        // In production: allow same-origin requests (they don't send Origin)
+        // We can't check Referer here (not available in CORS callback)
+        // But same-origin requests are automatically allowed by browsers
+        // Only reject if explicitly needed (for now, allow in production too)
+        // TODO: Add middleware to check Referer for non-browser requests
         callback(null, true)
         return
       }
+      
+      // Origin present - check against whitelist
       if (allowedOrigins.includes(origin)) {
         callback(null, true)
-        return
-      }
-      if (process.env.NODE_ENV === 'production' && vercelPreview.test(origin)) {
+      } else if (process.env.NODE_ENV === 'production' && vercelPreview.test(origin)) {
         callback(null, true)
-        return
+      } else {
+        console.log('[CORS] Rejected origin:', origin)
+        callback(new Error('CORS not allowed'), false)
       }
-      console.log('[CORS] Blocked origin:', origin)
-      callback(new Error('Not allowed by CORS'))
     },
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Hotel-Id', 'X-Department-Id'],
+    exposedHeaders: ['X-RateLimit-Limit', 'X-RateLimit-Remaining', 'X-RateLimit-Reset', 'Retry-After']
   })
 )
 
@@ -111,6 +135,36 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
 // Trust proxy for Railway/Vercel
 app.set('trust proxy', 1)
 
+// Security headers with Helmet
+app.use(helmet({
+  // Отключить CSP в development (ломает HMR)
+  contentSecurityPolicy: process.env.NODE_ENV === 'production' ? {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"], // Tailwind CSS
+      scriptSrc: ["'self'"], // Vite bundles скрипты
+      imgSrc: ["'self'", "data:", "https:", "blob:"],
+      connectSrc: [
+        "'self'",
+        process.env.APP_URL || 'https://freshtrack.systems'
+      ],
+      fontSrc: ["'self'", "data:"],
+      objectSrc: ["'none'"],
+      upgradeInsecureRequests: []
+    }
+  } : false, // ← ОТКЛЮЧИТЬ в dev!
+  
+  hsts: {
+    maxAge: 31536000, // 1 year
+    includeSubDomains: true,
+    preload: true
+  },
+  
+  frameguard: { action: 'deny' },
+  noSniff: true,
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' }
+}))
+
 // Request logging (development only)
 import { requestLogger } from './utils/logger.js'
 app.use(requestLogger)
@@ -123,6 +177,8 @@ app.use('/api/auth/pending-status', rateLimitPendingStatus)
 
 // API Routes - with specific rate limits
 // Feature-based modules (new architecture)
+// Login has stricter rate limit (5/15min) - must be before general auth rate limit
+app.use('/api/auth/login', rateLimitLogin)
 app.use('/api/auth', rateLimitAuth, authRouter)
 app.use('/api', inventoryRouter) // handles /batches, /products, /categories
 
@@ -153,9 +209,10 @@ app.use('/api/docs', docsRouter)
 app.use('/api/telegram', telegramController)
 app.use('/api/events', eventsController)
 app.use('/api/marsha-codes', marshaCodesController)
+app.use('/api/gdpr', gdprController)
 
-// Webhooks (no rate limiting - external services)
-app.use('/webhooks', webhooksRouter)
+// Webhooks (with rate limiting - 60 requests per minute)
+app.use('/webhooks', rateLimitWebhook, webhooksRouter)
 
 // Root health check
 app.get('/', async (req, res) => {
@@ -252,6 +309,27 @@ async function startServer() {
         })
       } catch (error) {
         console.error('⚠️ Failed to start notification jobs:', error.message)
+      }
+
+      // Start cleanup jobs (expired verification codes, etc.)
+      try {
+        startCleanupJobs()
+      } catch (error) {
+        console.error('⚠️ Failed to start cleanup jobs:', error.message)
+      }
+
+      // Start audit verification job (integrity checks)
+      try {
+        startAuditVerificationJob()
+      } catch (error) {
+        console.error('⚠️ Failed to start audit verification job:', error.message)
+      }
+
+      // Start data retention job (GDPR compliance)
+      try {
+        startDataRetentionJob()
+      } catch (error) {
+        console.error('⚠️ Failed to start data retention job:', error.message)
       }
     })
   } catch (error) {

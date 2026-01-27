@@ -1,8 +1,9 @@
 /**
  * FreshTrack PostgreSQL Connection
- * Supports dual environments:
- * - LOCAL: Docker PostgreSQL (localhost:5432)
+ * Supports multiple environments:
+ * - DEVELOPMENT: Supabase (cloud PostgreSQL)
  * - PRODUCTION: Railway PostgreSQL (auto-configured)
+ * - LOCAL: Docker PostgreSQL (localhost:5432) - optional, not used currently
  */
 
 import pg from 'pg'
@@ -21,18 +22,21 @@ const isRailway = !!process.env.RAILWAY_ENVIRONMENT
 const nodeEnv = process.env.NODE_ENV || 'development'
 
 // Railway sets DATABASE_URL automatically in production
-// Locally we use DATABASE_URL from .env (Docker PostgreSQL)
+// Development uses DATABASE_URL from .env (Supabase)
 const connectionString = process.env.DATABASE_URL || process.env.DATABASE_PUBLIC_URL
 
 if (!connectionString) {
   console.error('❌ DATABASE_URL not set!')
-  console.error('   Local: Check server/.env file')
+  console.error('   Development: Check server/.env file (Supabase)')
   console.error('   Railway: Set DATABASE_URL in Railway dashboard')
   process.exit(1)
 }
 
-// Detect if connecting to local Docker DB
+// Detect if connecting to local Docker DB (optional, not used currently)
 const isLocalDB = connectionString.includes('localhost') || connectionString.includes('127.0.0.1')
+
+// Detect if connecting to Supabase
+const isSupabase = connectionString.includes('supabase.com') || connectionString.includes('pooler.supabase.com')
 
 // ═══════════════════════════════════════════════════════════════
 // CONNECTION POOL CONFIGURATION
@@ -40,15 +44,15 @@ const isLocalDB = connectionString.includes('localhost') || connectionString.inc
 
 const pool = new Pool({
   connectionString,
-  // SSL: disabled for local Docker, enabled for Railway
+  // SSL: disabled for local Docker, enabled for Supabase/Railway
   ssl: isLocalDB ? false : { rejectUnauthorized: false },
   // Pool settings optimized per environment
-  max: isLocalDB ? 5 : 10,      // Smaller pool for local dev
-  min: isLocalDB ? 1 : 2,       // Fewer min connections locally
+  max: isLocalDB ? 5 : (isSupabase ? 10 : 10),      // Supabase/Railway: 10, Docker: 5
+  min: isLocalDB ? 1 : (isSupabase ? 2 : 2),         // Supabase/Railway: 2, Docker: 1
   idleTimeoutMillis: isLocalDB ? 30000 : 60000,
   connectionTimeoutMillis: isLocalDB ? 10000 : 30000,
   acquireTimeoutMillis: isLocalDB ? 10000 : 30000,
-  keepAlive: !isLocalDB,        // Keep-alive only for remote
+  keepAlive: !isLocalDB,        // Keep-alive for Supabase/Railway
   keepAliveInitialDelayMillis: 10000,
 })
 
@@ -57,7 +61,16 @@ const pool = new Pool({
 // ═══════════════════════════════════════════════════════════════
 
 pool.on('connect', (client) => {
-  const envLabel = isRailway ? '🚀 RAILWAY' : '🐳 DOCKER LOCAL'
+  let envLabel
+  if (isRailway) {
+    envLabel = '🚀 RAILWAY'
+  } else if (isSupabase) {
+    envLabel = '☁️ SUPABASE'
+  } else if (isLocalDB) {
+    envLabel = '🐳 DOCKER LOCAL'
+  } else {
+    envLabel = '📦 REMOTE'
+  }
   console.log(`✅ Connected to PostgreSQL [${envLabel}]`)
   client.query('SET statement_timeout = 30000')
 })
@@ -104,7 +117,16 @@ export const getClient = () => pool.connect()
 export async function testConnection() {
   try {
     const result = await query('SELECT NOW()')
-    const envLabel = isRailway ? '🚀 RAILWAY' : '🐳 DOCKER LOCAL'
+    let envLabel
+    if (isRailway) {
+      envLabel = '🚀 RAILWAY'
+    } else if (isSupabase) {
+      envLabel = '☁️ SUPABASE'
+    } else if (isLocalDB) {
+      envLabel = '🐳 DOCKER LOCAL'
+    } else {
+      envLabel = '📦 REMOTE'
+    }
     console.log(`✅ Database connection test [${envLabel}]:`, result.rows[0].now)
     return true
   } catch (error) {
@@ -117,11 +139,27 @@ export async function testConnection() {
  * Get current environment info
  */
 export function getEnvironmentInfo() {
+  let environment, dbHost
+  if (isRailway) {
+    environment = 'railway'
+    dbHost = 'Railway PostgreSQL'
+  } else if (isSupabase) {
+    environment = 'supabase'
+    dbHost = 'Supabase (cloud)'
+  } else if (isLocalDB) {
+    environment = 'local'
+    dbHost = 'localhost:5432 (Docker)'
+  } else {
+    environment = 'remote'
+    dbHost = 'Remote PostgreSQL'
+  }
+  
   return {
-    environment: isRailway ? 'railway' : 'local',
+    environment,
     isLocal: isLocalDB,
+    isSupabase,
     nodeEnv,
-    dbHost: isLocalDB ? 'localhost:5432 (Docker)' : 'Railway PostgreSQL'
+    dbHost
   }
 }
 

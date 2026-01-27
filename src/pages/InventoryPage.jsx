@@ -619,7 +619,7 @@ export default function InventoryPage() {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4 px-1 sm:px-0">
           {products.map((product) => {
             // Используем categoryName с бэкенда (single source of truth), fallback на локальный поиск
             const category = categories.find((c) => c.id === product.categoryId)
@@ -630,11 +630,11 @@ export default function InventoryPage() {
                 key={product.id}
                 variant="ghost"
                 onClick={() => handleProductClick(product)}
-                className="w-full h-auto min-h-0 justify-start items-stretch bg-card border border-border rounded-lg p-3 sm:p-4 text-left hover:shadow-md hover:border-accent group"
+                className="w-full h-auto min-h-0 justify-start items-stretch bg-card border border-border rounded-lg p-2.5 sm:p-4 text-left hover:shadow-md hover:border-accent group overflow-hidden"
               >
                 {/* Статус индикатор */}
-                <div className="flex items-start justify-between mb-2 sm:mb-3">
-                  <div className="flex-1 min-w-0">
+                <div className="flex items-start justify-between mb-2 sm:mb-3 gap-2">
+                  <div className="flex-1 min-w-0 overflow-hidden">
                     <h3 className="font-medium text-foreground group-hover:text-accent transition-colors text-sm sm:text-base truncate">
                       {product.name}
                     </h3>
@@ -646,24 +646,24 @@ export default function InventoryPage() {
                   </div>
                   {product.totalBatches > 0 && (
                     <div
-                      className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full flex-shrink-0 ml-2 ${statusColors[product.overallStatus]}`}
+                      className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full flex-shrink-0 ${statusColors[product.overallStatus]}`}
                       title={product.overallStatus}
                     />
                   )}
                 </div>
 
                 {/* Информация о партиях */}
-                <div className="text-xs sm:text-sm text-muted-foreground">
+                <div className="text-xs sm:text-sm text-muted-foreground overflow-hidden">
                   {product.totalBatches === 0 ? (
                     <span className="text-muted-foreground/50">{t('inventory.noBatches')}</span>
                   ) : (
-                    <div className="flex flex-wrap gap-x-1">
-                      <span>
+                    <div className="flex flex-wrap gap-x-1.5 items-center">
+                      <span className="whitespace-nowrap">
                         <span className="font-medium text-foreground">{product.totalBatches}</span>{' '}
                         {t('inventory.batches')}
                       </span>
-                      <span>•</span>
-                      <span>
+                      <span className="flex-shrink-0">•</span>
+                      <span className="whitespace-nowrap">
                         <span className="font-medium text-foreground">{product.totalQuantity}</span>{' '}
                         {t('inventory.units')}
                       </span>
@@ -673,15 +673,15 @@ export default function InventoryPage() {
 
                 {/* Предупреждения */}
                 {product.hasExpired && (
-                  <div className="mt-2 text-xs text-danger flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-danger flex-shrink-0" />
-                    <span className="truncate">{t('inventory.hasExpired')}</span>
+                  <div className="mt-2 text-xs text-danger flex items-start gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-danger flex-shrink-0 mt-0.5" />
+                    <span className="flex-1 leading-relaxed">{t('inventory.hasExpired')}</span>
                   </div>
                 )}
                 {!product.hasExpired && product.hasExpiringSoon && (
-                  <div className="mt-2 text-xs text-warning flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-warning flex-shrink-0" />
-                    <span className="truncate">{t('inventory.expiringSoon')}</span>
+                  <div className="mt-2 text-xs text-warning flex items-start gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-warning flex-shrink-0 mt-0.5" />
+                    <span className="flex-1 leading-relaxed">{t('inventory.expiringSoon')}</span>
                   </div>
                 )}
               </TouchButton>

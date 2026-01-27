@@ -1,14 +1,12 @@
 /**
  * Header Component
- * Responsive header with search, notifications, and user menu
- * Mobile: Simple header with hotel selector + search + theme toggle
- * Desktop: Full header with search, notifications, user menu
- * 
- * Note: Mobile navigation is handled by BottomNavigation component (no hamburger menu)
+ * Responsive header with search, notifications, and user menu.
+ * Mobile: Hamburger (opens MobileSidebar) + hotel selector + search + theme toggle.
+ * Desktop: Hotel selector + search + notifications + user menu.
  */
 
 import { useState, useEffect } from 'react'
-import { Search, X, Moon, Sun, LogOut, Settings, ChevronDown, Zap } from 'lucide-react'
+import { Search, X, Moon, Sun, LogOut, Settings, ChevronDown, Zap, Menu } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useTranslation } from '../context/LanguageContext'
@@ -21,7 +19,7 @@ import { TouchButton } from './ui'
 import { cn } from '../utils/classNames'
 import { apiFetch } from '../services/api'
 
-export default function Header() {
+export default function Header({ onOpenMobileMenu, isMobileMenuOpen = false }) {
   const navigate = useNavigate()
   const { user, logout } = useAuth()
   const { t } = useTranslation()
@@ -106,8 +104,21 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm border-b border-border" role="banner">
       <div className="flex items-center justify-between h-14 sm:h-16 px-3 sm:px-6">
-        {/* Left section - Hotel selector (visible on all sizes) */}
+        {/* Left section - Hamburger (mobile) + Hotel selector; hotel ограничен по ширине на mobile */}
         <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-shrink">
+          {typeof onOpenMobileMenu === 'function' && (
+            <TouchButton
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={onOpenMobileMenu}
+              className="sm:hidden -ml-1 flex-shrink-0 relative z-10 text-muted-foreground hover:text-foreground"
+              aria-label={t('nav.openMenu') || 'Open menu'}
+              aria-expanded={isMobileMenuOpen}
+              aria-haspopup="true"
+              icon={Menu}
+            />
+          )}
           <HotelSelector />
         </div>
 

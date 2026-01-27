@@ -77,8 +77,13 @@ export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose, e
   ].filter((group) => group.items.length > 0)
 
   const isActive = (path) => {
-    if (path === '/') return location.pathname === '/'
-    return location.pathname.startsWith(path)
+    // Exact match for home page
+    if (path === '/') {
+      return location.pathname === '/' || location.pathname === '/dashboard'
+    }
+    // For other paths, check exact match or if pathname starts with path + '/'
+    // This prevents '/' from matching '/inventory', '/settings', etc.
+    return location.pathname === path || location.pathname.startsWith(path + '/')
   }
 
   // Обработчик клика по пункту меню

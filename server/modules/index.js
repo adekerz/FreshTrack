@@ -79,3 +79,6 @@ export { eventsController } from './events/index.js'
 
 // MARSHA Codes module
 export { marshaCodesController } from './marsha-codes/index.js'
+
+// GDPR module
+export { gdprController } from './gdpr/index.js'

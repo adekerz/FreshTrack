@@ -149,7 +149,10 @@ export const authMiddleware = async (req, res, next) => {
       role: user.role,
       status: user.status || 'active',
       hotel_id: user.hotel_id,
-      department_id: user.department_id
+      department_id: user.department_id,
+      mfa_enabled: user.mfa_enabled || false,
+      mfa_required: user.mfa_required || false,
+      mfa_grace_period_ends: user.mfa_grace_period_ends || null
     }
     
     // Load hotel info if user has hotel_id

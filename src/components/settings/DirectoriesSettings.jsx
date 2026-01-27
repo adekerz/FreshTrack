@@ -15,6 +15,7 @@ import { Tags, Building2, Plus, X, Edit2, Trash2, Check, AlertTriangle, Users } 
 import { cn } from '../../utils/classNames'
 import { apiFetch } from '../../services/api'
 import CategoriesSettings from './CategoriesSettings'
+import DepartmentEmailVerification from './DepartmentEmailVerification'
 
 const TABS = [
   { id: 'categories', icon: Tags, labelKey: 'settings.directories.categories' },
@@ -310,6 +311,13 @@ function DepartmentsContent() {
                         if (e.key === 'Escape') cancelEditing()
                       }}
                     />
+                    {editEmail && (
+                      <DepartmentEmailVerification
+                        departmentId={dept.id}
+                        email={editEmail}
+                        onVerified={() => fetchDepartments()}
+                      />
+                    )}
                   </div>
                 ) : (
                   <div className="flex-1 min-w-0">
@@ -318,7 +326,18 @@ function DepartmentsContent() {
                       <p className="text-sm text-muted-foreground truncate">{dept.description}</p>
                     )}
                     {dept.email && (
-                      <p className="text-sm text-muted-foreground truncate">{dept.email}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm text-muted-foreground truncate">{dept.email}</p>
+                        {dept.email_verified ? (
+                          <span className="text-xs px-2 py-0.5 bg-success/10 text-success rounded">
+                            ✓ Подтверждён
+                          </span>
+                        ) : (
+                          <span className="text-xs px-2 py-0.5 bg-warning/10 text-warning rounded">
+                            ⚠ Не подтверждён
+                          </span>
+                        )}
+                      </div>
                     )}
                     {dept.user_count > 0 && (
                       <p className="text-sm text-muted-foreground flex items-center gap-1">

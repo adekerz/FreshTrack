@@ -10,6 +10,9 @@
 
 import ExcelJS from 'exceljs'
 import { logError } from '../utils/logger.js'
+import { logAudit } from '../db/database.js'
+import { v4 as uuidv4 } from 'uuid'
+import crypto from 'crypto'
 
 /**
  * Export formats
@@ -130,6 +133,8 @@ const ActionLabels = {
  * Export Service class
  */
 export class ExportService {
+  // Maximum rows for export (protection against full DB dump)
+  static MAX_EXPORT_ROWS = parseInt(process.env.MAX_EXPORT_ROWS) || 10000
   
   /**
    * Format cell value for export
@@ -322,8 +327,66 @@ export class ExportService {
    * @param {Object} options - Export options
    */
   static async sendExport(res, data, entityType, format, options = {}) {
+    // Проверка размера экспорта
+    if (data.length > this.MAX_EXPORT_ROWS) {
+      const error = new Error(
+        `Export too large (${data.length} rows). ` +
+        `Maximum: ${this.MAX_EXPORT_ROWS} rows. ` +
+        `Please apply filters to reduce the dataset.`
+      )
+      error.statusCode = 400
+      error.details = {
+        totalRows: data.length,
+        maxRows: this.MAX_EXPORT_ROWS,
+        suggestion: 'Apply date filters or contact support for bulk export.',
+        entityType
+      }
+      throw error
+    }
     const filename = options.filename || `${entityType}_export_${Date.now()}`
     const normalizedFormat = format?.toLowerCase() === 'excel' ? ExportFormat.XLSX : format?.toLowerCase()
+    
+    // Generate export ID for tracking
+    const exportId = uuidv4()
+    
+    // Audit logging для экспорта
+    if (options.user) {
+      try {
+        await logAudit({
+          hotel_id: options.user.hotel_id || options.user.hotelId,
+          user_id: options.user.id,
+          user_name: options.user.name || options.user.login,
+          action: 'EXPORT',
+          entity_type: 'DATA_EXPORT',
+          entity_id: exportId,
+          details: {
+            exportId,
+            format: normalizedFormat,
+            entityType,
+            rowCount: data.length,
+            filename,
+            columns: data.length > 0 ? Object.keys(data[0]) : [],
+            filters: options.filters || {}
+          },
+          snapshot_after: {
+            exportId,
+            format: normalizedFormat,
+            entityType,
+            rowCount: data.length,
+            timestamp: new Date().toISOString(),
+            userAgent: options.userAgent,
+            ipAddress: options.ipAddress
+          },
+          ip_address: options.ipAddress
+        })
+      } catch (auditError) {
+        logError('ExportService', 'Failed to log export audit', auditError)
+        // Don't fail export if audit logging fails
+      }
+    }
+    
+    // Set export ID in response header для tracking
+    res.setHeader('X-Export-ID', exportId)
     
     try {
       switch (normalizedFormat) {

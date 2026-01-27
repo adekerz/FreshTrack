@@ -152,8 +152,9 @@
     "auditLogs": "Audit Logs",
     "history": "History",
     "more": "More",
-    "reports": "Reports",
-    "mobileNav": "Navigation"
+    "openMenu": "Open menu",
+    "mobileNav": "Mobile navigation",
+    "reports": "Reports"
   },
   "sidebar": {
     "collapse": "Collapse menu",

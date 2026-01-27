@@ -6,6 +6,7 @@
  */
 
 import { Router } from 'express'
+import crypto from 'crypto'
 import {
   NotificationFiltersSchema,
   MarkNotificationsSchema,
@@ -747,11 +748,39 @@ router.get('/status', authMiddleware, async (req, res) => {
 })
 
 /**
+ * Verify Telegram webhook secret token
+ * Telegram sends X-Telegram-Bot-Api-Secret-Token header when secret_token is set
+ */
+function verifyTelegramWebhook(req, res, next) {
+  const secret = process.env.TELEGRAM_WEBHOOK_SECRET
+  
+  if (!secret) {
+    // If secret not configured, allow (for backward compatibility)
+    return next()
+  }
+
+  const token = req.headers['x-telegram-bot-api-secret-token']
+  
+  if (!token) {
+    logWarn('Telegram webhook', 'Missing X-Telegram-Bot-Api-Secret-Token header')
+    return res.status(401).json({ error: 'Unauthorized' })
+  }
+
+  // Use constant-time comparison to prevent timing attacks
+  if (!crypto.timingSafeEqual(Buffer.from(token), Buffer.from(secret))) {
+    logWarn('Telegram webhook', 'Invalid secret token')
+    return res.status(401).json({ error: 'Unauthorized' })
+  }
+
+  next()
+}
+
+/**
  * POST /api/notifications/telegram-webhook
  * Telegram webhook endpoint - receives updates from Telegram
  * This endpoint must be PUBLIC (no auth) for Telegram to call it
  */
-router.post('/telegram-webhook', async (req, res) => {
+router.post('/telegram-webhook', verifyTelegramWebhook, async (req, res) => {
   try {
     const { TelegramService } = await import('../../services/TelegramService.js')
     

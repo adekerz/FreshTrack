@@ -48,11 +48,10 @@ export function LanguageProvider({ children }) {
   // Сохраняем выбор языка в localStorage
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, language)
-    // Обновляем атрибут lang на html элементе
     document.documentElement.lang = language
-    // Устанавливаем направление текста для RTL языков (арабский)
-    const langConfig = languages.find((l) => l.code === language)
-    document.documentElement.dir = langConfig?.rtl ? 'rtl' : 'ltr'
+    // RTL отключён: при dir=rtl (арабский) ломалась вёрстка (flex/fixed) → чёрный экран.
+    // Оставляем ltr; арабский текст отображается нормально, layout не переворачивается.
+    document.documentElement.dir = 'ltr'
   }, [language])
 
   // Функция смены языка

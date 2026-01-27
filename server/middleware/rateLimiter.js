@@ -41,6 +41,13 @@ const heavyLimiter = new RateLimiterMemory({
   blockDuration: 60
 })
 
+// Strict rate limit для data export (10 per hour per user)
+const exportLimiter = new RateLimiterMemory({
+  points: parseInt(process.env.EXPORT_RATE_LIMIT_MAX) || 10,
+  duration: parseInt(process.env.EXPORT_RATE_LIMIT_WINDOW) || 60 * 60, // 1 hour in seconds
+  blockDuration: 60 * 60 // Block for 1 hour if exceeded
+})
+
 // Telegram/Webhook endpoints - 30 per minute
 const webhookLimiter = new RateLimiterMemory({
   points: 30,
@@ -135,6 +142,69 @@ export const rateLimitWebhook = createRateLimiterMiddleware(webhookLimiter, 'web
  * Pending status rate limiter - lightweight for pending users checking status
  */
 export const rateLimitPendingStatus = createRateLimiterMiddleware(pendingStatusLimiter, 'pending-status')
+
+/**
+ * Export rate limiter - strict limit for data exports (10 per hour)
+ */
+export const rateLimitExport = createRateLimiterMiddleware(exportLimiter, 'export')
+
+/**
+ * Export rate limiter with security alerting
+ * Sends alert when limit exceeded
+ */
+export async function rateLimitExportWithAlert(req, res, next) {
+  const clientId = getClientId(req)
+  
+  try {
+    await exportLimiter.consume(clientId)
+    next()
+  } catch (rejRes) {
+    if (rejRes instanceof RateLimiterRes) {
+      const retryAfter = Math.ceil(rejRes.msBeforeNext / 1000)
+      
+      logWarn('RateLimiter', `Export rate limit exceeded`, {
+        clientId,
+        path: req.path,
+        retryAfter,
+        userId: req.user?.id
+      })
+      
+      // Send security alert
+      if (req.user) {
+        try {
+          const { SecurityAlertService } = await import('../services/SecurityAlertService.js')
+          await SecurityAlertService.sendAlert('export_suspicious', {
+            userId: req.user.id,
+            userLogin: req.user.login,
+            userEmail: req.user.email,
+            ipAddress: req.ip,
+            userAgent: req.get('user-agent'),
+            endpoint: req.originalUrl,
+            exceedCount: 10,
+            timestamp: new Date().toISOString()
+          })
+        } catch (alertError) {
+          logError('RateLimiter', 'Failed to send security alert', alertError)
+        }
+      }
+      
+      res.set('Retry-After', retryAfter)
+      res.set('X-RateLimit-Limit', exportLimiter.points)
+      res.set('X-RateLimit-Remaining', rejRes.remainingPoints)
+      res.set('X-RateLimit-Reset', new Date(Date.now() + rejRes.msBeforeNext).toISOString())
+      
+      return res.status(429).json({
+        success: false,
+        error: 'TOO_MANY_REQUESTS',
+        message: 'Too many export requests. Security team has been notified.',
+        retryAfter
+      })
+    }
+    
+    logWarn('RateLimiter', 'Rate limiter error', { error: rejRes })
+    next()
+  }
+}
 
 /**
  * Slow down middleware - add delay after certain number of requests

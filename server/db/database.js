@@ -181,6 +181,13 @@ export async function initDatabase() {
     ]
 
     for (const migration of additionalMigrations) {
+      // Skip seed migrations in production (unless ALLOW_SEED=true)
+      const isSeedMigration = migration.name.includes('seed') || migration.desc.includes('seed')
+      if (isSeedMigration && process.env.NODE_ENV === 'production' && process.env.ALLOW_SEED !== 'true') {
+        console.log(`⏭️  Skipping seed migration ${migration.num} in production (${migration.desc})`)
+        continue
+      }
+
       const migrationPath = path.join(__dirname, 'migrations', migration.name)
       if (fs.existsSync(migrationPath)) {
         try {
@@ -1383,7 +1390,7 @@ export async function deleteDeliveryTemplate(id) {
 // ═══════════════════════════════════════════════════════════════
 
 export async function getAuditLogs(hotelId, filters = {}) {
-  let queryText = 'SELECT * FROM audit_logs WHERE hotel_id = $1'
+  let queryText = 'SELECT * FROM audit_logs WHERE hotel_id = $1 AND archived = FALSE'
   const params = [hotelId]
   let paramIndex = 2
 

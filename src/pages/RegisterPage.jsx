@@ -146,8 +146,10 @@ export default function RegisterPage() {
         localStorage.setItem('freshtrack_user', JSON.stringify(response.user))
         addToast(t('toast.registerSuccess'), 'success')
 
-        // Navigate to pending page if waiting for approval
-        if (response.user.status === 'pending') {
+        // Navigate to email verification if needed
+        if (response.needsEmailVerification) {
+          navigate('/verify-email', { state: { email: formData.email } })
+        } else if (response.user.status === 'pending') {
           navigate('/pending-approval')
         } else {
           navigate('/')

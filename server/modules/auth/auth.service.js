@@ -20,6 +20,8 @@ import {
   createJoinRequest,
   query as dbQuery
 } from '../../db/database.js'
+import { MFAService } from '../../services/MFAService.js'
+import { query as dbQueryPostgres } from '../../db/postgres.js'
 import MarshaCodeService from '../../services/MarshaCodeService.js'
 import { generateToken } from '../../middleware/auth.js'
 import { PermissionService } from '../../services/PermissionService.js'
@@ -112,6 +114,7 @@ export class AuthService {
       login: user.login,
       name: user.name,
       email: user.email,
+      emailVerified: user.email_verified || false,
       role: user.role,
       roleLabel: roleLabels[role] || user.role,
       status: user.status || 'active',
@@ -201,6 +204,22 @@ export class AuthService {
       // Обновить last_login
       await updateLastLogin(user.id)
 
+      // Если MFA включен → возвращаем partial token
+      if (user.mfa_enabled) {
+        const jwt = await import('jsonwebtoken')
+        const partialToken = jwt.sign(
+          { userId: user.id, mfaPending: true },
+          process.env.JWT_SECRET,
+          { expiresIn: '5m' } // короткий TTL для MFA flow
+        )
+        
+        return ServiceResult.ok({
+          requiresMFA: true,
+          partialToken,
+          message: 'Enter verification code'
+        })
+      }
+
       // Сгенерировать токен
       const token = generateToken(user)
 
@@ -273,7 +292,7 @@ export class AuthService {
         }
       }
 
-      // Создать пользователя с базовой ролью
+      // Создать пользователя с базовой ролью (email_verified = false)
       const newUser = await dbCreateUser({
         login: data.login,
         email: data.email || null,
@@ -284,10 +303,51 @@ export class AuthService {
         status: hotelId ? 'pending' : 'active' // Если привязан к отелю - требуется одобрение
       })
 
-      // Если привязан к отелю - создать заявку на вступление
+      // Generate email verification token if email is provided
+      let needsEmailVerification = false
+      if (data.email) {
+        const crypto = await import('crypto')
+        const verificationToken = crypto.randomBytes(32).toString('hex')
+        const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+
+        // Save verification token to database
+        await dbQueryPostgres(`
+          UPDATE users 
+          SET email_verification_token = $1,
+              email_verification_expires = $2
+          WHERE id = $3
+        `, [verificationToken, expiresAt, newUser.id])
+
+        // Send verification email with link
+        try {
+          const { sendVerificationEmail } = await import('../../services/EmailService.js')
+          const appUrl = process.env.APP_URL || 'http://localhost:5173'
+          const verificationLink = `${appUrl}/verify-email?token=${verificationToken}`
+          
+          await sendVerificationEmail({
+            user: { name: data.name, email: data.email },
+            verificationLink,
+            target: 'USER'
+          })
+          logInfo('AuthService', `Verification link sent to ${data.email} for user ${data.login}`)
+          needsEmailVerification = true
+        } catch (emailError) {
+          logError('AuthService', `Failed to send verification email to ${data.email}`, emailError)
+          // Continue registration even if email fails - user can request resend later
+        }
+      }
+
+      // НЕ создавать join_request пока email не подтвержден (если email указан)
+      // Если email не указан, создаем join_request сразу
       if (hotelId) {
-        await createJoinRequest(newUser.id, hotelId)
-        console.log('[AuthService] Created join request for user:', newUser.id, 'hotel:', hotelId)
+        if (needsEmailVerification) {
+          // Email not verified yet - don't create join request
+          logInfo('AuthService', `User ${data.login} registered but email not verified - join request pending`)
+        } else {
+          // No email or email verification not needed - create join request immediately
+          await createJoinRequest(newUser.id, hotelId)
+          console.log('[AuthService] Created join request for user:', newUser.id, 'hotel:', hotelId)
+        }
       }
 
       // Генерируем токен
@@ -298,7 +358,8 @@ export class AuthService {
 
       return ServiceResult.created({
         user: userData,
-        token
+        token,
+        needsEmailVerification
       })
     } catch (error) {
       logError('AuthService.register', error)

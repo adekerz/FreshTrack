@@ -6,6 +6,7 @@ import { Router } from 'express'
 import multer from 'multer'
 import path from 'path'
 import fs from 'fs'
+import crypto from 'crypto'
 import { fileURLToPath } from 'url'
 import { logError, logInfo } from '../../utils/logger.js'
 import {
@@ -33,21 +34,37 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true })
 }
 
+// MIME type to extension mapping (secure - don't trust originalname)
+const mimeToExt = {
+  'image/png': '.png',
+  'image/jpeg': '.jpg',
+  'image/jpg': '.jpg',
+  'image/svg+xml': '.svg',
+  'image/webp': '.webp'
+}
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, uploadsDir)
   },
   filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname)
-    const filename = `logo-${req.hotelId}-${Date.now()}${ext}`
+    // Use MIME type instead of originalname for security
+    const ext = mimeToExt[file.mimetype] || '.bin'
+    // Generate random filename to prevent collisions and path traversal
+    const randomBytes = crypto.randomBytes(16).toString('hex')
+    const filename = `logo-${req.hotelId}-${Date.now()}-${randomBytes}${ext}`
     cb(null, filename)
   }
 })
 
 const upload = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 },
+  limits: { 
+    fileSize: 5 * 1024 * 1024, // 5MB max
+    files: 1 // Only one file at a time
+  },
   fileFilter: (req, file, cb) => {
+    // Validate MIME type (don't trust file extension)
     const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml', 'image/webp']
     if (allowedTypes.includes(file.mimetype)) {
       cb(null, true)
@@ -213,6 +230,15 @@ router.post('/upload-logo', requirePermission(PermissionResource.SETTINGS, Permi
   try {
     if (!req.file) {
       return res.status(400).json({ success: false, error: 'No file uploaded' })
+    }
+
+    // Additional security: verify file size (already checked by multer, but double-check)
+    if (req.file.size > 5 * 1024 * 1024) {
+      // Delete uploaded file
+      try {
+        fs.unlinkSync(path.join(uploadsDir, req.file.filename))
+      } catch {}
+      return res.status(400).json({ success: false, error: 'File too large. Maximum size is 5MB.' })
     }
 
     const logoUrl = `/uploads/logos/${req.file.filename}`

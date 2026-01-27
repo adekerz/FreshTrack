@@ -1,6 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
-import { X, Menu } from 'lucide-react'
+import { X, Leaf } from 'lucide-react'
 import { useLocation } from 'react-router-dom'
+import { useTranslation } from '../../context/LanguageContext'
+import { useBranding } from '../../context/BrandingContext'
+import { getStaticUrl } from '../../services/api'
 import { cn } from '../../utils/classNames'
 import TouchButton from '../ui/TouchButton'
 
@@ -15,10 +18,16 @@ import TouchButton from '../ui/TouchButton'
 export default function MobileSidebar({ children, isOpen, onClose, onOpen }) {
   const location = useLocation()
   const panelRef = useRef(null)
+  const { t } = useTranslation()
+  const { siteName, logoUrl } = useBranding()
 
-  // Auto-close on route change
+  // Auto-close only when route changes (not when isOpen changes — иначе сайдбар сразу закрывается при открытии)
+  const prevPathRef = useRef(location.pathname)
   useEffect(() => {
-    if (isOpen) onClose()
+    if (prevPathRef.current !== location.pathname) {
+      prevPathRef.current = location.pathname
+      if (isOpen) onClose()
+    }
   }, [location.pathname, isOpen, onClose])
 
   // Prevent body scroll when open
@@ -60,22 +69,7 @@ export default function MobileSidebar({ children, isOpen, onClose, onOpen }) {
 
   return (
     <>
-      {/* Hamburger button - visible on mobile only, hidden when drawer open */}
-      {!isOpen && (
-        <TouchButton
-          type="button"
-          variant="primary"
-          size="icon"
-          onClick={onOpen}
-          className={cn(
-            'fixed left-4 top-4 z-30 rounded-xl bg-charcoal text-cream shadow-lg hover:bg-charcoal/90',
-            'sm:hidden'
-          )}
-          aria-label="Open menu"
-          aria-expanded={isOpen}
-          icon={Menu}
-        />
-      )}
+      {/* Hamburger lives in Header (leftmost) so it’s never covered by hotel selector/search */}
 
       {/* Backdrop overlay */}
       {isOpen && (
@@ -98,16 +92,35 @@ export default function MobileSidebar({ children, isOpen, onClose, onOpen }) {
           isOpen ? 'translate-x-0' : '-translate-x-full'
         )}
       >
-        {/* Close button - mobile only */}
+        {/* Logo + FreshTrack (как на desktop), кнопка закрытия */}
         <div className="flex items-center justify-between p-4 border-b border-white/10 flex-shrink-0">
-          <span className="font-serif text-lg tracking-wide text-cream">Menu</span>
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 border border-accent flex items-center justify-center flex-shrink-0 overflow-hidden">
+              {logoUrl ? (
+                <img
+                  src={getStaticUrl(logoUrl)}
+                  alt={siteName || 'Logo'}
+                  className="w-full h-full object-contain"
+                  onError={(e) => {
+                    e.target.style.display = 'none'
+                    const next = e.target.nextElementSibling
+                    if (next) next.classList.remove('hidden')
+                  }}
+                />
+              ) : null}
+              <Leaf className={cn('w-5 h-5 text-accent flex-shrink-0', logoUrl ? 'hidden' : '')} aria-hidden="true" />
+            </div>
+            <span className="font-serif text-lg tracking-wide text-cream truncate">
+              {siteName || t('common.appName') || 'FreshTrack'}
+            </span>
+          </div>
           <TouchButton
             type="button"
             variant="ghost"
             size="icon"
             onClick={onClose}
-            className="p-2 -m-2 rounded-lg text-cream/80 hover:text-cream hover:bg-white/10"
-            aria-label="Close menu"
+            className="p-2 -m-2 rounded-lg text-cream/80 hover:text-cream hover:bg-white/10 flex-shrink-0"
+            aria-label={t('common.close') || 'Close menu'}
             icon={X}
           />
         </div>

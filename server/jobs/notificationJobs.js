@@ -268,7 +268,7 @@ export async function rescheduleDailyReport() {
 /**
  * Start all notification jobs
  */
-export function startNotificationJobs(options = {}) {
+export async function startNotificationJobs(options = {}) {
   const {
     enableExpiryCheck = false,  // DISABLED: Now runs with daily report at sendTime
     enableQueueProcess = true,
@@ -304,8 +304,8 @@ export function startNotificationJobs(options = {}) {
     if (!TelegramService.isConfigured()) {
       logInfo('NotificationJobs', '⏸️ Telegram polling skipped: TELEGRAM_BOT_TOKEN not configured')
     } else {
-      // Start polling (runs in background, no need to await)
-      TelegramService.startPolling(2000)  // Poll every 2 seconds
+      // Start polling (runs in background, but we await the initial start)
+      await TelegramService.startPolling(2000)  // Poll every 2 seconds
       telegramPolling = true
       logInfo('NotificationJobs', '🔄 Telegram polling started')
     }

@@ -58,3 +58,4 @@ coverage
 # Server specific
 server/.env
 server/*.db
+nul

@@ -15,6 +15,7 @@ import { useTranslation } from '../context/LanguageContext'
 import { useToast } from '../context/ToastContext'
 import { Input, TouchButton, ButtonLoader } from '../components/ui'
 import { API_BASE_URL } from '../services/api'
+import CodeInput from '../components/ui/CodeInput'
 
 export default function LoginPage() {
   const navigate = useNavigate()
@@ -59,6 +60,11 @@ export default function LoginPage() {
   const brandingFeature3 = loginBranding?.feature3 || t('auth.analytics')
   const brandingSiteName = loginBranding?.siteName || t('common.appName')
 
+  const [mfaStep, setMfaStep] = useState(false)
+  const [partialToken, setPartialToken] = useState('')
+  const [mfaCode, setMfaCode] = useState('')
+  const [useBackup, setUseBackup] = useState(false)
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setIsLoading(true)
@@ -67,6 +73,14 @@ export default function LoginPage() {
     const result = await login(identifier, password)
 
     if (result.success) {
+      // Check if MFA is required
+      if (result.requiresMFA) {
+        setPartialToken(result.partialToken)
+        setMfaStep(true)
+        setIsLoading(false)
+        return
+      }
+
       if (result.mustChangePassword) {
         // Redirect to change password page for first login
         navigate('/change-password', { 
@@ -84,6 +98,49 @@ export default function LoginPage() {
     setIsLoading(false)
   }
 
+  const handleMFAVerify = async () => {
+    if (!mfaCode || (useBackup ? mfaCode.length < 8 : mfaCode.length !== 6)) {
+      setError(useBackup ? 'Backup code must be 8 characters' : 'Code must be 6 digits')
+      return
+    }
+
+    setIsLoading(true)
+    setError('')
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/mfa/verify`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+          partialToken, 
+          code: mfaCode, 
+          useBackup 
+        })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Verification failed')
+      }
+
+      // Store token and user
+      localStorage.setItem('freshtrack_token', data.token)
+      localStorage.setItem('freshtrack_user', JSON.stringify(data.user))
+      
+      // Reload page to update auth context
+      window.location.href = '/'
+    } catch (error) {
+      setError(error.message || 'Verification failed')
+      setMfaCode('')
+      addToast(error.message || 'Verification failed', 'error')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   const handleBlur = (field) => {
     setTouched((prev) => ({ ...prev, [field]: true }))
   }
@@ -91,6 +148,82 @@ export default function LoginPage() {
   // Inline validation
   const identifierError = touched.identifier && !identifier ? t('validation.required') : ''
   const passwordError = touched.password && !password ? t('validation.required') : ''
+
+  // MFA verification step
+  if (mfaStep) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background px-4">
+        <div className="w-full max-w-md">
+          <div className="mb-8 text-center">
+            <h2 className="font-serif text-3xl mb-2 text-foreground">Two-Factor Authentication</h2>
+            <p className="text-muted-foreground">Enter code from your authenticator app:</p>
+          </div>
+
+          {error && (
+            <div className="flex items-start gap-3 text-danger text-sm bg-danger/10 p-4 rounded-lg mb-6">
+              <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          <div className="space-y-6">
+            <div className="flex justify-center">
+              {!useBackup ? (
+                <CodeInput
+                  onComplete={(code) => {
+                    setMfaCode(code)
+                    handleMFAVerify()
+                  }}
+                  disabled={loading}
+                />
+              ) : (
+                <input
+                  type="text"
+                  placeholder="Enter 8-character backup code"
+                  value={mfaCode}
+                  onChange={(e) => setMfaCode(e.target.value.toUpperCase())}
+                  maxLength={8}
+                  className="w-full px-4 py-3 border border-border rounded-lg bg-background text-foreground"
+                />
+              )}
+            </div>
+
+            <div className="text-center">
+              <button
+                onClick={() => setUseBackup(!useBackup)}
+                className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+              >
+                {useBackup ? 'Use authenticator code' : 'Use backup code instead'}
+              </button>
+            </div>
+
+
+            <TouchButton
+              onClick={handleMFAVerify}
+              variant="primary"
+              size="large"
+              loading={loading}
+              fullWidth
+            >
+              Verify
+            </TouchButton>
+
+            <button
+              onClick={() => {
+                setMfaStep(false)
+                setMfaCode('')
+                setPartialToken('')
+                setError('')
+              }}
+              className="w-full text-sm text-muted-foreground hover:text-foreground"
+            >
+              Back to login
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen flex">

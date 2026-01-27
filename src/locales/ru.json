@@ -153,8 +153,9 @@
     "auditLogs": "Журнал действий",
     "history": "История",
     "more": "Ещё",
-    "reports": "Отчёты",
-    "mobileNav": "Навигация"
+    "openMenu": "Открыть меню",
+    "mobileNav": "Мобильная навигация",
+    "reports": "Отчёты"
   },
   "sidebar": {
     "collapse": "Свернуть меню",

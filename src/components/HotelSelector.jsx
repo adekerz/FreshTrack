@@ -7,6 +7,7 @@ import { Building2, ChevronDown, Check } from 'lucide-react'
 import { InlineLoader } from './ui'
 import { useState, useRef, useEffect } from 'react'
 import { useHotel } from '../context/HotelContext'
+import { cn } from '../utils/classNames'
 
 export default function HotelSelector({ className = '' }) {
   const { hotels, selectedHotel, selectHotel, canSelectHotel, loading, isSuperAdmin } = useHotel()
@@ -28,12 +29,14 @@ export default function HotelSelector({ className = '' }) {
   // Не показываем, если пользователь не может выбирать отель
   if (!isSuperAdmin) return null
 
+  const compactCls = 'min-w-0 max-w-[120px] sm:max-w-none flex-1 sm:flex-initial'
+
   // Загрузка
   if (loading) {
     return (
-      <div className={`flex items-center gap-2 px-3 py-2 bg-muted/50 rounded-lg ${className}`}>
+      <div className={cn('flex items-center gap-2 px-2 sm:px-3 py-2 bg-muted/50 rounded-lg', compactCls, className)}>
         <InlineLoader />
-        <span className="text-sm text-muted-foreground">Загрузка...</span>
+        <span className="text-sm text-muted-foreground truncate">Загрузка...</span>
       </div>
     )
   }
@@ -42,10 +45,14 @@ export default function HotelSelector({ className = '' }) {
   if (!hotels.length) {
     return (
       <div
-        className={`flex items-center gap-2 px-3 py-2 bg-amber-500/10 border border-amber-500/30 rounded-lg ${className}`}
+        className={cn(
+          'flex items-center gap-2 px-2 sm:px-3 py-2 bg-amber-500/10 border border-amber-500/30 rounded-lg',
+          compactCls,
+          className
+        )}
       >
-        <Building2 className="w-4 h-4 text-amber-600" />
-        <span className="text-sm text-amber-700 dark:text-amber-400">Нет отелей</span>
+        <Building2 className="w-4 h-4 flex-shrink-0 text-amber-600" />
+        <span className="text-sm text-amber-700 dark:text-amber-400 truncate min-w-0">Нет отелей</span>
       </div>
     )
   }
@@ -54,10 +61,14 @@ export default function HotelSelector({ className = '' }) {
   if (hotels.length === 1) {
     return (
       <div
-        className={`flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30 rounded-lg ${className}`}
+        className={cn(
+          'flex items-center gap-2 px-2 sm:px-3 py-2 bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30 rounded-lg',
+          compactCls,
+          className
+        )}
       >
-        <Building2 className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-        <span className="text-sm font-medium text-foreground">
+        <Building2 className="w-4 h-4 flex-shrink-0 text-amber-600 dark:text-amber-400" />
+        <span className="text-sm font-medium text-foreground truncate min-w-0">
           {selectedHotel?.name || hotels[0]?.name}
         </span>
       </div>
@@ -65,21 +76,21 @@ export default function HotelSelector({ className = '' }) {
   }
 
   return (
-    <div ref={dropdownRef} className={`relative ${className}`}>
+    <div ref={dropdownRef} className={cn('relative min-w-0 flex-1 max-w-[120px] sm:max-w-none sm:flex-initial', className)}>
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         aria-expanded={isOpen}
         aria-haspopup="listbox"
         aria-label={selectedHotel?.name ? `Отель: ${selectedHotel.name}` : 'Выберите отель'}
-        className="flex items-center gap-2 px-3 py-2 min-h-[44px] bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30 rounded-lg hover:from-amber-500/20 hover:to-orange-500/20 transition-colors min-w-[180px] touch-manipulation"
+        className="flex items-center gap-2 px-2 sm:px-3 py-2 min-h-[44px] bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30 rounded-lg hover:from-amber-500/20 hover:to-orange-500/20 transition-colors min-w-0 w-full sm:min-w-[180px] touch-manipulation"
       >
-        <Building2 className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-        <span className="text-sm font-medium text-foreground flex-1 text-left truncate">
+        <Building2 className="w-4 h-4 flex-shrink-0 text-amber-600 dark:text-amber-400" />
+        <span className="text-sm font-medium text-foreground flex-1 min-w-0 text-left truncate">
           {selectedHotel?.name || 'Выберите отель'}
         </span>
         <ChevronDown
-          className={`w-4 h-4 text-amber-600 dark:text-amber-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+          className={cn('w-4 h-4 flex-shrink-0 text-amber-600 dark:text-amber-400 transition-transform', isOpen && 'rotate-180')}
         />
       </button>
 

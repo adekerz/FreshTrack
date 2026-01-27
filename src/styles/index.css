@@ -730,10 +730,12 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   @apply absolute left-4 z-[100] bg-charcoal text-cream px-4 py-2 rounded-b-lg font-medium;
   transform: translateY(-100%);
   transition: transform 0.2s ease-in-out;
+  pointer-events: none; /* не перехватывать клики по гамбургеру, когда скрыт */
 }
 
 .skip-link:focus {
   transform: translateY(0);
+  pointer-events: auto;
 }
 
 /* Enhanced focus indicators (WCAG 2.4.7) */

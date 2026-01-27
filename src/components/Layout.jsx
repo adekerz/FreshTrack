@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import Sidebar from './Sidebar'
 import MobileSidebar from './layout/MobileSidebar'
-import MobileBottomNav from './layout/MobileBottomNav'
 import Header from './Header'
 import NotificationPermissionBanner from './NotificationPermissionBanner'
+import MFAGracePeriodBanner from './MFAGracePeriodBanner'
 import Breadcrumbs from './Breadcrumbs'
 import OnboardingTour from './OnboardingTour'
 import { OfflineIndicator } from './ui'
@@ -47,16 +47,17 @@ export default function Layout({ children }) {
         <Sidebar isOpen={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} />
       </div>
 
-      <main id="main-content" className="flex-1 overflow-auto pb-20 sm:pb-0" role="main">
-        <Header />
+      <main id="main-content" className="flex-1 overflow-auto" role="main">
+        <Header
+          onOpenMobileMenu={() => setMobileSidebarOpen(true)}
+          isMobileMenuOpen={mobileSidebarOpen}
+        />
         <div className="p-4 sm:p-8">
+          <MFAGracePeriodBanner />
           <Breadcrumbs />
           {children}
         </div>
       </main>
-
-      {/* Mobile bottom nav - только < lg (Phase 4) */}
-      <MobileBottomNav />
 
       {/* Push Notification Permission Banner */}
       <NotificationPermissionBanner />

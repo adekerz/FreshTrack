@@ -6,8 +6,44 @@
 import { Router } from 'express'
 import { query } from '../../db/postgres.js'
 import { logInfo, logError, logWarn } from '../../utils/logger.js'
+import { Webhook } from 'svix'
 
 const router = Router()
+
+/**
+ * Verify Resend webhook signature using Svix library
+ * Resend uses Svix for webhook signing
+ */
+function verifyResendSignature(req, res, next) {
+  const webhookSecret = process.env.RESEND_WEBHOOK_SECRET
+  
+  if (!webhookSecret) {
+    logWarn('Webhooks', 'RESEND_WEBHOOK_SECRET not configured - UNSAFE!')
+    // In dev пропускаем, в prod отклоняем
+    if (process.env.NODE_ENV === 'production') {
+      return res.status(401).json({ error: 'Webhook not configured' })
+    }
+    return next()
+  }
+  
+  try {
+    const webhook = new Webhook(webhookSecret)
+    
+    // Svix expects raw body string
+    const rawBody = JSON.stringify(req.body)
+    
+    webhook.verify(rawBody, {
+      'svix-id': req.headers['svix-id'],
+      'svix-timestamp': req.headers['svix-timestamp'],
+      'svix-signature': req.headers['svix-signature']
+    })
+    
+    next()
+  } catch (err) {
+    logWarn('Webhooks', `Invalid Resend webhook signature: ${err.message}`)
+    return res.status(401).json({ error: 'Invalid signature' })
+  }
+}
 
 /**
  * POST /webhooks/resend
@@ -18,7 +54,7 @@ const router = Router()
  * - email.bounced: Email bounced (invalid address)
  * - email.complained: User marked email as spam
  */
-router.post('/resend', async (req, res) => {
+router.post('/resend', verifyResendSignature, async (req, res) => {
   try {
     const { type, data } = req.body
 

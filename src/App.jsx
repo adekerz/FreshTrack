@@ -14,6 +14,7 @@ import ChangePasswordPage from './pages/ChangePasswordPage'
 // Lazy loading для страниц (Phase 5 — code splitting, не загружаются пока не нужны)
 const DashboardPage = lazy(() => import('./pages/DashboardPage'))
 const RegisterPage = lazy(() => import('./pages/RegisterPage'))
+const VerifyEmailPage = lazy(() => import('./pages/VerifyEmailPage'))
 const PendingApprovalPage = lazy(() => import('./pages/PendingApprovalPage'))
 const InventoryPage = lazy(() => import('./pages/InventoryPage'))
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage'))
@@ -23,6 +24,7 @@ const StatisticsPage = lazy(() => import('./pages/StatisticsPage'))
 const SettingsPage = lazy(() => import('./pages/SettingsPage'))
 const CalendarPage = lazy(() => import('./pages/CalendarPage'))
 const AuditLogsPage = lazy(() => import('./pages/AuditLogsPage'))
+const MFASetupPage = lazy(() => import('./pages/MFASetupPage'))
 
 // Suspense fallback — используем единый PageLoader
 function SuspenseFallback() {
@@ -54,8 +56,21 @@ function App() {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/verify-email" element={<VerifyEmailPage />} />
           <Route path="/pending-approval" element={<PendingApprovalPage />} />
           <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
+      </Suspense>
+    )
+  }
+
+  // User logged in but email not verified - show verify email page
+  if (user.email && !user.emailVerified) {
+    return (
+      <Suspense fallback={<SuspenseFallback />}>
+        <Routes>
+          <Route path="/verify-email" element={<VerifyEmailPage />} />
+          <Route path="*" element={<Navigate to="/verify-email" replace />} />
         </Routes>
       </Suspense>
     )
@@ -95,10 +110,12 @@ function App() {
             {/* Общедоступные страницы (для всех авторизованных) */}
             <Route path="/" element={<DashboardPage />} />
             <Route path="/change-password" element={<ChangePasswordPage />} />
+            <Route path="/verify-email" element={<VerifyEmailPage />} />
             <Route path="/inventory" element={<InventoryPage />} />
             <Route path="/notifications" element={<NotificationsPage />} />
             <Route path="/calendar" element={<CalendarPage />} />
             <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/mfa-setup" element={<MFASetupPage />} />
 
             {/* Страницы с ограниченным доступом */}
             <Route

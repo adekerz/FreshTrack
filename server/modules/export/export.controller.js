@@ -22,91 +22,179 @@ import {
   PermissionResource,
   PermissionAction
 } from '../../middleware/auth.js'
+import { rateLimitExportWithAlert } from '../../middleware/rateLimiter.js'
+import { requireAllowlistedIP } from '../../middleware/ipAllowlist.js'
+import { requireMFA } from '../../middleware/requireMFA.js'
+import { ExportService } from '../../services/ExportService.js'
 
 const router = Router()
 
-router.get('/products', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.EXPORT, PermissionAction.READ), async (req, res) => {
-  try {
-    const { format = 'json' } = req.query
-    const products = await getAllProducts(req.hotelId)
-    
-    await logAudit({
-      hotel_id: req.hotelId, user_id: req.user.id, user_name: req.user.name,
-      action: 'export', entity_type: 'product', entity_id: null,
-      details: { count: products.length, format }, ip_address: req.ip
-    })
-    
-    if (format === 'csv') {
-      const headers = ['id', 'name', 'sku', 'barcode', 'category_id', 'department_id', 'unit', 'min_quantity', 'max_quantity']
-      const csv = [
-        headers.join(','),
-        ...products.map(p => headers.map(h => `"${(p[h] || '').toString().replace(/"/g, '""')}"`).join(','))
-      ].join('\n')
+router.get('/products', 
+  authMiddleware, 
+  hotelIsolation, 
+  departmentIsolation, 
+  requirePermission(PermissionResource.EXPORT, PermissionAction.READ),
+  requireMFA,
+  rateLimitExportWithAlert,
+  requireAllowlistedIP,
+  async (req, res) => {
+    try {
+      const { format = 'json' } = req.query
+      const products = await getAllProducts(req.hotelId)
       
-      res.setHeader('Content-Type', 'text/csv')
-      res.setHeader('Content-Disposition', 'attachment; filename=products.csv')
-      return res.send(csv)
-    }
+      // Check export size limit
+      if (products.length > ExportService.MAX_EXPORT_ROWS) {
+        return res.status(400).json({
+          success: false,
+          error: 'EXPORT_TOO_LARGE',
+          message: `Dataset has ${products.length} rows. Maximum: ${ExportService.MAX_EXPORT_ROWS}.`,
+          suggestion: 'Apply date filters or contact support for bulk export.',
+          totalRows: products.length,
+          maxRows: ExportService.MAX_EXPORT_ROWS
+        })
+      }
     
-    res.json({ success: true, products, count: products.length })
+    // Use ExportService for consistent audit logging
+    await ExportService.sendExport(res, products, 'products', format, {
+      filename: 'products',
+      user: req.user,
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+      filters: req.query
+    })
   } catch (error) {
     logError('Export products error', error)
     res.status(500).json({ success: false, error: 'Failed to export products' })
   }
 })
 
-router.get('/batches', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.EXPORT, PermissionAction.READ), async (req, res) => {
-  try {
-    const { department_id, product_id, status, format = 'json' } = req.query
-    const deptId = req.canAccessAllDepartments ? (department_id || null) : req.departmentId
-    const batches = await getAllBatches(req.hotelId, deptId, status)
-    
-    await logAudit({
-      hotel_id: req.hotelId, user_id: req.user.id, user_name: req.user.name,
-      action: 'export', entity_type: 'batch', entity_id: null,
-      details: { count: batches.length, format }, ip_address: req.ip
-    })
-    
-    if (format === 'csv') {
-      const headers = ['id', 'product_id', 'product_name', 'quantity', 'production_date', 'expiry_date', 'supplier', 'status']
-      const csv = [
-        headers.join(','),
-        ...batches.map(b => headers.map(h => `"${(b[h] || '').toString().replace(/"/g, '""')}"`).join(','))
-      ].join('\n')
+router.get('/batches', 
+  authMiddleware, 
+  hotelIsolation, 
+  departmentIsolation, 
+  requirePermission(PermissionResource.EXPORT, PermissionAction.READ),
+  requireMFA,
+  rateLimitExportWithAlert,
+  requireAllowlistedIP,
+  async (req, res) => {
+    try {
+      const { department_id, product_id, status, format = 'json' } = req.query
+      const deptId = req.canAccessAllDepartments ? (department_id || null) : req.departmentId
+      const batches = await getAllBatches(req.hotelId, deptId, status)
       
-      res.setHeader('Content-Type', 'text/csv')
-      res.setHeader('Content-Disposition', 'attachment; filename=batches.csv')
-      return res.send(csv)
-    }
+      // Check export size limit
+      if (batches.length > ExportService.MAX_EXPORT_ROWS) {
+        return res.status(400).json({
+          success: false,
+          error: 'EXPORT_TOO_LARGE',
+          message: `Dataset has ${batches.length} rows. Maximum: ${ExportService.MAX_EXPORT_ROWS}.`,
+          suggestion: 'Apply date filters or contact support for bulk export.',
+          totalRows: batches.length,
+          maxRows: ExportService.MAX_EXPORT_ROWS
+        })
+      }
     
-    res.json({ success: true, batches, count: batches.length })
+    // Use ExportService for consistent audit logging
+    await ExportService.sendExport(res, batches, 'batches', format, {
+      filename: 'batches',
+      user: req.user,
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+      filters: req.query
+    })
   } catch (error) {
     logError('Export batches error', error)
     res.status(500).json({ success: false, error: 'Failed to export batches' })
   }
 })
 
-router.get('/categories', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.EXPORT, PermissionAction.READ), async (req, res) => {
-  try {
-    const categories = await getAllCategories(req.hotelId)
-    res.json({ success: true, categories, count: categories.length })
-  } catch (error) {
-    logError('Export categories error', error)
-    res.status(500).json({ success: false, error: 'Failed to export categories' })
+router.get('/categories', 
+  authMiddleware, 
+  hotelIsolation, 
+  departmentIsolation, 
+  requirePermission(PermissionResource.EXPORT, PermissionAction.READ),
+  requireMFA,
+  rateLimitExportWithAlert,
+  requireAllowlistedIP,
+  async (req, res) => {
+    try {
+      const categories = await getAllCategories(req.hotelId)
+      
+      // Check export size limit
+      if (categories.length > ExportService.MAX_EXPORT_ROWS) {
+        return res.status(400).json({
+          success: false,
+          error: 'EXPORT_TOO_LARGE',
+          message: `Dataset has ${categories.length} rows. Maximum: ${ExportService.MAX_EXPORT_ROWS}.`,
+          suggestion: 'Apply filters or contact support for bulk export.',
+          totalRows: categories.length,
+          maxRows: ExportService.MAX_EXPORT_ROWS
+        })
+      }
+      
+      // Use ExportService for consistent audit logging
+      await ExportService.sendExport(res, categories, 'categories', 'json', {
+        filename: 'categories',
+        user: req.user,
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent'),
+        filters: req.query
+      })
+    } catch (error) {
+      logError('Export categories error', error)
+      res.status(500).json({ success: false, error: 'Failed to export categories' })
+    }
   }
-})
+)
 
-router.get('/departments', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.EXPORT, PermissionAction.READ), async (req, res) => {
-  try {
-    const departments = await getAllDepartments(req.hotelId)
-    res.json({ success: true, departments, count: departments.length })
-  } catch (error) {
-    logError('Export departments error', error)
-    res.status(500).json({ success: false, error: 'Failed to export departments' })
+router.get('/departments', 
+  authMiddleware, 
+  hotelIsolation, 
+  departmentIsolation, 
+  requirePermission(PermissionResource.EXPORT, PermissionAction.READ),
+  requireMFA,
+  rateLimitExportWithAlert,
+  requireAllowlistedIP,
+  async (req, res) => {
+    try {
+      const departments = await getAllDepartments(req.hotelId)
+      
+      // Check export size limit
+      if (departments.length > ExportService.MAX_EXPORT_ROWS) {
+        return res.status(400).json({
+          success: false,
+          error: 'EXPORT_TOO_LARGE',
+          message: `Dataset has ${departments.length} rows. Maximum: ${ExportService.MAX_EXPORT_ROWS}.`,
+          suggestion: 'Apply filters or contact support for bulk export.',
+          totalRows: departments.length,
+          maxRows: ExportService.MAX_EXPORT_ROWS
+        })
+      }
+      
+      // Use ExportService for consistent audit logging
+      await ExportService.sendExport(res, departments, 'departments', 'json', {
+        filename: 'departments',
+        user: req.user,
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent'),
+        filters: req.query
+      })
+    } catch (error) {
+      logError('Export departments error', error)
+      res.status(500).json({ success: false, error: 'Failed to export departments' })
+    }
   }
-})
+)
 
-router.get('/write-offs', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.EXPORT, PermissionAction.READ), async (req, res) => {
+router.get('/write-offs', 
+  authMiddleware, 
+  hotelIsolation, 
+  departmentIsolation, 
+  requirePermission(PermissionResource.EXPORT, PermissionAction.READ),
+  requireMFA,
+  rateLimitExportWithAlert,
+  requireAllowlistedIP,
+  async (req, res) => {
   try {
     const { department_id, start_date, end_date, format = 'json' } = req.query
     const deptId = req.canAccessAllDepartments ? (department_id || null) : req.departmentId
@@ -114,20 +202,41 @@ router.get('/write-offs', authMiddleware, hotelIsolation, departmentIsolation, r
     
     const writeOffs = await getAllWriteOffs(req.hotelId, filters)
     
-    await logAudit({
-      hotel_id: req.hotelId, user_id: req.user.id, user_name: req.user.name,
-      action: 'export', entity_type: 'write_off', entity_id: null,
-      details: { count: writeOffs.length, format }, ip_address: req.ip
-    })
+    // Check export size limit
+    if (writeOffs.length > ExportService.MAX_EXPORT_ROWS) {
+      return res.status(400).json({
+        success: false,
+        error: 'EXPORT_TOO_LARGE',
+        message: `Dataset has ${writeOffs.length} rows. Maximum: ${ExportService.MAX_EXPORT_ROWS}.`,
+        suggestion: 'Apply date filters or contact support for bulk export.',
+        totalRows: writeOffs.length,
+        maxRows: ExportService.MAX_EXPORT_ROWS
+      })
+    }
     
-    res.json({ success: true, write_offs: writeOffs, count: writeOffs.length })
+    // Use ExportService for consistent audit logging
+    await ExportService.sendExport(res, writeOffs, 'writeOffs', format, {
+      filename: 'write_offs',
+      user: req.user,
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+      filters: req.query
+    })
   } catch (error) {
     logError('Export write-offs error', error)
     res.status(500).json({ success: false, error: 'Failed to export write-offs' })
   }
 })
 
-router.get('/inventory', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.EXPORT, PermissionAction.READ), async (req, res) => {
+router.get('/inventory', 
+  authMiddleware, 
+  hotelIsolation, 
+  departmentIsolation, 
+  requirePermission(PermissionResource.EXPORT, PermissionAction.READ),
+  requireMFA,
+  rateLimitExportWithAlert,
+  requireAllowlistedIP,
+  async (req, res) => {
   try {
     const { department_id, format = 'json' } = req.query
     const deptId = req.canAccessAllDepartments ? (department_id || null) : req.departmentId
@@ -152,32 +261,41 @@ router.get('/inventory', authMiddleware, hotelIsolation, departmentIsolation, re
       }
     })
     
-    await logAudit({
-      hotel_id: req.hotelId, user_id: req.user.id, user_name: req.user.name,
-      action: 'export', entity_type: 'inventory', entity_id: null,
-      details: { count: inventory.length, format }, ip_address: req.ip
-    })
-    
-    if (format === 'csv') {
-      const headers = ['id', 'name', 'sku', 'category_name', 'department_name', 'unit', 'total_quantity', 'batch_count', 'nearest_expiry']
-      const csv = [
-        headers.join(','),
-        ...inventory.map(p => headers.map(h => `"${(p[h] || '').toString().replace(/"/g, '""')}"`).join(','))
-      ].join('\n')
-      
-      res.setHeader('Content-Type', 'text/csv')
-      res.setHeader('Content-Disposition', 'attachment; filename=inventory.csv')
-      return res.send(csv)
+    // Check export size limit
+    if (inventory.length > ExportService.MAX_EXPORT_ROWS) {
+      return res.status(400).json({
+        success: false,
+        error: 'EXPORT_TOO_LARGE',
+        message: `Dataset has ${inventory.length} rows. Maximum: ${ExportService.MAX_EXPORT_ROWS}.`,
+        suggestion: 'Apply date filters or contact support for bulk export.',
+        totalRows: inventory.length,
+        maxRows: ExportService.MAX_EXPORT_ROWS
+      })
     }
     
-    res.json({ success: true, inventory, count: inventory.length })
+    // Use ExportService for consistent audit logging
+    await ExportService.sendExport(res, inventory, 'inventory', format, {
+      filename: 'inventory',
+      user: req.user,
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+      filters: req.query
+    })
   } catch (error) {
     logError('Export inventory error', error)
     res.status(500).json({ success: false, error: 'Failed to export inventory' })
   }
 })
 
-router.get('/collections', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.EXPORT, PermissionAction.READ), async (req, res) => {
+router.get('/collections', 
+  authMiddleware, 
+  hotelIsolation, 
+  departmentIsolation, 
+  requirePermission(PermissionResource.EXPORT, PermissionAction.READ),
+  requireMFA,
+  rateLimitExportWithAlert,
+  requireAllowlistedIP,
+  async (req, res) => {
   try {
     const { department_id, start_date, end_date, format = 'json' } = req.query
     const deptId = req.canAccessAllDepartments ? (department_id || null) : req.departmentId
@@ -209,46 +327,68 @@ router.get('/collections', authMiddleware, hotelIsolation, departmentIsolation, 
     const result = await query(queryText, params)
     const collections = result.rows || []
     
-    await logAudit({
-      hotel_id: req.hotelId, user_id: req.user.id, user_name: req.user.name,
-      action: 'export', entity_type: 'collections', entity_id: null,
-      details: { count: collections.length, format }, ip_address: req.ip
+    // Use ExportService for consistent audit logging
+    await ExportService.sendExport(res, collections, 'collections', format, {
+      filename: 'collections',
+      user: req.user,
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+      filters: req.query
     })
-    
-    if (format === 'csv') {
-      const headers = ['id', 'product_name', 'category_name', 'quantity', 'reason', 'collected_by_name', 'collected_at', 'expiry_date']
-      const csv = [
-        headers.join(','),
-        ...collections.map(c => headers.map(h => `"${(c[h] || '').toString().replace(/"/g, '""')}"`).join(','))
-      ].join('\n')
-      
-      res.setHeader('Content-Type', 'text/csv')
-      res.setHeader('Content-Disposition', 'attachment; filename=collections.csv')
-      return res.send(csv)
-    }
-    
-    res.json({ success: true, collections, count: collections.length })
   } catch (error) {
     logError('Export collections error', error)
     res.status(500).json({ success: false, error: 'Failed to export collections' })
   }
 })
 
-router.get('/audit', authMiddleware, hotelIsolation, requirePermission(PermissionResource.EXPORT, PermissionAction.READ), async (req, res) => {
+router.get('/audit', 
+  authMiddleware, 
+  hotelIsolation, 
+  requirePermission(PermissionResource.EXPORT, PermissionAction.READ),
+  requireMFA,
+  rateLimitExportWithAlert,
+  requireAllowlistedIP,
+  async (req, res) => {
   try {
     const { start_date, end_date, limit = 1000 } = req.query
     const filters = { start_date, end_date, limit: parseInt(limit) }
     
     const logs = await getAuditLogs(req.hotelId, filters)
     
-    res.json({ success: true, logs, count: logs.length })
+    // Check export size limit
+    if (logs.length > ExportService.MAX_EXPORT_ROWS) {
+      return res.status(400).json({
+        success: false,
+        error: 'EXPORT_TOO_LARGE',
+        message: `Dataset has ${logs.length} rows. Maximum: ${ExportService.MAX_EXPORT_ROWS}.`,
+        suggestion: 'Apply date filters or contact support for bulk export.',
+        totalRows: logs.length,
+        maxRows: ExportService.MAX_EXPORT_ROWS
+      })
+    }
+    
+    // Use ExportService for consistent audit logging
+    await ExportService.sendExport(res, logs, 'auditLogs', 'json', {
+      filename: 'audit_logs',
+      user: req.user,
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+      filters: req.query
+    })
   } catch (error) {
     logError('Export audit logs error', error)
     res.status(500).json({ success: false, error: 'Failed to export audit logs' })
   }
 })
 
-router.get('/all', authMiddleware, hotelIsolation, requirePermission(PermissionResource.EXPORT, PermissionAction.READ), async (req, res) => {
+router.get('/all', 
+  authMiddleware, 
+  hotelIsolation, 
+  requirePermission(PermissionResource.EXPORT, PermissionAction.READ),
+  requireMFA,
+  rateLimitExportWithAlert,
+  requireAllowlistedIP,
+  async (req, res) => {
   try {
     const [products, batches, categories, departments, writeOffs] = await Promise.all([
       getAllProducts(req.hotelId, {}),
@@ -258,20 +398,43 @@ router.get('/all', authMiddleware, hotelIsolation, requirePermission(PermissionR
       getAllWriteOffs(req.hotelId, {})
     ])
     
-    await logAudit({
-      hotel_id: req.hotelId, user_id: req.user.id, user_name: req.user.name,
-      action: 'export', entity_type: 'all', entity_id: null,
-      details: { 
-        products: products.length, batches: batches.length,
-        categories: categories.length, departments: departments.length,
-        write_offs: writeOffs.length
-      }, ip_address: req.ip
-    })
+    // Check total export size
+    const totalRows = products.length + batches.length + categories.length + departments.length + writeOffs.length
+    if (totalRows > ExportService.MAX_EXPORT_ROWS) {
+      return res.status(400).json({
+        success: false,
+        error: 'EXPORT_TOO_LARGE',
+        message: `Dataset has ${totalRows} total rows. Maximum: ${ExportService.MAX_EXPORT_ROWS}.`,
+        suggestion: 'Export entities separately with filters or contact support for bulk export.',
+        totalRows,
+        maxRows: ExportService.MAX_EXPORT_ROWS,
+        breakdown: {
+          products: products.length,
+          batches: batches.length,
+          categories: categories.length,
+          departments: departments.length,
+          writeOffs: writeOffs.length
+        }
+      })
+    }
     
-    res.json({
-      success: true,
-      data: { products, batches, categories, departments, write_offs: writeOffs },
+    // Combine all data for export
+    const allData = {
+      products,
+      batches,
+      categories,
+      departments,
+      write_offs: writeOffs,
       exported_at: new Date().toISOString()
+    }
+    
+    // Use ExportService for consistent audit logging
+    await ExportService.sendExport(res, [allData], 'all', format, {
+      filename: 'all_data',
+      user: req.user,
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+      filters: req.query
     })
   } catch (error) {
     logError('Export all error', error)

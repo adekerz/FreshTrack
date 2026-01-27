@@ -204,7 +204,11 @@ router.get('/history/export',
 
       await ExportService.sendExport(res, history, 'collectionHistory', format, {
         filename: `collection_history_${new Date().toISOString().split('T')[0]}`,
-        sheetName: 'Collection History'
+        sheetName: 'Collection History',
+        user: req.user,
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent'),
+        filters: req.query
       })
     } catch (error) {
       logError('FIFOCollect', error)
