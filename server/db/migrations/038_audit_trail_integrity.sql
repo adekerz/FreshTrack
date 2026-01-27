@@ -1,6 +1,9 @@
 -- Migration 038: Audit Trail Integrity with Hash Chain
 -- Implements cryptographic hash chain to detect tampering
 
+-- Enable pgcrypto extension for digest function
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 -- Add hash chain columns to audit_logs
 ALTER TABLE audit_logs ADD COLUMN IF NOT EXISTS previous_hash VARCHAR(64);
 ALTER TABLE audit_logs ADD COLUMN IF NOT EXISTS current_hash VARCHAR(64);

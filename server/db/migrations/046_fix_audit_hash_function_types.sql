@@ -1,6 +1,9 @@
 -- Migration 046: Fix calculate_audit_hash function types
 -- Fixes type mismatch: entity_id should be TEXT, created_at should be TIMESTAMPTZ
 
+-- Ensure pgcrypto extension is enabled (required for digest function)
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 -- Drop old function with old signature (VARCHAR, TIMESTAMP)
 DROP FUNCTION IF EXISTS calculate_audit_hash(UUID, VARCHAR, VARCHAR, VARCHAR, UUID, JSONB, TIMESTAMP, VARCHAR);
 
