@@ -69,8 +69,13 @@ export class SecurityAlertService {
         FROM users
         WHERE role = 'SUPER_ADMIN'
           AND is_active = TRUE
-          AND email IS NOT NULL
+          AND (email IS NOT NULL OR email_verified = TRUE)
       `)
+      
+      if (rows.length === 0) {
+        logWarn('SecurityAlert', 'No active SUPER_ADMIN users with email found')
+      }
+      
       return rows
     } catch (error) {
       logError('SecurityAlert', 'Failed to get SUPER_ADMIN users', error)

@@ -45,6 +45,25 @@ export class AuditIntegrityService {
       let expectedPreviousHash = '0000000000000000000000000000000000000000000000000000000000000000'
       
       for (const row of rows) {
+        // Пропускаем записи, созданные до миграции 038 (у них нет хешей)
+        // Если previous_hash и current_hash оба NULL, это старая запись - пропускаем
+        if (row.previous_hash === null && row.current_hash === null) {
+          // Старая запись без хешей - пропускаем проверку
+          continue
+        }
+        
+        // Если есть только один из хешей - это ошибка миграции
+        if ((row.previous_hash === null) !== (row.current_hash === null)) {
+          errors.push({
+            id: row.id,
+            type: 'incomplete_hash',
+            expected: 'Both previous_hash and current_hash should be set',
+            actual: `previous_hash: ${row.previous_hash}, current_hash: ${row.current_hash}`,
+            timestamp: row.created_at
+          })
+          continue
+        }
+        
         // Проверяем previous_hash
         if (row.previous_hash !== expectedPreviousHash) {
           errors.push({
