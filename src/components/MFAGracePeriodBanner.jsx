@@ -59,10 +59,13 @@ export default function MFAGracePeriodBanner() {
           gracePeriodEnds: data.gracePeriodEnds,
           mfaEnabled: data.enabled,
           mfaRequired: data.required,
-          condition: data.success && data.gracePeriodDaysLeft !== null && data.gracePeriodDaysLeft > 0
+          condition: data.success && !data.enabled && data.gracePeriodDaysLeft !== null && data.gracePeriodDaysLeft > 0
         })
         
-        if (data.success && data.gracePeriodDaysLeft !== null && data.gracePeriodDaysLeft > 0) {
+        // Показываем баннер только если:
+        // 1. MFA еще не включен (data.enabled === false)
+        // 2. Grace period активен (daysLeft > 0)
+        if (data.success && !data.enabled && data.gracePeriodDaysLeft !== null && data.gracePeriodDaysLeft > 0) {
           console.log('[MFA Banner] ✅ Setting grace info:', {
             daysLeft: data.gracePeriodDaysLeft,
             gracePeriodEnds: data.gracePeriodEnds
@@ -72,15 +75,18 @@ export default function MFAGracePeriodBanner() {
             gracePeriodEnds: data.gracePeriodEnds
           })
         } else {
-          console.log('[MFA Banner] ❌ Grace period not active:', {
+          // Скрываем баннер если MFA включен или grace period истек
+          console.log('[MFA Banner] ❌ Hiding banner:', {
             success: data.success,
+            mfaEnabled: data.enabled,
             daysLeft: data.gracePeriodDaysLeft,
             daysLeftType: typeof data.gracePeriodDaysLeft,
-            mfaEnabled: data.enabled,
             reason: !data.success ? 'success=false' : 
+                    data.enabled ? 'MFA already enabled' :
                     data.gracePeriodDaysLeft === null ? 'daysLeft is null' :
                     data.gracePeriodDaysLeft <= 0 ? `daysLeft=${data.gracePeriodDaysLeft} (<=0)` : 'unknown'
           })
+          setGraceInfo(null) // Явно скрываем баннер
         }
       } catch (error) {
         console.error('[MFA Banner] Failed to check MFA grace period', error)
@@ -89,10 +95,23 @@ export default function MFAGracePeriodBanner() {
     
     checkGracePeriod()
     
+    // Listen for MFA enabled event
+    const handleMFAEnabled = () => {
+      console.log('[MFA Banner] MFA enabled event received, hiding banner')
+      setGraceInfo(null)
+      // Re-check status to ensure it's updated
+      setTimeout(checkGracePeriod, 1000)
+    }
+    
+    window.addEventListener('auth:mfaEnabled', handleMFAEnabled)
+    
     // Check periodically (every hour)
     const interval = setInterval(checkGracePeriod, 60 * 60 * 1000)
     
-    return () => clearInterval(interval)
+    return () => {
+      clearInterval(interval)
+      window.removeEventListener('auth:mfaEnabled', handleMFAEnabled)
+    }
   }, [user])
   
   if (!graceInfo || !user || user.role !== 'SUPER_ADMIN') {

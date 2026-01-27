@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom'
 import { ShieldCheck, Download, CheckCircle, AlertCircle } from 'lucide-react'
 import { useToast } from '../context/ToastContext'
 import { useTranslation } from '../context/LanguageContext'
+import { useAuth } from '../context/AuthContext'
 import CodeInput from '../components/ui/CodeInput'
 import { API_BASE_URL } from '../services/api'
 
@@ -15,6 +16,7 @@ export default function MFASetupPage() {
   const navigate = useNavigate()
   const { addToast } = useToast()
   const { t } = useTranslation()
+  const { updateUser } = useAuth()
   const [step, setStep] = useState('initial') // initial, qr, verify, backup, complete
   const [qrCode, setQrCode] = useState('')
   const [secret, setSecret] = useState('')
@@ -80,6 +82,31 @@ export default function MFASetupPage() {
         throw new Error(data.error || 'Verification failed')
       }
 
+      // Обновляем данные пользователя в AuthContext
+      updateUser({ mfa_enabled: true })
+      
+      // Обновляем данные пользователя через API для синхронизации
+      try {
+        const userResponse = await fetch(`${API_BASE_URL}/auth/me`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        })
+        if (userResponse.ok) {
+          const userData = await userResponse.json()
+          if (userData.user) {
+            updateUser(userData.user)
+            localStorage.setItem('freshtrack_user', JSON.stringify(userData.user))
+          }
+        }
+      } catch (err) {
+        console.warn('[MFA Setup] Failed to refresh user data:', err)
+      }
+      
+      // Отправляем событие для обновления баннера
+      window.dispatchEvent(new CustomEvent('auth:mfaEnabled'))
+      
       setStep('backup')
       addToast('MFA verified successfully', 'success')
     } catch (error) {
