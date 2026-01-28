@@ -32,18 +32,21 @@ import {
   Building2,
   Crown,
   Wrench,
-  UserPlus
+  UserPlus,
+  Lock
 } from 'lucide-react'
 import NotificationRulesSettings from '../components/NotificationRulesSettings'
-import GeneralSettings from '../components/settings/GeneralSettings'
-import OrganizationSettings from '../components/settings/OrganizationSettings'
-import DirectoriesSettings from '../components/settings/DirectoriesSettings'
-import TemplatesSettings from '../components/settings/TemplatesSettings'
-import NotificationsSettings from '../components/settings/NotificationsSettings'
-import ImportExportSettings from '../components/settings/ImportExportSettings'
-import BrandingSettings from '../components/settings/BrandingSettings'
-import JoinRequestsSettings from '../components/settings/JoinRequestsSettings'
-import CacheManagement from '../components/settings/CacheManagement'
+import GeneralSettings from '../components/ui/settings/GeneralSettings'
+import OrganizationSettings from '../components/ui/settings/OrganizationSettings'
+import DirectoriesSettings from '../components/ui/settings/DirectoriesSettings'
+import TemplatesSettings from '../components/ui/settings/TemplatesSettings'
+import NotificationsSettings from '../components/ui/settings/NotificationsSettings'
+import ImportExportSettings from '../components/ui/settings/ImportExportSettings'
+import BrandingSettings from '../components/ui/settings/BrandingSettings'
+import JoinRequestsSettings from '../components/ui/settings/JoinRequestsSettings'
+import CacheManagement from '../components/ui/settings/CacheManagement'
+import { ChangePasswordModal } from '../components/ui/ChangePasswordModal'
+import { ChangeEmailModal } from '../components/ui/ChangeEmailModal'
 
 const SETTINGS_TAB_IDS = new Set([
   'profile', 'language', 'general', 'users', 'join-requests', 'directories',
@@ -82,6 +85,8 @@ export default function SettingsPage() {
   })
   const [savingProfile, setSavingProfile] = useState(false)
   const [profileMessage, setProfileMessage] = useState(null)
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false)
+  const [showChangeEmailModal, setShowChangeEmailModal] = useState(false)
 
   // Обновляем profileData при изменении user
   useEffect(() => {
@@ -351,8 +356,28 @@ export default function SettingsPage() {
               </div>
             </div>
 
+            {/* Кнопки смены пароля и email */}
+            <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-border">
+              <button
+                onClick={() => setShowChangePasswordModal(true)}
+                className="flex items-center justify-center gap-2 px-4 py-2.5 border border-border rounded-lg text-foreground hover:bg-muted transition-colors"
+              >
+                <Lock className="w-4 h-4" />
+                {t('auth.changePassword') || 'Сменить пароль'}
+              </button>
+              {user?.email && (
+                <button
+                  onClick={() => setShowChangeEmailModal(true)}
+                  className="flex items-center justify-center gap-2 px-4 py-2.5 border border-border rounded-lg text-foreground hover:bg-muted transition-colors"
+                >
+                  <Mail className="w-4 h-4" />
+                  {t('auth.changeEmail') || 'Изменить email'}
+                </button>
+              )}
+            </div>
+
             {/* Кнопка сохранения */}
-            <div className="flex justify-end pt-4 border-t border-border">
+            <div className="flex justify-end pt-4">
               <button
                 onClick={handleSaveProfile}
                 disabled={savingProfile || (profileData.name === user?.name && profileData.email === (user?.email || ''))}
@@ -717,6 +742,32 @@ export default function SettingsPage() {
           {/* Кнопка сохранения удалена - настройки уведомлений теперь управляются через правила уведомлений */}
         </div>
       </div>
+
+      {/* Модальные окна */}
+      <ChangePasswordModal
+        isOpen={showChangePasswordModal}
+        onClose={() => setShowChangePasswordModal(false)}
+      />
+      <ChangeEmailModal
+        isOpen={showChangeEmailModal}
+        onClose={() => setShowChangeEmailModal(false)}
+        currentEmail={user?.email || ''}
+        onSuccess={async () => {
+          // Обновляем данные пользователя после смены email
+          try {
+            const response = await apiFetch('/auth/me')
+            if (response.user) {
+              updateUser(response.user)
+              setProfileData({
+                name: response.user.name || '',
+                email: response.user.email || ''
+              })
+            }
+          } catch (error) {
+            console.error('Failed to refresh user data:', error)
+          }
+        }}
+      />
     </div>
   )
 }
