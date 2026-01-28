@@ -299,13 +299,25 @@ export default function SettingsPage() {
                 <label className="block text-sm text-muted-foreground mb-1">
                   {t('settings.profile.email') || 'Email'}
                 </label>
-                <input
-                  type="email"
-                  value={profileData.email}
-                  onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
-                  placeholder={t('settings.profile.emailPlaceholder') || 'example@email.com'}
-                  className="w-full px-3 py-2 border border-border rounded-lg bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
-                />
+                <div className="flex gap-2">
+                  <input
+                    type="email"
+                    value={profileData.email || user?.email || ''}
+                    disabled
+                    placeholder={t('settings.profile.emailPlaceholder') || 'example@email.com'}
+                    className="flex-1 px-3 py-2 border border-border rounded-lg bg-muted text-muted-foreground"
+                  />
+                  {user?.email && (
+                    <button
+                      onClick={() => setShowChangeEmailModal(true)}
+                      className="flex items-center justify-center gap-2 px-4 py-2 border border-border rounded-lg text-foreground hover:bg-muted transition-colors whitespace-nowrap"
+                      title={t('auth.changeEmail') || 'Изменить email'}
+                    >
+                      <Mail className="w-4 h-4" />
+                      <span className="hidden sm:inline">{t('auth.changeEmail') || 'Изменить email'}</span>
+                    </button>
+                  )}
+                </div>
                 {!user?.email && (
                   <p className="text-xs text-muted-foreground mt-1">
                     {t('settings.profile.emailHint') || 'Добавьте email для получения уведомлений'}
@@ -356,8 +368,8 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            {/* Кнопки смены пароля и email */}
-            <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-border">
+            {/* Кнопка смены пароля */}
+            <div className="pt-4 border-t border-border">
               <button
                 onClick={() => setShowChangePasswordModal(true)}
                 className="flex items-center justify-center gap-2 px-4 py-2.5 border border-border rounded-lg text-foreground hover:bg-muted transition-colors"
@@ -365,15 +377,6 @@ export default function SettingsPage() {
                 <Lock className="w-4 h-4" />
                 {t('auth.changePassword') || 'Сменить пароль'}
               </button>
-              {user?.email && (
-                <button
-                  onClick={() => setShowChangeEmailModal(true)}
-                  className="flex items-center justify-center gap-2 px-4 py-2.5 border border-border rounded-lg text-foreground hover:bg-muted transition-colors"
-                >
-                  <Mail className="w-4 h-4" />
-                  {t('auth.changeEmail') || 'Изменить email'}
-                </button>
-              )}
             </div>
 
             {/* Кнопка сохранения */}

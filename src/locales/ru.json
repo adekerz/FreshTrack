@@ -221,7 +221,28 @@
     "passwordsMatch": "Пароли совпадают",
     "hotelCode": "MARSHA код",
     "hotelCodeHint": "5 символов, например: TSEXR, WASSX",
-    "invalidHotelCode": "Неверный MARSHA код"
+    "invalidHotelCode": "Неверный MARSHA код",
+    "emailRequired": "Email обязателен для регистрации",
+    "verifyEmail": "Подтвердите email",
+    "otpSentTo": "Код отправлен на",
+    "otpExpires": "Код действителен 15 минут",
+    "otpSent": "OTP отправлен на ваш email",
+    "otpResent": "Новый код отправлен!",
+    "resendCode": "Отправить код повторно",
+    "resendIn": "Отправить повторно через",
+    "emailVerified": "Email подтверждён!",
+    "changeEmail": "Изменить email",
+    "currentEmail": "Текущий email",
+    "newEmail": "Новый email",
+    "currentPassword": "Текущий пароль",
+    "newPassword": "Новый пароль",
+    "changePassword": "Сменить пароль",
+    "passwordChanged": "Пароль успешно изменён",
+    "emailChanged": "Email успешно изменён",
+    "passwordRequiredForChange": "Введите пароль для подтверждения",
+    "sendCode": "Отправить код",
+    "passwordMinLength": "Минимум 8 символов",
+    "sending": "Отправка..."
   },
   "pending": {
     "title": "Ожидание подтверждения",
@@ -1063,7 +1084,8 @@
       "entityType": "Тип объекта",
       "dateFrom": "Дата от",
       "dateTo": "Дата до"
-    }
+    },
+    "showIPAddress": "Показывать IP адреса"
   },
   "notificationRules": {
     "title": "Правила уведомлений",
