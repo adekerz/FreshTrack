@@ -2,7 +2,7 @@
  * ChangeEmailModal - Modal for changing user email with OTP verification
  */
 
-import { useState } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { Mail, X, Lock } from 'lucide-react'
 import Modal from './Modal'
 import CodeInput from './CodeInput'
@@ -18,6 +18,16 @@ export function ChangeEmailModal({ isOpen, onClose, currentEmail, onSuccess }) {
   const [otp, setOtp] = useState('')
   const [partialToken, setPartialToken] = useState('')
   const [loading, setLoading] = useState(false)
+  const newEmailInputRef = useRef(null)
+  const passwordInputRef = useRef(null)
+
+  const handleNewEmailChange = useCallback((e) => {
+    setFormData(prev => ({ ...prev, newEmail: e.target.value }))
+  }, [])
+
+  const handlePasswordChange = useCallback((e) => {
+    setFormData(prev => ({ ...prev, password: e.target.value }))
+  }, [])
 
   const handleRequestChange = async (e) => {
     e.preventDefault()
@@ -97,15 +107,14 @@ export function ChangeEmailModal({ isOpen, onClose, currentEmail, onSuccess }) {
               {t('auth.newEmail') || 'Новый email'}
             </label>
             <input
+              ref={newEmailInputRef}
               type="email"
               value={formData.newEmail}
-              onChange={(e) => {
-                const newValue = e.target.value
-                setFormData(prev => ({ ...prev, newEmail: newValue }))
-              }}
+              onChange={handleNewEmailChange}
               required
               className="w-full px-4 py-2 border border-border rounded-lg bg-background text-foreground"
               placeholder="new@example.com"
+              autoComplete="email"
             />
           </div>
 
@@ -114,14 +123,13 @@ export function ChangeEmailModal({ isOpen, onClose, currentEmail, onSuccess }) {
               {t('auth.password') || 'Пароль'}
             </label>
             <input
+              ref={passwordInputRef}
               type="password"
               value={formData.password}
-              onChange={(e) => {
-                const newValue = e.target.value
-                setFormData(prev => ({ ...prev, password: newValue }))
-              }}
+              onChange={handlePasswordChange}
               required
               className="w-full px-4 py-2 border border-border rounded-lg bg-background text-foreground"
+              autoComplete="current-password"
             />
             <p className="text-xs text-muted-foreground mt-1">
               {t('auth.passwordRequiredForChange') || 'Введите пароль для подтверждения'}

@@ -2,7 +2,7 @@
  * ChangePasswordModal - Modal for changing user password
  */
 
-import { useState } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { Lock, Eye, EyeOff } from 'lucide-react'
 import Modal from './Modal'
 import { apiFetch } from '../../services/api'
@@ -23,6 +23,21 @@ export function ChangePasswordModal({ isOpen, onClose }) {
     confirm: false
   })
   const [loading, setLoading] = useState(false)
+  const currentPasswordInputRef = useRef(null)
+  const newPasswordInputRef = useRef(null)
+  const confirmPasswordInputRef = useRef(null)
+
+  const handleCurrentPasswordChange = useCallback((e) => {
+    setFormData(prev => ({ ...prev, currentPassword: e.target.value }))
+  }, [])
+
+  const handleNewPasswordChange = useCallback((e) => {
+    setFormData(prev => ({ ...prev, newPassword: e.target.value }))
+  }, [])
+
+  const handleConfirmPasswordChange = useCallback((e) => {
+    setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))
+  }, [])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -79,14 +94,13 @@ export function ChangePasswordModal({ isOpen, onClose }) {
           </label>
           <div className="relative">
             <input
+              ref={currentPasswordInputRef}
               type={showPasswords.current ? 'text' : 'password'}
               value={formData.currentPassword}
-              onChange={(e) => {
-                const newValue = e.target.value
-                setFormData(prev => ({ ...prev, currentPassword: newValue }))
-              }}
+              onChange={handleCurrentPasswordChange}
               required
               className="w-full px-4 py-2 pr-10 border border-border rounded-lg bg-background text-foreground"
+              autoComplete="current-password"
             />
             <button
               type="button"
@@ -104,15 +118,14 @@ export function ChangePasswordModal({ isOpen, onClose }) {
           </label>
           <div className="relative">
             <input
+              ref={newPasswordInputRef}
               type={showPasswords.new ? 'text' : 'password'}
               value={formData.newPassword}
-              onChange={(e) => {
-                const newValue = e.target.value
-                setFormData(prev => ({ ...prev, newPassword: newValue }))
-              }}
+              onChange={handleNewPasswordChange}
               required
               minLength={8}
               className="w-full px-4 py-2 pr-10 border border-border rounded-lg bg-background text-foreground"
+              autoComplete="new-password"
             />
             <button
               type="button"
@@ -133,14 +146,13 @@ export function ChangePasswordModal({ isOpen, onClose }) {
           </label>
           <div className="relative">
             <input
+              ref={confirmPasswordInputRef}
               type={showPasswords.confirm ? 'text' : 'password'}
               value={formData.confirmPassword}
-              onChange={(e) => {
-                const newValue = e.target.value
-                setFormData(prev => ({ ...prev, confirmPassword: newValue }))
-              }}
+              onChange={handleConfirmPasswordChange}
               required
               className="w-full px-4 py-2 pr-10 border border-border rounded-lg bg-background text-foreground"
+              autoComplete="new-password"
             />
             <button
               type="button"
