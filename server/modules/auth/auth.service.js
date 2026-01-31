@@ -99,6 +99,26 @@ export class AuthService {
       }
     }
 
+    // Get department info
+    let department = null
+    if (user.department_id) {
+      try {
+        const deptResult = await dbQuery(
+          'SELECT id, name FROM departments WHERE id = $1',
+          [user.department_id]
+        )
+        if (deptResult.rows.length > 0) {
+          department = {
+            id: deptResult.rows[0].id,
+            name: deptResult.rows[0].name
+          }
+        }
+      } catch (error) {
+        logError('AuthService.formatUserResponse', `Failed to get department ${user.department_id}`, error)
+        // Continue without department info
+      }
+    }
+
     // Role labels for localization (Russian)
     const roleLabels = {
       SUPER_ADMIN: 'Супер Админ',
@@ -126,6 +146,7 @@ export class AuthService {
         name: hotel.name,
         marsha_code: hotel.marsha_code || null
       } : null,
+      department: department,
       telegram_chat_id: user.telegram_chat_id,
       is_active: user.is_active !== false,
       mustChangePassword: user.must_change_password || false
@@ -205,8 +226,12 @@ export class AuthService {
       // Обновить last_login
       await updateLastLogin(user.id)
 
-      // Если MFA включен → возвращаем partial token
-      if (user.mfa_enabled) {
+      // MFA отключена на dev (DISABLE_MFA_IN_DEV=true) — пропускаем проверку
+      const mfaDisabledInDev =
+        process.env.NODE_ENV === 'development' && process.env.DISABLE_MFA_IN_DEV === 'true'
+
+      // Если MFA включен → возвращаем partial token (кроме dev с отключённой MFA)
+      if (user.mfa_enabled && !mfaDisabledInDev) {
         const partialToken = jwt.sign(
           { userId: user.id, mfaPending: true },
           process.env.JWT_SECRET,
@@ -303,39 +328,8 @@ export class AuthService {
         status: hotelId ? 'pending' : 'active' // Если привязан к отелю - требуется одобрение
       })
 
-      // Generate email verification token if email is provided
-      let needsEmailVerification = false
-      if (data.email) {
-        const crypto = await import('crypto')
-        const verificationToken = crypto.randomBytes(32).toString('hex')
-        const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
-
-        // Save verification token to database
-        await dbQueryPostgres(`
-          UPDATE users 
-          SET email_verification_token = $1,
-              email_verification_expires = $2
-          WHERE id = $3
-        `, [verificationToken, expiresAt, newUser.id])
-
-        // Send verification email with link
-        try {
-          const { sendVerificationEmail } = await import('../../services/EmailService.js')
-          const appUrl = process.env.APP_URL || 'http://localhost:5173'
-          const verificationLink = `${appUrl}/verify-email?token=${verificationToken}`
-          
-          await sendVerificationEmail({
-            user: { name: data.name, email: data.email },
-            verificationLink,
-            target: 'USER'
-          })
-          logInfo('AuthService', `Verification link sent to ${data.email} for user ${data.login}`)
-          needsEmailVerification = true
-        } catch (emailError) {
-          logError('AuthService', `Failed to send verification email to ${data.email}`, emailError)
-          // Continue registration even if email fails - user can request resend later
-        }
-      }
+      // Единый поток OTP: письмо с кодом отправляет контроллер (EmailVerificationService.sendOTP)
+      const needsEmailVerification = !!data.email
 
       // НЕ создавать join_request пока email не подтвержден (если email указан)
       // Если email не указан, создаем join_request сразу
@@ -729,36 +723,134 @@ export class AuthService {
   }
 
   /**
-   * Получить всех пользователей отеля
+   * Получить пользователей с фильтрацией и пагинацией
+   * SUPER_ADMIN видит всех, HOTEL_ADMIN - только своего отеля
    */
   static async getUsers(queryParams, requestingUser) {
     try {
-      const hotelId = requestingUser.hotel_id
-      const users = await getAllUsers(hotelId)
+      const {
+        search,
+        role,
+        isActive,
+        departmentId,
+        hotelId: filterHotelId,
+        page = 1,
+        limit = 50
+      } = queryParams
 
-      // Форматировать ответ с обработкой ошибок для каждого пользователя
-      const formattedUsers = await Promise.all(
-        users.map(async (u) => {
-          try {
-            return await this.formatUserResponse(u, false)
-          } catch (formatError) {
-            logError('AuthService.getUsers', `Failed to format user ${u.id}: ${formatError.message}`, formatError)
-            // Return basic user data if formatting fails
-            return {
-              id: u.id,
-              login: u.login,
-              name: u.name,
-              email: u.email,
-              role: u.role,
-              hotel_id: u.hotel_id,
-              department_id: u.department_id,
-              mustChangePassword: u.must_change_password || false
-            }
-          }
-        })
-      )
+      const isSuperAdmin = requestingUser.role?.toUpperCase() === 'SUPER_ADMIN'
 
-      return ServiceResult.ok({ users: formattedUsers })
+      // Определяем hotel_id для фильтрации
+      // SUPER_ADMIN может фильтровать по любому отелю или видеть всех
+      // HOTEL_ADMIN видит только свой отель
+      let effectiveHotelId = null
+      if (isSuperAdmin) {
+        effectiveHotelId = filterHotelId || null // null = все отели
+      } else {
+        effectiveHotelId = requestingUser.hotel_id // только свой отель
+      }
+
+      // Построение SQL запроса с фильтрами
+      const conditions = []
+      const params = []
+      let paramIndex = 1
+
+      // Фильтр по отелю
+      if (effectiveHotelId) {
+        conditions.push(`(u.hotel_id = $${paramIndex} OR u.hotel_id IS NULL)`)
+        params.push(effectiveHotelId)
+        paramIndex++
+      }
+
+      // Поиск по name, login, email
+      if (search && search.trim()) {
+        const searchTerm = `%${search.trim().toLowerCase()}%`
+        conditions.push(`(LOWER(u.name) LIKE $${paramIndex} OR LOWER(u.login) LIKE $${paramIndex} OR LOWER(u.email) LIKE $${paramIndex})`)
+        params.push(searchTerm)
+        paramIndex++
+      }
+
+      // Фильтр по роли
+      if (role) {
+        conditions.push(`UPPER(u.role) = $${paramIndex}`)
+        params.push(role.toUpperCase())
+        paramIndex++
+      }
+
+      // Фильтр по статусу активности
+      if (isActive !== undefined && isActive !== null && isActive !== '') {
+        const isActiveValue = isActive === true || isActive === 'true'
+        conditions.push(`u.is_active = $${paramIndex}`)
+        params.push(isActiveValue)
+        paramIndex++
+      }
+
+      // Фильтр по отделу
+      if (departmentId) {
+        conditions.push(`u.department_id = $${paramIndex}`)
+        params.push(departmentId)
+        paramIndex++
+      }
+
+      const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
+
+      // Получаем общее количество
+      const countQuery = `SELECT COUNT(*) as total FROM users u ${whereClause}`
+      const countResult = await dbQuery(countQuery, params)
+      const total = parseInt(countResult.rows[0].total, 10)
+
+      // Пагинация
+      const offset = (page - 1) * limit
+      const dataQuery = `
+        SELECT u.id, u.login, u.name, u.email, u.role, u.hotel_id, u.department_id,
+               u.telegram_chat_id, u.is_active, u.status, u.must_change_password,
+               u.created_at, u.last_login,
+               h.name as hotel_name, h.marsha_code as hotel_marsha_code,
+               d.name as department_name
+        FROM users u
+        LEFT JOIN hotels h ON u.hotel_id = h.id
+        LEFT JOIN departments d ON u.department_id = d.id
+        ${whereClause}
+        ORDER BY u.created_at DESC
+        LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+      `
+      params.push(limit, offset)
+
+      const usersResult = await dbQuery(dataQuery, params)
+
+      // Форматировать ответ
+      const formattedUsers = usersResult.rows.map((u) => ({
+        id: u.id,
+        login: u.login,
+        name: u.name,
+        email: u.email,
+        role: u.role,
+        hotel_id: u.hotel_id,
+        department_id: u.department_id,
+        hotel: u.hotel_id ? {
+          id: u.hotel_id,
+          name: u.hotel_name,
+          marsha_code: u.hotel_marsha_code
+        } : null,
+        department: u.department_id ? {
+          id: u.department_id,
+          name: u.department_name
+        } : null,
+        telegram_chat_id: u.telegram_chat_id,
+        is_active: u.is_active !== false,
+        status: u.status || 'active',
+        mustChangePassword: u.must_change_password || false,
+        lastLogin: u.last_login,
+        createdAt: u.created_at
+      }))
+
+      return ServiceResult.ok({
+        users: formattedUsers,
+        total,
+        page: parseInt(page, 10),
+        limit: parseInt(limit, 10),
+        totalPages: Math.ceil(total / limit)
+      })
     } catch (error) {
       logError('AuthService.getUsers', `Failed to get users: ${error.message}`, error)
       return ServiceResult.error(`Failed to get users: ${error.message}`, 500)

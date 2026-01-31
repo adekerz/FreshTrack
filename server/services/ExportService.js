@@ -81,9 +81,22 @@ const EntityColumns = {
     { key: 'email', header: 'Email' },
     { key: 'login', header: 'Логин' },
     { key: 'role', header: 'Роль' },
+    { key: 'hotel_name', header: 'Отель' },
     { key: 'department_name', header: 'Отдел' },
     { key: 'is_active', header: 'Активен' },
-    { key: 'created_at', header: 'Дата регистрации' }
+    { key: 'lastLogin', header: 'Последний вход' },
+    { key: 'createdAt', header: 'Дата регистрации' }
+  ],
+  marshaCodes: [
+    { key: 'code', header: 'Код' },
+    { key: 'hotelName', header: 'Название отеля' },
+    { key: 'city', header: 'Город' },
+    { key: 'country', header: 'Страна' },
+    { key: 'region', header: 'Регион' },
+    { key: 'brand', header: 'Бренд' },
+    { key: 'isAssigned', header: 'Назначен' },
+    { key: 'assignedHotelName', header: 'Назначен отелю' },
+    { key: 'assignedAt', header: 'Дата назначения' }
   ],
   // Phase 8: Collection history with snapshot fields
   collectionHistory: [

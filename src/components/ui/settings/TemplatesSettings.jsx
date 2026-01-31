@@ -4,11 +4,11 @@
  */
 
 import { useState, useEffect } from 'react'
-import { useTranslation } from '../../context/LanguageContext'
-import { useProducts } from '../../context/ProductContext'
-import { useToast } from '../../context/ToastContext'
-import { useHotel } from '../../context/HotelContext'
-import { apiFetch } from '../../services/api'
+import { useTranslation } from '../../../context/LanguageContext'
+import { useProducts } from '../../../context/ProductContext'
+import { useToast } from '../../../context/ToastContext'
+import { useHotel } from '../../../context/HotelContext'
+import { apiFetch } from '../../../services/api'
 import {
   Plus,
   X,
@@ -19,7 +19,7 @@ import {
   Check,
   AlertTriangle
 } from 'lucide-react'
-import { ButtonLoader } from '../ui'
+import { ButtonLoader } from '..'
 import SettingsLayout from './SettingsLayout'
 
 export default function TemplatesSettings({ readOnly = false }) {

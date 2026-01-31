@@ -24,8 +24,67 @@ import {
 } from '../../middleware/auth.js'
 import { requireMFA } from '../../middleware/requireMFA.js'
 import { CreateHotelSchema, UpdateHotelSchema, validate } from './hotels.schemas.js'
+import { GeoNamesService } from '../../services/GeoNamesService.js'
 
 const router = Router()
+
+/**
+ * POST /api/hotels/detect-timezone
+ * Автоопределение timezone по городу (GeoNames).
+ */
+router.post('/detect-timezone',
+  authMiddleware,
+  requirePermission(PermissionResource.HOTELS, PermissionAction.READ),
+  async (req, res) => {
+    try {
+      const { city, countryCode } = req.body || {}
+      if (!city || typeof city !== 'string' || !city.trim()) {
+        return res.status(400).json({ success: false, error: 'City name is required' })
+      }
+      if (!GeoNamesService.isConfigured()) {
+        return res.status(503).json({
+          success: false,
+          error: 'Timezone auto-detection is not configured',
+          fallbackRequired: true
+        })
+      }
+      const result = await GeoNamesService.getTimezoneByCity(city.trim(), countryCode || null)
+      res.json({ success: true, ...result })
+    } catch (error) {
+      logError('POST /hotels/detect-timezone', error)
+      res.status(400).json({
+        success: false,
+        error: error.message || 'Failed to detect timezone',
+        fallbackRequired: true
+      })
+    }
+  }
+)
+
+/**
+ * GET /api/hotels/city-suggestions?q=...
+ * Подсказки городов для autocomplete.
+ */
+router.get('/city-suggestions',
+  authMiddleware,
+  requirePermission(PermissionResource.HOTELS, PermissionAction.READ),
+  async (req, res) => {
+    try {
+      const q = (req.query.q || '').toString().trim()
+      if (q.length < 2) {
+        return res.json({ success: true, suggestions: [] })
+      }
+      if (!GeoNamesService.isConfigured()) {
+        return res.json({ success: true, suggestions: [] })
+      }
+      const suggestions = await GeoNamesService.getCitySuggestions(q, 10)
+      res.json({ success: true, suggestions })
+    } catch (error) {
+      logError('GET /hotels/city-suggestions', error)
+      res.status(500).json({ success: false, error: 'Failed to fetch suggestions' })
+    }
+  }
+)
 
 /**
  * GET /api/hotels
@@ -84,10 +143,34 @@ router.post('/',
       return res.status(400).json({ success: false, error: 'Validation failed', details: validation.errors })
     }
 
-    const { name, description, address, phone, email, settings, timezone, marsha_code, marsha_code_id } = validation.data
-    
+    const {
+      name,
+      description,
+      address,
+      phone,
+      email,
+      settings,
+      timezone,
+      city,
+      country,
+      latitude,
+      longitude,
+      timezone_auto_detected,
+      marsha_code,
+      marsha_code_id
+    } = validation.data
+
     const hotel = await createHotel({
-      name, description, address, phone, email, settings, timezone, marsha_code, marsha_code_id
+      name,
+      address,
+      city,
+      country,
+      timezone,
+      latitude,
+      longitude,
+      timezone_auto_detected,
+      marsha_code,
+      marsha_code_id
     })
     
     // Если указан MARSHA код - пометить его как назначенный

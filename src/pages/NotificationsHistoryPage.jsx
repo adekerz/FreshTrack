@@ -18,6 +18,7 @@ import {
   ChevronRight
 } from 'lucide-react'
 import { apiFetch } from '../services/api'
+import { formatDate } from '../utils/dateUtils'
 
 // Типы уведомлений и их отображение
 const NOTIFICATION_TYPES = {
@@ -119,19 +120,6 @@ export default function NotificationsHistoryPage() {
     setAppliedFilters({})
     setPagination((prev) => ({ ...prev, page: 1 }))
     setShowFilters(false)
-  }
-
-  // Форматирование даты
-  const formatDate = (dateStr) => {
-    if (!dateStr) return '-'
-    const date = new Date(dateStr)
-    return new Intl.DateTimeFormat('ru-RU', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    }).format(date)
   }
 
   // Получение типа уведомления
@@ -311,7 +299,7 @@ export default function NotificationsHistoryPage() {
                     return (
                       <tr key={log.id} className="hover:bg-muted transition-colors">
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
-                          {formatDate(log.sent_at)}
+                          {formatDate(log.sent_at, true)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span
@@ -371,7 +359,7 @@ export default function NotificationsHistoryPage() {
                         {t(typeInfo.label)}
                       </span>
                       <span className="text-xs text-muted-foreground">
-                        {formatDate(log.sent_at)}
+                        {formatDate(log.sent_at, true)}
                       </span>
                     </div>
 

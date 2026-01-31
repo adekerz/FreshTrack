@@ -26,9 +26,10 @@
     --primary-foreground: 255 255 255; /* white */
     --secondary: 245 240 232;          /* sand */
     --secondary-foreground: 26 26 26;  /* charcoal */
-    --success: 74 124 89;              /* #4A7C59 */
-    --warning: 212 168 83;             /* #D4A853 */
-    --danger: 196 85 77;               /* #C4554D */
+    --success: 50 205 50;              /* #32CD32 lime green - норма */
+    --warning: 255 215 0;              /* #FFD700 gold - предупреждение */
+    --critical: 255 140 0;             /* #FF8C00 orange - критическое */
+    --danger: 255 71 71;               /* #FF4747 red - просрочка */
     --border: 226 221 214;             /* light border */
     --ring: 255 141 107;               /* accent for focus */
     
@@ -58,9 +59,10 @@
     --primary-foreground: 26 26 26;    /* dark text on primary */
     --secondary: 45 45 45;             /* #2D2D2D */
     --secondary-foreground: 250 248 245;
-    --success: 74 222 128;             /* green-400 - desaturated */
-    --warning: 251 191 36;             /* amber-400 - desaturated */
-    --danger: 248 113 113;             /* red-400 - desaturated */
+    --success: 34 197 94;              /* #22c55e green - норма */
+    --warning: 234 179 8;              /* #EAB308 yellow - предупреждение */
+    --critical: 249 115 22;            /* #F97316 orange - критическое */
+    --danger: 239 68 68;               /* #EF4444 red - просрочка */
     --border: 64 64 64;                /* #404040 */
     --ring: 255 180 153;               /* accent-light for focus */
     
@@ -506,14 +508,17 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   display: none;
 }
 
-/* Toggle switch for "No quantity" */
+/* Toggle switch for "No quantity" - фиксированный размер, не масштабируется на мобилке */
 .quantity-toggle {
-  --toggle-size: 14px;
   -webkit-appearance: none;
   -moz-appearance: none;
   appearance: none;
-  width: 3.5em;
-  height: 1.75em;
+  width: 44px;
+  height: 24px;
+  min-width: 44px;
+  min-height: 24px;
+  max-width: 44px;
+  max-height: 24px;
   background: linear-gradient(to right, #e5e7eb 50%, #D4A574 50%) no-repeat;
   background-size: 205%;
   background-position: 0;
@@ -521,32 +526,45 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   border-radius: 99em;
   position: relative;
   cursor: pointer;
-  font-size: var(--toggle-size);
   flex-shrink: 0;
 }
 
 .quantity-toggle::before {
   content: "";
-  width: 1.35em;
-  height: 1.35em;
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  min-height: 18px;
   position: absolute;
-  top: 0.2em;
-  left: 0.2em;
-  background: linear-gradient(to right, #ffffff 50%, #ffffff 50%) no-repeat;
-  background-size: 205%;
-  background-position: 100%;
+  top: 3px;
+  left: 3px;
+  background: #ffffff;
   border-radius: 50%;
   transition: 0.3s ease;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 .quantity-toggle:checked::before {
-  left: calc(100% - 1.35em - 0.2em);
-  background-position: 0;
+  left: calc(100% - 21px);
 }
 
 .quantity-toggle:checked {
   background-position: 100%;
+}
+
+/* Dark mode - toggle track */
+.dark .quantity-toggle {
+  background: linear-gradient(to right, #404040 50%, #D4A574 50%) no-repeat;
+  background-size: 205%;
+  background-position: 0;
+}
+
+.dark .quantity-toggle:checked {
+  background-position: 100%;
+}
+
+.dark .quantity-toggle::before {
+  background: #e5e7eb;
 }
 
 /* Toast animations */

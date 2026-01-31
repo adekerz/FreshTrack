@@ -10,13 +10,14 @@ import { useHotel } from '../context/HotelContext'
 import { useAddBatch, useDeleteBatch, useDeleteProduct } from '../hooks/useInventory'
 import { format, parseISO } from 'date-fns'
 import FIFOCollectModal from './FIFOCollectModal'
+import { formatDate } from '../utils/dateUtils'
 import { logError } from '../utils/logger'
 
-// Цвета статусов для полоски слева
+// Цвета статусов для полоски слева (просрочка=red, критическое=orange, предупреждение=yellow, норма=green)
 const statusBorderColors = {
   expired: 'border-l-danger',
-  today: 'border-l-danger',
-  critical: 'border-l-danger',
+  today: 'border-l-critical',
+  critical: 'border-l-critical',
   warning: 'border-l-warning',
   good: 'border-l-success'
 }
@@ -26,7 +27,7 @@ export default function ProductModal({ product, onClose }) {
   const { language } = useLanguage()
   const { hasPermission, user, isStaff } = useAuth()
   const { selectedHotelId } = useHotel()
-  const { getBatchesByProduct } = useProducts()
+  const { getBatchesByProduct, refresh } = useProducts()
   const { addToast } = useToast()
 
   // === REACT QUERY MUTATIONS ===
@@ -59,16 +60,6 @@ export default function ProductModal({ product, onClose }) {
     if (!dateString) return 'N/A'
     try {
       return format(parseISO(dateString), 'dd.MM.yyyy')
-    } catch {
-      return 'Invalid date'
-    }
-  }
-
-  // Форматирование даты и времени
-  const formatDateTime = (isoString) => {
-    if (!isoString) return 'N/A'
-    try {
-      return format(new Date(isoString), 'dd.MM.yyyy HH:mm')
     } catch {
       return 'Invalid date'
     }
@@ -162,7 +153,7 @@ export default function ProductModal({ product, onClose }) {
         onClose={() => setShowFIFOModal(false)}
         onSuccess={() => {
           setShowFIFOModal(false)
-          // React Query автоматически обновит данные через invalidation в FIFOCollectModal
+          refresh()
         }}
       />
     )
@@ -358,7 +349,7 @@ export default function ProductModal({ product, onClose }) {
                         </span>
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        {t('product.collectedAt')}: {formatDateTime(batch.collectedAt)}
+                        {t('product.collectedAt')}: {formatDate(batch.collectedAt, true)}
                       </div>
                     </div>
                   </div>
@@ -476,7 +467,7 @@ export default function ProductModal({ product, onClose }) {
               variant="primary"
               fullWidth
               onClick={() => setShowAddForm(true)}
-              className="bg-foreground text-background hover:bg-foreground/90"
+              className="bg-accent-button text-white hover:bg-accent-button/90 shadow-md"
               icon={Plus}
               iconPosition="left"
             >

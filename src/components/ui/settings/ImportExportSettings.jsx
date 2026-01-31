@@ -4,10 +4,10 @@
  */
 
 import { useState, useRef } from 'react'
-import { useTranslation } from '../../context/LanguageContext'
-import { useToast } from '../../context/ToastContext'
-import { Loader } from '../ui'
-import { API_BASE_URL } from '../../services/api'
+import { useTranslation } from '../../../context/LanguageContext'
+import { useToast } from '../../../context/ToastContext'
+import { Loader } from '..'
+import { API_BASE_URL } from '../../../services/api'
 import {
   Upload,
   Download,

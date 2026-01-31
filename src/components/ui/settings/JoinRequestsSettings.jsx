@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useTranslation } from '../../context/LanguageContext'
-import { useToast } from '../../context/ToastContext'
-import { useAuth } from '../../context/AuthContext'
-import { apiFetch } from '../../services/api'
-import { TouchButton, Modal, Button } from '../ui'
+import { useTranslation } from '../../../context/LanguageContext'
+import { useToast } from '../../../context/ToastContext'
+import { useAuth } from '../../../context/AuthContext'
+import { apiFetch } from '../../../services/api'
+import { TouchButton, Modal, Button } from '..'
 import {
   UserPlus,
   Check,
@@ -18,6 +18,7 @@ import {
   Shield
 } from 'lucide-react'
 import SettingsLayout from './SettingsLayout'
+import { formatDate } from '../../../utils/dateUtils'
 
 export default function JoinRequestsSettings() {
   const { t } = useTranslation()
@@ -154,17 +155,6 @@ export default function JoinRequestsSettings() {
     }
   }
 
-  const formatDate = (dateString) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString('ru-RU', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  }
-
   if (loading) {
     return <SettingsLayout loading />
   }
@@ -222,7 +212,7 @@ export default function JoinRequestsSettings() {
                     )}
                     <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
                       <Clock className="w-3 h-3" />
-                      {formatDate(request.requested_at || request.created_at)}
+                      {formatDate(request.requested_at || request.created_at, true)}
                     </p>
                   </div>
                 </div>

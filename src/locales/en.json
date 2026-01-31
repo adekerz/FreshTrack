@@ -150,11 +150,130 @@
     "departments": "Departments",
     "settings": "Settings",
     "auditLogs": "Audit Logs",
+    "accounts": "Accounts",
+    "marshaCodes": "MARSHA Codes",
     "history": "History",
     "more": "More",
     "openMenu": "Open menu",
     "mobileNav": "Mobile navigation",
-    "reports": "Reports"
+    "reports": "Reports",
+    "faq": "Help"
+  },
+  "faq": {
+    "title": "Help & FAQ",
+    "subtitle": "Answers to frequently asked questions",
+    "searchPlaceholder": "Search questions...",
+    "expandAll": "Expand all",
+    "collapseAll": "Collapse all",
+    "noResults": "No results found",
+    "tryDifferentSearch": "Try a different search query",
+    "needMoreHelp": "Need more help?",
+    "contactSupport": "Contact your hotel administrator or support team",
+    "openSettings": "Open settings",
+    "categories": {
+      "all": "All",
+      "inventory": "Inventory",
+      "notifications": "Notifications",
+      "calendar": "Calendar",
+      "collections": "Collections",
+      "management": "Management",
+      "admin": "Administration",
+      "settings": "Settings"
+    },
+    "items": {
+      "whatIsFreshtrack": {
+        "question": "What is FreshTrack?",
+        "answer": "FreshTrack is an inventory management system for hotels that helps track product expiration dates. The system alerts you about upcoming expirations, helps minimize waste, and maintains quality standards."
+      },
+      "whatIsBatch": {
+        "question": "What is a batch?",
+        "answer": "A batch is a specific delivery of a product with a particular expiration date and quantity. For example, you might have 3 batches of milk with different expiration dates. The system tracks each batch separately."
+      },
+      "howToAddBatch": {
+        "question": "How do I add a new product batch?",
+        "answer": "1. Go to the \"Inventory\" page\n2. Find the product and click on it\n3. In the modal, click \"Add Batch\"\n4. Enter the expiration date and quantity\n5. Click \"Save\"\n\nTip: Use quick templates for frequently used products."
+      },
+      "batchStatuses": {
+        "question": "What do the colored status indicators mean?",
+        "answer": "• Green — product is in good condition (more than 7 days until expiry)\n• Yellow — warning (4-7 days until expiry)\n• Orange — critical status (1-3 days until expiry)\n• Red — expired (past expiration date)\n\nThresholds can be customized in \"Notification Rules\"."
+      },
+      "filterInventory": {
+        "question": "How do I filter and sort inventory?",
+        "answer": "• Use categories at the top of the page to filter by product type\n• Click the sort icon to choose order: by expiry date, name, or quantity\n• Use global search (magnifying glass in header) to quickly find items across all inventory"
+      },
+      "whatIsFifo": {
+        "question": "What is FIFO and how does it work?",
+        "answer": "FIFO (First-In-First-Out) is a method where products with the earliest expiration date are used first. This helps minimize losses from expired products.\n\nWhen you make a collection, the system automatically selects the oldest batches."
+      },
+      "howToCollect": {
+        "question": "How do I collect/use a product?",
+        "answer": "1. Open a product card in inventory\n2. Click the \"FIFO Collection\" button (lightning icon)\n3. Enter the quantity to collect\n4. Select a reason: used in kitchen, expired, damaged, etc.\n5. Add a comment if needed\n6. Confirm the collection\n\nThe system automatically collects from the oldest batches."
+      },
+      "collectionReasons": {
+        "question": "What collection reasons are available?",
+        "answer": "• Kitchen — used in food preparation\n• Expired — past expiration date\n• Damaged — product is spoiled or damaged\n• Return — returned to supplier\n• Compliment — given to guest\n• Other — other reason (specify in comments)"
+      },
+      "notificationTypes": {
+        "question": "What notifications do I receive?",
+        "answer": "The system sends notifications about:\n• Expired products (require immediate attention)\n• Critical — expiring in 1-3 days\n• Warning — expiring in 4-7 days\n\nNotifications appear on the dashboard, notifications page, and can be sent to Telegram."
+      },
+      "telegramNotifications": {
+        "question": "How do I set up Telegram notifications?",
+        "answer": "1. Find @freshtracksystemsbot in Telegram\n2. Add it to your department's group chat\n3. Send the command /link MARSHA_CODE (e.g., /link NYCVZ)\n4. The bot will confirm the link\n\nNotifications will now be sent to this chat automatically."
+      },
+      "calendarUsage": {
+        "question": "How do I use the calendar?",
+        "answer": "The calendar shows a visual representation of expiration dates:\n\n• Day color indicates the status of products expiring that day\n• Click a day to see the product list\n• Use arrows to navigate between months\n• \"Today\" button returns to the current date\n\nThis helps plan purchases and product usage."
+      },
+      "changePassword": {
+        "question": "How do I change my password?",
+        "answer": "1. Click your name in the top right corner\n2. Select \"Settings\"\n3. In the \"Profile\" section, click \"Change Password\"\n4. Enter current and new password\n5. Confirm the change\n\nPassword must be at least 8 characters, including letters and numbers."
+      },
+      "changeLanguage": {
+        "question": "How do I change the interface language?",
+        "answer": "The system supports 8 languages: Russian, English, Kazakh, German, French, Spanish, Italian, and Arabic.\n\n1. Open \"Settings\"\n2. Go to the \"Language\" tab\n3. Select your language\n\nChanges apply immediately."
+      },
+      "notificationRules": {
+        "question": "How do I configure notification rules?",
+        "answer": "1. Open \"Settings\" → \"Notification Rules\"\n2. Set threshold values:\n   • Critical threshold (default 3 days)\n   • Warning threshold (default 7 days)\n3. Save changes\n\nThese settings affect color indicators and notification timing."
+      },
+      "viewCollectionHistory": {
+        "question": "How do I view collection history?",
+        "answer": "1. Go to \"Collection History\" in the sidebar menu\n2. Use filters:\n   • By department\n   • By collection reason\n   • By date\n3. Export data to Excel or PDF if needed"
+      },
+      "useTemplates": {
+        "question": "How do I use quick add templates?",
+        "answer": "Templates speed up adding frequently used products:\n\n1. Open \"Settings\" → \"Templates\"\n2. Create a template with a set of products\n3. When adding inventory, select \"Quick Add\"\n4. Choose a template and enter expiration dates\n\nThis saves time for regular deliveries."
+      },
+      "manageUsers": {
+        "question": "How do I manage users?",
+        "answer": "1. Open \"Settings\" → \"Accounts\"\n2. Here you can:\n   • View all hotel users\n   • Activate/deactivate accounts\n   • Filter by role and status\n   • Export user list\n\nTo create a new user, go to \"Users\"."
+      },
+      "manageDepartments": {
+        "question": "How do I manage departments and categories?",
+        "answer": "1. Open \"Settings\" → \"Directories\"\n2. Manage:\n   • Departments (Bar, Restaurant, Mini Bar, etc.)\n   • Product categories (Alcohol, Beverages, Snacks, etc.)\n   • Products (product types for inventory)\n\nEach department is isolated — staff only see their own department."
+      },
+      "viewAuditLogs": {
+        "question": "How do I view audit logs?",
+        "answer": "1. Go to \"Audit Logs\" in the sidebar menu\n2. The system records all actions:\n   • User logins and logouts\n   • Data creation and editing\n   • Collections and write-offs\n   • Settings changes\n3. Filter by action type, user, date\n4. Export for auditing"
+      },
+      "importExport": {
+        "question": "How do I import/export data?",
+        "answer": "Export:\n1. \"Settings\" → \"Import/Export\"\n2. Select format (Excel or PDF)\n3. Set filters (department, category, period)\n4. Click \"Export\"\n\nImport:\n1. Download the Excel template\n2. Fill in data following the example\n3. Upload the file to the system\n4. Review preview and confirm"
+      },
+      "whatIsMarsha": {
+        "question": "What is a MARSHA code?",
+        "answer": "MARSHA is a unique 5-character hotel code in the Marriott system.\n\nExample: NYCVZ — Marriott New York.\n\nThis code is used for:\n• Hotel identification in the system\n• PMS (Property Management System) integration\n• Linking Telegram notifications to the hotel\n\nMARSHA codes are managed only by super administrators."
+      },
+      "manageMarshaCode": {
+        "question": "How do I manage MARSHA codes?",
+        "answer": "1. Open \"Settings\" → \"MARSHA Codes\"\n2. Find the code by country, region, or brand\n3. Assign a code to a hotel or release it\n\nThe database contains codes for all Marriott hotels. When creating a new hotel in the system, assign the corresponding MARSHA code."
+      },
+      "manageHotels": {
+        "question": "How do I manage multiple hotels?",
+        "answer": "As a super administrator you can:\n\n1. Switch between hotels using the selector in the header\n2. View any hotel's data\n3. Manage users across all hotels in \"Accounts\"\n4. Assign MARSHA codes to new hotels\n5. View overall statistics across the entire network"
+      }
+    }
   },
   "sidebar": {
     "collapse": "Collapse menu",
@@ -220,7 +339,40 @@
     "passwordsMatch": "Passwords match",
     "hotelCode": "MARSHA Code",
     "hotelCodeHint": "5 characters, e.g.: TSEXR, WASSX",
-    "invalidHotelCode": "Invalid MARSHA code"
+    "invalidHotelCode": "Invalid MARSHA code",
+    "emailRequired": "Email is required for registration",
+    "verifyEmail": "Verify Email",
+    "checkEmail": "Check your email",
+    "verificationLinkSentTo": "We sent a confirmation link to",
+    "clickLinkInEmail": "Click the link in the email to confirm your address. The link is valid for 24 hours.",
+    "resendLink": "Resend link",
+    "verificationLinkSent": "Confirmation link sent to your email",
+    "resendLinkFailed": "Failed to resend link",
+    "backToLogin": "Back to sign in",
+    "linkExpired": "Link expired",
+    "linkExpiredDescription": "Request a new link to confirm your email.",
+    "invalidLink": "Invalid link",
+    "invalidLinkDescription": "Use the link from the latest email or request a new one.",
+    "goToDashboard": "Go to dashboard",
+    "emailVerifiedDescription": "You can now use your account.",
+    "otpSentTo": "Code sent to",
+    "otpExpires": "Code is valid for 15 minutes",
+    "otpSent": "OTP sent to your email",
+    "otpResent": "New code sent!",
+    "resendCode": "Resend code",
+    "resendIn": "Resend in",
+    "emailVerified": "Email verified!",
+    "changeEmail": "Change Email",
+    "currentEmail": "Current Email",
+    "newEmail": "New Email",
+    "currentPassword": "Current Password",
+    "changePassword": "Change Password",
+    "passwordChanged": "Password changed successfully",
+    "emailChanged": "Email changed successfully",
+    "passwordRequiredForChange": "Enter password to confirm",
+    "sendCode": "Send Code",
+    "passwordMinLength": "Minimum 8 characters",
+    "sending": "Sending..."
   },
   "pending": {
     "title": "Pending Approval",
@@ -239,6 +391,7 @@
   },
   "marshaCode": {
     "label": "MARSHA Code (Marriott)",
+    "loadError": "Failed to load MARSHA code details",
     "optional": "optional",
     "selectCode": "Select Marriott code",
     "searchPlaceholder": "Search by name, city or code...",
@@ -707,6 +860,7 @@
       "language": "Language",
       "general": "General",
       "users": "Users",
+      "accounts": "Accounts",
       "joinRequests": "Join Requests",
       "directories": "Directories",
       "categories": "Categories",
@@ -718,6 +872,7 @@
       "branding": "Branding",
       "cache": "Cache",
       "importExport": "Import/Export",
+      "marshaCodes": "MARSHA Codes",
       "system": "System"
     },
     "profile": {
@@ -998,7 +1153,12 @@
       "collect": "Collect Item",
       "settingsChange": "Settings Change",
       "import": "Import Data",
-      "export": "Export Data"
+      "export": "Export Data",
+      "password_changed": "Password changed",
+      "email_changed": "Email changed",
+      "role_changed": "Role changed",
+      "mfa_enabled": "MFA enabled",
+      "mfa_disabled": "MFA disabled"
     },
     "entities": {
       "product": "Product",
@@ -1015,7 +1175,112 @@
       "actionType": "Action Type",
       "entityType": "Entity Type",
       "dateFrom": "Date From",
-      "dateTo": "Date To"
+      "dateTo": "Date To",
+      "severity": "Severity",
+      "user": "User",
+      "department": "Department",
+      "securityOnly": "Security only"
+    },
+    "severityAll": "All",
+    "severityCritical": "Critical",
+    "severityImportant": "Important",
+    "severityNormal": "Normal",
+    "searchPlaceholder": "Search by action and details...",
+    "totalRecords": "Total: {{count}} records",
+    "found": "Found: {{count}}",
+    "activityTitle": "Activity for the last 7 days",
+    "statsTotal": "Total",
+    "statsCritical": "Critical",
+    "statsImportant": "Important",
+    "detailsTitle": "Log Details",
+    "time": "Time",
+    "technicalDetails": "Technical details",
+    "browser": "Browser",
+    "os": "Operating system",
+    "technicalDataJson": "Technical data (JSON)",
+    "beforeChange": "Before change",
+    "afterChange": "After change",
+    "showIPAddress": "Show IP addresses",
+    "loadError": "Failed to load audit logs",
+    "newRecords": "{{count}} new records",
+    "refreshList": "Refresh",
+    "exportPdf": "Export PDF",
+    "exportExcel": "Export Excel"
+  },
+  "accounts": {
+    "title": "User Accounts",
+    "subtitle": "Manage user accounts and access",
+    "searchPlaceholder": "Search by name, login, email...",
+    "loadError": "Failed to load users",
+    "noUsers": "No users found",
+    "totalRecords": "Total: {{count}} users",
+    "active": "Active",
+    "inactive": "Inactive",
+    "activated": "User activated",
+    "deactivated": "User deactivated",
+    "toggleError": "Failed to toggle status",
+    "neverLoggedIn": "Never logged in",
+    "filters": {
+      "hotel": "Hotel",
+      "role": "Role",
+      "status": "Status"
+    },
+    "table": {
+      "name": "Name",
+      "login": "Login",
+      "email": "Email",
+      "role": "Role",
+      "hotel": "Hotel",
+      "department": "Department",
+      "status": "Status",
+      "lastLogin": "Last Login",
+      "createdAt": "Created"
+    },
+    "action": {
+      "activate": "Activate",
+      "deactivate": "Deactivate"
+    }
+  },
+  "marshaCodes": {
+    "title": "MARSHA Codes Database",
+    "subtitle": "Marriott property codes management",
+    "searchPlaceholder": "Search by code, hotel name, city...",
+    "loadError": "Failed to load MARSHA codes",
+    "noCodes": "No MARSHA codes found",
+    "totalRecords": "Total: {{count}} codes",
+    "assigned": "Assigned",
+    "available": "Available",
+    "assignSuccess": "MARSHA code assigned successfully",
+    "assignError": "Failed to assign code",
+    "releaseSuccess": "MARSHA code released successfully",
+    "releaseError": "Failed to release code",
+    "assignedTo": "Assigned to",
+    "filters": {
+      "country": "Country",
+      "region": "Region",
+      "brand": "Brand",
+      "assigned": "Assignment Status"
+    },
+    "table": {
+      "code": "Code",
+      "hotelName": "Hotel Name",
+      "city": "City",
+      "country": "Country",
+      "region": "Region",
+      "brand": "Brand",
+      "assigned": "Assigned",
+      "assignedTo": "Assigned To",
+      "assignedAt": "Assigned At"
+    },
+    "action": {
+      "assign": "Assign",
+      "release": "Release"
+    },
+    "assignModal": {
+      "title": "Assign MARSHA Code",
+      "selectHotel": "Select Hotel",
+      "chooseHotel": "Choose a hotel...",
+      "noAvailableHotels": "No hotels available for assignment (all hotels already have MARSHA codes)"
     }
   },
   "notificationRules": {
@@ -1233,6 +1498,19 @@
       "savings": "Savings",
       "efficiency": "Collection efficiency"
     }
+  },
+  "hotels": {
+    "cityPlaceholder": "Start typing city name...",
+    "cityLabel": "City",
+    "timezoneAutoHint": "Timezone will be set automatically",
+    "timezoneLabel": "Timezone",
+    "timezonePlaceholder": "Select city to auto-detect",
+    "timezoneDetected": "Auto-detected",
+    "timezoneManualHint": "You can change manually if needed",
+    "cityNotFound": "City not found",
+    "timezoneDetectError": "Could not auto-detect timezone",
+    "filledFromMarsha": "Filled from MARSHA code",
+    "timezoneFromMarsha": "Auto-detected from MARSHA code"
   },
   "users": {
     "title": "User Management",

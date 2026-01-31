@@ -4,7 +4,7 @@
 
 import { Router } from 'express'
 import { logError } from '../../utils/logger.js'
-import { getAuditLogs } from '../../db/database.js'
+import { getAuditLogs, getAuditLogsWithMetadata, getHotelById } from '../../db/database.js'
 import { 
   authMiddleware, 
   hotelIsolation,
@@ -15,43 +15,56 @@ import {
 } from '../../middleware/auth.js'
 import { UnifiedFilterService } from '../../services/FilterService.js'
 import { ExportService } from '../../services/ExportService.js'
-import { logAudit, AuditAction, AuditEntityType, auditService } from '../../services/AuditService.js'
+import { logAudit, AuditAction, AuditEntityType, auditService, default as AuditService } from '../../services/AuditService.js'
 import { AuditIntegrityService } from '../../services/AuditIntegrityService.js'
-import { rateLimitExport } from '../../middleware/rateLimiter.js'
+import { AuditEnrichmentService } from '../../services/AuditEnrichmentService.js'
+import { rateLimitExport, rateLimitExportWithAlert } from '../../middleware/rateLimiter.js'
 import { requireAllowlistedIP } from '../../middleware/ipAllowlist.js'
 import { requireMFA } from '../../middleware/requireMFA.js'
+import { AuditExportService } from '../../services/AuditExportService.js'
 import { query as dbQuery } from '../../db/postgres.js'
+import { auditLogsSSE } from './audit.sse.js'
 
 const router = Router()
 
 router.get('/', authMiddleware, hotelIsolation, requirePermission(PermissionResource.AUDIT, PermissionAction.READ), async (req, res) => {
   try {
     const filters = UnifiedFilterService.parseCommonFilters(req.query)
-    
+    const hotelId = req.user?.role === 'SUPER_ADMIN' && req.query.hotelId ? req.query.hotelId : req.hotelId
+
     const dbFilters = {
-      user_id: filters.userId,
+      userId: filters.userId,
       action: filters.action,
-      entity_type: filters.entityType,
-      entity_id: req.query.entity_id,
-      start_date: filters.dateFrom?.toISOString(),
-      end_date: filters.dateTo?.toISOString(),
+      entityType: filters.entityType,
+      startDate: filters.dateFrom?.toISOString?.(),
+      endDate: filters.dateTo?.toISOString?.(),
       limit: filters.limit,
-      offset: filters.offset
+      offset: filters.offset,
+      severity: req.query.severity,
+      securityOnly: req.query.securityOnly,
+      departmentId: req.query.departmentId
     }
-    
-    const logs = await getAuditLogs(req.hotelId, dbFilters)
-    
-    let filteredLogs = logs
+
+    const { rows: logs, total } = await getAuditLogsWithMetadata(hotelId, dbFilters)
+
+    const enrichedLogs = logs.map(log => AuditService.enrichAuditLog(log))
+
+    let filteredLogs = enrichedLogs
     if (filters.search) {
-      filteredLogs = UnifiedFilterService.filterBySearch(logs, filters.search, [
-        'user_name', 'action', 'entity_type', 'details'
+      filteredLogs = UnifiedFilterService.filterBySearch(enrichedLogs, filters.search, [
+        'user_name', 'action', 'entity_type', 'details', 'human_readable_description', 'key_changes', 'human_readable_details'
       ])
     }
-    
-    res.json({ 
-      success: true, 
-      ...UnifiedFilterService.createPaginatedResponse(filteredLogs, filteredLogs.length, filters),
-      logs: filteredLogs
+
+    res.json({
+      success: true,
+      logs: filteredLogs,
+      pagination: {
+        page: Math.floor((filters.offset || 0) / (filters.limit || 20)) + 1,
+        limit: filters.limit || 20,
+        total,
+        pages: Math.ceil(total / (filters.limit || 20)) || 1
+      }
     })
   } catch (error) {
     logError('Get audit logs error', error)
@@ -59,12 +72,151 @@ router.get('/', authMiddleware, hotelIsolation, requirePermission(PermissionReso
   }
 })
 
-router.get('/export', 
-  authMiddleware, 
-  hotelIsolation, 
+router.get('/stream', authMiddleware, hotelIsolation, requirePermission(PermissionResource.AUDIT, PermissionAction.READ), auditLogsSSE)
+
+/** Хелпер: загрузка отфильтрованных логов для экспорта PDF/Excel (с метаданными и обогащением) */
+async function getFilteredLogsForExport(req) {
+  const filters = UnifiedFilterService.parseCommonFilters(req.query, { isExport: true })
+  const hotelId =
+    req.user?.role === 'SUPER_ADMIN' && req.query.hotelId ? req.query.hotelId : req.hotelId
+
+  const dbFilters = {
+    userId: filters.userId,
+    action: filters.action,
+    entityType: filters.entityType,
+    startDate: filters.dateFrom?.toISOString?.(),
+    endDate: filters.dateTo?.toISOString?.(),
+    limit: filters.limit,
+    offset: 0,
+    severity: req.query.severity,
+    securityOnly: req.query.securityOnly,
+    departmentId: req.query.departmentId
+  }
+
+  const { rows: logs } = await getAuditLogsWithMetadata(hotelId, dbFilters)
+
+  if (logs.length > ExportService.MAX_EXPORT_ROWS) {
+    throw new Error(
+      `Export too large (${logs.length} rows). Maximum: ${ExportService.MAX_EXPORT_ROWS}. Apply date filters.`
+    )
+  }
+
+  return logs.map((log) => AuditService.enrichAuditLog(log))
+}
+
+router.get(
+  '/export/pdf',
+  authMiddleware,
+  hotelIsolation,
+  requireMFA,
+  rateLimitExportWithAlert,
   requirePermission(PermissionResource.AUDIT, PermissionAction.EXPORT),
-  rateLimitExport,
+  async (req, res) => {
+    try {
+      const logs = await getFilteredLogsForExport(req)
+      let hotel = req.user?.hotel
+      if ((!hotel?.name && !hotel?.marsha_code) && req.hotelId) {
+        hotel = await getHotelById(req.hotelId)
+      }
+      const hotelName = hotel?.name ?? ''
+      const hotelCode = hotel?.marsha_code ?? ''
+      const hotelTimezone = hotel?.timezone ?? 'UTC'
+
+      const pdfBuffer = await AuditExportService.generatePDF(logs, {
+        hotelName,
+        hotelCode,
+        hotelTimezone
+      })
+
+      res.setHeader('Content-Type', 'application/pdf')
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="audit-logs-${Date.now()}.pdf"`
+      )
+      await logAudit({
+        user_id: req.user.id,
+        user_name: req.user.name,
+        hotel_id: req.hotelId,
+        action: AuditAction.EXPORT,
+        entity_type: AuditEntityType.SETTINGS,
+        entity_id: null,
+        details: { format: 'pdf', recordCount: logs.length, exportType: 'audit-logs-pdf' },
+        ip_address: req.ip
+      })
+
+      res.send(pdfBuffer)
+    } catch (error) {
+      logError('Export audit PDF', error)
+      res.status(error.message?.includes('too large') ? 400 : 500).json({
+        success: false,
+        error: error.message || 'Failed to export PDF'
+      })
+    }
+  }
+)
+
+router.get(
+  '/export/excel',
+  authMiddleware,
+  hotelIsolation,
+  requireMFA,
+  rateLimitExportWithAlert,
+  requirePermission(PermissionResource.AUDIT, PermissionAction.EXPORT),
+  async (req, res) => {
+    try {
+      const logs = await getFilteredLogsForExport(req)
+      let hotel = req.user?.hotel
+      if ((!hotel?.name && !hotel?.marsha_code) && req.hotelId) {
+        hotel = await getHotelById(req.hotelId)
+      }
+      const hotelName = hotel?.name ?? ''
+      const hotelCode = hotel?.marsha_code ?? ''
+      const hotelTimezone = hotel?.timezone ?? 'UTC'
+
+      const excelBuffer = await AuditExportService.generateExcel(logs, {
+        hotelName,
+        hotelCode,
+        hotelTimezone
+      })
+
+      res.setHeader(
+        'Content-Type',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      )
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="audit-logs-${Date.now()}.xlsx"`
+      )
+
+      await logAudit({
+        user_id: req.user.id,
+        user_name: req.user.name,
+        hotel_id: req.hotelId,
+        action: AuditAction.EXPORT,
+        entity_type: AuditEntityType.SETTINGS,
+        entity_id: null,
+        details: { format: 'xlsx', recordCount: logs.length, exportType: 'audit-logs-excel' },
+        ip_address: req.ip
+      })
+
+      res.send(Buffer.from(excelBuffer))
+    } catch (error) {
+      logError('Export audit Excel', error)
+      res.status(error.message?.includes('too large') ? 400 : 500).json({
+        success: false,
+        error: error.message || 'Failed to export Excel'
+      })
+    }
+  }
+)
+
+router.get('/export',
+  authMiddleware,
+  hotelIsolation,
+  requireMFA,
+  rateLimitExportWithAlert,
   requireAllowlistedIP,
+  requirePermission(PermissionResource.AUDIT, PermissionAction.EXPORT),
   async (req, res) => {
     try {
       const filters = UnifiedFilterService.parseCommonFilters(req.query, { isExport: true })
@@ -154,6 +306,104 @@ router.get('/entity-types', authMiddleware, hotelIsolation, requirePermission(Pe
     res.status(500).json({ success: false, error: 'Failed to get entity types' })
   }
 })
+
+/**
+ * GET /api/audit-logs/stats
+ * Activity stats by day (for charts)
+ */
+router.get('/stats', authMiddleware, hotelIsolation, requirePermission(PermissionResource.AUDIT, PermissionAction.READ), async (req, res) => {
+  try {
+    const days = Math.min(parseInt(req.query.days, 10) || 7, 90)
+    const hotelId = req.user?.role === 'SUPER_ADMIN' && req.query.hotelId ? req.query.hotelId : req.hotelId
+
+    let hotelCondition = ''
+    const params = [days]
+    if (hotelId != null) {
+      hotelCondition = 'AND al.hotel_id = $2'
+      params.push(hotelId)
+    }
+
+    const result = await dbQuery(
+      `SELECT
+         DATE(al.created_at) as date,
+         COUNT(*)::int as count,
+         COUNT(CASE WHEN alm.severity = 'critical' THEN 1 END)::int as critical_count,
+         COUNT(CASE WHEN alm.severity = 'important' THEN 1 END)::int as important_count,
+         COUNT(CASE WHEN alm.severity = 'normal' THEN 1 END)::int as normal_count
+       FROM audit_logs al
+       LEFT JOIN audit_logs_metadata alm ON al.id = alm.audit_log_id
+       WHERE al.created_at >= NOW() - ($1 * INTERVAL '1 day')
+         AND al.archived = FALSE
+         ${hotelCondition}
+       GROUP BY DATE(al.created_at)
+       ORDER BY date DESC`,
+      params
+    )
+
+    res.json({ success: true, stats: result.rows })
+  } catch (error) {
+    logError('Get audit stats error', error)
+    res.status(500).json({ success: false, error: 'Failed to get audit stats' })
+  }
+})
+
+/**
+ * GET /api/audit-logs/users
+ * List users who have audit entries (for filter dropdown)
+ */
+router.get('/users', authMiddleware, hotelIsolation, requirePermission(PermissionResource.AUDIT, PermissionAction.READ), async (req, res) => {
+  try {
+    const hotelId = req.user?.role === 'SUPER_ADMIN' && req.query.hotelId ? req.query.hotelId : req.hotelId
+
+    let hotelCondition = ''
+    const params = []
+    if (hotelId != null) {
+      hotelCondition = 'WHERE u.hotel_id = $1'
+      params.push(hotelId)
+    }
+    params.push(50)
+
+    const result = await dbQuery(
+      `SELECT u.id, u.name, u.login, COUNT(al.id)::int as action_count
+       FROM users u
+       INNER JOIN audit_logs al ON u.id = al.user_id AND al.archived = FALSE
+       ${hotelCondition}
+       GROUP BY u.id, u.name, u.login
+       ORDER BY action_count DESC
+       LIMIT $${params.length}`,
+      params
+    )
+
+    res.json({ success: true, users: result.rows })
+  } catch (error) {
+    logError('Get audit users error', error)
+    res.status(500).json({ success: false, error: 'Failed to get audit users' })
+  }
+})
+
+/**
+ * POST /api/audit-logs/enrich
+ * Backfill metadata for existing logs (SUPER_ADMIN only)
+ */
+router.post('/enrich',
+  authMiddleware,
+  requirePermission(PermissionResource.AUDIT, PermissionAction.MANAGE),
+  superAdminOnly,
+  async (req, res) => {
+    try {
+      const limit = Math.min(parseInt(req.body?.limit, 10) || 1000, 5000)
+      const result = await AuditEnrichmentService.enrichExistingLogs(limit)
+      res.json({
+        success: true,
+        enriched: result.enriched,
+        message: `Enriched ${result.enriched} audit log(s).`
+      })
+    } catch (error) {
+      logError('POST audit-logs/enrich error', error)
+      res.status(500).json({ success: false, error: 'Failed to enrich logs' })
+    }
+  }
+)
 
 router.get('/entity/:type/:id', 
   authMiddleware, 

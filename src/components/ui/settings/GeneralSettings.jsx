@@ -4,11 +4,11 @@
  */
 
 import { useState, useEffect } from 'react'
-import { useTranslation } from '../../context/LanguageContext'
+import { useTranslation } from '../../../context/LanguageContext'
 import { Globe, Coins, Clock } from 'lucide-react'
 import SettingsLayout, { SettingsSection } from './SettingsLayout'
-import { useSimpleUnsavedChanges } from '../../hooks/useUnsavedChanges'
-import { apiFetch } from '../../services/api'
+import { useSimpleUnsavedChanges } from '../../../hooks/useUnsavedChanges'
+import { apiFetch } from '../../../services/api'
 
 const defaultSettings = {
   dateFormat: 'DD.MM.YYYY',
@@ -29,7 +29,7 @@ function Toggle({ id, checked, onChange, label }) {
         aria-checked={checked}
         aria-labelledby={id ? `${id}-label` : undefined}
         tabIndex={0}
-        className={`relative w-11 h-6 rounded-full transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 ${
+        className={`relative w-10 h-5 sm:w-11 sm:h-6 rounded-full transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 flex-shrink-0 ${
           checked ? 'bg-accent' : 'bg-muted'
         }`}
         onClick={() => onChange(!checked)}
@@ -41,8 +41,8 @@ function Toggle({ id, checked, onChange, label }) {
         }}
       >
         <div
-          className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
-            checked ? 'translate-x-5' : 'translate-x-0'
+          className={`absolute top-0.5 left-0.5 w-4 h-4 sm:w-5 sm:h-5 bg-white rounded-full shadow transition-transform ${
+            checked ? 'translate-x-4 sm:translate-x-5' : 'translate-x-0'
           }`}
         />
       </div>

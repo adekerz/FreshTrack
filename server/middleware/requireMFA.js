@@ -2,11 +2,17 @@
  * Require MFA Middleware
  * Enforces MFA for users who have mfa_required = true
  * Includes grace period for SUPER_ADMIN
+ * MFA отключена в development при DISABLE_MFA_IN_DEV=true
  */
 
 import { logWarn } from '../utils/logger.js'
 
+const isMfaDisabledInDev = () =>
+  process.env.NODE_ENV === 'development' && process.env.DISABLE_MFA_IN_DEV === 'true'
+
 export function requireMFA(req, res, next) {
+  if (isMfaDisabledInDev()) return next()
+
   const { mfa_required, mfa_enabled, mfa_grace_period_ends } = req.user
   
   if (!mfa_required) {

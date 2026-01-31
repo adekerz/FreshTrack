@@ -1,5 +1,6 @@
 ---
-applyTo: '**'
+description: "Prompt templates and quick commands for FreshTrack development: backend endpoints, frontend components, full-stack features, code review, MFA/security patterns, and audit logging"
+alwaysApply: true
 ---
 
 # FreshTrack Cursor Prompts
@@ -10,6 +11,8 @@ applyTo: '**'
 - Язык — русский
 - Только production-код
 - Backend — source of truth
+- PostgreSQL (не Prisma)
+- React + Vite (не Next.js)
 - Если есть сомнение — сначала задай вопрос
 
 ---
@@ -22,27 +25,79 @@ applyTo: '**'
 Реализуй backend endpoint для: <ОПИСАНИЕ ФИЧИ>.
 
 Требования:
-- Node.js + Express
-- Валидация входных данных (zod)
-- Permission check через requirePermission(resource, action)
+- Node.js + Express + PostgreSQL (raw queries)
+- Валидация входных данных (Zod)
+- Permission check через requirePermission(resource, action, scope)
 - Вся логика в service
 - Изоляция данных по hotel_id
-- Audit logging для всех мутаций
+- Audit logging через AuditService.logAction()
+- MFA enforcement если критичный endpoint (requireMFA middleware)
 - Чёткие ошибки без stack trace
 
 Покажи:
-1. Route
-2. Validation schema
-3. Service
-4. Audit
+1. Route с middleware chain
+2. Validation schema (Zod)
+3. Service с SQL queries
+4. Audit logging
 5. Пример ответа API
+6. Чеклист безопасности
 
 use context7
 ```
 
 ---
 
-### 2️⃣ Backend: доработка существующего endpoint
+### 2️⃣ Backend: Export endpoint с security
+
+```
+Реализуй export endpoint для: <ЧТО ЭКСПОРТИРУЕМ>.
+
+Обязательные меры безопасности:
+- requireMFA middleware
+- rateLimitExportWithAlert (10/hour)
+- requireAllowlistedIP (если настроено)
+- ExportService.sendExport() для audit logging
+- Size limit check (MAX_EXPORT_ROWS)
+- X-Export-ID header для tracking
+
+Формат: xlsx / pdf / csv
+
+Покажи:
+1. Route с полным middleware chain
+2. Export logic (ExportService integration)
+3. Audit logging pattern
+4. Error handling
+5. Security checklist
+
+use context7
+```
+
+---
+
+### 3️⃣ Backend: MFA-protected critical endpoint
+
+```
+Реализуй критичный endpoint для: <ОПИСАНИЕ>.
+
+Требования:
+- requireMFA middleware (grace period support)
+- requirePermission (SUPER_ADMIN only)
+- Audit logging
+- Security alert при подозрительной активности
+- hotel_id isolation
+
+Покажи:
+1. Route с requireMFA
+2. Grace period handling
+3. SecurityAlertService integration
+4. Edge cases (MFA not set up, grace period expired)
+
+use context7
+```
+
+---
+
+### 4️⃣ Backend: доработка существующего endpoint
 
 ```
 Проанализируй существующий backend код и доработай его.
@@ -50,11 +105,14 @@ use context7
 Цель: <ЧТО ДОЛЖНО ИЗМЕНИТЬСЯ>
 
 Проверь и исправь:
-- permissions
-- отсутствие audit
+- permissions (requirePermission, не hardcoded роли)
+- MFA enforcement (если критичный)
+- отсутствие audit logging
 - отсутствие hotel_id фильтра
-- бизнес-логику в route
-- неочевидные edge cases
+- WHERE archived = FALSE (если читаем audit_logs)
+- бизнес-логику в controller (должна быть в service)
+- SQL injection vulnerabilities
+- rate limiting (если export/webhook)
 
 НЕ меняй архитектуру.
 НЕ добавляй новые таблицы.
@@ -66,112 +124,215 @@ use context7
 
 ---
 
-### 3️⃣ Frontend: новая форма / страница
+### 5️⃣ Frontend: новая форма / страница
 
 ```
 Реализуй frontend UI для: <ОПИСАНИЕ ФИЧИ>.
 
 Требования:
-- React / Next.js
+- React + Vite + TailwindCSS
 - Без бизнес-логики
 - Все данные только с backend API
 - Loading / Success / Error states
 - Mobile-first (touch ≥ 48px)
+- i18n keys (не hardcoded текст)
+- Keyboard navigation
 - Доступна из навигации
 - Permissions учитываются (через permissions из API)
 
 Backend уже существует — ничего не вычисляй на фронте.
 
 Покажи:
-1. Компонент
-2. API вызов
-3. UX states
-4. Интеграцию в страницу
+1. Компонент с states
+2. API вызов через apiFetch
+3. Form handling с validation
+4. UX states (loading, error, empty)
+5. Integration в Layout/Router
+6. i18n keys
+7. Mobile responsive classes
 
 use context7
 ```
 
 ---
 
-### 4️⃣ Frontend: проверить UI ↔ Backend mismatch
+### 6️⃣ Frontend: MFA Component
 
 ```
-Проведи аудит Frontend ↔ Backend.
+Реализуй MFA компонент: <MFASetupPage / MFALoginForm / MFAGracePeriodBanner>
+
+Требования:
+- QR code display (для setup)
+- CodeInput component (6 digits, auto-focus, auto-tab)
+- Backup codes download
+- Toggle TOTP ↔ Backup code
+- Grace period countdown (если banner)
+- Link to /settings/security
+- Error handling (invalid code, expired, rate limited)
+
+Покажи:
+1. Component с states
+2. API integration
+3. UX flow (step-by-step)
+4. Error messages
+5. Success feedback
+
+use context7
+```
+
+---
+
+### 7️⃣ Frontend: проверить UI ↔ Backend mismatch
+
+```
+Проведи аудит Frontend ↔ Backend для модуля: <МОДУЛЬ>.
 
 Найди:
 - UI элементы без backend endpoint
 - Backend endpoints без UI
 - Несовпадение полей API и UI
-- Hardcoded статусы / цвета / роли
-- Логику, которая должна быть на бэке
+- Hardcoded статусы / цвета / роли на фронте
+- Логику, которая должна быть на backend
+- Вычисления expiry dates на фронте
+- Role checks вместо permissions
 
 Выведи результат в таблице:
-| UI | Backend | Проблема | Что исправить |
+| UI Element | Backend Endpoint | Проблема | Что исправить |
 
 Код не пиши, только анализ.
 ```
 
 ---
 
-### 5️⃣ Full-stack: реализация фичи end-to-end
+### 8️⃣ Full-stack: реализация фичи end-to-end
 
 ```
 Реализуй фичу end-to-end: <ОПИСАНИЕ>.
 
 Обязательные этапы:
-1. Анализ (permissions, UX, интеграция)
-2. Backend: route → validation → permission → service → audit
-3. Frontend: форма → API → states → навигация
-4. Edge cases
-5. Чеклист тестирования
+1. Анализ (permissions, security, UX, integration)
+2. Backend: 
+   - Route → Validation → Permission → MFA (если нужно)
+   - Service → SQL → Audit
+   - Error handling
+3. Frontend: 
+   - Component → API → States
+   - Mobile responsive
+   - i18n keys
+   - Navigation integration
+4. Security checklist (RBAC, MFA, audit, rate limiting)
+5. Edge cases
+6. Testing checklist
 
 НЕ останавливайся на половине.
-Функция должна быть реально используема.
+Функция должна быть реально используема end-to-end.
 
 use context7
 ```
 
 ---
 
-### 6️⃣ Code Review (строгий, enterprise)
+### 9️⃣ Security: Audit Trail Review
 
 ```
-Проведи строгий code review.
+Проверь audit logging для модуля: <МОДУЛЬ>.
+
+Требования:
+- Все мутации (CREATE/UPDATE/DELETE) логируются
+- AuditService.logAction() используется
+- snapshot_before + snapshot_after
+- Hash chain integrity сохраняется
+- НЕТ DELETE audit_logs (только archival)
+- WHERE archived = FALSE в запросах
+
+Покажи:
+1. Что логируется
+2. Что НЕ логируется (но должно)
+3. Исправления
+4. Verification pattern
+
+use context7
+```
+
+---
+
+### 🔟 Security: Code Review (строгий, enterprise)
+
+```
+Проведи строгий security code review для: <ФАЙЛ/МОДУЛЬ>.
 
 Проверь:
-- Security (RBAC, permissions)
-- Изоляцию hotel_id
-- Backend как source of truth
-- Отсутствие логики в UI
-- Production readiness
+- RBAC: requirePermission (не hardcoded роли)
+- MFA: requireMFA на критичных endpoints
+- Изоляция: hotel_id фильтры везде
+- Audit: все мутации логируются
+- SQL injection: параметризованные запросы
+- Rate limiting: export/webhook endpoints
+- Signature verification: webhooks
+- Backend = source of truth (нет логики в UI)
+- Hash chain integrity: архивация вместо DELETE
+- Security alerts: подозрительная активность
 
 Ответь в формате:
-1. Критические ошибки (BLOCKER)
-2. Важные проблемы (MAJOR)
-3. Косметика (MINOR)
-4. Итог: готово / не готово
+1. Критические ошибки (BLOCKER) — может привести к data breach
+2. Важные проблемы (MAJOR) — security weakness
+3. Улучшения (MINOR) — best practices
+4. Итог: готово / не готово для production
 
 Код не переписывай, только анализ.
 ```
 
 ---
 
-### 7️⃣ Реалтайм (SSE / WebSocket)
+### 1️⃣1️⃣ Database: Migration Review
 
 ```
-Реализуй realtime обновление для: <ЧТО ОБНОВЛЯЕТСЯ>.
+Проверь миграцию БД: <ФАЙЛ МИГРАЦИИ>.
 
 Требования:
-- Backend отправляет события
-- Frontend подписывается
-- Без перезагрузки страницы
-- Auth обязателен
-- Без лишней логики на фронте
+- Backwards compatible (можно откатить)
+- Indexes для foreign keys
+- Default values где нужно
+- NOT NULL constraints
+- Hash chain integrity сохраняется (если audit_logs)
+- Data migration included (если меняем схему)
+- Триггеры обновлены (если нужно)
+
+Проверь:
+1. Синтаксис SQL
+2. Performance impact
+3. Rollback plan
+4. Data integrity
+5. Hash chain integrity (для audit_logs)
 
 Покажи:
-- SSE endpoint
-- Тип события
-- Подписку на фронте
+- Что может сломаться
+- Как откатить
+- Testing checklist
+
+use context7
+```
+
+---
+
+### 1️⃣2️⃣ Performance: Query Optimization
+
+```
+Оптимизируй SQL query: <ЗАПРОС>.
+
+Проверь:
+- Indexes используются
+- JOIN вместо N+1 queries
+- Pagination (LIMIT/OFFSET)
+- WHERE archived = FALSE
+- COUNT(*) vs COUNT(id)
+- Subqueries vs JOIN
+
+Покажи:
+1. Проблемы текущего запроса
+2. Оптимизированный запрос
+3. Нужные indexes
+4. EXPLAIN ANALYZE результаты
 
 use context7
 ```
@@ -183,8 +344,130 @@ use context7
 | Задача | Промпт |
 |--------|--------|
 | Новый endpoint | `backend endpoint: <описание>` |
+| Export endpoint | `export endpoint: <что экспортируем>` |
+| MFA endpoint | `mfa endpoint: <описание>` |
 | Новая форма | `frontend form: <описание>` |
+| MFA компонент | `mfa component: <setup/login/banner>` |
 | Фича целиком | `full-stack: <описание>` |
-| Code review | `review: <файл или фича>` |
-| Аудит UI↔API | `audit: <модуль>` |
-| SSE/Realtime | `realtime: <что обновлять>` |
+| Security review | `security review: <файл>` |
+| Audit review | `audit review: <модуль>` |
+| UI↔Backend audit | `ui-backend audit: <модуль>` |
+| Migration review | `migration review: <файл>` |
+| Query optimization | `optimize query: <запрос>` |
+
+---
+
+## 🎯 SPECIAL PATTERNS
+
+### Email Verification Flow:
+```
+Реализуй email verification для: <user/department>.
+
+Pattern:
+- Secure token (32 bytes, не 6-значный код)
+- Link-based (не code-based)
+- TTL: 24 часа
+- Один клик → verified
+- Resend logic
+
+Покажи end-to-end flow.
+```
+
+### Webhook Security:
+```
+Защити webhook endpoint: <ENDPOINT>.
+
+Требования:
+- Signature verification (Svix/secret token)
+- Rate limiting (60/min)
+- Idempotency (prevent double processing)
+- NO auth middleware (webhooks не JWT)
+- Audit logging
+
+Покажи pattern.
+```
+
+### Hash Chain Verification:
+```
+Реализуй verification job для audit trail.
+
+Требования:
+- Проверка previous_hash → current_hash chain
+- Detection tampering
+- SecurityAlertService при нарушениях
+- Ignore archived records
+- Performance (batching)
+
+Покажи:
+1. Verification logic
+2. Alert pattern
+3. Job schedule
+```
+
+---
+
+## 🚨 EMERGENCY PROMPTS
+
+### Production Bug:
+```
+СРОЧНО: баг в production.
+
+Симптомы: <ОПИСАНИЕ>
+
+Проанализируй:
+1. Где ошибка (logs, endpoint, service)
+2. Root cause
+3. Quick fix (hotfix)
+4. Long-term solution
+5. Как предотвратить в будущем
+
+Приоритет: BLOCKER
+```
+
+### Security Incident:
+```
+SECURITY INCIDENT: <ОПИСАНИЕ>
+
+Проверь:
+1. Data breach scope
+2. Affected users/hotels
+3. Immediate mitigation
+4. Audit logs analysis
+5. Prevention measures
+
+Приоритет: CRITICAL
+```
+
+---
+
+## 📖 CONTEXT7 USAGE
+
+Всегда используй `use context7` для доступа к актуальной документации:
+- Express — /expressjs/express
+- PostgreSQL — /brianc/node-postgres
+- React — /facebook/react
+- React Router — /remix-run/react-router
+- TailwindCSS — /tailwindlabs/tailwindcss
+- Zod — /colinhacks/zod
+- OTPLib — /yeojz/otplib
+
+---
+
+## 🎯 ФИНАЛЬНОЕ ПРАВИЛО
+
+Если функция:
+- не безопасна (нет RBAC/MFA/audit)
+- не интегрирована (нет в навигации)
+- не доступна пользователю (нет UI)
+- не завершена end-to-end (missing states)
+
+➡️ она **НЕ ГОТОВА**.
+
+Перед кодом проверь:
+- Нужно ли это?
+- Безопасно ли? (RBAC, MFA, audit, rate limiting)
+- Не ломает ли архитектуру?
+- Удобно ли? (UX, mobile, i18n)
+- Работает ли на mobile?
+
+Если все ответы ДА — пиши код.

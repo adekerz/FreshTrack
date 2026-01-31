@@ -14,6 +14,9 @@ export default function MFAGracePeriodBanner() {
   const [graceInfo, setGraceInfo] = useState(null)
   
   useEffect(() => {
+    // MFA баннер отключён на dev (VITE_DISABLE_MFA_IN_DEV=true в .env.local)
+    if (import.meta.env.VITE_DISABLE_MFA_IN_DEV === 'true') return
+
     // Only show for SUPER_ADMIN
     if (!user || user.role !== 'SUPER_ADMIN') {
       console.log('[MFA Banner] Not showing - user:', user?.role)
@@ -52,6 +55,7 @@ export default function MFAGracePeriodBanner() {
         }
         
         const data = await response.json()
+        if (data.mfaDisabledInDev) return
         console.log('[MFA Banner] API response:', data)
         console.log('[MFA Banner] Grace period check:', {
           success: data.success,

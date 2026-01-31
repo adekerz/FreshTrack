@@ -65,6 +65,7 @@ export default {
         'accent-button': '#B85A3A',
         success: 'rgb(var(--success) / <alpha-value>)',
         warning: 'rgb(var(--warning) / <alpha-value>)',
+        critical: 'rgb(var(--critical) / <alpha-value>)',
         danger: 'rgb(var(--danger) / <alpha-value>)',
         // Dark mode surface colors
         'dark-bg': '#121212',

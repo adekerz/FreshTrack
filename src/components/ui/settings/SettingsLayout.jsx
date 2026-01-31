@@ -1,8 +1,8 @@
 import { useState, useCallback } from 'react'
 import { Save, AlertCircle } from 'lucide-react'
-import { useToast } from '../../context/ToastContext'
-import { useTranslation } from '../../context/LanguageContext'
-import { SectionLoader, ButtonLoader } from '../ui'
+import { useToast } from '../../../context/ToastContext'
+import { useTranslation } from '../../../context/LanguageContext'
+import { SectionLoader, ButtonLoader } from '..'
 
 /**
  * Universal layout for all settings pages

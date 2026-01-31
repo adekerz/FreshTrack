@@ -8,12 +8,12 @@
 import { useState, useEffect } from 'react'
 import { Database, Trash2, RefreshCw, HardDrive, CheckCircle } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
-import { useTranslation } from '../../context/LanguageContext'
-import { useToast } from '../../context/ToastContext'
+import { useTranslation } from '../../../context/LanguageContext'
+import { useToast } from '../../../context/ToastContext'
 import {
   getPersistedCacheInfo,
   clearPersistedCache
-} from '../../lib/queryPersistence'
+} from '../../../lib/queryPersistence'
 import SettingsLayout, { SettingsSection } from './SettingsLayout'
 
 export default function CacheManagement() {

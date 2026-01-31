@@ -5,6 +5,7 @@ import { QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { queryClient } from './lib/queryClient'
 import { setupPersistence } from './lib/queryPersistence'
+import { setupAutoSync } from './lib/offlineSync'
 import App from './App'
 import { AuthProvider } from './context/AuthContext'
 import { ProductProvider } from './context/ProductContext'
@@ -28,6 +29,9 @@ if (import.meta.env.MODE === 'development') {
 
 // Setup query persistence for offline support
 setupPersistence(queryClient)
+
+// Setup auto sync for offline mutations
+setupAutoSync()
 
 // Определяем базовый путь для GitHub Pages
 const basename = import.meta.env.BASE_URL

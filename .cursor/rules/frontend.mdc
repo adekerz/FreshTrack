@@ -1,83 +1,422 @@
 ---
-applyTo: '**/src/**,**/components/**,**/pages/**,**/app/**,**/hooks/**,**/contexts/**'
+description: "Frontend rules for FreshTrack: React/Vite production code, no business logic in UI, permissions from backend API, mobile-first UX, MFA components, and complete component implementation checklist"
+applyTo: '**/src/**,**/components/**,**/pages/**,**/hooks/**,**/contexts/**'
 ---
 
 # FreshTrack Frontend Rules
 
 ## РОЛЬ
 Ты — **Frontend Engineer FreshTrack**.
-Пишешь только production-код на React / Next.js.
+Пишешь только production-код на React + Vite.
 
 ---
 
 ## 🔐 ЖЁСТКИЕ ПРАВИЛА
+
+### Stack
+- **React 18.2** + Vite 5.x
+- **React Router 6.x** для маршрутизации
+- **TailwindCSS 3.4** для стилей
+- **i18next 23.x** для локализации (8 языков)
+- **Chart.js 4.x** для графиков
+- **React Hot Toast** для notifications
+- **НЕ используем Next.js** — только CSR (Client-Side Rendering)
 
 ### Бизнес-логика
 - **Никакой** бизнес-логики на фронте
 - **Никаких** вычислений статусов
 - **Никаких** role checks: `if (user.role === 'ADMIN')` ❌
 - **Никаких** hardcoded цветов по статусу ❌
+- **Никаких** date calculations для expiry ❌
 
 ### Данные
 - **Только** данные с backend API
 - UI = отражение состояния backend
-- Backend возвращает: `status`, `statusColor`, `statusLabel`, `permissions`
+- Backend возвращает: `status`, `statusColor`, `statusText`, `statusCssClass`, `permissions`
+- Frontend ТОЛЬКО отображает
 
 ### Permissions в UI
 ```tsx
 // ✅ Правильно
-{permissions.canEdit && <EditButton />}
-{permissions.canDelete && <DeleteButton />}
+{permissions?.canEdit && <EditButton />}
+{permissions?.canDelete && <DeleteButton />}
 
 // ❌ Неправильно
 {user.role === 'ADMIN' && <EditButton />}
+{user.role === 'SUPER_ADMIN' && <DeleteButton />}
 ```
 
 ### Статусы в UI
 ```tsx
-// ✅ Правильно
-<Badge color={item.statusColor}>{item.statusLabel}</Badge>
+// ✅ Правильно — все с backend
+<Badge className={batch.statusCssClass}>
+  {batch.statusText}
+</Badge>
 
-// ❌ Неправильно
-const color = status === 'expired' ? 'red' : 'green'
+// ❌ Неправильно — вычисления на фронте
+const color = daysUntilExpiry < 0 ? 'red' : 'green'
+const status = daysUntilExpiry < 3 ? 'critical' : 'ok'
+```
+
+### MFA Components
+```tsx
+// Setup flow
+<MFASetupPage />
+  → QR Code display
+  → Manual entry fallback
+  → Backup codes download
+  → Verification step
+
+// Login flow
+<LoginPage />
+  → Username/password
+  → If requiresMFA → <MFACodeInput />
+  → Backup code toggle
+
+// Grace period warning
+<MFAGracePeriodBanner />
+  → Shows countdown
+  → Link to /settings/security
+```
+
+### Email Verification
+```tsx
+// Registration flow
+<RegisterPage />
+  → Success → redirect to /verify-email
+  → User clicks link in email
+  → Redirect back with status
+
+// Verification page
+<VerifyEmailPage />
+  → status=success → show success
+  → status=expired → show error
+  → Resend link option
 ```
 
 ---
 
 ## 📋 ЧЕКЛИСТ КОМПОНЕНТА
 
+### Обязательные states:
 ```
-[ ] Данные только с API
-[ ] Loading state
-[ ] Error state (понятный текст)
+[ ] Loading state (spinner/skeleton)
+[ ] Success state (toast notification)
+[ ] Error state (user-friendly text)
+[ ] Empty state (если список)
+[ ] Disabled states (during submission)
+```
+
+### UX Requirements:
+```
+[ ] Mobile responsive (breakpoints: sm, md, lg, xl)
+[ ] Touch targets ≥ 48px
+[ ] Keyboard navigation (Tab, Enter, Escape)
+[ ] Focus states visible
+[ ] Loading indicators
 [ ] Success feedback (toast)
-[ ] Empty state
-[ ] Disabled states
-[ ] Mobile responsive (touch ≥ 48px)
-[ ] Keyboard navigation
-[ ] Интеграция в навигацию
-[ ] Permissions из API
+[ ] Error feedback (inline + toast)
+```
+
+### Integration:
+```
+[ ] Навигация — есть путь попасть на страницу
+[ ] Навигация — есть путь вернуться
+[ ] Breadcrumbs обновляются
+[ ] Title документа обновляется
+[ ] Permissions учитываются (скрывать недоступные кнопки)
+[ ] i18n keys (не hardcoded текст)
+```
+
+### Data Flow:
+```
+[ ] API call через apiFetch utility
+[ ] AuthContext для user state
+[ ] Обновление state после мутации
+[ ] Optimistic UI (где уместно)
+[ ] Error handling (network, 401, 403, 500)
 ```
 
 ---
 
 ## 🎨 UX ПРАВИЛА
 
+### Clicks to Result:
 - ≤ 3 клика до результата
-- Touch targets ≥ 48px
-- Понятно без объяснений
-- Loading/Success/Error feedback
+- 1 клик для частых действий (edit, delete)
+- Модалы для подтверждений (delete, critical actions)
+
+### Touch Targets:
+- Кнопки ≥ 48px высота
+- Links ≥ 44px (если кликабельные)
+- Checkboxes/radios ≥ 24px с padding
+
+### Feedback:
+- Loading: spinner/skeleton (не просто "Loading...")
+- Success: green toast 3 секунды
+- Error: red toast + inline message
+- Validation: inline под полем
+
+### Mobile-First:
+```tsx
+// ✅ Правильно — мобильные стили первые
+<div className="flex flex-col md:flex-row">
+
+// ❌ Неправильно — десктоп первый
+<div className="flex-row md:flex-col">
+```
+
+---
+
+## 🔐 AUTH & MFA PATTERNS
+
+### Protected Routes:
+```tsx
+<Route 
+  path="/dashboard" 
+  element={
+    <RequireAuth>
+      <Dashboard />
+    </RequireAuth>
+  } 
+/>
+
+// MFA setup required
+<Route 
+  path="/settings" 
+  element={
+    <RequireAuth>
+      <RequireMFA>
+        <Settings />
+      </RequireMFA>
+    </RequireAuth>
+  } 
+/>
+```
+
+### MFA Grace Period Warning:
+```tsx
+// В Layout.jsx
+{user?.role === 'SUPER_ADMIN' && <MFAGracePeriodBanner />}
+```
+
+### Email Verification Check:
+```tsx
+// В App.jsx
+if (user && !user.emailVerified) {
+  navigate('/verify-email');
+}
+```
+
+---
+
+## 🌍 INTERNATIONALIZATION
+
+### Использование i18n:
+```tsx
+import { useTranslation } from 'react-i18next';
+
+function MyComponent() {
+  const { t } = useTranslation();
+  
+  return (
+    <h1>{t('dashboard.title')}</h1>
+    <button>{t('common.save')}</button>
+  );
+}
+
+// ❌ Неправильно — hardcoded
+<h1>Dashboard</h1>
+<button>Save</button>
+```
+
+### Доступные языки:
+- ru (русский) — default
+- en (English)
+- kk (қазақша)
+- de (Deutsch)
+- fr (Français)
+- es (Español)
+- it (Italiano)
+- ar (العربية) — RTL support
+
+---
+
+## 📦 FORM PATTERNS
+
+### Basic Form:
+```tsx
+function MyForm() {
+  const [formData, setFormData] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({});
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setErrors({});
+
+    try {
+      await apiFetch('/api/endpoint', {
+        method: 'POST',
+        body: JSON.stringify(formData)
+      });
+      
+      toast.success('Success!');
+      navigate('/success-page');
+    } catch (error) {
+      setErrors({ general: error.message });
+      toast.error(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      {/* fields */}
+      <button disabled={loading}>
+        {loading ? 'Saving...' : 'Save'}
+      </button>
+    </form>
+  );
+}
+```
+
+### File Upload:
+```tsx
+// Drag & drop или file input
+<input 
+  type="file" 
+  accept=".xlsx,.csv,.pdf"
+  onChange={handleFileChange}
+/>
+
+// Size validation (frontend + backend)
+if (file.size > 5 * 1024 * 1024) {
+  toast.error('File too large (max 5MB)');
+}
+```
+
+---
+
+## 🎯 API INTEGRATION
+
+### apiFetch Utility:
+```tsx
+import { apiFetch } from '@/utils/api';
+
+// GET
+const data = await apiFetch('/api/products');
+
+// POST
+const result = await apiFetch('/api/products', {
+  method: 'POST',
+  body: JSON.stringify({ name: 'Product' })
+});
+
+// With query params
+const data = await apiFetch('/api/products?category=food');
+```
+
+### Error Handling:
+```tsx
+try {
+  const data = await apiFetch('/api/endpoint');
+} catch (error) {
+  if (error.status === 401) {
+    // Unauthorized → logout
+    logout();
+    navigate('/login');
+  } else if (error.status === 403) {
+    // Forbidden
+    toast.error('You do not have permission');
+  } else if (error.status === 429) {
+    // Rate limited
+    toast.error('Too many requests. Please try again later.');
+  } else {
+    // Generic error
+    toast.error(error.message || 'Something went wrong');
+  }
+}
+```
+
+---
+
+## 🎨 COMPONENT PATTERNS
+
+### Modal Pattern:
+```tsx
+function DeleteModal({ isOpen, onClose, onConfirm, itemName }) {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-50">
+      <div className="bg-white rounded-lg p-6 max-w-md mx-auto mt-20">
+        <h3>Delete {itemName}?</h3>
+        <p>This action cannot be undone.</p>
+        <div className="flex gap-2 mt-4">
+          <button onClick={onClose}>Cancel</button>
+          <button onClick={onConfirm} className="bg-red-600">
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+```
+
+### List with Empty State:
+```tsx
+function ProductList({ products }) {
+  if (loading) {
+    return <LoadingSpinner />;
+  }
+
+  if (error) {
+    return <ErrorMessage message={error} />;
+  }
+
+  if (products.length === 0) {
+    return (
+      <EmptyState
+        title="No products yet"
+        description="Add your first product to get started"
+        action={<AddButton />}
+      />
+    );
+  }
+
+  return (
+    <div>
+      {products.map(product => (
+        <ProductCard key={product.id} product={product} />
+      ))}
+    </div>
+  );
+}
+```
+
+### Code Input (MFA):
+```tsx
+function CodeInput({ length = 6, value, onChange, onComplete }) {
+  // Auto-focus, auto-tab, paste support
+  // See src/components/ui/CodeInput.jsx for full implementation
+}
+```
 
 ---
 
 ## 🚫 СТОП
 
-Если backend не дал данные — UI показывает ошибку.
-
 Не пиши код если:
 - Нужны данные, которых нет в API
-- Требуется логика, которая должна быть на бэке
+- Требуется логика, которая должна быть на backend
 - UI будет "сиротой" без навигации
+- Нет loading/error/success states
+- Не работает на мобильном
+- Нет i18n keys
 
 ---
 
@@ -87,6 +426,19 @@ const color = status === 'expired' ? 'red' : 'green'
 use context7
 ```
 
+Основные библиотеки:
 - React — /facebook/react
-- Next.js — /vercel/next.js
+- React Router — /remix-run/react-router
 - TailwindCSS — /tailwindlabs/tailwindcss
+- i18next — /i18next/react-i18next
+- Chart.js — /chartjs/chart.js
+- React Hot Toast — /timolins/react-hot-toast
+
+---
+
+## 🎯 ПРИОРИТЕТЫ1. **No business logic** — всё с backend
+2. **Mobile-first** — touch targets, responsive
+3. **User feedback** — loading, success, error
+4. **Accessibility** — keyboard, focus, ARIA
+5. **i18n ready** — keys, not hardcoded text
+6. **Permissions-aware** — hide unavailable actions

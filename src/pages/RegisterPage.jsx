@@ -19,7 +19,7 @@ import { apiFetch } from '../services/api'
 
 export default function RegisterPage() {
   const navigate = useNavigate()
-  const { register } = useAuth()
+  const { setUserAndToken } = useAuth()
   const { t } = useTranslation()
   const { addToast } = useToast()
 
@@ -110,6 +110,12 @@ export default function RegisterPage() {
     e.preventDefault()
     setError('')
 
+    // Email is now required
+    if (!formData.email) {
+      setError(t('auth.emailRequired') || 'Email обязателен для регистрации')
+      return
+    }
+
     if (formData.password !== formData.confirmPassword) {
       setError(t('auth.passwordMismatch'))
       return
@@ -134,25 +140,26 @@ export default function RegisterPage() {
         body: JSON.stringify({
           login: formData.login,
           name: formData.name,
-          email: formData.email || null,
+          email: formData.email,
           password: formData.password,
           hotelCode: formData.hotelCode || null
         })
       })
 
       if (response.success) {
-        // Store token and user in localStorage (same keys as AuthContext)
-        localStorage.setItem('freshtrack_token', response.token)
-        localStorage.setItem('freshtrack_user', JSON.stringify(response.user))
-        addToast(t('toast.registerSuccess'), 'success')
-
-        // Navigate to email verification if needed
-        if (response.needsEmailVerification) {
-          navigate('/verify-email', { state: { email: formData.email } })
-        } else if (response.user.status === 'pending') {
-          navigate('/pending-approval')
+        if (response.needsEmailVerification && response.partialToken) {
+          localStorage.setItem('partialToken', response.partialToken)
+          localStorage.setItem('pendingEmail', formData.email)
+          addToast(t('auth.otpSent') || 'Код отправлен на ваш email', 'success')
+          navigate('/verify-email', {
+            state: { partialToken: response.partialToken, email: formData.email }
+          })
+        } else if (response.token && response.user) {
+          setUserAndToken(response.user, response.token)
+          addToast(t('toast.registerSuccess'), 'success')
+          navigate('/pending-approval', { replace: true })
         } else {
-          navigate('/')
+          setError(response.error || 'Unexpected response')
         }
       } else {
         setError(response.error)
@@ -178,9 +185,11 @@ export default function RegisterPage() {
     login: touched.login && !formData.login ? t('validation.required') : '',
     name: touched.name && !formData.name ? t('validation.required') : '',
     email:
-      touched.email && formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)
-        ? t('validation.invalidEmail')
-        : '',
+      touched.email && !formData.email
+        ? t('validation.required')
+        : touched.email && formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)
+          ? t('validation.invalidEmail')
+          : '',
     password:
       touched.password && !formData.password
         ? t('validation.required')
@@ -280,17 +289,18 @@ export default function RegisterPage() {
               />
             </div>
 
-            {/* Email (optional) */}
+            {/* Email (required) */}
             <div className="animate-fade-in-up" style={{ animationDelay: '150ms' }}>
               <Input
                 type="email"
-                label={`${t('auth.email')} (${t('common.optional') || 'опционально'})`}
+                label={t('auth.email')}
                 value={formData.email}
                 onChange={(e) => handleChange('email', e.target.value)}
                 onBlur={() => handleBlur('email')}
                 icon={Mail}
                 error={errors.email}
                 autoComplete="email"
+                required
               />
             </div>
 

@@ -190,6 +190,9 @@ export async function initDatabase() {
       { num: '044', name: '044_mfa_emergency_recovery.sql', desc: 'MFA emergency recovery' },
       { num: '045', name: '045_user_email_verification_token.sql', desc: 'user email verification token' },
       { num: '046', name: '046_fix_audit_hash_function_types.sql', desc: 'fix audit hash function types' },
+      { num: '047', name: '047_email_otp_verification.sql', desc: 'email OTP verification' },
+      { num: '048', name: '048_audit_logs_metadata.sql', desc: 'audit logs metadata for readable journal' },
+      { num: '049', name: '049_audit_permissions.sql', desc: 'audit permissions (export, write)' },
     ]
 
     for (const migration of additionalMigrations) {
@@ -497,50 +500,304 @@ export function canAccessResource(user, resource) {
 export async function logAudit(data) {
   const {
     hotel_id, user_id, user_name, action, entity_type, entity_id,
-    details, ip_address, snapshot_before, snapshot_after
+    details, ip_address, snapshot_before, snapshot_after, user_agent
   } = data
+  const id = uuidv4()
+  const nowIso = new Date().toISOString()
+  const createdAtUtc = nowIso.replace('T', ' ').replace('Z', '')
+  console.log(`[AUDIT INSERT] UTC ISO: ${nowIso} → DB value: ${createdAtUtc}`)
 
   // Check if snapshot columns exist (graceful degradation)
   try {
     await query(`
       INSERT INTO audit_logs (
-        id, hotel_id, user_id, user_name, action, entity_type, entity_id, 
-        details, ip_address, snapshot_before, snapshot_after
-      ) 
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        id, hotel_id, user_id, user_name, action, entity_type, entity_id,
+        details, ip_address, snapshot_before, snapshot_after, created_at
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
     `, [
-      uuidv4(),
+      id,
       hotel_id || null,
       user_id || null,
-      user_name || 'System', // Default to 'System' if user_name is not provided
+      user_name || 'System',
       action,
       entity_type || null,
       entity_id || null,
       details ? JSON.stringify(details) : null,
       ip_address || null,
       snapshot_before ? JSON.stringify(snapshot_before) : null,
-      snapshot_after ? JSON.stringify(snapshot_after) : null
+      snapshot_after ? JSON.stringify(snapshot_after) : null,
+      createdAtUtc
     ])
   } catch (error) {
-    // Fallback if snapshot columns don't exist
     if (error.message?.includes('snapshot_before') || error.message?.includes('snapshot_after')) {
       await query(`
-        INSERT INTO audit_logs (id, hotel_id, user_id, user_name, action, entity_type, entity_id, details, ip_address) 
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        INSERT INTO audit_logs (id, hotel_id, user_id, user_name, action, entity_type, entity_id, details, ip_address, created_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       `, [
-        uuidv4(),
+        id,
         hotel_id || null,
         user_id || null,
-        user_name || 'System', // Default to 'System' if user_name is not provided
+        user_name || 'System',
         action,
         entity_type || null,
         entity_id || null,
         details ? JSON.stringify(details) : null,
-        ip_address || null
+        ip_address || null,
+        createdAtUtc
       ])
     } else {
       throw error
     }
+  }
+
+  // Автоматически создаем metadata с severity (асинхронно, без блокировки)
+  enrichAuditLogMetadata({
+    id,
+    action,
+    entity_type,
+    entity_id,
+    snapshot_before,
+    snapshot_after,
+    ip_address,
+    user_agent
+  }).catch(err => console.error('[AUDIT] Enrichment error:', err.message))
+
+  return id
+}
+
+/**
+ * Автоматическое обогащение audit log метаданными (severity, description)
+ * Вызывается асинхронно после записи в audit_logs
+ */
+async function enrichAuditLogMetadata(log) {
+  if (!log?.id) return
+
+  try {
+    // Проверяем есть ли уже metadata
+    const existing = await query(
+      'SELECT id FROM audit_logs_metadata WHERE audit_log_id = $1',
+      [log.id]
+    )
+    if (existing.rows?.length > 0) return
+
+    // Определяем severity
+    const severity = await getSeverityForAction(log.action, log.entity_type)
+
+    // Генерируем human-readable description
+    const description = generateHumanDescription(log)
+    const details = generateHumanDetails(log)
+
+    // Парсим user-agent
+    const uaData = parseUserAgentSimple(log.user_agent)
+
+    // Вставляем metadata
+    await query(
+      `INSERT INTO audit_logs_metadata (
+        audit_log_id, human_readable_description, human_readable_details,
+        severity, user_agent, browser_name, os_name, device_type
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [
+        log.id,
+        description,
+        details,
+        severity,
+        log.user_agent || null,
+        uaData.browser_name,
+        uaData.os_name,
+        uaData.device_type
+      ]
+    )
+  } catch (err) {
+    // Игнорируем ошибки (enrichment не критичен)
+    console.error('[AUDIT ENRICHMENT]', err.message)
+  }
+}
+
+/**
+ * Определить severity для action
+ */
+async function getSeverityForAction(action, entityType) {
+  const normAction = (action || '').toUpperCase().replace(/-/g, '_')
+  
+  try {
+    const result = await query(
+      'SELECT severity FROM audit_action_severity WHERE action = $1',
+      [normAction]
+    )
+    if (result.rows?.length > 0) return result.rows[0].severity
+  } catch {
+    // Таблица может не существовать
+  }
+
+  // Fallback логика
+  if (normAction === 'DELETE') return 'critical'
+  if (normAction === 'PASSWORD_CHANGE') return 'critical'
+  if (normAction === 'ROLE_CHANGED') return 'critical'
+  if (normAction === 'MFA_DISABLED') return 'critical'
+  if (normAction === 'EMAIL_CHANGED') return 'important'
+  if (normAction === 'MFA_ENABLED') return 'important'
+  if (normAction === 'EXPORT') return 'important'
+  if (normAction === 'IMPORT') return 'important'
+  if (entityType?.toUpperCase() === 'USER') return 'important'
+  if (normAction.includes('TOGGLE') && entityType?.toUpperCase() === 'USER') return 'important'
+  
+  return 'normal'
+}
+
+/**
+ * Генерировать человекочитаемое описание
+ */
+function generateHumanDescription(log) {
+  const action = (log.action || '').toUpperCase().replace(/-/g, '_')
+  const entityType = (log.entity_type || '').toUpperCase()
+
+  const actionMap = {
+    CREATE: 'Создан',
+    UPDATE: 'Обновлен',
+    DELETE: 'Удален',
+    LOGIN: 'Вход в систему',
+    LOGOUT: 'Выход из системы',
+    COLLECT: 'Выполнен сбор',
+    PASSWORD_CHANGE: 'Изменен пароль',
+    EMAIL_CHANGED: 'Изменен email',
+    ROLE_CHANGED: 'Изменена роль',
+    MFA_ENABLED: 'Включена MFA',
+    MFA_DISABLED: 'Отключена MFA',
+    EXPORT: 'Экспорт данных',
+    IMPORT: 'Импорт данных',
+    WRITE_OFF: 'Списание',
+    SETTINGS_UPDATE: 'Изменены настройки',
+    TOGGLE: 'Переключен статус',
+    ASSIGN: 'Назначен',
+    RELEASE: 'Освобожден',
+    CLEAR_CACHE: 'Очищен кэш',
+    RESEND_PASSWORD: 'Повторная отправка пароля'
+  }
+
+  const entityMap = {
+    PRODUCT: 'продукт',
+    BATCH: 'партия',
+    USER: 'пользователь',
+    CATEGORY: 'категория',
+    DEPARTMENT: 'отдел',
+    HOTEL: 'отель',
+    SETTINGS: 'настройки',
+    WRITE_OFF: 'списание',
+    COLLECTION: 'сбор',
+    MARSHA_CODE: 'MARSHA код',
+    ACCOUNT: 'аккаунт',
+    NOTIFICATION_RULE: 'правило уведомлений',
+    TEMPLATE: 'шаблон',
+    SETTINGS_CACHE: 'кэш настроек'
+  }
+
+  const actionText = actionMap[action] || action
+  const entityText = entityMap[entityType] || entityType?.toLowerCase() || 'объект'
+
+  // Извлекаем имя из snapshot
+  let name = ''
+  if (log.snapshot_after) {
+    const snap = typeof log.snapshot_after === 'string' ? tryParseJSON(log.snapshot_after) : log.snapshot_after
+    name = snap?.name || snap?.login || snap?.code || ''
+  }
+  if (!name && log.snapshot_before) {
+    const snap = typeof log.snapshot_before === 'string' ? tryParseJSON(log.snapshot_before) : log.snapshot_before
+    name = snap?.name || snap?.login || snap?.code || ''
+  }
+
+  if (name) return `${actionText} ${entityText} "${name}"`
+  return `${actionText} ${entityText}`
+}
+
+/**
+ * Генерировать детали изменений
+ */
+function generateHumanDetails(log) {
+  const action = (log.action || '').toUpperCase().replace(/-/g, '_')
+
+  if (action === 'LOGIN' || action === 'LOGOUT') {
+    return log.ip_address ? `IP: ${log.ip_address}` : null
+  }
+
+  if (action === 'CREATE' && log.snapshot_after) {
+    const snap = typeof log.snapshot_after === 'string' ? tryParseJSON(log.snapshot_after) : log.snapshot_after
+    if (!snap) return null
+    const details = []
+    if (snap.name) details.push(`Название: ${snap.name}`)
+    if (snap.quantity !== undefined) details.push(`Количество: ${snap.quantity}`)
+    if (snap.expiry_date) details.push(`Срок: ${snap.expiry_date}`)
+    return details.length > 0 ? details.join(', ') : null
+  }
+
+  if (action === 'UPDATE' && log.snapshot_before && log.snapshot_after) {
+    const before = typeof log.snapshot_before === 'string' ? tryParseJSON(log.snapshot_before) : log.snapshot_before
+    const after = typeof log.snapshot_after === 'string' ? tryParseJSON(log.snapshot_after) : log.snapshot_after
+    if (!before || !after) return null
+
+    const changes = []
+    const skipKeys = ['id', 'created_at', 'updated_at', 'hotel_id', '_snapshot_type', '_snapshot_time']
+    const allKeys = new Set([...Object.keys(before), ...Object.keys(after)])
+
+    for (const key of allKeys) {
+      if (skipKeys.includes(key)) continue
+      const oldVal = before[key]
+      const newVal = after[key]
+      if (oldVal !== newVal) {
+        changes.push(`${key}: ${oldVal} → ${newVal}`)
+      }
+    }
+    return changes.length > 0 ? changes.join(', ') : 'Без изменений'
+  }
+
+  if (action === 'DELETE' && log.snapshot_before) {
+    const snap = typeof log.snapshot_before === 'string' ? tryParseJSON(log.snapshot_before) : log.snapshot_before
+    return snap?.name ? `Удален: ${snap.name}` : null
+  }
+
+  return null
+}
+
+/**
+ * Простой парсер User-Agent (без зависимостей)
+ */
+function parseUserAgentSimple(ua) {
+  if (!ua) return { browser_name: null, os_name: null, device_type: 'desktop' }
+
+  let browser_name = null
+  let os_name = null
+  let device_type = 'desktop'
+
+  // Browser detection
+  if (ua.includes('Chrome')) browser_name = 'Chrome'
+  else if (ua.includes('Firefox')) browser_name = 'Firefox'
+  else if (ua.includes('Safari')) browser_name = 'Safari'
+  else if (ua.includes('Edge')) browser_name = 'Edge'
+  else if (ua.includes('Opera')) browser_name = 'Opera'
+
+  // OS detection
+  if (ua.includes('Windows')) os_name = 'Windows'
+  else if (ua.includes('Mac OS')) os_name = 'macOS'
+  else if (ua.includes('Linux')) os_name = 'Linux'
+  else if (ua.includes('Android')) os_name = 'Android'
+  else if (ua.includes('iOS') || ua.includes('iPhone') || ua.includes('iPad')) os_name = 'iOS'
+
+  // Device type
+  if (ua.includes('Mobile') || ua.includes('Android') || ua.includes('iPhone')) {
+    device_type = 'mobile'
+  } else if (ua.includes('Tablet') || ua.includes('iPad')) {
+    device_type = 'tablet'
+  }
+
+  return { browser_name, os_name, device_type }
+}
+
+function tryParseJSON(str) {
+  if (!str) return null
+  try {
+    return typeof str === 'string' ? JSON.parse(str) : str
+  } catch {
+    return null
   }
 }
 
@@ -684,6 +941,17 @@ export async function updateLastLogin(userId) {
 // HOTEL FUNCTIONS
 // ═══════════════════════════════════════════════════════════════
 
+/** При сохранении отеля: Казахстан → Asia/Qostanay (UTC+6). Asia/Almaty в IANA с 2024 = UTC+5. */
+function normalizeTimezoneForDb(tz) {
+  if (tz == null || typeof tz !== 'string') return tz
+  const s = String(tz).trim()
+  if (!s) return tz
+  if (s === 'Asia/Qostanay') return s
+  if (s === 'Asia/Almaty' || s === 'Asia/Aqtobe') return 'Asia/Qostanay'
+  if (/almat|алмат|астан|astana|qostanay/i.test(s)) return 'Asia/Qostanay'
+  return s
+}
+
 export async function getAllHotels() {
   const result = await query('SELECT * FROM hotels WHERE is_active = TRUE ORDER BY name ASC')
   return result.rows
@@ -706,15 +974,50 @@ export async function getHotelByCode(code) {
 }
 
 export async function createHotel(hotel) {
-  const { name, address, city, country, timezone, marsha_code, marsha_code_id } = hotel
+  const {
+    name,
+    address,
+    city,
+    country,
+    timezone,
+    marsha_code,
+    marsha_code_id,
+    latitude,
+    longitude,
+    timezone_auto_detected
+  } = hotel
   const id = uuidv4()
 
   await query(`
-    INSERT INTO hotels (id, name, address, city, country, timezone, marsha_code, marsha_code_id) 
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-  `, [id, name, address, city, country || 'Kazakhstan', timezone || 'Asia/Almaty', marsha_code || null, marsha_code_id || null])
+    INSERT INTO hotels (id, name, address, city, country, timezone, marsha_code, marsha_code_id, latitude, longitude, timezone_auto_detected)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+  `, [
+    id,
+    name,
+    address,
+    city ?? null,
+    country || 'Kazakhstan',
+    normalizeTimezoneForDb(timezone) || 'Asia/Qostanay',
+    marsha_code || null,
+    marsha_code_id || null,
+    latitude ?? null,
+    longitude ?? null,
+    timezone_auto_detected === true
+  ])
 
-  return { id, name, address, city, country, timezone, marsha_code, marsha_code_id }
+  return {
+    id,
+    name,
+    address,
+    city,
+    country,
+    timezone,
+    marsha_code,
+    marsha_code_id,
+    latitude,
+    longitude,
+    timezone_auto_detected
+  }
 }
 
 export async function updateHotel(id, updates) {
@@ -726,7 +1029,10 @@ export async function updateHotel(id, updates) {
   if (updates.address !== undefined) { fields.push(`address = $${paramIndex++}`); values.push(updates.address) }
   if (updates.city !== undefined) { fields.push(`city = $${paramIndex++}`); values.push(updates.city) }
   if (updates.country !== undefined) { fields.push(`country = $${paramIndex++}`); values.push(updates.country) }
-  if (updates.timezone !== undefined) { fields.push(`timezone = $${paramIndex++}`); values.push(updates.timezone) }
+  if (updates.timezone !== undefined) { fields.push(`timezone = $${paramIndex++}`); values.push(normalizeTimezoneForDb(updates.timezone)) }
+  if (updates.latitude !== undefined) { fields.push(`latitude = $${paramIndex++}`); values.push(updates.latitude) }
+  if (updates.longitude !== undefined) { fields.push(`longitude = $${paramIndex++}`); values.push(updates.longitude) }
+  if (updates.timezone_auto_detected !== undefined) { fields.push(`timezone_auto_detected = $${paramIndex++}`); values.push(updates.timezone_auto_detected) }
   if (updates.is_active !== undefined) { fields.push(`is_active = $${paramIndex++}`); values.push(updates.is_active) }
   if (updates.marsha_code !== undefined) { fields.push(`marsha_code = $${paramIndex++}`); values.push(updates.marsha_code) }
   if (updates.marsha_code_id !== undefined) { fields.push(`marsha_code_id = $${paramIndex++}`); values.push(updates.marsha_code_id) }
@@ -1416,7 +1722,151 @@ export async function getAuditLogs(hotelId, filters = {}) {
   if (filters.offset) { queryText += ` OFFSET $${paramIndex++}`; params.push(filters.offset) }
 
   const result = await query(queryText, params)
-  return result.rows.map(log => ({ ...log, details: typeof log.details === 'string' ? JSON.parse(log.details) : log.details }))
+  return result.rows.map(parseAuditRow)
+}
+
+/**
+ * Parse audit row (details, snapshots JSON)
+ */
+function parseAuditRow(log) {
+  const parsed = { ...log }
+  if (parsed.details && typeof parsed.details === 'string') {
+    try { parsed.details = JSON.parse(parsed.details) } catch {}
+  }
+  if (parsed.snapshot_after && typeof parsed.snapshot_after === 'string') {
+    try { parsed.snapshot_after = JSON.parse(parsed.snapshot_after) } catch {}
+  }
+  if (parsed.snapshot_before && typeof parsed.snapshot_before === 'string') {
+    try { parsed.snapshot_before = JSON.parse(parsed.snapshot_before) } catch {}
+  }
+  return parsed
+}
+
+/**
+ * Get audit logs with metadata join (human-readable, severity, etc.)
+ * hotelId null = no hotel filter (SUPER_ADMIN). Filters: userId, action, entityType, startDate, endDate, limit, offset, severity, securityOnly, departmentId
+ */
+export async function getAuditLogsWithMetadata(hotelId, filters = {}) {
+  const conditions = ['al.archived = FALSE']
+  const params = []
+  let paramIndex = 1
+
+  if (hotelId != null) {
+    conditions.push(`al.hotel_id = $${paramIndex++}`)
+    params.push(hotelId)
+  }
+  if (filters.userId) {
+    conditions.push(`al.user_id = $${paramIndex++}`)
+    params.push(filters.userId)
+  }
+  if (filters.action) {
+    conditions.push(`al.action = $${paramIndex++}`)
+    params.push(filters.action)
+  }
+  if (filters.entityType) {
+    conditions.push(`al.entity_type = $${paramIndex++}`)
+    params.push(filters.entityType)
+  }
+  if (filters.startDate) {
+    conditions.push(`al.created_at >= $${paramIndex++}`)
+    params.push(filters.startDate)
+  }
+  if (filters.endDate) {
+    conditions.push(`al.created_at <= $${paramIndex++}`)
+    params.push(filters.endDate)
+  }
+  if (filters.severity) {
+    conditions.push(`alm.severity = $${paramIndex++}`)
+    params.push(filters.severity)
+  }
+  if (filters.securityOnly === 'true') {
+    conditions.push(`al.action IN ('login', 'logout', 'password_change', 'email_changed', 'role_changed', 'mfa_enabled', 'mfa_disabled')`)
+  }
+  if (filters.departmentId) {
+    conditions.push(`u.department_id = $${paramIndex++}`)
+    params.push(filters.departmentId)
+  }
+
+  const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''
+  const requestedLimit = parseInt(filters.limit, 10) || 20
+  const maxLimit = requestedLimit > 100 ? Math.min(requestedLimit, 10000) : 100
+  const limit = Math.min(requestedLimit, maxLimit)
+  const offset = Math.max(0, parseInt(filters.offset, 10) || 0)
+  params.push(limit, offset)
+
+  const queryText = `
+    SELECT al.*,
+      u.name as user_name_join, u.login as user_login_join, u.department_id as user_department_id,
+      d.name as department_name,
+      alm.human_readable_description, alm.human_readable_details, alm.severity,
+      alm.browser_name, alm.os_name, alm.device_type, alm.group_id, alm.is_grouped, alm.group_count
+    FROM audit_logs al
+    LEFT JOIN users u ON al.user_id = u.id
+    LEFT JOIN departments d ON u.department_id = d.id
+    LEFT JOIN audit_logs_metadata alm ON al.id = alm.audit_log_id
+    ${whereClause}
+    ORDER BY al.created_at DESC
+    LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+  `
+  const result = await query(queryText, params)
+  const countParams = params.slice(0, -2)
+  const countResult = await query(
+    `SELECT COUNT(*) as total FROM audit_logs al
+     LEFT JOIN users u ON al.user_id = u.id
+     LEFT JOIN audit_logs_metadata alm ON al.id = alm.audit_log_id
+     ${whereClause}`,
+    countParams
+  )
+  const total = parseInt(countResult.rows[0]?.total || 0, 10)
+  return {
+    rows: result.rows.map(row => {
+      const parsed = parseAuditRow(row)
+      parsed.user_name = parsed.user_name || parsed.user_name_join || parsed.user_login_join
+      parsed.human_readable_description = parsed.human_readable_description ?? row.human_readable_description
+      parsed.human_readable_details = parsed.human_readable_details ?? row.human_readable_details
+      parsed.department_name = row.department_name
+      
+      // Fallback severity если metadata нет
+      if (!parsed.severity) {
+        parsed.severity = getFallbackSeverity(parsed.action, parsed.entity_type)
+      }
+      
+      // Всегда отдаём created_at в UTC (ISO с Z) для однозначного отображения в timezone отеля на фронте
+      const originalCreatedAt = parsed.created_at
+      if (parsed.created_at instanceof Date) {
+        parsed.created_at = parsed.created_at.toISOString()
+      } else if (typeof parsed.created_at === 'string' && !/Z$|[-+]\d{2}:?\d{2}$/.test(parsed.created_at.trim())) {
+        parsed.created_at = parsed.created_at.trim().replace(' ', 'T') + 'Z'
+      }
+      console.log(`[AUDIT READ] DB value: ${originalCreatedAt} → API: ${parsed.created_at}`)
+      return parsed
+    }),
+    total
+  }
+}
+
+/**
+ * Fallback severity для логов без metadata
+ */
+function getFallbackSeverity(action, entityType) {
+  const normAction = (action || '').toUpperCase().replace(/-/g, '_')
+  
+  // Critical actions
+  if (['DELETE', 'PASSWORD_CHANGE', 'PASSWORD_RESET', 'ROLE_CHANGED', 'MFA_DISABLED', 'DELETE_USER', 'DELETE_HOTEL', 'GDPR_DELETE'].includes(normAction)) {
+    return 'critical'
+  }
+  
+  // Important actions
+  if (['USER_ACTIVATED', 'USER_DEACTIVATED', 'TOGGLE', 'EXPORT', 'IMPORT', 'EMAIL_CHANGED', 'MFA_ENABLED', 'MFA_SETUP', 'LOGIN_FAILED', 'ASSIGN_MARSHA', 'RELEASE_MARSHA', 'CREATE_USER', 'APPROVE_JOIN', 'REJECT_JOIN', 'RESEND_PASSWORD'].includes(normAction)) {
+    return 'important'
+  }
+  
+  // User-related actions are important by default
+  if (entityType?.toUpperCase() === 'USER') {
+    return 'important'
+  }
+  
+  return 'normal'
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1644,6 +2094,12 @@ export async function getDeliveryTemplateById(id) {
 // ═══════════════════════════════════════════════════════════════
 
 export async function deleteHotel(id) {
+  // Освобождаем MARSHA-код, чтобы его можно было снова выбрать при добавлении отеля
+  await query(`
+    UPDATE marsha_codes
+    SET is_assigned = FALSE, assigned_to_hotel_id = NULL, assigned_at = NULL, assigned_by = NULL
+    WHERE assigned_to_hotel_id = $1
+  `, [id])
   const result = await query('DELETE FROM hotels WHERE id = $1', [id])
   return result.rowCount > 0
 }
@@ -1764,8 +2220,8 @@ export async function rejectJoinRequest(requestId, adminId, notes = null) {
   return true
 }
 
-export async function updateUserStatus(userId, status) {
-  await query('UPDATE users SET status = $1 WHERE id = $2', [status, userId])
+export async function updateUserStatus(userId, isActive) {
+  await query('UPDATE users SET is_active = $1 WHERE id = $2', [isActive, userId])
   return true
 }
 

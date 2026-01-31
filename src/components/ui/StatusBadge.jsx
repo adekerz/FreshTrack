@@ -20,9 +20,9 @@ const statusConfig = {
     icon: AlertTriangle
   },
   critical: {
-    bg: 'bg-orange-600/10',
-    text: 'text-orange-600',
-    border: 'border-orange-600/20',
+    bg: 'bg-critical/10',
+    text: 'text-critical',
+    border: 'border-critical/20',
     icon: AlertCircle
   },
   expired: {
@@ -32,9 +32,9 @@ const statusConfig = {
     icon: X
   },
   today: {
-    bg: 'bg-purple-100',
-    text: 'text-purple-700',
-    border: 'border-purple-200',
+    bg: 'bg-critical/10',
+    text: 'text-critical',
+    border: 'border-critical/20',
     icon: Clock
   },
   attention: {

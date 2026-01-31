@@ -18,13 +18,22 @@ export default function ExportButton({
   title = 'Отчёт',
   subtitle = '',
   summary = null,
-  disabled = false
+  disabled = false,
+  /** Кастомные обработчики (backend-экспорт). Если заданы — в меню вызываются они вместо клиентского экспорта. */
+  onExportPdf,
+  onExportExcel,
+  /** Состояние загрузки при использовании onExportPdf/onExportExcel */
+  exportingPdf = false,
+  exportingExcel = false,
+  /** Количество записей для экспорта (например pagination.total), когда экспорт идёт с бэкенда */
+  exportRecordCount
 }) {
   const { t } = useTranslation()
   const { addToast } = useToast()
   const [isOpen, setIsOpen] = useState(false)
   const [exporting, setExporting] = useState(null)
   const dropdownRef = useRef(null)
+  const useCustomExport = Boolean(onExportPdf || onExportExcel)
 
   // Закрытие меню при клике вне его
   useEffect(() => {
@@ -39,6 +48,25 @@ export default function ExportButton({
   }, [])
 
   const handleExport = async (type) => {
+    if (type === 'pdf' && onExportPdf) {
+      try {
+        await onExportPdf()
+        setIsOpen(false)
+      } catch {
+        // ошибка уже обработана в родителе
+      }
+      return
+    }
+    if (type === 'excel' && onExportExcel) {
+      try {
+        await onExportExcel()
+        setIsOpen(false)
+      } catch {
+        // ошибка уже обработана в родителе
+      }
+      return
+    }
+
     if (!data || data.length === 0) {
       addToast(t('export.noData'), 'warning')
       return
@@ -94,11 +122,17 @@ export default function ExportButton({
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        disabled={disabled || !data || data.length === 0}
+        disabled={
+          disabled ||
+          (!useCustomExport && (!data || data.length === 0)) ||
+          (useCustomExport && exportingPdf && exportingExcel)
+        }
         className={`
           flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all
           ${
-            disabled || !data || data.length === 0
+            disabled ||
+            (!useCustomExport && (!data || data.length === 0)) ||
+            (useCustomExport && exportingPdf && exportingExcel)
               ? 'bg-muted text-muted-foreground/50 cursor-not-allowed'
               : 'bg-foreground text-background hover:bg-foreground/90 active:scale-[0.98]'
           }
@@ -121,7 +155,12 @@ export default function ExportButton({
           <div className="p-2">
             {exportOptions.map((option) => {
               const Icon = option.icon
-              const isExporting = exporting === option.id
+              const isExporting =
+                useCustomExport && option.id === 'pdf'
+                  ? exportingPdf
+                  : useCustomExport && option.id === 'excel'
+                    ? exportingExcel
+                    : exporting === option.id
 
               return (
                 <button
@@ -147,7 +186,7 @@ export default function ExportButton({
 
           <div className="p-3 bg-muted border-t border-border">
             <p className="text-xs text-muted-foreground text-center">
-              {data?.length || 0} {t('export.recordsToExport')}
+              {exportRecordCount ?? data?.length ?? 0} {t('export.recordsToExport')}
             </p>
           </div>
         </div>

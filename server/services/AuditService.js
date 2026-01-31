@@ -10,6 +10,9 @@
  */
 
 import { logAudit, createAuditSnapshot, getAuditLogs, query } from '../db/database.js'
+import { AuditEnrichmentService } from './AuditEnrichmentService.js'
+import { broadcastAuditLog } from '../modules/audit/audit.sse.js'
+import { logError } from '../utils/logger.js'
 
 /**
  * Audit action types
@@ -80,6 +83,7 @@ class AuditService {
    * @param {string} params.entityId - Entity ID
    * @param {Object} params.details - Additional details
    * @param {string} params.ipAddress - Client IP address
+   * @param {string} params.userAgent - User-Agent header (for enrichment)
    * @param {Object} params.snapshotBefore - State before change
    * @param {Object} params.snapshotAfter - State after change
    */
@@ -92,10 +96,11 @@ class AuditService {
     entityId,
     details = null,
     ipAddress = null,
+    userAgent = null,
     snapshotBefore = null,
     snapshotAfter = null
   }) {
-    return logAudit({
+    const id = await logAudit({
       hotel_id: hotelId,
       user_id: userId,
       user_name: userName,
@@ -107,6 +112,37 @@ class AuditService {
       snapshot_before: snapshotBefore,
       snapshot_after: snapshotAfter
     })
+    // Enrich with human-readable metadata (async, non-blocking)
+    AuditEnrichmentService.enrichAuditLog({
+      id,
+      action,
+      entity_type: entityType,
+      entity_id: entityId,
+      snapshot_before: snapshotBefore,
+      snapshot_after: snapshotAfter,
+      ip_address: ipAddress,
+      user_agent: userAgent
+    }).catch(() => {})
+
+    // Broadcast to SSE clients (production only)
+    if (process.env.NODE_ENV === 'production') {
+      const logRow = {
+        id,
+        hotel_id: hotelId,
+        user_id: userId,
+        user_name: userName,
+        action,
+        entity_type: entityType,
+        entity_id: entityId,
+        details,
+        ip_address: ipAddress,
+        snapshot_before: snapshotBefore,
+        snapshot_after: snapshotAfter
+      }
+      broadcastAuditLog(logRow).catch((err) => logError('Broadcast audit log', err))
+    }
+
+    return id
   }
 
   /**
@@ -130,6 +166,7 @@ class AuditService {
       entityId,
       details,
       ipAddress: req.ip || req.connection?.remoteAddress,
+      userAgent: req.get?.('user-agent') || null,
       snapshotBefore,
       snapshotAfter
     })
@@ -144,12 +181,97 @@ class AuditService {
   }
 
   /**
+   * Enrich audit log with human-readable descriptions
+   * @param {Object} log - Audit log entry
+   * @returns {Object} - Enriched log entry
+   */
+  static enrichAuditLog(log) {
+    // Человекочитаемое описание действия
+    const descriptions = {
+      'CREATE': 'Создан',
+      'UPDATE': 'Обновлен',
+      'DELETE': 'Удален',
+      'LOGIN': 'Вход в систему',
+      'LOGOUT': 'Выход из системы',
+      'COLLECT': 'Выполнен сбор',
+      'SETTINGSCHANGE': 'Изменены настройки',
+      'EXPORT': 'Экспорт данных',
+      'IMPORT': 'Импорт данных',
+      'PASSWORD_CHANGE': 'Изменен пароль',
+      'EMAIL_CHANGED': 'Изменен email',
+      'EMAIL_VERIFIED': 'Email подтвержден'
+    }
+
+    const entityTypes = {
+      'PRODUCT': 'продукт',
+      'BATCH': 'партия',
+      'USER': 'пользователь',
+      'CATEGORY': 'категория',
+      'DEPARTMENT': 'отдел',
+      'HOTEL': 'отель',
+      'SETTINGS': 'настройки'
+    }
+
+    // Формируем читаемое описание
+    const action = descriptions[log.action?.toUpperCase()] || log.action || 'Действие'
+    const entity = entityTypes[log.entity_type?.toUpperCase()] || log.entity_type?.toLowerCase() || 'объект'
+    
+    log.human_readable_description = `${action} ${entity}`
+
+    // Извлечь ключевые изменения из snapshot_after
+    if (log.snapshot_after) {
+      const changes = []
+      let snapshot = log.snapshot_after
+      
+      // Parse if string (should already be parsed in getAuditLogs, but handle both cases)
+      if (typeof snapshot === 'string') {
+        try {
+          snapshot = JSON.parse(snapshot)
+        } catch {
+          snapshot = null
+        }
+      }
+
+      if (snapshot && typeof snapshot === 'object' && !Array.isArray(snapshot)) {
+        if (snapshot.name) changes.push(`Название: ${snapshot.name}`)
+        if (snapshot.quantity !== undefined) changes.push(`Количество: ${snapshot.quantity}`)
+        if (snapshot.expiry_date) {
+          try {
+            const date = new Date(snapshot.expiry_date)
+            if (!isNaN(date.getTime())) {
+              changes.push(`Срок годности: ${date.toLocaleDateString('ru-RU')}`)
+            } else {
+              changes.push(`Срок годности: ${snapshot.expiry_date}`)
+            }
+          } catch {
+            changes.push(`Срок годности: ${snapshot.expiry_date}`)
+          }
+        }
+        if (snapshot.status) changes.push(`Статус: ${snapshot.status}`)
+        if (snapshot.email) changes.push(`Email: ${snapshot.email}`)
+        if (snapshot.role) changes.push(`Роль: ${snapshot.role}`)
+        if (snapshot.newEmail) changes.push(`Новый email: ${snapshot.newEmail}`)
+        if (snapshot.oldEmail) changes.push(`Старый email: ${snapshot.oldEmail}`)
+      }
+
+      if (changes.length > 0) {
+        log.key_changes = changes.join(', ')
+      }
+    }
+
+    return log
+  }
+
+  /**
    * Get audit logs with filtering
    * @param {string} hotelId - Hotel ID to filter by
    * @param {Object} filters - Filter options
    */
   async getLogs(hotelId, filters = {}) {
-    return getAuditLogs(hotelId, filters)
+    const logs = await getAuditLogs(hotelId, filters)
+    
+    // Обогащение каждой записи
+    return logs.map(log => this.constructor.enrichAuditLog(log))
   }
 
   /**

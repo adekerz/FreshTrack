@@ -10,6 +10,7 @@ import { cn } from '../../utils/classNames'
 import ExpirationBadge from './ExpirationBadge'
 import SwipeableCard from './SwipeableCard'
 import { useTranslation } from '../../context/LanguageContext'
+import { formatDate } from '../../utils/dateUtils'
 
 export default function MobileInventoryCard({
   item,
@@ -27,16 +28,6 @@ export default function MobileInventoryCard({
   // Поддержка controlled и uncontrolled режимов
   const expanded = controlledExpanded !== undefined ? controlledExpanded : internalExpanded
   const toggleExpanded = onToggle || (() => setInternalExpanded(!internalExpanded))
-
-  const formatDate = (dateString) => {
-    if (!dateString) return '—'
-    const date = new Date(dateString)
-    return date.toLocaleDateString('ru-RU', {
-      day: '2-digit',
-      month: '2-digit',
-      year: '2-digit',
-    })
-  }
 
   return (
     <SwipeableCard
@@ -130,12 +121,12 @@ export default function MobileInventoryCard({
               <DetailRow 
                 icon={Clock} 
                 label={t('product.added') || 'Добавлен'} 
-                value={formatDate(item.created_at)} 
+                value={formatDate(item.created_at, true)} 
               />
               <DetailRow 
                 icon={Clock} 
                 label={t('product.expires') || 'Истекает'} 
-                value={formatDate(item.expiration_date)} 
+                value={formatDate(item.expiration_date, false)} 
               />
             </div>
 
@@ -210,10 +201,10 @@ function getExpirationColorClass(date) {
   const diffTime = expirationDate.getTime() - today.getTime()
   const daysUntil = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
 
-  if (daysUntil <= 0) return 'bg-red-500'
-  if (daysUntil <= 3) return 'bg-orange-500'
-  if (daysUntil <= 7) return 'bg-yellow-500'
-  return 'bg-green-500'
+  if (daysUntil <= 0) return 'bg-danger'
+  if (daysUntil <= 3) return 'bg-critical'
+  if (daysUntil <= 7) return 'bg-warning'
+  return 'bg-success'
 }
 
 /**

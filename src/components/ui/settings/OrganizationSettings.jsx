@@ -5,13 +5,14 @@
  */
 
 import { useState, useEffect } from 'react'
-import { useTranslation } from '../../context/LanguageContext'
-import { useToast } from '../../context/ToastContext'
-import { useAuth } from '../../context/AuthContext'
-import { apiFetch } from '../../services/api'
-import { formatDate } from '../../utils/dateUtils'
-import MarshaCodeSelector from '../MarshaCodeSelector'
-import { ButtonLoader, SectionLoader } from '../ui'
+import { useTranslation } from '../../../context/LanguageContext'
+import { useToast } from '../../../context/ToastContext'
+import { useAuth } from '../../../context/AuthContext'
+import { apiFetch } from '../../../services/api'
+import { formatDate } from '../../../utils/dateUtils'
+import MarshaCodeSelector from '../../MarshaCodeSelector'
+import { CityAutocomplete } from '../../hotels/CityAutocomplete'
+import { ButtonLoader, SectionLoader } from '..'
 import {
   Building2,
   Plus,
@@ -31,7 +32,25 @@ import {
   AlertTriangle,
   Mail
 } from 'lucide-react'
+import { cn } from '../../../utils/classNames'
 import SettingsLayout from './SettingsLayout'
+
+/** Конвертация названия страны → ISO код для detect-timezone */
+function getCountryCodeFromName(countryName) {
+  if (!countryName || typeof countryName !== 'string') return null
+  const name = countryName.trim()
+  const map = {
+    Kazakhstan: 'KZ', 'United Kingdom': 'GB', France: 'FR', Germany: 'DE',
+    Spain: 'ES', Italy: 'IT', Netherlands: 'NL', Belgium: 'BE', Austria: 'AT',
+    Switzerland: 'CH', Portugal: 'PT', 'Czech Republic': 'CZ', Poland: 'PL',
+    Greece: 'GR', Turkey: 'TR', Sweden: 'SE', Denmark: 'DK', Norway: 'NO',
+    Finland: 'FI', UAE: 'AE', 'Saudi Arabia': 'SA', Qatar: 'QA', Kuwait: 'KW',
+    Bahrain: 'BH', Oman: 'OM', Jordan: 'JO', Israel: 'IL', Egypt: 'EG',
+    'South Africa': 'ZA', Morocco: 'MA', Kenya: 'KE', Nigeria: 'NG', Ghana: 'GH',
+    Australia: 'AU', 'New Zealand': 'NZ', USA: 'US', 'United States': 'US'
+  }
+  return map[name] || null
+}
 
 export default function OrganizationSettings() {
   const { t } = useTranslation()
@@ -53,9 +72,16 @@ export default function OrganizationSettings() {
     name: '',
     description: '',
     address: '',
+    city: '',
+    country: '',
+    timezone: 'Asia/Qostanay',
+    latitude: null,
+    longitude: null,
+    timezone_auto_detected: false,
     marsha_code: '',
     marsha_code_id: null
   })
+  const [timezoneDetected, setTimezoneDetected] = useState(false)
   const [creatingHotel, setCreatingHotel] = useState(false)
 
   // Create department modal
@@ -134,13 +160,47 @@ export default function OrganizationSettings() {
       addToast('Введите название отеля', 'error')
       return
     }
+
+    let timezoneToUse = newHotel.timezone || 'Asia/Qostanay'
+    let latToUse = newHotel.latitude ?? null
+    let lngToUse = newHotel.longitude ?? null
+    let autoDetected = newHotel.timezone_auto_detected
+
+    if (newHotel.country?.trim() === 'Kazakhstan') {
+      timezoneToUse = 'Asia/Qostanay'
+      autoDetected = true
+    } else if (newHotel.city?.trim() && !newHotel.timezone_auto_detected) {
+      try {
+        const data = await apiFetch('/hotels/detect-timezone', {
+          method: 'POST',
+          body: JSON.stringify({
+            city: newHotel.city.trim(),
+            countryCode: getCountryCodeFromName(newHotel.country)
+          })
+        })
+        if (data.success && data.timezone) {
+          timezoneToUse = data.timezone
+          latToUse = data.coordinates?.lat ?? null
+          lngToUse = data.coordinates?.lng ?? null
+          autoDetected = true
+        }
+      } catch {
+        // оставляем текущие значения
+      }
+    }
+
     setCreatingHotel(true)
     try {
-      // Подготавливаем данные: пустые строки -> null
       const hotelData = {
         name: newHotel.name.trim(),
         description: newHotel.description?.trim() || null,
         address: newHotel.address?.trim() || null,
+        city: newHotel.city?.trim() || null,
+        country: newHotel.country?.trim() || null,
+        timezone: timezoneToUse,
+        latitude: latToUse,
+        longitude: lngToUse,
+        timezone_auto_detected: autoDetected,
         marsha_code: newHotel.marsha_code || null,
         marsha_code_id: newHotel.marsha_code_id || null
       }
@@ -154,7 +214,20 @@ export default function OrganizationSettings() {
       const codeInfo = result.hotel.marsha_code ? ` Код: ${result.hotel.marsha_code}` : ''
       addToast(`Отель "${result.hotel.name}" создан.${codeInfo}`, 'success')
       setShowCreateHotel(false)
-      setNewHotel({ name: '', description: '', address: '', marsha_code: '', marsha_code_id: null })
+      setNewHotel({
+        name: '',
+        description: '',
+        address: '',
+        city: '',
+        country: '',
+        timezone: 'Asia/Qostanay',
+        latitude: null,
+        longitude: null,
+        timezone_auto_detected: false,
+        marsha_code: '',
+        marsha_code_id: null
+      })
+      setTimezoneDetected(false)
       fetchData()
     } catch (error) {
       addToast(error.message || 'Ошибка создания отеля', 'error')
@@ -705,23 +778,37 @@ export default function OrganizationSettings() {
                 })
               }
               onSelectWithDetails={(marshaCode) => {
-                // Автозаполняем название и адрес из MARSHA кода
                 setNewHotel((prev) => ({
                   ...prev,
                   name: marshaCode.hotel_name,
                   marsha_code: marshaCode.code,
                   marsha_code_id: marshaCode.id,
-                  // Автозаполняем адрес из города и страны
-                  address: prev.address || `${marshaCode.city}, ${marshaCode.country}`
+                  address: marshaCode.city && marshaCode.country ? `${marshaCode.city}, ${marshaCode.country}` : prev.address,
+                  city: marshaCode.city ?? prev.city,
+                  country: marshaCode.country ?? prev.country,
+                  timezone: marshaCode.timezone || prev.timezone || 'Asia/Qostanay',
+                  latitude: marshaCode.coordinates?.lat ?? prev.latitude ?? null,
+                  longitude: marshaCode.coordinates?.lng ?? prev.longitude ?? null,
+                  timezone_auto_detected: Boolean(marshaCode.timezone)
                 }))
+                if (marshaCode.timezone) {
+                  setTimezoneDetected(true)
+                  setTimeout(() => setTimezoneDetected(false), 3000)
+                }
               }}
               onClear={() =>
                 setNewHotel({
-                  ...newHotel,
-                  marsha_code: '',
-                  marsha_code_id: null,
                   name: '',
-                  address: ''
+                  description: '',
+                  address: '',
+                  city: '',
+                  country: '',
+                  timezone: 'Asia/Qostanay',
+                  latitude: null,
+                  longitude: null,
+                  timezone_auto_detected: false,
+                  marsha_code: '',
+                  marsha_code_id: null
                 })
               }
             />
@@ -755,6 +842,100 @@ export default function OrganizationSettings() {
                   onChange={(e) => setNewHotel({ ...newHotel, address: e.target.value })}
                   className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-card"
                 />
+              </div>
+            )}
+
+            {/* Город — только если timezone не определился автоматически */}
+            {newHotel.marsha_code && !newHotel.timezone_auto_detected && (
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  {t('hotels.cityLabel')}
+                  <span className="text-xs text-muted-foreground ml-2">
+                    ({t('hotels.timezoneAutoHint')})
+                  </span>
+                </label>
+                <CityAutocomplete
+                  value={newHotel.city}
+                  onChange={(city) =>
+                    setNewHotel((prev) => ({ ...prev, city }))
+                  }
+                  onTimezoneDetected={(data) => {
+                    if (data) {
+                      setNewHotel((prev) => ({
+                        ...prev,
+                        timezone: data.timezone,
+                        city: data.city,
+                        country: data.country,
+                        latitude: data.coordinates?.lat ?? null,
+                        longitude: data.coordinates?.lng ?? null,
+                        timezone_auto_detected: true
+                      }))
+                      setTimezoneDetected(true)
+                      setTimeout(() => setTimezoneDetected(false), 3000)
+                    } else {
+                      addToast(t('hotels.timezoneDetectError'), 'error')
+                    }
+                  }}
+                />
+              </div>
+            )}
+
+            {/* Город read-only если заполнен из MARSHA или по выбору города */}
+            {newHotel.marsha_code && newHotel.city && newHotel.timezone_auto_detected && (
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  {t('hotels.cityLabel')}
+                </label>
+                <input
+                  type="text"
+                  value={[newHotel.city, newHotel.country].filter(Boolean).join(', ')}
+                  readOnly
+                  className="w-full px-4 py-2.5 border border-border rounded-lg bg-muted/50 text-foreground cursor-not-allowed"
+                />
+                <p className="text-xs text-success flex items-center gap-1.5 mt-1">
+                  <Check className="w-3.5 h-3.5 flex-shrink-0" aria-hidden />
+                  {t('hotels.filledFromMarsha')}
+                </p>
+              </div>
+            )}
+
+            {/* Часовой пояс — всегда после выбора MARSHA */}
+            {newHotel.marsha_code && (
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  {t('hotels.timezoneLabel')}
+                </label>
+                <input
+                  type="text"
+                  value={newHotel.timezone}
+                  onChange={(e) =>
+                    setNewHotel({
+                      ...newHotel,
+                      timezone: e.target.value,
+                      timezone_auto_detected: false
+                    })
+                  }
+                  placeholder={t('hotels.timezonePlaceholder')}
+                  className={cn(
+                    'w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-card',
+                    timezoneDetected && 'border-green-500 dark:border-green-600'
+                  )}
+                />
+                {timezoneDetected && (
+                  <p className="text-xs text-green-600 dark:text-green-400 mt-1 flex items-center gap-1.5">
+                    <Check className="w-3.5 h-3.5 flex-shrink-0" aria-hidden />
+                    {t('hotels.timezoneDetected')}
+                  </p>
+                )}
+                {newHotel.timezone_auto_detected && !timezoneDetected && (
+                  <p className="text-xs text-success flex items-center gap-1.5 mt-1">
+                    <Check className="w-3.5 h-3.5 flex-shrink-0" aria-hidden />
+                    {t('hotels.timezoneFromMarsha')}
+                  </p>
+                )}
+                <p className="text-xs text-muted-foreground mt-1">
+                  {t('hotels.timezoneManualHint')}
+                </p>
               </div>
             )}
 
