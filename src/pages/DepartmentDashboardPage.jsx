@@ -147,7 +147,7 @@ export default function DepartmentDashboardPage() {
                   key={batch.id}
                   className={`p-3 rounded-lg border-l-4 ${
                     batch.status === 'critical'
-                      ? 'border-danger bg-danger/5'
+                      ? 'border-critical bg-critical/5'
                       : 'border-warning bg-warning/5'
                   }`}
                 >
@@ -160,7 +160,7 @@ export default function DepartmentDashboardPage() {
                     </div>
                     <span
                       className={`text-sm font-medium ${
-                        batch.daysLeft <= thresholds.critical ? 'text-danger' : 'text-warning'
+                        batch.daysLeft <= thresholds.critical ? 'text-critical' : 'text-warning'
                       }`}
                     >
                       {batch.daysLeft === 0

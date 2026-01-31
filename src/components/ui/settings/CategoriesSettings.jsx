@@ -4,13 +4,13 @@
  */
 
 import { useState, useEffect } from 'react'
-import { useTranslation } from '../../context/LanguageContext'
-import { useToast } from '../../context/ToastContext'
-import { useProducts } from '../../context/ProductContext'
-import { useHotel } from '../../context/HotelContext'
+import { useTranslation } from '../../../context/LanguageContext'
+import { useToast } from '../../../context/ToastContext'
+import { useProducts } from '../../../context/ProductContext'
+import { useHotel } from '../../../context/HotelContext'
 import { Plus, X, RefreshCw, Tag, Palette, AlertTriangle, Trash2 } from 'lucide-react'
-import { ButtonLoader, SectionLoader } from '../ui'
-import { apiFetch } from '../../services/api'
+import { ButtonLoader, SectionLoader } from '..'
+import { apiFetch } from '../../../services/api'
 
 const defaultColors = [
   '#FF8D6B',

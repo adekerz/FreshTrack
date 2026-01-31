@@ -12,6 +12,7 @@ import { SectionLoader } from '../components/ui'
 import { Navigate } from 'react-router-dom'
 import { Filter, RefreshCw, ChevronLeft, ChevronRight, ArchiveX, User, Package } from 'lucide-react'
 import { apiFetch } from '../services/api'
+import { formatDate } from '../utils/dateUtils'
 
 // Причины сбора (синхронизировано с CollectionService.CollectionReason)
 const REASONS = {
@@ -157,30 +158,6 @@ export default function CollectionHistoryPage() {
     setAppliedFilters({})
     setPagination((prev) => ({ ...prev, page: 1 }))
     setShowFilters(false)
-  }
-
-  // Форматирование даты
-  const formatDate = (dateStr) => {
-    if (!dateStr) return '-'
-    const date = new Date(dateStr)
-    return new Intl.DateTimeFormat('ru-RU', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    }).format(date)
-  }
-
-  // Форматирование только даты
-  const formatDateOnly = (dateStr) => {
-    if (!dateStr) return '-'
-    const date = new Date(dateStr)
-    return new Intl.DateTimeFormat('ru-RU', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    }).format(date)
   }
 
   // Получение причины
@@ -408,7 +385,7 @@ export default function CollectionHistoryPage() {
                         {log.quantity} {t('inventory.units')}
                       </span>
                       <span>•</span>
-                      <span>{formatDate(log.collectedAt)}</span>
+                      <span>{formatDate(log.collectedAt, true)}</span>
                     </div>
 
                     {log.comment && (
@@ -464,7 +441,7 @@ export default function CollectionHistoryPage() {
                     return (
                       <tr key={log.id} className="hover:bg-muted transition-colors">
                         <td className="px-4 lg:px-6 py-3 lg:py-4 whitespace-nowrap text-xs lg:text-sm text-foreground">
-                          {formatDate(log.collectedAt)}
+                          {formatDate(log.collectedAt, true)}
                         </td>
                         <td className="px-4 lg:px-6 py-3 lg:py-4 whitespace-nowrap">
                           <div className="flex items-center gap-2">
@@ -489,7 +466,7 @@ export default function CollectionHistoryPage() {
                           {log.quantity} {t('inventory.units')}
                         </td>
                         <td className="px-4 lg:px-6 py-3 lg:py-4 whitespace-nowrap text-xs lg:text-sm text-foreground hidden lg:table-cell">
-                          {formatDateOnly(log.expiryDate)}
+                          {formatDate(log.expiryDate, false)}
                         </td>
                         <td className="px-4 lg:px-6 py-3 lg:py-4 whitespace-nowrap">
                           <span

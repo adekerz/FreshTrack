@@ -6,7 +6,7 @@
  */
 
 import { useState, useEffect } from 'react'
-import { Search, X, Moon, Sun, LogOut, Settings, ChevronDown, Zap, Menu } from 'lucide-react'
+import { Search, X, Moon, Sun, LogOut, Settings, ChevronDown, Zap, Menu, Building2, Users, HelpCircle } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useTranslation } from '../context/LanguageContext'
@@ -190,11 +190,31 @@ export default function Header({ onOpenMobileMenu, isMobileMenuOpen = false }) {
 
             {/* Dropdown menu */}
             {showUserMenu && (
-              <div className="absolute right-0 top-full mt-2 w-56 bg-card rounded-xl shadow-lg border border-border py-2 animate-fade-in z-50">
-                {/* User info */}
-                <div className="px-4 py-2 border-b border-border">
+              <div className="absolute right-0 top-full mt-2 w-72 bg-card rounded-xl shadow-lg border border-border py-2 animate-fade-in z-50">
+                {/* User info with hotel and department */}
+                <div className="px-4 py-3 border-b border-border">
                   <p className="text-sm font-medium text-foreground truncate">{user?.name}</p>
                   <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{user?.roleLabel || user?.role}</p>
+
+                  {/* Hotel info */}
+                  {user?.hotel && (
+                    <div className="flex items-center gap-2 mt-2 pt-2 border-t border-border/50">
+                      <Building2 className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+                      <span className="text-xs text-foreground truncate">{user.hotel.name}</span>
+                      {user.hotel.marsha_code && (
+                        <span className="text-xs text-muted-foreground">({user.hotel.marsha_code})</span>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Department info */}
+                  {user?.department && (
+                    <div className="flex items-center gap-2 mt-1.5">
+                      <Users className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+                      <span className="text-xs text-foreground truncate">{user.department.name}</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Menu items */}
@@ -209,7 +229,20 @@ export default function Header({ onOpenMobileMenu, isMobileMenuOpen = false }) {
                     icon={Settings}
                     iconPosition="left"
                   >
-                    {t('nav.settings') || 'Settings'}
+                    {t('nav.settings') || 'Настройки'}
+                  </TouchButton>
+
+                  <TouchButton
+                    variant="ghost"
+                    onClick={() => {
+                      navigate('/faq')
+                      setShowUserMenu(false)
+                    }}
+                    className="w-full justify-start gap-3 px-4 py-2 text-sm h-auto min-h-[44px] rounded-none"
+                    icon={HelpCircle}
+                    iconPosition="left"
+                  >
+                    {t('nav.faq') || 'Помощь'}
                   </TouchButton>
                 </div>
 
@@ -225,7 +258,7 @@ export default function Header({ onOpenMobileMenu, isMobileMenuOpen = false }) {
                     icon={LogOut}
                     iconPosition="left"
                   >
-                    {t('header.signOut') || 'Sign out'}
+                    {t('header.signOut') || 'Выйти'}
                   </TouchButton>
                 </div>
               </div>

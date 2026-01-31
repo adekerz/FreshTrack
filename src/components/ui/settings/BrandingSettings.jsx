@@ -5,10 +5,10 @@
  */
 
 import { useState, useRef, useEffect, useMemo } from 'react'
-import { useTranslation } from '../../context/LanguageContext'
-import { useToast } from '../../context/ToastContext'
-import { useBranding } from '../../context/BrandingContext'
-import { useAuth } from '../../context/AuthContext'
+import { useTranslation } from '../../../context/LanguageContext'
+import { useToast } from '../../../context/ToastContext'
+import { useBranding } from '../../../context/BrandingContext'
+import { useAuth } from '../../../context/AuthContext'
 import {
   RotateCcw,
   Upload,
@@ -21,10 +21,10 @@ import {
   Bell,
   BarChart3
 } from 'lucide-react'
-import { ButtonLoader, SectionLoader } from '../ui'
-import { API_BASE_URL, getStaticUrl, apiFetch } from '../../services/api'
+import { ButtonLoader, SectionLoader } from '..'
+import { API_BASE_URL, getStaticUrl, apiFetch } from '../../../services/api'
 import SettingsLayout, { SettingsSection } from './SettingsLayout'
-import { useSimpleUnsavedChanges } from '../../hooks/useUnsavedChanges'
+import { useSimpleUnsavedChanges } from '../../../hooks/useUnsavedChanges'
 
 const defaultLoginBranding = {
   title: 'Точность в каждой',

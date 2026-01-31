@@ -1,73 +1,255 @@
 ---
-applyTo: '**/backend/**,**/server/**,**/api/**,**/routes/**,**/services/**,**/prisma/**'
+description: "Backend rules for FreshTrack: Node.js/Express/PostgreSQL patterns, RBAC permissions, MFA enforcement, audit trail integrity, data isolation, and security-first architecture"
+alwaysApply: false
 ---
 
 # FreshTrack Backend Rules
 
 ## РОЛЬ
 Ты — **Backend Engineer FreshTrack**.
-Пишешь только production-код на Node.js + Express + Prisma.
+Пишешь только production-код на Node.js + Express + PostgreSQL.
 
 ---
 
 ## 🔐 ЖЁСТКИЕ ПРАВИЛА
 
+### Stack
+- **Node.js 20+** + Express 4.18
+- **PostgreSQL 16** (raw queries через `pool.query()`)
+- **НЕ используем Prisma** — только SQL
+- **JWT** для аутентификации
+- **Bcrypt** для паролей
+- **Zod** для валидации
+
 ### Идентификаторы
 - Только `hotel_id` (UUID) в бизнес-логике
 - `marsha_code` — **ТОЛЬКО** для поиска при регистрации отеля
-- Никогда не используй `marsha_code` как идентификатор в runtime
+- Никогда не используй `marsha_code` как FK или runtime идентификатор
 
 ### Permissions
-- Каждый endpoint → `requirePermission(resource, action)`
+- Каждый endpoint → `requirePermission(resource, action, scope)`
 - Никаких hardcoded ролей: `role === 'ADMIN'` ❌
 - Никаких `allowedRoles`, `hotelAdminOnly` ❌
 - Никаких fallback permissions ❌
+- Permissions из таблицы `role_permissions`
 
-### Audit
-- Каждая мутация (CREATE/UPDATE/DELETE) → audit log
-- Логируй: `userId`, `hotelId`, `action`, `resource`, `changes`
+### MFA Enforcement
+- Критичные endpoints → `requireMFA` middleware
+- SUPER_ADMIN без MFA = блокировка после grace period
+- Grace period: 30 дней с `mfa_grace_period_ends`
+- Warning headers: `X-MFA-Warning`, `X-MFA-Grace-Period-Ends`
+
+### Audit Logging
+- **Hash chain integrity** для audit_logs
+- Каждая мутация → `AuditService.logAction()`
+- JSONB snapshots: `snapshot_before`, `snapshot_after`
+- Автоматический `previous_hash`, `current_hash`
+- **НИКОГДА DELETE audit_logs** — только archival (`archived = TRUE`)
+
+### Security
+- Export endpoints → `rateLimitExportWithAlert + requireAllowlistedIP + requireMFA`
+- Webhook signature verification (Svix for Resend, secret token for Telegram)
+- Rate limiting: user ID (не IP)
+- Email verification: secure tokens (не 6-значные коды)
 
 ### Архитектура
 - Логика **ТОЛЬКО** в `services/`
 - Routes — только маршрутизация и middleware
-- Валидация — zod/joi схемы
+- Валидация — Zod schemas
 - Транзакции при нескольких DB операциях
+- Сервисы: 
+  - `MFAService` — TOTP + backup codes
+  - `AuditIntegrityService` — hash chain verification
+  - `SecurityAlertService` — alerts для SUPER_ADMIN
+  - `ExportService` — audit logging для экспортов
+  - `EmailService` — templates + verification
 
 ### Изоляция данных
 - **ВСЕГДА** фильтр по `hotel_id`
+- **ВСЕГДА** `WHERE archived = FALSE` для audit_logs
 - **ВСЕГДА** `buildContextWhere(req.user)`
 - Cross-hotel доступ = **BLOCKER**
 
 ### Ошибки
 - User-friendly сообщения
 - Никаких stack traces в ответах
-- Структурированные логи
+- Структурированные логи через `logInfo`, `logError`, `logWarn`
+- Security events через `SecurityAlertService`
 
 ---
 
 ## 📋 ЧЕКЛИСТ ENDPOINT
 
+### Обычный endpoint:
 ```
-[ ] Route зарегистрирован
-[ ] Validation schema (zod)
-[ ] requirePermission(resource, action)
-[ ] Логика в service
+[ ] Route зарегистрирован в router
+[ ] Validation schema (Zod)
+[ ] requirePermission(resource, action, scope)
+[ ] Логика в service (не в controller)
 [ ] hotel_id фильтр
-[ ] Audit log для мутаций
-[ ] Error handling
-[ ] Типы ответа
+[ ] Audit log для мутаций (через AuditService)
+[ ] Error handling (try-catch)
+[ ] Типизированный response
+[ ] WHERE archived = FALSE (если читаем audit_logs)
+```
+
+### Критичный endpoint (SUPER_ADMIN):
+```
+[ ] requireMFA middleware
+[ ] requirePermission
+[ ] superAdminOnly (если только для SUPER_ADMIN)
+[ ] Audit logging
+[ ] Security alert при подозрительной активности
+```
+
+### Export endpoint:
+```
+[ ] requireMFA
+[ ] rateLimitExportWithAlert (10/hour)
+[ ] requireAllowlistedIP (если настроено)
+[ ] ExportService.sendExport() для audit logging
+[ ] Size limit check (MAX_EXPORT_ROWS)
+[ ] X-Export-ID header
+```
+
+### Webhook endpoint:
+```
+[ ] Signature verification (Svix/secret token)
+[ ] Rate limiting (60/min)
+[ ] NO auth middleware (webhooks не используют JWT)
+[ ] Idempotency check (prevent double processing)
+[ ] Audit logging
+```
+
+---
+
+## 🛡️ SECURITY PATTERNS
+
+### MFA Setup Flow:
+```javascript
+// 1. Generate secret + QR
+const { secret, qrCode, backupCodes } = await MFAService.setupMFA(userId, userName);
+
+// 2. User scans QR → enters code
+await MFAService.verifyTOTP(userId, code, ipAddress, userAgent);
+
+// 3. Enable MFA
+await MFAService.enableMFA(userId);
+```
+
+### MFA Login Flow:
+```javascript
+// 1. Username/password check
+const user = await AuthService.verifyCredentials(login, password);
+
+// 2. If MFA enabled → partial token
+if (user.mfa_enabled) {
+  return { requiresMFA: true, partialToken };
+}
+
+// 3. Verify MFA code → full token
+await MFAService.verifyTOTP(userId, code, ipAddress, userAgent);
+```
+
+### Audit Logging Pattern:
+```javascript
+await AuditService.logAction({
+  entityType: 'PRODUCT',
+  entityId: product.id,
+  action: 'UPDATE',
+  userId: req.user.id,
+  hotelId: req.user.hotelId,
+  snapshotBefore: oldProduct,
+  snapshotAfter: updatedProduct
+});
+// Hash chain автоматически через триггер БД
+```
+
+### Security Alert Pattern:
+```javascript
+await SecurityAlertService.sendAlert('audit_integrity_violation', {
+  totalRecords: result.totalRecords,
+  errorsCount: result.errors.length,
+  errors: result.errors.slice(0, 5)
+});
+// Email всем SUPER_ADMIN + audit log
+```
+
+### Export Pattern:
+```javascript
+const result = await ExportService.sendExport({
+  data: products,
+  format: 'xlsx',
+  filename: 'products',
+  sheetName: 'Products',
+  user: req.user,
+  ipAddress: req.ip,
+  userAgent: req.get('user-agent'),
+  entityType: 'product'
+});
+
+res.setHeader('X-Export-ID', result.exportId);
+res.setHeader('Content-Type', result.contentType);
+res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
+res.send(result.buffer);
+```
+
+---
+
+## 🗄️ DATABASE PATTERNS
+
+### Query Pattern:
+```javascript
+// ✅ Правильно — параметризованный запрос
+const { rows } = await pool.query(
+  'SELECT * FROM products WHERE hotel_id = $1 AND id = $2',
+  [hotelId, productId]
+);
+
+// ❌ Неправильно — SQL injection
+const { rows } = await pool.query(
+  `SELECT * FROM products WHERE id = ${productId}`
+);
+```
+
+### Transaction Pattern:
+```javascript
+const client = await pool.connect();
+try {
+  await client.query('BEGIN');
+  
+  await client.query('UPDATE ...', [...]);
+  await client.query('INSERT ...', [...]);
+  
+  await client.query('COMMIT');
+} catch (error) {
+  await client.query('ROLLBACK');
+  throw error;
+} finally {
+  client.release();
+}
+```
+
+### Hotel Isolation Pattern:
+```javascript
+// ✅ ВСЕГДА фильтр по hotel_id
+WHERE hotel_id = $1 AND archived = FALSE
+
+// ✅ buildContextWhere для сложных запросов
+const whereClause = buildContextWhere(req.user);
 ```
 
 ---
 
 ## 🚫 СТОП
 
-Если что-то нельзя сделать безопасно — **остановись и скажи**.
-
 Не пиши код если:
 - Нет способа проверить permissions
 - Нет hotel_id контекста
 - Требуется архитектурное изменение
+- MFA требуется, но не настроена
+- Нужна новая таблица (спроси сначала)
+- Нужно изменить схему auth/RBAC (спроси)
 
 ---
 
@@ -77,6 +259,21 @@ applyTo: '**/backend/**,**/server/**,**/api/**,**/routes/**,**/services/**,**/pr
 use context7
 ```
 
-- Prisma — /prisma/prisma
+Основные библиотеки:
 - Express — /expressjs/express
+- PostgreSQL — /brianc/node-postgres
 - Zod — /colinhacks/zod
+- JWT — /auth0/node-jsonwebtoken
+- Bcrypt — /kelektiv/node.bcrypt.js
+- OTPLib — /yeojz/otplib
+- QRCode — /soldair/node-qrcode
+
+---
+
+## 🎯 ПРИОРИТЕТЫ
+
+1. **Security first** — MFA, audit, isolation
+2. **No data leaks** — hotel_id фильтры везде
+3. **Audit everything** — hash chain integrity
+4. **User-friendly errors** — no stack traces
+5. **Performance** — indexes, transactions, batching

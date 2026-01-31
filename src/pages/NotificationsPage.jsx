@@ -14,8 +14,8 @@ import { useProducts, departments } from '../context/ProductContext'
 import { useAuth } from '../context/AuthContext'
 import { useTranslation } from '../context/LanguageContext'
 import { useThresholds } from '../hooks/useThresholds'
-import { format, parseISO } from 'date-fns'
 import { SkeletonNotifications, Skeleton } from '../components/Skeleton'
+import { formatDate } from '../utils/dateUtils'
 import { Loader } from '../components/ui'
 import FIFOCollectModal from '../components/FIFOCollectModal'
 
@@ -91,16 +91,6 @@ export default function NotificationsPage() {
   const warningBatches = allBatches.filter(
     (b) => b.daysLeft > thresholds.critical && b.daysLeft <= thresholds.warning
   )
-
-  // Форматирование даты
-  const formatDate = (dateString) => {
-    if (!dateString) return 'N/A'
-    try {
-      return format(parseISO(dateString), 'dd.MM.yyyy')
-    } catch {
-      return 'Invalid'
-    }
-  }
 
   // Показываем скелетон при загрузке (когда есть данные)
   if (loading && depts.length > 0) {
@@ -182,7 +172,7 @@ export default function NotificationsPage() {
                 batch.daysLeft < 0
                   ? 'border-l-danger'
                   : batch.daysLeft <= thresholds.critical
-                    ? 'border-l-danger'
+                    ? 'border-l-critical'
                     : 'border-l-warning'
               } border border-border`}
             >
@@ -208,7 +198,7 @@ export default function NotificationsPage() {
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs sm:text-sm text-muted-foreground">
                     <div className="flex items-center gap-1">
                       <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
-                      <span>{formatDate(batch.expiryDate)}</span>
+                      <span>{formatDate(batch.expiryDate, false)}</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <Package className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -224,7 +214,7 @@ export default function NotificationsPage() {
                       batch.daysLeft < 0
                         ? 'text-danger'
                         : batch.daysLeft <= thresholds.critical
-                          ? 'text-danger'
+                          ? 'text-critical'
                           : 'text-warning'
                     }`}
                   >

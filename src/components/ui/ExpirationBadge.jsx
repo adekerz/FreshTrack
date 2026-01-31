@@ -37,35 +37,35 @@ export default function ExpirationBadge({
   const getConfig = () => {
     if (daysUntil <= thresholds.expired) {
       return {
-        bg: 'bg-red-100 dark:bg-red-900/30',
-        text: 'text-red-800 dark:text-red-300',
-        border: 'border-red-200 dark:border-red-800',
+        bg: 'bg-danger/10',
+        text: 'text-danger',
+        border: 'border-danger/20',
         label: t('status.expired') || 'Истёк',
         icon: '⚠️',
       }
     }
     if (daysUntil <= thresholds.critical) {
       return {
-        bg: 'bg-orange-100 dark:bg-orange-900/30',
-        text: 'text-orange-800 dark:text-orange-300',
-        border: 'border-orange-200 dark:border-orange-800',
+        bg: 'bg-critical/10',
+        text: 'text-critical',
+        border: 'border-critical/20',
         label: showDays ? `${daysUntil}д` : t('status.critical') || 'Критично',
         icon: '🔥',
       }
     }
     if (daysUntil <= thresholds.warning) {
       return {
-        bg: 'bg-yellow-100 dark:bg-yellow-900/30',
-        text: 'text-yellow-800 dark:text-yellow-300',
-        border: 'border-yellow-200 dark:border-yellow-800',
+        bg: 'bg-warning/10',
+        text: 'text-warning',
+        border: 'border-warning/20',
         label: showDays ? `${daysUntil}д` : t('status.warning') || 'Скоро',
         icon: '⏰',
       }
     }
     return {
-      bg: 'bg-green-100 dark:bg-green-900/30',
-      text: 'text-green-800 dark:text-green-300',
-      border: 'border-green-200 dark:border-green-800',
+      bg: 'bg-success/10',
+      text: 'text-success',
+      border: 'border-success/20',
       label: showDays ? `${daysUntil}д` : t('status.fresh') || 'Свежий',
       icon: '✓',
     }
@@ -105,35 +105,35 @@ export function useExpirationColor(daysUntil, thresholds = DEFAULT_THRESHOLDS) {
   if (daysUntil <= thresholds.expired) {
     return {
       status: 'expired',
-      bgClass: 'bg-red-100 dark:bg-red-900/30',
-      textClass: 'text-red-800 dark:text-red-300',
-      borderClass: 'border-red-500',
+      bgClass: 'bg-danger/10',
+      textClass: 'text-danger',
+      borderClass: 'border-danger',
       color: '#ef4444',
     }
   }
   if (daysUntil <= thresholds.critical) {
     return {
       status: 'critical',
-      bgClass: 'bg-orange-100 dark:bg-orange-900/30',
-      textClass: 'text-orange-800 dark:text-orange-300',
-      borderClass: 'border-orange-500',
+      bgClass: 'bg-critical/10',
+      textClass: 'text-critical',
+      borderClass: 'border-critical',
       color: '#f97316',
     }
   }
   if (daysUntil <= thresholds.warning) {
     return {
       status: 'warning',
-      bgClass: 'bg-yellow-100 dark:bg-yellow-900/30',
-      textClass: 'text-yellow-800 dark:text-yellow-300',
-      borderClass: 'border-yellow-500',
+      bgClass: 'bg-warning/10',
+      textClass: 'text-warning',
+      borderClass: 'border-warning',
       color: '#eab308',
     }
   }
   return {
     status: 'fresh',
-    bgClass: 'bg-green-100 dark:bg-green-900/30',
-    textClass: 'text-green-800 dark:text-green-300',
-    borderClass: 'border-green-500',
+    bgClass: 'bg-success/10',
+    textClass: 'text-success',
+    borderClass: 'border-success',
     color: '#22c55e',
   }
 }

@@ -4,7 +4,7 @@
  */
 
 import { createContext, useContext, useState, useEffect } from 'react'
-import { authAPI } from '../services/api'
+import { authAPI, API_BASE_URL } from '../services/api'
 import { logError } from '../utils/logger'
 
 const AuthContext = createContext(null)
@@ -71,7 +71,7 @@ export function AuthProvider({ children }) {
           setToken(savedToken)
 
           // Fetch fresh user data from server
-          const response = await fetch('/api/auth/me', {
+          const response = await fetch(`${API_BASE_URL}/auth/me`, {
             headers: {
               Authorization: `Bearer ${savedToken}`,
               'Content-Type': 'application/json'
@@ -192,7 +192,7 @@ export function AuthProvider({ children }) {
         setToken(response.token)
         localStorage.setItem('freshtrack_user', JSON.stringify(newUser))
         localStorage.setItem('freshtrack_token', response.token)
-        return { success: true }
+        return { success: true, needsEmailVerification: !!response.needsEmailVerification }
       }
 
       return { success: false, error: response.error }
@@ -372,6 +372,18 @@ export function AuthProvider({ children }) {
     localStorage.setItem('freshtrack_user', JSON.stringify(updatedUser))
   }
 
+  /**
+   * Установить user и token после верификации email (OTP)
+   */
+  const setUserAndToken = (userData, authToken) => {
+    if (userData) setUser(userData)
+    if (authToken) {
+      setToken(authToken)
+      localStorage.setItem('freshtrack_token', authToken)
+    }
+    if (userData) localStorage.setItem('freshtrack_user', JSON.stringify(userData))
+  }
+
   const value = {
     user,
     token,
@@ -390,6 +402,7 @@ export function AuthProvider({ children }) {
     hasAccessToDepartment,
     getAccessibleDepartments,
     updateUser,
+    setUserAndToken,
     hasPermission,
     canManage,
     canPerformAction,

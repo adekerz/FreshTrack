@@ -30,19 +30,6 @@ export async function startDataRetentionJob() {
       const archivedCount = parseInt(result.rows[0].archived_count) || 0
       logInfo('DataRetention', `Archived ${archivedCount} old audit logs (older than ${retentionYears} years)`)
       
-      // Удаление expired verification tokens (старше 7 дней)
-      const expiredTokensDate = new Date()
-      expiredTokensDate.setDate(expiredTokensDate.getDate() - 7)
-      
-      const tokensResult = await query(`
-        UPDATE users
-        SET email_verification_token = NULL
-        WHERE email_verification_token IS NOT NULL
-          AND created_at < $1
-      `, [expiredTokensDate])
-      
-      logInfo('DataRetention', `Cleaned up ${tokensResult.rowCount} expired verification tokens`)
-      
       // Clean up old MFA audit logs (older than 1 year)
       const mfaCutoffDate = new Date()
       mfaCutoffDate.setFullYear(mfaCutoffDate.getFullYear() - 1)

@@ -19,8 +19,8 @@ import { useProducts } from '../context/ProductContext'
 import { useAuth } from '../context/AuthContext'
 import { useTranslation } from '../context/LanguageContext'
 import { useThresholds } from '../hooks/useThresholds'
-import { format, parseISO } from 'date-fns'
 import { SkeletonDashboard } from '../components/Skeleton'
+import { formatDate } from '../utils/dateUtils'
 import { Loader, TouchButton } from '../components/ui'
 import AddBatchModal from '../components/AddBatchModal'
 
@@ -145,16 +145,6 @@ export default function DashboardPage() {
 
   const stats = getStats()
   const alerts = getAlerts()
-
-  // Форматирование даты
-  const formatDate = (dateString) => {
-    if (!dateString) return 'N/A'
-    try {
-      return format(parseISO(dateString), 'dd.MM.yyyy')
-    } catch {
-      return 'Invalid'
-    }
-  }
 
   // Статистические карточки
   const statCards = [
@@ -345,7 +335,7 @@ export default function DashboardPage() {
                   alert.daysLeft < 0
                     ? 'border-l-danger'
                     : alert.daysLeft <= thresholds.critical
-                      ? 'border-l-danger'
+                      ? 'border-l-critical'
                       : 'border-l-warning'
                 } border border-border animate-slide-up`}
                 style={{ animationDelay: `${index * 0.05}s`, animationFillMode: 'backwards' }}
@@ -372,7 +362,7 @@ export default function DashboardPage() {
                     <div className="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
                       <div className="flex items-center gap-1">
                         <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
-                        {formatDate(alert.expiryDate)}
+                        {formatDate(alert.expiryDate, false)}
                       </div>
                       <div className="flex items-center gap-1">
                         <Package className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -387,7 +377,7 @@ export default function DashboardPage() {
                         alert.daysLeft < 0
                           ? 'text-danger'
                           : alert.daysLeft <= thresholds.critical
-                            ? 'text-danger'
+                            ? 'text-critical'
                             : 'text-warning'
                       }`}
                     >

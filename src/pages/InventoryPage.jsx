@@ -55,7 +55,7 @@ const getDeptIcon = (dept) => {
 // Цвета статусов
 const statusColors = {
   expired: 'bg-danger',
-  critical: 'bg-danger',
+  critical: 'bg-critical',
   warning: 'bg-warning',
   good: 'bg-success'
 }
@@ -569,10 +569,10 @@ export default function InventoryPage() {
             variant="ghost"
             size="small"
             onClick={() => setSelectedCategory('all')}
-            className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm whitespace-nowrap flex-shrink-0 min-h-0 h-auto ${
+            className={`px-3 sm:px-4 py-2 rounded-full text-sm whitespace-nowrap flex-shrink-0 min-h-0 h-auto font-medium transition-all duration-200 ${
               selectedCategory === 'all'
-                ? 'bg-foreground text-background hover:bg-foreground/90'
-                : 'bg-transparent border border-border text-muted-foreground hover:border-foreground hover:text-foreground'
+                ? 'bg-primary-600 text-white hover:bg-primary-600/90 shadow-sm border-0 dark:bg-primary-500 dark:hover:bg-primary-500/90'
+                : 'bg-card border border-border text-foreground hover:bg-muted/80 hover:border-muted-foreground/30'
             }`}
           >
             {t('common.all')}
@@ -583,10 +583,10 @@ export default function InventoryPage() {
               variant="ghost"
               size="small"
               onClick={() => setSelectedCategory(cat.id)}
-              className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm whitespace-nowrap flex-shrink-0 min-h-0 h-auto ${
+              className={`px-3 sm:px-4 py-2 rounded-full text-sm whitespace-nowrap flex-shrink-0 min-h-0 h-auto font-medium transition-all duration-200 ${
                 selectedCategory === cat.id
-                  ? 'bg-foreground text-background hover:bg-foreground/90'
-                  : 'bg-transparent border border-border text-muted-foreground hover:border-foreground hover:text-foreground'
+                  ? 'bg-primary-600 text-white hover:bg-primary-600/90 shadow-sm border-0 dark:bg-primary-500 dark:hover:bg-primary-500/90'
+                  : 'bg-card border border-border text-foreground hover:bg-muted/80 hover:border-muted-foreground/30'
               }`}
             >
               {getCategoryName(cat)}
@@ -630,60 +630,74 @@ export default function InventoryPage() {
                 key={product.id}
                 variant="ghost"
                 onClick={() => handleProductClick(product)}
-                className="w-full h-auto min-h-0 justify-start items-stretch bg-card border border-border rounded-lg p-2.5 sm:p-4 text-left hover:shadow-md hover:border-accent group overflow-hidden"
+                className="w-full h-auto min-h-0 justify-start items-stretch bg-card border border-border rounded-lg p-3 sm:p-4 text-left hover:shadow-md hover:border-accent group"
               >
-                {/* Статус индикатор */}
-                <div className="flex items-start justify-between mb-2 sm:mb-3 gap-2">
-                  <div className="flex-1 min-w-0 overflow-hidden">
-                    <h3 className="font-medium text-foreground group-hover:text-accent transition-colors text-sm sm:text-base truncate">
-                      {product.name}
-                    </h3>
-                    {displayCategoryName && (
-                      <span className="text-xs text-muted-foreground bg-muted px-1.5 sm:px-2 py-0.5 rounded mt-1 inline-block truncate max-w-full">
-                        {displayCategoryName}
-                      </span>
+                <div className="flex flex-col gap-2 sm:gap-3 w-full">
+                  {/* Заголовок с индикатором статуса */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-medium text-foreground group-hover:text-accent transition-colors text-sm sm:text-base leading-tight line-clamp-2 break-words">
+                        {product.name}
+                      </h3>
+                    </div>
+                    {product.totalBatches > 0 && (
+                      <div
+                        className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full flex-shrink-0 mt-0.5 ${statusColors[product.overallStatus]}`}
+                        title={product.overallStatus}
+                      />
                     )}
                   </div>
-                  {product.totalBatches > 0 && (
-                    <div
-                      className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full flex-shrink-0 ${statusColors[product.overallStatus]}`}
-                      title={product.overallStatus}
-                    />
-                  )}
-                </div>
 
-                {/* Информация о партиях */}
-                <div className="text-xs sm:text-sm text-muted-foreground overflow-hidden">
-                  {product.totalBatches === 0 ? (
-                    <span className="text-muted-foreground/50">{t('inventory.noBatches')}</span>
-                  ) : (
-                    <div className="flex flex-wrap gap-x-1.5 items-center">
-                      <span className="whitespace-nowrap">
-                        <span className="font-medium text-foreground">{product.totalBatches}</span>{' '}
-                        {t('inventory.batches')}
+                  {/* Категория */}
+                  {displayCategoryName && (
+                    <div className="flex">
+                      <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded inline-block line-clamp-1 break-words max-w-full">
+                        {displayCategoryName}
                       </span>
-                      <span className="flex-shrink-0">•</span>
-                      <span className="whitespace-nowrap">
-                        <span className="font-medium text-foreground">{product.totalQuantity}</span>{' '}
-                        {t('inventory.units')}
+                    </div>
+                  )}
+
+                  {/* Информация о партиях */}
+                  <div className="text-xs sm:text-sm text-muted-foreground">
+                    {product.totalBatches === 0 ? (
+                      <span className="text-muted-foreground/50 block">
+                        {t('inventory.noBatches')}
+                      </span>
+                    ) : (
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="flex items-center gap-1 whitespace-nowrap">
+                            <span className="font-medium text-foreground">{product.totalBatches}</span>
+                            <span>{t('inventory.batches')}</span>
+                          </span>
+                          <span className="text-muted-foreground/50">•</span>
+                          <span className="flex items-center gap-1 whitespace-nowrap">
+                            <span className="font-medium text-foreground">{product.totalQuantity}</span>
+                            <span>{t('inventory.units')}</span>
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Предупреждения */}
+                  {product.hasExpired && (
+                    <div className="flex items-start gap-1.5 text-xs text-danger">
+                      <span className="w-1.5 h-1.5 rounded-full bg-danger flex-shrink-0 mt-1" />
+                      <span className="flex-1 leading-relaxed break-words">
+                        {t('inventory.hasExpired')}
+                      </span>
+                    </div>
+                  )}
+                  {!product.hasExpired && product.hasExpiringSoon && (
+                    <div className="flex items-start gap-1.5 text-xs text-warning">
+                      <span className="w-1.5 h-1.5 rounded-full bg-warning flex-shrink-0 mt-1" />
+                      <span className="flex-1 leading-relaxed break-words">
+                        {t('inventory.expiringSoon')}
                       </span>
                     </div>
                   )}
                 </div>
-
-                {/* Предупреждения */}
-                {product.hasExpired && (
-                  <div className="mt-2 text-xs text-danger flex items-start gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-danger flex-shrink-0 mt-0.5" />
-                    <span className="flex-1 leading-relaxed">{t('inventory.hasExpired')}</span>
-                  </div>
-                )}
-                {!product.hasExpired && product.hasExpiringSoon && (
-                  <div className="mt-2 text-xs text-warning flex items-start gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-warning flex-shrink-0 mt-0.5" />
-                    <span className="flex-1 leading-relaxed">{t('inventory.expiringSoon')}</span>
-                  </div>
-                )}
               </TouchButton>
             )
           })}

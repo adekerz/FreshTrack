@@ -58,7 +58,7 @@ export default function TemplateEditor({
   const generatePreview = () => {
     const allSamples = {
       good: '5',
-      warning: '3',
+      warning: '3  ',
       expired: '1',
       total: '8',
       date: '15.02.2026',

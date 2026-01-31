@@ -25,6 +25,7 @@ const SettingsPage = lazy(() => import('./pages/SettingsPage'))
 const CalendarPage = lazy(() => import('./pages/CalendarPage'))
 const AuditLogsPage = lazy(() => import('./pages/AuditLogsPage'))
 const MFASetupPage = lazy(() => import('./pages/MFASetupPage'))
+const FAQPage = lazy(() => import('./pages/FAQPage'))
 
 // Suspense fallback — используем единый PageLoader
 function SuspenseFallback() {
@@ -116,6 +117,7 @@ function App() {
             <Route path="/calendar" element={<CalendarPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/mfa-setup" element={<MFASetupPage />} />
+            <Route path="/faq" element={<FAQPage />} />
 
             {/* Страницы с ограниченным доступом */}
             <Route

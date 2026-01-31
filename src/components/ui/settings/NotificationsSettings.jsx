@@ -4,10 +4,10 @@
  */
 
 import { useState, useEffect } from 'react'
-import { useTranslation } from '../../context/LanguageContext'
-import { useToast } from '../../context/ToastContext'
-import { useHotel } from '../../context/HotelContext'
-import { apiFetch } from '../../services/api'
+import { useTranslation } from '../../../context/LanguageContext'
+import { useToast } from '../../../context/ToastContext'
+import { useHotel } from '../../../context/HotelContext'
+import { apiFetch } from '../../../services/api'
 import {
   Bell,
   MessageSquare,
@@ -22,10 +22,10 @@ import {
   AlertTriangle
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { cn } from '../../utils/classNames'
+import { cn } from '../../../utils/classNames'
 import SettingsLayout, { SettingsSection } from './SettingsLayout'
 import TemplateEditor from './TemplateEditor'
-import { useSimpleUnsavedChanges } from '../../hooks/useUnsavedChanges'
+import { useSimpleUnsavedChanges } from '../../../hooks/useUnsavedChanges'
 
 const BOT_USERNAME = 'freshtracksystemsbot'
 

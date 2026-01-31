@@ -22,13 +22,14 @@ import { authMiddleware, requirePermission, generateToken } from '../../middlewa
 import { requireMFA } from '../../middleware/requireMFA.js'
 import { logAudit } from '../../db/database.js'
 import { query as dbQuery } from '../../db/postgres.js'
-import { sendVerificationEmail } from '../../services/EmailService.js'
 import { RateLimiterMemory } from 'rate-limiter-flexible'
 import { logInfo, logError, logWarn } from '../../utils/logger.js'
 import { MFAService } from '../../services/MFAService.js'
+import { EmailVerificationService } from '../../services/EmailVerificationService.js'
 import jwt from 'jsonwebtoken'
 import { v4 as uuidv4 } from 'uuid'
 import { superAdminOnly } from '../../middleware/auth.js'
+import bcrypt from 'bcryptjs'
 
 const router = Router()
 
@@ -175,6 +176,14 @@ router.post('/register', async (req, res) => {
       })
     }
 
+    // Email обязателен для регистрации
+    if (!validation.data.email) {
+      return res.status(400).json({
+        success: false,
+        error: 'Email обязателен для регистрации'
+      })
+    }
+
     const result = await AuthService.register(validation.data)
 
     if (!result.success) {
@@ -184,10 +193,50 @@ router.post('/register', async (req, res) => {
       })
     }
 
-    // Возвращаем с success: true для фронтенда
+    // Единый поток OTP: отправляем только письмо с кодом
+    if (result.data.needsEmailVerification) {
+      try {
+        const otpResult = await EmailVerificationService.sendOTP(
+          result.data.user.id,
+          validation.data.email,
+          'REGISTRATION'
+        )
+        const partialToken = jwt.sign(
+          { userId: result.data.user.id, emailVerificationPending: true },
+          process.env.JWT_SECRET,
+          { expiresIn: '30m' }
+        )
+        return res.status(201).json({
+          success: true,
+          partialToken,
+          needsEmailVerification: true,
+          email: validation.data.email,
+          expiresAt: otpResult.expiresAt,
+          cooldownSeconds: otpResult.cooldownSeconds,
+          message: 'OTP sent to your email'
+        })
+      } catch (otpError) {
+        logError('Register OTP send', otpError)
+        const partialToken = jwt.sign(
+          { userId: result.data.user.id, emailVerificationPending: true },
+          process.env.JWT_SECRET,
+          { expiresIn: '30m' }
+        )
+        return res.status(201).json({
+          success: true,
+          partialToken,
+          needsEmailVerification: true,
+          email: validation.data.email,
+          otpError: 'Failed to send OTP. Please request resend on verify page.'
+        })
+      }
+    }
+
     res.status(201).json({
       success: true,
-      ...result.data
+      token: result.data.token,
+      user: result.data.user,
+      message: 'Registration successful'
     })
 
   } catch (error) {
@@ -617,6 +666,56 @@ router.put('/password', authMiddleware, async (req, res) => {
 // ========================================
 
 /**
+ * GET /api/users/export
+ * Экспорт списка пользователей в CSV/XLSX/JSON
+ */
+router.get('/users/export', authMiddleware, requirePermission('users', 'read'), async (req, res) => {
+  try {
+    const { format = 'xlsx', search, role, isActive, departmentId, hotelId } = req.query
+
+    // Get users without pagination for export
+    const result = await AuthService.getUsers({
+      search,
+      role,
+      isActive,
+      departmentId,
+      hotelId,
+      page: 1,
+      limit: 10000 // Max for export
+    }, req.user)
+
+    if (!result.success) {
+      return res.status(result.statusCode).json({ error: result.error })
+    }
+
+    // Transform data for export
+    const exportData = result.data.users.map(user => ({
+      name: user.name,
+      email: user.email,
+      login: user.login,
+      role: user.role,
+      hotel_name: user.hotel?.name || '',
+      department_name: user.department?.name || '',
+      is_active: user.is_active,
+      lastLogin: user.lastLogin,
+      createdAt: user.createdAt
+    }))
+
+    const { ExportService } = await import('../../services/ExportService.js')
+
+    await ExportService.sendExport(res, exportData, 'users', format, {
+      filename: `users_export_${new Date().toISOString().split('T')[0]}`,
+      user: req.user,
+      ipAddress: req.ip,
+      filters: { search, role, isActive, departmentId, hotelId }
+    })
+  } catch (error) {
+    console.error('[Auth] Export users error:', error)
+    res.status(500).json({ error: 'Failed to export users' })
+  }
+})
+
+/**
  * GET /api/users
  * Получить список пользователей
  */
@@ -923,11 +1022,12 @@ router.patch('/users/:id/toggle', authMiddleware, requirePermission('users', 'up
       hotel_id: req.user.hotel_id,
       user_id: req.user.id,
       user_name: req.user.name || req.user.login,
-      action: 'UPDATE',
+      action: result.data.isActive ? 'USER_ACTIVATED' : 'USER_DEACTIVATED',
       entity_type: 'user',
       entity_id: userId,
-      details: { isActive: result.data.isActive },
-      ip_address: req.ip
+      details: { isActive: result.data.isActive, targetUser: result.data.login },
+      ip_address: req.ip,
+      user_agent: req.get('user-agent')
     })
 
     res.json(result.data)
@@ -942,295 +1042,16 @@ router.patch('/users/:id/toggle', authMiddleware, requirePermission('users', 'up
 // EMAIL VERIFICATION ENDPOINTS
 // ═══════════════════════════════════════════════════════════════
 
-// Rate limiter for verification code sending (3 per hour per user)
-const resendCodeLimiter = new RateLimiterMemory({
-  points: 3,
-  duration: 60 * 60, // 1 hour
-  blockDuration: 60 * 60 // Block for 1 hour if exceeded
-})
-
-// Rate limiter for verification attempts (5 per 15 minutes per user)
-const verifyCodeLimiter = new RateLimiterMemory({
-  points: 5,
-  duration: 15 * 60, // 15 minutes
-  blockDuration: 60 * 60 // Block for 1 hour if exceeded
-})
-
-/**
- * GET /api/auth/verify-email
- * Verify user email with token from confirmation link
- */
-router.get('/verify-email', async (req, res) => {
-  try {
-    const { token } = req.query
-    
-    if (!token || typeof token !== 'string') {
-      return res.redirect('/verify-email?status=invalid')
-    }
-    
-    // Verify token and mark email as verified
-    const result = await dbQuery(`
-      UPDATE users 
-      SET email_verified = TRUE,
-          email_verification_token = NULL,
-          email_verification_expires = NULL
-      WHERE email_verification_token = $1
-        AND email_verification_expires > NOW()
-      RETURNING id, email
-    `, [token])
-    
-    if (result.rows.length === 0) {
-      return res.redirect('/verify-email?status=expired')
-    }
-    
-    const user = result.rows[0]
-    
-    // Create join request if hotel_id was set during registration
-    const userResult = await dbQuery('SELECT hotel_id FROM users WHERE id = $1', [user.id])
-    if (userResult.rows[0]?.hotel_id) {
-      try {
-        const { createJoinRequest } = await import('../../db/database.js')
-        await createJoinRequest(user.id, userResult.rows[0].hotel_id)
-        logInfo('Auth', `Created join request for user ${user.id} after email verification`)
-      } catch (error) {
-        logWarn('Auth', `Failed to create join request for user ${user.id}`, error)
-      }
-    }
-    
-    await logAudit({
-      hotel_id: userResult.rows[0]?.hotel_id,
-      user_id: user.id,
-      user_name: 'User',
-      action: 'verify_email',
-      entity_type: 'user',
-      entity_id: user.id,
-      details: { email: user.email, method: 'confirmation_link' },
-      ip_address: req.ip
-    })
-    
-    res.redirect('/verify-email?status=success')
-  } catch (error) {
-    logError('Verify email error', error)
-    res.redirect('/verify-email?status=error')
-  }
-})
-
-/**
- * POST /api/auth/verify-email (DEPRECATED - kept for backward compatibility)
- * Verify user email with 6-digit code
- */
-router.post('/verify-email', authMiddleware, async (req, res) => {
-  try {
-    const { code } = req.body
-    if (!code || typeof code !== 'string' || !/^\d{6}$/.test(code)) {
-      return res.status(400).json({ success: false, error: 'Invalid code format. Must be 6 digits.' })
-    }
-
-    const userId = req.user.id
-
-    // Rate limiting
-    try {
-      await verifyCodeLimiter.consume(`user_verify_${userId}`)
-    } catch (rejRes) {
-      return res.status(429).json({
-        success: false,
-        error: 'Too many verification attempts. Please try again later.',
-        retryAfter: Math.ceil(rejRes.msBeforeNext / 1000)
-      })
-    }
-
-    // Get user with verification data
-    const userResult = await dbQuery(`
-      SELECT id, email, email_verification_code, email_verification_expires, email_verification_attempts, hotel_id
-      FROM users WHERE id = $1
-    `, [userId])
-
-    if (userResult.rows.length === 0) {
-      return res.status(404).json({ success: false, error: 'User not found' })
-    }
-
-    const user = userResult.rows[0]
-
-    // Check if code exists and is not expired
-    if (!user.email_verification_code) {
-      return res.status(400).json({ success: false, error: 'No verification code found. Please request a new code.' })
-    }
-
-    if (new Date() > new Date(user.email_verification_expires)) {
-      return res.status(400).json({ success: false, error: 'Verification code expired. Please request a new code.' })
-    }
-
-    // Check attempts (max 5)
-    if (user.email_verification_attempts >= 5) {
-      return res.status(429).json({
-        success: false,
-        error: 'Too many failed attempts. Please request a new code after 1 hour.'
-      })
-    }
-
-    // Verify code
-    if (user.email_verification_code !== code) {
-      // Increment attempts
-      await dbQuery(`
-        UPDATE users 
-        SET email_verification_attempts = email_verification_attempts + 1
-        WHERE id = $1
-      `, [userId])
-
-      const attemptsLeft = 5 - (user.email_verification_attempts + 1)
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid verification code',
-        attemptsLeft: Math.max(0, attemptsLeft)
-      })
-    }
-
-    // Success - mark as verified and clear code
-    await dbQuery(`
-      UPDATE users 
-      SET email_verified = true,
-          email_verification_code = NULL,
-          email_verification_expires = NULL,
-          email_verification_attempts = 0
-      WHERE id = $1
-    `, [userId])
-
-    // Create join request if hotel_id was set during registration
-    if (user.hotel_id) {
-      try {
-        const { createJoinRequest } = await import('../../db/database.js')
-        await createJoinRequest(userId, user.hotel_id)
-        logInfo('Auth', `Created join request for user ${userId} after email verification`)
-      } catch (error) {
-        logWarn('Auth', `Failed to create join request for user ${userId}`, error)
-        // Don't fail verification if join request creation fails
-      }
-    }
-
-    await logAudit({
-      hotel_id: user.hotel_id,
-      user_id: userId,
-      user_name: req.user.name || req.user.login,
-      action: 'verify_email',
-      entity_type: 'user',
-      entity_id: userId,
-      details: { email: user.email },
-      ip_address: req.ip
-    })
-
-    // Get updated user data
-    const updatedUser = await AuthService.getCurrentUser(userId)
-    
-    res.json({
-      success: true,
-      message: 'Email verified successfully',
-      verified: true,
-      user: updatedUser.data?.user
-    })
-  } catch (error) {
-    logError('Verify email error', error)
-    res.status(500).json({ success: false, error: 'Failed to verify email' })
-  }
-})
-
-/**
- * POST /api/auth/resend-verification-code
- * Resend verification link to user email (simplified - uses links, not codes)
- */
-router.post('/resend-verification-code', authMiddleware, async (req, res) => {
-  try {
-    const userId = req.user.id
-
-    // Rate limiting
-    try {
-      await resendCodeLimiter.consume(`user_resend_${userId}`)
-    } catch (rejRes) {
-      return res.status(429).json({
-        success: false,
-        error: 'Too many requests. Please try again later.',
-        retryAfter: Math.ceil(rejRes.msBeforeNext / 1000)
-      })
-    }
-
-    // Get user
-    const userResult = await dbQuery(`
-      SELECT id, email, name FROM users WHERE id = $1
-    `, [userId])
-
-    if (userResult.rows.length === 0) {
-      return res.status(404).json({ success: false, error: 'User not found' })
-    }
-
-    const user = userResult.rows[0]
-
-    if (!user.email) {
-      return res.status(400).json({ success: false, error: 'User email is not set' })
-    }
-
-    // Generate new verification token
-    const crypto = await import('crypto')
-    const verificationToken = crypto.randomBytes(32).toString('hex')
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
-
-    // Save token to database
-    await dbQuery(`
-      UPDATE users 
-      SET email_verification_token = $1,
-          email_verification_expires = $2
-      WHERE id = $3
-    `, [verificationToken, expiresAt, userId])
-
-    // Send email with link
-    try {
-      const appUrl = process.env.APP_URL || 'http://localhost:5173'
-      const verificationLink = `${appUrl}/verify-email?token=${verificationToken}`
-      
-      await sendVerificationEmail({
-        user: { name: user.name, email: user.email },
-        verificationLink,
-        target: 'USER'
-      })
-      logInfo('Auth', `Verification link resent to ${user.email} for user ${user.name}`)
-    } catch (emailError) {
-      logError('Auth', `Failed to send verification email to ${user.email}`, emailError)
-      return res.status(500).json({
-        success: false,
-        error: 'Failed to send verification email'
-      })
-    }
-
-    await logAudit({
-      hotel_id: req.user.hotel_id,
-      user_id: userId,
-      user_name: req.user.name || req.user.login,
-      action: 'resend_verification_link',
-      entity_type: 'user',
-      entity_id: userId,
-      details: { email: user.email },
-      ip_address: req.ip
-    })
-
-    res.json({
-      success: true,
-      message: 'Verification link sent',
-      expiresAt: expiresAt.toISOString()
-    })
-  } catch (error) {
-    logError('Resend verification link error', error)
-    res.status(500).json({ success: false, error: 'Failed to resend verification link' })
-  }
-})
-
 /**
  * GET /api/auth/verification-status
- * Get email verification status for current user
+ * Статус верификации email (только OTP-коды)
  */
 router.get('/verification-status', authMiddleware, async (req, res) => {
   try {
     const userId = req.user.id
 
     const userResult = await dbQuery(`
-      SELECT email, email_verified, email_verification_code, email_verification_expires, email_verification_attempts
+      SELECT email, email_verified
       FROM users WHERE id = $1
     `, [userId])
 
@@ -1240,19 +1061,11 @@ router.get('/verification-status', authMiddleware, async (req, res) => {
 
     const user = userResult.rows[0]
 
-    const now = new Date()
-    const expiresAt = user.email_verification_expires ? new Date(user.email_verification_expires) : null
-    const isExpired = expiresAt && now > expiresAt
-    const canResend = !user.email_verification_code || isExpired || user.email_verification_attempts >= 5
-
     res.json({
       success: true,
       verified: user.email_verified || false,
       email: user.email,
-      canResend,
-      attemptsLeft: Math.max(0, 5 - (user.email_verification_attempts || 0)),
-      expiresAt: expiresAt ? expiresAt.toISOString() : null,
-      isExpired
+      canResend: true
     })
   } catch (error) {
     logError('Get verification status error', error)
@@ -1441,13 +1254,17 @@ router.get('/mfa/status', authMiddleware, async (req, res) => {
       ? Math.ceil((graceEnds - now) / (1000 * 60 * 60 * 24))
       : null
     
+    const mfaDisabledInDev =
+      process.env.NODE_ENV === 'development' && process.env.DISABLE_MFA_IN_DEV === 'true'
+
     res.json({
       success: true,
       enabled: mfa_enabled || false,
       required: mfa_required || false,
       backupCodesCount: mfa_backup_codes ? mfa_backup_codes.length : 0,
       gracePeriodEnds: graceEnds ? graceEnds.toISOString() : null,
-      gracePeriodDaysLeft: daysLeft
+      gracePeriodDaysLeft: daysLeft,
+      mfaDisabledInDev: mfaDisabledInDev
     })
   } catch (error) {
     logError('MFA status error', error)
@@ -1839,5 +1656,451 @@ router.get('/mfa/recovery-requests',
     }
   }
 )
+
+// ═══════════════════════════════════════════════════════════════
+// EMAIL OTP VERIFICATION ENDPOINTS
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * POST /api/auth/verify-email-otp
+ * Verify email OTP code after registration
+ */
+router.post('/verify-email-otp', async (req, res) => {
+  try {
+    const { partialToken, otp } = req.body
+
+    if (!partialToken || !otp) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required fields: partialToken and otp'
+      })
+    }
+
+    // Validate OTP format
+    if (!/^\d{6}$/.test(otp)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid OTP format. Must be 6 digits.'
+      })
+    }
+
+    // Verify partial token
+    let decoded
+    try {
+      decoded = jwt.verify(partialToken, process.env.JWT_SECRET)
+    } catch (error) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid or expired token'
+      })
+    }
+
+    if (!decoded.emailVerificationPending) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid token'
+      })
+    }
+
+    // Verify OTP
+    const verifyResult = await EmailVerificationService.verifyOTP(decoded.userId, otp)
+
+    // Get full user data
+    const userResult = await dbQuery('SELECT * FROM users WHERE id = $1', [decoded.userId])
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      })
+    }
+
+    const user = userResult.rows[0]
+
+    // Create join request if hotel_id exists
+    if (user.hotel_id) {
+      const { createJoinRequest } = await import('../../db/database.js')
+      await createJoinRequest(user.id, user.hotel_id)
+    }
+
+    // Generate full token
+    const token = generateToken(user)
+
+    // Format user response
+    const userData = await AuthService.formatUserResponse(user, true)
+
+    // Audit log
+    await logAudit({
+      user_id: user.id,
+      user_name: user.name || user.login,
+      hotel_id: user.hotel_id,
+      action: 'EMAIL_VERIFIED',
+      entity_type: 'User',
+      entity_id: user.id,
+      details: { email: user.email }
+    })
+
+    res.json({
+      success: true,
+      token,
+      user: userData,
+      message: 'Email verified successfully'
+    })
+  } catch (error) {
+    logError('Verify Email OTP', error)
+    res.status(400).json({
+      success: false,
+      error: error.message || 'Verification failed'
+    })
+  }
+})
+
+/**
+ * POST /api/auth/resend-email-otp
+ * Resend OTP code
+ */
+router.post('/resend-email-otp', async (req, res) => {
+  try {
+    const { partialToken } = req.body
+
+    if (!partialToken) {
+      return res.status(400).json({
+        success: false,
+        error: 'partialToken is required'
+      })
+    }
+
+    // Verify partial token
+    let decoded
+    try {
+      decoded = jwt.verify(partialToken, process.env.JWT_SECRET)
+    } catch (error) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid or expired token'
+      })
+    }
+
+    // Get user data
+    const userResult = await dbQuery('SELECT id, email FROM users WHERE id = $1', [decoded.userId])
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      })
+    }
+
+    const user = userResult.rows[0]
+
+    // Check cooldown
+    const canResend = await EmailVerificationService.canResendOTP(user.id)
+    if (!canResend) {
+      return res.status(429).json({
+        success: false,
+        error: 'Please wait before requesting a new code'
+      })
+    }
+
+    // Send new OTP
+    const result = await EmailVerificationService.sendOTP(
+      user.id,
+      user.email,
+      'REGISTRATION'
+    )
+
+    res.json({
+      success: true,
+      expiresAt: result.expiresAt,
+      cooldownSeconds: result.cooldownSeconds,
+      message: 'New OTP sent to your email'
+    })
+  } catch (error) {
+    logError('Resend Email OTP', error)
+    res.status(400).json({
+      success: false,
+      error: error.message || 'Failed to resend OTP'
+    })
+  }
+})
+
+// ═══════════════════════════════════════════════════════════════
+// PROFILE MANAGEMENT ENDPOINTS
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * POST /api/auth/change-email
+ * Request email change (requires password verification)
+ */
+router.post('/change-email', authMiddleware, async (req, res) => {
+  try {
+    const { newEmail, password } = req.body
+
+    if (!newEmail || !password) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required fields: newEmail and password'
+      })
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(newEmail)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid email format'
+      })
+    }
+
+    // Verify current password
+    const userResult = await dbQuery('SELECT * FROM users WHERE id = $1', [req.user.id])
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      })
+    }
+
+    const user = userResult.rows[0]
+
+    // Verify password
+    const passwordMatch = await bcrypt.compare(password, user.password_hash)
+    if (!passwordMatch) {
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid password'
+      })
+    }
+
+    // Check if email is already in use
+    const existingEmail = await dbQuery(
+      'SELECT id FROM users WHERE email = $1 AND id != $2',
+      [newEmail, req.user.id]
+    )
+
+    if (existingEmail.rows.length > 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Email already in use'
+      })
+    }
+
+    // Save pending email
+    await dbQuery(
+      'UPDATE users SET pending_email = $1 WHERE id = $2',
+      [newEmail, req.user.id]
+    )
+
+    // Send OTP to NEW email
+    const otpResult = await EmailVerificationService.sendOTP(
+      req.user.id,
+      newEmail,
+      'EMAIL_CHANGE'
+    )
+
+    // Generate partial token
+    const partialToken = jwt.sign(
+      { userId: req.user.id, emailChangePending: true },
+      process.env.JWT_SECRET,
+      { expiresIn: '30m' }
+    )
+
+    // Audit log
+    await logAudit({
+      user_id: req.user.id,
+      user_name: req.user.name || req.user.login,
+      hotel_id: req.user.hotel_id,
+      action: 'EMAIL_CHANGE_REQUESTED',
+      entity_type: 'User',
+      entity_id: req.user.id,
+      details: { oldEmail: user.email, newEmail }
+    })
+
+    res.json({
+      success: true,
+      partialToken,
+      newEmail,
+      expiresAt: otpResult.expiresAt,
+      cooldownSeconds: otpResult.cooldownSeconds,
+      message: 'OTP sent to new email'
+    })
+  } catch (error) {
+    logError('Change Email', error)
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to request email change'
+    })
+  }
+})
+
+/**
+ * POST /api/auth/verify-email-change
+ * Verify email change OTP
+ */
+router.post('/verify-email-change', authMiddleware, async (req, res) => {
+  try {
+    const { partialToken, otp } = req.body
+
+    if (!partialToken || !otp) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required fields: partialToken and otp'
+      })
+    }
+
+    // Validate OTP format
+    if (!/^\d{6}$/.test(otp)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid OTP format. Must be 6 digits.'
+      })
+    }
+
+    // Verify partial token
+    let decoded
+    try {
+      decoded = jwt.verify(partialToken, process.env.JWT_SECRET)
+    } catch (error) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid or expired token'
+      })
+    }
+
+    if (!decoded.emailChangePending || decoded.userId !== req.user.id) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid token'
+      })
+    }
+
+    // Verify OTP
+    await EmailVerificationService.verifyOTP(decoded.userId, otp)
+
+    // Apply new email
+    const { rows } = await dbQuery(
+      `UPDATE users 
+       SET email = pending_email,
+           pending_email = NULL,
+           email_verified = TRUE
+       WHERE id = $1
+       RETURNING email`,
+      [decoded.userId]
+    )
+
+    if (rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      })
+    }
+
+    // Audit log
+    await logAudit({
+      user_id: req.user.id,
+      user_name: req.user.name || req.user.login,
+      hotel_id: req.user.hotel_id,
+      action: 'EMAIL_CHANGED',
+      entity_type: 'User',
+      entity_id: req.user.id,
+      details: { newEmail: rows[0].email }
+    })
+
+    res.json({
+      success: true,
+      email: rows[0].email,
+      message: 'Email changed successfully'
+    })
+  } catch (error) {
+    logError('Verify Email Change', error)
+    res.status(400).json({
+      success: false,
+      error: error.message || 'Verification failed'
+    })
+  }
+})
+
+/**
+ * POST /api/auth/change-password
+ * Change user password
+ */
+router.post('/change-password', authMiddleware, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required fields: currentPassword and newPassword'
+      })
+    }
+
+    if (newPassword.length < 8) {
+      return res.status(400).json({
+        success: false,
+        error: 'Password must be at least 8 characters'
+      })
+    }
+
+    // Get user
+    const userResult = await dbQuery('SELECT * FROM users WHERE id = $1', [req.user.id])
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      })
+    }
+
+    const user = userResult.rows[0]
+
+    // Check if user has a password set
+    if (!user.password_hash || user.password_hash === null) {
+      return res.status(400).json({
+        success: false,
+        error: 'Password not set. Please set a password first.'
+      })
+    }
+
+    // Verify current password (ensure password_hash is a string)
+    const passwordMatch = await bcrypt.compare(currentPassword, String(user.password_hash))
+    if (!passwordMatch) {
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid current password'
+      })
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10)
+
+    // Update password
+    await dbQuery(
+      'UPDATE users SET password_hash = $1 WHERE id = $2',
+      [hashedPassword, req.user.id]
+    )
+
+    // Audit log
+    await logAudit({
+      user_id: req.user.id,
+      user_name: req.user.name || req.user.login,
+      hotel_id: req.user.hotel_id,
+      action: 'PASSWORD_CHANGE',
+      entity_type: 'user',
+      entity_id: req.user.id,
+      details: {},
+      ip_address: req.ip,
+      user_agent: req.get('user-agent')
+    })
+
+    res.json({
+      success: true,
+      message: 'Password changed successfully'
+    })
+  } catch (error) {
+    logError('Change Password', error)
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to change password'
+    })
+  }
+})
 
 export default router

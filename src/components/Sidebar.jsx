@@ -43,6 +43,7 @@ export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose, e
   }))
 
   // Дополнительные пункты - фильтруем по роли/permissions из централизованной конфигурации
+  // Только отчёты - настройки убраны (доступны через dropdown в Header)
   const reportItems = filterNavByRole(moreNavItems, userRole, navOptions)
     .filter((item) => item.group === 'reports')
     .map((item) => ({
@@ -52,15 +53,7 @@ export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose, e
       onboardingId: item.id
     }))
 
-  const settingsItem = filterNavByRole(moreNavItems, userRole, navOptions)
-    .filter((item) => item.group === 'system')
-    .map((item) => ({
-      path: item.path,
-      icon: item.icon,
-      label: t(item.labelKey) || item.fallbackLabel
-    }))
-
-  // Группируем для sidebar
+  // Группируем для sidebar (без настроек - они в dropdown меню справа)
   const navGroups = [
     {
       label: null,
@@ -69,10 +62,6 @@ export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose, e
     {
       label: t('nav.reports') || 'Отчёты',
       items: reportItems
-    },
-    {
-      label: null,
-      items: settingsItem
     }
   ].filter((group) => group.items.length > 0)
 

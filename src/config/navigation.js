@@ -15,7 +15,9 @@ import {
   BarChart3,
   ClipboardList,
   FileText,
-  Settings
+  Settings,
+  Users,
+  Database
 } from 'lucide-react'
 
 /**

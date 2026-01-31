@@ -178,8 +178,8 @@ export default function StatisticsPage() {
       title: t('statistics.critical'),
       value: stats.critical,
       icon: AlertTriangle,
-      color: 'text-danger',
-      bgColor: 'bg-danger/10'
+      color: 'text-critical',
+      bgColor: 'bg-critical/10'
     },
     {
       title: t('statistics.expired'),
@@ -304,11 +304,11 @@ export default function StatisticsPage() {
                     style={{ width: `${warningPercent}%` }}
                   />
                   <div
-                    className="bg-danger transition-all"
+                    className="bg-critical transition-all"
                     style={{ width: `${criticalPercent}%` }}
                   />
                   <div
-                    className="bg-red-800 transition-all"
+                    className="bg-danger transition-all"
                     style={{ width: `${expiredPercent}%` }}
                   />
                 </div>
@@ -324,11 +324,11 @@ export default function StatisticsPage() {
                     {dept.warning} {t('status.warning')}
                   </span>
                   <span className="flex items-center gap-1 whitespace-nowrap">
-                    <div className="w-2 h-2 rounded-full bg-danger flex-shrink-0" />
+                    <div className="w-2 h-2 rounded-full bg-critical flex-shrink-0" />
                     {dept.critical} {t('status.urgent')}
                   </span>
                   <span className="flex items-center gap-1 whitespace-nowrap">
-                    <div className="w-2 h-2 rounded-full bg-red-800 flex-shrink-0" />
+                    <div className="w-2 h-2 rounded-full bg-danger flex-shrink-0" />
                     {dept.expired} {t('status.expired')}
                   </span>
                 </div>

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { MoreHorizontal, X, LogOut, User, Globe } from 'lucide-react'
+import { MoreHorizontal, X, LogOut, User, Globe, Building2, Users, Settings, HelpCircle } from 'lucide-react'
 import { useProducts } from '../context/ProductContext'
 import { useAuth } from '../context/AuthContext'
 import { useTranslation, useLanguage } from '../context/LanguageContext'
@@ -36,11 +36,14 @@ export default function BottomNavigation() {
   }))
 
   // Дополнительные пункты меню - фильтруем по роли/permissions из централизованной конфигурации
-  const moreItems = filterNavByRole(moreNavItems, userRole, navOptions).map((item) => ({
-    path: item.path,
-    icon: item.icon,
-    label: t(item.labelKey) || item.fallbackLabel
-  }))
+  // Исключаем настройки (group: 'system') - они доступны через dropdown в Header
+  const moreItems = filterNavByRole(moreNavItems, userRole, navOptions)
+    .filter((item) => item.group !== 'system')
+    .map((item) => ({
+      path: item.path,
+      icon: item.icon,
+      label: t(item.labelKey) || item.fallbackLabel
+    }))
 
   // Найти индекс активного элемента (включая moreItems)
   const activeIndex = navItems.findIndex(
@@ -79,15 +82,36 @@ export default function BottomNavigation() {
       {showMore && (
         <div className="fixed bottom-16 left-4 right-4 bg-card rounded-xl shadow-xl z-50 sm:hidden overflow-hidden animate-slide-up safe-bottom transition-colors duration-300">
           <div className="p-2">
-            {/* Профиль пользователя */}
-            <div className="flex items-center gap-3 px-4 py-3 border-b border-border mb-2">
-              <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center">
-                <User className="w-5 h-5 text-accent" />
+            {/* Профиль пользователя с информацией об отеле и отделе */}
+            <div className="px-4 py-3 border-b border-border mb-2">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center flex-shrink-0">
+                  <User className="w-5 h-5 text-accent" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">{user?.name}</p>
+                  <p className="text-xs text-muted-foreground truncate">{user?.roleLabel || user?.role}</p>
+                </div>
               </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-foreground">{user?.name}</p>
-                <p className="text-xs text-muted-foreground">{user?.roleLabel || user?.role}</p>
-              </div>
+
+              {/* Отель */}
+              {user?.hotel && (
+                <div className="flex items-center gap-2 mt-2 pt-2 border-t border-border/50">
+                  <Building2 className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+                  <span className="text-xs text-foreground truncate">{user.hotel.name}</span>
+                  {user.hotel.marsha_code && (
+                    <span className="text-xs text-muted-foreground">({user.hotel.marsha_code})</span>
+                  )}
+                </div>
+              )}
+
+              {/* Отдел */}
+              {user?.department && (
+                <div className="flex items-center gap-2 mt-1.5">
+                  <Users className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+                  <span className="text-xs text-foreground truncate">{user.department.name}</span>
+                </div>
+              )}
             </div>
 
 
@@ -150,6 +174,35 @@ export default function BottomNavigation() {
                 </TouchButton>
               )
             })}
+
+            {/* Настройки и Помощь */}
+            <div className="border-t border-border mt-2 pt-2">
+              <TouchButton
+                variant="ghost"
+                onClick={() => handleNavClick('/settings')}
+                className={cn(
+                  'w-full justify-start gap-3 px-4 py-3 rounded-lg h-auto min-h-[44px]',
+                  location.pathname === '/settings' ? 'bg-accent/10 text-accent' : 'text-foreground hover:bg-muted'
+                )}
+                icon={Settings}
+                iconPosition="left"
+              >
+                <span className="text-sm font-medium">{t('nav.settings') || 'Настройки'}</span>
+              </TouchButton>
+
+              <TouchButton
+                variant="ghost"
+                onClick={() => handleNavClick('/faq')}
+                className={cn(
+                  'w-full justify-start gap-3 px-4 py-3 rounded-lg h-auto min-h-[44px]',
+                  location.pathname === '/faq' ? 'bg-accent/10 text-accent' : 'text-foreground hover:bg-muted'
+                )}
+                icon={HelpCircle}
+                iconPosition="left"
+              >
+                <span className="text-sm font-medium">{t('nav.faq') || 'Помощь'}</span>
+              </TouchButton>
+            </div>
 
             {/* Кнопка выхода */}
             <TouchButton

@@ -4,12 +4,12 @@
  */
 
 import { useState, useEffect } from 'react'
-import { useTranslation } from '../../context/LanguageContext'
-import { useToast } from '../../context/ToastContext'
-import { apiFetch } from '../../services/api'
+import { useTranslation } from '../../../context/LanguageContext'
+import { useToast } from '../../../context/ToastContext'
+import { apiFetch } from '../../../services/api'
 import { Mail, CheckCircle2, XCircle, Clock, RefreshCw } from 'lucide-react'
-import { ButtonSpinner } from '../ui'
-import { cn } from '../../utils/classNames'
+import { ButtonSpinner } from '..'
+import { cn } from '../../../utils/classNames'
 
 export default function DepartmentEmailVerification({ departmentId, email, onVerified }) {
   const { t } = useTranslation()

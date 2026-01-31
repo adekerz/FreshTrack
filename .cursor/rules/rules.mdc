@@ -1,5 +1,6 @@
 ---
-applyTo: '**'
+description: "Comprehensive project rules for FreshTrack: Russian language, security-first architecture (MFA, audit trail integrity, hash chain), RBAC permissions, data isolation, PostgreSQL, React+Vite, and production-ready code standards"
+alwaysApply: true
 ---
 
 # FreshTrack — Финальные инструкции для Cursor
@@ -8,6 +9,27 @@ applyTo: '**'
 Всегда отвечай **на русском**.  
 Комментарии в коде — **на русском**.  
 UI тексты — **i18n-ready (через ключи, без хардкода)**.
+
+---
+
+## 🎯 ПРОЕКТ
+
+**FreshTrack** — enterprise-grade система управления инвентарем для отелей.
+
+### Tech Stack:
+- **Backend:** Node.js 20+ + Express 4.18 + PostgreSQL 16
+- **Frontend:** React 18.2 + Vite 5.x + TailwindCSS 3.4
+- **Auth:** JWT + MFA (TOTP + backup codes)
+- **Security:** Hash chain audit trail, rate limiting, IP allowlist
+- **Localization:** i18next (8 языков: RU, EN, KK, DE, FR, ES, IT, AR)
+
+### Architecture:
+- **Backend = Single Source of Truth**
+- **Permissions-based RBAC** (не hardcoded роли)
+- **Multi-tenancy** (hotel_id isolation)
+- **Audit trail integrity** (hash chain, no DELETE)
+- **MFA enforcement** для SUPER_ADMIN
+- **Security alerting** для critical events
 
 ---
 
@@ -31,6 +53,18 @@ UI тексты — **i18n-ready (через ключи, без хардкода
 - рассуждения «в теории»
 - учебные объяснения
 - повтор условий задачи
+- "Let's think about this..."
+- "Here's what we'll do..."
+
+✅ Правильно:
+```typescript
+// Код сразу
+const result = await service.doSomething();
+
+// Чеклист после
+[ ] Проверка X
+[ ] Проверка Y
+```
 
 ---
 
@@ -42,17 +76,30 @@ UI тексты — **i18n-ready (через ключи, без хардкода
 - Решает ли это реальную задачу пользователя?
 - Не дублирует ли существующее?
 - Нужно ли это большинству пользователей?
+- Соответствует ли hotel inventory management domain?
 
-### 2. Не ломает ли архитектуру?
+### 2. Безопасно ли?
+- **RBAC:** requirePermission вместо hardcoded ролей
+- **MFA:** requireMFA на критичных endpoints
+- **Audit:** все мутации логируются с hash chain
+- **Isolation:** hotel_id фильтры везде
+- **Rate limiting:** export/webhook endpoints защищены
+- **Signature verification:** webhooks проверяют подписи
+
+### 3. Не ломает ли архитектуру?
 - Backend = единственный источник истины
 - Permissions проверяются ТОЛЬКО на бэке
 - Изоляция по `hotel_id` / `department_id` соблюдена
+- Hash chain integrity сохраняется (NO DELETE audit_logs)
+- PostgreSQL queries параметризованы (SQL injection protection)
 
-### 3. UX / UI
+### 4. UX / UI
 - Понятно без объяснений?
 - ≤ 3 клика до результата
 - Mobile-first (touch ≥ 48px)
 - Есть loading / success / error feedback
+- i18n keys (не hardcoded текст)
+- Keyboard navigation работает
 
 **Если есть сомнение — СПРОСИ. Не делай.**
 
@@ -66,11 +113,13 @@ UI тексты — **i18n-ready (через ключи, без хардкода
 - менять auth / RBAC flow
 - вводить новые роли
 - менять ключевые идентификаторы
+- менять MFA flow
+- менять hash chain logic
 - «предлагать более правильную архитектуру»
 
 ✅ Если архитектура реально требуется:
 1. Явно написать: **«Требуется архитектурное решение»**
-2. Дать 2–3 варианта
+2. Дать 2–3 варианта с trade-offs
 3. **НЕ ПИСАТЬ КОД**, пока пользователь не выберет вариант
 
 ---
@@ -79,12 +128,21 @@ UI тексты — **i18n-ready (через ключи, без хардкода
 
 Делай **ТОЛЬКО** то, что требуется задачей.
 
-❌ Запрещено:
-- retry / caching / batching без запроса
+❌ Запрещено добавлять без запроса:
+- retry / caching / batching
 - telemetry / metrics / feature flags
 - «на будущее»
 - лишние абстракции
 - преждевременная оптимизация
+- GraphQL / WebSockets (если не попросили)
+- Microservices / Event sourcing
+- Redis / RabbitMQ / Kafka
+
+✅ Используем ТОЛЬКО:
+- PostgreSQL (не Prisma, не TypeORM)
+- Express (не NestJS, не Fastify)
+- React + Vite (не Next.js, не Remix)
+- JWT (не OAuth2, не Passport.js без необходимости)
 
 ---
 
@@ -92,9 +150,12 @@ UI тексты — **i18n-ready (через ключи, без хардкода
 
 ❌ Запрещено:
 - `TODO`
-- `mock`
+- `FIXME`
+- `mock` / `stub`
 - «опущено для краткости»
 - «реализуй сам»
+- `// Implementation here`
+- `throw new Error('Not implemented')`
 
 Если что-то невозможно — **прямо сказать почему**.
 
@@ -105,133 +166,334 @@ UI тексты — **i18n-ready (через ключи, без хардкода
 Фича **НЕ считается готовой**, пока пользователь не может использовать её end-to-end.
 
 ### Backend — ОБЯЗАТЕЛЬНАЯ ЦЕПОЧКА
-Route → Validation → requirePermission → Service → DB → Audit → Response
+```
+Route → Middleware → Validation → Permission → MFA (если критично) 
+→ Service → SQL → Audit → Response
+```
 
-- Input validation (zod/joi)
-- Permission check (`requirePermission`)
-- Вся логика в `services/`
-- Транзакции при нескольких операциях
-- Audit logging для каждой мутации
-- Изоляция по `hotel_id`
-- Чёткие ошибки (без stack trace)
+**Checklist:**
+- [ ] Input validation (Zod schema)
+- [ ] Permission check (`requirePermission`)
+- [ ] MFA enforcement (`requireMFA` если критично)
+- [ ] Логика в `services/` (не в controller)
+- [ ] Параметризованные SQL queries (`$1, $2`)
+- [ ] Транзакции при нескольких операциях
+- [ ] Audit logging (`AuditService.logAction()`)
+- [ ] hotel_id isolation (`WHERE hotel_id = $1`)
+- [ ] `WHERE archived = FALSE` (если audit_logs)
+- [ ] Rate limiting (если export/webhook)
+- [ ] Signature verification (если webhook)
+- [ ] Error handling (try-catch)
+- [ ] User-friendly errors (без stack trace)
+- [ ] Security alerts (если подозрительная активность)
 
 ---
 
 ### Frontend — ОБЯЗАТЕЛЬНО
+```
 Form → Validation → API → Loading → Success/Error → Integration
+```
 
-- Client-side validation
-- Loading state
-- Success feedback (toast)
-- Error feedback (понятный текст)
-- Disabled states
-- Mobile responsive
-- Keyboard navigation
-- **Интеграция в навигацию**
-- Не «сирота»
+**Checklist:**
+- [ ] Client-side validation
+- [ ] API call через `apiFetch`
+- [ ] Loading state (spinner/skeleton)
+- [ ] Success feedback (toast)
+- [ ] Error feedback (toast + inline)
+- [ ] Disabled states (during submission)
+- [ ] Mobile responsive (Tailwind breakpoints)
+- [ ] Touch targets ≥ 48px
+- [ ] Keyboard navigation
+- [ ] i18n keys (не hardcoded текст)
+- [ ] **Интеграция в Layout/Router**
+- [ ] Breadcrumbs обновляются
+- [ ] Title документа обновляется
+- [ ] Permissions учитываются (`{permissions?.canEdit && ...}`)
+- [ ] Не «сирота» (есть путь попасть и вернуться)
 
 ---
 
 ### Интеграция
-- Есть путь попасть на экран
-- Есть путь вернуться
-- UI обновляется после действия
-- Permissions учитываются в UI
+- [ ] Есть путь попасть на экран (навигация)
+- [ ] Есть путь вернуться (back button/breadcrumbs)
+- [ ] UI обновляется после действия (optimistic/refetch)
+- [ ] Permissions учитываются в UI (hide unavailable)
+- [ ] Empty state отображается
+- [ ] Error state отображается
 
 ---
 
 ### Edge cases (обязательно)
-- Нет прав
-- Не авторизован
-- Невалидные данные
-- Сервер недоступен
-- Double submit
-- Empty state
+- [ ] Нет прав (403 Forbidden)
+- [ ] Не авторизован (401 Unauthorized)
+- [ ] Rate limited (429 Too Many Requests)
+- [ ] MFA не настроена (grace period / redirect)
+- [ ] Email не верифицирован
+- [ ] Невалидные данные (400 Bad Request)
+- [ ] Сервер недоступен (500 Internal Error)
+- [ ] Network timeout
+- [ ] Double submit protection
+- [ ] Empty state (no data)
+- [ ] Large dataset (pagination)
 
 ---
 
 ## ❗ ОШИБКИ
 
 ### Backend
-- ❌ stack trace в ответах
-- ✅ user-friendly сообщения
-- ✅ структурированные логи
+```javascript
+// ❌ Неправильно
+res.status(500).json({ error: err.stack });
+
+// ✅ Правильно
+logError('Operation failed', error);
+res.status(500).json({ 
+  success: false,
+  error: 'Failed to process request. Please try again.' 
+});
+```
 
 ### Frontend
-- ❌ raw error
-- ✅ человекочитаемый текст
+```tsx
+// ❌ Неправильно
+<p>{error.toString()}</p>
+
+// ✅ Правильно
+<p>{error.message || 'Something went wrong'}</p>
+```
 
 ---
 
 ## 🔐 ДОСТУПЫ И БЕЗОПАСНОСТЬ
 
-❌ Запрещено:
-- `role === 'ADMIN'`
-- `allowedRoles`
-- `hotelAdminOnly`
-- любые hardcoded роли
+### Запрещенные patterns:
+```javascript
+// ❌ ЗАПРЕЩЕНО
+if (user.role === 'ADMIN') { ... }
+if (allowedRoles.includes(user.role)) { ... }
+function hotelAdminOnly(req, res, next) { ... }
 
-✅ Только:
-- `requirePermission(resource, action)`
-- permissions из БД
+// ✅ ПРАВИЛЬНО
+requirePermission(PermissionResource.PRODUCTS, PermissionAction.CREATE)
+requirePermission('products', 'create', 'hotel')
+```
 
-**Новая роль = 0 изменений кода**
+### MFA Enforcement:
+```javascript
+// ✅ Критичные endpoints
+router.delete('/hotels/:id',
+  authMiddleware,
+  requireMFA,  // ← ОБЯЗАТЕЛЬНО для SUPER_ADMIN
+  requirePermission(PermissionResource.HOTELS, PermissionAction.DELETE),
+  async (req, res) => { ... }
+);
+```
+
+### Export Protection:
+```javascript
+// ✅ Полная защита
+router.get('/export/products',
+  authMiddleware,
+  requireMFA,                    // MFA required
+  rateLimitExportWithAlert,      // 10/hour + alerts
+  requireAllowlistedIP,          // IP whitelist
+  requirePermission(...),
+  async (req, res) => { ... }
+);
+```
+
+**Новая роль = 0 изменений кода** (только INSERT в role_permissions)
 
 ---
 
 ## 🏨 ИЗОЛЯЦИЯ ДАННЫХ (КРИТИЧНО)
 
-Каждый backend-запрос:
-- фильтр по `hotel_id`
-- фильтр по `department_id` (если применимо)
-- `buildContextWhere(req.user)`
+### SQL Pattern:
+```sql
+-- ✅ ВСЕГДА фильтр по hotel_id
+SELECT * FROM products 
+WHERE hotel_id = $1 
+  AND archived = FALSE
 
-❌ Запросы без контекста — ЗАПРЕЩЕНЫ
+-- ✅ Audit logs
+SELECT * FROM audit_logs 
+WHERE hotel_id = $1 
+  AND archived = FALSE  -- ← ОБЯЗАТЕЛЬНО
+ORDER BY created_at DESC
+
+-- ❌ ЗАПРЕЩЕНО — cross-hotel access
+SELECT * FROM products WHERE id = $1
+```
+
+### Service Pattern:
+```javascript
+// ✅ Правильно
+async getProducts(hotelId, filters) {
+  const { rows } = await pool.query(
+    'SELECT * FROM products WHERE hotel_id = $1',
+    [hotelId]
+  );
+  return rows;
+}
+
+// ❌ Неправильно — нет hotel_id
+async getProducts(filters) {
+  const { rows } = await pool.query('SELECT * FROM products');
+  return rows;
+}
+```
 
 ---
 
 ## 🖥️ FRONTEND ПРАВИЛА
 
-❌ НИКОГДА:
-```ts
-if (user.role === 'ADMIN') {}
-const color = status === 'bad' ? 'red' : 'green'
-```
-
-✅ ТОЛЬКО данные с бэка:
-
+### НИКОГДА не делай на фронте:
 ```tsx
-<Badge color={item.statusColor}>{item.statusLabel}</Badge>
-{permissions.canEdit && <EditButton />}
+// ❌ ЗАПРЕЩЕНО
+if (user.role === 'ADMIN') { ... }
+const color = status === 'bad' ? 'red' : 'green'
+const daysLeft = Math.ceil((expiryDate - Date.now()) / 86400000)
+const canEdit = user.permissions.includes('edit')
 ```
 
-Backend возвращает:
-- status
-- statusColor
-- statusLabel
-- permissions
+### ТОЛЬКО данные с backend:
+```tsx
+// ✅ ПРАВИЛЬНО
+<Badge className={batch.statusCssClass}>
+  {batch.statusText}
+</Badge>
+
+{permissions?.canEdit && <EditButton />}
+{permissions?.canDelete && <DeleteButton />}
+```
+
+### Backend возвращает:
+```json
+{
+  "id": "uuid",
+  "name": "Product",
+  "status": "critical",
+  "statusColor": "warning",
+  "statusText": "Критично: 3 дн.",
+  "statusCssClass": "bg-yellow-500 text-white",
+  "permissions": {
+    "canEdit": true,
+    "canDelete": false
+  }
+}
+```
 
 ---
 
-## ⚡ REALTIME (SSE)
-- UI подписывается на события
-- Обновляет context
-- ❌ не перезагружает страницу
+## 🔒 AUDIT TRAIL INTEGRITY
+
+### Hash Chain Rules:
+```javascript
+// ✅ НИКОГДА DELETE
+// ❌ DELETE FROM audit_logs WHERE ...
+
+// ✅ ТОЛЬКО архивация
+UPDATE audit_logs 
+SET archived = TRUE 
+WHERE created_at < NOW() - INTERVAL '7 years'
+
+// ✅ ВСЕГДА фильтр
+SELECT * FROM audit_logs WHERE archived = FALSE
+```
+
+### Audit Logging Pattern:
+```javascript
+await AuditService.logAction({
+  entityType: 'PRODUCT',
+  entityId: product.id,
+  action: 'UPDATE',
+  userId: req.user.id,
+  hotelId: req.user.hotelId,
+  snapshotBefore: oldProduct,
+  snapshotAfter: updatedProduct
+});
+// Hash chain (previous_hash, current_hash) 
+// вычисляется автоматически через триггер БД
+```
+
+### Verification Job:
+```javascript
+// Проверка каждые 6 часов
+const result = await AuditIntegrityService.verifyRecent(1000);
+
+if (!result.valid) {
+  await SecurityAlertService.sendAlert('audit_integrity_violation', {
+    errors: result.errors
+  });
+}
+```
+
+---
+
+## ⚡ MFA PATTERNS
+
+### Setup Flow:
+```javascript
+// 1. Generate
+const { secret, qrCode, backupCodes } = 
+  await MFAService.setupMFA(userId, userName);
+
+// 2. Verify
+await MFAService.verifyTOTP(userId, code, ipAddress, userAgent);
+
+// 3. Enable
+await MFAService.enableMFA(userId);
+```
+
+### Login Flow:
+```javascript
+// 1. Credentials check
+const user = await AuthService.verifyCredentials(login, password);
+
+// 2. MFA check
+if (user.mfa_enabled) {
+  return { requiresMFA: true, partialToken };
+}
+
+// 3. Verify MFA → full token
+await MFAService.verifyTOTP(userId, code, ipAddress, userAgent);
+```
+
+### Grace Period:
+```javascript
+// requireMFA middleware
+if (mfa_required && !mfa_enabled) {
+  const graceEnds = new Date(mfa_grace_period_ends);
+  
+  if (Date.now() < graceEnds) {
+    // Still in grace period
+    res.setHeader('X-MFA-Warning', `${daysLeft} days left`);
+    return next();
+  }
+  
+  // Grace period expired
+  return res.status(403).json({ error: 'MFA required' });
+}
+```
 
 ---
 
 ## 🛑 АБСОЛЮТНЫЕ ЗАПРЕТЫ
 
-| Запрет | Почему |
-|--------|--------|
-| Hardcoded роли | Ломает RBAC |
-| Бизнес-логика в UI | Backend = source of truth |
-| Permission fallback | Уязвимость |
-| Cross-hotel доступ | Нарушение изоляции |
-| console.log в проде | Безопасность |
-| any в TypeScript | Потеря типов |
-| Inline styles | Дизайн-долг |
-| Magic numbers | Нечитаемо |
+| Запрет | Почему | Вместо этого |
+|--------|--------|--------------|
+| Hardcoded роли | Ломает RBAC | `requirePermission` |
+| Бизнес-логика в UI | Backend ≠ source of truth | Вычисления на backend |
+| Permission fallback | Security hole | Fail closed (403) |
+| Cross-hotel доступ | Data leak | `hotel_id` фильтр везде |
+| DELETE audit_logs | Breaks hash chain | Archival (`archived = TRUE`) |
+| `console.log` в проде | Security risk | `logInfo`, `logError` |
+| `any` в TypeScript | Теряем типы | Proper types |
+| Inline styles | Design debt | TailwindCSS |
+| Magic numbers | Нечитаемо | Named constants |
+| SQL injection | Critical vulnerability | Параметризованные queries |
+| Prisma / TypeORM | Stack mismatch | Raw PostgreSQL |
+| Next.js | Stack mismatch | React + Vite |
 
 ---
 
@@ -244,11 +506,17 @@ use context7
 ```
 
 Основные библиотеки:
-- Next.js — /vercel/next.js
-- Prisma — /prisma/prisma
+- Express — /expressjs/express
+- PostgreSQL — /brianc/node-postgres
 - React — /facebook/react
-- TypeScript — /microsoft/typescript
+- React Router — /remix-run/react-router
 - TailwindCSS — /tailwindlabs/tailwindcss
+- Zod — /colinhacks/zod
+- JWT — /auth0/node-jsonwebtoken
+- Bcrypt — /kelektiv/node.bcrypt.js
+- OTPLib — /yeojz/otplib
+- i18next — /i18next/react-i18next
+- Chart.js — /chartjs/chart.js
 
 ---
 
@@ -257,25 +525,119 @@ use context7
 1. Короткое объяснение (1–2 предложения)
 2. Полный рабочий код
 3. Чеклист «что проверить»
-4. Риски (если есть)
+4. Security concerns (если есть)
+
+Пример:
+```
+Добавляю MFA enforcement для /hotels endpoint.
+
+[код]
+
+Checklist:
+[ ] requireMFA middleware
+[ ] Grace period support
+[ ] Security alert
+[ ] Audit logging
+
+⚠️ Security: SUPER_ADMIN получит 30 дней grace period.
+```
+
+---
+
+## 🎯 SECURITY CHECKLIST
+
+Перед каждым commit проверь:
+
+### Backend:
+- [ ] Permissions (`requirePermission`, не hardcoded роли)
+- [ ] MFA (`requireMFA` на критичных endpoints)
+- [ ] Audit logging (`AuditService.logAction()`)
+- [ ] hotel_id isolation (`WHERE hotel_id = $1`)
+- [ ] SQL injection protection (параметризованные queries)
+- [ ] Rate limiting (export/webhook endpoints)
+- [ ] Signature verification (webhooks)
+- [ ] `WHERE archived = FALSE` (audit_logs queries)
+- [ ] Error messages (no stack traces)
+- [ ] Security alerts (suspicious activity)
+
+### Frontend:
+- [ ] No business logic (статусы с backend)
+- [ ] No role checks (`permissions?.canEdit`)
+- [ ] Loading states
+- [ ] Error handling
+- [ ] Mobile responsive
+- [ ] i18n keys
+- [ ] Keyboard navigation
+- [ ] Integration в router
 
 ---
 
 ## 🎯 ФИНАЛЬНОЕ ПРАВИЛО
 
 Если функция:
-- не безопасна
-- не интегрирована
-- не доступна пользователю
-- не завершена end-to-end
+- не безопасна (нет RBAC/MFA/audit/rate limiting)
+- не интегрирована (нет в навигации)
+- не доступна пользователю (нет UI)
+- не завершена end-to-end (missing states)
+- ломает hash chain integrity
+- не имеет audit logging
+- не работает на mobile
 
 ➡️ она **НЕ ГОТОВА**.
 
 Перед кодом проверь:
-- Нужно ли это?
-- Не ломает ли архитектуру?
-- Удобно ли?
-- Безопасно ли?
-- Работает ли на mobile?
+- ✅ Нужно ли это?
+- ✅ Безопасно ли? (RBAC, MFA, audit, isolation, rate limiting)
+- ✅ Не ломает ли архитектуру? (hash chain, permissions)
+- ✅ Удобно ли? (UX, mobile, i18n)
+- ✅ Работает ли на mobile? (touch targets, responsive)
+- ✅ Есть ли audit logging? (все мутации)
+- ✅ Есть ли error handling? (try-catch, user-friendly messages)
 
 Если все ответы ДА — пиши код.
+Если хоть один НЕТ — СПРОСИ.
+
+---
+
+## 🚨 EMERGENCY PROTOCOLS
+
+### Production Bug:
+1. Analyze logs
+2. Identify root cause
+3. Hotfix (minimal change)
+4. Deploy
+5. Post-mortem
+6. Prevention measures
+
+### Security Incident:
+1. Assess scope (data breach? how many users?)
+2. Immediate mitigation (block IP, disable feature)
+3. Audit logs analysis
+4. Notify affected users (GDPR)
+5. Root cause fix
+6. Prevention (new security measures)
+
+### Performance Issue:
+1. Identify bottleneck (slow query? N+1?)
+2. Quick win (index, cache, limit)
+3. Monitor improvement
+4. Long-term optimization
+
+---
+
+## 📊 PRODUCTION READINESS
+
+Feature готова к production ТОЛЬКО если:
+
+- [ ] Security checklist пройден
+- [ ] Tests passing (manual QA минимум)
+- [ ] Mobile tested
+- [ ] Error handling везде
+- [ ] Audit logging работает
+- [ ] Hash chain integrity сохраняется
+- [ ] MFA enforcement (если критично)
+- [ ] Rate limiting (если нужно)
+- [ ] i18n keys (не hardcoded)
+- [ ] Performance acceptable (< 1s response)
+- [ ] Rollback plan готов
+- [ ] Monitoring настроенИначе — **НЕ ГОТОВО**.

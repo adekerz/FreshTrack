@@ -68,7 +68,11 @@ export function trapFocus(element) {
   }
 
   element.addEventListener('keydown', handleKeyDown)
-  firstFocusable?.focus()
+  // Фокус на первый элемент только если фокус ещё не внутри модалки (не забираем фокус у input при ре-установке trap)
+  const focusAlreadyInside = element.contains(document.activeElement)
+  if (!focusAlreadyInside && firstFocusable) {
+    firstFocusable.focus()
+  }
 
   return () => {
     element.removeEventListener('keydown', handleKeyDown)

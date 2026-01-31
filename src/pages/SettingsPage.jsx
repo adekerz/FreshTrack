@@ -45,12 +45,15 @@ import ImportExportSettings from '../components/ui/settings/ImportExportSettings
 import BrandingSettings from '../components/ui/settings/BrandingSettings'
 import JoinRequestsSettings from '../components/ui/settings/JoinRequestsSettings'
 import CacheManagement from '../components/ui/settings/CacheManagement'
+import AccountsSettings from '../components/ui/settings/AccountsSettings'
+import MarshaCodesSettings from '../components/ui/settings/MarshaCodesSettings'
 import { ChangePasswordModal } from '../components/ui/ChangePasswordModal'
 import { ChangeEmailModal } from '../components/ui/ChangeEmailModal'
 
 const SETTINGS_TAB_IDS = new Set([
   'profile', 'language', 'general', 'users', 'join-requests', 'directories',
-  'templates', 'rules', 'notifications', 'branding', 'cache', 'import-export', 'system'
+  'templates', 'rules', 'notifications', 'branding', 'cache', 'import-export', 'system',
+  'accounts', 'marsha-codes', 'organization'
 ])
 
 export default function SettingsPage() {
@@ -164,6 +167,7 @@ export default function SettingsPage() {
     ...(userIsSuperAdmin
       ? []
       : [{ id: 'users', icon: Users, label: t('settings.tabs.users') || 'Пользователи' }]),
+    { id: 'accounts', icon: Users, label: t('settings.tabs.accounts') || 'Аккаунты' },
     { id: 'join-requests', icon: UserPlus, label: t('settings.tabs.joinRequests') || 'Заявки' },
     { id: 'directories', icon: Tags, label: t('settings.tabs.directories') || 'Справочники' },
     { id: 'templates', icon: FileBox, label: t('settings.tabs.templates') || 'Шаблоны' },
@@ -181,6 +185,7 @@ export default function SettingsPage() {
   // Табы только для SUPER_ADMIN (уникальные возможности)
   const superAdminTabs = [
     { id: 'organization', icon: Building2, label: 'Организация' },
+    { id: 'marsha-codes', icon: Database, label: t('settings.tabs.marshaCodes') || 'Марша коды' },
     { id: 'system', icon: Shield, label: t('settings.tabs.system') }
   ]
 
@@ -723,8 +728,10 @@ export default function SettingsPage() {
           {activeTab === 'language' && renderLanguage()}
           {activeTab === 'general' && userIsAdmin && <GeneralSettings />}
           {activeTab === 'users' && userIsAdmin && <OrganizationSettings />}
+          {activeTab === 'accounts' && userIsAdmin && <AccountsSettings />}
           {activeTab === 'join-requests' && userIsAdmin && <JoinRequestsSettings />}
           {activeTab === 'organization' && userIsSuperAdmin && <OrganizationSettings />}
+          {activeTab === 'marsha-codes' && userIsSuperAdmin && <MarshaCodesSettings />}
           {activeTab === 'directories' && userIsAdmin && <DirectoriesSettings />}
           {activeTab === 'directories' && userIsDepartmentManager && !userIsAdmin && (
             <DirectoriesSettings readOnly />

@@ -27,10 +27,13 @@ export default function Modal({
 }) {
   const modalRef = useRef(null)
   const previousActiveElement = useRef(null)
+  const onCloseRef = useRef(onClose)
   const uniqueId = useId()
   const titleId = `modal-title-${uniqueId}`
   const descId = `modal-desc-${uniqueId}`
   const reducedMotion = prefersReducedMotion()
+
+  onCloseRef.current = onClose
 
   const sizeClasses = {
     sm: 'sm:max-w-md',
@@ -40,12 +43,12 @@ export default function Modal({
     full: 'sm:max-w-[calc(100vw-2rem)] md:max-w-[calc(100vw-4rem)]',
   }
 
-  // Handle escape key
+  // Handle escape key (стабильная ссылка — не перезапускает effect при смене onClose)
   const handleKeyDown = useCallback((e) => {
     if (closeOnEscape && e.key === 'Escape') {
-      onClose()
+      onCloseRef.current()
     }
-  }, [closeOnEscape, onClose])
+  }, [closeOnEscape])
 
   // Handle backdrop click
   const handleBackdropClick = (e) => {
@@ -54,19 +57,17 @@ export default function Modal({
     }
   }
 
-  // Focus trap and restore
+  // Focus trap и restore — только при открытии/закрытии, не при каждом ре-рендере
   useEffect(() => {
     if (isOpen) {
       previousActiveElement.current = document.activeElement
       document.addEventListener('keydown', handleKeyDown)
       document.body.style.overflow = 'hidden'
 
-      // Announce modal opening to screen readers
       if (title) {
         announce(`Dialog opened: ${title}`)
       }
 
-      // Set up focus trap
       let cleanupFocusTrap
       const timer = setTimeout(() => {
         if (modalRef.current) {

@@ -17,7 +17,7 @@ import { logError } from '../utils/logger'
 import { cn } from '../utils/classNames'
 import { apiFetch } from '../services/api'
 import { useDebouncedCallback } from '../hooks/useDebounce'
-import SettingsLayout, { SettingsSection } from './settings/SettingsLayout'
+import SettingsLayout, { SettingsSection } from './ui/settings/SettingsLayout'
 
 export default function NotificationRulesSettings() {
   const { t } = useTranslation()

@@ -26,24 +26,29 @@ class MarshaCodeService {
       .replace(/[^\w\s]/g, '') // Remove special chars
       .trim()
 
-    // Use trigram similarity for fuzzy matching
+    // При точном совпадении по коду (5 букв) показывать запись даже если is_assigned — чтобы находить TSERZ при редактировании отеля
+    const exactCodeMatch = normalizedQuery.length === 5 && /^[a-z]+$/i.test(normalizedQuery)
+    const showAssigned = includeAssigned || exactCodeMatch
+
     const result = await pool.query(`
       SELECT 
-        id, code, hotel_name, city, country, region, brand,
-        is_assigned, assigned_to_hotel_id,
-        similarity(LOWER(hotel_name), $1) as name_sim,
-        similarity(LOWER(city), $1) as city_sim
-      FROM marsha_codes
+        mc.id, mc.code, mc.hotel_name, mc.city, mc.country, mc.region, mc.brand,
+        (mc.is_assigned AND EXISTS (SELECT 1 FROM hotels h WHERE h.id = mc.assigned_to_hotel_id)) AS is_assigned,
+        mc.assigned_to_hotel_id,
+        similarity(LOWER(mc.hotel_name), $1) as name_sim,
+        similarity(LOWER(mc.city), $1) as city_sim
+      FROM marsha_codes mc
       WHERE 
-        ${includeAssigned ? 'TRUE' : 'is_assigned = FALSE'}
+        (${showAssigned ? 'TRUE' : '(mc.is_assigned = FALSE OR NOT EXISTS (SELECT 1 FROM hotels h2 WHERE h2.id = mc.assigned_to_hotel_id))'})
         AND (
-          LOWER(hotel_name) LIKE '%' || $1 || '%'
-          OR LOWER(city) LIKE '%' || $1 || '%'
-          OR LOWER(hotel_name) % $1
-          OR code ILIKE $1 || '%'
+          LOWER(mc.hotel_name) LIKE '%' || $1 || '%'
+          OR LOWER(mc.city) LIKE '%' || $1 || '%'
+          OR LOWER(mc.hotel_name) % $1
+          OR mc.code ILIKE $1 || '%'
+          OR (LENGTH($1) = 5 AND UPPER(mc.code) = UPPER($1))
         )
       ORDER BY 
-        CASE WHEN code ILIKE $1 || '%' THEN 0 ELSE 1 END,
+        CASE WHEN UPPER(mc.code) = UPPER($1) THEN 0 WHEN mc.code ILIKE $1 || '%' THEN 1 ELSE 2 END,
         name_sim DESC,
         city_sim DESC,
         hotel_name ASC
@@ -156,8 +161,14 @@ class MarshaCodeService {
 
       const marshaCode = codeResult.rows[0]
 
-      if (marshaCode.is_assigned) {
-        throw new Error('This MARSHA code is already assigned to another hotel')
+      if (marshaCode.is_assigned && marshaCode.assigned_to_hotel_id) {
+        const assignedHotel = await client.query(
+          'SELECT id FROM hotels WHERE id = $1',
+          [marshaCode.assigned_to_hotel_id]
+        )
+        if (assignedHotel.rows.length > 0) {
+          throw new Error('This MARSHA code is already assigned to another hotel')
+        }
       }
 
       // Get hotel
@@ -204,14 +215,14 @@ class MarshaCodeService {
           hotel_id: hotelId,
           user_id: user.id,
           user_name: user.name,
-          action: AuditAction.UPDATE,
-          entity_type: 'hotel',
-          entity_id: hotelId,
+          action: 'ASSIGN_MARSHA',
+          entity_type: 'marsha_code',
+          entity_id: marshaCode.id,
           details: {
-            action: 'MARSHA_CODE_ASSIGNED',
             marshaCode: marshaCode.code,
             marshaHotelName: marshaCode.hotel_name,
-            hotelName: hotel.name
+            assignedToHotel: hotel.name,
+            hotelId
           }
         })
       } catch (auditError) {
@@ -292,13 +303,13 @@ class MarshaCodeService {
           hotel_id: hotelId,
           user_id: user.id,
           user_name: user.name,
-          action: AuditAction.UPDATE,
-          entity_type: 'hotel',
-          entity_id: hotelId,
+          action: 'RELEASE_MARSHA',
+          entity_type: 'marsha_code',
+          entity_id: null,
           details: {
-            action: 'MARSHA_CODE_RELEASED',
             releasedCode,
-            hotelName: hotel.name
+            fromHotel: hotel.name,
+            hotelId
           }
         })
       } catch (auditError) {
@@ -436,11 +447,130 @@ class MarshaCodeService {
    */
   static async getBrands() {
     const result = await pool.query(`
-      SELECT DISTINCT brand 
-      FROM marsha_codes 
+      SELECT DISTINCT brand
+      FROM marsha_codes
       ORDER BY brand
     `)
     return result.rows.map(r => r.brand)
+  }
+
+  /**
+   * Get all MARSHA codes with filtering and pagination (SUPER_ADMIN only)
+   * @param {object} params - Query parameters
+   * @returns {Promise<object>} { codes, total, page, limit, totalPages }
+   */
+  static async getAll(params = {}) {
+    const {
+      search,
+      country,
+      region,
+      brand,
+      isAssigned,
+      page = 1,
+      limit = 50
+    } = params
+
+    const conditions = []
+    const queryParams = []
+    let paramIndex = 1
+
+    // Search filter (by code, hotel_name, city)
+    if (search && search.trim()) {
+      const searchTerm = `%${search.trim().toLowerCase()}%`
+      conditions.push(`(
+        LOWER(mc.code) LIKE $${paramIndex}
+        OR LOWER(mc.hotel_name) LIKE $${paramIndex}
+        OR LOWER(mc.city) LIKE $${paramIndex}
+      )`)
+      queryParams.push(searchTerm)
+      paramIndex++
+    }
+
+    // Country filter
+    if (country) {
+      conditions.push(`mc.country = $${paramIndex}`)
+      queryParams.push(country)
+      paramIndex++
+    }
+
+    // Region filter
+    if (region) {
+      conditions.push(`mc.region = $${paramIndex}`)
+      queryParams.push(region)
+      paramIndex++
+    }
+
+    // Brand filter
+    if (brand) {
+      conditions.push(`mc.brand = $${paramIndex}`)
+      queryParams.push(brand)
+      paramIndex++
+    }
+
+    // Assignment status filter
+    if (isAssigned !== undefined && isAssigned !== null && isAssigned !== '') {
+      const isAssignedValue = isAssigned === true || isAssigned === 'true'
+      conditions.push(`mc.is_assigned = $${paramIndex}`)
+      queryParams.push(isAssignedValue)
+      paramIndex++
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
+
+    // Get total count
+    const countQuery = `SELECT COUNT(*) as total FROM marsha_codes mc ${whereClause}`
+    const countResult = await pool.query(countQuery, queryParams)
+    const total = parseInt(countResult.rows[0].total, 10)
+
+    // Pagination
+    const offset = (page - 1) * limit
+    const dataQuery = `
+      SELECT
+        mc.id, mc.code, mc.hotel_name, mc.city, mc.country, mc.region, mc.brand,
+        mc.is_assigned, mc.assigned_to_hotel_id, mc.assigned_at, mc.assigned_by,
+        mc.created_at,
+        h.name as assigned_hotel_name,
+        h.marsha_code as assigned_hotel_marsha,
+        u.name as assigned_by_name
+      FROM marsha_codes mc
+      LEFT JOIN hotels h ON mc.assigned_to_hotel_id = h.id
+      LEFT JOIN users u ON mc.assigned_by = u.id
+      ${whereClause}
+      ORDER BY mc.country, mc.city, mc.hotel_name
+      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+    `
+    queryParams.push(limit, offset)
+
+    const dataResult = await pool.query(dataQuery, queryParams)
+
+    const codes = dataResult.rows.map(row => ({
+      id: row.id,
+      code: row.code,
+      hotelName: row.hotel_name,
+      city: row.city,
+      country: row.country,
+      region: row.region,
+      brand: row.brand,
+      isAssigned: row.is_assigned,
+      assignedAt: row.assigned_at,
+      createdAt: row.created_at,
+      assignedHotel: row.assigned_to_hotel_id ? {
+        id: row.assigned_to_hotel_id,
+        name: row.assigned_hotel_name
+      } : null,
+      assignedBy: row.assigned_by ? {
+        id: row.assigned_by,
+        name: row.assigned_by_name
+      } : null
+    }))
+
+    return {
+      codes,
+      total,
+      page: parseInt(page, 10),
+      limit: parseInt(limit, 10),
+      totalPages: Math.ceil(total / limit)
+    }
   }
 }
 

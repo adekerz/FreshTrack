@@ -109,9 +109,9 @@ export default function CalendarPage() {
         return 'bg-danger text-white'
       case 'critical':
       case 'today':
-        return 'bg-orange-500 text-white'
+        return 'bg-critical text-white'
       case 'warning':
-        return 'bg-yellow-400 text-foreground'
+        return 'bg-warning text-foreground'
       case 'good':
         return 'bg-success text-white'
       default:
@@ -208,14 +208,14 @@ export default function CalendarPage() {
 
         <div className="bg-card rounded-xl p-3 sm:p-4 shadow-card border border-border">
           <div className="flex items-center gap-2 sm:gap-3">
-            <div className="p-1.5 sm:p-2 bg-orange-500/10 rounded-lg">
-              <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
+            <div className="p-1.5 sm:p-2 bg-critical/10 rounded-lg">
+              <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-critical" />
             </div>
             <div className="min-w-0">
               <p className="text-xs sm:text-sm text-muted-foreground truncate">
                 {t('calendar.criticalDays') || 'Критических'}
               </p>
-              <p className="text-lg sm:text-xl font-semibold text-orange-600">
+              <p className="text-lg sm:text-xl font-semibold text-critical">
                 {monthStats.critical}
               </p>
             </div>
@@ -224,14 +224,14 @@ export default function CalendarPage() {
 
         <div className="bg-card rounded-xl p-3 sm:p-4 shadow-card border border-border">
           <div className="flex items-center gap-2 sm:gap-3">
-            <div className="p-1.5 sm:p-2 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg">
-              <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600" />
+            <div className="p-1.5 sm:p-2 bg-warning/10 rounded-lg">
+              <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-warning" />
             </div>
             <div className="min-w-0">
               <p className="text-xs sm:text-sm text-muted-foreground truncate">
                 {t('calendar.warningDays') || 'Внимание'}
               </p>
-              <p className="text-lg sm:text-xl font-semibold text-yellow-600">
+              <p className="text-lg sm:text-xl font-semibold text-warning">
                 {monthStats.warning}
               </p>
             </div>
@@ -349,13 +349,13 @@ export default function CalendarPage() {
               </span>
             </div>
             <div className="flex items-center gap-1 sm:gap-2">
-              <div className="w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-orange-500" />
+              <div className="w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-critical" />
               <span className="text-xs sm:text-sm text-muted-foreground">
                 {t('status.critical') || 'Критично'}
               </span>
             </div>
             <div className="flex items-center gap-1 sm:gap-2">
-              <div className="w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-yellow-400" />
+              <div className="w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-warning" />
               <span className="text-xs sm:text-sm text-muted-foreground">
                 {t('status.warning') || 'Внимание'}
               </span>
@@ -393,7 +393,7 @@ export default function CalendarPage() {
                         batchStatus === 'expired'
                           ? 'border-danger bg-danger/5'
                           : batchStatus === 'critical' || batchStatus === 'today'
-                            ? 'border-orange-500 bg-orange-500/5'
+                            ? 'border-critical bg-critical/5'
                             : batchStatus === 'warning'
                               ? 'border-warning bg-warning/10'
                               : 'border-success bg-success/5'

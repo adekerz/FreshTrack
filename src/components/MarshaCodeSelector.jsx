@@ -40,6 +40,7 @@ export default function MarshaCodeSelector({
   const [suggestions, setSuggestions] = useState([])
   const [searchResults, setSearchResults] = useState([])
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
   const [selectedDetails, setSelectedDetails] = useState(null)
 
   const containerRef = useRef(null)
@@ -91,8 +92,9 @@ export default function MarshaCodeSelector({
     try {
       const data = await apiFetch(`${apiBasePath}/${code}`)
       setSelectedDetails(data.marshaCode || null)
-    } catch (error) {
-      console.error('Failed to fetch code details:', error)
+      setError(null)
+    } catch (err) {
+      console.error('Failed to fetch code details:', err)
       setSelectedDetails(null)
     }
   }
@@ -130,13 +132,27 @@ export default function MarshaCodeSelector({
     [usePublicApi, apiBasePath]
   )
 
-  const handleSelect = (code) => {
-    onSelect?.(code.code, code.id)
-    // Передаём все данные MARSHA кода для автозаполнения
-    onSelectWithDetails?.(code)
-    setIsOpen(false)
-    setSearch('')
-    setSearchResults([])
+  const handleSelect = async (code) => {
+    setLoading(true)
+    setError(null)
+    try {
+      const data = await apiFetch(`${apiBasePath}/${code.code}`)
+      const marshaCode = data.marshaCode || data
+      onSelect?.(marshaCode.code, marshaCode.id)
+      onSelectWithDetails?.(marshaCode)
+      setIsOpen(false)
+      setSearch('')
+      setSearchResults([])
+    } catch (err) {
+      setError(t('marshaCode.loadError'))
+      onSelect?.(code.code, code.id)
+      onSelectWithDetails?.(code)
+      setIsOpen(false)
+      setSearch('')
+      setSearchResults([])
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleClear = () => {
@@ -223,6 +239,12 @@ export default function MarshaCodeSelector({
         <label className="block text-sm font-medium text-foreground mb-1">
           {t('marshaCode.label') || 'MARSHA код'}
         </label>
+        {error && (
+          <p className="text-xs text-danger mb-1 flex items-center gap-1">
+            <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+            {error}
+          </p>
+        )}
         <div className="flex items-center gap-2 p-3 bg-success/5 border border-success/30 rounded-lg">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
@@ -266,10 +288,21 @@ export default function MarshaCodeSelector({
         )}
       </label>
 
+      {error && (
+        <p className="text-xs text-danger mb-1 flex items-center gap-1">
+          <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+          {error}
+        </p>
+      )}
       {/* Триггер */}
       <button
         type="button"
-        onClick={() => !disabled && setIsOpen(true)}
+        onClick={() => {
+          if (!disabled) {
+            setError(null)
+            setIsOpen(true)
+          }
+        }}
         disabled={disabled}
         className={`
           w-full flex items-center justify-between gap-2 px-4 py-2.5

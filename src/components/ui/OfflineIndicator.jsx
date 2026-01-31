@@ -5,9 +5,10 @@
  */
 
 import { useState, useEffect } from 'react'
-import { WifiOff, Wifi, RefreshCw } from 'lucide-react'
+import { WifiOff, Wifi, RefreshCw, AlertCircle } from 'lucide-react'
 import { cn } from '../../utils/classNames'
 import { useTranslation } from '../../context/LanguageContext'
+import { useOfflineSync } from '../../lib/offlineSync'
 
 export default function OfflineIndicator({ className = '' }) {
   const { t } = useTranslation()
@@ -15,7 +16,7 @@ export default function OfflineIndicator({ className = '' }) {
     typeof navigator !== 'undefined' ? navigator.onLine : true
   )
   const [showReconnected, setShowReconnected] = useState(false)
-  const [pendingChanges, setPendingChanges] = useState(0)
+  const { pendingCount, isSyncing } = useOfflineSync()
 
   useEffect(() => {
     const handleOnline = () => {
@@ -39,25 +40,13 @@ export default function OfflineIndicator({ className = '' }) {
     }
   }, [])
 
-  // Проверяем наличие несинхронизированных изменений в localStorage/IndexedDB
+  // Автоматическая синхронизация при восстановлении соединения
   useEffect(() => {
-    const checkPendingChanges = () => {
-      try {
-        const pending = localStorage.getItem('freshtrack_pending_sync')
-        if (pending) {
-          const data = JSON.parse(pending)
-          setPendingChanges(Array.isArray(data) ? data.length : 0)
-        }
-      } catch {
-        setPendingChanges(0)
-      }
+    if (isOnline && showReconnected && pendingCount > 0) {
+      // Синхронизация запустится автоматически через offlineSync
+      // Здесь просто показываем индикатор
     }
-
-    checkPendingChanges()
-    window.addEventListener('storage', checkPendingChanges)
-    
-    return () => window.removeEventListener('storage', checkPendingChanges)
-  }, [])
+  }, [isOnline, showReconnected, pendingCount])
 
   // Не показываем если online и нет сообщения о переподключении
   if (isOnline && !showReconnected) return null
@@ -81,9 +70,9 @@ export default function OfflineIndicator({ className = '' }) {
             <span>
               {t('offline.message') || 'Нет подключения — изменения сохранятся при восстановлении связи'}
             </span>
-            {pendingChanges > 0 && (
+            {pendingCount > 0 && (
               <span className="bg-white/20 px-2 py-0.5 rounded-full text-xs">
-                {pendingChanges} {t('offline.pending') || 'ожидает'}
+                {pendingCount} {t('offline.pending') || 'ожидает'}
               </span>
             )}
           </div>
@@ -94,10 +83,16 @@ export default function OfflineIndicator({ className = '' }) {
           <div className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium">
             <Wifi className="w-4 h-4" />
             <span>{t('offline.reconnected') || 'Подключение восстановлено'}</span>
-            {pendingChanges > 0 && (
+            {isSyncing && (
               <>
                 <RefreshCw className="w-4 h-4 animate-spin" />
                 <span>{t('offline.syncing') || 'Синхронизация...'}</span>
+              </>
+            )}
+            {!isSyncing && pendingCount > 0 && (
+              <>
+                <AlertCircle className="w-4 h-4" />
+                <span>{pendingCount} {t('offline.pending') || 'ожидает'}</span>
               </>
             )}
           </div>

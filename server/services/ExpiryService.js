@@ -25,12 +25,12 @@ export const ExpiryStatus = {
 }
 
 /**
- * Status Colors for UI
+ * Status Colors for UI (просрочка=red, критическое=orange, предупреждение=yellow, норма=green)
  */
 export const StatusColor = {
   [ExpiryStatus.EXPIRED]: 'danger',
-  [ExpiryStatus.TODAY]: 'danger',
-  [ExpiryStatus.CRITICAL]: 'danger',
+  [ExpiryStatus.TODAY]: 'critical',
+  [ExpiryStatus.CRITICAL]: 'critical',
   [ExpiryStatus.WARNING]: 'warning',
   [ExpiryStatus.GOOD]: 'success'
 }
@@ -40,9 +40,9 @@ export const StatusColor = {
  */
 export const StatusCssClass = {
   [ExpiryStatus.EXPIRED]: 'bg-danger text-white',
-  [ExpiryStatus.TODAY]: 'bg-orange-600 text-white',
-  [ExpiryStatus.CRITICAL]: 'bg-orange-600 text-white',
-  [ExpiryStatus.WARNING]: 'bg-yellow-400 text-charcoal',
+  [ExpiryStatus.TODAY]: 'bg-critical text-white',
+  [ExpiryStatus.CRITICAL]: 'bg-critical text-white',
+  [ExpiryStatus.WARNING]: 'bg-warning text-foreground',
   [ExpiryStatus.GOOD]: 'bg-success text-white'
 }
 
