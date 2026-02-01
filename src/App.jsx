@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import ErrorBoundary from './components/ErrorBoundary'
@@ -58,6 +58,7 @@ function App() {
     return (
       <Suspense fallback={<SuspenseFallback />}>
         <Routes>
+          <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/verify-email" element={<VerifyEmailPage />} />
@@ -77,6 +78,7 @@ function App() {
     return (
       <Suspense fallback={<SuspenseFallback />}>
         <Routes>
+          <Route path="/" element={<Navigate to="/verify-email" replace />} />
           <Route path="/verify-email" element={<VerifyEmailPage />} />
           {/* Public legal pages */}
           <Route path="/privacy" element={<PrivacyPolicyPage />} />
@@ -93,6 +95,7 @@ function App() {
     return (
       <Suspense fallback={<SuspenseFallback />}>
         <Routes>
+          <Route path="/" element={<Navigate to="/pending-approval" replace />} />
           <Route path="/pending-approval" element={<PendingApprovalPage />} />
           {/* Public legal pages */}
           <Route path="/privacy" element={<PrivacyPolicyPage />} />
@@ -109,6 +112,7 @@ function App() {
     return (
       <Suspense fallback={<SuspenseFallback />}>
         <Routes>
+          <Route path="/" element={<Navigate to="/change-password" replace />} />
           <Route path="/change-password" element={<ChangePasswordPage />} />
           {/* Public legal pages */}
           <Route path="/privacy" element={<PrivacyPolicyPage />} />
