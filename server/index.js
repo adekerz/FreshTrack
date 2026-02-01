@@ -20,7 +20,7 @@ import { validateRequiredEnv } from './utils/validateEnv.js'
 validateRequiredEnv()
 
 // Import rate limiter
-import { rateLimitGeneral, rateLimitAuth, rateLimitHeavy, rateLimitPendingStatus, rateLimitWebhook, rateLimitLogin } from './middleware/rateLimiter.js'
+import { rateLimitGeneral, rateLimitAuth, rateLimitHeavy, rateLimitPendingStatus, rateLimitWebhook, rateLimitLogin, shutdownRateLimiter } from './middleware/rateLimiter.js'
 
 // Import routes
 import docsRouter from './routes/docs.js'
@@ -169,8 +169,20 @@ app.use(helmet({
 import { requestLogger } from './utils/logger.js'
 app.use(requestLogger)
 
-// Rate limiting (before routes)
-app.use('/api', rateLimitGeneral)
+// Rate limiting (before routes) - exclude SSE and frequent checks
+const excludedFromRateLimit = [
+  '/api/events/stream',        // SSE long-polling connections
+  '/api/auth/mfa/status',      // Frequent MFA status checks
+  '/api/settings/branding',    // Branding loaded on every page
+]
+
+app.use('/api', (req, res, next) => {
+  // Skip rate limiting for excluded paths
+  if (excludedFromRateLimit.some(path => req.path.startsWith(path))) {
+    return next()
+  }
+  return rateLimitGeneral(req, res, next)
+})
 
 // Pending status has lighter rate limit (checked every 30s by pending users)
 app.use('/api/auth/pending-status', rateLimitPendingStatus)
@@ -339,3 +351,16 @@ async function startServer() {
 }
 
 startServer()
+
+// Graceful shutdown
+process.on('SIGTERM', async () => {
+  console.log('SIGTERM received, shutting down gracefully...')
+  await shutdownRateLimiter()
+  process.exit(0)
+})
+
+process.on('SIGINT', async () => {
+  console.log('SIGINT received, shutting down gracefully...')
+  await shutdownRateLimiter()
+  process.exit(0)
+})
