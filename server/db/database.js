@@ -193,6 +193,10 @@ export async function initDatabase() {
       { num: '047', name: '047_email_otp_verification.sql', desc: 'email OTP verification' },
       { num: '048', name: '048_audit_logs_metadata.sql', desc: 'audit logs metadata for readable journal' },
       { num: '049', name: '049_audit_permissions.sql', desc: 'audit permissions (export, write)' },
+      { num: '050a', name: '050_audit_severity_extended.sql', desc: 'audit severity extended' },
+      { num: '050b', name: '050_hotel_coordinates.sql', desc: 'hotel coordinates' },
+      { num: '051', name: '051_fix_kazakhstan_timezones.sql', desc: 'fix Kazakhstan timezones' },
+      { num: '052', name: '052_terms_acceptance.sql', desc: 'terms acceptance tracking' },
     ]
 
     for (const migration of additionalMigrations) {
