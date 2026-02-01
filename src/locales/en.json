@@ -376,6 +376,35 @@
     "passwordMinLength": "Minimum 8 characters",
     "sending": "Sending..."
   },
+  "legal": {
+    "privacyPolicy": "Privacy Policy",
+    "termsOfService": "Terms of Service",
+    "cookies": {
+      "title": "We use cookies",
+      "description": "FreshTrack requires cookies to function. We use them for authentication, saving theme and language preferences. We do not share data with third parties for advertising purposes.",
+      "learnMore": "Learn more in our Privacy Policy",
+      "acceptAll": "Accept all",
+      "essentialOnly": "Essential only",
+      "details": "Details",
+      "hideDetails": "Hide details",
+      "usedCookies": "Cookies used:",
+      "authCookie": "Authorization (required)",
+      "themeCookie": "Theme preference",
+      "langCookie": "Interface language",
+      "consentCookie": "Your consent"
+    },
+    "terms": {
+      "title": "Terms of Service",
+      "version": "Version",
+      "acceptTitle": "Accept Terms",
+      "acceptDescription": "To continue using FreshTrack, please review and accept our Terms of Service and Privacy Policy.",
+      "readAndAccept": "I have read and accept the",
+      "and": "and",
+      "accept": "Accept and Continue",
+      "cancel": "Cancel",
+      "ageConfirmation": "By accepting, you confirm that you are at least 18 years old and authorized to use this system."
+    }
+  },
   "pending": {
     "title": "Pending Approval",
     "message": "Your request has been sent to the administrator. Please wait for confirmation.",
@@ -527,6 +556,8 @@
     "browserNotifications": "Browser Notifications",
     "enable": "Enable",
     "deniedHint": "Change in browser settings",
+    "browserDenied": "Browser: notifications blocked. Allow in site settings (lock icon).",
+    "browserError": "Browser: notification error",
     "pushBanner": {
       "title": "Notifications",
       "description": "Enable notifications to receive alerts about expiring products directly in your browser.",
@@ -544,6 +575,7 @@
       "title": "Test Notification",
       "message": "This is a test notification to verify the system is working correctly.",
       "sent": "Test notification sent successfully",
+      "sentBrowser": "Test notification sent to browser",
       "error": "Failed to send test notification"
     }
   },
@@ -910,6 +942,12 @@
     },
     "departments": {
       "add": "Add Department",
+      "emailVerification": "Email Verification",
+      "emailVerified": "Email verified. Reports will be sent to this address.",
+      "emailVerificationHint": "Send a confirmation email to receive daily reports.",
+      "sendConfirmation": "Send confirmation email",
+      "emailConfirmationSent": "Email sent. Email verified.",
+      "emailConfirmationError": "Send error",
       "newDepartment": "New Department",
       "namePlaceholder": "Department name",
       "description": "Description",

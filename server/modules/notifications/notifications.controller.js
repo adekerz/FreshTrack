@@ -25,7 +25,7 @@ import {
   logAudit
 } from '../../db/database.js'
 import { query as dbQuery } from '../../db/postgres.js'
-import { logError } from '../../utils/logger.js'
+import { logError, logInfo } from '../../utils/logger.js'
 
 const router = Router()
 
@@ -526,8 +526,16 @@ router.post('/test-telegram', authMiddleware, hotelIsolation, departmentIsolatio
 </html>
         `
         
+        // Resend dev sender (onboarding@resend.dev) разрешает только адрес владельца аккаунта
+        const emailRecipient =
+          process.env.NODE_ENV === 'development' &&
+          process.env.RESEND_USE_DEV_SENDER === 'true' &&
+          process.env.RESEND_DEV_RECIPIENT
+            ? process.env.RESEND_DEV_RECIPIENT
+            : req.user.email
+
         await sendEmail({
-          to: req.user.email,
+          to: emailRecipient,
           from: EMAIL_FROM.system,
           subject: '✅ Тест FreshTrack — Email уведомления работают',
           html: emailHtml,
@@ -535,7 +543,7 @@ router.post('/test-telegram', authMiddleware, hotelIsolation, departmentIsolatio
         })
         
         emailSent = true
-        logInfo('Test notification', `📧 Test email sent to ${req.user.email}`)
+        logInfo('Test notification', `📧 Test email sent to ${emailRecipient}`)
       } catch (error) {
         emailError = error.message || String(error)
         logError('Test notification', `Failed to send test email: ${emailError}`)

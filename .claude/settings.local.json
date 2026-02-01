@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find:*)",
+      "Bash(git add:*)",
+      "Bash(git reset:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nMajor update: FAQ page, improved UX, settings reorganization, bug fixes\n\nUser Interface:\n- Add FAQ page with role-based content for all user roles\n- Move Settings from sidebar to dropdown menu \\(Header\\)\n- Add hotel and department info to user dropdown menu\n- Improve inventory page mobile layout and text wrapping\n- Add Help/FAQ link to both desktop and mobile navigation\n\nSettings Reorganization:\n- Move Accounts and MARSHA Codes pages into Settings tabs\n- Create dedicated settings components in ui/settings folder\n- Reorganize settings into Personal, Admin Panel, Super Admin Panel\n- Remove duplicate settings navigation items from sidebar\n\nBackend Improvements:\n- Add department info to user response \\(formatUserResponse\\)\n- Fix account deactivation bug \\(updateUserStatus was using wrong column\\)\n- Add audit logging improvements and SSE support\n- Add email verification service with OTP\n- Improve MARSHA codes management endpoints\n\nBug Fixes:\n- Fix account toggle status not persisting \\(is_active vs status column\\)\n- Fix bcrypt.compare error when password_hash is undefined\n- Improve date formatting and timezone handling\n\nTranslations:\n- Add comprehensive FAQ translations for English and Russian\n- Add navigation translations for FAQ/Help\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(npm run migrate:*)"
+    ]
+  }
+}

@@ -328,7 +328,7 @@ function DepartmentsContent() {
                     {dept.email && (
                       <div className="flex items-center gap-2">
                         <p className="text-sm text-muted-foreground truncate">{dept.email}</p>
-                        {dept.email_verified ? (
+                        {dept.email_confirmed ? (
                           <span className="text-xs px-2 py-0.5 bg-success/10 text-success rounded">
                             ✓ Подтверждён
                           </span>

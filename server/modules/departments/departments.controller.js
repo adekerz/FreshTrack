@@ -13,7 +13,8 @@ import {
   createDepartment,
   updateDepartment,
   deleteDepartment,
-  logAudit
+  logAudit,
+  getHotelById
 } from '../../db/database.js'
 import {
   authMiddleware,
@@ -392,10 +393,12 @@ router.post('/:id/send-confirmation',
         [unsubToken, id]
       )
       
-      // Получаем hotel name
-      const hotelResult = await dbQuery('SELECT name FROM hotels WHERE id = $1', [department.hotel_id])
-      const hotelName = hotelResult.rows[0]?.name || 'Hotel'
-      
+      // Получаем hotel через database.js (тот же контекст что getDepartmentById)
+      const hotel = await getHotelById(department.hotel_id)
+      const hotelName = hotel?.name
+        ? (hotel.marsha_code ? `${hotel.name} / ${hotel.marsha_code}` : hotel.name)
+        : 'Hotel'
+
       // Отправка простого confirmation email
       await sendVerificationEmail({
         user: { name: department.name },

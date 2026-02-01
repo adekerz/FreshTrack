@@ -237,12 +237,37 @@ export class AuthService {
           process.env.JWT_SECRET,
           { expiresIn: '5m' } // короткий TTL для MFA flow
         )
-        
+
         return ServiceResult.ok({
           requiresMFA: true,
           partialToken,
           message: 'Enter verification code'
         })
+      }
+
+      // Check terms acceptance (skip if terms acceptance is disabled in dev)
+      const CURRENT_TERMS_VERSION = '1.0'
+      const termsCheckDisabledInDev =
+        process.env.NODE_ENV === 'development' && process.env.DISABLE_TERMS_CHECK_IN_DEV === 'true'
+
+      if (!termsCheckDisabledInDev) {
+        // User must accept current version of terms
+        const needsTermsAcceptance = !user.terms_accepted || user.terms_version !== CURRENT_TERMS_VERSION
+
+        if (needsTermsAcceptance) {
+          const partialToken = jwt.sign(
+            { userId: user.id, termsAcceptancePending: true },
+            process.env.JWT_SECRET,
+            { expiresIn: '30m' } // longer TTL for terms review
+          )
+
+          return ServiceResult.ok({
+            requiresTermsAcceptance: true,
+            partialToken,
+            currentTermsVersion: CURRENT_TERMS_VERSION,
+            message: 'Please review and accept Terms of Service and Privacy Policy'
+          })
+        }
       }
 
       // Сгенерировать токен

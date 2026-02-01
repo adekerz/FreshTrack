@@ -148,6 +148,16 @@ export function AuthProvider({ children }) {
         }
       }
 
+      // Check if terms acceptance is required
+      if (response.requiresTermsAcceptance) {
+        return {
+          success: true,
+          requiresTermsAcceptance: true,
+          partialToken: response.partialToken,
+          currentTermsVersion: response.currentTermsVersion
+        }
+      }
+
       // API returns { user, token } on success
       if (response.user && response.token) {
         const userData = response.user

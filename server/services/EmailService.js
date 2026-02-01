@@ -127,14 +127,22 @@ async function sendViaResend(options) {
     throw new Error('Resend client not initialized. Check RESEND_API_KEY environment variable.')
   }
 
+  const fromAddr =
+    process.env.NODE_ENV === 'development' && process.env.RESEND_USE_DEV_SENDER === 'true'
+      ? 'FreshTrack <onboarding@resend.dev>'
+      : options.from || DEFAULT_FROM
+
   const result = await resendClient.emails.send({
-    from: options.from || DEFAULT_FROM,
+    from: fromAddr,
     to: Array.isArray(options.to) ? options.to : [options.to],
     subject: options.subject,
     html: options.html,
     text: options.text
   })
 
+  if (result.error) {
+    throw new Error(result.error.message || 'Resend API error')
+  }
   return result
 }
 
@@ -520,27 +528,6 @@ export async function sendVerificationEmail({ user, verificationLink, verificati
     `
   }
 
-  if (target === 'DEPARTMENT' && verificationLink === null && email) {
-    const departmentName = user?.name || 'отдела'
-    const hotelName = email.hotelName || 'Hotel'
-    const unsubscribeLink = email.unsubscribeLink || ''
-    
-    content = `
-      <h2>Daily Reports Enabled 📧</h2>
-      <p>You will now receive daily inventory reports at this email address.</p>
-      
-      <p><strong>Hotel:</strong> ${hotelName}</p>
-      <p><strong>Department:</strong> ${departmentName}</p>
-      
-      <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;">
-      
-      <p style="color: #666; font-size: 14px;">
-        If this email address is incorrect, 
-        <a href="${unsubscribeLink}" style="color: #FF8D6B;">click here to unsubscribe</a>.
-      </p>
-    `
-  }
-  
   return sendEmail({
     to: recipientEmail,
     from: EMAIL_FROM.noreply, // no-reply для auth писем
