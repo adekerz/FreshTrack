@@ -203,8 +203,8 @@ export default function Header({ onOpenMobileMenu, isMobileMenuOpen = false }) {
             />
           )}
 
-          {/* User menu (desktop) */}
-          <div className="relative hidden sm:block" data-user-menu>
+          {/* User menu (видно на всех экранах, включая mobile) */}
+          <div className="relative" data-user-menu>
             <TouchButton
               variant="ghost"
               onClick={() => setShowUserMenu(!showUserMenu)}
@@ -226,9 +226,9 @@ export default function Header({ onOpenMobileMenu, isMobileMenuOpen = false }) {
               )} />
             </TouchButton>
 
-            {/* Dropdown menu */}
+            {/* Dropdown menu — на mobile почти full-width, touch targets 44px+ */}
             {showUserMenu && (
-              <div className="absolute right-0 top-full mt-2 w-72 bg-card rounded-xl shadow-lg border border-border py-2 animate-fade-in z-50">
+              <div className="absolute right-0 top-full mt-2 w-[min(18rem,calc(100vw-2rem))] sm:w-72 bg-card rounded-xl shadow-lg border border-border py-2 animate-fade-in z-50 max-h-[min(80vh,400px)] overflow-y-auto">
                 {/* User info with hotel and department */}
                 <div className="px-4 py-3 border-b border-border">
                   <p className="text-sm font-medium text-foreground truncate">{user?.name}</p>
