@@ -18,6 +18,7 @@ import HotelSelector from './HotelSelector'
 import { TouchButton } from './ui'
 import { cn } from '../utils/classNames'
 import { apiFetch } from '../services/api'
+import { showNotification, getNotificationPermission, requestNotificationPermission } from '../utils/browserAlerts'
 
 export default function Header({ onOpenMobileMenu, isMobileMenuOpen = false }) {
   const navigate = useNavigate()
@@ -52,22 +53,57 @@ export default function Header({ onOpenMobileMenu, isMobileMenuOpen = false }) {
     return () => document.removeEventListener('keydown', handleEscape)
   }, [])
 
-  // Test notification handler
+  // Test notification handler — Email + Telegram + браузер (только на dev)
   const handleTestNotification = async () => {
     setTestingNotification(true)
     try {
+      // 1. Браузерное уведомление — запросить разрешение если default, потом показать
+      let browserShown = false
+      let perm = getNotificationPermission()
+      if (perm === 'default') {
+        const res = await requestNotificationPermission()
+        perm = res.permission
+      }
+      if (perm === 'denied') {
+        addToast(
+          t('notifications.browserDenied') || 'Браузер: уведомления заблокированы. Разрешите в настройках сайта (иконка замка).',
+          'warning'
+        )
+      } else if (perm === 'granted') {
+        try {
+          const shown = showNotification(
+            t('notifications.test.title') || 'Тестовое уведомление',
+            {
+              body: t('notifications.test.message') || 'Это тестовое уведомление для проверки работы системы.',
+              tag: 'freshtrack-test-notification'
+            }
+          )
+          browserShown = shown !== null
+        } catch (err) {
+          addToast(
+            (t('notifications.browserError') || 'Браузер: ошибка уведомления') + ': ' + (err.message || ''),
+            'error'
+          )
+        }
+      }
+
+      // 2. Email + Telegram (backend)
       const result = await apiFetch('/notifications/test-telegram', {
         method: 'POST',
         body: JSON.stringify({})
       })
-      
-      if (result.success && result.sentTo > 0) {
-        const message = result.sentTo === 1
-          ? t('notifications.test.sent') || 'Тестовое уведомление отправлено'
-          : `Тестовое уведомление отправлено в ${result.sentTo} чат(ов)`
-        addToast(message, 'success')
+
+      const channels = []
+      if (browserShown) channels.push('браузер')
+      if (result.emailSent) channels.push('email')
+      if (result.sentTo > 0) channels.push(`Telegram (${result.sentTo})`)
+
+      if (result.success || browserShown) {
+        const msg = channels.length > 0
+          ? (t('notifications.test.sent') || 'Тестовое уведомление отправлено') + ': ' + channels.join(', ')
+          : t('notifications.test.sent') || 'Тестовое уведомление отправлено'
+        addToast(msg, 'success')
       } else {
-        // Показываем конкретную ошибку от сервера
         const errorMessage = result.error || 
           (result.totalChats === 0 
             ? 'Нет привязанных Telegram чатов. Добавьте бота в чат и используйте /link MARSHA_CODE'
@@ -152,18 +188,20 @@ export default function Header({ onOpenMobileMenu, isMobileMenuOpen = false }) {
           {/* Notifications */}
           <NotificationBell />
 
-          {/* Test Notification Button */}
-          <TouchButton
-            variant="ghost"
-            size="icon"
-            onClick={handleTestNotification}
-            disabled={testingNotification}
-            loading={testingNotification}
-            className="text-muted-foreground hover:text-foreground"
-            aria-label={t('notifications.test.label') || 'Тест уведомлений'}
-            title={t('notifications.test.label') || 'Отправить тестовое уведомление'}
-            icon={Zap}
-          />
+          {/* Test Notification Button — только на dev */}
+          {import.meta.env.MODE === 'development' && (
+            <TouchButton
+              variant="ghost"
+              size="icon"
+              onClick={handleTestNotification}
+              disabled={testingNotification}
+              loading={testingNotification}
+              className="text-muted-foreground hover:text-foreground"
+              aria-label={t('notifications.test.label') || 'Тест уведомлений'}
+              title={t('notifications.test.label') || 'Отправить тест: email, Telegram, браузер'}
+              icon={Zap}
+            />
+          )}
 
           {/* User menu (desktop) */}
           <div className="relative hidden sm:block" data-user-menu>

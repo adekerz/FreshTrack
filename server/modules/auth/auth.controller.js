@@ -1187,15 +1187,40 @@ router.post('/mfa/verify', async (req, res) => {
     if (userResult.rows.length === 0) {
       return res.status(404).json({ success: false, error: 'User not found' })
     }
-    
+
     const user = userResult.rows[0]
-    
+
+    // Check terms acceptance after MFA (skip if disabled in dev)
+    const MFA_TERMS_VERSION = '1.0'
+    const termsCheckDisabledInDev =
+      process.env.NODE_ENV === 'development' && process.env.DISABLE_TERMS_CHECK_IN_DEV === 'true'
+
+    if (!termsCheckDisabledInDev) {
+      const needsTermsAcceptance = !user.terms_accepted || user.terms_version !== MFA_TERMS_VERSION
+
+      if (needsTermsAcceptance) {
+        const termsPartialToken = jwt.sign(
+          { userId: user.id, termsAcceptancePending: true },
+          process.env.JWT_SECRET,
+          { expiresIn: '30m' }
+        )
+
+        return res.json({
+          success: true,
+          requiresTermsAcceptance: true,
+          partialToken: termsPartialToken,
+          currentTermsVersion: MFA_TERMS_VERSION,
+          message: 'Please review and accept Terms of Service and Privacy Policy'
+        })
+      }
+    }
+
     // Выдаем полный token
     const token = generateToken(user)
-    
+
     // Форматируем ответ
     const userData = await AuthService.formatUserResponse(user, true)
-    
+
     res.json({
       success: true,
       token,
@@ -2166,6 +2191,144 @@ router.post('/change-password', authMiddleware, async (req, res) => {
       success: false,
       error: error.message || 'Failed to change password'
     })
+  }
+})
+
+// ═══════════════════════════════════════════════════════════════
+// TERMS ACCEPTANCE ENDPOINTS
+// ═══════════════════════════════════════════════════════════════
+
+const CURRENT_TERMS_VERSION = '1.0'
+
+/**
+ * POST /api/auth/accept-terms
+ * Accept Terms of Service and Privacy Policy
+ * Uses partialToken for multi-step auth flow
+ */
+router.post('/accept-terms', async (req, res) => {
+  try {
+    const { partialToken, termsVersion } = req.body
+
+    if (!partialToken) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required field: partialToken'
+      })
+    }
+
+    // Verify version matches current version
+    if (termsVersion && termsVersion !== CURRENT_TERMS_VERSION) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid terms version. Please refresh the page.'
+      })
+    }
+
+    // Verify partial token
+    let decoded
+    try {
+      decoded = jwt.verify(partialToken, process.env.JWT_SECRET)
+    } catch (error) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid or expired token'
+      })
+    }
+
+    if (!decoded.termsAcceptancePending) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid token type'
+      })
+    }
+
+    const userId = decoded.userId
+
+    // Get user data
+    const userResult = await dbQuery('SELECT * FROM users WHERE id = $1', [userId])
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      })
+    }
+
+    const user = userResult.rows[0]
+
+    // Update terms acceptance
+    await dbQuery(`
+      UPDATE users
+      SET terms_accepted = TRUE,
+          terms_accepted_at = NOW(),
+          terms_version = $1
+      WHERE id = $2
+    `, [CURRENT_TERMS_VERSION, userId])
+
+    // Generate full token
+    const token = generateToken(user)
+
+    // Format user response
+    const userData = await AuthService.formatUserResponse(user, true)
+
+    // Audit log
+    await logAudit({
+      user_id: userId,
+      user_name: user.name || user.login,
+      hotel_id: user.hotel_id,
+      action: 'TERMS_ACCEPTED',
+      entity_type: 'User',
+      entity_id: userId,
+      details: {
+        termsVersion: CURRENT_TERMS_VERSION,
+        acceptedAt: new Date().toISOString()
+      },
+      ip_address: req.ip,
+      user_agent: req.get('user-agent')
+    })
+
+    res.json({
+      success: true,
+      token,
+      user: userData,
+      message: 'Terms accepted successfully'
+    })
+  } catch (error) {
+    logError('Accept Terms', error)
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to accept terms'
+    })
+  }
+})
+
+/**
+ * GET /api/auth/terms-status
+ * Get current terms acceptance status
+ */
+router.get('/terms-status', authMiddleware, async (req, res) => {
+  try {
+    const userResult = await dbQuery(`
+      SELECT terms_accepted, terms_accepted_at, terms_version
+      FROM users WHERE id = $1
+    `, [req.user.id])
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'User not found' })
+    }
+
+    const { terms_accepted, terms_accepted_at, terms_version } = userResult.rows[0]
+
+    res.json({
+      success: true,
+      termsAccepted: terms_accepted || false,
+      termsAcceptedAt: terms_accepted_at,
+      termsVersion: terms_version,
+      currentVersion: CURRENT_TERMS_VERSION,
+      needsAcceptance: !terms_accepted || terms_version !== CURRENT_TERMS_VERSION
+    })
+  } catch (error) {
+    logError('Terms Status', error)
+    res.status(500).json({ success: false, error: error.message })
   }
 })
 

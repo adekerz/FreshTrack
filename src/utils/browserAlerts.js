@@ -45,8 +45,8 @@ export function showNotification(title, options = {}) {
   }
 
   const defaultOptions = {
-    icon: '/freshtrack-icon.png',
-    badge: '/freshtrack-badge.png',
+    icon: '/apple-touch-icon.png',
+    badge: '/apple-touch-icon.png',
     tag: 'freshtrack-notification',
     renotify: true,
     requireInteraction: false,

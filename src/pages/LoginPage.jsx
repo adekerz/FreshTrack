@@ -8,7 +8,9 @@ import {
   ArrowRight,
   User,
   Lock,
-  AlertCircle
+  AlertCircle,
+  Shield,
+  FileText
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useTranslation } from '../context/LanguageContext'
@@ -16,6 +18,8 @@ import { useToast } from '../context/ToastContext'
 import { Input, TouchButton, ButtonLoader } from '../components/ui'
 import { API_BASE_URL } from '../services/api'
 import CodeInput from '../components/ui/CodeInput'
+import CookieBanner from '../components/CookieBanner'
+import TermsAcceptanceModal from '../components/TermsAcceptanceModal'
 
 export default function LoginPage() {
   const navigate = useNavigate()
@@ -65,6 +69,10 @@ export default function LoginPage() {
   const [mfaCode, setMfaCode] = useState('')
   const [useBackup, setUseBackup] = useState(false)
 
+  // Terms acceptance state
+  const [termsStep, setTermsStep] = useState(false)
+  const [termsPartialToken, setTermsPartialToken] = useState('')
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setIsLoading(true)
@@ -81,10 +89,18 @@ export default function LoginPage() {
         return
       }
 
+      // Check if terms acceptance is required
+      if (result.requiresTermsAcceptance) {
+        setTermsPartialToken(result.partialToken)
+        setTermsStep(true)
+        setIsLoading(false)
+        return
+      }
+
       if (result.mustChangePassword) {
         // Redirect to change password page for first login
-        navigate('/change-password', { 
-          state: { firstLogin: true, email: result.email || identifier } 
+        navigate('/change-password', {
+          state: { firstLogin: true, email: result.email || identifier }
         })
       } else {
         addToast(t('toast.loginSuccess'), 'success')
@@ -113,10 +129,10 @@ export default function LoginPage() {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ 
-          partialToken, 
-          code: mfaCode, 
-          useBackup 
+        body: JSON.stringify({
+          partialToken,
+          code: mfaCode,
+          useBackup
         })
       })
 
@@ -126,10 +142,19 @@ export default function LoginPage() {
         throw new Error(data.error || 'Verification failed')
       }
 
+      // Check if terms acceptance is required after MFA
+      if (data.requiresTermsAcceptance) {
+        setMfaStep(false)
+        setTermsPartialToken(data.partialToken)
+        setTermsStep(true)
+        setIsLoading(false)
+        return
+      }
+
       // Store token and user
       localStorage.setItem('freshtrack_token', data.token)
       localStorage.setItem('freshtrack_user', JSON.stringify(data.user))
-      
+
       // Reload page to update auth context
       window.location.href = '/'
     } catch (error) {
@@ -143,6 +168,28 @@ export default function LoginPage() {
 
   const handleBlur = (field) => {
     setTouched((prev) => ({ ...prev, [field]: true }))
+  }
+
+  // Handle terms acceptance
+  const handleTermsAccept = (token, user) => {
+    // Store token and user
+    localStorage.setItem('freshtrack_token', token)
+    localStorage.setItem('freshtrack_user', JSON.stringify(user))
+
+    addToast(t('toast.loginSuccess') || 'Вход выполнен успешно', 'success')
+
+    // Reload page to update auth context
+    window.location.href = '/'
+  }
+
+  const handleTermsCancel = () => {
+    // Reset all states and go back to login
+    setTermsStep(false)
+    setTermsPartialToken('')
+    setMfaStep(false)
+    setPartialToken('')
+    setMfaCode('')
+    setError('')
   }
 
   // Inline validation
@@ -370,8 +417,39 @@ export default function LoginPage() {
           <div className="mt-12 pt-6 border-t border-border">
             <p className="text-xs text-muted-foreground text-center">{t('auth.demoCredentials')}</p>
           </div>
+
+          {/* Footer links */}
+          <div className="mt-6 flex items-center justify-center gap-4 text-xs text-muted-foreground">
+            <Link
+              to="/privacy"
+              className="flex items-center gap-1 hover:text-foreground transition-colors"
+            >
+              <Shield className="w-3 h-3" />
+              <span>Политика конфиденциальности</span>
+            </Link>
+            <span className="text-border">|</span>
+            <Link
+              to="/terms"
+              className="flex items-center gap-1 hover:text-foreground transition-colors"
+            >
+              <FileText className="w-3 h-3" />
+              <span>Условия использования</span>
+            </Link>
+          </div>
         </div>
       </div>
+
+      {/* Cookie Banner */}
+      <CookieBanner />
+
+      {/* Terms Acceptance Modal */}
+      <TermsAcceptanceModal
+        isOpen={termsStep}
+        onAccept={handleTermsAccept}
+        onCancel={handleTermsCancel}
+        partialToken={termsPartialToken}
+        loading={isLoading}
+      />
     </div>
   )
 }

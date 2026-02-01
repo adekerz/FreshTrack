@@ -1,17 +1,17 @@
 import { lazy, Suspense } from 'react'
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import ErrorBoundary from './components/ErrorBoundary'
 import Layout from './components/Layout'
-import { PageLoader, FullscreenLoader, Loader } from './components/ui'
+import { PageLoader, Loader } from './components/ui'
 import MobileDebugHelper from './components/dev/MobileDebugHelper'
 
 // Eager loading для критичных страниц (auth, change password)
 import LoginPage from './pages/LoginPage'
 import ChangePasswordPage from './pages/ChangePasswordPage'
 
-// Lazy loading для страниц (Phase 5 — code splitting, не загружаются пока не нужны)
+// Lazy loading для страниц (code splitting, не загружаются пока не нужны)
 const DashboardPage = lazy(() => import('./pages/DashboardPage'))
 const RegisterPage = lazy(() => import('./pages/RegisterPage'))
 const VerifyEmailPage = lazy(() => import('./pages/VerifyEmailPage'))
@@ -26,6 +26,9 @@ const CalendarPage = lazy(() => import('./pages/CalendarPage'))
 const AuditLogsPage = lazy(() => import('./pages/AuditLogsPage'))
 const MFASetupPage = lazy(() => import('./pages/MFASetupPage'))
 const FAQPage = lazy(() => import('./pages/FAQPage'))
+const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage'))
+const TermsOfServicePage = lazy(() => import('./pages/TermsOfServicePage'))
+const NotFoundPage = lazy(() => import('./pages/NotFoundPage'))
 
 // Suspense fallback — используем единый PageLoader
 function SuspenseFallback() {
@@ -59,7 +62,11 @@ function App() {
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/verify-email" element={<VerifyEmailPage />} />
           <Route path="/pending-approval" element={<PendingApprovalPage />} />
-          <Route path="*" element={<Navigate to="/login" replace />} />
+          {/* Public legal pages */}
+          <Route path="/privacy" element={<PrivacyPolicyPage />} />
+          <Route path="/terms" element={<TermsOfServicePage />} />
+          {/* 404 — страница не найдена */}
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </Suspense>
     )
@@ -71,7 +78,11 @@ function App() {
       <Suspense fallback={<SuspenseFallback />}>
         <Routes>
           <Route path="/verify-email" element={<VerifyEmailPage />} />
-          <Route path="*" element={<Navigate to="/verify-email" replace />} />
+          {/* Public legal pages */}
+          <Route path="/privacy" element={<PrivacyPolicyPage />} />
+          <Route path="/terms" element={<TermsOfServicePage />} />
+          {/* 404 — страница не найдена */}
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </Suspense>
     )
@@ -83,7 +94,11 @@ function App() {
       <Suspense fallback={<SuspenseFallback />}>
         <Routes>
           <Route path="/pending-approval" element={<PendingApprovalPage />} />
-          <Route path="*" element={<Navigate to="/pending-approval" replace />} />
+          {/* Public legal pages */}
+          <Route path="/privacy" element={<PrivacyPolicyPage />} />
+          <Route path="/terms" element={<TermsOfServicePage />} />
+          {/* 404 — страница не найдена */}
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </Suspense>
     )
@@ -95,7 +110,11 @@ function App() {
       <Suspense fallback={<SuspenseFallback />}>
         <Routes>
           <Route path="/change-password" element={<ChangePasswordPage />} />
-          <Route path="*" element={<Navigate to="/change-password" replace />} />
+          {/* Public legal pages */}
+          <Route path="/privacy" element={<PrivacyPolicyPage />} />
+          <Route path="/terms" element={<TermsOfServicePage />} />
+          {/* 404 — страница не найдена */}
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </Suspense>
     )
@@ -118,6 +137,9 @@ function App() {
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/mfa-setup" element={<MFASetupPage />} />
             <Route path="/faq" element={<FAQPage />} />
+            {/* Legal pages (accessible to logged-in users too) */}
+            <Route path="/privacy" element={<PrivacyPolicyPage />} />
+            <Route path="/terms" element={<TermsOfServicePage />} />
 
             {/* Страницы с ограниченным доступом */}
             <Route
@@ -158,8 +180,8 @@ function App() {
               }
             />
 
-            {/* Fallback */}
-            <Route path="*" element={<Navigate to="/" replace />} />
+            {/* 404 — страница не найдена */}
+            <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </Suspense>
       </Layout>
@@ -169,4 +191,3 @@ function App() {
 }
 
 export default App
-// test

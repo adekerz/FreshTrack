@@ -57,8 +57,8 @@ export default function NotificationPermissionBanner() {
   return (
     <div className="fixed bottom-4 right-4 z-50 max-w-sm animate-slide-up">
       <div className="bg-card rounded-xl shadow-lg border border-border overflow-hidden">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-foreground to-foreground/90 px-4 py-3">
+        {/* Header — фон и текст с контрастом в обеих темах */}
+        <div className="bg-accent-button px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-white">
               <Bell className="w-5 h-5" />
@@ -68,7 +68,8 @@ export default function NotificationPermissionBanner() {
             </div>
             <button
               onClick={handleDismiss}
-              className="text-white/60 hover:text-white transition-colors"
+              className="text-white/80 hover:text-white transition-colors"
+              aria-label={t('common.close') || 'Закрыть'}
             >
               <X className="w-4 h-4" />
             </button>
@@ -77,7 +78,7 @@ export default function NotificationPermissionBanner() {
 
         {/* Content */}
         <div className="p-4">
-          <p className="text-sm text-muted-foreground mb-4">
+          <p className="text-sm text-foreground mb-4">
             {t('notifications.pushBanner.description') ||
               'Включите уведомления, чтобы получать оповещения о товарах с истекающим сроком годности прямо в браузере.'}
           </p>
@@ -104,7 +105,7 @@ export default function NotificationPermissionBanner() {
 
             <button
               onClick={handleDismiss}
-              className="px-4 py-2 text-muted-foreground hover:text-foreground text-sm transition-colors"
+              className="px-4 py-2 text-foreground/80 hover:text-foreground text-sm transition-colors"
             >
               {t('notifications.pushBanner.later') || 'Позже'}
             </button>
