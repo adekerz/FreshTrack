@@ -10,7 +10,8 @@ import {
   Lock,
   AlertCircle,
   Shield,
-  FileText
+  FileText,
+  Clock
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useTranslation } from '../context/LanguageContext'
@@ -72,11 +73,13 @@ export default function LoginPage() {
   // Terms acceptance state
   const [termsStep, setTermsStep] = useState(false)
   const [termsPartialToken, setTermsPartialToken] = useState('')
+  const [rateLimitInfo, setRateLimitInfo] = useState(null)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setIsLoading(true)
     setError('')
+    setRateLimitInfo(null)
 
     const result = await login(identifier, password)
 
@@ -108,6 +111,7 @@ export default function LoginPage() {
       }
     } else {
       setError(result.error || t('auth.invalidCredentials'))
+      setRateLimitInfo(result.rateLimited ? { retryAfter: result.retryAfter } : null)
       addToast(t('toast.loginError'), 'error')
     }
 
@@ -353,9 +357,24 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Server error */}
             {error && (
-              <div className="flex items-start gap-3 text-danger text-sm bg-danger/10 p-4 rounded-lg animate-fade-in">
-                <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
-                <span>{error}</span>
+              <div className="space-y-2 animate-fade-in">
+                <div className="flex items-start gap-3 text-danger text-sm bg-danger/10 p-4 rounded-lg">
+                  <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                  <span>{error}</span>
+                </div>
+                {rateLimitInfo && (
+                  <div className="flex items-start gap-3 text-muted-foreground text-sm bg-muted/50 dark:bg-muted/30 p-4 rounded-lg border border-border">
+                    <Clock className="w-5 h-5 flex-shrink-0 mt-0.5 text-accent" />
+                    <div>
+                      <p className="font-medium text-foreground mb-1">
+                        {t('auth.rateLimitTitle') || 'Лимит попыток входа'}
+                      </p>
+                      <p>
+                        {t('auth.rateLimitHint') || 'Разрешено 10 попыток за 15 минут. При превышении — блокировка на 15 минут.'}
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 

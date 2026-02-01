@@ -291,6 +291,7 @@ export default function Header({ onOpenMobileMenu, isMobileMenuOpen = false }) {
                     onClick={() => {
                       logout()
                       setShowUserMenu(false)
+                      navigate('/login')
                     }}
                     className="w-full justify-start gap-3 px-4 py-2 text-sm text-danger hover:bg-danger/10 h-auto min-h-[44px] rounded-none"
                     icon={LogOut}

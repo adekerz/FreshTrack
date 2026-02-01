@@ -75,6 +75,15 @@ async function handleResponse(response, endpoint = '') {
     throw new Error(error.error || 'Запрашиваемый ресурс не найден')
   }
 
+  if (response.status === 429) {
+    const error = await response.json().catch(() => ({}))
+    const retryAfter = error.retryAfter || 60
+    const err = new Error(error.message || 'Слишком много запросов. Попробуйте позже.')
+    err.retryAfter = retryAfter
+    err.status = 429
+    throw err
+  }
+
   if (!response.ok) {
     const error = await response.json().catch(() => ({ error: 'Unknown error' }))
     const errorObj = new Error(error.error || `HTTP error! status: ${response.status}`)

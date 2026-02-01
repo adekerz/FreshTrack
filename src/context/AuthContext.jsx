@@ -181,10 +181,17 @@ export function AuthProvider({ children }) {
       return { success: false, error: response.error || 'Invalid credentials' }
     } catch (error) {
       logError('Login error:', error.message)
-      // Передаём сообщение об ошибке от сервера (например, "Account is blocked")
+      // 429: rate limit — возвращаем отдельно для UI
+      const retryMin = error.retryAfter ? Math.ceil(error.retryAfter / 60) : 0
+      const isRateLimit = error.status === 429
+      const rateLimitMsg = isRateLimit && retryMin > 0
+        ? `Слишком много попыток входа. Попробуйте через ${retryMin} мин.`
+        : null
       return {
         success: false,
-        error: error.message || 'Unable to connect to server. Please check your connection.'
+        error: rateLimitMsg || error.message || 'Unable to connect to server. Please check your connection.',
+        rateLimited: isRateLimit,
+        retryAfter: error.retryAfter || 0
       }
     }
   }

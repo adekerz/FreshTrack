@@ -331,6 +331,8 @@
     "passwordMismatch": "Passwords do not match",
     "passwordTooShort": "Password must be at least 6 characters",
     "invalidCredentials": "Invalid credentials",
+    "rateLimitTitle": "Login attempt limit",
+    "rateLimitHint": "10 attempts per 15 minutes allowed. Exceeding the limit results in a 15-minute block.",
     "weak": "Weak",
     "fair": "Fair",
     "good": "Good",

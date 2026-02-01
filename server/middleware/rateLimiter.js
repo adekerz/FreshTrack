@@ -26,12 +26,14 @@ const authLimiter = new RateLimiterMemory({
   blockDuration: isProduction ? 5 * 60 : 10 // Block for 5 minutes in prod
 })
 
-// Login specifically - strict but reasonable
-// In development, disable rate limiting for easier testing
+// Login specifically - strict but reasonable (настраивается через env)
+// In development, higher limit for testing
+const loginRatePoints = parseInt(process.env.RATE_LIMIT_LOGIN_POINTS) || (isProduction ? 10 : 500)
+const loginRateDuration = parseInt(process.env.RATE_LIMIT_LOGIN_DURATION) || (isProduction ? 15 * 60 : 60)
 const loginLimiter = new RateLimiterMemory({
-  points: isProduction ? 5 : 500,
-  duration: isProduction ? 15 * 60 : 60,
-  blockDuration: isProduction ? 30 * 60 : 10
+  points: loginRatePoints,
+  duration: loginRateDuration,
+  blockDuration: isProduction ? 15 * 60 : 10 // 15 min block in prod
 })
 
 // Heavy operations (export, reports) - 10 per minute
