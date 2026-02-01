@@ -373,6 +373,8 @@
     "emailChanged": "Email успешно изменён",
     "passwordRequiredForChange": "Введите пароль для подтверждения",
     "sendCode": "Отправить код",
+    "sendVerificationCode": "Отправить код на email",
+    "requestCodePrompt": "Нажмите кнопку, чтобы отправить код на",
     "passwordMinLength": "Минимум 8 символов",
     "sending": "Отправка..."
   },
