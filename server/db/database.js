@@ -197,6 +197,7 @@ export async function initDatabase() {
       { num: '050b', name: '050_hotel_coordinates.sql', desc: 'hotel coordinates' },
       { num: '051', name: '051_fix_kazakhstan_timezones.sql', desc: 'fix Kazakhstan timezones' },
       { num: '052', name: '052_terms_acceptance.sql', desc: 'terms acceptance tracking' },
+      { num: '053', name: '053_add_missing_inventory_fields.sql', desc: 'add missing fields to categories and products' },
     ]
 
     for (const migration of additionalMigrations) {

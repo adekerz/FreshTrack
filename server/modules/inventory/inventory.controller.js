@@ -940,7 +940,7 @@ router.get('/products', authMiddleware, async (req, res) => {
       params.push(searchPattern, searchPattern)
     }
 
-    sql += ` GROUP BY p.id, c.name, d.name`
+    sql += ` GROUP BY p.id, p.hotel_id, p.category_id, p.department_id, p.name, p.name_en, p.name_kk, p.description, p.barcode, p.default_shelf_life, p.unit, p.storage_type, p.min_stock, p.image_url, p.is_active, p.created_at, c.name, d.name`
 
     if (where.hasStock) {
       sql += ` HAVING COALESCE(SUM(b.quantity), 0) > 0`
@@ -1194,14 +1194,14 @@ router.get('/categories', authMiddleware, async (req, res) => {
     }
 
     const result = await dbQuery(`
-      SELECT c.*, 
+      SELECT c.*,
              COUNT(DISTINCT p.id) as products_count,
              COUNT(DISTINCT b.id) as batches_count
       FROM categories c
       LEFT JOIN products p ON c.id = p.category_id
       LEFT JOIN batches b ON p.id = b.product_id AND b.status != 'collected'
       WHERE c.hotel_id = $1
-      GROUP BY c.id
+      GROUP BY c.id, c.hotel_id, c.name, c.name_en, c.name_kk, c.description, c.color, c.icon, c.parent_id, c.sort_order, c.is_active, c.created_at, c.department_id
       ORDER BY c.sort_order, c.name
     `, [hotelId])
 
