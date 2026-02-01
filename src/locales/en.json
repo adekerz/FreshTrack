@@ -371,6 +371,8 @@
     "emailChanged": "Email changed successfully",
     "passwordRequiredForChange": "Enter password to confirm",
     "sendCode": "Send Code",
+    "sendVerificationCode": "Send code to email",
+    "requestCodePrompt": "Click the button to send code to",
     "passwordMinLength": "Minimum 8 characters",
     "sending": "Sending..."
   },

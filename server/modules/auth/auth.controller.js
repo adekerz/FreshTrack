@@ -1755,6 +1755,72 @@ router.post('/verify-email-otp', async (req, res) => {
 })
 
 /**
+ * POST /api/auth/request-email-verification
+ * Запросить OTP для подтверждения email (для залогиненных без email_verified)
+ * Вызывается после MFA, когда пользователь попал на verify-email без partialToken
+ */
+router.post('/request-email-verification', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user.id
+    const userResult = await dbQuery(
+      'SELECT id, email, email_verified FROM users WHERE id = $1',
+      [userId]
+    )
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'User not found' })
+    }
+    const user = userResult.rows[0]
+    if (user.email_verified) {
+      return res.status(400).json({
+        success: false,
+        error: 'Email already verified'
+      })
+    }
+    if (!user.email) {
+      return res.status(400).json({
+        success: false,
+        error: 'No email to verify'
+      })
+    }
+
+    const canResend = await EmailVerificationService.canResendOTP(user.id)
+    if (!canResend) {
+      return res.status(429).json({
+        success: false,
+        error: 'Please wait before requesting a new code',
+        cooldownSeconds: EmailVerificationService.RESEND_COOLDOWN_SECONDS
+      })
+    }
+
+    const result = await EmailVerificationService.sendOTP(
+      user.id,
+      user.email,
+      'REGISTRATION'
+    )
+
+    const partialToken = jwt.sign(
+      { userId: user.id, emailVerificationPending: true },
+      process.env.JWT_SECRET,
+      { expiresIn: '30m' }
+    )
+
+    res.json({
+      success: true,
+      partialToken,
+      email: user.email,
+      expiresAt: result.expiresAt,
+      cooldownSeconds: result.cooldownSeconds
+    })
+  } catch (error) {
+    logError('Request email verification', error)
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to send verification code'
+    })
+  }
+})
+
+/**
  * POST /api/auth/resend-email-otp
  * Resend OTP code
  */
