@@ -6,6 +6,7 @@
 import { useState, useRef } from 'react'
 import { useTranslation } from '../../../context/LanguageContext'
 import { useToast } from '../../../context/ToastContext'
+import { useExport } from '../../../hooks/useExport'
 import { Loader } from '..'
 import { API_BASE_URL } from '../../../services/api'
 import {
@@ -24,9 +25,9 @@ import SettingsLayout, { SettingsSection } from './SettingsLayout'
 export default function ImportExportSettings() {
   const { t } = useTranslation()
   const { addToast } = useToast()
+  const { exportData, exporting: exportingType } = useExport()
   const [importing, setImporting] = useState(false)
   const [importResult, setImportResult] = useState(null)
-  const [exporting, setExporting] = useState(null)
   const fileInputRef = useRef(null)
 
   const handleImport = async (e) => {
@@ -76,34 +77,8 @@ export default function ImportExportSettings() {
     }
   }
 
-  const handleExport = async (type) => {
-    setExporting(type)
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/export/${type}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('freshtrack_token')}`
-        }
-      })
-
-      if (!response.ok) throw new Error('Export failed')
-
-      const blob = await response.blob()
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `freshtrack-${type}-${new Date().toISOString().split('T')[0]}.xls`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      window.URL.revokeObjectURL(url)
-      addToast(t('toast.exportSuccess'), 'success')
-    } catch {
-      // Export error
-      addToast(t('toast.exportError'), 'error')
-    } finally {
-      setExporting(null)
-    }
+  const handleExport = async (type, format = 'excel') => {
+    await exportData(type, format)
   }
 
   const exportOptions = [
@@ -223,30 +198,33 @@ export default function ImportExportSettings() {
       {/* Экспорт */}
       <SettingsSection title={t('export.title') || 'Экспорт данных'} icon={Download}>
         <div className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            {t('export.description') || 'Экспортируйте данные в Excel для анализа и отчётности'}
+          </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {exportOptions.map(({ type, icon: Icon, label, desc }) => (
               <button
                 key={type}
-                onClick={() => handleExport(type)}
-                disabled={exporting === type}
+                onClick={() => handleExport(type, 'excel')}
+                disabled={exportingType === type}
                 className="flex items-start gap-4 p-4 border border-border rounded-xl hover:border-accent hover:bg-accent/5 transition-colors text-left disabled:opacity-50 group"
               >
-              <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center shrink-0 group-hover:bg-accent/10 transition-colors">
-                {exporting === type ? (
-                  <Loader size="medium" />
-                ) : (
-                  <Icon className="w-6 h-6 text-foreground group-hover:text-accent transition-colors" />
-                )}
-              </div>
-              <div>
-                <p className="font-medium text-foreground group-hover:text-accent transition-colors">
-                  {label}
-                </p>
-                <p className="text-sm text-muted-foreground mt-0.5">{desc}</p>
-              </div>
-            </button>
-          ))}
-        </div>
+                <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center shrink-0 group-hover:bg-accent/10 transition-colors">
+                  {exportingType === type ? (
+                    <Loader size="medium" />
+                  ) : (
+                    <Icon className="w-6 h-6 text-foreground group-hover:text-accent transition-colors" />
+                  )}
+                </div>
+                <div>
+                  <p className="font-medium text-foreground group-hover:text-accent transition-colors">
+                    {label}
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-0.5">{desc}</p>
+                </div>
+              </button>
+            ))}
+          </div>
         </div>
       </SettingsSection>
     </SettingsLayout>

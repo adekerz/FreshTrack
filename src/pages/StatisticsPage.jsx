@@ -209,6 +209,8 @@ export default function StatisticsPage() {
             data={exportData}
             columns={EXPORT_COLUMNS.inventory(t)}
             filename="statistics_report"
+            serverExportType="batches"
+            showServerExport={true}
             title={t('statistics.title')}
             subtitle={t('statistics.subtitle')}
             summary={{

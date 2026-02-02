@@ -377,6 +377,8 @@ export default function AuditLogsPage() {
             filename={`audit-logs_${selectedHotel?.name || 'hotel'}`}
             title={t('auditLogs.title')}
             subtitle={selectedHotel?.name || ''}
+            serverExportType="audit"
+            showServerExport={true}
             onExportPdf={handleExportPdf}
             onExportExcel={handleExportExcel}
             exportingPdf={exportingPdf}

@@ -1,14 +1,16 @@
 /**
  * Export Button Component
  * Компонент кнопки экспорта с выпадающим меню
+ * Поддерживает клиентский экспорт (data) и серверный экспорт (serverExportType)
  */
 
 import { useState, useRef, useEffect } from 'react'
-import { Download, FileSpreadsheet, FileText, ChevronDown } from 'lucide-react'
+import { Download, FileSpreadsheet, FileText, ChevronDown, Cloud } from 'lucide-react'
 import { InlineLoader } from './ui'
 import { useTranslation } from '../context/LanguageContext'
 import { useToast } from '../context/ToastContext'
 import { exportToExcel, exportToPDF } from '../utils/exportUtils'
+import { useExport } from '../hooks/useExport'
 import { logError } from '../utils/logger'
 
 export default function ExportButton({
@@ -26,10 +28,15 @@ export default function ExportButton({
   exportingPdf = false,
   exportingExcel = false,
   /** Количество записей для экспорта (например pagination.total), когда экспорт идёт с бэкенда */
-  exportRecordCount
+  exportRecordCount,
+  /** Тип серверного экспорта (inventory, batches, collections, audit) */
+  serverExportType = null,
+  /** Показывать опцию серверного экспорта "Экспортировать все" */
+  showServerExport = false
 }) {
   const { t } = useTranslation()
   const { addToast } = useToast()
+  const { exportData: exportServerData, exporting: serverExporting } = useExport()
   const [isOpen, setIsOpen] = useState(false)
   const [exporting, setExporting] = useState(null)
   const dropdownRef = useRef(null)
@@ -47,7 +54,19 @@ export default function ExportButton({
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  const handleExport = async (type) => {
+  const handleExport = async (type, isServerExport = false) => {
+    // Серверный экспорт
+    if (isServerExport && serverExportType) {
+      try {
+        await exportServerData(serverExportType, type === 'pdf' ? 'pdf' : 'excel')
+        setIsOpen(false)
+      } catch (error) {
+        logError('Server export error:', error)
+      }
+      return
+    }
+
+    // Кастомные обработчики
     if (type === 'pdf' && onExportPdf) {
       try {
         await onExportPdf()
@@ -67,6 +86,7 @@ export default function ExportButton({
       return
     }
 
+    // Клиентский экспорт
     if (!data || data.length === 0) {
       addToast(t('export.noData'), 'warning')
       return
@@ -107,16 +127,30 @@ export default function ExportButton({
       label: t('export.excel'),
       description: t('export.excelDescription'),
       icon: FileSpreadsheet,
-      color: 'text-green-700'
+      color: 'text-green-700',
+      isServer: false
     },
     {
       id: 'pdf',
       label: t('export.pdf'),
       description: t('export.pdfDescription'),
       icon: FileText,
-      color: 'text-red-600'
+      color: 'text-red-600',
+      isServer: false
     }
   ]
+
+  // Добавляем опцию серверного экспорта если включено
+  if (showServerExport && serverExportType) {
+    exportOptions.push({
+      id: 'server-excel',
+      label: t('export.allDataExcel') || 'Все данные (Excel)',
+      description: t('export.serverExportDescription') || 'Полный экспорт с сервера',
+      icon: Cloud,
+      color: 'text-blue-600',
+      isServer: true
+    })
+  }
 
   return (
     <div className="relative" ref={dropdownRef}>
@@ -155,8 +189,9 @@ export default function ExportButton({
           <div className="p-2">
             {exportOptions.map((option) => {
               const Icon = option.icon
-              const isExporting =
-                useCustomExport && option.id === 'pdf'
+              const isExporting = option.isServer
+                ? serverExporting === serverExportType
+                : useCustomExport && option.id === 'pdf'
                   ? exportingPdf
                   : useCustomExport && option.id === 'excel'
                     ? exportingExcel
@@ -165,9 +200,9 @@ export default function ExportButton({
               return (
                 <button
                   key={option.id}
-                  onClick={() => handleExport(option.id)}
+                  onClick={() => handleExport(option.id.replace('server-', ''), option.isServer)}
                   disabled={isExporting}
-                  className="w-full flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-muted transition-colors text-left group"
+                  className="w-full flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-muted transition-colors text-left group disabled:opacity-50"
                 >
                   <div
                     className={`p-2 rounded-lg bg-muted group-hover:bg-muted/80 ${option.color}`}

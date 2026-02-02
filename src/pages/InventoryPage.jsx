@@ -518,6 +518,8 @@ export default function InventoryPage() {
                 ? `${t('common.category')}: ${categories.find((c) => c.id === selectedCategory)?.name || selectedCategory}`
                 : ''
             }
+            serverExportType="inventory"
+            showServerExport={true}
           />
           <TouchButton
             variant="ghost"
