@@ -118,8 +118,9 @@ export default function LoginPage() {
     setIsLoading(false)
   }
 
-  const handleMFAVerify = async () => {
-    if (!mfaCode || (useBackup ? mfaCode.length < 8 : mfaCode.length !== 6)) {
+  const handleMFAVerify = async (codeOverride) => {
+    const codeToVerify = codeOverride ?? mfaCode
+    if (!codeToVerify || (useBackup ? codeToVerify.length < 8 : codeToVerify.length !== 6)) {
       setError(useBackup ? 'Backup code must be 8 characters' : 'Code must be 6 digits')
       return
     }
@@ -135,7 +136,7 @@ export default function LoginPage() {
         },
         body: JSON.stringify({
           partialToken,
-          code: mfaCode,
+          code: codeToVerify,
           useBackup
         })
       })
@@ -223,7 +224,7 @@ export default function LoginPage() {
                 <CodeInput
                   onComplete={(code) => {
                     setMfaCode(code)
-                    handleMFAVerify()
+                    handleMFAVerify(code)
                   }}
                   disabled={isLoading}
                 />

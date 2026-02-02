@@ -62,31 +62,38 @@ export default function StatisticsPage() {
 
   // Статистика по категориям
   const categoryStats = useMemo(() => {
-    const categories = {}
+    const byCategory = {}
 
     batches.forEach((batch) => {
       // Filter by user's department access (permission-based via isHotelAdmin)
       if (!isHotelAdmin() && !user?.departments?.includes(batch.departmentId)) return
 
       // Use categoryName from backend (properly resolved from JOIN)
-      const cat = batch.categoryName || batch.category_name || 'other'
-      if (!categories[cat]) {
-        categories[cat] = { total: 0, expired: 0, quantity: 0 }
+      const catKey = batch.categoryName || batch.category_name || 'other'
+      if (!byCategory[catKey]) {
+        byCategory[catKey] = { total: 0, expired: 0, quantity: 0 }
       }
-      categories[cat].total++
-      categories[cat].quantity += batch.quantity || 0
-      if (batch.daysLeft < 0) categories[cat].expired++
+      byCategory[catKey].total++
+      byCategory[catKey].quantity += batch.quantity || 0
+      if (batch.daysLeft < 0) byCategory[catKey].expired++
     })
 
-    return Object.entries(categories).map(([key, data]) => {
-      const translatedName = t(`categories.${key}`)
+    return Object.entries(byCategory).map(([key, data]) => {
+      const cat = categories.find((c) => c.id === key)
+      const nameFromCatalog = cat
+        ? (language === 'ru' ? cat.nameRu : language === 'kk' ? cat.nameKz : cat.name) || cat.name
+        : null
+      const translatedName = !nameFromCatalog ? t(`categories.${key}`) : null
+      const displayName =
+        nameFromCatalog ||
+        (translatedName && !translatedName.startsWith('categories.') ? translatedName : key)
       return {
         id: key,
-        name: translatedName && !translatedName.includes('categories.') ? translatedName : key,
+        name: displayName,
         ...data
       }
     })
-  }, [batches, user, t, isHotelAdmin])
+  }, [batches, user, t, isHotelAdmin, categories, language])
 
   // Топ товаров, требующих внимания
   const topAlertProducts = useMemo(() => {

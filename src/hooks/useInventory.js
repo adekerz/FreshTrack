@@ -7,7 +7,7 @@
 
 import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query'
 import { queryKeys } from '../lib/queryKeys'
-import { STALE_TIMES } from '../lib/queryClient'
+import { STALE_TIMES, invalidateInventoryQueries } from '../lib/queryClient'
 import { apiFetch } from '../services/api'
 import { getBatchStatus } from '../utils/dateUtils'
 import { logDebug, logError, logWarn } from '../utils/logger'
@@ -508,8 +508,12 @@ export function useDeleteBatch(hotelId) {
     },
 
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.batches(hotelId) })
-      queryClient.invalidateQueries({ queryKey: queryKeys.batchesStats(hotelId) })
+      if (hotelId) {
+        invalidateInventoryQueries(queryClient, hotelId)
+      } else {
+        queryClient.invalidateQueries({ queryKey: ['batches'] })
+        queryClient.invalidateQueries({ queryKey: ['batches', 'stats'] })
+      }
     }
   })
 }

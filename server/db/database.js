@@ -198,6 +198,10 @@ export async function initDatabase() {
       { num: '051', name: '051_fix_kazakhstan_timezones.sql', desc: 'fix Kazakhstan timezones' },
       { num: '052', name: '052_terms_acceptance.sql', desc: 'terms acceptance tracking' },
       { num: '053', name: '053_add_missing_inventory_fields.sql', desc: 'add missing fields to categories and products' },
+      { num: '054', name: '054_scheduled_exports.sql', desc: 'scheduled exports and logs tables' },
+      { num: '055', name: '055_scheduled_exports_rename_time.sql', desc: 'rename time to send_time in scheduled_exports' },
+      { num: '056', name: '056_scheduled_exports_force_send_time.sql', desc: 'force send_time column in scheduled_exports' },
+      { num: '057', name: '057_departments_telegram_chat_id.sql', desc: 'add telegram_chat_id to departments' },
     ]
 
     for (const migration of additionalMigrations) {

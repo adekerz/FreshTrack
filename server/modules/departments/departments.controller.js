@@ -378,28 +378,25 @@ router.post('/:id/send-confirmation',
         return res.status(400).json({ success: false, error: 'No email configured for this department' })
       }
       
-      // Генерация unsubscribe token
-      const unsubToken = crypto.randomBytes(32).toString('hex')
+      // Токен для ссылок «подтвердить» и «отписаться» (один токен — два endpoint)
+      const token = crypto.randomBytes(32).toString('hex')
       const appUrl = process.env.APP_URL || 'http://localhost:5173'
-      const unsubscribeLink = `${appUrl}/api/departments/${id}/unsubscribe?token=${unsubToken}`
+      const confirmLink = `${appUrl}/api/departments/${id}/confirm?token=${token}`
+      const unsubscribeLink = `${appUrl}/api/departments/${id}/unsubscribe?token=${token}`
       
-      // Обновляем department
+      // Сохраняем токен; email_confirmed = TRUE только после перехода по ссылке «Подтвердить»
       await dbQuery(
         `UPDATE departments 
-         SET email_unsubscribe_token = $1,
-             email_confirmed = TRUE,
-             email_confirmed_at = NOW()
+         SET email_unsubscribe_token = $1
          WHERE id = $2`,
-        [unsubToken, id]
+        [token, id]
       )
       
-      // Получаем hotel через database.js (тот же контекст что getDepartmentById)
       const hotel = await getHotelById(department.hotel_id)
       const hotelName = hotel?.name
         ? (hotel.marsha_code ? `${hotel.name} / ${hotel.marsha_code}` : hotel.name)
         : 'Hotel'
 
-      // Отправка простого confirmation email
       await sendVerificationEmail({
         user: { name: department.name },
         verificationLink: null,
@@ -407,7 +404,8 @@ router.post('/:id/send-confirmation',
         email: department.email,
         departmentName: department.name,
         hotelName: hotelName,
-        unsubscribeLink: unsubscribeLink
+        confirmLink,
+        unsubscribeLink
       })
       
       await logAudit({
@@ -425,6 +423,58 @@ router.post('/:id/send-confirmation',
     } catch (error) {
       logError('Send department confirmation error', error)
       res.status(500).json({ success: false, error: error.message })
+    }
+  }
+)
+
+/**
+ * GET /api/departments/:id/confirm?token=...
+ * Подтверждение email отдела — переход по ссылке из письма ставит email_confirmed = TRUE
+ */
+router.get('/:id/confirm',
+  async (req, res) => {
+    try {
+      const { id } = req.params
+      const { token } = req.query
+      if (!token) {
+        return res.status(400).send(`
+          <html><body style="font-family: sans-serif; text-align: center; padding: 50px;">
+            <h2>Неверный запрос</h2>
+            <p>Отсутствует токен подтверждения.</p>
+          </body></html>
+        `)
+      }
+      const result = await dbQuery(
+        `UPDATE departments
+         SET email_confirmed = TRUE,
+             email_confirmed_at = NOW()
+         WHERE id = $1 AND email_unsubscribe_token = $2
+         RETURNING id, name`,
+        [id, token]
+      )
+      if (result.rows.length === 0) {
+        return res.status(400).send(`
+          <html><body style="font-family: sans-serif; text-align: center; padding: 50px;">
+            <h2>Недействительная или устаревшая ссылка</h2>
+            <p>Запросите новое письмо подтверждения в настройках отеля.</p>
+          </body></html>
+        `)
+      }
+      res.send(`
+        <html><body style="font-family: sans-serif; text-align: center; padding: 50px;">
+          <h2 style="color: #059669;">✓ Email подтверждён</h2>
+          <p>На этот адрес будут приходить ежедневные отчёты по инвентарю.</p>
+          <p style="color: #666; font-size: 14px; margin-top: 30px;">Можно закрыть эту страницу.</p>
+        </body></html>
+      `)
+    } catch (error) {
+      logError('Department confirm error', error)
+      res.status(500).send(`
+        <html><body style="font-family: sans-serif; text-align: center; padding: 50px;">
+          <h2>Ошибка</h2>
+          <p>Попробуйте позже или запросите новое письмо.</p>
+        </body></html>
+      `)
     }
   }
 )

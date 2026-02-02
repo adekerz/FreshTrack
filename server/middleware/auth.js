@@ -369,6 +369,27 @@ export function hasRole(user, roles) {
 }
 
 /**
+ * Middleware: allow only given roles (e.g. for scheduled exports: ADMIN + MANAGER)
+ * Roles in this project: SUPER_ADMIN, HOTEL_ADMIN, DEPARTMENT_MANAGER, STAFF
+ */
+export function allowRoles(allowedRoles) {
+  const normalized = allowedRoles.map((r) => {
+    if (r === 'ADMIN') return 'HOTEL_ADMIN'
+    if (r === 'MANAGER') return 'DEPARTMENT_MANAGER'
+    return r
+  })
+  return (req, res, next) => {
+    if (!req.user?.role) {
+      return res.status(401).json({ success: false, error: 'Unauthorized' })
+    }
+    if (!normalized.includes(req.user.role)) {
+      return res.status(403).json({ success: false, error: 'Insufficient permissions' })
+    }
+    next()
+  }
+}
+
+/**
  * Check if user can access hotel
  */
 export function canAccessHotel(user, hotelId) {

@@ -483,7 +483,7 @@ export async function sendPasswordResetEmail(user, resetToken) {
  * Email verification — только коды (OTP), без ссылок
  * @param {Object} params - verificationCode обязателен для USER
  */
-export async function sendVerificationEmail({ user, verificationLink, verificationCode, target = 'USER', email = null, departmentName, hotelName, unsubscribeLink }) {
+export async function sendVerificationEmail({ user, verificationLink, verificationCode, target = 'USER', email = null, departmentName, hotelName, confirmLink, unsubscribeLink }) {
   const recipientEmail = email || (user?.email)
   if (!recipientEmail) {
     throw new Error('Email address is required for verification')
@@ -493,20 +493,20 @@ export async function sendVerificationEmail({ user, verificationLink, verificati
   if (target === 'DEPARTMENT') {
     const deptName = departmentName || user?.name || 'отдела'
     const hName = hotelName || 'Hotel'
+    const confirm = confirmLink || ''
     const unsubLink = unsubscribeLink || ''
     
     content = `
-      <h2>Daily Reports Enabled 📧</h2>
-      <p>You will now receive daily inventory reports at this email address.</p>
+      <h2>Подтверждение email для ежедневных отчётов 📧</h2>
+      <p>Отель <strong>${hName}</strong>, отдел <strong>${deptName}</strong>.</p>
+      <p>На этот адрес будут приходить ежедневные отчёты по инвентарю. Нажмите кнопку ниже, чтобы подтвердить:</p>
       
-      <p><strong>Hotel:</strong> ${hName}</p>
-      <p><strong>Department:</strong> ${deptName}</p>
+      ${confirm ? `<p style="margin: 24px 0;"><a href="${confirm}" style="display: inline-block; padding: 12px 24px; background: #FF8D6B; color: #fff; text-decoration: none; border-radius: 8px; font-weight: bold;">Подтвердить email</a></p>` : ''}
       
       <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;">
       
       <p style="color: #666; font-size: 14px;">
-        If this email address is incorrect, 
-        <a href="${unsubLink}" style="color: #FF8D6B;">click here to unsubscribe</a>.
+        Если письмо пришло по ошибке, <a href="${unsubLink}" style="color: #888;">отписаться от рассылки</a>.
       </p>
     `
   } else {

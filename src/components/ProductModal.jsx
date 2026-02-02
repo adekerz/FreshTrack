@@ -52,8 +52,11 @@ export default function ProductModal({ product, onClose }) {
   const activeBatches = batches.filter((b) => !b.isCollected)
   const collectedBatches = batches.filter((b) => b.isCollected)
 
-  // Общее количество для FIFO списания (только партии с учётом количества)
-  const totalAvailableQuantity = activeBatches.reduce((sum, b) => sum + (b.quantity || 0), 0)
+  // Общее количество для FIFO (партии с учётом количества + без учёта считаем как 1 ед.)
+  const totalAvailableQuantity = activeBatches.reduce(
+    (sum, b) => sum + (b.quantity != null ? b.quantity : 1),
+    0
+  )
 
   // Форматирование даты в DD.MM.YYYY
   const formatDateDisplay = (dateString) => {
@@ -179,7 +182,7 @@ export default function ProductModal({ product, onClose }) {
             </span>
           </div>
           <div className="flex items-center gap-2">
-            {/* FIFO Quick Collection Button - только если есть партии с количеством */}
+            {/* FIFO Quick Collection Button — если есть активные партии (с количеством или без) */}
             {totalAvailableQuantity > 0 && (
               <TouchButton
                 variant="primary"
@@ -225,7 +228,10 @@ export default function ProductModal({ product, onClose }) {
             </div>
             <div className="bg-background rounded-lg p-3 sm:p-4 border border-border">
               <div className="text-xl sm:text-2xl font-medium text-foreground">
-                {activeBatches.reduce((sum, b) => sum + b.quantity, 0)}
+                {activeBatches.reduce(
+                  (sum, b) => sum + (b.quantity != null ? b.quantity : 1),
+                  0
+                )}
               </div>
               <div className="text-xs sm:text-sm text-muted-foreground">{t('product.totalUnits')}</div>
             </div>
@@ -306,6 +312,7 @@ export default function ProductModal({ product, onClose }) {
                               deleteBatchMutation(batch.id, {
                                 onSuccess: () => {
                                   addToast(t('toast.batchDeleted') || 'Партия удалена', 'success')
+                                  refresh()
                                 },
                                 onError: () => {
                                   addToast(t('toast.batchDeleteError') || 'Ошибка удаления', 'error')

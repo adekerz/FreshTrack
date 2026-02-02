@@ -62,7 +62,7 @@ export async function previewCollection({
   }
 
   // Get active batches sorted by expiry (FIFO)
-  // If departmentId is null, get all batches for the hotel (for HOTEL_ADMIN/SUPER_ADMIN)
+  // Include batches with quantity > 0 OR quantity IS NULL (no-quantity tracking — treat as 1 unit)
   let batchesQuery = `
     SELECT b.id, b.quantity, b.expiry_date, b.batch_number, b.department_id,
            p.name as product_name, p.name_en, c.name as category_name
@@ -72,7 +72,7 @@ export async function previewCollection({
     WHERE b.product_id = $1 
       AND b.hotel_id = $2 
       AND b.status = 'active' 
-      AND b.quantity > 0
+      AND (b.quantity > 0 OR b.quantity IS NULL)
   `
   const params = [productId, hotelId]
   
@@ -95,7 +95,7 @@ export async function previewCollection({
     }
   }
 
-  const totalAvailable = batches.reduce((sum, b) => sum + parseInt(b.quantity), 0)
+  const totalAvailable = batches.reduce((sum, b) => sum + (b.quantity != null ? parseInt(b.quantity) : 1), 0)
 
   if (totalAvailable < quantity) {
     return {
@@ -107,14 +107,14 @@ export async function previewCollection({
     }
   }
 
-  // Calculate what will be collected from each batch
+  // Calculate what will be collected from each batch (quantity NULL = 1 unit)
   let remainingToCollect = quantity
   const affectedBatches = []
 
   for (const batch of batches) {
     if (remainingToCollect <= 0) break
 
-    const batchQty = parseInt(batch.quantity)
+    const batchQty = batch.quantity != null ? parseInt(batch.quantity) : 1
     const takeFromThisBatch = Math.min(batchQty, remainingToCollect)
 
     affectedBatches.push({
@@ -190,8 +190,7 @@ export async function collect({
     await client.query('BEGIN')
 
     // 1. Get active batches with FOR UPDATE lock (prevents race conditions)
-    // Build query dynamically - departmentId is optional for HOTEL_ADMIN/SUPER_ADMIN
-    // Note: FOR UPDATE OF b only - can't lock nullable side of LEFT JOIN
+    // Include quantity > 0 OR quantity IS NULL (no-quantity — treat as 1 unit)
     let query = `
       SELECT b.id, b.quantity, b.expiry_date, b.batch_number, b.product_id,
              p.name as product_name, c.name as category_name, b.department_id
@@ -201,7 +200,7 @@ export async function collect({
       WHERE b.product_id = $1 
         AND b.hotel_id = $2 
         AND b.status = 'active' 
-        AND b.quantity > 0
+        AND (b.quantity > 0 OR b.quantity IS NULL)
     `
     const params = [productId, hotelId]
     
@@ -225,7 +224,7 @@ export async function collect({
       }
     }
 
-    const totalAvailable = batches.reduce((sum, b) => sum + parseInt(b.quantity), 0)
+    const totalAvailable = batches.reduce((sum, b) => sum + (b.quantity != null ? parseInt(b.quantity) : 1), 0)
 
     if (totalAvailable < quantity) {
       await client.query('ROLLBACK')
@@ -246,7 +245,7 @@ export async function collect({
     for (const batch of batches) {
       if (remainingToCollect <= 0) break
 
-      const batchQty = parseInt(batch.quantity)
+      const batchQty = batch.quantity != null ? parseInt(batch.quantity) : 1
       const takeFromThisBatch = Math.min(batchQty, remainingToCollect)
       const quantityRemaining = batchQty - takeFromThisBatch
 

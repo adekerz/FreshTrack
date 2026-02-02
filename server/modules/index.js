@@ -82,3 +82,6 @@ export { marshaCodesController } from './marsha-codes/index.js'
 
 // GDPR module
 export { gdprController } from './gdpr/index.js'
+
+// Scheduled Exports module
+export { scheduledExportsController } from './scheduled-exports/index.js'

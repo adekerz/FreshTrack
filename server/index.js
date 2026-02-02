@@ -48,7 +48,8 @@ import {
   telegramController,
   eventsController,
   marshaCodesController,
-  gdprController
+  gdprController,
+  scheduledExportsController
 } from './modules/index.js'
 import { webhooksRouter } from './modules/webhooks/index.js'
 
@@ -57,6 +58,9 @@ import { startNotificationJobs } from './jobs/notificationJobs.js'
 import { startCleanupJobs } from './jobs/cleanupJobs.js'
 import { startAuditVerificationJob } from './jobs/auditVerificationJob.js'
 import { startDataRetentionJob } from './jobs/dataRetentionJob.js'
+
+// Import scheduled export service
+import ScheduledExportService from './services/ScheduledExportService.js'
 
 // Import database
 import { initDatabase, getAllHotels } from './db/database.js'
@@ -210,6 +214,7 @@ app.use('/api/telegram', telegramController)
 app.use('/api/events', eventsController)
 app.use('/api/marsha-codes', marshaCodesController)
 app.use('/api/gdpr', gdprController)
+app.use('/api/scheduled-exports', scheduledExportsController)
 
 // Webhooks (with rate limiting - 60 requests per minute)
 app.use('/webhooks', rateLimitWebhook, webhooksRouter)
@@ -274,7 +279,7 @@ async function startServer() {
     console.log(`📊 Data: ${hotels.length} hotels, ${usersResult.rows[0]?.count || 0} users, ${productsResult.rows[0]?.count || 0} products`)
 
     // Start server
-    app.listen(PORT, '0.0.0.0', () => {
+    app.listen(PORT, '0.0.0.0', async () => {
       console.log(`
 🚀 FreshTrack Server v2.0 — Modular Architecture
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -330,6 +335,13 @@ async function startServer() {
         startDataRetentionJob()
       } catch (error) {
         console.error('⚠️ Failed to start data retention job:', error.message)
+      }
+
+      // Start scheduled export service
+      try {
+        await ScheduledExportService.initialize()
+      } catch (error) {
+        console.error('⚠️ Failed to start scheduled export service:', error.message)
       }
     })
   } catch (error) {

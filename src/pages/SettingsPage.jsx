@@ -25,6 +25,7 @@ import {
   Tags,
   FileBox,
   Send,
+  CalendarClock,
   Mail,
   Palette,
   Database,
@@ -47,12 +48,13 @@ import JoinRequestsSettings from '../components/ui/settings/JoinRequestsSettings
 import CacheManagement from '../components/ui/settings/CacheManagement'
 import AccountsSettings from '../components/ui/settings/AccountsSettings'
 import MarshaCodesSettings from '../components/ui/settings/MarshaCodesSettings'
+import { ScheduledExportsManager } from '../components/ScheduledExports/ScheduledExportsManager'
 import { ChangePasswordModal } from '../components/ui/ChangePasswordModal'
 import { ChangeEmailModal } from '../components/ui/ChangeEmailModal'
 
 const SETTINGS_TAB_IDS = new Set([
   'profile', 'language', 'general', 'users', 'join-requests', 'directories',
-  'templates', 'rules', 'notifications', 'branding', 'cache', 'import-export', 'system',
+  'templates', 'rules', 'notifications', 'branding', 'cache', 'import-export', 'scheduled-exports', 'system',
   'accounts', 'marsha-codes', 'organization'
 ])
 
@@ -179,6 +181,11 @@ export default function SettingsPage() {
       id: 'import-export',
       icon: RefreshCw,
       label: t('settings.tabs.importExport') || 'Импорт/Экспорт'
+    },
+    {
+      id: 'scheduled-exports',
+      icon: CalendarClock,
+      label: t('settings.tabs.scheduledExports') || 'Запланированные экспорты'
     }
   ]
 
@@ -657,20 +664,23 @@ export default function SettingsPage() {
                   Управление
                 </div>
                 <div className="flex lg:flex-col gap-1 overflow-x-auto lg:overflow-visible">
-                  {managementTabs.map((tab) => (
-                    <button
-                      key={tab.id}
-                      onClick={() => setActiveTab(tab.id)}
-                      className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm transition-colors whitespace-nowrap flex-shrink-0 lg:w-full ${
-                        activeTab === tab.id
-                          ? 'bg-foreground text-background'
-                          : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                      }`}
-                    >
-                      <tab.icon className="w-4 h-4" />
-                      <span className="hidden sm:inline">{tab.label}</span>
-                    </button>
-                  ))}
+                  {managementTabs.map((tab) => {
+                    const TabIcon = tab.icon ?? CalendarClock
+                    return (
+                      <button
+                        key={tab.id}
+                        onClick={() => setActiveTab(tab.id)}
+                        className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm transition-colors whitespace-nowrap flex-shrink-0 lg:w-full ${
+                          activeTab === tab.id
+                            ? 'bg-foreground text-background'
+                            : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                        }`}
+                      >
+                        <TabIcon className="w-4 h-4" aria-hidden="true" />
+                        <span className="hidden sm:inline">{tab.label}</span>
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
 
@@ -747,6 +757,7 @@ export default function SettingsPage() {
           {activeTab === 'branding' && userIsAdmin && <BrandingSettings />}
           {activeTab === 'cache' && userIsAdmin && <CacheManagement />}
           {activeTab === 'import-export' && userIsAdmin && <ImportExportSettings />}
+          {activeTab === 'scheduled-exports' && userIsAdmin && <ScheduledExportsManager />}
           {activeTab === 'system' && userIsSuperAdmin && renderSystem()}
 
           {/* Кнопка сохранения удалена - настройки уведомлений теперь управляются через правила уведомлений */}
