@@ -32,9 +32,8 @@ import { useTranslation } from '../context/LanguageContext'
 import { useHotel } from '../context/HotelContext'
 import { cn } from '../utils/classNames'
 import { formatDate } from '../utils/dateUtils'
-import { apiFetch, API_BASE_URL } from '../services/api'
+import { apiFetch } from '../services/api'
 import ExportButton from '../components/ExportButton'
-import { EXPORT_COLUMNS } from '../utils/exportUtils'
 import { PageLoader } from '../components/ui'
 import { ActivityChart } from '../components/audit/ActivityChart'
 import { AuditDetailsModal } from '../components/audit/AuditDetailsModal'
@@ -69,8 +68,6 @@ export default function AuditLogsPage() {
   const [stats, setStats] = useState(null)
   const [users, setUsers] = useState([])
   const [departments, setDepartments] = useState([])
-  const [exportingPdf, setExportingPdf] = useState(false)
-  const [exportingExcel, setExportingExcel] = useState(false)
 
   useEffect(() => {
     if (selectedHotelId) {
@@ -135,82 +132,6 @@ export default function AuditLogsPage() {
       setDepartments(data.departments || [])
     } catch {
       setDepartments([])
-    }
-  }
-
-  /** Параметры для экспорта (те же фильтры, что и для списка) */
-  const buildExportParams = () => {
-    const p = new URLSearchParams()
-    const selectedHotelId = localStorage.getItem('freshtrack_selected_hotel')
-    if (selectedHotelId) p.set('hotel_id', selectedHotelId)
-    if (filters.actionType) p.set('action', filters.actionType)
-    if (filters.entityType) p.set('entityType', filters.entityType)
-    if (filters.dateFrom) p.set('dateFrom', filters.dateFrom)
-    if (filters.dateTo) p.set('dateTo', filters.dateTo)
-    if (filters.userId) p.set('userId', filters.userId)
-    if (filters.departmentId) p.set('departmentId', filters.departmentId)
-    if (filters.severity) p.set('severity', filters.severity)
-    if (filters.securityOnly) p.set('securityOnly', 'true')
-    return p
-  }
-
-  const handleExportPdf = async () => {
-    setExportingPdf(true)
-    try {
-      const params = buildExportParams()
-      const token = localStorage.getItem('freshtrack_token')
-      const url = `${API_BASE_URL}/audit-logs/export/pdf?${params}`
-      const res = await fetch(url, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {}
-      })
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
-        throw new Error(err.error || res.statusText)
-      }
-      const blob = await res.blob()
-      const disposition = res.headers.get('Content-Disposition')
-      const filename =
-        disposition?.match(/filename="?([^";]+)"?/)?.[1] || `audit-logs-${Date.now()}.pdf`
-      const a = document.createElement('a')
-      a.href = URL.createObjectURL(blob)
-      a.download = filename
-      a.click()
-      URL.revokeObjectURL(a.href)
-      addToast(t('toast.exportSuccess'), 'success')
-    } catch (err) {
-      addToast(err.message || t('toast.exportError'), 'error')
-    } finally {
-      setExportingPdf(false)
-    }
-  }
-
-  const handleExportExcel = async () => {
-    setExportingExcel(true)
-    try {
-      const params = buildExportParams()
-      const token = localStorage.getItem('freshtrack_token')
-      const url = `${API_BASE_URL}/audit-logs/export/excel?${params}`
-      const res = await fetch(url, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {}
-      })
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
-        throw new Error(err.error || res.statusText)
-      }
-      const blob = await res.blob()
-      const disposition = res.headers.get('Content-Disposition')
-      const filename =
-        disposition?.match(/filename="?([^";]+)"?/)?.[1] || `audit-logs-${Date.now()}.xlsx`
-      const a = document.createElement('a')
-      a.href = URL.createObjectURL(blob)
-      a.download = filename
-      a.click()
-      URL.revokeObjectURL(a.href)
-      addToast(t('toast.exportSuccess'), 'success')
-    } catch (err) {
-      addToast(err.message || t('toast.exportError'), 'error')
-    } finally {
-      setExportingExcel(false)
     }
   }
 
@@ -336,14 +257,17 @@ export default function AuditLogsPage() {
     filters.securityOnly
   ].filter(Boolean).length
 
-  const exportData = logs.map((log) => ({
-    timestamp: formatDate(log.created_at, true),
-    user_name: log.user_name || '—',
-    action: log.human_readable_description || log.action,
-    entity_type: log.entity_type || '—',
-    details: log.human_readable_details || (log.details && typeof log.details === 'object' ? JSON.stringify(log.details) : log.details) || '',
-    ip_address: log.ip_address || ''
-  }))
+  // Prepare export filters (rename keys to match backend expectations)
+  const exportFilters = {
+    ...(filters.actionType && { action: filters.actionType }),
+    ...(filters.entityType && { entityType: filters.entityType }),
+    ...(filters.dateFrom && { dateFrom: filters.dateFrom }),
+    ...(filters.dateTo && { dateTo: filters.dateTo }),
+    ...(filters.userId && { userId: filters.userId }),
+    ...(filters.departmentId && { departmentId: filters.departmentId }),
+    ...(filters.severity && { severity: filters.severity }),
+    ...(filters.securityOnly && { securityOnly: 'true' })
+  }
 
   if (loading && logs.length === 0) {
     return <PageLoader message={t('common.loading')} />
@@ -372,18 +296,11 @@ export default function AuditLogsPage() {
             <RefreshCw className={cn('w-4 h-4 sm:w-5 sm:h-5', loading && 'animate-spin')} />
           </button>
           <ExportButton
-            data={exportData}
-            columns={EXPORT_COLUMNS.auditLogs(t)}
-            filename={`audit-logs_${selectedHotel?.name || 'hotel'}`}
-            title={t('auditLogs.title')}
-            subtitle={selectedHotel?.name || ''}
-            serverExportType="audit"
-            showServerExport={true}
-            onExportPdf={handleExportPdf}
-            onExportExcel={handleExportExcel}
-            exportingPdf={exportingPdf}
-            exportingExcel={exportingExcel}
-            exportRecordCount={pagination.total}
+            exportType="audit"
+            filters={exportFilters}
+            formats={['excel', 'csv', 'pdf']}
+            showFilterCount={true}
+            size="sm"
           />
         </div>
       </div>

@@ -132,13 +132,22 @@ async function sendViaResend(options) {
       ? 'FreshTrack <onboarding@resend.dev>'
       : options.from || DEFAULT_FROM
 
-  const result = await resendClient.emails.send({
+  const payload = {
     from: fromAddr,
     to: Array.isArray(options.to) ? options.to : [options.to],
     subject: options.subject,
     html: options.html,
     text: options.text
-  })
+  }
+
+  if (options.attachments && options.attachments.length > 0) {
+    payload.attachments = options.attachments.map((a) => ({
+      filename: a.filename,
+      content: Buffer.isBuffer(a.content) ? a.content : Buffer.from(a.content)
+    }))
+  }
+
+  const result = await resendClient.emails.send(payload)
 
   if (result.error) {
     throw new Error(result.error.message || 'Resend API error')
@@ -150,10 +159,9 @@ async function sendViaResend(options) {
  * Send email (universal method)
  */
 export async function sendEmail(options) {
-  const { to, subject, html, text, from } = options
+  const { to, subject, html, text, from, attachments } = options
 
   try {
-    // Определяем отправителя: если не указан явно, используем DEFAULT_FROM
     const sender = from || DEFAULT_FROM
 
     if (EMAIL_PROVIDER === 'resend') {
@@ -161,21 +169,32 @@ export async function sendEmail(options) {
         ...options,
         from: sender
       })
-      console.log(`📧 Email sent via Resend to ${to}: ${subject}`)
+      const attachInfo = attachments?.length ? ` (${attachments.length} влож.)` : ''
+      console.log(`📧 Email sent via Resend to ${to}: ${subject}${attachInfo}`)
       return result
     }
 
     await initTransporter()
-    
-    const result = await transporter.sendMail({
+
+    const mailOptions = {
       from: sender,
       to,
       subject,
       html,
       text
-    })
+    }
+    if (attachments && attachments.length > 0) {
+      mailOptions.attachments = attachments.map((a) => ({
+        filename: a.filename,
+        content: Buffer.isBuffer(a.content) ? a.content : Buffer.from(a.content),
+        contentType: a.contentType
+      }))
+    }
 
-    console.log(`📧 Email sent to ${to}: ${subject}`)
+    const result = await transporter.sendMail(mailOptions)
+
+    const attachInfo = attachments?.length ? ` (${attachments.length} влож.)` : ''
+    console.log(`📧 Email sent to ${to}: ${subject}${attachInfo}`)
     return result
   } catch (error) {
     console.error('❌ Email send error:', error)

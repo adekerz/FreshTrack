@@ -286,8 +286,9 @@ export function exportToPDF(title, data, columns, options = {}) {
       justify-content: space-between;
       align-items: flex-start;
       margin-bottom: 20px;
-      padding-bottom: 15px;
-      border-bottom: 2px solid #1A1A1A;
+      padding: 15px;
+      background: #F5F0E8;
+      border-bottom: 2px solid #C4A35A;
     }
     
     .logo {
@@ -325,8 +326,9 @@ export function exportToPDF(title, data, columns, options = {}) {
       gap: 10px;
       margin-bottom: 20px;
       padding: 15px;
-      background: #FAF8F5;
+      background: #F5F0E8;
       border-radius: 8px;
+      border: 1px solid #E8E4DC;
     }
     
     .summary-item {
@@ -351,24 +353,31 @@ export function exportToPDF(title, data, columns, options = {}) {
     }
     
     th {
-      background: #F5F0E8;
+      background: #2D2D2D;
+      color: #FFFFFF;
       font-weight: 600;
       text-align: left;
-      padding: 8px 10px;
-      border-bottom: 2px solid #1A1A1A;
+      padding: 10px 12px;
+      border-bottom: 2px solid #C4A35A;
       font-size: 9pt;
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
     
     td {
-      padding: 8px 10px;
-      border-bottom: 1px solid #E5E2DE;
+      padding: 10px 12px;
+      border-bottom: 1px solid #E8E4DC;
+      border-left: 1px solid #E8E4DC;
+      border-right: 1px solid #E8E4DC;
       font-size: 9pt;
     }
     
     tr:nth-child(even) {
       background: #FAFAFA;
+    }
+    
+    tr:nth-child(odd) td {
+      background: #FFFFFF;
     }
     
     .status-good { color: #4A7C59; }
@@ -562,6 +571,25 @@ export function formatBatchesForExport(batches, t) {
  * Конфигурации колонок для разных типов отчётов
  */
 export const EXPORT_COLUMNS = {
+  products: (t) => [
+    { key: 'name', title: t?.('export.columns.product') || 'Название', width: 200 },
+    { key: 'barcode', title: t?.('export.columns.barcode') || 'Штрих-код', width: 120 },
+    { key: 'category_name', title: t?.('export.columns.category') || 'Категория', width: 150 },
+    { key: 'unit', title: t?.('export.columns.unit') || 'Ед.изм.', width: 80 },
+    { key: 'reorder_level', title: t?.('export.columns.reorderLevel') || 'Мин. остаток', width: 100 },
+    { key: 'created_at', title: t?.('export.columns.createdAt') || 'Дата создания', width: 120 }
+  ],
+
+  batches: (t) => [
+    { key: 'batch_number', title: t?.('export.columns.batchNumber') || 'Номер партии', width: 150 },
+    { key: 'product_name', title: t?.('export.columns.product') || 'Продукт', width: 200 },
+    { key: 'department_name', title: t?.('export.columns.department') || 'Отдел', width: 150 },
+    { key: 'quantity', title: t?.('export.columns.quantity') || 'Количество', width: 100 },
+    { key: 'expiry_date', title: t?.('export.columns.expiryDate') || 'Срок годности', width: 120 },
+    { key: 'status', title: t?.('export.columns.status') || 'Статус', width: 100 },
+    { key: 'created_at', title: t?.('export.columns.createdAt') || 'Дата добавления', width: 120 }
+  ],
+
   inventory: (t) => [
     { key: 'productName', title: t?.('export.columns.product') || 'Товар' },
     { key: 'category', title: t?.('export.columns.category') || 'Категория' },
@@ -576,6 +604,20 @@ export const EXPORT_COLUMNS = {
       isStatus: true,
       statusKey: 'status'
     }
+  ],
+
+  categories: (t) => [
+    { key: 'name', title: t?.('export.columns.name') || 'Название', width: 200 },
+    { key: 'description', title: t?.('export.columns.description') || 'Описание', width: 300 },
+    { key: 'created_at', title: t?.('export.columns.createdAt') || 'Дата создания', width: 120 }
+  ],
+
+  departments: (t) => [
+    { key: 'name', title: t?.('export.columns.name') || 'Название', width: 200 },
+    { key: 'description', title: t?.('export.columns.description') || 'Описание', width: 300 },
+    { key: 'email', title: t?.('export.columns.email') || 'Email', width: 200 },
+    { key: 'telegram_chat_id', title: t?.('export.columns.telegramChatId') || 'Telegram Chat ID', width: 150 },
+    { key: 'created_at', title: t?.('export.columns.createdAt') || 'Дата создания', width: 120 }
   ],
 
   notifications: (t) => [

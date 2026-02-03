@@ -77,6 +77,12 @@ function calculateNextRun({ schedule_type, day_of_week, day_of_month, time, time
   return nextRun
 }
 
+/** Для SUPER_ADMIN: hotel_id из JWT может быть null, используем hotel_id из query */
+function effectiveHotelId(req) {
+  const { user } = req
+  return user.hotel_id ?? req.query.hotel_id
+}
+
 /**
  * GET /api/scheduled-exports
  * Get all scheduled exports for the user's hotel
@@ -85,6 +91,14 @@ router.get('/', authMiddleware, async (req, res) => {
   try {
     const user = req.user
     const { department_id } = req.query
+    const hotelId = effectiveHotelId(req)
+
+    if (!hotelId && user.role === 'SUPER_ADMIN') {
+      return res.json([])
+    }
+    if (!hotelId) {
+      return res.status(400).json({ error: 'Hotel context required' })
+    }
 
     let queryText = `
       SELECT
@@ -96,7 +110,7 @@ router.get('/', authMiddleware, async (req, res) => {
       LEFT JOIN users u ON se.created_by = u.id
       WHERE se.hotel_id = $1
     `
-    const queryParams = [user.hotel_id]
+    const queryParams = [hotelId]
 
     // Фильтр по отделу
     if (department_id) {
@@ -127,6 +141,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
   try {
     const user = req.user
     const { id } = req.params
+    const hotelId = effectiveHotelId(req)
 
     const result = await query(
       `SELECT
@@ -138,8 +153,8 @@ router.get('/:id', authMiddleware, async (req, res) => {
       FROM scheduled_exports se
       LEFT JOIN departments d ON se.department_id = d.id
       LEFT JOIN users u ON se.created_by = u.id
-      WHERE se.id = $1 AND se.hotel_id = $2`,
-      [id, user.hotel_id]
+      WHERE se.id = $1${hotelId ? ' AND se.hotel_id = $2' : ''}`,
+      hotelId ? [id, hotelId] : [id]
     )
 
     if (result.rows.length === 0) {
@@ -224,13 +239,15 @@ router.post('/', authMiddleware, allowRoles(['SUPER_ADMIN', 'HOTEL_ADMIN', 'DEPA
     }
 
     const department = deptResult.rows[0]
-    const hotelId = user.hotel_id ?? department.hotel_id
+    const hotelId = user.hotel_id ?? department.hotel_id ?? req.query.hotel_id
 
     // Проверка наличия email/telegram в зависимости от delivery_method
     if (delivery_method === 'email' || delivery_method === 'both') {
       if (!email_override && !department.email) {
         return res.status(400).json({
-          error: 'Department email not configured and no override provided'
+          success: false,
+          error: 'EMAIL_NOT_CONFIGURED',
+          message: `Department email not configured. Please configure email in department settings or provide email_override.`
         })
       }
     }
@@ -238,7 +255,9 @@ router.post('/', authMiddleware, allowRoles(['SUPER_ADMIN', 'HOTEL_ADMIN', 'DEPA
     if (delivery_method === 'telegram' || delivery_method === 'both') {
       if (!telegram_chat_id_override && !department.telegram_chat_id) {
         return res.status(400).json({
-          error: 'Department Telegram chat not configured and no override provided'
+          success: false,
+          error: 'TELEGRAM_NOT_CONFIGURED',
+          message: `Department Telegram chat not configured. Please configure Telegram in department settings or provide telegram_chat_id_override.`
         })
       }
     }
@@ -303,11 +322,11 @@ router.put('/:id', authMiddleware, allowRoles(['SUPER_ADMIN', 'HOTEL_ADMIN', 'DE
   try {
     const user = req.user
     const { id } = req.params
+    const hotelId = effectiveHotelId(req)
 
-    // Получаем существующее расписание
     const existingResult = await query(
-      `SELECT * FROM scheduled_exports WHERE id = $1 AND hotel_id = $2`,
-      [id, user.hotel_id]
+      `SELECT * FROM scheduled_exports WHERE id = $1${hotelId ? ' AND hotel_id = $2' : ''}`,
+      hotelId ? [id, hotelId] : [id]
     )
 
     if (existingResult.rows.length === 0) {
@@ -358,6 +377,24 @@ router.put('/:id', authMiddleware, allowRoles(['SUPER_ADMIN', 'HOTEL_ADMIN', 'DE
     await getTimeColumnName()
     const timeCol = timeColumnSql()
 
+    const updateParams = [
+      schedule_type,
+      day_of_week !== undefined ? day_of_week : null,
+      day_of_month !== undefined ? day_of_month : null,
+      time,
+      timezone,
+      export_types ? JSON.stringify(export_types) : null,
+      export_formats ? JSON.stringify(export_formats) : null,
+      filters ? JSON.stringify(filters) : null,
+      delivery_method,
+      email_override,
+      telegram_chat_id_override,
+      is_active !== undefined ? is_active : null,
+      next_run_at,
+      id
+    ]
+    if (hotelId) updateParams.push(hotelId)
+
     const result = await query(
       `UPDATE scheduled_exports
        SET schedule_type = COALESCE($1, schedule_type),
@@ -374,25 +411,9 @@ router.put('/:id', authMiddleware, allowRoles(['SUPER_ADMIN', 'HOTEL_ADMIN', 'DE
            is_active = COALESCE($12, is_active),
            next_run_at = $13,
            updated_at = CURRENT_TIMESTAMP
-       WHERE id = $14 AND hotel_id = $15
+       WHERE id = $14${hotelId ? ' AND hotel_id = $15' : ''}
        RETURNING *`,
-      [
-        schedule_type,
-        day_of_week !== undefined ? day_of_week : null,
-        day_of_month !== undefined ? day_of_month : null,
-        time,
-        timezone,
-        export_types ? JSON.stringify(export_types) : null,
-        export_formats ? JSON.stringify(export_formats) : null,
-        filters ? JSON.stringify(filters) : null,
-        delivery_method,
-        email_override,
-        telegram_chat_id_override,
-        is_active !== undefined ? is_active : null,
-        next_run_at,
-        id,
-        user.hotel_id
-      ]
+      updateParams
     )
 
     logInfo('ScheduledExports', `Updated scheduled export ${id}`)
@@ -412,11 +433,11 @@ router.delete('/:id', authMiddleware, allowRoles(['SUPER_ADMIN', 'HOTEL_ADMIN', 
   try {
     const user = req.user
     const { id } = req.params
+    const hotelId = effectiveHotelId(req)
 
-    // Получаем расписание для проверки прав
     const existingResult = await query(
-      `SELECT * FROM scheduled_exports WHERE id = $1 AND hotel_id = $2`,
-      [id, user.hotel_id]
+      `SELECT * FROM scheduled_exports WHERE id = $1${hotelId ? ' AND hotel_id = $2' : ''}`,
+      hotelId ? [id, hotelId] : [id]
     )
 
     if (existingResult.rows.length === 0) {
@@ -450,8 +471,8 @@ router.post('/:id/test', authMiddleware, allowRoles(['SUPER_ADMIN', 'HOTEL_ADMIN
   try {
     const user = req.user
     const { id } = req.params
+    const hotelId = effectiveHotelId(req)
 
-    // Получаем расписание
     const result = await query(
       `SELECT
         se.*,
@@ -460,8 +481,8 @@ router.post('/:id/test', authMiddleware, allowRoles(['SUPER_ADMIN', 'HOTEL_ADMIN
         d.telegram_chat_id
       FROM scheduled_exports se
       LEFT JOIN departments d ON se.department_id = d.id
-      WHERE se.id = $1 AND se.hotel_id = $2`,
-      [id, user.hotel_id]
+      WHERE se.id = $1${hotelId ? ' AND se.hotel_id = $2' : ''}`,
+      hotelId ? [id, hotelId] : [id]
     )
 
     if (result.rows.length === 0) {
@@ -501,10 +522,10 @@ router.get('/:id/logs', authMiddleware, async (req, res) => {
     const { id } = req.params
     const { limit = 20, offset = 0 } = req.query
 
-    // Проверяем что расписание существует и пользователь имеет доступ
+    const hotelId = effectiveHotelId(req)
     const scheduleResult = await query(
-      `SELECT department_id FROM scheduled_exports WHERE id = $1 AND hotel_id = $2`,
-      [id, user.hotel_id]
+      `SELECT department_id FROM scheduled_exports WHERE id = $1${hotelId ? ' AND hotel_id = $2' : ''}`,
+      hotelId ? [id, hotelId] : [id]
     )
 
     if (scheduleResult.rows.length === 0) {

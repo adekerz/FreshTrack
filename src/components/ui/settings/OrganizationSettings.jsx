@@ -86,7 +86,7 @@ export default function OrganizationSettings() {
 
   // Create department modal
   const [showCreateDept, setShowCreateDept] = useState(null) // hotelId
-  const [newDept, setNewDept] = useState({ name: '', description: '' })
+  const [newDept, setNewDept] = useState({ name: '', description: '', email: '', telegram_chat_id: '' })
   const [creatingDept, setCreatingDept] = useState(false)
 
   // Create user modal
@@ -254,7 +254,7 @@ export default function OrganizationSettings() {
         'success'
       )
       setShowCreateDept(null)
-      setNewDept({ name: '', description: '' })
+      setNewDept({ name: '', description: '', email: '', telegram_chat_id: '' })
       fetchData()
     } catch (error) {
       addToast(error.message || 'Ошибка создания департамента', 'error')
@@ -979,6 +979,38 @@ export default function OrganizationSettings() {
                 className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-card"
               />
               <p className="text-xs text-muted-foreground mt-1">Код генерируется автоматически</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1">Описание</label>
+              <input
+                type="text"
+                placeholder="Описание департамента"
+                value={newDept.description}
+                onChange={(e) => setNewDept({ ...newDept, description: e.target.value })}
+                className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-card"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1">Email</label>
+              <input
+                type="email"
+                placeholder="department@example.com"
+                value={newDept.email}
+                onChange={(e) => setNewDept({ ...newDept, email: e.target.value })}
+                className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-card"
+              />
+              <p className="text-xs text-muted-foreground mt-1">Для рассылки отчётов по расписанию</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1">Telegram Chat ID</label>
+              <input
+                type="text"
+                placeholder="-1001234567890"
+                value={newDept.telegram_chat_id}
+                onChange={(e) => setNewDept({ ...newDept, telegram_chat_id: e.target.value })}
+                className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-card"
+              />
+              <p className="text-xs text-muted-foreground mt-1">Для отправки отчётов в Telegram</p>
             </div>
             <button
               onClick={createDepartment}

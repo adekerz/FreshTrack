@@ -9,6 +9,7 @@ import { useTranslation } from '../../context/LanguageContext'
 import { apiFetch } from '../../services/api'
 import Modal from '../ui/Modal'
 import { TouchButton } from '../ui'
+import { MessageSquare } from 'lucide-react'
 
 const dayKeys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat']
 
@@ -27,6 +28,7 @@ export function ScheduleEditModal({ schedule, onClose, onSuccess }) {
   const [loading, setLoading] = useState(false)
   const [departments, setDepartments] = useState([])
   const [selectedDepartment, setSelectedDepartment] = useState(null)
+  const [linkedChats, setLinkedChats] = useState([])
   const [formData, setFormData] = useState({
     department_id: schedule.department_id || '',
     schedule_type: schedule.schedule_type || 'daily',
@@ -44,17 +46,40 @@ export function ScheduleEditModal({ schedule, onClose, onSuccess }) {
 
   useEffect(() => {
     loadDepartments()
+    loadLinkedChats()
   }, [])
+
+  const loadLinkedChats = async () => {
+    try {
+      const data = await apiFetch('/settings/telegram/chats')
+      setLinkedChats(data?.chats ?? [])
+    } catch {
+      setLinkedChats([])
+    }
+  }
+
+  const loadDepartmentDetails = async (deptId, fallbackList = []) => {
+    if (!deptId) {
+      setSelectedDepartment(null)
+      return
+    }
+    try {
+      const data = await apiFetch(`/departments/${deptId}`)
+      const dept = data?.department ?? data
+      setSelectedDepartment(dept || null)
+    } catch {
+      const dept = fallbackList.find((d) => d.id === deptId)
+      setSelectedDepartment(dept || null)
+    }
+  }
 
   const loadDepartments = async () => {
     try {
       const data = await apiFetch('/departments')
       const list = Array.isArray(data) ? data : (data?.departments ?? [])
       setDepartments(list)
-      // Установить выбранный отдел на основе schedule
       if (schedule.department_id) {
-        const dept = list.find((d) => d.id === schedule.department_id)
-        if (dept) setSelectedDepartment(dept)
+        await loadDepartmentDetails(schedule.department_id, list)
       }
     } catch (error) {
       console.error('Failed to load departments:', error)
@@ -62,10 +87,23 @@ export function ScheduleEditModal({ schedule, onClose, onSuccess }) {
   }
 
   const handleDepartmentChange = (deptId) => {
-    setFormData({ ...formData, department_id: deptId })
-    const dept = departments.find((d) => d.id === deptId)
-    setSelectedDepartment(dept || null)
+    setFormData((prev) => ({ ...prev, department_id: deptId }))
+    loadDepartmentDetails(deptId, departments)
   }
+
+  const linkedChatsForDepartment = selectedDepartment
+    ? linkedChats.filter(
+        (c) =>
+          c.department_id === selectedDepartment.id ||
+          (c.department_id == null && c.hotel_id === selectedDepartment.hotel_id)
+      )
+    : []
+
+  const effectiveTelegramChatId =
+    formData.telegram_chat_id_override?.trim() ||
+    selectedDepartment?.telegram_chat_id ||
+    linkedChatsForDepartment[0]?.chat_id?.toString() ||
+    ''
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -88,17 +126,28 @@ export function ScheduleEditModal({ schedule, onClose, onSuccess }) {
 
     // Проверка Telegram для telegram/both доставки
     if ((formData.delivery_method === 'telegram' || formData.delivery_method === 'both')) {
-      if (!formData.telegram_chat_id_override && !selectedDepartment?.telegram_chat_id) {
-        addToast(t('scheduledExports.telegramRequired') || 'Укажите Telegram Chat ID для отправки или настройте его в отделе', 'error')
+      if (!effectiveTelegramChatId) {
+        addToast(
+          t('scheduledExports.telegramRequired') ||
+            'Привяжите бота в чат (Уведомления) или укажите Chat ID в настройках отдела',
+          'error'
+        )
         return
       }
     }
     setLoading(true)
     try {
+      const telegramOverride =
+        formData.telegram_chat_id_override?.trim() ||
+        (linkedChatsForDepartment[0]?.chat_id && !selectedDepartment?.telegram_chat_id
+          ? String(linkedChatsForDepartment[0].chat_id)
+          : null)
+
       await apiFetch(`/scheduled-exports/${schedule.id}`, {
         method: 'PUT',
         body: JSON.stringify({
           ...formData,
+          telegram_chat_id_override: telegramOverride || null,
           day_of_week: formData.schedule_type === 'weekly' ? parseInt(formData.day_of_week) : undefined,
           day_of_month: formData.schedule_type === 'monthly' ? parseInt(formData.day_of_month) : undefined
         })
@@ -316,6 +365,63 @@ export function ScheduleEditModal({ schedule, onClose, onSuccess }) {
             <option value="telegram">{t('scheduledExports.deliveryTelegram')}</option>
             <option value="both">{t('scheduledExports.deliveryBoth')}</option>
           </select>
+          {selectedDepartment && (
+            <div className="mt-3 p-3 bg-muted/30 rounded-lg border border-border">
+              <p className="text-xs font-medium text-foreground mb-2">
+                {t('scheduledExports.departmentSettings') || 'Настройки отдела:'}
+              </p>
+              <div className="space-y-2 text-sm">
+                <div
+                  className={`flex items-center gap-1.5 ${
+                    selectedDepartment.email ? 'text-success' : 'text-muted-foreground'
+                  }`}
+                >
+                  <span
+                    className={`w-2 h-2 rounded-full shrink-0 ${
+                      selectedDepartment.email ? 'bg-success' : 'bg-muted-foreground'
+                    }`}
+                    aria-hidden
+                  />
+                  Email: {selectedDepartment.email || (t('scheduledExports.notConfigured') || 'Не настроен')}
+                </div>
+                <div
+                  className={`flex items-center gap-1.5 ${
+                    effectiveTelegramChatId ? 'text-success' : 'text-muted-foreground'
+                  }`}
+                >
+                  <span
+                    className={`w-2 h-2 rounded-full shrink-0 ${
+                      effectiveTelegramChatId ? 'bg-success' : 'bg-muted-foreground'
+                    }`}
+                    aria-hidden
+                  />
+                  Telegram:{' '}
+                  {effectiveTelegramChatId ? (
+                    linkedChatsForDepartment.length > 0 ? (
+                      <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                        {linkedChatsForDepartment.map((chat) => (
+                          <span
+                            key={chat.chat_id}
+                            className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-[#0088cc]/10 text-[#0088cc]"
+                          >
+                            <MessageSquare className="w-3.5 h-3.5" />
+                            {chat.chat_title || 'Чат'} — {chat.chat_id}
+                            {chat.hotel_name && (
+                              <span className="text-muted-foreground text-xs">({chat.hotel_name})</span>
+                            )}
+                          </span>
+                        ))}
+                      </span>
+                    ) : (
+                      selectedDepartment.telegram_chat_id || formData.telegram_chat_id_override
+                    )
+                  ) : (
+                    t('scheduledExports.notConfigured') || 'Не настроен'
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {(formData.delivery_method === 'email' || formData.delivery_method === 'both') && (
@@ -348,23 +454,50 @@ export function ScheduleEditModal({ schedule, onClose, onSuccess }) {
           <div>
             <label className="block text-sm font-medium text-foreground mb-1.5">
               {t('scheduledExports.telegramOverride')}
-              {!selectedDepartment?.telegram_chat_id && <span className="text-danger ml-1">*</span>}
+              {!effectiveTelegramChatId && <span className="text-danger ml-1">*</span>}
             </label>
-            <input
-              type="text"
-              value={formData.telegram_chat_id_override}
-              onChange={(e) => setFormData({ ...formData, telegram_chat_id_override: e.target.value })}
-              placeholder={t('scheduledExports.telegramPlaceholder')}
-              required={!selectedDepartment?.telegram_chat_id}
-              className="w-full px-3 py-2.5 border border-border rounded-lg bg-background text-foreground min-h-[48px] focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
-            />
-            {selectedDepartment?.telegram_chat_id ? (
-              <p className="text-xs text-muted-foreground mt-1">
-                {t('scheduledExports.telegramHelp')} (Default: {selectedDepartment.telegram_chat_id})
-              </p>
+            {linkedChatsForDepartment.length > 0 ? (
+              <>
+                <p className="text-xs text-muted-foreground mb-2">
+                  {t('scheduledExports.telegramLinkedChats') || 'Используется привязанный чат из раздела Уведомления'}
+                </p>
+                <div className="space-y-2">
+                  {linkedChatsForDepartment.map((chat) => (
+                    <div
+                      key={chat.chat_id}
+                      className="flex items-center gap-2 p-2 rounded-lg bg-muted/30 border border-border"
+                    >
+                      <MessageSquare className="w-4 h-4 text-[#0088cc] shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <span className="font-medium text-foreground">{chat.chat_title || 'Чат'}</span>
+                        {chat.hotel_name && (
+                          <span className="text-muted-foreground text-xs ml-1">— {chat.hotel_name}</span>
+                        )}
+                        <span className="text-muted-foreground text-xs ml-1">({chat.chat_id})</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
             ) : (
+              <input
+                type="text"
+                value={formData.telegram_chat_id_override}
+                onChange={(e) => setFormData({ ...formData, telegram_chat_id_override: e.target.value })}
+                placeholder={t('scheduledExports.telegramPlaceholder')}
+                required={!effectiveTelegramChatId}
+                className="w-full px-3 py-2.5 border border-border rounded-lg bg-background text-foreground min-h-[48px] focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
+              />
+            )}
+            {effectiveTelegramChatId && linkedChatsForDepartment.length === 0 && (
+              <p className="text-xs text-muted-foreground mt-1">
+                {t('scheduledExports.telegramHelp')} ({selectedDepartment?.telegram_chat_id || formData.telegram_chat_id_override})
+              </p>
+            )}
+            {!effectiveTelegramChatId && (
               <p className="text-xs text-warning mt-1">
-                {t('scheduledExports.telegramRequired') || 'У отдела не настроен Telegram. Укажите Chat ID для отправки.'}
+                {t('scheduledExports.telegramLinkHint') ||
+                  'Добавьте бота в чат в разделе Уведомления или укажите Chat ID ниже.'}
               </p>
             )}
           </div>

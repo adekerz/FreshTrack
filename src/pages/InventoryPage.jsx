@@ -25,7 +25,6 @@ import SelectTemplateModal from '../components/SelectTemplateModal'
 import FastIntakeModal from '../components/FastIntakeModal'
 import DepartmentSelector from '../components/DepartmentSelector'
 import ExportButton from '../components/ExportButton'
-import { EXPORT_COLUMNS } from '../utils/exportUtils'
 import { SkeletonInventory, Skeleton } from '../components/Skeleton'
 import { Loader, ConfirmDialog, TouchButton } from '../components/ui'
 import { usePullToRefresh } from '../hooks/usePullToRefresh'
@@ -278,78 +277,19 @@ export default function InventoryPage() {
     })
   }, [selectedDeptId, selectedCategory, sortBy, getProductsByDepartment])
 
-  // Подготовка данных для экспорта (экспортируем отдельные партии, не агрегированные товары)
-  const exportData = useMemo(() => {
-    const products = getFilteredProducts()
-    const dept = departments.find((d) => d.id === selectedDeptId)
-    const exportRows = []
-
-    // Функция для получения названия категории
-    const getCategoryName = (categoryId) => {
-      const cat = categories.find((c) => c.id === categoryId)
-      if (!cat) return '-'
-      if (language === 'ru') return cat.nameRu || cat.name || '-'
-      if (language === 'kk') return cat.nameKz || cat.name || '-'
-      return cat.name || '-'
+  // Подготовка фильтров для экспорта
+  const exportFilters = useMemo(() => {
+    const filters = {
+      department_id: selectedDeptId
     }
 
-    // Функция для получения текста статуса
-    // Синхронизировано с dateUtils.js - пороги: expired(<0), today(0), critical(1-3), warning(4-7), good(>7)
-    const getStatusLabel = (status) => {
-      if (!status) return '-'
-      const statusMap = {
-        good: t('common.good') || 'В норме',
-        ok: t('common.good') || 'В норме',
-        warning: t('common.warning') || 'Внимание',
-        critical: t('common.critical') || 'Критично',
-        today: t('common.expired') || 'Истекает сегодня',
-        expired: t('common.expired') || 'Просрочено'
-      }
-      return statusMap[status] || status || '-'
+    // Добавляем фильтр по категории если выбрана
+    if (selectedCategory !== 'all') {
+      filters.category_id = selectedCategory
     }
 
-    products.forEach((product) => {
-      // Используем categoryName с бэкенда (single source of truth), fallback на локальный поиск
-      const categoryName =
-        product.categoryName || getCategoryName(product.categoryId) || product.category?.name || '-'
-
-      // Если у товара есть партии, экспортируем каждую партию отдельно
-      if (product.batches && product.batches.length > 0) {
-        product.batches.forEach((batch) => {
-          const status = batch.status?.status || batch.status
-          exportRows.push({
-            productName: product.name,
-            category: categoryName,
-            department: dept?.name || selectedDeptId,
-            quantity:
-              batch.quantity === null || batch.quantity === undefined ? '—' : batch.quantity,
-            unit: product.unit || 'шт',
-            formattedDate: batch.expiryDate
-              ? new Date(batch.expiryDate).toLocaleDateString('ru-RU')
-              : '-',
-            daysLeft: batch.daysLeft ?? '-',
-            statusLabel: getStatusLabel(status),
-            status: status || 'good'
-          })
-        })
-      } else {
-        // Если партий нет, показываем "Нет партий"
-        exportRows.push({
-          productName: product.name,
-          category: categoryName,
-          department: dept?.name || selectedDeptId,
-          quantity: 0,
-          unit: product.unit || 'шт',
-          formattedDate: '-',
-          daysLeft: '-',
-          statusLabel: t('inventory.noBatches') || 'Нет партий',
-          status: 'noBatches'
-        })
-      }
-    })
-
-    return exportRows
-  }, [selectedDeptId, getFilteredProducts, departments, categories, language, t])
+    return filters
+  }, [selectedDeptId, selectedCategory])
 
   // Открыть модальное окно товара
   const handleProductClick = (product) => {
@@ -509,17 +449,10 @@ export default function InventoryPage() {
 
         <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
           <ExportButton
-            data={exportData}
-            columns={EXPORT_COLUMNS.inventory(t)}
-            filename={`inventory_${selectedDeptId}`}
-            title={`${t('inventory.title')} - ${department?.name}`}
-            subtitle={
-              selectedCategory !== 'all'
-                ? `${t('common.category')}: ${categories.find((c) => c.id === selectedCategory)?.name || selectedCategory}`
-                : ''
-            }
-            serverExportType="inventory"
-            showServerExport={true}
+            exportType="inventory"
+            filters={exportFilters}
+            formats={['excel', 'csv', 'pdf']}
+            showFilterCount={true}
           />
           <TouchButton
             variant="ghost"

@@ -63,13 +63,6 @@ const EXPORT_TYPES = {
     title: 'Отделы',
     subtitle: 'Справочник отделов',
     columnsKey: 'inventory'
-  },
-  writeOffs: {
-    endpoint: '/export/write-offs',
-    filename: 'write_offs',
-    title: 'Списания',
-    subtitle: 'Журнал списаний товаров',
-    columnsKey: 'collections'
   }
 }
 
@@ -183,8 +176,13 @@ export function useExport() {
     setExporting(type)
 
     try {
-      // Строим URL с фильтрами
+      // Строим URL с фильтрами и форматом
       const url = new URL(`${API_BASE_URL}${exportConfig.endpoint}`)
+
+      // Добавляем формат
+      url.searchParams.append('format', format)
+
+      // Добавляем фильтры если есть
       if (options.filters) {
         Object.entries(options.filters).forEach(([key, value]) => {
           if (value !== null && value !== undefined && value !== '') {
@@ -197,45 +195,48 @@ export function useExport() {
       const response = await fetch(url.toString(), {
         method: 'GET',
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('freshtrack_token')}`,
-          'Content-Type': 'application/json'
+          Authorization: `Bearer ${localStorage.getItem('freshtrack_token')}`
         }
       })
 
       if (!response.ok) {
-        const error = await response.json()
+        const error = await response.json().catch(() => ({ message: 'Export failed' }))
         throw new Error(error.message || 'Export failed')
       }
 
-      const data = await response.json()
+      // Backend возвращает файл напрямую - скачиваем его
+      const blob = await response.blob()
 
-      // Проверяем данные
-      if (!data || !Array.isArray(data) || data.length === 0) {
-        addToast(t('export.noData') || 'Нет данных для экспорта', 'warning')
-        return
+      // Проверяем что blob не пустой
+      if (blob.size === 0) {
+        throw new Error('Нет данных для экспорта')
       }
 
-      // Форматируем данные
-      const formattedData = formatDataForExport(data, type, t)
-
-      // Получаем конфигурацию колонок
-      const columns = EXPORT_COLUMNS[exportConfig.columnsKey]?.(t) || []
-
-      // Генерируем имя файла
+      // Определяем расширение файла
+      const extension = format === 'excel' ? 'xlsx' : format
       const timestamp = new Date().toISOString().split('T')[0]
-      const filename = `${exportConfig.filename}_${timestamp}`
+      const filename = `${exportConfig.filename}_${timestamp}.${extension}`
 
-      // Экспорт в нужном формате
-      if (format === 'excel') {
-        exportToExcel(formattedData, columns, filename, exportConfig.title)
-      } else if (format === 'pdf') {
-        exportToPDF(exportConfig.title, formattedData, columns, {
-          subtitle: exportConfig.subtitle,
-          companyName: 'FreshTrack'
-        })
+      // Скачиваем файл
+      const downloadUrl = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = downloadUrl
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(downloadUrl)
+      document.body.removeChild(a)
+
+      // Показываем успех
+      let message = t('toast.exportSuccess') || 'Экспорт завершен'
+      if (options.filters) {
+        const filterCount = Object.keys(options.filters).filter(k => options.filters[k]).length
+        if (filterCount > 0) {
+          message += ` (применено фильтров: ${filterCount})`
+        }
       }
+      addToast(message, 'success')
 
-      addToast(t('toast.exportSuccess') || 'Экспорт завершен', 'success')
     } catch (error) {
       logError('Export error:', error)
       addToast(

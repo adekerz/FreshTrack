@@ -186,48 +186,6 @@ router.get('/departments',
   }
 )
 
-router.get('/write-offs', 
-  authMiddleware, 
-  hotelIsolation, 
-  departmentIsolation, 
-  requirePermission(PermissionResource.EXPORT, PermissionAction.READ),
-  requireMFA,
-  rateLimitExportWithAlert,
-  requireAllowlistedIP,
-  async (req, res) => {
-  try {
-    const { department_id, start_date, end_date, format = 'json' } = req.query
-    const deptId = req.canAccessAllDepartments ? (department_id || null) : req.departmentId
-    const filters = { department_id: deptId, start_date, end_date }
-    
-    const writeOffs = await getAllWriteOffs(req.hotelId, filters)
-    
-    // Check export size limit
-    if (writeOffs.length > ExportService.MAX_EXPORT_ROWS) {
-      return res.status(400).json({
-        success: false,
-        error: 'EXPORT_TOO_LARGE',
-        message: `Dataset has ${writeOffs.length} rows. Maximum: ${ExportService.MAX_EXPORT_ROWS}.`,
-        suggestion: 'Apply date filters or contact support for bulk export.',
-        totalRows: writeOffs.length,
-        maxRows: ExportService.MAX_EXPORT_ROWS
-      })
-    }
-    
-    // Use ExportService for consistent audit logging
-    await ExportService.sendExport(res, writeOffs, 'writeOffs', format, {
-      filename: 'write_offs',
-      user: req.user,
-      ipAddress: req.ip,
-      userAgent: req.get('user-agent'),
-      filters: req.query
-    })
-  } catch (error) {
-    logError('Export write-offs error', error)
-    res.status(500).json({ success: false, error: 'Failed to export write-offs' })
-  }
-})
-
 router.get('/inventory', 
   authMiddleware, 
   hotelIsolation, 
@@ -378,67 +336,6 @@ router.get('/audit',
   } catch (error) {
     logError('Export audit logs error', error)
     res.status(500).json({ success: false, error: 'Failed to export audit logs' })
-  }
-})
-
-router.get('/all', 
-  authMiddleware, 
-  hotelIsolation, 
-  requirePermission(PermissionResource.EXPORT, PermissionAction.READ),
-  requireMFA,
-  rateLimitExportWithAlert,
-  requireAllowlistedIP,
-  async (req, res) => {
-  try {
-    const [products, batches, categories, departments, writeOffs] = await Promise.all([
-      getAllProducts(req.hotelId, {}),
-      getAllBatches(req.hotelId, {}),
-      getAllCategories(req.hotelId, {}),
-      getAllDepartments(req.hotelId, {}),
-      getAllWriteOffs(req.hotelId, {})
-    ])
-    
-    // Check total export size
-    const totalRows = products.length + batches.length + categories.length + departments.length + writeOffs.length
-    if (totalRows > ExportService.MAX_EXPORT_ROWS) {
-      return res.status(400).json({
-        success: false,
-        error: 'EXPORT_TOO_LARGE',
-        message: `Dataset has ${totalRows} total rows. Maximum: ${ExportService.MAX_EXPORT_ROWS}.`,
-        suggestion: 'Export entities separately with filters or contact support for bulk export.',
-        totalRows,
-        maxRows: ExportService.MAX_EXPORT_ROWS,
-        breakdown: {
-          products: products.length,
-          batches: batches.length,
-          categories: categories.length,
-          departments: departments.length,
-          writeOffs: writeOffs.length
-        }
-      })
-    }
-    
-    // Combine all data for export
-    const allData = {
-      products,
-      batches,
-      categories,
-      departments,
-      write_offs: writeOffs,
-      exported_at: new Date().toISOString()
-    }
-    
-    // Use ExportService for consistent audit logging
-    await ExportService.sendExport(res, [allData], 'all', format, {
-      filename: 'all_data',
-      user: req.user,
-      ipAddress: req.ip,
-      userAgent: req.get('user-agent'),
-      filters: req.query
-    })
-  } catch (error) {
-    logError('Export all error', error)
-    res.status(500).json({ success: false, error: 'Failed to export all data' })
   }
 })
 

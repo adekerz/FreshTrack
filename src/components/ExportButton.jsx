@@ -1,230 +1,217 @@
 /**
- * Export Button Component
- * Компонент кнопки экспорта с выпадающим меню
- * Поддерживает клиентский экспорт (data) и серверный экспорт (serverExportType)
+ * ExportButton Component
+ * Universal export button with dropdown menu for format selection
+ * Supports Excel, CSV, and PDF exports with backend integration
  */
 
 import { useState, useRef, useEffect } from 'react'
-import { Download, FileSpreadsheet, FileText, ChevronDown, Cloud } from 'lucide-react'
-import { InlineLoader } from './ui'
-import { useTranslation } from '../context/LanguageContext'
-import { useToast } from '../context/ToastContext'
-import { exportToExcel, exportToPDF } from '../utils/exportUtils'
+import { Download, FileSpreadsheet, FileText, FileType, Loader2, ChevronDown } from 'lucide-react'
 import { useExport } from '../hooks/useExport'
-import { logError } from '../utils/logger'
+import { useTranslation } from '../context/LanguageContext'
 
+/**
+ * Format configurations with icons and descriptions
+ */
+const FORMAT_CONFIG = {
+  excel: {
+    id: 'excel',
+    label: 'Excel',
+    icon: FileSpreadsheet,
+    description: 'Таблица с форматированием',
+    color: 'text-green-700'
+  },
+  csv: {
+    id: 'csv',
+    label: 'CSV',
+    icon: FileText,
+    description: 'Простой текстовый формат',
+    color: 'text-blue-600'
+  },
+  pdf: {
+    id: 'pdf',
+    label: 'PDF',
+    icon: FileType,
+    description: 'Документ для печати',
+    color: 'text-red-600'
+  }
+}
+
+/**
+ * ExportButton Component
+ * @param {Object} props
+ * @param {string} props.exportType - Type of export (inventory, collections, audit, etc.)
+ * @param {Object} props.filters - Active filters to pass to export
+ * @param {Array} props.formats - Available formats (default: ['excel', 'csv', 'pdf'])
+ * @param {string} props.variant - Button variant ('primary' | 'secondary')
+ * @param {string} props.size - Button size ('sm' | 'md' | 'lg')
+ * @param {boolean} props.showFilterCount - Show active filter count badge
+ * @param {boolean} props.disabled - Disable button
+ * @param {Function} props.onExportComplete - Callback after successful export
+ */
 export default function ExportButton({
-  data,
-  columns,
-  filename = 'report',
-  title = 'Отчёт',
-  subtitle = '',
-  summary = null,
+  exportType,
+  filters = {},
+  formats = ['excel', 'csv', 'pdf'],
+  variant = 'primary',
+  size = 'md',
+  showFilterCount = true,
   disabled = false,
-  /** Кастомные обработчики (backend-экспорт). Если заданы — в меню вызываются они вместо клиентского экспорта. */
-  onExportPdf,
-  onExportExcel,
-  /** Состояние загрузки при использовании onExportPdf/onExportExcel */
-  exportingPdf = false,
-  exportingExcel = false,
-  /** Количество записей для экспорта (например pagination.total), когда экспорт идёт с бэкенда */
-  exportRecordCount,
-  /** Тип серверного экспорта (inventory, batches, collections, audit) */
-  serverExportType = null,
-  /** Показывать опцию серверного экспорта "Экспортировать все" */
-  showServerExport = false
+  onExportComplete
 }) {
   const { t } = useTranslation()
-  const { addToast } = useToast()
-  const { exportData: exportServerData, exporting: serverExporting } = useExport()
-  const [isOpen, setIsOpen] = useState(false)
-  const [exporting, setExporting] = useState(null)
+  const { exportData, exporting, isExporting } = useExport()
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const dropdownRef = useRef(null)
-  const useCustomExport = Boolean(onExportPdf || onExportExcel)
 
-  // Закрытие меню при клике вне его
+  // Calculate active filter count
+  const activeFilterCount = showFilterCount
+    ? Object.keys(filters).filter(key => {
+        const value = filters[key]
+        return value !== null && value !== undefined && value !== ''
+      }).length
+    : 0
+
+  // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsOpen(false)
+        setIsDropdownOpen(false)
       }
     }
 
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
-
-  const handleExport = async (type, isServerExport = false) => {
-    // Серверный экспорт
-    if (isServerExport && serverExportType) {
-      try {
-        await exportServerData(serverExportType, type === 'pdf' ? 'pdf' : 'excel')
-        setIsOpen(false)
-      } catch (error) {
-        logError('Server export error:', error)
-      }
-      return
+    if (isDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
     }
+  }, [isDropdownOpen])
 
-    // Кастомные обработчики
-    if (type === 'pdf' && onExportPdf) {
-      try {
-        await onExportPdf()
-        setIsOpen(false)
-      } catch {
-        // ошибка уже обработана в родителе
-      }
-      return
-    }
-    if (type === 'excel' && onExportExcel) {
-      try {
-        await onExportExcel()
-        setIsOpen(false)
-      } catch {
-        // ошибка уже обработана в родителе
-      }
-      return
-    }
-
-    // Клиентский экспорт
-    if (!data || data.length === 0) {
-      addToast(t('export.noData'), 'warning')
-      return
-    }
-
-    setExporting(type)
+  // Handle export action
+  const handleExport = async (format) => {
+    setIsDropdownOpen(false)
 
     try {
-      const timestamp = new Date().toISOString().split('T')[0]
-      const exportFilename = `${filename}_${timestamp}`
-
-      switch (type) {
-        case 'excel':
-          exportToExcel(data, columns, exportFilename, title)
-          break
-        case 'pdf':
-          exportToPDF(title, data, columns, {
-            subtitle,
-            summary,
-            companyName: 'FreshTrack'
-          })
-          break
-        default:
-          break
-      }
+      await exportData(exportType, format, { filters })
+      onExportComplete?.()
     } catch (error) {
-      logError('Export error:', error)
-      addToast(t('export.error'), 'error')
-    } finally {
-      setExporting(null)
-      setIsOpen(false)
+      console.error('Export failed:', error)
     }
   }
 
-  const exportOptions = [
-    {
-      id: 'excel',
-      label: t('export.excel'),
-      description: t('export.excelDescription'),
-      icon: FileSpreadsheet,
-      color: 'text-green-700',
-      isServer: false
-    },
-    {
-      id: 'pdf',
-      label: t('export.pdf'),
-      description: t('export.pdfDescription'),
-      icon: FileText,
-      color: 'text-red-600',
-      isServer: false
+  // Toggle dropdown
+  const handleToggleDropdown = () => {
+    if (!disabled && !isExporting) {
+      setIsDropdownOpen(!isDropdownOpen)
     }
-  ]
+  }
 
-  // Добавляем опцию серверного экспорта если включено
-  if (showServerExport && serverExportType) {
-    exportOptions.push({
-      id: 'server-excel',
-      label: t('export.allDataExcel') || 'Все данные (Excel)',
-      description: t('export.serverExportDescription') || 'Полный экспорт с сервера',
-      icon: Cloud,
-      color: 'text-blue-600',
-      isServer: true
-    })
+  // Button size classes
+  const sizeClasses = {
+    sm: 'px-3 py-1.5 text-sm',
+    md: 'px-4 py-2 text-sm',
+    lg: 'px-6 py-3 text-base'
+  }
+
+  // Button variant classes
+  const variantClasses = {
+    primary: 'bg-foreground text-background hover:bg-foreground/90',
+    secondary: 'bg-muted text-foreground hover:bg-muted/80'
   }
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className="relative inline-block" ref={dropdownRef}>
+      {/* Main Export Button */}
       <button
-        onClick={() => setIsOpen(!isOpen)}
-        disabled={
-          disabled ||
-          (!useCustomExport && (!data || data.length === 0)) ||
-          (useCustomExport && exportingPdf && exportingExcel)
-        }
+        onClick={handleToggleDropdown}
+        disabled={disabled || isExporting}
         className={`
-          flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all
-          ${
-            disabled ||
-            (!useCustomExport && (!data || data.length === 0)) ||
-            (useCustomExport && exportingPdf && exportingExcel)
-              ? 'bg-muted text-muted-foreground/50 cursor-not-allowed'
-              : 'bg-foreground text-background hover:bg-foreground/90 active:scale-[0.98]'
-          }
+          ${sizeClasses[size]}
+          ${variantClasses[variant]}
+          rounded-lg font-medium
+          flex items-center gap-2
+          transition-all duration-200
+          disabled:opacity-50 disabled:cursor-not-allowed
+          active:scale-[0.98]
+          relative
         `}
       >
-        <Download className="w-4 h-4" />
-        <span>{t('export.button')}</span>
-        <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        {isExporting ? (
+          <>
+            <Loader2 className="w-4 h-4 animate-spin" />
+            <span>{t('export.exporting') || 'Экспорт...'}</span>
+          </>
+        ) : (
+          <>
+            <Download className="w-4 h-4" />
+            <span>{t('export.button') || 'Экспорт'}</span>
+            <ChevronDown className={`w-4 h-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+            {/* Filter count badge */}
+            {activeFilterCount > 0 && showFilterCount && (
+              <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                {activeFilterCount}
+              </span>
+            )}
+          </>
+        )}
       </button>
 
-      {/* Dropdown Menu */}
-      {isOpen && (
-        <div className="absolute right-0 top-full mt-2 w-64 bg-card rounded-xl shadow-lg border border-border z-50 overflow-hidden animate-fadeIn">
-          <div className="p-3 bg-muted border-b border-border">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-              {t('export.selectFormat')}
-            </p>
-          </div>
+      {/* Dropdown Menu with Backdrop */}
+      {isDropdownOpen && !isExporting && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 z-40"
+            onClick={() => setIsDropdownOpen(false)}
+          />
 
-          <div className="p-2">
-            {exportOptions.map((option) => {
-              const Icon = option.icon
-              const isExporting = option.isServer
-                ? serverExporting === serverExportType
-                : useCustomExport && option.id === 'pdf'
-                  ? exportingPdf
-                  : useCustomExport && option.id === 'excel'
-                    ? exportingExcel
-                    : exporting === option.id
+          {/* Menu */}
+          <div className="absolute right-0 top-full mt-2 w-64 bg-card rounded-xl shadow-lg border border-border z-50 overflow-hidden animate-fadeIn">
+            <div className="p-3 bg-muted border-b border-border">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                {t('export.selectFormat') || 'Выберите формат'}
+              </p>
+            </div>
 
-              return (
-                <button
-                  key={option.id}
-                  onClick={() => handleExport(option.id.replace('server-', ''), option.isServer)}
-                  disabled={isExporting}
-                  className="w-full flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-muted transition-colors text-left group disabled:opacity-50"
-                >
-                  <div
-                    className={`p-2 rounded-lg bg-muted group-hover:bg-muted/80 ${option.color}`}
+            <div className="p-2">
+              {formats.map((formatId) => {
+                const format = FORMAT_CONFIG[formatId]
+                if (!format) return null
+
+                const Icon = format.icon
+
+                return (
+                  <button
+                    key={formatId}
+                    onClick={() => handleExport(formatId)}
+                    className="w-full flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-muted transition-colors text-left group"
                   >
-                    <Icon className="w-4 h-4" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground">{option.label}</p>
-                    <p className="text-xs text-muted-foreground truncate">{option.description}</p>
-                  </div>
-                  {isExporting && <InlineLoader />}
-                </button>
-              )
-            })}
-          </div>
+                    <div
+                      className={`p-2 rounded-lg bg-muted group-hover:bg-muted/80 ${format.color}`}
+                    >
+                      <Icon className="w-4 h-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground">
+                        {format.label}
+                      </p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {format.description}
+                      </p>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
 
-          <div className="p-3 bg-muted border-t border-border">
-            <p className="text-xs text-muted-foreground text-center">
-              {exportRecordCount ?? data?.length ?? 0} {t('export.recordsToExport')}
-            </p>
+            {/* Active filters info */}
+            {activeFilterCount > 0 && showFilterCount && (
+              <div className="p-3 bg-muted border-t border-border">
+                <p className="text-xs text-muted-foreground text-center">
+                  {t('export.activeFilters') || 'Активных фильтров'}: {activeFilterCount}
+                </p>
+              </div>
+            )}
           </div>
-        </div>
+        </>
       )}
     </div>
   )

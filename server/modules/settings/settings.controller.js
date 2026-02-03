@@ -575,6 +575,7 @@ router.get('/telegram/chats', authMiddleware, hotelIsolation, async (req, res) =
     const result = await dbQuery(`
       SELECT 
         tc.chat_id, tc.chat_title, tc.chat_type, tc.is_active, 
+        tc.department_id, tc.hotel_id,
         tc.added_at, tc.notification_types, tc.language, tc.silent_mode,
         tc.warning_days, tc.critical_days,
         h.name as hotel_name, h.marsha_code as hotel_code,

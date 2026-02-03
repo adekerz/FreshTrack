@@ -12,7 +12,8 @@ export const CreateDepartmentSchema = z.object({
   description: z.string().max(500).optional().nullable(),
   hotel_id: z.string().uuid('Invalid hotel ID').optional(),
   settings: z.object({}).passthrough().optional().nullable(),
-  email: z.string().max(255).optional().nullable()
+  email: z.string().max(255).optional().nullable(),
+  telegram_chat_id: z.string().max(255).optional().nullable()
 })
 
 // Обновление департамента
@@ -21,7 +22,8 @@ export const UpdateDepartmentSchema = z.object({
   description: z.string().max(500).optional().nullable(),
   settings: z.object({}).passthrough().optional().nullable(),
   is_active: z.boolean().optional(),
-  email: z.string().max(255).optional().nullable()
+  email: z.string().max(255).optional().nullable(),
+  telegram_chat_id: z.string().max(255).optional().nullable()
 })
 
 /**

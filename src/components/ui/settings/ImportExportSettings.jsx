@@ -7,6 +7,7 @@ import { useState, useRef } from 'react'
 import { useTranslation } from '../../../context/LanguageContext'
 import { useToast } from '../../../context/ToastContext'
 import { useExport } from '../../../hooks/useExport'
+import { EXPORT_TYPES } from '../../../config/exportConfig'
 import { Loader } from '..'
 import { API_BASE_URL } from '../../../services/api'
 import {
@@ -18,7 +19,9 @@ import {
   FileText,
   Check,
   AlertCircle,
-  RefreshCw
+  RefreshCw,
+  FolderTree,
+  Tags
 } from 'lucide-react'
 import SettingsLayout, { SettingsSection } from './SettingsLayout'
 
@@ -81,32 +84,24 @@ export default function ImportExportSettings() {
     await exportData(type, format)
   }
 
-  const exportOptions = [
-    {
-      type: 'inventory',
-      icon: Package,
-      label: t('export.inventory') || 'Инвентарь',
-      desc: 'Текущие товары и статусы'
-    },
-    {
-      type: 'batches',
-      icon: FileSpreadsheet,
-      label: t('export.batches') || 'Все партии',
-      desc: 'Полная история партий'
-    },
-    {
-      type: 'collections',
-      icon: History,
-      label: t('export.collections') || 'История сборов',
-      desc: 'Журнал сборов товаров'
-    },
-    {
-      type: 'audit',
-      icon: FileText,
-      label: t('export.auditLog') || 'Журнал действий',
-      desc: 'Лог всех действий'
-    }
-  ]
+  // Icon mapping for export types
+  const exportIcons = {
+    inventory: Package,
+    batches: FileSpreadsheet,
+    collections: History,
+    audit: FileText,
+    products: Package,
+    categories: Tags,
+    departments: FolderTree
+  }
+
+  // Get export options from centralized config (все 7 отчётов)
+  const exportOptions = Object.values(EXPORT_TYPES).map(type => ({
+      type: type.id,
+      icon: exportIcons[type.id] || FileText,
+      label: t(type.labelKey) || type.title,
+      desc: type.subtitle
+    }))
 
   return (
     <SettingsLayout

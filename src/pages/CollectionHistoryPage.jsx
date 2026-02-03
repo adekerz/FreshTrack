@@ -13,6 +13,7 @@ import { Navigate } from 'react-router-dom'
 import { Filter, RefreshCw, ChevronLeft, ChevronRight, ArchiveX, User, Package } from 'lucide-react'
 import { apiFetch } from '../services/api'
 import { formatDate } from '../utils/dateUtils'
+import ExportButton from '../components/ExportButton'
 
 // Причины сбора (синхронизировано с CollectionService.CollectionReason)
 const REASONS = {
@@ -186,6 +187,15 @@ export default function CollectionHistoryPage() {
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3">
+          {/* Кнопка экспорта */}
+          <ExportButton
+            exportType="collections"
+            filters={appliedFilters}
+            formats={['excel', 'csv', 'pdf']}
+            showFilterCount={true}
+            size="sm"
+          />
+
           {/* Кнопка фильтров */}
           <button
             onClick={() => setShowFilters(!showFilters)}

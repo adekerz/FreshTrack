@@ -47,25 +47,28 @@ const EntityColumns = {
     { key: 'min_quantity', header: 'Мин. остаток' },
     { key: 'created_at', header: 'Дата создания' }
   ],
+  inventory: [], // авто-детект (API и scheduled экспорт имеют разную структуру)
   batches: [
     { key: 'product_name', header: 'Продукт' },
     { key: 'batch_number', header: 'Номер партии' },
     { key: 'quantity', header: 'Количество' },
     { key: 'expiry_date', header: 'Срок годности' },
-    { key: 'expiryStatus', header: 'Статус' },
-    { key: 'daysLeft', header: 'Дней до истечения' },
+    { key: 'status', header: 'Статус' },
+    { key: 'days_until_expiry', header: 'Дней до истечения' },
     { key: 'department_name', header: 'Отдел' },
     { key: 'created_at', header: 'Дата добавления' }
   ],
-  writeOffs: [
-    { key: 'product_name', header: 'Продукт' },
-    { key: 'quantity', header: 'Количество' },
-    { key: 'reason', header: 'Причина' },
-    { key: 'expiry_status', header: 'Статус срока' },
-    { key: 'department_name', header: 'Отдел' },
-    { key: 'user_name', header: 'Пользователь' },
-    { key: 'comment', header: 'Комментарий' },
-    { key: 'created_at', header: 'Дата списания' }
+  categories: [
+    { key: 'name', header: 'Название' },
+    { key: 'description', header: 'Описание' },
+    { key: 'created_at', header: 'Дата создания' }
+  ],
+  departments: [
+    { key: 'name', header: 'Название' },
+    { key: 'description', header: 'Описание' },
+    { key: 'email', header: 'Email' },
+    { key: 'telegram_chat_id', header: 'Telegram Chat ID' },
+    { key: 'created_at', header: 'Дата создания' }
   ],
   auditLogs: [
     { key: 'created_at', header: 'Дата/Время' },
@@ -98,7 +101,18 @@ const EntityColumns = {
     { key: 'assignedHotelName', header: 'Назначен отелю' },
     { key: 'assignedAt', header: 'Дата назначения' }
   ],
-  // Phase 8: Collection history with snapshot fields
+  // Collections = collection history (API: ch.*, scheduled: quantity/reason)
+  collections: [
+    { key: 'collected_at', header: 'Дата/Время' },
+    { key: 'product_name', header: 'Продукт' },
+    { key: 'category_name', header: 'Категория' },
+    { key: 'quantity_collected', header: 'Количество' },
+    { key: 'collection_reason', header: 'Причина' },
+    { key: 'expiry_date', header: 'Срок годности' },
+    { key: 'batch_number', header: 'Номер партии' },
+    { key: 'collected_by_name', header: 'Пользователь' },
+    { key: 'department_name', header: 'Отдел' }
+  ],
   collectionHistory: [
     { key: 'created_at', header: 'Дата/Время' },
     { key: 'product_name', header: 'Продукт' },
@@ -127,6 +141,17 @@ const ReasonLabels = {
   TRANSFER: 'Перемещение',
   SAMPLE: 'Образец',
   ADJUSTMENT: 'Корректировка'
+}
+
+/**
+ * Status labels for batches/inventory
+ */
+const StatusLabels = {
+  expired: 'Просрочено',
+  today: 'Сегодня',
+  critical: 'Критично',
+  warning: 'Внимание',
+  good: 'В норме'
 }
 
 /**
@@ -176,10 +201,15 @@ export class ExportService {
     }
     
     // Reason labels
-    if (key === 'reason' && ReasonLabels[value]) {
+    if ((key === 'reason' || key === 'collection_reason') && ReasonLabels[value]) {
       return ReasonLabels[value]
     }
     
+    // Status labels
+    if ((key === 'status' || key === 'expiryStatus') && StatusLabels[value]) {
+      return StatusLabels[value]
+    }
+
     // Action labels
     if (key === 'action' && ActionLabels[value]) {
       return ActionLabels[value]
@@ -201,12 +231,21 @@ export class ExportService {
    * @returns {string} - CSV string
    */
   static toCSV(data, entityType, options = {}) {
-    const { 
-      columns = EntityColumns[entityType] || [], 
+    let {
+      columns = EntityColumns[entityType] || [],
       includeHeaders = true,
       delimiter = ','
     } = options
-    
+
+    // Auto-detect columns from first data object if no columns provided
+    if ((!columns || columns.length === 0) && data && data.length > 0) {
+      const firstItem = data[0]
+      columns = Object.keys(firstItem).map(key => ({
+        key,
+        header: key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' ')
+      }))
+    }
+
     if (!data || data.length === 0) {
       return includeHeaders ? columns.map(c => c.header).join(delimiter) : ''
     }
@@ -252,6 +291,20 @@ export class ExportService {
   }
   
   /**
+   * Report titles for header block
+   */
+  static ReportTitles = {
+    products: 'Продукты',
+    batches: 'Все партии',
+    inventory: 'Инвентарь',
+    categories: 'Категории',
+    departments: 'Отделы',
+    auditLogs: 'Журнал действий',
+    collections: 'История сборов',
+    collectionHistory: 'История сборов'
+  }
+
+  /**
    * Export data to XLSX format using ExcelJS
    * @param {Array} data - Array of objects to export
    * @param {string} entityType - Type of entity
@@ -259,49 +312,167 @@ export class ExportService {
    * @returns {Promise<Buffer>} - Excel file buffer
    */
   static async toXLSX(data, entityType, options = {}) {
-    const { 
+    let {
       columns = EntityColumns[entityType] || [],
       sheetName = entityType
     } = options
-    
+
+    // Auto-detect columns from first data object if no columns provided
+    if ((!columns || columns.length === 0) && data && data.length > 0) {
+      const firstItem = data[0]
+      columns = Object.keys(firstItem).map(key => ({
+        key,
+        header: key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' '),
+        width: 20
+      }))
+    }
+
     const workbook = new ExcelJS.Workbook()
     workbook.creator = 'FreshTrack'
     workbook.created = new Date()
-    
-    const worksheet = workbook.addWorksheet(sheetName)
-    
-    // Set up columns with headers and widths
-    worksheet.columns = columns.map(col => ({
-      header: col.header,
-      key: col.key,
-      width: col.width || 20
-    }))
-    
-    // Style header row
-    worksheet.getRow(1).font = { bold: true }
-    worksheet.getRow(1).fill = {
+
+    const worksheet = workbook.addWorksheet(sheetName, {
+      pageSetup: { fitToPage: true, fitToWidth: 1 },
+      views: [{ state: 'frozen', ySplit: 4 }]
+    })
+
+    // Цвета брендинга FreshTrack
+    const colors = {
+      headerBg: 'FF2D2D2D',
+      headerFg: 'FFFFFFFF',
+      titleBg: 'FFF5F0E8',
+      titleBorder: 'FFC4A35A',
+      rowAlt: 'FFFAFAFA',
+      rowBorder: 'FFE8E4DC',
+      statusExpired: 'FFC4554D',
+      statusCritical: 'FFE67E22',
+      statusWarning: 'FFFEF3CD',
+      statusWarningFg: 'FF5C4813',
+      statusGood: 'FF4A7C59',
+      statusGoodFg: 'FFFFFFFF'
+    }
+
+    const reportTitle = this.ReportTitles[entityType] || entityType
+    const exportDate = new Date().toLocaleString('ru-RU')
+    const rowCount = (data || []).length
+
+    // Заголовок: FreshTrack | Название отчёта
+    worksheet.mergeCells(1, 1, 1, columns.length)
+    const titleCell = worksheet.getCell('A1')
+    titleCell.value = `FreshTrack  •  ${reportTitle}`
+    titleCell.font = { bold: true, size: 14, color: { argb: 'FF1A1A1A' } }
+    titleCell.fill = {
       type: 'pattern',
       pattern: 'solid',
-      fgColor: { argb: 'FFE0E0E0' }
+      fgColor: { argb: colors.titleBg }
     }
-    
-    // Add data rows
-    for (const item of (data || [])) {
-      const row = {}
-      for (const col of columns) {
-        row[col.key] = this.formatValue(item[col.key], col.key)
+    titleCell.alignment = { vertical: 'middle' }
+    titleCell.border = {
+      bottom: { style: 'medium', color: { argb: colors.titleBorder } }
+    }
+    worksheet.getRow(1).height = 28
+
+    // Метаданные: дата, записей
+    worksheet.mergeCells(2, 1, 2, columns.length)
+    const metaCell = worksheet.getCell('A2')
+    metaCell.value = `Дата экспорта: ${exportDate}  •  Записей: ${rowCount}`
+    metaCell.font = { size: 9, color: { argb: 'FF6B6560' } }
+    worksheet.getRow(2).height = 18
+
+    // Пустая строка
+    worksheet.getRow(3).height = 8
+
+    // Шапка таблицы (строка 4)
+    const headerRow = 4
+    for (let c = 0; c < columns.length; c++) {
+      const col = columns[c]
+      const cell = worksheet.getCell(headerRow, c + 1)
+      cell.value = col.header
+      cell.font = { bold: true, size: 10, color: { argb: colors.headerFg } }
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: colors.headerBg }
       }
-      worksheet.addRow(row)
+      cell.alignment = { horizontal: 'left', vertical: 'middle', wrapText: true }
+      cell.border = {
+        top: { style: 'thin', color: { argb: colors.headerBg } },
+        bottom: { style: 'thin', color: { argb: colors.titleBorder } },
+        left: { style: 'thin', color: { argb: colors.rowBorder } },
+        right: { style: 'thin', color: { argb: colors.rowBorder } }
+      }
     }
-    
-    // Auto-filter for all columns
-    if (data && data.length > 0) {
+    worksheet.getRow(headerRow).height = 24
+
+    // Ширины колонок
+    columns.forEach((col, idx) => {
+      const w = col.width || (col.key && (col.key.includes('name') || col.key.includes('details')) ? 25 : 15)
+      worksheet.getColumn(idx + 1).width = Math.min(w, 50)
+    })
+
+    // Функция стиля статуса для ячейки
+    const getStatusStyle = (item, col) => {
+      const status = item.expiryStatus || item.status
+      const val = (item[col.key] || '').toString().toLowerCase()
+      if (status === 'expired' || val.includes('просроч') || val.includes('истек')) {
+        return { fill: colors.statusExpired, font: colors.headerFg, bold: true }
+      }
+      if (status === 'critical' || val.includes('критич')) {
+        return { fill: colors.statusCritical, font: colors.headerFg, bold: true }
+      }
+      if (status === 'warning' || val.includes('внимани')) {
+        return { fill: colors.statusWarning, font: colors.statusWarningFg, bold: true }
+      }
+      if (status === 'good' || val.includes('норм') || val.includes('хорош')) {
+        return { fill: colors.statusGood, font: colors.statusGoodFg, bold: true }
+      }
+      return null
+    }
+
+    const isStatusCol = (key) =>
+      key === 'expiryStatus' || key === 'status' || key === 'statusLabel'
+
+    // Строки данных
+    const dataRows = data || []
+    for (let r = 0; r < dataRows.length; r++) {
+      const item = dataRows[r]
+      const rowNum = headerRow + 1 + r
+      const isAlt = r % 2 === 1
+      const rowFill = isAlt ? colors.rowAlt : 'FFFFFFFF'
+
+      for (let c = 0; c < columns.length; c++) {
+        const col = columns[c]
+        const cell = worksheet.getCell(rowNum, c + 1)
+        const val = this.formatValue(item[col.key], col.key)
+        cell.value = val
+
+        const statusStyle = isStatusCol(col.key) ? getStatusStyle(item, col) : null
+        cell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: statusStyle ? statusStyle.fill : rowFill }
+        }
+        cell.font = statusStyle
+          ? { bold: statusStyle.bold, size: 10, color: { argb: statusStyle.font } }
+          : { size: 10, color: { argb: 'FF1A1A1A' } }
+        cell.alignment = { vertical: 'middle' }
+        cell.border = {
+          bottom: { style: 'thin', color: { argb: colors.rowBorder } },
+          left: { style: 'thin', color: { argb: colors.rowBorder } },
+          right: { style: 'thin', color: { argb: colors.rowBorder } }
+        }
+      }
+      worksheet.getRow(rowNum).height = 20
+    }
+
+    // Auto-filter
+    if (dataRows.length > 0) {
       worksheet.autoFilter = {
-        from: { row: 1, column: 1 },
-        to: { row: data.length + 1, column: columns.length }
+        from: { row: headerRow, column: 1 },
+        to: { row: headerRow + dataRows.length, column: columns.length }
       }
     }
-    
+
     return await workbook.xlsx.writeBuffer()
   }
   

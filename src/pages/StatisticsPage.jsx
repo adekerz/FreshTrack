@@ -8,8 +8,6 @@ import { useTranslation, useLanguage } from '../context/LanguageContext'
 import { useAuth } from '../context/AuthContext'
 import { useProducts } from '../context/ProductContext'
 import { useThresholds } from '../hooks/useThresholds'
-import ExportButton from '../components/ExportButton'
-import { EXPORT_COLUMNS } from '../utils/exportUtils'
 import { Package, AlertTriangle, CheckCircle, Clock } from 'lucide-react'
 
 export default function StatisticsPage() {
@@ -107,55 +105,6 @@ export default function StatisticsPage() {
       .slice(0, 5)
   }, [batches, user, isHotelAdmin, thresholds.warning])
 
-  // Подготовка данных для экспорта (синхронизировано с InventoryPage)
-  const exportData = useMemo(() => {
-    // Функция для получения названия категории
-    const getCategoryName = (categoryId) => {
-      const cat = categories.find((c) => c.id === categoryId)
-      if (!cat) return '-'
-      if (language === 'ru') return cat.nameRu || cat.name || '-'
-      if (language === 'kk') return cat.nameKz || cat.name || '-'
-      return cat.name || '-'
-    }
-
-    // Функция для получения текста статуса
-    // Синхронизировано с dateUtils.js - пороги: expired(<0), today(0), critical(1-3), warning(4-7), good(>7)
-    const getStatusLabel = (status) => {
-      if (!status) return '-'
-      const statusMap = {
-        good: t('common.good') || 'В норме',
-        ok: t('common.good') || 'В норме',
-        warning: t('common.warning') || 'Внимание',
-        critical: t('common.critical') || 'Критично',
-        today: t('common.today') || 'Истекает сегодня',
-        expired: t('common.expired') || 'Просрочено'
-      }
-      return statusMap[status] || status || '-'
-    }
-
-    return batches.map((batch) => {
-      // Используем categoryName с бэкенда (single source of truth), fallback на локальный поиск
-      const categoryName =
-        batch.categoryName || batch.category_name || getCategoryName(batch.categoryId) || '-'
-      const status = batch.status?.status || batch.status
-
-      return {
-        productName: batch.name || batch.productName,
-        category: categoryName,
-        department:
-          departments.find((d) => d.id === batch.departmentId)?.name || batch.departmentId,
-        quantity: batch.quantity || 1,
-        unit: batch.unit || 'шт',
-        formattedDate: batch.expiryDate
-          ? new Date(batch.expiryDate).toLocaleDateString('ru-RU')
-          : '-',
-        daysLeft: batch.daysLeft ?? '-',
-        statusLabel: getStatusLabel(status),
-        status: status || 'good'
-      }
-    })
-  }, [batches, departments, categories, language, t])
-
   // Статистические карточки
   const statCards = [
     {
@@ -211,23 +160,6 @@ export default function StatisticsPage() {
         </div>
 
         <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
-          {/* Кнопка экспорта */}
-          <ExportButton
-            data={exportData}
-            columns={EXPORT_COLUMNS.inventory(t)}
-            filename="statistics_report"
-            serverExportType="batches"
-            showServerExport={true}
-            title={t('statistics.title')}
-            subtitle={t('statistics.subtitle')}
-            summary={{
-              [t('statistics.totalBatches')]: stats.total,
-              [t('statistics.goodStatus')]: stats.good,
-              [t('statistics.warning')]: stats.warning,
-              [t('statistics.critical')]: stats.critical + stats.expired
-            }}
-          />
-
           {/* Переключатель периода */}
           <div className="flex items-center gap-1 sm:gap-2 bg-card rounded-lg border border-border p-1">
             {['week', 'month', 'all'].map((period) => (

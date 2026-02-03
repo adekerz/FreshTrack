@@ -106,6 +106,32 @@ class ScheduledExportService {
         ? schedule.export_formats
         : JSON.parse(schedule.export_formats)
 
+      const deliveryMethod = schedule.delivery_method
+      const departmentEmail = schedule.email_override || schedule.department_email
+      const telegramChatId = schedule.telegram_chat_id_override || schedule.telegram_chat_id
+      const departmentName = schedule.department_name
+
+      // ВАЖНО: Логируем детали расписания для отладки
+      logInfo('ScheduledExportService', 'Schedule details:', {
+        id: schedule.id,
+        departmentName,
+        email: departmentEmail,
+        telegram: telegramChatId,
+        deliveryMethod,
+        exportTypes,
+        exportFormats,
+        isTest
+      })
+
+      // Проверяем что email/telegram настроены для выбранного способа доставки
+      if ((deliveryMethod === 'email' || deliveryMethod === 'both') && !departmentEmail) {
+        throw new Error(`Department email not configured for ${departmentName}`)
+      }
+
+      if ((deliveryMethod === 'telegram' || deliveryMethod === 'both') && !telegramChatId) {
+        throw new Error(`Telegram chat ID not configured for ${departmentName}`)
+      }
+
       const filters = typeof schedule.filters === 'object' ? schedule.filters : JSON.parse(schedule.filters || '{}')
 
       // Create temp directory for exports
@@ -252,12 +278,55 @@ class ScheduledExportService {
   /**
    * Fetch data for export from database
    */
-  async fetchExportData(exportType, schedule, filters) {
-    // Construct query based on export type
+  async getExportData(exportType, schedule, filters) {
+    const hotelId = schedule.hotel_id
+    const departmentId = schedule.department_id
     let queryText = ''
-    const queryParams = [schedule.hotel_id]
+    const queryParams = [hotelId]
 
     switch (exportType) {
+      case 'products':
+        queryText = `
+          SELECT
+            p.name,
+            p.barcode,
+            c.name as category_name,
+            p.unit,
+            p.reorder_level,
+            p.created_at
+          FROM products p
+          LEFT JOIN categories c ON p.category_id = c.id
+          WHERE p.hotel_id = $1
+        `
+        if (departmentId) {
+          queryText += ` AND p.department_id = $${queryParams.length + 1}`
+          queryParams.push(departmentId)
+        }
+        queryText += ` ORDER BY p.name LIMIT 10000`
+        break
+
+      case 'batches':
+        queryText = `
+          SELECT
+            b.batch_number,
+            p.name as product_name,
+            d.name as department_name,
+            b.quantity,
+            b.expiry_date,
+            b.status,
+            b.created_at
+          FROM batches b
+          JOIN products p ON b.product_id = p.id
+          LEFT JOIN departments d ON p.department_id = d.id
+          WHERE b.hotel_id = $1
+        `
+        if (departmentId) {
+          queryText += ` AND d.id = $${queryParams.length + 1}`
+          queryParams.push(departmentId)
+        }
+        queryText += ` ORDER BY b.created_at DESC LIMIT 10000`
+        break
+
       case 'inventory':
         queryText = `
           SELECT
@@ -281,6 +350,11 @@ class ScheduledExportService {
           LEFT JOIN departments d ON p.department_id = d.id
           WHERE b.hotel_id = $1 AND b.status = 'active'
         `
+        if (departmentId) {
+          queryText += ` AND d.id = $${queryParams.length + 1}`
+          queryParams.push(departmentId)
+        }
+        queryText += ` ORDER BY b.expiry_date LIMIT 10000`
         break
 
       case 'collections':
@@ -289,8 +363,8 @@ class ScheduledExportService {
             ch.collected_at,
             ch.product_name,
             d.name as department_name,
-            ch.quantity_collected as quantity,
-            ch.collection_reason as reason,
+            ch.quantity_collected,
+            ch.collection_reason,
             u.name as collected_by_name,
             ch.batch_number,
             ch.expiry_date
@@ -299,24 +373,36 @@ class ScheduledExportService {
           LEFT JOIN users u ON ch.user_id = u.id
           WHERE ch.hotel_id = $1
         `
+        if (departmentId) {
+          queryText += ` AND ch.department_id = $${queryParams.length + 1}`
+          queryParams.push(departmentId)
+        }
+        queryText += ` ORDER BY ch.collected_at DESC LIMIT 10000`
         break
 
-      case 'writeOffs':
+      case 'categories':
         queryText = `
           SELECT
-            wo.written_off_at as collected_at,
-            wo.product_name,
-            d.name as department_name,
-            wo.quantity,
-            wo.reason,
-            u.name as collected_by_name,
-            b.batch_number,
-            b.expiry_date
-          FROM write_offs wo
-          LEFT JOIN departments d ON wo.department_id = d.id
-          LEFT JOIN users u ON wo.written_off_by = u.id
-          LEFT JOIN batches b ON wo.batch_id = b.id
-          WHERE wo.hotel_id = $1
+            name,
+            description,
+            created_at
+          FROM categories
+          WHERE hotel_id = $1
+          ORDER BY name LIMIT 10000
+        `
+        break
+
+      case 'departments':
+        queryText = `
+          SELECT
+            name,
+            description,
+            email,
+            telegram_chat_id,
+            created_at
+          FROM departments
+          WHERE hotel_id = $1
+          ORDER BY name LIMIT 10000
         `
         break
 
@@ -332,35 +418,74 @@ class ScheduledExportService {
             a.ip_address
           FROM audit_logs a
           WHERE a.hotel_id = $1
+          ORDER BY a.created_at DESC LIMIT 1000
         `
-        // Audit logs don't have direct department filter
-        if (schedule.department_id) {
-          // Note: audit_logs don't have department_id column, skipping department filter for audit
-          logWarn('ScheduledExportService', 'Department filter not supported for audit logs export')
-        }
-        queryText += ` ORDER BY a.created_at DESC LIMIT 1000`
         break
 
       default:
         throw new Error(`Unknown export type: ${exportType}`)
     }
 
-    // Add department filter if specified (not for audit)
-    if (schedule.department_id && exportType !== 'audit') {
-      queryText += ` AND d.id = $${queryParams.length + 1}`
-      queryParams.push(schedule.department_id)
-    }
-
-    // Add custom filters
-    // TODO: Implement filter parsing from schedule.filters
-
-    // Add ORDER BY and LIMIT (not for audit - already has it)
-    if (exportType !== 'audit') {
-      queryText += ` ORDER BY 1 DESC LIMIT 10000`
-    }
-
     const result = await query(queryText, queryParams)
     return result.rows
+  }
+
+  // Keep old method name for backward compatibility
+  async fetchExportData(exportType, schedule, filters) {
+    return this.getExportData(exportType, schedule, filters)
+  }
+
+  /**
+   * Generate HTML for email with export reports
+   */
+  generateEmailHTML(departmentName, exports, isTest = false) {
+    const testPrefix = isTest ? '[ТЕСТ] ' : ''
+
+    return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: #428bca; color: white; padding: 20px; text-align: center; }
+        .content { padding: 20px; background: #f9f9f9; }
+        .report-item { background: white; padding: 15px; margin: 10px 0; border-left: 4px solid #428bca; }
+        .footer { text-align: center; padding: 20px; font-size: 12px; color: #666; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>${testPrefix}Отчеты FreshTrack</h1>
+          <p>${departmentName}</p>
+        </div>
+        <div class="content">
+          <p>Здравствуйте!</p>
+          <p>${isTest ? 'Это тестовая отправка запланированных отчетов.' : 'Высылаем вам запланированные отчеты.'}</p>
+
+          <h3>Приложенные отчеты:</h3>
+          ${exports
+            .map(
+              (exp) => `
+            <div class="report-item">
+              <strong>${exp.type}</strong> (${exp.format.toUpperCase()})<br>
+              <small>Записей: ${exp.recordCount || 0}</small>
+            </div>
+          `
+            )
+            .join('')}
+
+          <p>Файлы прилагаются к этому письму.</p>
+        </div>
+        <div class="footer">
+          <p>Это автоматическое сообщение от системы FreshTrack</p>
+          <p>Дата отправки: ${new Date().toLocaleString('ru-RU')}</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `
   }
 
   /**
@@ -375,54 +500,7 @@ class ScheduledExportService {
       contentType: exp.mimeType
     }))
 
-    const html = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: #428bca; color: white; padding: 20px; text-align: center; }
-          .content { padding: 20px; background: #f9f9f9; }
-          .report-list { list-style: none; padding: 0; }
-          .report-item { background: white; padding: 15px; margin: 10px 0; border-left: 4px solid #428bca; }
-          .footer { text-align: center; padding: 20px; font-size: 12px; color: #666; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>${testPrefix}Отчеты FreshTrack</h1>
-            <p>${schedule.hotel_name} - ${schedule.department_name}</p>
-          </div>
-          <div class="content">
-            <p>Здравствуйте!</p>
-            <p>${isTest ? 'Это тестовая отправка запланированных отчетов.' : 'Высылаем вам запланированные отчеты.'}</p>
-
-            <h3>Приложенные отчеты:</h3>
-            <ul class="report-list">
-              ${exports
-                .map(
-                  (exp) => `
-                <li class="report-item">
-                  <strong>${exp.type}</strong> (${exp.format.toUpperCase()})<br>
-                  <small>Записей: ${exp.recordCount || 0} | Размер: ${(exp.size / 1024).toFixed(2)} KB</small>
-                </li>
-              `
-                )
-                .join('')}
-            </ul>
-
-            <p>Файлы прилагаются к этому письму.</p>
-          </div>
-          <div class="footer">
-            <p>Это автоматическое сообщение от системы FreshTrack</p>
-            <p>Дата отправки: ${new Date().toLocaleString('ru-RU')}</p>
-          </div>
-        </div>
-      </body>
-      </html>
-    `
+    const html = this.generateEmailHTML(schedule.department_name, exports, isTest)
 
     await sendEmail({
       to,
