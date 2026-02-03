@@ -194,6 +194,7 @@ export default function CollectionHistoryPage() {
             formats={['excel', 'csv', 'pdf']}
             showFilterCount={true}
             size="sm"
+            compact={true}
           />
 
           {/* Кнопка фильтров */}

@@ -3,7 +3,7 @@
  * Массовый импорт товаров, экспорт отчётов
  */
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useTranslation } from '../../../context/LanguageContext'
 import { useToast } from '../../../context/ToastContext'
 import { useExport } from '../../../hooks/useExport'
@@ -32,6 +32,14 @@ export default function ImportExportSettings() {
   const [importing, setImporting] = useState(false)
   const [importResult, setImportResult] = useState(null)
   const fileInputRef = useRef(null)
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 640)
+
+  // Детектор размера экрана для compact режима
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 640)
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
 
   const handleImport = async (e) => {
     const file = e.target.files?.[0]
@@ -109,11 +117,15 @@ export default function ImportExportSettings() {
       description={t('import.description') || 'Массовые операции с данными'}
       icon={RefreshCw}
     >
-      {/* Импорт */}
+      {/* Импорт - компактный для мобильных */}
       <SettingsSection title={t('import.title') || 'Импорт данных'} icon={Upload}>
 
-        <div className="space-y-4">
-          <div className="border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-accent/50 transition-colors">
+        <div className="space-y-3 sm:space-y-4">
+          <div className={`
+            border-2 border-dashed border-border rounded-xl
+            text-center hover:border-accent/50 transition-colors
+            ${isMobile ? 'p-6' : 'p-8'}
+          `}>
             <input
               ref={fileInputRef}
               type="file"
@@ -123,19 +135,23 @@ export default function ImportExportSettings() {
               id="import-file"
             />
             <label htmlFor="import-file" className="cursor-pointer">
-              <div className="w-16 h-16 mx-auto mb-4 bg-muted rounded-full flex items-center justify-center">
+              <div className={`
+                mx-auto mb-3 sm:mb-4 bg-muted rounded-full
+                flex items-center justify-center
+                ${isMobile ? 'w-14 h-14' : 'w-16 h-16'}
+              `}>
                 {importing ? (
                   <Loader size="medium" />
                 ) : (
-                  <FileSpreadsheet className="w-8 h-8 text-accent" />
+                  <FileSpreadsheet className={`${isMobile ? 'w-7 h-7' : 'w-8 h-8'} text-accent`} />
                 )}
               </div>
-              <p className="text-foreground font-medium mb-1">
+              <p className={`text-foreground font-medium mb-1 ${isMobile ? 'text-sm' : 'text-base'}`}>
                 {importing
                   ? t('import.processing') || 'Обработка...'
                   : t('import.selectFile') || 'Выберите файл для импорта'}
               </p>
-              <p className="text-sm text-muted-foreground">
+              <p className={`text-muted-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}>
                 {t('import.formats') || 'Поддерживаемые форматы'}: Excel (.xlsx, .xls), CSV
               </p>
             </label>
@@ -144,7 +160,7 @@ export default function ImportExportSettings() {
           <a
             href="/templates/import-template.xlsx"
             download
-            className="inline-flex items-center gap-2 text-accent hover:underline text-sm"
+            className={`inline-flex items-center gap-2 text-accent hover:underline ${isMobile ? 'text-xs' : 'text-sm'}`}
           >
             <Download className="w-4 h-4" />
             {t('import.downloadTemplate') || 'Скачать шаблон для импорта'}
@@ -153,31 +169,34 @@ export default function ImportExportSettings() {
 
         {importResult && (
           <div
-            className={`mt-6 p-4 rounded-lg ${
-              importResult.success
+            className={`
+              mt-4 sm:mt-6 rounded-lg
+              ${isMobile ? 'p-3' : 'p-4'}
+              ${importResult.success
                 ? 'bg-green-50 border border-green-200'
                 : 'bg-red-50 border border-red-200'
-            }`}
+              }
+            `}
           >
-            <div className="flex items-start gap-3">
+            <div className="flex items-start gap-2 sm:gap-3">
               {importResult.success ? (
-                <Check className="w-5 h-5 text-green-600 shrink-0 mt-0.5" />
+                <Check className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-green-600 shrink-0 mt-0.5`} />
               ) : (
-                <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+                <AlertCircle className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-red-600 shrink-0 mt-0.5`} />
               )}
-              <div className="flex-1">
-                <p className={importResult.success ? 'text-green-800' : 'text-red-800'}>
+              <div className="flex-1 min-w-0">
+                <p className={`${isMobile ? 'text-sm' : 'text-base'} ${importResult.success ? 'text-green-800' : 'text-red-800'}`}>
                   {importResult.message}
                 </p>
                 {importResult.imported !== undefined && (
-                  <p className="text-sm text-green-700 mt-1">
+                  <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-green-700 mt-1`}>
                     {t('import.imported') || 'Импортировано'}: {importResult.imported}
                   </p>
                 )}
                 {importResult.errors?.length > 0 && (
-                  <ul className="text-sm text-red-600 mt-2 space-y-1">
+                  <ul className={`${isMobile ? 'text-xs' : 'text-sm'} text-red-600 mt-2 space-y-1`}>
                     {importResult.errors.slice(0, 5).map((err, i) => (
-                      <li key={i}>• {err}</li>
+                      <li key={i} className="break-words">• {err}</li>
                     ))}
                     {importResult.errors.length > 5 && (
                       <li>...и ещё {importResult.errors.length - 5} ошибок</li>
@@ -190,32 +209,53 @@ export default function ImportExportSettings() {
         )}
       </SettingsSection>
 
-      {/* Экспорт */}
+      {/* Экспорт - компактный для мобильных */}
       <SettingsSection title={t('export.title') || 'Экспорт данных'} icon={Download}>
-        <div className="space-y-4">
-          <p className="text-sm text-muted-foreground">
+        <div className="space-y-3 sm:space-y-4">
+          <p className="text-xs sm:text-sm text-muted-foreground">
             {t('export.description') || 'Экспортируйте данные в Excel для анализа и отчётности'}
           </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             {exportOptions.map(({ type, icon: Icon, label, desc }) => (
               <button
                 key={type}
                 onClick={() => handleExport(type, 'excel')}
                 disabled={exportingType === type}
-                className="flex items-start gap-4 p-4 border border-border rounded-xl hover:border-accent hover:bg-accent/5 transition-colors text-left disabled:opacity-50 group"
+                className={`
+                  flex items-start gap-3 sm:gap-4
+                  border border-border rounded-xl
+                  hover:border-accent hover:bg-accent/5
+                  active:bg-accent/10
+                  transition-colors text-left
+                  disabled:opacity-50 disabled:cursor-not-allowed
+                  group
+                  ${isMobile ? 'p-3' : 'p-4'}
+                `}
               >
-                <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center shrink-0 group-hover:bg-accent/10 transition-colors">
+                <div className={`
+                  bg-muted rounded-lg flex items-center justify-center shrink-0
+                  group-hover:bg-accent/10 transition-colors
+                  ${isMobile ? 'w-10 h-10' : 'w-12 h-12'}
+                `}>
                   {exportingType === type ? (
                     <Loader size="medium" />
                   ) : (
-                    <Icon className="w-6 h-6 text-foreground group-hover:text-accent transition-colors" />
+                    <Icon className={`${isMobile ? 'w-5 h-5' : 'w-6 h-6'} text-foreground group-hover:text-accent transition-colors`} />
                   )}
                 </div>
-                <div>
-                  <p className="font-medium text-foreground group-hover:text-accent transition-colors">
+                <div className="flex-1 min-w-0">
+                  <p className={`
+                    font-medium text-foreground group-hover:text-accent transition-colors
+                    ${isMobile ? 'text-sm' : 'text-base'}
+                  `}>
                     {label}
                   </p>
-                  <p className="text-sm text-muted-foreground mt-0.5">{desc}</p>
+                  <p className={`
+                    text-muted-foreground mt-0.5
+                    ${isMobile ? 'text-xs line-clamp-1' : 'text-sm'}
+                  `}>
+                    {desc}
+                  </p>
                 </div>
               </button>
             ))}

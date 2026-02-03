@@ -47,8 +47,9 @@ export default function MobileBottomNav() {
               to={item.path}
               className={cn(
                 'flex flex-col items-center justify-center',
-                'min-w-[60px] min-h-[48px] rounded-lg py-2 px-3',
-                'transition-colors touch-manipulation active:scale-95',
+                'min-w-[60px] min-h-[48px] rounded-lg py-2 px-2',
+                'transition-all duration-200 touch-manipulation',
+                'active:scale-95 active:bg-accent/20',
                 '[&::-webkit-tap-highlight-color]:transparent',
                 isActive
                   ? 'text-accent bg-accent/10'
@@ -57,8 +58,14 @@ export default function MobileBottomNav() {
               aria-current={isActive ? 'page' : undefined}
               aria-label={label}
             >
-              <Icon className="w-6 h-6" strokeWidth={isActive ? 2.5 : 2} aria-hidden="true" />
-              <span className="text-[10px] mt-1 font-medium">{label}</span>
+              <Icon
+                className={cn('w-6 h-6 transition-transform', isActive && 'scale-110')}
+                strokeWidth={isActive ? 2.5 : 2}
+                aria-hidden="true"
+              />
+              <span className={cn('text-[10px] mt-1 font-medium line-clamp-1', isActive && 'font-semibold')}>
+                {label}
+              </span>
             </Link>
           )
         })}

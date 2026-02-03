@@ -1,390 +1,89 @@
-# React Query Migration - Complete Summary
+# Database Migration Summary (Jan–Feb 2026)
 
-## ✅ Migration Status: COMPLETE (Phases 1-4)
+> Последнее обновление: 3 февраля 2026  
+> Команда: FreshTrack core
 
-**Date Completed**: 2026-01-21  
-**Total Files Modified**: 15  
-**New Files Created**: 6
+## 📦 Применённые миграции
 
----
+| ID | Файл | Статус | Кратко |
+| --- | --- | --- | --- |
+| 047 | `047_email_otp_verification.sql` | ✅ | Таблица `email_verification_tokens`, TTL, индексы; используется для подтверждения email отделов. |
+| 048 | `048_audit_logs_metadata.sql` | ✅ | `audit_logs` получил `metadata JSONB`, `snapshot_after`, `ip_address`, новые индексы. |
+| 049 | `049_audit_permissions.sql` | ✅ | Матрица прав на аудит (`audit_permissions`, сиды для ролей). |
+| 050a | `050_audit_severity_extended.sql` | ✅ | Severity уровни, `current_hash/previous_hash`, подготовка hash chain. |
+| 050b | `050_hotel_coordinates.sql` | ✅ | Геоданные (`latitude`, `longitude`, `timezone`) для отелей, индексы для поиска. |
+| 051 | `051_fix_kazakhstan_timezones.sql` | ✅ | Исправлены таймзоны KZ отелей/отделов (Almaty/Aqtobe). |
+| 054 | `054_scheduled_exports.sql` | ✅ | Таблицы `scheduled_exports` и `scheduled_export_logs`, FK на departments, audit поля. |
 
-## 📁 Files Created
+> ⚠️ Нумерация `050` встречается дважды (a/b) — применять строго в указанном порядке.
 
-### Infrastructure
-1. `src/lib/queryClient.js` - React Query configuration
-2. `src/lib/queryKeys.js` - Centralized query keys
-3. `src/lib/queryPersistence.js` - Offline persistence configuration
-4. `src/hooks/useInventory.js` - Custom hooks for inventory operations
-5. `src/components/settings/CacheManagement.jsx` - Cache management UI
-6. `docs/REACT_QUERY_MIGRATION.md` - Migration documentation
-7. `docs/OFFLINE_SUPPORT.md` - Offline support documentation
+## 🔁 Порядок выполнения
 
----
+```bash
+cd server
+npm run db:migrate
 
-## 🔄 Files Modified
-
-### Core Context
-1. **`src/context/ProductContext.jsx`**
-   - Migrated to React Query under the hood
-   - Maintains backward compatibility
-   - All methods now use React Query mutations
-   - Added `mutations` object for direct access
-
-### Entry Point
-2. **`src/main.jsx`**
-   - Added `QueryClientProvider`
-   - Added React Query DevTools (development only)
-
-### Components - Phase 2
-3. **`src/components/FastIntakeModal.jsx`**
-   - Uses `useAddBatchesBulk` mutation
-   - Optimistic updates - instant UI
-   - Background sync after 2 seconds
-   - Modal stays open after save ✨
-
-4. **`src/pages/InventoryPage.jsx`**
-   - Removed manual refresh from `handleFastApply`
-   - React Query handles updates automatically
-
-### Components - Phase 3
-5. **`src/components/ProductModal.jsx`**
-   - Uses `useAddBatch` mutation
-   - Uses `useDeleteBatch` mutation  
-   - Uses `useDeleteProduct` mutation
-   - All with optimistic updates
-
-6. **`src/components/AddBatchModal.jsx`**
-   - Uses `useAddBatch` mutation
-   - Optimistic updates
-   - Removed manual loading state
-
-7. **`src/components/AddCustomProductModal.jsx`**
-   - Uses `useAddProduct` mutation
-   - Optimistic updates
-   - Automatic catalog refresh
-
-### Components - Phase 4
-8. **`src/lib/queryPersistence.js`**
-   - Persistence configuration
-   - localStorage integration
-   - Cache size monitoring
-   - Auto-cleanup (24h TTL, 5MB limit)
-
-9. **`src/components/settings/CacheManagement.jsx`**
-   - Cache statistics UI
-   - Clear cache functionality
-   - Refresh all queries
-   - User-friendly cache info
-
-10. **`src/pages/SettingsPage.jsx`**
-    - Added "Cache" tab for admins
-    - Integrated CacheManagement component
-
-11. **`src/main.jsx`**
-    - Added `setupPersistence` call
-    - Configured offline-first mode
-
-12. **Localization files** (en.json, ru.json)
-    - Added offline translations
-    - Added cache management translations
-
----
-
-## 🎯 Key Improvements
-
-### Performance
-| Metric | Before | After | Improvement |
-|--------|--------|-------|-------------|
-| FastIntakeModal save time | 1-3s | <100ms | **30x faster** |
-| API requests per save | 5 parallel | 1 + background | **5x reduction** |
-| Modal close issue | Common | Never | **100% fixed** |
-| Cache hits | 0% | ~80% | **Instant navigation** |
-| UI freeze during updates | Yes | No | **Smooth UX** |
-
-### Code Quality
-- ✅ **250+ lines removed** (manual state management)
-- ✅ **Zero refresh() calls** in components
-- ✅ **Automatic error handling** 
-- ✅ **Built-in retry logic**
-- ✅ **Optimistic updates** everywhere
-
-### User Experience
-- ✅ **Instant feedback** - UI updates immediately
-- ✅ **Modal persistence** - no unexpected closures
-- ✅ **Background sync** - non-blocking operations
-- ✅ **Smart caching** - instant navigation
-- ✅ **Auto retry** - resilient to network issues
-
----
-
-## 📊 Migration Statistics
-
-### Mutations Migrated
-- ✅ `useAddBatch` (3 components)
-- ✅ `useAddBatchesBulk` (FastIntakeModal)
-- ✅ `useCollectBatch` (via FIFOCollectModal)
-- ✅ `useDeleteBatch` (ProductModal)
-- ✅ `useAddProduct` (AddCustomProductModal)
-- ✅ `useDeleteProduct` (ProductModal)
-
-### Queries Migrated
-- ✅ `useBatches`
-- ✅ `useBatchesStats`
-- ✅ `useDepartments`
-- ✅ `useCategories`
-- ✅ `useProducts`
-- ✅ `useInventoryData` (combined)
-
----
-
-## 🧪 Testing Checklist
-
-### Critical Paths
-- [x] FastIntakeModal - add batches via template
-  - Verify modal stays open
-  - Verify instant UI update
-  - Verify background sync after 2s
-
-- [x] ProductModal - add/delete batches
-  - Verify optimistic updates
-  - Verify rollback on error
-  - Verify batch list refreshes
-
-- [x] AddBatchModal - wizard flow
-  - Verify all 4 steps work
-  - Verify batch added to inventory
-  - Verify modal closes after success
-
-- [x] AddCustomProductModal - create products
-  - Verify product appears in catalog
-  - Verify can add batches to new product
-
-### Edge Cases
-- [ ] Network offline - verify retry logic
-- [ ] Concurrent updates - verify no race conditions
-- [ ] Large datasets (500+ batches) - verify performance
-- [ ] Rapid consecutive saves - verify queue handling
-
----
-
-## 🚀 Next Steps (Optional - Phase 4)
-
-### Prefetching
-```javascript
-// Prefetch on hover for instant navigation
-const queryClient = useQueryClient()
-
-const handleHover = (deptId) => {
-  queryClient.prefetchQuery({
-    queryKey: queryKeys.departmentProducts(hotelId, deptId),
-    queryFn: () => fetchDepartmentProducts(hotelId, deptId)
-  })
-}
+# или вручную
+for file in 047_email_otp_verification.sql \
+            048_audit_logs_metadata.sql \
+            049_audit_permissions.sql \
+            050_audit_severity_extended.sql \
+            050_hotel_coordinates.sql \
+            051_fix_kazakhstan_timezones.sql \
+            054_scheduled_exports.sql; do
+  psql $DATABASE_URL -f server/db/migrations/$file
+done
 ```
 
-### Infinite Scroll
-```javascript
-// For large batch lists
-import { useInfiniteQuery } from '@tanstack/react-query'
+Скрипт `npm run db:migrate` запускает `psql` с `-v ON_ERROR_STOP=1`, поэтому пайплайн останавливается при первой ошибке.
 
-const { data, fetchNextPage, hasNextPage } = useInfiniteQuery({
-  queryKey: queryKeys.batches(hotelId, { limit: 50 }),
-  queryFn: ({ pageParam = 0 }) => fetchBatches(hotelId, pageParam),
-  getNextPageParam: (lastPage) => lastPage.nextCursor
-})
-```
+## 🔍 Post-migration checks
 
-### Real-time Updates
-```javascript
-// WebSocket integration
-useEffect(() => {
-  const ws = new WebSocket('wss://api.freshtrack.app')
-  
-  ws.onmessage = (event) => {
-    const { type, data } = JSON.parse(event.data)
-    
-    if (type === 'BATCH_UPDATED') {
-      queryClient.invalidateQueries({ 
-        queryKey: queryKeys.batches(hotelId) 
-      })
-    }
-  }
-  
-  return () => ws.close()
-}, [hotelId])
-```
-
-### Offline Support
-```javascript
-// Persist queries to localStorage
-import { persistQueryClient } from '@tanstack/react-query-persist-client'
-import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister'
-
-const persister = createSyncStoragePersister({
-  storage: window.localStorage
-})
-
-persistQueryClient({
-  queryClient,
-  persister,
-  maxAge: 1000 * 60 * 60 * 24 // 24 hours
-})
-```
-
----
-
-## 📚 Developer Guide
-
-### Adding New Mutations
-
-1. **Create hook in `useInventory.js`**:
-```javascript
-export function useMyMutation(hotelId) {
-  const queryClient = useQueryClient()
-  
-  return useMutation({
-    mutationFn: async (data) => {
-      return await apiFetch('/my-endpoint', {
-        method: 'POST',
-        body: JSON.stringify(data)
-      })
-    },
-    onMutate: async (newData) => {
-      // Optimistic update
-      await queryClient.cancelQueries({ queryKey: queryKeys.myData(hotelId) })
-      const previous = queryClient.getQueryData(queryKeys.myData(hotelId))
-      
-      queryClient.setQueryData(
-        queryKeys.myData(hotelId),
-        (old) => [...old, newData]
-      )
-      
-      return { previous }
-    },
-    onError: (err, newData, context) => {
-      // Rollback
-      queryClient.setQueryData(
-        queryKeys.myData(hotelId),
-        context.previous
-      )
-    },
-    onSettled: () => {
-      // Refetch
-      queryClient.invalidateQueries({ queryKey: queryKeys.myData(hotelId) })
-    }
-  })
-}
-```
-
-2. **Use in component**:
-```javascript
-const { mutate, isPending } = useMyMutation(hotelId)
-
-const handleClick = () => {
-  mutate(data, {
-    onSuccess: () => toast.success('Done!'),
-    onError: (error) => toast.error(error.message)
-  })
-}
-```
-
-### Debugging Tips
-
-1. **Check React Query DevTools**
-   - Open browser console
-   - Click floating React Query icon
-   - Inspect cache state, active queries, mutations
-
-2. **Enable query logging**
-   ```javascript
-   // In queryClient.js
-   defaultOptions: {
-     queries: {
-       onSuccess: (data) => console.log('✅ Query success:', data),
-       onError: (error) => console.error('❌ Query error:', error)
-     }
-   }
+1. **Email OTP**
+   ```sql
+   SELECT COUNT(*) FROM email_verification_tokens WHERE expires_at > now();
+   ```
+2. **Audit metadata**
+   ```sql
+   SELECT DISTINCT severity FROM audit_logs ORDER BY 1;
+   SELECT COUNT(*) FROM audit_logs WHERE metadata ? 'exportId';
+   ```
+3. **Geo/timezone**
+   ```sql
+   SELECT id, timezone FROM hotels WHERE country = 'KZ';
+   SELECT COUNT(*) FROM hotels WHERE latitude IS NULL OR longitude IS NULL;
+   ```
+4. **Scheduled exports**
+   ```sql
+   SELECT COUNT(*) FROM scheduled_exports;
+   SELECT COUNT(*) FROM scheduled_export_logs;
    ```
 
-3. **Check network tab**
-   - Verify API calls are deduplicated
-   - Check if background refetches happen
-   - Monitor request/response times
+## 🧯 Rollback plan
 
----
+| ID | Действие | Риск |
+| --- | --- | --- |
+| 047 | `DROP TABLE email_verification_tokens;` | Потеря активных запросов на подтверждение. |
+| 048/050a | `ALTER TABLE audit_logs DROP COLUMN ...` | Ломает hash chain и отчётность — не рекомендуется, лучше оставить default значения. |
+| 050b | `ALTER TABLE hotels DROP COLUMN latitude, longitude, timezone;` | Потеря координат, делайте `pg_dump` заранее. |
+| 051 | Повторно запустить миграцию с корректными таймзонами | Скрипт идемпотентен. |
+| 054 | `DROP TABLE scheduled_export_logs; DROP TABLE scheduled_exports;` + отключить cron | Откатывает всю фичу; требуется выключить `ScheduledExportService`. |
 
-## ⚠️ Breaking Changes
+Перед destructive действиями обязательно: `pg_dump -Fc $DATABASE_URL > backup_before_rollback.dump`.
 
-**None!** Migration is 100% backward compatible.
+## ⏱️ Cron и сервисы
 
-All existing code continues to work:
-```javascript
-// ✅ Still works
-const { addBatch, refresh } = useProducts()
-await addBatch(...)
-refresh()
+- `ScheduledExportService` читает `scheduled_exports` каждую минуту и пишет в `scheduled_export_logs`.
+- `EmailVerificationService` удаляет просроченные токены (использует TTL из 047).
+- `AuditIntegrityJob` строит hash chain на основании столбцов из 050a.
 
-// ✅ Better alternative
-const { mutate: addBatch } = useAddBatch(hotelId)
-addBatch(data)
-// No manual refresh needed!
-```
+## 🧭 Связанные документы
 
----
+- [ARCHITECTURE_MIGRATION.md](./ARCHITECTURE_MIGRATION.md) — high-level эволюция серверной архитектуры.
+- [EXPORT_SYSTEM_IMPLEMENTATION.md](./EXPORT_SYSTEM_IMPLEMENTATION.md) — как используется миграция 054.
+- [RESEND_WEBHOOKS_AND_EMAIL.md](./RESEND_WEBHOOKS_AND_EMAIL.md) — взаимодействие Email/Telegram.
+- `server/db/migrations/README` — памятка по созданию новых SQL скриптов.
 
-## 🎉 Success Metrics
+## ✅ Статус
 
-### Before Migration
-```
-┌─────────────────────────────────────┐
-│ FastIntakeModal Save                │
-├─────────────────────────────────────┤
-│ 1. User clicks "Save"               │
-│ 2. Disable button (setApplying)     │
-│ 3. API call (300-500ms)             │
-│ 4. Call refresh() → 5 API requests  │
-│    - /batches (400ms)               │
-│    - /batches/stats (200ms)         │
-│    - /departments (150ms)           │
-│    - /categories (150ms)            │
-│    - /products (400ms)              │
-│ 5. Re-render entire tree            │
-│ 6. Modal might close (bug)          │
-│                                     │
-│ Total: 1.5-3 seconds                │
-│ User: Waiting, frustrated 😞        │
-└─────────────────────────────────────┘
-```
-
-### After Migration
-```
-┌─────────────────────────────────────┐
-│ FastIntakeModal Save                │
-├─────────────────────────────────────┤
-│ 1. User clicks "Save"               │
-│ 2. Optimistic update (<10ms)       │
-│    → UI updates INSTANTLY ✨        │
-│ 3. API call in background           │
-│ 4. Background sync after 2s         │
-│    (only 1 targeted invalidation)   │
-│ 5. Modal stays open                 │
-│                                     │
-│ Total: <100ms perceived             │
-│ User: Delighted 😊                  │
-└─────────────────────────────────────┘
-```
-
----
-
-## 🔗 Resources
-
-- [React Query Docs](https://tanstack.com/query/v5)
-- [Migration Guide](./REACT_QUERY_MIGRATION.md)
-- [Query Client Config](../src/lib/queryClient.js)
-- [Custom Hooks](../src/hooks/useInventory.js)
-
----
-
-**Migration Team**: AI Assistant  
-**Review Status**: ✅ Complete  
-**Production Ready**: ✅ Yes
+Все перечисленные миграции применены на production (Railway) и staging окружениях. Следующая запланированная миграция — `055_push_notifications.sql` (push/SSE enrichment).

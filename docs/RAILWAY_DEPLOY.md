@@ -1,6 +1,17 @@
 # Деплой FreshTrack на Railway
 
+> Обновлено: 3 февраля 2026
+
 После `railway link` проект привязан к окружению Railway. Ниже — что можно делать.
+
+## Auto-deploy из GitHub
+
+1. В Railway Dashboard → проект → **Settings** → **Connect Repo** (или **Source**).
+2. Подключите репозиторий и выберите ветку (например `main`).
+3. При каждом пуше в эту ветку Railway собирает и деплоит сервис.
+4. **Check suites (опционально):** в **Settings** → **Deploy** включите «Wait for GitHub checks», чтобы деплой стартовал только после успешных тестов.
+
+Если деплой не подтянул последний коммит — проверьте выбранную ветку, логи билда и не отключён ли сервис.
 
 ## 1. Переменные окружения
 
@@ -76,9 +87,14 @@ railway open                         # Открыть проект в брауз
 
 1. `railway link` (уже сделано).
 2. Убедиться, что в проекте есть Postgres и `DATABASE_URL` доступен сервису FreshTrack.
-3. Задать при необходимости `JWT_SECRET`, `TELEGRAM_BOT_TOKEN` и т.д.
+3. Задать переменные из [RAILWAY_ENV_VARIABLES.md](./RAILWAY_ENV_VARIABLES.md) или `server/.env.example`: `JWT_SECRET`, `TELEGRAM_BOT_TOKEN`, `RESEND_API_KEY`, `APP_URL`, `CORS_ORIGINS` и т.д.
 4. `railway run sh -c "cd server && npm run migrate"`.
-5. `railway up`.
-6. `railway logs` — проверить, что сервер стартовал и healthcheck ок.
+5. При необходимости отключить scheduled exports в dev: `DISABLE_SCHEDULED_EXPORTS=true`.
 
-После деплоя фронт обычно отдаётся тем же сервером (статика из `dist` или `public`) либо деплоится отдельно (Vite/Vercel и т.д.) — смотри конфиг `nixpacks.toml` и `railway.json`.
+## После деплоя
+
+- **Health:** `curl https://your-app.railway.app/api/health` — должен вернуть 200.
+- **Cron:** в логах должно быть `Scheduled exports service started` (если не задан `DISABLE_SCHEDULED_EXPORTS=true`).
+- **MFA:** для production убедитесь, что `DISABLE_MFA_IN_DEV` не используется или выключен; SUPER_ADMIN обязан настроить MFA в течение grace period.
+
+Фронт обычно деплоится отдельно (Vite на Vercel); backend — этот сервис Railway. См. [VERCEL_QUICK_SETUP.md](./VERCEL_QUICK_SETUP.md) и [VERCEL_PORKBUN_SETUP.md](./VERCEL_PORKBUN_SETUP.md).

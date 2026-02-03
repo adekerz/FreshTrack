@@ -1,25 +1,29 @@
-# 🏗️ Архитектура FreshTrack v2.0
+# 🏗️ Эволюция архитектуры FreshTrack (v3.1)
 
-## ✅ Статус миграции — ПОЛНОСТЬЮ ЗАВЕРШЕНО 🎉
+## ✅ Статус — ЗАВЕРШЕНО (v3.1 «Centralized Exports»)
 
-**Дата завершения:** 3 января 2026  
-**Версия:** 2.0.0 — Modular Architecture
+| Версия | Дата | Ключевые изменения |
+| --- | --- | --- |
+| v2.0.0 | 03 янв 2026 | Переезд на feature-based `server/modules/*` |
+| v3.0.0 | 21 янв 2026 | React Query + offline persistence |
+| v3.1.0 | 03 фев 2026 | Scheduled exports, Telegram detection, Excel/PDF overhaul |
 
 ---
 
-## 📊 Итоги миграции
+## 📊 Итоги v3.1
 
-### Было (Legacy)
-- 24 отдельных route файла в `server/routes/`
-- Смешанная логика в роутах
-- Дублирование кода валидации
-- Отсутствие изоляции модулей
+### Новые возможности
+- `server/modules/scheduled-exports/` — REST API + Zod схемы с hotel isolation.
+- `server/services/ScheduledExportService.js` — cron-планировщик с audit логами и ретраями.
+- `server/services/ExportService.js` — единый движок XLSX/PDF/CSV (ExcelJS + PDFKit) с корпоративным дизайном.
+- `server/services/EmailService.js` — вложения для Resend/SMTP; fallback на Telegram.
+- `src/components/ScheduledExports/*` — UI (+ `TelegramSetupGuide.jsx`) с автодетектом чатов.
+- `src/hooks/useAuditSSE.js` + `/api/events/stream` — SSE оповещения об экспортных событиях.
+- `docs/README.md` — единый индекс документации.
 
-### Стало (Modular)
-- 21 feature-based модуль в `server/modules/`
-- Чёткое разделение: schemas → controller → index
-- Centralized Zod validation
-- Полная изоляция модулей
+### Что устранили
+- Legacy CSS `ScheduledExports.css` → Tailwind.
+- Дубли offline документации → консолидация в `OFFLINE_SYNC.md` (идёт в рамках cleanup).
 
 ---
 
@@ -58,7 +62,8 @@ server/
 │   ├── reports/                # Отчёты
 │   ├── health/                 # Health checks
 │   ├── import/                 # Импорт данных
-│   ├── export/                 # Экспорт данных
+│   ├── export/                 # Разовый экспорт
+│   ├── scheduled-exports/      # Расписания + cron (NEW)
 │   ├── telegram/               # Telegram интеграция
 │   ├── events/                 # SSE события
 │   ├── marsha-codes/           # MARSHA коды
@@ -89,7 +94,7 @@ server/
 
 ---
 
-## 🔗 API Endpoints (21 модуль)
+## 🔗 API Endpoints (24 модуля)
 
 | Модуль | Endpoint | Описание |
 |--------|----------|----------|
@@ -111,6 +116,7 @@ server/
 | health | `/api/health/*` | Health checks |
 | import | `/api/import/*` | Импорт данных |
 | export | `/api/export/*` | Экспорт (Excel, CSV) |
+| scheduled-exports | `/api/scheduled-exports/*` | CRUD + тесты расписаний |
 | telegram | `/api/telegram/*` | Telegram бот |
 | events | `/api/events/*` | SSE real-time |
 | marsha-codes | `/api/marsha-codes/*` | MARSHA коды |
@@ -224,40 +230,39 @@ await logAudit({
 
 ---
 
-## 📋 Checklist выполнения
+## 📋 Checklist v3.1
 
-### Backend Migration ✅
-- [x] Создана структура modules/
-- [x] Мигрированы все 21 модуль
-- [x] Удалены 23 legacy route файла
-- [x] Обновлён server/index.js
-- [x] Zod validation во всех модулях
-- [x] Audit logging сохранён
+### Backend
+- [x] Зарегистрирован `scheduled-exports` модуль.
+- [x] Cron сервис запускается при старте (`ScheduledExportService.init()`).
+- [x] `ExportService` обновлён (ExcelJS стили, PDFKit, attachments).
+- [x] `EmailService` и `TelegramService` обновлены под вложения и graceful fallback.
+- [x] `/api/settings/telegram/chats` возвращает hotel/department scope для UI подсказок.
+- [x] Все эндпоинты используют `effectiveHotelId` (SUPER_ADMIN выбирает hotel в query).
 
-### Cleanup ✅
-- [x] Удалены SQLite файлы (.db)
-- [x] Удалены legacy routes
-- [x] Удалена папка {src/
-- [x] .gitignore настроен
+### Frontend
+- [x] `ScheduledExportsManager`, `ScheduleCreateModal`, `ScheduleEditModal` реализованы.
+- [x] `TelegramSetupGuide` добавлен для onboarding.
+- [x] `ExportButton` поддерживает 7 отчётов, PDF/CSV/Excel (реюз `useExport`).
+- [x] i18n ключи `export.*`, `scheduledExports.*`, `common.*` добавлены (ru/en).
 
-### Documentation ✅
-- [x] ARCHITECTURE_MIGRATION.md обновлён
-- [x] README.md обновлён
-- [x] Startup сообщение обновлено
+### Документация
+- [x] `docs/README.md` — индекс и action plan.
+- [x] ARCHITECTURE.md описывает offline+SSE+scheduled exports.
+- [ ] Offline документы объединены (идёт в рамках cleanup todo).
 
 ---
 
-## 🚀 Запуск
+## 🚀 Быстрая проверка
 
 ```bash
-# Development
 cd server && npm run dev
 
-# Output:
-# 🚀 FreshTrack Server v2.0 — Modular Architecture
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# 📍 Port: 3001
-# 🌐 API: http://localhost:3001/api
-# 📚 Docs: http://localhost:3001/api/docs
-# 📦 Modules (21 feature-based): All legacy routes migrated ✓
+# Ожидаемый вывод:
+# ✅ Scheduled exports service started (cron=1m)
+# ✅ SSE stream ready at /api/events/stream
+# ✅ ExcelJS theme loaded
+#
+# curl http://localhost:3001/api/scheduled-exports?hotel_id=<uuid>
+# → 200 OK + фильтрация по hotel_id
 ```

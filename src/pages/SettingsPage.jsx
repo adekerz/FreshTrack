@@ -281,34 +281,34 @@ export default function SettingsPage() {
           )}
 
           <div className="space-y-4">
-            {/* Аватар */}
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 bg-charcoal dark:bg-accent rounded-full flex items-center justify-center text-white text-xl font-light">
+            {/* Аватар - компактный на мобильных */}
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="w-14 h-14 sm:w-16 sm:h-16 bg-charcoal dark:bg-accent rounded-full flex items-center justify-center text-white text-lg sm:text-xl font-light flex-shrink-0">
                 {profileData.name?.[0] || user?.name?.[0] || 'U'}
               </div>
-              <div>
-                <p className="font-medium text-foreground">{profileData.name || user?.name}</p>
-                <p className="text-sm text-muted-foreground">
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-foreground text-sm sm:text-base truncate">{profileData.name || user?.name}</p>
+                <p className="text-xs sm:text-sm text-muted-foreground truncate">
                   {profileData.email || user?.email || t('settings.profile.noEmail') || 'Email не указан'}
                 </p>
               </div>
             </div>
 
-            {/* Информация */}
-            <div className="grid sm:grid-cols-2 gap-4 pt-4">
+            {/* Информация - компактные inputs на мобильных */}
+            <div className="grid sm:grid-cols-2 gap-3 sm:gap-4 pt-4">
               <div>
-                <label className="block text-sm text-muted-foreground mb-1">
+                <label className="block text-xs sm:text-sm text-muted-foreground mb-1.5">
                   {t('settings.profile.name') || 'Имя'}
                 </label>
                 <input
                   type="text"
                   value={profileData.name}
                   onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-border rounded-lg bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+                  className="w-full px-3 py-2 text-sm sm:text-base border border-border rounded-lg bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
                 />
               </div>
               <div>
-                <label className="block text-sm text-muted-foreground mb-1">
+                <label className="block text-xs sm:text-sm text-muted-foreground mb-1.5">
                   {t('settings.profile.email') || 'Email'}
                 </label>
                 <div className="flex gap-2">
@@ -317,16 +317,16 @@ export default function SettingsPage() {
                     value={profileData.email || user?.email || ''}
                     disabled
                     placeholder={t('settings.profile.emailPlaceholder') || 'example@email.com'}
-                    className="flex-1 px-3 py-2 border border-border rounded-lg bg-muted text-muted-foreground"
+                    className="flex-1 px-3 py-2 text-sm sm:text-base border border-border rounded-lg bg-muted text-muted-foreground"
                   />
                   {user?.email && (
                     <button
                       onClick={() => setShowChangeEmailModal(true)}
-                      className="flex items-center justify-center gap-2 px-4 py-2 border border-border rounded-lg text-foreground hover:bg-muted transition-colors whitespace-nowrap"
+                      className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 border border-border rounded-lg text-foreground hover:bg-muted transition-colors whitespace-nowrap flex-shrink-0"
                       title={t('auth.changeEmail') || 'Изменить email'}
                     >
                       <Mail className="w-4 h-4" />
-                      <span className="hidden sm:inline">{t('auth.changeEmail') || 'Изменить email'}</span>
+                      <span className="hidden sm:inline text-sm">{t('auth.changeEmail') || 'Изменить'}</span>
                     </button>
                   )}
                 </div>
@@ -337,25 +337,25 @@ export default function SettingsPage() {
                 )}
               </div>
               <div>
-                <label className="block text-sm text-muted-foreground mb-1">
+                <label className="block text-xs sm:text-sm text-muted-foreground mb-1.5">
                   {t('settings.profile.login')}
                 </label>
                 <input
                   type="text"
                   value={user?.login || ''}
                   disabled
-                  className="w-full px-3 py-2 border border-border rounded-lg bg-muted text-muted-foreground"
+                  className="w-full px-3 py-2 text-sm sm:text-base border border-border rounded-lg bg-muted text-muted-foreground"
                 />
               </div>
               <div>
-                <label className="block text-sm text-muted-foreground mb-1">
+                <label className="block text-xs sm:text-sm text-muted-foreground mb-1.5">
                   {t('settings.profile.role')}
                 </label>
                 <input
                   type="text"
                   value={user?.roleLabel || t(`settings.profile.role${user?.role}`) || user?.role}
                   disabled
-                  className="w-full px-3 py-2 border border-border rounded-lg bg-muted text-muted-foreground"
+                  className="w-full px-3 py-2 text-sm sm:text-base border border-border rounded-lg bg-muted text-muted-foreground"
                 />
               </div>
             </div>
@@ -380,23 +380,20 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            {/* Кнопка смены пароля */}
-            <div className="pt-4 border-t border-border">
+            {/* Кнопки - адаптивные для мобильных */}
+            <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-border">
               <button
                 onClick={() => setShowChangePasswordModal(true)}
-                className="flex items-center justify-center gap-2 px-4 py-2.5 border border-border rounded-lg text-foreground hover:bg-muted transition-colors"
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 border border-border rounded-lg text-foreground hover:bg-muted transition-colors text-sm sm:text-base"
               >
                 <Lock className="w-4 h-4" />
                 {t('auth.changePassword') || 'Сменить пароль'}
               </button>
-            </div>
 
-            {/* Кнопка сохранения */}
-            <div className="flex justify-end pt-4">
               <button
                 onClick={handleSaveProfile}
                 disabled={savingProfile || (profileData.name === user?.name && profileData.email === (user?.email || ''))}
-                className="flex items-center gap-2 px-6 py-2.5 bg-foreground text-background rounded-lg hover:bg-foreground/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full sm:w-auto sm:ml-auto flex items-center justify-center gap-2 px-6 py-2.5 bg-foreground text-background rounded-lg hover:bg-foreground/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
               >
                 {savingProfile ? (
                   <>

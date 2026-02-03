@@ -1,6 +1,8 @@
 # Railway Environment Variables
 
-Список переменных окружения для настройки FreshTrack на Railway.
+> Обновлено: 3 февраля 2026
+
+Список переменных окружения для настройки FreshTrack на Railway. Актуальный эталон — `server/.env.example`.
 
 ## 🔴 Обязательные переменные
 
@@ -94,16 +96,15 @@ MFA_ISSUER=FreshTrack
 MFA_TOTP_WINDOW=1
 ```
 
-### Лимиты экспорта
+### Лимиты экспорта и scheduled exports
 ```bash
 # Максимальное количество строк в экспорте
 MAX_EXPORT_ROWS=10000
-
-# Лимит запросов на экспорт
 EXPORT_RATE_LIMIT_MAX=10
+EXPORT_RATE_LIMIT_WINDOW=3600000
 
-# Окно времени для лимита экспорта (в секундах)
-EXPORT_RATE_LIMIT_WINDOW=3600
+# Отключить cron запланированных экспортов (например, в dev)
+DISABLE_SCHEDULED_EXPORTS=false
 ```
 
 ### IP Allowlist

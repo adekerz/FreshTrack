@@ -301,6 +301,7 @@ export default function AuditLogsPage() {
             formats={['excel', 'csv', 'pdf']}
             showFilterCount={true}
             size="sm"
+            compact={true}
           />
         </div>
       </div>

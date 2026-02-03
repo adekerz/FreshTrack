@@ -3,12 +3,13 @@
  * Отображает ключевые метрики и графики по товарам
  */
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useTranslation, useLanguage } from '../context/LanguageContext'
 import { useAuth } from '../context/AuthContext'
 import { useProducts } from '../context/ProductContext'
 import { useThresholds } from '../hooks/useThresholds'
 import { Package, AlertTriangle, CheckCircle, Clock } from 'lucide-react'
+import StatCard from '../components/StatCard'
 
 export default function StatisticsPage() {
   const { t } = useTranslation()
@@ -20,6 +21,14 @@ export default function StatisticsPage() {
 
   const stats = getStats()
   const batches = getActiveBatches()
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 640)
+
+  // Детектор размера экрана для compact режима
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 640)
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
 
   // Фильтрация доступных отделов для пользователя (permission-based)
   const userDepartments = useMemo(() => {
@@ -179,29 +188,20 @@ export default function StatisticsPage() {
         </div>
       </div>
 
-      {/* Карточки статистики - Bento Grid */}
+      {/* Карточки статистики - Компактная сетка для мобильных */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
         {statCards.map((card, index) => (
-          <div
+          <StatCard
             key={index}
-            className="bg-card rounded-xl border border-border p-3 sm:p-4 hover:shadow-md transition-shadow"
-          >
-            <div className="flex items-center justify-between mb-2 sm:mb-3">
-              <div className={`p-1.5 sm:p-2 rounded-lg ${card.bgColor}`}>
-                <card.icon className={`w-4 h-4 sm:w-5 sm:h-5 ${card.color}`} />
-              </div>
-              {card.trend !== undefined && (
-                <span
-                  className={`text-xs font-medium ${card.trend >= 50 ? 'text-success' : 'text-warning'}`}
-                >
-                  {card.trend}
-                  {card.trendLabel}
-                </span>
-              )}
-            </div>
-            <p className="text-xl sm:text-2xl font-light text-foreground">{card.value}</p>
-            <p className="text-xs sm:text-sm text-muted-foreground line-clamp-1">{card.title}</p>
-          </div>
+            icon={card.icon}
+            title={card.title}
+            value={card.value}
+            color={card.color}
+            bgColor={card.bgColor}
+            trend={card.trend}
+            trendLabel={card.trendLabel}
+            compact={isMobile}
+          />
         ))}
       </div>
 

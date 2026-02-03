@@ -1,8 +1,8 @@
 # FreshTrack Architecture
 
-## Версия: 3.0.0
+## Версия: 3.1.0
 
-## Дата: Январь 13, 2026
+## Дата обновления: 3 февраля 2026
 
 ---
 
@@ -215,18 +215,43 @@ FreshTrack/
 
 ---
 
-## 🔄 Data Flow
+## 📡 Scheduled Exports Pipeline (v3.1)
+
+```
+┌──────────────┐   React Query    ┌─────────────────────────────┐
+│ Settings UI  │ ───────────────▶ │ scheduled-exports.controller │
+│ (Schedule*   │                  │ + validation (Zod)           │
+└──────┬───────┘                  └──────────────┬──────────────┘
+       │ hotel_id, perms enforced               │ persist metadata
+       │                                        ▼
+┌──────▼─────────┐     cron jobs      ┌──────────────────────────┐
+│ ExportService  │◀──────────────────▶│ ScheduledExportService    │
+│ (Excel/PDF/CSV)│                    │ (node-cron + rate limits) │
+└──────┬─────────┘                    └───────┬──────────────────┘
+       │ attachments (XLSX/PDF buffers)       │ logs to DB
+       ▼                                      ▼
+┌──────────────┐                    ┌──────────────────────────┐
+│ EmailService │ → Resend/SMTP      │ scheduled_exports, logs  │
+│ TelegramSvc  │ → Telegram Bot API │ filtered по hotel_id     │
+└──────────────┘                    └──────────────────────────┘
+```
+
+- **Безопасность:** `requireMFA`, `rateLimitExportWithAlert`, `requireAllowlistedIP` (если включено), `AuditService.logAction`.
+- **Связанные сервисы:** `settings/telegram/chats` (детект привязанных чатов), `EmailService` (attachments + inline отчёты).
+- **UI особенности:** `ScheduleCreateModal` подсказывает связанные Telegram-чаты и валидирует email/Telegram override на фронте, но окончательная проверка всегда на backend.
+
+---
+
+## 🔄 Data Flow & Offline/SSE
 
 ```
 ┌──────────────┐     Request      ┌──────────────┐
 │   Frontend   │ ────────────────>│   Backend    │
-│              │                  │              │
-│  - Uses      │                  │  - Validates │
-│    capabilities                 │    permissions│
-│  - Shows     │                  │  - Computes  │
-│    status    │<────────────────│    status    │
-│    from API  │     Response     │    colors    │
-└──────────────┘                  └──────────────┘
+│  (React/Vite)                  │  (Express)   │
+│  - React Query                 │  - auth, MFA │
+│  - Offline cache               │  - hotel iso │
+│  - useSSE hook │<──────────────│  - services  │
+└──────────────┘   SSE updates   └──────────────┘
 ```
 
 ### API Request Flow
@@ -234,13 +259,25 @@ FreshTrack/
 ```
 1. Frontend: GET /api/inventory?department_id=xxx
 2. Backend:
-   - authMiddleware: Verify JWT, attach user
-   - hotelIsolation: Filter by user's hotel_id
-   - requirePermission('products', 'read')
-   - Service: Get data with hotel_id filter
-   - ExpiryService: Enrich batches with status/colors
-3. Response: { batches: [...enriched], permissions: {...} }
+   - authMiddleware → hotelIsolation → departmentIsolation
+   - requirePermission('products','read')
+   - InventoryService → ExpiryService.enrich()
+3. Response: { batches: [...], permissions, capabilities }
+4. useSSE + node EventEmitter отправляет события (например, SCHEDULED_EXPORT_COMPLETED),
+   React Query автоматически invalidates queryKeys.*
 ```
+
+### Offline stack
+
+- `src/lib/queryPersistence.js` + `@tanstack/query-persist-client` сохраняют данные в `localStorage` (24h TTL, 5MB лимит).
+- `src/hooks/useOfflineMutation.js` складывает мутации (write-offs, collections) в очередь и повторяет после `navigator.onLine`.
+- `src/components/ui/OfflineIndicator.jsx` и `useOfflineMutation` отображают баннер в режиме grace period.
+
+### SSE stream
+
+- Endpoint: `GET /api/events/stream`
+- Используется в `useAuditSSE`, `NotificationsContext`.
+- Все события имеют форму `{ type, payload, hotelId }` и проходят hotel scoping до отправки.
 
 ---
 
@@ -297,4 +334,4 @@ FreshTrack/
 - [MARSHA Codes](./MARSHA_CODES.md) — справочник Marriott кодов
 - [Audit Implementation](./AUDIT_IMPLEMENTATION_REPORT.md)
 - [Mobile UX Guidelines](./MOBILE_UX.md)
-- [Current State](./CURRENT_STATE.md) — полное состояние системы
+- [Индекс документации](./README.md) — список всех документов

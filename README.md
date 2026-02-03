@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![FreshTrack](https://img.shields.io/badge/FreshTrack-v3.0.0-green?style=for-the-badge&logo=leaflet&logoColor=white)
+![FreshTrack](https://img.shields.io/badge/FreshTrack-v3.1.0-green?style=for-the-badge&logo=leaflet&logoColor=white)
 ![Tests](https://img.shields.io/badge/Tests-304%2B_passing-success?style=flat-square)
 ![React](https://img.shields.io/badge/React-18.2-61DAFB?style=flat-square&logo=react)
 ![Node.js](https://img.shields.io/badge/Node.js-20-339933?style=flat-square&logo=node.js)
@@ -11,7 +11,11 @@
 
 **Enterprise-grade система контроля сроков годности для отелей Marriott, Accor, Hilton и независимых сетей**
 
-🌐 [freshtrack.systems](https://freshtrack.systems) • 📚 [Документация](docs/) • 🤖 [Telegram Bot](#-telegram-интеграция)
+**Read in English:** [README.en.md](README.en.md)
+
+🌐 [freshtrack.systems](https://freshtrack.systems) • 📚 [Документация](docs/README.md) • 🤖 [Telegram Bot](#-telegram-интеграция)
+
+*Обновлено: 3 февраля 2026*
 
 </div>
 
@@ -64,7 +68,7 @@
 ### 🤖 Telegram интеграция
 
 - Ежедневные отчёты в настраиваемое время
-- Привязка чатов к отделам
+- Привязка чатов к отделам (в т.ч. для запланированных экспортов)
 - Real-time уведомления о критических событиях
 
 ### 📦 Управление продуктами
@@ -76,7 +80,8 @@
 ### 📈 Аналитика и отчёты
 
 - Статистика по статусам (просрочено, критично, внимание, норма)
-- Экспорт в Excel/PDF с поддержкой Unicode
+- **Централизованный экспорт:** 7 типов отчётов (инвентарь, партии, категории, отделы, сборы, аудит, MARSHA) в Excel/PDF/CSV с единым дизайном
+- **Запланированные экспорты:** cron-отправка отчётов на email и в Telegram по расписанию (ежедневно/еженедельно/ежемесячно)
 - Календарь сроков годности
 - История изменений с полным аудитом
 
@@ -312,25 +317,27 @@ UPDATE hotels SET marsha_code_id = 'uuid-from-marsha-codes-table';
 
 ## 🚦 Система статусов
 
-Статусы вычисляются **только на backend** через `ExpiryService`:
+Статусы вычисляются **только на backend** через `ExpiryService`. Цвета заданы семантическими CSS-переменными в `src/styles/index.css`:
 
-| Статус      | Дней до истечения | Цвет    | CSS класс       |
-| ----------- | ----------------- | ------- | --------------- |
-| 🔴 expired  | < 0               | danger  | `bg-red-600`    |
-| 🟠 today    | = 0               | warning | `bg-orange-500` |
-| 🟡 critical | 1-3               | warning | `bg-yellow-500` |
-| 🔵 warning  | 4-7               | info    | `bg-blue-500`   |
-| 🟢 good     | > 7               | success | `bg-green-500`  |
+| Статус      | Дней до истечения | Цвет (в UI) | CSS класс (проект)   |
+| ----------- | ----------------- | ----------- | -------------------- |
+| 🔴 expired  | < 0               | красный     | `bg-danger`          |
+| 🟠 today    | = 0               | оранжевый   | `bg-critical`        |
+| 🟠 critical | 1-3               | оранжевый   | `bg-critical`        |
+| 🟡 warning  | 4-7               | жёлтый      | `bg-warning`         |
+| 🟢 good     | > 7               | зелёный     | `bg-success`         |
+
+Палитра: `--danger` (красный), `--critical` (оранжевый), `--warning` (жёлтый/золотой), `--success` (зелёный).
 
 ### Backend-driven подход
 
 ```javascript
-// Backend возвращает готовые данные
+// Backend возвращает готовые данные (ExpiryService)
 {
   status: "critical",
-  statusColor: "warning",
+  statusColor: "critical",
   statusText: "Критично: 3 дн.",
-  statusCssClass: "bg-yellow-500 text-white"
+  statusCssClass: "bg-critical text-white"
 }
 
 // Frontend ТОЛЬКО отображает — никаких вычислений!
@@ -346,35 +353,37 @@ UPDATE hotels SET marsha_code_id = 'uuid-from-marsha-codes-table';
 ```
 FreshTrack/
 ├── server/                      # Backend (Node.js + Express)
-│   ├── modules/                 # 21 Feature-based модуль
-│   │   ├── auth/               # Аутентификация + RBAC
+│   ├── modules/                 # Feature-based модули
+│   │   ├── auth/               # Аутентификация + RBAC + MFA
 │   │   ├── inventory/          # Продукты, партии
 │   │   ├── hotels/             # Отели + MARSHA
-│   │   ├── audit/              # Аудит система
+│   │   ├── audit/              # Аудит + экспорт логов
+│   │   ├── scheduled-exports/  # Запланированные экспорты (cron)
+│   │   ├── export/             # Разовый экспорт
+│   │   ├── events/             # SSE real-time
 │   │   └── ...
-│   ├── services/               # Shared сервисы
+│   ├── services/
 │   │   ├── ExpiryService.js    # Single Source of Truth для статусов
-│   │   ├── AuditService.js     # Audit logging с JSONB snapshots
-│   │   ├── PermissionService.js # RBAC проверки
-│   │   └── SSEManager.js       # Real-time события
-│   ├── middleware/
-│   │   ├── auth.js             # JWT + requireAuth
-│   │   └── permissions.js      # requirePermission()
-│   ├── db/migrations/          # 29 миграций
-│   └── tests/                  # 304+ тестов
+│   │   ├── AuditService.js    # Audit logging с JSONB snapshots
+│   │   ├── ExportService.js   # Excel/PDF/CSV с единым дизайном
+│   │   ├── ScheduledExportService.js  # Cron + email/Telegram
+│   │   └── ...
+│   ├── db/migrations/          # SQL миграции (047–054 и др.)
+│   └── tests/
 │
 ├── src/                         # Frontend (React + Vite)
-│   ├── features/               # Feature-based модули
-│   ├── context/                # React Context (Auth, Products)
-│   ├── components/             # Переиспользуемые компоненты
+│   ├── context/                # Auth, Products, Notifications
+│   ├── components/             # В т.ч. ScheduledExports, ExportButton
+│   ├── hooks/                  # useExport, useOfflineMutation, useAuditSSE
 │   ├── locales/                # 8 языков (i18next)
 │   └── pages/
 │
-├── docs/                        # Документация
-│   ├── CURRENT_STATE.md        # Полное состояние v8.0
-│   ├── ARCHITECTURE.md         # Архитектура v3.0
-│   ├── HOTEL_IDENTIFICATION.md # hotel_id, marsha_code, external_ids
-│   └── MARSHA_CODES.md         # Справочник Marriott
+├── docs/                        # Документация (индекс: docs/README.md)
+│   ├── README.md               # Индекс всех документов
+│   ├── ARCHITECTURE.md         # Принципы, RBAC, scheduled exports, offline/SSE
+│   ├── EXPORT_SYSTEM_IMPLEMENTATION.md
+│   ├── RAILWAY_DEPLOY.md       # Деплой backend
+│   └── ...
 │
 └── README.md
 ```
@@ -403,22 +412,28 @@ FreshTrack/
 | DELETE | `/api/batches/:id`  | Удалить партию                     |
 | POST   | `/api/fifo-collect` | FIFO сбор                          |
 
-### Отчёты и аналитика
+### Отчёты и экспорт
 
-| Метод | Эндпоинт                  | Описание          |
-| ----- | ------------------------- | ----------------- |
-| GET   | `/api/reports/statistics` | Полная статистика |
-| GET   | `/api/reports/calendar`   | Календарь сроков  |
-| GET   | `/api/export/excel`       | Экспорт в Excel   |
-| GET   | `/api/export/pdf`         | Экспорт в PDF     |
+| Метод | Эндпоинт                       | Описание                    |
+| ----- | ------------------------------ | --------------------------- |
+| GET   | `/api/reports/statistics`      | Полная статистика           |
+| GET   | `/api/reports/calendar`        | Календарь сроков            |
+| GET   | `/api/export/inventory`        | Экспорт инвентаря (format=excel\|csv) |
+| GET   | `/api/export/batches`          | Экспорт партий              |
+| GET   | `/api/export/collections`      | Экспорт истории сборов      |
+| GET   | `/api/audit-logs/export/excel` | Экспорт аудита (Excel/PDF)  |
+| GET   | `/api/scheduled-exports`       | Список расписаний экспорта  |
+| POST  | `/api/scheduled-exports`       | Создать расписание          |
+| POST  | `/api/scheduled-exports/:id/test` | Тестовый запуск         |
 
 ### Аудит
 
 | Метод | Эндпоинт                      | Описание             |
 | ----- | ----------------------------- | -------------------- |
-| GET   | `/api/audit`                  | Лента аудита         |
-| GET   | `/api/audit/entity/:type/:id` | История сущности     |
-| GET   | `/api/audit/export`           | Экспорт логов аудита |
+| GET   | `/api/audit-logs`             | Лента аудита (фильтры, пагинация) |
+| GET   | `/api/audit-logs/export/excel` | Экспорт в Excel      |
+| GET   | `/api/audit-logs/export/pdf`  | Экспорт в PDF        |
+| GET   | `/api/events/stream`         | SSE (уведомления, события экспорта) |
 
 ### Настройки
 
@@ -469,10 +484,12 @@ npm run test -- --grep "ExpiryService"
 | --- | -------------------------------- | ------------------------------- |
 | 004 | `permissions_system.sql`         | RBAC на уровне БД               |
 | 018 | `marsha_codes.sql`               | Справочник MARSHA               |
-| 019 | `remove_hotel_legacy_code.sql`   | Удалён устаревший `hotels.code` |
-| 027 | `unique_active_marsha_index.sql` | UNIQUE для активных отелей      |
-| 028 | `external_ids_integration.sql`   | Таблица OPERA, SAP, PMS         |
-| 029 | `protect_marsha_code.sql`        | Триггер защиты + permissions    |
+| 029 | `protect_marsha_code.sql`        | Триггер защиты MARSHA           |
+| 047 | `email_otp_verification.sql`    | Email-верификация отделов       |
+| 048–050 | audit metadata, severity, hotel coordinates | Аудит и геоданные   |
+| 054 | `scheduled_exports.sql`         | Запланированные экспорты        |
+
+Полный список и порядок применения: [docs/MIGRATION_SUMMARY.md](docs/MIGRATION_SUMMARY.md).
 
 ### Запуск миграций
 
@@ -511,14 +528,23 @@ npm run migrate
 
 ### Railway (Backend)
 
+Подробно: [docs/RAILWAY_DEPLOY.md](docs/RAILWAY_DEPLOY.md) и [docs/RAILWAY_ENV_VARIABLES.md](docs/RAILWAY_ENV_VARIABLES.md).
+
 ```env
 DATABASE_URL=postgresql://...
 JWT_SECRET=your_secret_here
 NODE_ENV=production
-FRONTEND_URL=https://freshtrack.systems
+APP_URL=https://freshtrack.systems
+CORS_ORIGINS=https://freshtrack.systems
+TELEGRAM_BOT_TOKEN=...
+RESEND_API_KEY=...   # для email и запланированных экспортов
 ```
 
+Подключите репозиторий к Railway для auto-deploy при пуше в `main`.
+
 ### Vercel (Frontend)
+
+Подробно: [docs/VERCEL_QUICK_SETUP.md](docs/VERCEL_QUICK_SETUP.md).
 
 ```env
 VITE_API_URL=https://api.freshtrack.systems/api
@@ -528,48 +554,47 @@ VITE_API_URL=https://api.freshtrack.systems/api
 
 ## 📚 Документация
 
-| Документ                                                              | Версия | Описание                                |
-| --------------------------------------------------------------------- | ------ | --------------------------------------- |
-| [CURRENT_STATE.md](docs/CURRENT_STATE.md)                             | v8.0   | Полное состояние системы                |
-| [ARCHITECTURE.md](docs/ARCHITECTURE.md)                               | v3.0   | Архитектура и принципы                  |
-| [HOTEL_IDENTIFICATION.md](docs/HOTEL_IDENTIFICATION.md)               | v1.0   | hotel_id vs marsha_code vs external_ids |
-| [MARSHA_CODES.md](docs/MARSHA_CODES.md)                               | v2.0   | Справочник Marriott кодов               |
-| [AUDIT_IMPLEMENTATION_REPORT.md](docs/AUDIT_IMPLEMENTATION_REPORT.md) | v1.0   | Аудит система                           |
-| [MOBILE_UX.md](docs/MOBILE_UX.md)                                     | v1.0   | Мобильный UX                            |
-| [ACCESSIBILITY.md](docs/ACCESSIBILITY.md)                             | v1.0   | A11y соответствие                       |
+Полный индекс: **[docs/README.md](docs/README.md)**.
+
+| Документ | Описание |
+| -------- | -------- |
+| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Архитектура v3.1, RBAC, scheduled exports, offline/SSE |
+| [ARCHITECTURE_MIGRATION.md](docs/ARCHITECTURE_MIGRATION.md) | Эволюция модулей, API endpoints |
+| [EXPORT_SYSTEM_IMPLEMENTATION.md](docs/EXPORT_SYSTEM_IMPLEMENTATION.md) | Централизованный экспорт и запланированные отчёты |
+| [IMPLEMENTATION_STATUS.md](docs/IMPLEMENTATION_STATUS.md) | Статус фич (scheduled exports и др.) |
+| [MIGRATION_SUMMARY.md](docs/MIGRATION_SUMMARY.md) | Миграции БД 047–054, порядок, rollback |
+| [RAILWAY_DEPLOY.md](docs/RAILWAY_DEPLOY.md) | Деплой backend, auto-deploy из GitHub |
+| [HOTEL_IDENTIFICATION.md](docs/HOTEL_IDENTIFICATION.md) | hotel_id, marsha_code, external_ids |
+| [MARSHA_CODES.md](docs/MARSHA_CODES.md) | Справочник Marriott кодов |
+| [MOBILE_UX.md](docs/MOBILE_UX.md) | Мобильный UX |
+| [QA_TESTING.md](docs/QA_TESTING.md) | Чеклисты тестирования, scheduled exports, Lighthouse |
+| [ACCESSIBILITY.md](docs/ACCESSIBILITY.md) | Lighthouse, Axe, WCAG |
 
 ---
 
 ## 🔧 Переменные окружения
 
-### Backend (.env)
+Полный список для backend: **server/.env.example**. Для production (Railway): [docs/RAILWAY_ENV_VARIABLES.md](docs/RAILWAY_ENV_VARIABLES.md).
+
+### Backend (основное)
 
 ```env
-# Database
 DATABASE_URL=postgresql://user:pass@localhost:5432/freshtrack
-
-# Auth
-JWT_SECRET=your_secret_key_here
-JWT_EXPIRES_IN=7d
-
-# Server
+JWT_SECRET=your_secret_key_min_32_chars
 PORT=3001
 NODE_ENV=development
+APP_URL=http://localhost:5173
+CORS_ORIGINS=http://localhost:5173
 
-# Telegram
+# Telegram (уведомления и запланированные экспорты)
 TELEGRAM_BOT_TOKEN=your_bot_token
 
-# CORS
-FRONTEND_URL=http://localhost:5173
-
-# Email (optional)
-SMTP_HOST=smtp.example.com
-SMTP_PORT=587
-SMTP_USER=user@example.com
-SMTP_PASS=password
+# Email (Resend или SMTP — для писем и вложений отчётов)
+EMAIL_PROVIDER=resend
+RESEND_API_KEY=re_...
 ```
 
-### Frontend (.env)
+### Frontend
 
 ```env
 VITE_API_URL=http://localhost:3001/api

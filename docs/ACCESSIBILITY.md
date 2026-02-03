@@ -1,4 +1,6 @@
-# 🔍 Lighthouse & Axe Accessibility Guide
+# Lighthouse & Axe Accessibility Guide
+
+> Обновлено: 3 февраля 2026
 
 Это руководство описывает интеграцию Lighthouse и Axe для тестирования производительности и доступности FreshTrack.
 
@@ -108,7 +110,12 @@ npm run lighthouse
 - **Print styles** для печати
 - **Reduced motion** для пользователей с вестибулярными нарушениями
 
-## 🔗 Полезные ресурсы
+## i18n и формы
+
+- Все видимые строки проходят через ключи переводов (ru/en и др.) — нет сырого хардкода в UI.
+- Формы (в т.ч. Scheduled Exports, настройки) должны иметь явные `<label>` или `aria-label` для полей ввода; при появлении «Form elements must have labels» в Axe — добавить подписи или скрытые лейблы.
+
+## Полезные ресурсы
 
 - [WCAG 2.1 Guidelines](https://www.w3.org/WAI/WCAG21/quickref/)
 - [Axe Core Rules](https://dequeuniversity.com/rules/axe/)

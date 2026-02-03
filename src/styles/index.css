@@ -435,6 +435,15 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   input, select {
     min-height: 48px;
   }
+
+  /* iOS Safari - предотвращаем zoom на фокусе (Phase 3) */
+  @supports (-webkit-touch-callout: none) {
+    input,
+    textarea,
+    select {
+      font-size: 16px !important;
+    }
+  }
   
   /* Better spacing on mobile */
   .mobile-p {

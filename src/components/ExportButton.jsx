@@ -46,6 +46,7 @@ const FORMAT_CONFIG = {
  * @param {string} props.size - Button size ('sm' | 'md' | 'lg')
  * @param {boolean} props.showFilterCount - Show active filter count badge
  * @param {boolean} props.disabled - Disable button
+ * @param {boolean} props.compact - Compact mode for mobile (icon only)
  * @param {Function} props.onExportComplete - Callback after successful export
  */
 export default function ExportButton({
@@ -56,6 +57,7 @@ export default function ExportButton({
   size = 'md',
   showFilterCount = true,
   disabled = false,
+  compact = false,
   onExportComplete
 }) {
   const { t } = useTranslation()
@@ -132,18 +134,23 @@ export default function ExportButton({
           disabled:opacity-50 disabled:cursor-not-allowed
           active:scale-[0.98]
           relative
+          ${compact ? 'px-2.5' : ''}
         `}
       >
         {isExporting ? (
           <>
             <Loader2 className="w-4 h-4 animate-spin" />
-            <span>{t('export.exporting') || 'Экспорт...'}</span>
+            {!compact && <span>{t('export.exporting') || 'Экспорт...'}</span>}
           </>
         ) : (
           <>
             <Download className="w-4 h-4" />
-            <span>{t('export.button') || 'Экспорт'}</span>
-            <ChevronDown className={`w-4 h-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+            {!compact && (
+              <>
+                <span className="hidden sm:inline">{t('export.button') || 'Экспорт'}</span>
+                <ChevronDown className={`hidden sm:block w-4 h-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+              </>
+            )}
             {/* Filter count badge */}
             {activeFilterCount > 0 && showFilterCount && (
               <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
@@ -163,13 +170,16 @@ export default function ExportButton({
             onClick={() => setIsDropdownOpen(false)}
           />
 
-          {/* Menu */}
-          <div className="absolute right-0 top-full mt-2 w-64 bg-card rounded-xl shadow-lg border border-border z-50 overflow-hidden animate-fadeIn">
-            <div className="p-3 bg-muted border-b border-border">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                {t('export.selectFormat') || 'Выберите формат'}
-              </p>
-            </div>
+          {/* Menu - адаптивная ширина */}
+          <div className={`absolute right-0 top-full mt-2 bg-card rounded-xl shadow-lg border border-border z-50 overflow-hidden animate-fadeIn ${compact ? 'w-48 sm:w-56' : 'w-64'}`}>
+            {/* Заголовок - скрыт на компактных */}
+            {!compact && (
+              <div className="p-3 bg-muted border-b border-border">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  {t('export.selectFormat') || 'Выберите формат'}
+                </p>
+              </div>
+            )}
 
             <div className="p-2">
               {formats.map((formatId) => {
@@ -182,7 +192,7 @@ export default function ExportButton({
                   <button
                     key={formatId}
                     onClick={() => handleExport(formatId)}
-                    className="w-full flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-muted transition-colors text-left group"
+                    className="w-full flex items-center gap-3 px-3 py-2.5 sm:py-3 rounded-lg hover:bg-muted transition-colors text-left group"
                   >
                     <div
                       className={`p-2 rounded-lg bg-muted group-hover:bg-muted/80 ${format.color}`}
@@ -193,9 +203,12 @@ export default function ExportButton({
                       <p className="text-sm font-medium text-foreground">
                         {format.label}
                       </p>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {format.description}
-                      </p>
+                      {/* Описание - скрыто на мобильных и в compact режиме */}
+                      {!compact && (
+                        <p className="hidden sm:block text-xs text-muted-foreground truncate">
+                          {format.description}
+                        </p>
+                      )}
                     </div>
                   </button>
                 )

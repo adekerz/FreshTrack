@@ -1,5 +1,16 @@
 # QA Testing — FreshTrack Mobile & Desktop
 
+> Обновлено: 3 февраля 2026
+
+## Scheduled Exports & SSE
+
+- [ ] **Настройки → Запланированные экспорты:** список загружается (для SUPER_ADMIN выбран отель, иначе — свой hotel_id).
+- [ ] Создание расписания: выбор отдела, тип (daily/weekly/monthly), время, типы экспорта (inventory, batches, …), форматы (excel, pdf), способ доставки (email/telegram). Валидация: при «email» нужен email отдела или override; при «telegram» — chat id или привязанный чат.
+- [ ] Редактирование и удаление расписания работают, тест-запуск возвращает 200 и в логах есть запись.
+- [ ] Письмо с отчётом приходит с вложениями (xlsx/pdf при выборе).
+- [ ] SSE: после выполнения scheduled export приходит событие (Notifications или обновление списка расписаний).
+- [ ] Нет «Translation not found» для ключей `scheduledExports.*`, `export.*`, `common.active`, `common.create`.
+
 ## Phase 7.1: Device viewport checklist
 
 Проверь вручную в Chrome DevTools (**Device Toolbar** — `Ctrl+Shift+M` / `Cmd+Shift+M`) или в реальном устройстве:
