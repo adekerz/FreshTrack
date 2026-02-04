@@ -34,6 +34,7 @@ import { cn } from '../utils/classNames'
 import { formatDate } from '../utils/dateUtils'
 import { apiFetch } from '../services/api'
 import ExportButton from '../components/ExportButton'
+import PageContainer from '../components/PageContainer'
 import { PageLoader } from '../components/ui'
 import { ActivityChart } from '../components/audit/ActivityChart'
 import { AuditDetailsModal } from '../components/audit/AuditDetailsModal'
@@ -270,22 +271,23 @@ export default function AuditLogsPage() {
   }
 
   if (loading && logs.length === 0) {
-    return <PageLoader message={t('common.loading')} />
+    return (
+      <PageContainer
+        title={t('auditLogs.title')}
+        subtitle={t('auditLogs.subtitle')}
+        stickyHeader={true}
+      >
+        <PageLoader message={t('common.loading')} />
+      </PageContainer>
+    )
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-light text-foreground flex items-center gap-2">
-            <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-accent" />
-            {t('auditLogs.title')}
-          </h1>
-          <p className="text-muted-foreground mt-1 text-xs sm:text-sm">
-            {t('auditLogs.subtitle')}
-          </p>
-        </div>
+    <PageContainer
+      title={t('auditLogs.title')}
+      subtitle={t('auditLogs.subtitle')}
+      stickyHeader={true}
+      actions={
         <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={loadLogs}
@@ -304,9 +306,10 @@ export default function AuditLogsPage() {
             compact={true}
           />
         </div>
-      </div>
-
-      {/* New records banner (SSE) */}
+      }
+    >
+      <div className="space-y-4 sm:space-y-6">
+        {/* New records banner (SSE) */}
       {newLogs.length > 0 && (
         <div className="bg-accent/10 border border-accent/30 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
           <span className="text-sm text-foreground">
@@ -623,13 +626,14 @@ export default function AuditLogsPage() {
         )}
       </div>
 
-      {/* Details Modal */}
-      {selectedLog && (
-        <AuditDetailsModal
-          log={selectedLog}
-          onClose={() => setSelectedLog(null)}
-        />
-      )}
-    </div>
+        {/* Details Modal */}
+        {selectedLog && (
+          <AuditDetailsModal
+            log={selectedLog}
+            onClose={() => setSelectedLog(null)}
+          />
+        )}
+      </div>
+    </PageContainer>
   )
 }

@@ -12,7 +12,7 @@ import { apiFetch } from '../../../services/api'
 import { formatDate } from '../../../utils/dateUtils'
 import MarshaCodeSelector from '../../MarshaCodeSelector'
 import { CityAutocomplete } from '../../hotels/CityAutocomplete'
-import { ButtonLoader, SectionLoader } from '..'
+import { ButtonLoader, SectionLoader, Switch } from '..'
 import {
   Building2,
   Plus,
@@ -1077,22 +1077,35 @@ export default function OrganizationSettings() {
               />
             </div>
             <div>
-              <div className="flex items-center gap-2 mb-2">
-                <input
-                  type="checkbox"
-                  id="generatePassword"
+              <div
+                className="flex items-center gap-2 mb-2 cursor-pointer"
+                onClick={() => {
+                  const next = !generatePassword
+                  setGeneratePassword(next)
+                  if (next) setNewUser((u) => ({ ...u, password: '' }))
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    const next = !generatePassword
+                    setGeneratePassword(next)
+                    if (next) setNewUser((u) => ({ ...u, password: '' }))
+                  }
+                }}
+                role="button"
+                tabIndex={0}
+              >
+                <Switch
                   checked={generatePassword}
-                  onChange={(e) => {
-                    setGeneratePassword(e.target.checked)
-                    if (e.target.checked) {
-                      setNewUser({ ...newUser, password: '' })
-                    }
+                  onChange={(v) => {
+                    setGeneratePassword(v)
+                    if (v) setNewUser((u) => ({ ...u, password: '' }))
                   }}
-                  className="rounded border-border"
+                  aria-label="Сгенерировать пароль автоматически"
                 />
-                <label htmlFor="generatePassword" className="text-sm font-medium text-foreground cursor-pointer">
+                <span className="text-sm font-medium text-foreground">
                   Сгенерировать пароль автоматически
-                </label>
+                </span>
               </div>
               {generatePassword ? (
                 <div className="bg-info/10 border border-info/20 rounded-lg p-3">

@@ -24,6 +24,7 @@ import {
 import { Link } from 'react-router-dom'
 import { cn } from '../../../utils/classNames'
 import SettingsLayout, { SettingsSection } from './SettingsLayout'
+import { Switch } from '..'
 import TemplateEditor from './TemplateEditor'
 import { useSimpleUnsavedChanges } from '../../../hooks/useUnsavedChanges'
 
@@ -296,21 +297,11 @@ export default function NotificationsSettings() {
                   <ChevronDown className="w-4 h-4" />
                 )}
               </button>
-              <button
-                type="button"
-                onClick={() => updateChannel('telegram', !settings.channels.telegram.enabled)}
-                className={cn(
-                  'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
-                  settings.channels.telegram.enabled ? 'bg-[#0088cc]' : 'bg-muted-foreground/30'
-                )}
-              >
-                <span
-                  className={cn(
-                    'inline-block h-4 w-4 transform rounded-full bg-white transition-transform',
-                    settings.channels.telegram.enabled ? 'translate-x-6' : 'translate-x-1'
-                  )}
-                />
-              </button>
+              <Switch
+                checked={settings.channels.telegram.enabled}
+                onChange={(v) => updateChannel('telegram', v)}
+                aria-label="Telegram"
+              />
             </div>
           </div>
 
@@ -440,21 +431,11 @@ export default function NotificationsSettings() {
                   <ChevronDown className="w-4 h-4" />
                 )}
               </button>
-              <button
-                type="button"
-                onClick={() => updateChannel('email', !settings.channels.email.enabled)}
-                className={cn(
-                  'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
-                  settings.channels.email.enabled ? 'bg-accent' : 'bg-muted-foreground/30'
-                )}
-              >
-                <span
-                  className={cn(
-                    'inline-block h-4 w-4 transform rounded-full bg-white transition-transform',
-                    settings.channels.email.enabled ? 'translate-x-6' : 'translate-x-1'
-                  )}
-                />
-              </button>
+              <Switch
+                checked={settings.channels.email.enabled}
+                onChange={(v) => updateChannel('email', v)}
+                aria-label="Email"
+              />
             </div>
           </div>
           {expandedChannels.email && (

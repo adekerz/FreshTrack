@@ -8,7 +8,7 @@ import { useToast } from '../../context/ToastContext'
 import { useTranslation } from '../../context/LanguageContext'
 import { apiFetch } from '../../services/api'
 import Modal from '../ui/Modal'
-import { TouchButton } from '../ui'
+import { TouchButton, Switch } from '../ui'
 import { MessageSquare } from 'lucide-react'
 
 const dayKeys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat']
@@ -229,17 +229,26 @@ export function ScheduleEditModal({ schedule, onClose, onSuccess }) {
           </select>
         </div>
 
-        <div className="flex items-center gap-2 min-h-[48px]">
-          <input
-            type="checkbox"
-            id="edit-is-active"
+        <div
+          className="flex items-center gap-2 min-h-[48px] cursor-pointer"
+          onClick={() => setFormData((prev) => ({ ...prev, is_active: !prev.is_active }))}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault()
+              setFormData((prev) => ({ ...prev, is_active: !prev.is_active }))
+            }
+          }}
+          role="button"
+          tabIndex={0}
+        >
+          <Switch
             checked={formData.is_active}
-            onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-            className="w-5 h-5 rounded border-border text-accent focus:ring-accent"
+            onChange={(v) => setFormData((prev) => ({ ...prev, is_active: v }))}
+            aria-label={t('scheduledExports.isActive')}
           />
-          <label htmlFor="edit-is-active" className="text-sm font-medium text-foreground cursor-pointer">
+          <span className="text-sm font-medium text-foreground">
             {t('scheduledExports.isActive')}
-          </label>
+          </span>
         </div>
 
         <div>

@@ -14,6 +14,7 @@ import { Filter, RefreshCw, ChevronLeft, ChevronRight, ArchiveX, User, Package }
 import { apiFetch } from '../services/api'
 import { formatDate } from '../utils/dateUtils'
 import ExportButton from '../components/ExportButton'
+import PageContainer from '../components/PageContainer'
 
 // Причины сбора (синхронизировано с CollectionService.CollectionReason)
 const REASONS = {
@@ -174,20 +175,12 @@ export default function CollectionHistoryPage() {
     appliedFilters.endDate
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      {/* Заголовок */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-light text-foreground">
-            {t('collectionHistory.title')}
-          </h1>
-          <p className="text-muted-foreground text-xs sm:text-sm mt-1">
-            {t('collectionHistory.subtitle')}
-          </p>
-        </div>
-
+    <PageContainer
+      title={t('collectionHistory.title')}
+      subtitle={t('collectionHistory.subtitle')}
+      stickyHeader={true}
+      actions={
         <div className="flex items-center gap-2 sm:gap-3">
-          {/* Кнопка экспорта */}
           <ExportButton
             exportType="collections"
             filters={appliedFilters}
@@ -196,11 +189,9 @@ export default function CollectionHistoryPage() {
             size="sm"
             compact={true}
           />
-
-          {/* Кнопка фильтров */}
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 border rounded-lg text-xs sm:text-sm transition-colors ${
+            className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 border rounded-lg text-xs sm:text-sm transition-colors min-h-[44px] sm:min-h-0 ${
               hasActiveFilters
                 ? 'border-accent text-accent bg-accent/5'
                 : 'border-border text-muted-foreground hover:bg-muted'
@@ -210,22 +201,21 @@ export default function CollectionHistoryPage() {
             <span className="hidden sm:inline">{t('collectionHistory.filters')}</span>
             {hasActiveFilters && <span className="w-2 h-2 bg-accent rounded-full" />}
           </button>
-
-          {/* Кнопка обновления */}
           <button
             onClick={() => {
               fetchLogs(pagination.page)
               fetchStats()
             }}
             disabled={loading}
-            className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-foreground text-background rounded-lg text-xs sm:text-sm hover:bg-foreground/90 transition-colors disabled:opacity-50"
+            className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-foreground text-background rounded-lg text-xs sm:text-sm hover:bg-foreground/90 transition-colors disabled:opacity-50 min-h-[44px] sm:min-h-0"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             <span className="hidden sm:inline">{t('common.refresh')}</span>
           </button>
         </div>
-      </div>
-
+      }
+    >
+      <div className="space-y-4 sm:space-y-6">
       {/* Статистика - Bento Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <div className="bg-card rounded-xl border border-border p-3 sm:p-4">
@@ -545,6 +535,7 @@ export default function CollectionHistoryPage() {
           </>
         )}
       </div>
-    </div>
+      </div>
+    </PageContainer>
   )
 }

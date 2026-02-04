@@ -19,6 +19,7 @@ import { cn } from '../utils/classNames'
 import { formatDate } from '../utils/dateUtils'
 import { apiFetch, API_BASE_URL } from '../services/api'
 import ExportButton from '../components/ExportButton'
+import PageContainer from '../components/PageContainer'
 import { PageLoader } from '../components/ui'
 import { useToast } from '../context/ToastContext'
 import Modal from '../components/ui/Modal'
@@ -272,22 +273,25 @@ export default function MarshaCodesPage() {
   const availableHotels = hotels.filter((h) => !h.marsha_code)
 
   if (loading && codes.length === 0) {
-    return <PageLoader message={t('common.loading')} />
+    return (
+      <PageContainer
+        title={t('marshaCodes.title') || 'MARSHA Codes Database'}
+        subtitle={t('marshaCodes.subtitle') || 'Marriott property codes management'}
+        stickyHeader={true}
+        titleIcon={Database}
+      >
+        <PageLoader message={t('common.loading')} />
+      </PageContainer>
+    )
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-light text-foreground flex items-center gap-2">
-            <Database className="w-5 h-5 sm:w-6 sm:h-6 text-accent" />
-            {t('marshaCodes.title') || 'MARSHA Codes Database'}
-          </h1>
-          <p className="text-muted-foreground mt-1 text-xs sm:text-sm">
-            {t('marshaCodes.subtitle') || 'Marriott property codes management'}
-          </p>
-        </div>
+    <PageContainer
+      title={t('marshaCodes.title') || 'MARSHA Codes Database'}
+      subtitle={t('marshaCodes.subtitle') || 'Marriott property codes management'}
+      stickyHeader={true}
+      titleIcon={Database}
+      actions={
         <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={() => {
@@ -312,8 +316,9 @@ export default function MarshaCodesPage() {
             exportRecordCount={pagination.total}
           />
         </div>
-      </div>
-
+      }
+    >
+      <div className="space-y-4 sm:space-y-6">
       {/* Filters Bar */}
       <div className="bg-card rounded-xl border border-border p-3 sm:p-4">
         <form onSubmit={handleSearch} className="flex flex-col gap-3 sm:flex-row sm:gap-4">
@@ -744,5 +749,6 @@ export default function MarshaCodesPage() {
         </Modal>
       )}
     </div>
+    </PageContainer>
   )
 }

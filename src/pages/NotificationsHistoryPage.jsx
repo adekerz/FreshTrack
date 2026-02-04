@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 import { apiFetch } from '../services/api'
 import { formatDate } from '../utils/dateUtils'
+import PageContainer from '../components/PageContainer'
 
 // Типы уведомлений и их отображение
 const NOTIFICATION_TYPES = {
@@ -137,23 +138,15 @@ export default function NotificationsHistoryPage() {
   const hasActiveFilters = appliedFilters.type || appliedFilters.startDate || appliedFilters.endDate
 
   return (
-    <div className="space-y-4 sm:space-y-6 p-1 sm:p-0">
-      {/* Заголовок и кнопки */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-light text-foreground">
-            {t('notificationHistory.title')}
-          </h1>
-          <p className="text-muted-foreground text-xs sm:text-sm mt-1">
-            {t('notificationHistory.subtitle')}
-          </p>
-        </div>
-
+    <PageContainer
+      title={t('notificationHistory.title')}
+      subtitle={t('notificationHistory.subtitle')}
+      stickyHeader={true}
+      actions={
         <div className="flex items-center gap-2 sm:gap-3">
-          {/* Кнопка фильтров */}
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className={`flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 border rounded-lg text-xs sm:text-sm transition-colors flex-1 sm:flex-none justify-center ${
+            className={`flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 border rounded-lg text-xs sm:text-sm transition-colors flex-1 sm:flex-none justify-center min-h-[44px] sm:min-h-0 ${
               hasActiveFilters
                 ? 'border-accent text-accent bg-accent/5'
                 : 'border-border text-muted-foreground hover:bg-muted'
@@ -163,19 +156,18 @@ export default function NotificationsHistoryPage() {
             <span className="hidden sm:inline">{t('notificationHistory.filters')}</span>
             {hasActiveFilters && <span className="w-2 h-2 bg-accent rounded-full" />}
           </button>
-
-          {/* Кнопка обновления */}
           <button
             onClick={() => fetchLogs(pagination.page)}
             disabled={loading}
-            className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 bg-foreground text-background rounded-lg text-xs sm:text-sm hover:bg-foreground/90 transition-colors disabled:opacity-50"
+            className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 bg-foreground text-background rounded-lg text-xs sm:text-sm hover:bg-foreground/90 transition-colors disabled:opacity-50 min-h-[44px] sm:min-h-0"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             <span className="hidden sm:inline">{t('common.refresh')}</span>
           </button>
         </div>
-      </div>
-
+      }
+    >
+      <div className="space-y-4 sm:space-y-6">
       {/* Панель фильтров */}
       {showFilters && (
         <div className="bg-card rounded-xl border border-border p-4 sm:p-6 space-y-4">
@@ -431,6 +423,6 @@ export default function NotificationsHistoryPage() {
           </>
         )}
       </div>
-    </div>
+    </PageContainer>
   )
 }

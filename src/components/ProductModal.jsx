@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { X, Plus, Check, Calendar, Package, User, Trash2, AlertTriangle, Zap } from 'lucide-react'
-import { ButtonLoader, TouchButton } from './ui'
+import { ButtonLoader, TouchButton, Switch } from './ui'
 import { useProducts, categories } from '../context/ProductContext'
 import { useAuth } from '../context/AuthContext'
 import { useTranslation, useLanguage } from '../context/LanguageContext'
@@ -421,26 +421,42 @@ export default function ProductModal({ product, onClose }) {
                   />
 
                   {/* Переключатель "Нет количества" */}
-                  <div className="flex items-center gap-3 mt-2">
-                    <input
-                      type="checkbox"
-                      id="noQuantityProduct"
-                      checked={newBatch.noQuantity}
-                      onChange={(e) =>
+                  <div
+                    className="flex items-center gap-3 mt-2 cursor-pointer"
+                    onClick={() =>
+                      setNewBatch((prev) => ({
+                        ...prev,
+                        noQuantity: !prev.noQuantity,
+                        quantity: prev.noQuantity ? prev.quantity : ''
+                      }))
+                    }
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
                         setNewBatch((prev) => ({
                           ...prev,
-                          noQuantity: e.target.checked,
-                          quantity: e.target.checked ? '' : prev.quantity
+                          noQuantity: !prev.noQuantity,
+                          quantity: prev.noQuantity ? prev.quantity : ''
                         }))
                       }
-                      className="quantity-toggle"
+                    }}
+                    role="button"
+                    tabIndex={0}
+                  >
+                    <Switch
+                      checked={newBatch.noQuantity}
+                      onChange={(v) =>
+                        setNewBatch((prev) => ({
+                          ...prev,
+                          noQuantity: v,
+                          quantity: v ? '' : prev.quantity
+                        }))
+                      }
+                      aria-label={t('batch.noQuantityLabel') || 'Без учёта количества'}
                     />
-                    <label
-                      htmlFor="noQuantityProduct"
-                      className="text-sm text-muted-foreground cursor-pointer select-none"
-                    >
+                    <span className="text-sm text-muted-foreground select-none">
                       {t('batch.noQuantityLabel') || 'Без учёта количества'}
-                    </label>
+                    </span>
                   </div>
                 </div>
                 <div className="flex gap-2 justify-end">

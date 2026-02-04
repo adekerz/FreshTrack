@@ -17,6 +17,7 @@ import { useThresholds } from '../hooks/useThresholds'
 import { SkeletonNotifications, Skeleton } from '../components/Skeleton'
 import { formatDate } from '../utils/dateUtils'
 import { Loader } from '../components/ui'
+import PageContainer from '../components/PageContainer'
 import FIFOCollectModal from '../components/FIFOCollectModal'
 
 export default function NotificationsPage() {
@@ -95,56 +96,77 @@ export default function NotificationsPage() {
   // Показываем скелетон при загрузке (когда есть данные)
   if (loading && depts.length > 0) {
     return (
-      <div className="p-4 sm:p-6 animate-fade-in">
-        <div className="flex items-center gap-3 mb-6">
-          <Skeleton className="w-10 h-10 rounded-full" />
-          <Skeleton className="h-7 w-48" />
+      <PageContainer
+        title={t('notifications.title')}
+        subtitle={t('notifications.description')}
+        stickyHeader={true}
+        titleIcon={Bell}
+      >
+        <div className="animate-fade-in">
+          <div className="flex items-center gap-3 mb-6">
+            <Skeleton className="w-10 h-10 rounded-full" />
+            <Skeleton className="h-7 w-48" />
+          </div>
+          <SkeletonNotifications count={5} />
         </div>
-        <SkeletonNotifications count={5} />
-      </div>
+      </PageContainer>
     )
   }
 
   // Загрузка БД (нет данных и идёт загрузка)
   if (loading && depts.length === 0) {
     return (
-      <div className="flex-1 flex items-center justify-center py-16 sm:py-24 animate-fade-in">
-        <div className="flex flex-col items-center gap-6" role="status" aria-live="polite">
-          <Loader size="large" aria-label={t('common.loading') || 'Загрузка'} />
-          <div className="text-center">
-            <p className="text-foreground font-medium mb-1">
-              {t('common.loading') || 'Загрузка...'}
-            </p>
-            {retryCount > 0 && (
-              <p className="text-muted-foreground text-sm">
-                {`${t('common.attempt') || 'Попытка'} ${retryCount}/10`}
+      <PageContainer
+        title={t('notifications.title')}
+        subtitle={t('notifications.description')}
+        stickyHeader={true}
+        titleIcon={Bell}
+      >
+        <div className="flex-1 flex items-center justify-center py-16 sm:py-24 animate-fade-in">
+          <div className="flex flex-col items-center gap-6" role="status" aria-live="polite">
+            <Loader size="large" aria-label={t('common.loading') || 'Загрузка'} />
+            <div className="text-center">
+              <p className="text-foreground font-medium mb-1">
+                {t('common.loading') || 'Загрузка...'}
               </p>
-            )}
+              {retryCount > 0 && (
+                <p className="text-muted-foreground text-sm">
+                  {`${t('common.attempt') || 'Попытка'} ${retryCount}/10`}
+                </p>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      </PageContainer>
     )
   }
 
   // Если нет отделов после загрузки - показываем empty state
   if (!loading && depts.length === 0) {
     return (
-      <div className="flex-1 flex items-center justify-center py-16 sm:py-24 animate-fade-in">
-        <div className="flex flex-col items-center gap-4 text-center px-4">
-          <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
-            <Bell className="w-8 h-8 text-muted-foreground" />
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold text-foreground mb-1">
-              {t('notifications.noDepartments') || 'Нет данных'}
-            </h3>
-            <p className="text-muted-foreground text-sm max-w-xs">
-              {t('notifications.noDepartmentsDescription') ||
-                'Создайте отделы и добавьте партии для отслеживания сроков годности.'}
-            </p>
+      <PageContainer
+        title={t('notifications.title')}
+        subtitle={t('notifications.description')}
+        stickyHeader={true}
+        titleIcon={Bell}
+      >
+        <div className="flex-1 flex items-center justify-center py-16 sm:py-24 animate-fade-in">
+          <div className="flex flex-col items-center gap-4 text-center px-4">
+            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
+              <Bell className="w-8 h-8 text-muted-foreground" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-foreground mb-1">
+                {t('notifications.noDepartments') || 'Нет данных'}
+              </h3>
+              <p className="text-muted-foreground text-sm max-w-xs">
+                {t('notifications.noDepartmentsDescription') ||
+                  'Создайте отделы и добавьте партии для отслеживания сроков годности.'}
+              </p>
+            </div>
           </div>
         </div>
-      </div>
+      </PageContainer>
     )
   }
 
@@ -257,30 +279,23 @@ export default function NotificationsPage() {
     expiredBatches.length > 0 || criticalBatches.length > 0 || warningBatches.length > 0
 
   return (
-    <div className="p-3 sm:p-4 md:p-8">
-      {/* Заголовок */}
-      <div className="mb-4 sm:mb-8 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-light text-foreground">
-            {t('notifications.title')}
-          </h1>
-          <p className="text-muted-foreground text-xs sm:text-sm">
-            {t('notifications.description')}
-          </p>
-        </div>
-
-        {/* Кнопка истории уведомлений - только для админов и менеджеров (не STAFF) */}
-        {!isStaff && (
+    <PageContainer
+      title={t('notifications.title')}
+      subtitle={t('notifications.description')}
+      stickyHeader={true}
+      titleIcon={Bell}
+      actions={
+        !userIsStaff ? (
           <button
             onClick={() => navigate('/notifications/history')}
-            className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm border border-border text-muted-foreground rounded-lg hover:bg-muted hover:text-foreground transition-colors w-full sm:w-auto"
+            className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm border border-border text-muted-foreground rounded-lg hover:bg-muted hover:text-foreground transition-colors w-full sm:w-auto min-h-[44px] sm:min-h-[40px]"
           >
             <History className="w-4 h-4" />
-            <span>{t('notificationHistory.title')}</span>
+            <span className="line-clamp-1">{t('notificationHistory.title')}</span>
           </button>
-        )}
-      </div>
-
+        ) : null
+      }
+    >
       {!hasAnyAlerts ? (
         // Пустое состояние
         <div className="text-center py-12 sm:py-16 animate-fade-in">
@@ -337,6 +352,6 @@ export default function NotificationsPage() {
           setSelectedProduct(null)
         }}
       />
-    </div>
+    </PageContainer>
   )
 }

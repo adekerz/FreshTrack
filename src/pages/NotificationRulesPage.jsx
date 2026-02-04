@@ -20,6 +20,7 @@ import { useToast } from '../context/ToastContext'
 import { useAuth } from '../context/AuthContext'
 import { cn } from '../utils/classNames'
 import { apiFetch } from '../services/api'
+import PageContainer from '../components/PageContainer'
 import { PageLoader, ButtonSpinner } from '../components/ui'
 
 export default function NotificationRulesPage() {
@@ -224,45 +225,46 @@ export default function NotificationRulesPage() {
   // Проверка доступа: только SUPER_ADMIN и HOTEL_ADMIN
   if (!isAdmin()) {
     return (
-      <div className="space-y-6 p-4 md:p-6">
+      <PageContainer
+        title={t('notificationRules.accessDenied') || 'Доступ запрещен'}
+        subtitle={t('notificationRules.accessDeniedMessage') || 'Управление правилами уведомлений доступно только для супер-администраторов и администраторов отеля.'}
+        stickyHeader={true}
+      >
         <div className="bg-card rounded-xl shadow-lg p-8 text-center">
           <Lock className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-foreground mb-2">
-            {t('notificationRules.accessDenied') || 'Доступ запрещен'}
-          </h2>
-          <p className="text-muted-foreground">
-            {t('notificationRules.accessDeniedMessage') || 
-              'Управление правилами уведомлений доступно только для супер-администраторов и администраторов отеля.'}
-          </p>
         </div>
-      </div>
+      </PageContainer>
     )
   }
 
   if (loading) {
-    return <PageLoader message={t('common.loading') || 'Загрузка...'} />
+    return (
+      <PageContainer
+        title={t('notificationRules.title')}
+        subtitle={t('notificationRules.subtitle')}
+        stickyHeader={true}
+      >
+        <PageLoader message={t('common.loading') || 'Загрузка...'} />
+      </PageContainer>
+    )
   }
 
   return (
-    <div className="space-y-6 p-4 md:p-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-light text-foreground flex items-center gap-2">
-            <Bell className="w-6 h-6 text-accent" />
-            {t('notificationRules.title')}
-          </h1>
-          <p className="text-muted-foreground mt-1">{t('notificationRules.subtitle')}</p>
-        </div>
+    <PageContainer
+      title={t('notificationRules.title')}
+      subtitle={t('notificationRules.subtitle')}
+      stickyHeader={true}
+      actions={
         <button
           onClick={handleAddRule}
-          className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors min-h-[44px] sm:min-h-0"
         >
           <Plus className="w-5 h-5" />
           {t('notificationRules.addRule')}
         </button>
-      </div>
-
+      }
+    >
+      <div className="space-y-6">
       {/* Rules List */}
       <div className="bg-card rounded-xl shadow-lg overflow-hidden">
         {rules.length === 0 ? (
@@ -524,5 +526,6 @@ export default function NotificationRulesPage() {
         </div>
       )}
     </div>
+    </PageContainer>
   )
 }

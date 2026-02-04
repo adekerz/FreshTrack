@@ -3,6 +3,7 @@ import { Package, AlertTriangle, Clock, Check, ArrowLeft, PieChart } from 'lucid
 import { useProducts, departments } from '../context/ProductContext'
 import { useTranslation } from '../context/LanguageContext'
 import { useThresholds } from '../hooks/useThresholds'
+import PageContainer from '../components/PageContainer'
 
 export default function DepartmentDashboardPage() {
   const { departmentId } = useParams()
@@ -48,36 +49,35 @@ export default function DepartmentDashboardPage() {
 
   if (!department) {
     return (
-      <div className="p-4 sm:p-8">
+      <PageContainer
+        title={t('department.notFound') || 'Отдел не найден'}
+        stickyHeader={true}
+      >
         <div className="text-center py-16">
-          <h2 className="text-xl text-foreground mb-4">
-            {t('department.notFound') || 'Отдел не найден'}
-          </h2>
           <Link to="/inventory" className="text-gold hover:underline">
             {t('common.back')}
           </Link>
         </div>
-      </div>
+      </PageContainer>
     )
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Link to="/inventory" className="p-2 hover:bg-muted rounded-lg transition-colors">
+    <PageContainer
+      title={department.name}
+      subtitle={t('department.dashboard') || 'Дашборд отдела'}
+      stickyHeader={true}
+      actions={
+        <Link
+          to="/inventory"
+          className="p-2 hover:bg-muted rounded-lg transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+          aria-label={t('common.back')}
+        >
           <ArrowLeft className="w-5 h-5 text-foreground" />
         </Link>
-        <div className="flex items-center gap-3">
-          <div className="w-4 h-4 rounded-full" style={{ backgroundColor: department.color }} />
-          <div>
-            <h1 className="text-xl sm:text-2xl font-light text-foreground">{department.name}</h1>
-            <p className="text-sm text-muted-foreground">
-              {t('department.dashboard') || 'Дашборд отдела'}
-            </p>
-          </div>
-        </div>
-      </div>
+      }
+    >
+    <div className="space-y-6">
 
       {/* Статистические карточки */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -275,5 +275,6 @@ export default function DepartmentDashboardPage() {
         </div>
       )}
     </div>
+    </PageContainer>
   )
 }

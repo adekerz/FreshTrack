@@ -6,7 +6,7 @@ import { useToast } from '../context/ToastContext'
 import { useHotel } from '../context/HotelContext'
 import { useAddBatch } from '../hooks/useInventory'
 import { getDepartmentIcon } from '../utils/departmentUtils'
-import { TouchInput, TouchSelect, TouchButton } from './ui'
+import { TouchInput, TouchSelect, TouchButton, Switch } from './ui'
 
 // Иконки для отделов - универсальный маппинг
 const ICON_MAP = { Wine, Coffee, Utensils, ChefHat, Warehouse, Package }
@@ -43,14 +43,14 @@ export default function AddBatchModal({ onClose, preselectedProduct = null }) {
     price: ''
   })
 
-  // Получить название категории
+  // Получить название категории (с fallback, чтобы не было пустого текста)
   const getCategoryName = useCallback(
     (category) => {
-      if (language === 'ru') return category.nameRu
-      if (language === 'kk') return category.nameKz
-      return category.name
+      if (!category) return t('batch.selectCategory') || 'Выберите категорию'
+      const name = language === 'ru' ? category.nameRu : language === 'kk' ? category.nameKz : category.name
+      return name || category.nameRu || category.nameKz || category.name || category.code || (t('batch.selectCategory') || 'Категория')
     },
-    [language]
+    [language, t]
   )
 
   // Получить доступные категории для отдела
@@ -190,28 +190,33 @@ export default function AddBatchModal({ onClose, preselectedProduct = null }) {
             <div className="animate-fade-in">
               <p className="text-muted-foreground mb-4">{t('batch.selectDepartment')}</p>
               <div className="space-y-2">
-                {departments.map((dept) => {
-                  const Icon = getDeptIcon(dept)
-                  return (
-                    <TouchButton
-                      key={dept.id}
-                      variant="ghost"
-                      onClick={() => handleDepartmentSelect(dept.id)}
-                      className="w-full flex items-center justify-between p-4 bg-background border border-border rounded-lg hover:border-accent transition-colors group h-auto min-h-[44px]"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div
-                          className="w-10 h-10 rounded-full flex items-center justify-center"
-                          style={{ backgroundColor: `${dept.color || '#C4A35A'}20` }}
-                        >
-                          <Icon className="w-5 h-5" style={{ color: dept.color || '#C4A35A' }} />
+                {departments.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-4">{t('common.loading') || 'Загрузка...'}</p>
+                ) : (
+                  departments.map((dept) => {
+                    const Icon = getDeptIcon(dept)
+                    const deptLabel = dept.name || dept.nameRu || dept.nameKz || dept.code || (t('batch.selectDepartment') || 'Отдел')
+                    return (
+                      <TouchButton
+                        key={dept.id}
+                        variant="ghost"
+                        onClick={() => handleDepartmentSelect(dept.id)}
+                        className="w-full flex items-center justify-between p-4 bg-background border border-border rounded-lg hover:border-accent transition-colors group h-auto min-h-[44px]"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div
+                            className="w-10 h-10 rounded-full flex items-center justify-center"
+                            style={{ backgroundColor: `${dept.color || '#C4A35A'}20` }}
+                          >
+                            <Icon className="w-5 h-5" style={{ color: dept.color || '#C4A35A' }} />
+                          </div>
+                          <span className="font-medium text-foreground">{deptLabel}</span>
                         </div>
-                        <span className="font-medium text-foreground">{dept.name}</span>
-                      </div>
-                      <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-accent transition-colors" />
-                    </TouchButton>
-                  )
-                })}
+                        <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-accent transition-colors" />
+                      </TouchButton>
+                    )
+                  })
+                )}
               </div>
             </div>
           )}
@@ -221,17 +226,21 @@ export default function AddBatchModal({ onClose, preselectedProduct = null }) {
             <div className="animate-fade-in">
               <p className="text-muted-foreground mb-4">{t('batch.selectCategory')}</p>
               <div className="space-y-2">
-                {availableCategories.map((cat) => (
-                  <TouchButton
-                    key={cat.id}
-                    variant="ghost"
-                    onClick={() => handleCategorySelect(cat.id)}
-                    className="w-full flex items-center justify-between p-4 bg-background border border-border rounded-lg hover:border-accent transition-colors group h-auto min-h-[44px]"
-                  >
-                    <span className="font-medium text-foreground">{getCategoryName(cat)}</span>
-                    <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-accent transition-colors" />
-                  </TouchButton>
-                ))}
+                {availableCategories.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-4">{t('batch.noCategories') || 'Нет категорий'}</p>
+                ) : (
+                  availableCategories.map((cat) => (
+                    <TouchButton
+                      key={cat.id}
+                      variant="ghost"
+                      onClick={() => handleCategorySelect(cat.id)}
+                      className="w-full flex items-center justify-between p-4 bg-background border border-border rounded-lg hover:border-accent transition-colors group h-auto min-h-[44px]"
+                    >
+                      <span className="font-medium text-foreground">{getCategoryName(cat)}</span>
+                      <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-accent transition-colors" />
+                    </TouchButton>
+                  ))
+                )}
               </div>
             </div>
           )}
@@ -241,16 +250,20 @@ export default function AddBatchModal({ onClose, preselectedProduct = null }) {
             <div className="animate-fade-in">
               <p className="text-muted-foreground mb-4">{t('batch.selectProduct')}</p>
               <div className="space-y-2 max-h-64 overflow-y-auto">
-                {getProductsInCategory().map((product) => (
-                  <TouchButton
-                    key={product.id}
-                    variant="ghost"
-                    onClick={() => handleProductSelect(product)}
-                    className="w-full flex items-center justify-between p-4 bg-background border border-border rounded-lg hover:border-accent transition-colors group h-auto min-h-[44px]"
-                  >
-                    <span className="font-medium text-foreground">{product.name}</span>
-                    <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-accent transition-colors" />
-                  </TouchButton>
+                {(getProductsInCategory().length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-4">{t('batch.noProducts') || 'Нет товаров в этой категории'}</p>
+                ) : (
+                  getProductsInCategory().map((product) => (
+                    <TouchButton
+                      key={product.id}
+                      variant="ghost"
+                      onClick={() => handleProductSelect(product)}
+                      className="w-full flex items-center justify-between p-4 bg-background border border-border rounded-lg hover:border-accent transition-colors group h-auto min-h-[44px]"
+                    >
+                      <span className="font-medium text-foreground">{product.name || product.productName || (t('batch.selectProduct') || 'Товар')}</span>
+                      <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-accent transition-colors" />
+                    </TouchButton>
+                  ))
                 ))}
               </div>
             </div>
@@ -262,7 +275,7 @@ export default function AddBatchModal({ onClose, preselectedProduct = null }) {
               {/* Выбранный товар */}
               <div className="bg-background rounded-lg p-4 border border-border mb-6">
                 <p className="text-sm text-muted-foreground">{t('batch.selectedProduct')}</p>
-                <p className="font-medium text-foreground">{selectedProduct?.name}</p>
+                <p className="font-medium text-foreground">{selectedProduct?.name || selectedProduct?.productName || (t('batch.selectProduct') || 'Товар')}</p>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-4">
@@ -313,26 +326,42 @@ export default function AddBatchModal({ onClose, preselectedProduct = null }) {
                   </div>
 
                   {/* Переключатель "Нет количества" */}
-                  <div className="flex items-center gap-3 mt-3">
-                    <input
-                      type="checkbox"
-                      id="noQuantity"
-                      checked={batchData.noQuantity}
-                      onChange={(e) =>
+                  <div
+                    className="flex items-center gap-3 mt-3 cursor-pointer"
+                    onClick={() =>
+                      setBatchData((prev) => ({
+                        ...prev,
+                        noQuantity: !prev.noQuantity,
+                        quantity: prev.noQuantity ? prev.quantity : ''
+                      }))
+                    }
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
                         setBatchData((prev) => ({
                           ...prev,
-                          noQuantity: e.target.checked,
-                          quantity: e.target.checked ? '' : prev.quantity
+                          noQuantity: !prev.noQuantity,
+                          quantity: prev.noQuantity ? prev.quantity : ''
                         }))
                       }
-                      className="quantity-toggle"
+                    }}
+                    role="button"
+                    tabIndex={0}
+                  >
+                    <Switch
+                      checked={batchData.noQuantity}
+                      onChange={(v) =>
+                        setBatchData((prev) => ({
+                          ...prev,
+                          noQuantity: v,
+                          quantity: v ? '' : prev.quantity
+                        }))
+                      }
+                      aria-label={t('batch.noQuantityLabel') || 'Без учёта количества'}
                     />
-                    <label
-                      htmlFor="noQuantity"
-                      className="text-sm text-muted-foreground cursor-pointer select-none"
-                    >
+                    <span className="text-sm text-muted-foreground select-none">
                       {t('batch.noQuantityLabel') || 'Без учёта количества'}
-                    </label>
+                    </span>
                   </div>
                 </div>
 

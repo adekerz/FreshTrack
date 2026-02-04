@@ -647,7 +647,9 @@
     "enterDetails": "Введите данные",
     "pieces": "шт.",
     "noQuantity": "Нет количества",
-    "noQuantityLabel": "Без учёта количества"
+    "noQuantityLabel": "Без учёта количества",
+    "noCategories": "Нет категорий",
+    "noProducts": "Нет товаров в этой категории"
   },
   "product": {
     "addToCatalog": "Добавить в каталог",

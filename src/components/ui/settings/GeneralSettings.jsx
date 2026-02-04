@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react'
 import { useTranslation } from '../../../context/LanguageContext'
 import { Globe, Coins, Clock } from 'lucide-react'
 import SettingsLayout, { SettingsSection } from './SettingsLayout'
+import { Switch } from '..'
 import { useSimpleUnsavedChanges } from '../../../hooks/useUnsavedChanges'
 import { apiFetch } from '../../../services/api'
 
@@ -20,33 +21,28 @@ const defaultSettings = {
   rememberDevice: true
 }
 
-function Toggle({ id, checked, onChange, label }) {
+function SwitchRow({ id, checked, onChange, label }) {
   return (
-    <label className="flex items-center justify-between cursor-pointer" id={id ? `${id}-label` : undefined}>
+    <div
+      className="flex items-center justify-between cursor-pointer"
+      onClick={() => onChange(!checked)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onChange(!checked)
+        }
+      }}
+      role="button"
+      tabIndex={0}
+      id={id ? `${id}-label` : undefined}
+    >
       <span className="text-sm text-foreground">{label}</span>
-      <div
-        role="switch"
-        aria-checked={checked}
+      <Switch
+        checked={checked}
+        onChange={onChange}
         aria-labelledby={id ? `${id}-label` : undefined}
-        tabIndex={0}
-        className={`relative w-10 h-5 sm:w-11 sm:h-6 rounded-full transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 flex-shrink-0 ${
-          checked ? 'bg-accent' : 'bg-muted'
-        }`}
-        onClick={() => onChange(!checked)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault()
-            onChange(!checked)
-          }
-        }}
-      >
-        <div
-          className={`absolute top-0.5 left-0.5 w-4 h-4 sm:w-5 sm:h-5 bg-white rounded-full shadow transition-transform ${
-            checked ? 'translate-x-4 sm:translate-x-5' : 'translate-x-0'
-          }`}
-        />
-      </div>
-    </label>
+      />
+    </div>
   )
 }
 
@@ -184,7 +180,7 @@ export default function GeneralSettings() {
               ]}
               hint="Используется при добавлении новых партий"
             />
-            <Toggle
+            <SwitchRow
               id="general-show-prices"
               label="Показывать цены"
               checked={settings.showPrices}
@@ -210,7 +206,7 @@ export default function GeneralSettings() {
               ]}
               hint="Автоматически выходить из системы при неактивности"
             />
-            <Toggle
+            <SwitchRow
               id="general-remember"
               label="Запомнить устройство"
               checked={settings.rememberDevice}

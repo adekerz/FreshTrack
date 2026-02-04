@@ -18,6 +18,7 @@ import { cn } from '../utils/classNames'
 import { formatDate } from '../utils/dateUtils'
 import { apiFetch, API_BASE_URL } from '../services/api'
 import ExportButton from '../components/ExportButton'
+import PageContainer from '../components/PageContainer'
 import { PageLoader } from '../components/ui'
 import { useToast } from '../context/ToastContext'
 
@@ -242,22 +243,25 @@ export default function AccountsPage() {
   ]
 
   if (loading && users.length === 0) {
-    return <PageLoader message={t('common.loading')} />
+    return (
+      <PageContainer
+        title={t('accounts.title') || 'User Accounts'}
+        subtitle={t('accounts.subtitle') || 'Manage user accounts and access'}
+        stickyHeader={true}
+        titleIcon={Users}
+      >
+        <PageLoader message={t('common.loading')} />
+      </PageContainer>
+    )
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-light text-foreground flex items-center gap-2">
-            <Users className="w-5 h-5 sm:w-6 sm:h-6 text-accent" />
-            {t('accounts.title') || 'User Accounts'}
-          </h1>
-          <p className="text-muted-foreground mt-1 text-xs sm:text-sm">
-            {t('accounts.subtitle') || 'Manage user accounts and access'}
-          </p>
-        </div>
+    <PageContainer
+      title={t('accounts.title') || 'User Accounts'}
+      subtitle={t('accounts.subtitle') || 'Manage user accounts and access'}
+      stickyHeader={true}
+      titleIcon={Users}
+      actions={
         <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={() => {
@@ -282,8 +286,9 @@ export default function AccountsPage() {
             exportRecordCount={pagination.total}
           />
         </div>
-      </div>
-
+      }
+    >
+      <div className="space-y-4 sm:space-y-6">
       {/* Filters Bar */}
       <div className="bg-card rounded-xl border border-border p-3 sm:p-4">
         <form onSubmit={handleSearch} className="flex flex-col gap-3 sm:flex-row sm:gap-4">
@@ -634,6 +639,6 @@ export default function AccountsPage() {
           </div>
         )}
       </div>
-    </div>
+    </PageContainer>
   )
 }

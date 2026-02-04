@@ -51,6 +51,7 @@ import MarshaCodesSettings from '../components/ui/settings/MarshaCodesSettings'
 import { ScheduledExportsManager } from '../components/ScheduledExports/ScheduledExportsManager'
 import { ChangePasswordModal } from '../components/ui/ChangePasswordModal'
 import { ChangeEmailModal } from '../components/ui/ChangeEmailModal'
+import PageContainer from '../components/PageContainer'
 
 const SETTINGS_TAB_IDS = new Set([
   'profile', 'language', 'general', 'users', 'join-requests', 'directories',
@@ -261,7 +262,10 @@ export default function SettingsPage() {
   const renderProfile = () => (
     <div className="space-y-6">
         <div>
-          <h3 className="text-lg font-medium text-foreground mb-4">{t('settings.profile.title')}</h3>
+          <h3 className="text-lg font-medium text-foreground mb-4 flex items-center gap-2">
+            <User className="w-5 h-5 text-accent" aria-hidden="true" />
+            {t('settings.profile.title')}
+          </h3>
 
           {profileMessage && (
             <div
@@ -432,7 +436,10 @@ export default function SettingsPage() {
   const renderLanguage = () => (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-medium text-foreground mb-4">{t('settings.language.title')}</h3>
+        <h3 className="text-lg font-medium text-foreground mb-4 flex items-center gap-2">
+          <Languages className="w-5 h-5 text-accent" aria-hidden="true" />
+          {t('settings.language.title')}
+        </h3>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {languages.map((lang) => (
@@ -515,7 +522,10 @@ export default function SettingsPage() {
   const renderSystem = () => (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-medium text-foreground mb-4">{t('settings.system.title')}</h3>
+        <h3 className="text-lg font-medium text-foreground mb-4 flex items-center gap-2">
+          <Shield className="w-5 h-5 text-accent" aria-hidden="true" />
+          {t('settings.system.title')}
+        </h3>
 
         <div className="space-y-4">
           {/* Статус системы */}
@@ -599,13 +609,12 @@ export default function SettingsPage() {
   )
 
   return (
-    <div className="space-y-4 sm:space-y-6 p-1 sm:p-0">
-      {/* Заголовок */}
-      <div>
-        <h1 className="text-xl sm:text-2xl font-light text-foreground">{t('settings.title')}</h1>
-        <p className="text-muted-foreground text-xs sm:text-sm mt-1">{t('settings.subtitle')}</p>
-      </div>
-
+    <PageContainer
+      title={t('settings.title')}
+      subtitle={t('settings.subtitle')}
+      stickyHeader={true}
+    >
+      <div className="space-y-4 sm:space-y-6">
       {/* Сообщение */}
       {message && (
         <div
@@ -641,14 +650,14 @@ export default function SettingsPage() {
                     <button
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id)}
-                      className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm transition-colors whitespace-nowrap flex-shrink-0 lg:w-full ${
+                      className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm transition-colors flex-shrink-0 lg:w-full min-w-0 ${
                         activeTab === tab.id
                           ? 'bg-foreground text-background'
                           : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                       }`}
                     >
-                      <tab.icon className="w-4 h-4" />
-                      <span className="hidden sm:inline">{tab.label}</span>
+                      <tab.icon className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
+                      <span className="hidden sm:inline min-w-0 truncate">{tab.label}</span>
                     </button>
                   ))}
                 </div>
@@ -667,14 +676,14 @@ export default function SettingsPage() {
                       <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
-                        className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm transition-colors whitespace-nowrap flex-shrink-0 lg:w-full ${
+                        className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm transition-colors flex-shrink-0 lg:w-full min-w-0 ${
                           activeTab === tab.id
                             ? 'bg-foreground text-background'
                             : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                         }`}
                       >
-                        <TabIcon className="w-4 h-4" aria-hidden="true" />
-                        <span className="hidden sm:inline">{tab.label}</span>
+                        <TabIcon className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
+                        <span className="hidden sm:inline min-w-0 truncate">{tab.label}</span>
                       </button>
                     )
                   })}
@@ -690,18 +699,18 @@ export default function SettingsPage() {
                   </div>
                   <div className="flex lg:flex-col gap-1 overflow-x-auto lg:overflow-visible">
                     {superAdminTabs.map((tab) => (
-                      <button
-                        key={tab.id}
-                        onClick={() => setActiveTab(tab.id)}
-                        className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm transition-colors whitespace-nowrap flex-shrink-0 lg:w-full ${
-                          activeTab === tab.id
-                            ? 'bg-amber-500 text-white'
-                            : 'text-amber-700 dark:text-amber-300 hover:bg-amber-500/20'
-                        }`}
-                      >
-                        <tab.icon className="w-4 h-4" />
-                        <span className="hidden sm:inline">{tab.label}</span>
-                      </button>
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm transition-colors flex-shrink-0 lg:w-full min-w-0 ${
+                        activeTab === tab.id
+                          ? 'bg-amber-500 text-white'
+                          : 'text-amber-700 dark:text-amber-300 hover:bg-amber-500/20'
+                      }`}
+                    >
+                      <tab.icon className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
+                      <span className="hidden sm:inline min-w-0 truncate">{tab.label}</span>
+                    </button>
                     ))}
                   </div>
                 </div>
@@ -714,14 +723,14 @@ export default function SettingsPage() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-lg text-xs sm:text-sm transition-colors whitespace-nowrap flex-shrink-0 lg:w-full ${
+                  className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-lg text-xs sm:text-sm transition-colors flex-shrink-0 lg:w-full min-w-0 ${
                     activeTab === tab.id
                       ? 'bg-foreground text-background'
                       : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                   }`}
                 >
-                  <tab.icon className="w-4 h-4 sm:w-5 sm:h-5" />
-                  <span className="hidden sm:inline">{tab.label}</span>
+                  <tab.icon className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" aria-hidden="true" />
+                  <span className="hidden sm:inline min-w-0 truncate">{tab.label}</span>
                 </button>
               ))}
             </div>
@@ -787,5 +796,6 @@ export default function SettingsPage() {
         }}
       />
     </div>
+    </PageContainer>
   )
 }

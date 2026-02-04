@@ -37,6 +37,7 @@ export { default as TouchSelect } from './TouchSelect'
 export { default as ResponsiveTable } from './ResponsiveTable'
 export { default as LazyImage } from './LazyImage'
 export { Tabs, TabsList, Tab, TabPanel } from './Tabs'
+export { default as Switch } from './Switch'
 
 // Unified Loader — единственный loader в проекте
 export {

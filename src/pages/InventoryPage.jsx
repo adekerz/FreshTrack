@@ -28,6 +28,7 @@ import ExportButton from '../components/ExportButton'
 import ProductCard from '../components/ProductCard'
 import { SkeletonInventory, Skeleton } from '../components/Skeleton'
 import { Loader, ConfirmDialog, TouchButton } from '../components/ui'
+import PageContainer from '../components/PageContainer'
 import { usePullToRefresh } from '../hooks/usePullToRefresh'
 
 // Иконки для отделов - универсальный маппинг
@@ -307,85 +308,102 @@ export default function InventoryPage() {
   // Показываем скелетон при загрузке (когда уже есть отделы)
   if (loading && departments.length > 0) {
     return (
-      <div className="p-4 sm:p-6 animate-fade-in">
-        <div className="flex items-center gap-3 mb-6">
-          <Skeleton className="w-12 h-12 rounded-xl" />
-          <div>
-            <Skeleton className="h-6 w-40 mb-2" />
-            <Skeleton className="h-4 w-24" />
+      <PageContainer
+        title={t('inventory.title')}
+        subtitle={t('inventory.subtitle') || ''}
+        stickyHeader={true}
+      >
+        <div className="animate-fade-in">
+          <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-8 w-24 rounded-full flex-shrink-0" />
+            ))}
           </div>
+          <SkeletonInventory rows={6} />
         </div>
-        <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="h-8 w-24 rounded-full flex-shrink-0" />
-          ))}
-        </div>
-        <SkeletonInventory rows={6} />
-      </div>
+      </PageContainer>
     )
   }
 
   // Если нет данных и идёт загрузка - показываем анимацию подключения к БД
   if (loading && departments.length === 0) {
     return (
-      <div className="flex-1 flex items-center justify-center py-16 sm:py-24 animate-fade-in">
-        <div className="flex flex-col items-center gap-6" role="status" aria-live="polite">
-          <Loader size="large" aria-label={t('common.loading') || 'Загрузка'} />
-          <div className="text-center">
-            <p className="text-foreground font-medium mb-1">
-              {t('common.loading') || 'Загрузка...'}
-            </p>
-            {retryCount > 0 && (
-              <p className="text-muted-foreground text-sm">
-                {`${t('common.attempt') || 'Попытка'} ${retryCount}/10`}
+      <PageContainer
+        title={t('inventory.title')}
+        subtitle={t('inventory.subtitle') || ''}
+        stickyHeader={true}
+      >
+        <div className="flex-1 flex items-center justify-center py-16 sm:py-24 animate-fade-in">
+          <div className="flex flex-col items-center gap-6" role="status" aria-live="polite">
+            <Loader size="large" aria-label={t('common.loading') || 'Загрузка'} />
+            <div className="text-center">
+              <p className="text-foreground font-medium mb-1">
+                {t('common.loading') || 'Загрузка...'}
               </p>
-            )}
+              {retryCount > 0 && (
+                <p className="text-muted-foreground text-sm">
+                  {`${t('common.attempt') || 'Попытка'} ${retryCount}/10`}
+                </p>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      </PageContainer>
     )
   }
 
   // Если нет отделов после загрузки - показываем empty state
   if (!loading && departments.length === 0) {
     return (
-      <div className="flex-1 flex items-center justify-center py-16 sm:py-24 animate-fade-in">
-        <div className="flex flex-col items-center gap-4 text-center px-4">
-          <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
-            <Package className="w-8 h-8 text-muted-foreground" />
+      <PageContainer
+        title={t('inventory.title')}
+        subtitle={t('inventory.subtitle') || ''}
+        stickyHeader={true}
+      >
+        <div className="flex-1 flex items-center justify-center py-16 sm:py-24 animate-fade-in">
+          <div className="flex flex-col items-center gap-4 text-center px-4">
+            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
+              <Package className="w-8 h-8 text-muted-foreground" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-foreground mb-1">
+                {t('inventory.noDepartments') || 'Нет отделов'}
+              </h3>
+              <p className="text-muted-foreground text-sm max-w-xs">
+                {t('inventory.noDepartmentsDescription') ||
+                  'Для этого отеля ещё не созданы отделы. Создайте отдел в настройках.'}
+              </p>
+            </div>
+            <TouchButton
+              variant="primary"
+              onClick={() => navigate('/settings')}
+              className="mt-2"
+            >
+              {t('common.goToSettings') || 'Перейти в настройки'}
+            </TouchButton>
           </div>
-          <div>
-            <h3 className="text-lg font-semibold text-foreground mb-1">
-              {t('inventory.noDepartments') || 'Нет отделов'}
-            </h3>
-            <p className="text-muted-foreground text-sm max-w-xs">
-              {t('inventory.noDepartmentsDescription') ||
-                'Для этого отеля ещё не созданы отделы. Создайте отдел в настройках.'}
-            </p>
-          </div>
-          <TouchButton
-            variant="primary"
-            onClick={() => navigate('/settings')}
-            className="mt-2"
-          >
-            {t('common.goToSettings') || 'Перейти в настройки'}
-          </TouchButton>
         </div>
-      </div>
+      </PageContainer>
     )
   }
 
   // Если отдел не выбран и есть несколько отделов - показываем выбор
   if (!selectedDeptId && departments.length > 1) {
     return (
-      <div className="animate-fade-in">
-        <DepartmentSelector
-          departments={departments}
-          selectedDepartment={selectedDeptId}
-          onSelect={handleSelectDepartment}
-          title={t('inventory.selectDepartment') || 'Выберите отдел'}
-        />
-      </div>
+      <PageContainer
+        title={t('inventory.title')}
+        subtitle={t('inventory.selectDepartment') || 'Выберите отдел'}
+        stickyHeader={true}
+      >
+        <div className="animate-fade-in">
+          <DepartmentSelector
+            departments={departments}
+            selectedDepartment={selectedDeptId}
+            onSelect={handleSelectDepartment}
+            title={t('inventory.selectDepartment') || 'Выберите отдел'}
+          />
+        </div>
+      </PageContainer>
     )
   }
 
@@ -414,90 +432,71 @@ export default function InventoryPage() {
           )}
         </div>
       )}
-      <div className="p-3 sm:p-4 md:p-8 animate-fade-in">
-        {/* Заголовок */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-8">
-        <div className="flex items-center gap-2 sm:gap-4">
-          {/* Кнопка назад если несколько отделов */}
-          {departments.length > 1 && (
-            <TouchButton
-              variant="ghost"
-              size="icon"
-              onClick={handleBackToDepartments}
-              className="rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted"
-              title={t('common.back') || 'Назад'}
-              aria-label={t('common.back') || 'Назад'}
-              icon={ArrowLeft}
+      <PageContainer
+        title={`${t('inventory.title')} — ${department?.name || selectedDeptId}`}
+        subtitle=""
+        stickyHeader={true}
+        actions={
+          <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
+            {departments.length > 1 && (
+              <TouchButton
+                variant="ghost"
+                size="icon"
+                onClick={handleBackToDepartments}
+                className="rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted"
+                title={t('common.back') || 'Назад'}
+                aria-label={t('common.back') || 'Назад'}
+                icon={ArrowLeft}
+              />
+            )}
+            <ExportButton
+              exportType="inventory"
+              filters={exportFilters}
+              formats={['excel', 'csv', 'pdf']}
+              showFilterCount={true}
+              compact={true}
             />
-          )}
-          <div className="flex items-center gap-2 sm:gap-3">
-            <div
-              className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center flex-shrink-0"
-              style={{ backgroundColor: `${department?.color || '#C4A35A'}20` }}
+            <TouchButton
+              variant="ghost"
+              size="small"
+              onClick={() => setShowSelectTemplateModal(true)}
+              className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground hover:text-accent min-h-0 h-auto"
+              title={t('inventory.applyTemplate')}
+              icon={FileBox}
+              iconPosition="left"
             >
-              {DeptIcon && (
-                <DeptIcon
-                  className="w-4 h-4 sm:w-5 sm:h-5"
-                  style={{ color: department?.color || '#C4A35A' }}
-                />
-              )}
-            </div>
-            <h1 className="text-xl sm:text-2xl font-light text-foreground truncate">
-              {t('inventory.title')} — {department?.name || selectedDeptId}
-            </h1>
+              <span className="hidden sm:inline">{t('inventory.applyTemplate')}</span>
+            </TouchButton>
+            {isDevelopment && userIsSuperAdmin && (
+              <TouchButton
+                variant="ghost"
+                size="small"
+                onClick={() => setShowClearAllConfirm(true)}
+                className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground hover:text-accent min-h-0 h-auto"
+                title={t('inventory.clearAll') || 'Очистить все партии'}
+                icon={Trash2}
+                iconPosition="left"
+              >
+                <span className="hidden sm:inline">{t('inventory.clearAll') || 'Очистить все'}</span>
+              </TouchButton>
+            )}
+            {!userIsStaff && (
+              <TouchButton
+                variant="ghost"
+                size="small"
+                onClick={() => setShowAddCustomModal(true)}
+                className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground hover:text-accent min-h-0 h-auto"
+                title={t('inventory.addNewProduct')}
+                icon={Plus}
+                iconPosition="left"
+              >
+                <span className="hidden sm:inline">{t('inventory.addNewProduct')}</span>
+              </TouchButton>
+            )}
           </div>
-        </div>
-
-        <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
-          <ExportButton
-            exportType="inventory"
-            filters={exportFilters}
-            formats={['excel', 'csv', 'pdf']}
-            showFilterCount={true}
-            compact={true}
-          />
-          <TouchButton
-            variant="ghost"
-            size="small"
-            onClick={() => setShowSelectTemplateModal(true)}
-            className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground hover:text-accent min-h-0 h-auto"
-            title={t('inventory.applyTemplate')}
-            icon={FileBox}
-            iconPosition="left"
-          >
-            <span className="hidden sm:inline">{t('inventory.applyTemplate')}</span>
-          </TouchButton>
-          {/* Clear All Batches - DEVELOPMENT ONLY - SUPER ADMIN */}
-          {isDevelopment && userIsSuperAdmin && (
-            <TouchButton
-              variant="ghost"
-              size="small"
-              onClick={() => setShowClearAllConfirm(true)}
-              className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground hover:text-accent min-h-0 h-auto"
-              title={t('inventory.clearAll') || 'Очистить все партии'}
-              icon={Trash2}
-              iconPosition="left"
-            >
-              <span className="hidden sm:inline">{t('inventory.clearAll') || 'Очистить все'}</span>
-            </TouchButton>
-          )}
-          {/* Добавление товара - только для админов и менеджеров (не STAFF) */}
-          {!userIsStaff && (
-            <TouchButton
-              variant="ghost"
-              size="small"
-              onClick={() => setShowAddCustomModal(true)}
-              className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground hover:text-accent min-h-0 h-auto"
-              title={t('inventory.addNewProduct')}
-              icon={Plus}
-              iconPosition="left"
-            >
-              <span className="hidden sm:inline">{t('inventory.addNewProduct')}</span>
-            </TouchButton>
-          )}
-        </div>
-      </div>
-
+        }
+      >
+      <div className="animate-fade-in">
       {/* Фильтры категорий и сортировка */}
       <div className="flex flex-col sm:flex-row gap-3 mb-4 sm:mb-8">
         {/* Категории */}
@@ -630,6 +629,7 @@ export default function InventoryPage() {
         />
       )}
       </div>
+      </PageContainer>
     </>
   )
 }

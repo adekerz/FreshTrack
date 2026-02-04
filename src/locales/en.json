@@ -619,7 +619,9 @@
     "enterDetails": "Enter Details",
     "pieces": "pcs",
     "noQuantity": "No quantity",
-    "noQuantityLabel": "No quantity tracking"
+    "noQuantityLabel": "No quantity tracking",
+    "noCategories": "No categories",
+    "noProducts": "No products in this category"
   },
   "product": {
     "addToCatalog": "Add to Catalog",

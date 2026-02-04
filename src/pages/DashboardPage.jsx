@@ -22,6 +22,7 @@ import { useThresholds } from '../hooks/useThresholds'
 import { SkeletonDashboard } from '../components/Skeleton'
 import { formatDate } from '../utils/dateUtils'
 import { Loader, TouchButton } from '../components/ui'
+import PageContainer from '../components/PageContainer'
 import AddBatchModal from '../components/AddBatchModal'
 
 // Иконки для отделов - универсальный маппинг
@@ -88,58 +89,74 @@ export default function DashboardPage() {
   // Show skeleton while loading (когда есть данные)
   if (loading && departments.length > 0) {
     return (
-      <div className="p-4 sm:p-6">
+      <PageContainer
+        title={t('nav.dashboard') || 'Главная'}
+        subtitle={t('dashboard.summary') || 'Обзор инвентаря'}
+        stickyHeader={true}
+      >
         <SkeletonDashboard />
-      </div>
+      </PageContainer>
     )
   }
 
   // Загрузка БД (нет данных и идёт загрузка)
   if (loading && departments.length === 0) {
     return (
-      <div className="flex-1 flex items-center justify-center py-16 sm:py-24">
-        <div className="flex flex-col items-center gap-6" role="status" aria-live="polite">
-          <Loader size="large" aria-label={t('common.loading') || 'Загрузка'} />
-          <div className="text-center">
-            <p className="text-foreground font-medium mb-1">
-              {t('common.loading') || 'Загрузка...'}
-            </p>
-            {retryCount > 0 && (
-              <p className="text-muted-foreground text-sm">
-                {`${t('common.attempt') || 'Попытка'} ${retryCount}/10`}
+      <PageContainer
+        title={t('nav.dashboard') || 'Главная'}
+        subtitle={t('dashboard.summary') || 'Обзор инвентаря'}
+        stickyHeader={true}
+      >
+        <div className="flex-1 flex items-center justify-center py-16 sm:py-24">
+          <div className="flex flex-col items-center gap-6" role="status" aria-live="polite">
+            <Loader size="large" aria-label={t('common.loading') || 'Загрузка'} />
+            <div className="text-center">
+              <p className="text-foreground font-medium mb-1">
+                {t('common.loading') || 'Загрузка...'}
               </p>
-            )}
+              {retryCount > 0 && (
+                <p className="text-muted-foreground text-sm">
+                  {`${t('common.attempt') || 'Попытка'} ${retryCount}/10`}
+                </p>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      </PageContainer>
     )
   }
 
   // Если нет отделов после загрузки - показываем empty state
   if (!loading && departments.length === 0) {
     return (
-      <div className="flex-1 flex items-center justify-center py-16 sm:py-24">
-        <div className="flex flex-col items-center gap-4 text-center px-4">
-          <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
-            <Package className="w-8 h-8 text-muted-foreground" />
+      <PageContainer
+        title={t('nav.dashboard') || 'Главная'}
+        subtitle={t('dashboard.summary') || 'Обзор инвентаря'}
+        stickyHeader={true}
+      >
+        <div className="flex-1 flex items-center justify-center py-16 sm:py-24">
+          <div className="flex flex-col items-center gap-4 text-center px-4">
+            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
+              <Package className="w-8 h-8 text-muted-foreground" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-foreground mb-1">
+                {t('dashboard.noDepartments') || 'Отель пока пустой'}
+              </h3>
+              <p className="text-muted-foreground text-sm max-w-xs">
+                {t('dashboard.noDepartmentsDescription') ||
+                  'Создайте отделы и категории для начала работы с инвентарём.'}
+              </p>
+            </div>
+            <Link
+              to="/settings"
+              className="mt-2 px-4 py-2 bg-accent-button text-white rounded-lg hover:bg-accent-button/90 transition-colors"
+            >
+              {t('common.goToSettings') || 'Перейти в настройки'}
+            </Link>
           </div>
-          <div>
-            <h3 className="text-lg font-semibold text-foreground mb-1">
-              {t('dashboard.noDepartments') || 'Отель пока пустой'}
-            </h3>
-            <p className="text-muted-foreground text-sm max-w-xs">
-              {t('dashboard.noDepartmentsDescription') ||
-                'Создайте отделы и категории для начала работы с инвентарём.'}
-            </p>
-          </div>
-          <Link
-            to="/settings"
-            className="mt-2 px-4 py-2 bg-accent-button text-white rounded-lg hover:bg-accent-button/90 transition-colors"
-          >
-            {t('common.goToSettings') || 'Перейти в настройки'}
-          </Link>
         </div>
-      </div>
+      </PageContainer>
     )
   }
 
@@ -179,47 +196,39 @@ export default function DashboardPage() {
   ]
 
   return (
-    <div className="space-y-6 sm:space-y-8">
-      {/* Greeting Section - Peak-End Rule: Start with positive experience */}
-      <div className="bg-gradient-to-r from-accent/5 to-transparent dark:from-accent/10 dark:to-transparent rounded-xl p-4 sm:p-6 animate-fade-in">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-light text-foreground">
-              {getGreeting()}, {user?.name?.split(' ')[0] || t('common.user')}
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              {t('dashboard.summary') || 'Here is your inventory overview'}
-            </p>
-          </div>
-
-          {/* Quick Actions - Fitts Law: Large targets for common actions */}
-          <div className="flex gap-2 sm:gap-3">
-            <TouchButton
-              onClick={() => setShowAddBatchModal(true)}
-              variant="primary"
-              size="default"
-              icon={Plus}
-              className="text-sm font-medium"
-              data-onboarding="add-batch"
+    <PageContainer
+      title={`${getGreeting()}, ${user?.name?.split(' ')[0] || t('common.user')}`}
+      subtitle={t('dashboard.summary') || 'Here is your inventory overview'}
+      stickyHeader={true}
+      headerClassName="bg-gradient-to-r from-accent/20 via-accent/10 to-transparent dark:from-accent/30 dark:via-accent/15 dark:to-transparent rounded-xl"
+      actions={
+        <div className="flex gap-2 sm:gap-3">
+          <TouchButton
+            onClick={() => setShowAddBatchModal(true)}
+            variant="primary"
+            size="default"
+            icon={Plus}
+            className="text-sm font-medium"
+            data-onboarding="add-batch"
+          >
+            <span className="hidden sm:inline">{t('header.addBatch')}</span>
+            <span className="sm:hidden">{t('common.add') || 'Add'}</span>
+          </TouchButton>
+          {alerts.length > 0 && (
+            <Link
+              to="/notifications"
+              className="flex items-center gap-2 px-4 py-2.5 bg-danger/10 text-danger border border-danger/20 rounded-lg hover:bg-danger/20 transition-all text-sm font-medium min-h-[44px]"
             >
-              <span className="hidden sm:inline">{t('header.addBatch')}</span>
-              <span className="sm:hidden">{t('common.add') || 'Add'}</span>
-            </TouchButton>
-            {alerts.length > 0 && (
-              <Link
-                to="/notifications"
-                className="flex items-center gap-2 px-4 py-2.5 bg-danger/10 text-danger border border-danger/20 rounded-lg hover:bg-danger/20 transition-all text-sm font-medium min-h-[44px]"
-              >
-                <Zap className="w-4 h-4" />
-                <span>
-                  {alerts.length} {t('dashboard.urgent') || 'urgent'}
-                </span>
-              </Link>
-            )}
-          </div>
+              <Zap className="w-4 h-4" />
+              <span>
+                {alerts.length} {t('dashboard.urgent') || 'urgent'}
+              </span>
+            </Link>
+          )}
         </div>
-      </div>
-
+      }
+    >
+      <div className="space-y-6 sm:space-y-8">
       {/* Statistics - Bento Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
         {statCards.map((card, index) => {
@@ -406,6 +415,7 @@ export default function DashboardPage() {
 
       {/* Add Batch Modal */}
       {showAddBatchModal && <AddBatchModal onClose={() => setShowAddBatchModal(false)} />}
-    </div>
+      </div>
+    </PageContainer>
   )
 }

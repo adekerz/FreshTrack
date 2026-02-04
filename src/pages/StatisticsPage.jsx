@@ -9,6 +9,7 @@ import { useAuth } from '../context/AuthContext'
 import { useProducts } from '../context/ProductContext'
 import { useThresholds } from '../hooks/useThresholds'
 import { Package, AlertTriangle, CheckCircle, Clock } from 'lucide-react'
+import PageContainer from '../components/PageContainer'
 import StatCard from '../components/StatCard'
 
 export default function StatisticsPage() {
@@ -156,38 +157,29 @@ export default function StatisticsPage() {
   ]
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      {/* Заголовок */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-light text-foreground">
-            {t('statistics.title')}
-          </h1>
-          <p className="text-muted-foreground text-xs sm:text-sm mt-1">
-            {t('statistics.subtitle')}
-          </p>
+    <PageContainer
+      title={t('statistics.title')}
+      subtitle={t('statistics.subtitle')}
+      stickyHeader={true}
+      actions={
+        <div className="flex items-center gap-1 sm:gap-2 bg-card rounded-lg border border-border p-1">
+          {['week', 'month', 'all'].map((period) => (
+            <button
+              key={period}
+              onClick={() => setSelectedPeriod(period)}
+              className={`px-2 sm:px-4 py-1 sm:py-1.5 text-xs sm:text-sm rounded-md transition-colors min-h-[44px] sm:min-h-0 ${
+                selectedPeriod === period
+                  ? 'bg-foreground text-background'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {t(`statistics.period.${period}`)}
+            </button>
+          ))}
         </div>
-
-        <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
-          {/* Переключатель периода */}
-          <div className="flex items-center gap-1 sm:gap-2 bg-card rounded-lg border border-border p-1">
-            {['week', 'month', 'all'].map((period) => (
-              <button
-                key={period}
-                onClick={() => setSelectedPeriod(period)}
-                className={`px-2 sm:px-4 py-1 sm:py-1.5 text-xs sm:text-sm rounded-md transition-colors ${
-                  selectedPeriod === period
-                    ? 'bg-foreground text-background'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                {t(`statistics.period.${period}`)}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
+      }
+    >
+      <div className="space-y-4 sm:space-y-6">
       {/* Карточки статистики - Компактная сетка для мобильных */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
         {statCards.map((card, index) => (
@@ -361,6 +353,7 @@ export default function StatisticsPage() {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </PageContainer>
   )
 }

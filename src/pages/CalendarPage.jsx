@@ -14,6 +14,7 @@ import {
   isToday
 } from 'date-fns'
 import { ru, enUS, kk } from 'date-fns/locale'
+import PageContainer from '../components/PageContainer'
 
 const locales = { ru, en: enUS, kk }
 
@@ -151,26 +152,17 @@ export default function CalendarPage() {
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6 p-1 sm:p-0">
-      {/* Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-light text-foreground">
-            {t('nav.calendar') || 'Календарь'}
-          </h1>
-          <p className="text-muted-foreground text-xs sm:text-sm">
-            {t('calendar.description') || 'Визуализация сроков годности'}
-          </p>
-        </div>
-
-        {/* Фильтры */}
+    <PageContainer
+      title={t('nav.calendar') || 'Календарь'}
+      subtitle={t('calendar.description') || 'Визуализация сроков годности'}
+      stickyHeader={true}
+      actions={
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-          {/* Фильтр отделов - только для админов и менеджеров (не STAFF) */}
-          {!isStaff && (
+          {!userIsStaff && (
             <select
               value={filterDepartment}
               onChange={(e) => setFilterDepartment(e.target.value)}
-              className="px-2 sm:px-3 py-1.5 sm:py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-gold/50 bg-card text-foreground text-xs sm:text-sm flex-1 sm:flex-none"
+              className="px-2 sm:px-3 py-1.5 sm:py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-gold/50 bg-card text-foreground text-xs sm:text-sm flex-1 sm:flex-none min-h-[44px] sm:min-h-0"
             >
               <option value="">{t('common.allDepartments') || 'Все отделы'}</option>
               {departments.map((dept) => (
@@ -180,16 +172,16 @@ export default function CalendarPage() {
               ))}
             </select>
           )}
-
           <button
             onClick={goToToday}
-            className="px-3 sm:px-4 py-1.5 sm:py-2 bg-gold text-white rounded-lg hover:bg-gold/90 transition-colors text-xs sm:text-sm"
+            className="px-3 sm:px-4 py-1.5 sm:py-2 bg-gold text-white rounded-lg hover:bg-gold/90 transition-colors text-xs sm:text-sm min-h-[44px] sm:min-h-0"
           >
             {t('calendar.today') || 'Сегодня'}
           </button>
         </div>
-      </div>
-
+      }
+    >
+      <div className="space-y-4 sm:space-y-6">
       {/* Статистика месяца - Bento Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
         <div className="bg-card rounded-xl p-3 sm:p-4 shadow-card border border-border">
@@ -434,6 +426,7 @@ export default function CalendarPage() {
           )}
         </div>
       </div>
-    </div>
+      </div>
+    </PageContainer>
   )
 }

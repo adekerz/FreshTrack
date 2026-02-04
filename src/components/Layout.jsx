@@ -47,12 +47,12 @@ export default function Layout({ children }) {
         <Sidebar isOpen={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} />
       </div>
 
-      <main id="main-content" className="flex-1 overflow-auto" role="main">
+      <main id="main-content" className="flex-1 min-w-0 overflow-auto" role="main">
         <Header
           onOpenMobileMenu={() => setMobileSidebarOpen(true)}
           isMobileMenuOpen={mobileSidebarOpen}
         />
-        <div className="p-4 sm:p-8">
+        <div className="min-w-0 p-4 sm:p-8">
           <MFAGracePeriodBanner />
           <Breadcrumbs />
           {children}

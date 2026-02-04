@@ -438,7 +438,8 @@ export default function DirectoriesSettings({ readOnly = false }) {
     <div className="space-y-6">
       {/* Заголовок */}
       <div>
-        <h2 className="text-xl font-semibold text-foreground">
+        <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
+          <Tags className="w-5 h-5 text-accent" aria-hidden="true" />
           {t('settings.directories.title') || 'Справочники'}
         </h2>
         <p className="text-sm text-muted-foreground mt-1">

@@ -118,6 +118,7 @@ router.get('/categories',
   requireAllowlistedIP,
   async (req, res) => {
     try {
+      const { format = 'xlsx' } = req.query
       const categories = await getAllCategories(req.hotelId)
       
       // Check export size limit
@@ -133,7 +134,7 @@ router.get('/categories',
       }
       
       // Use ExportService for consistent audit logging
-      await ExportService.sendExport(res, categories, 'categories', 'json', {
+      await ExportService.sendExport(res, categories, 'categories', format, {
         filename: 'categories',
         user: req.user,
         ipAddress: req.ip,
@@ -157,6 +158,7 @@ router.get('/departments',
   requireAllowlistedIP,
   async (req, res) => {
     try {
+      const { format = 'xlsx' } = req.query
       const departments = await getAllDepartments(req.hotelId)
       
       // Check export size limit
@@ -172,7 +174,7 @@ router.get('/departments',
       }
       
       // Use ExportService for consistent audit logging
-      await ExportService.sendExport(res, departments, 'departments', 'json', {
+      await ExportService.sendExport(res, departments, 'departments', format, {
         filename: 'departments',
         user: req.user,
         ipAddress: req.ip,
@@ -308,7 +310,7 @@ router.get('/audit',
   requireAllowlistedIP,
   async (req, res) => {
   try {
-    const { start_date, end_date, limit = 1000 } = req.query
+    const { start_date, end_date, limit = 1000, format = 'xlsx' } = req.query
     const filters = { start_date, end_date, limit: parseInt(limit) }
     
     const logs = await getAuditLogs(req.hotelId, filters)
@@ -326,7 +328,7 @@ router.get('/audit',
     }
     
     // Use ExportService for consistent audit logging
-    await ExportService.sendExport(res, logs, 'auditLogs', 'json', {
+    await ExportService.sendExport(res, logs, 'auditLogs', format, {
       filename: 'audit_logs',
       user: req.user,
       ipAddress: req.ip,
