@@ -423,6 +423,7 @@ export default function NotificationsHistoryPage() {
           </>
         )}
       </div>
+      </div>
     </PageContainer>
   )
 }
