@@ -15,6 +15,11 @@ import { apiFetch } from '../services/api'
 import { formatDate } from '../utils/dateUtils'
 import ExportButton from '../components/ExportButton'
 import PageContainer from '../components/PageContainer'
+import AnimatedPage from '../components/AnimatedPage'
+import { AnimatedStack } from '../components/AnimatedList'
+import EmptyState from '../components/EmptyState'
+import ExportProgress from '../components/ExportProgress'
+import { useExport } from '../hooks/useExport'
 
 // Причины сбора (синхронизировано с CollectionService.CollectionReason)
 const REASONS = {
@@ -46,6 +51,7 @@ export default function CollectionHistoryPage() {
   const { isHotelAdmin, hasPermission } = useAuth()
   const { departments } = useProducts()
   const { selectedHotelId, selectedHotel } = useHotel()
+  const { exportProgress, dismissExportProgress } = useExport()
   const [logs, setLogs] = useState([])
   const [stats, setStats] = useState({ today: 0, week: 0, month: 0, total: 0 })
   const [loading, setLoading] = useState(true)
@@ -175,6 +181,7 @@ export default function CollectionHistoryPage() {
     appliedFilters.endDate
 
   return (
+    <AnimatedPage>
     <PageContainer
       title={t('collectionHistory.title')}
       subtitle={t('collectionHistory.subtitle')}
@@ -342,15 +349,18 @@ export default function CollectionHistoryPage() {
         {loading && logs.length === 0 ? (
           <SectionLoader />
         ) : logs.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-8 sm:py-12 text-muted-foreground">
-            <ArchiveX className="w-10 h-10 sm:w-12 sm:h-12 mb-3 sm:mb-4 opacity-50" />
-            <p className="text-base sm:text-lg">{t('collectionHistory.noLogs')}</p>
-            <p className="text-xs sm:text-sm">{t('collectionHistory.noLogsHint')}</p>
-          </div>
+          <EmptyState
+            icon={ArchiveX}
+            title={t('collectionHistory.noLogs') || 'Нет записей о сборах'}
+            description={
+              t('collectionHistory.noLogsHint') ||
+              'Здесь будет отображаться история сборов товаров'
+            }
+          />
         ) : (
           <>
             {/* Мобильный вид - карточки */}
-            <div className="sm:hidden divide-y divide-border">
+            <AnimatedStack gap="space-y-0" className="sm:hidden divide-y divide-border" staggerDelay={40}>
               {logs.map((log) => {
                 const reasonInfo = getReason(log.reason)
                 const dept = departments.find((d) => d.id === log.departmentId)
@@ -400,7 +410,7 @@ export default function CollectionHistoryPage() {
                   </div>
                 )
               })}
-            </div>
+            </AnimatedStack>
 
             {/* Десктопный вид - таблица */}
             <div className="hidden sm:block overflow-x-auto">
@@ -536,6 +546,16 @@ export default function CollectionHistoryPage() {
         )}
       </div>
       </div>
+
+      {/* Export Progress Notification */}
+      {exportProgress.status && (
+        <ExportProgress
+          status={exportProgress.status}
+          filename={exportProgress.filename}
+          onDismiss={dismissExportProgress}
+        />
+      )}
     </PageContainer>
+    </AnimatedPage>
   )
 }

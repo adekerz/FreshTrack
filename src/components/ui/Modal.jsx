@@ -9,7 +9,9 @@ import { useEffect, useRef, useCallback, useId } from 'react'
 import { X } from 'lucide-react'
 import { createPortal } from 'react-dom'
 import { trapFocus, announce, prefersReducedMotion } from '../../utils/a11y'
+import { useTranslation } from '../../context/LanguageContext'
 import TouchButton from './TouchButton'
+import Tooltip from '../Tooltip'
 
 export default function Modal({
   isOpen,
@@ -25,6 +27,7 @@ export default function Modal({
   footer,
   ariaLabel,
 }) {
+  const { t } = useTranslation()
   const modalRef = useRef(null)
   const previousActiveElement = useRef(null)
   const onCloseRef = useRef(onClose)
@@ -130,15 +133,19 @@ export default function Modal({
               )}
             </div>
             {showCloseButton && (
-              <TouchButton
-                variant="ghost"
-                size="icon"
-                onClick={onClose}
-                className="absolute top-4 right-4 sm:relative sm:top-0 sm:right-0 -m-2 p-2 text-muted-foreground hover:text-foreground hover:bg-muted"
-                aria-label="Close dialog"
-                type="button"
-                icon={X}
-              />
+              <Tooltip content={t('common.close') || 'Закрыть'}>
+                <span className="inline-flex absolute top-4 right-4 sm:relative sm:top-0 sm:right-0">
+                  <TouchButton
+                    variant="ghost"
+                    size="icon"
+                    onClick={onClose}
+                    className="-m-2 p-2 text-muted-foreground hover:text-foreground hover:bg-muted"
+                    aria-label={t('common.close') || 'Закрыть'}
+                    type="button"
+                    icon={X}
+                  />
+                </span>
+              </Tooltip>
             )}
           </div>
         )}

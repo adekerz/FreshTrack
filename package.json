@@ -21,6 +21,8 @@
     "test:server": "vitest run --config vitest.server.config.ts",
     "test:all": "vitest run && vitest run --config vitest.server.config.ts",
     "lighthouse": "lighthouse http://localhost:5173 --output html --output-path ./reports/lighthouse.html --max-wait-for-load=60000 --chrome-flags=\"--headless --no-sandbox --disable-dev-shm-usage --disable-gpu\"",
+    "lighthouse:a11y": "lighthouse http://localhost:5173 --only-categories=accessibility --output=html --output-path=./reports/lighthouse-a11y.html --max-wait-for-load=15000 --chrome-flags=\"--headless --no-sandbox --disable-dev-shm-usage --disable-gpu\"",
+    "lighthouse:a11y-json": "lighthouse http://localhost:5173 --only-categories=accessibility --output=json --output-path=./reports/lighthouse-a11y.json --max-wait-for-load=15000 --chrome-flags=\"--headless --no-sandbox --disable-dev-shm-usage --disable-gpu\"",
     "lighthouse:desktop": "lighthouse http://localhost:5173 --preset=desktop --output html --output-path ./reports/lighthouse-desktop.html --max-wait-for-load=60000 --chrome-flags=\"--headless --no-sandbox --disable-dev-shm-usage --disable-gpu\"",
     "lighthouse:preview": "lighthouse http://localhost:4173 --output html --output-path ./reports/lighthouse-preview.html --max-wait-for-load=60000 --chrome-flags=\"--headless --no-sandbox --disable-dev-shm-usage --disable-gpu\"",
     "lighthouse:ci": "lighthouse http://localhost:5173 --output json --output-path ./reports/lighthouse.json --budget-path=./lighthouse-budget.json",

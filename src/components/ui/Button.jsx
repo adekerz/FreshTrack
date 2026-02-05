@@ -53,11 +53,13 @@ const Button = forwardRef(
         className={`
         inline-flex items-center justify-center
         font-medium rounded-lg
-        transition-all duration-200
+        transition-all duration-150
         focus:outline-none focus:ring-2 focus:ring-offset-2
         touch-manipulation
+        hover:scale-[1.02]
         active:scale-[0.98]
-        disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100
+        disabled:opacity-50 disabled:cursor-not-allowed
+        disabled:hover:scale-100 disabled:active:scale-100
         ${variants[variant]}
         ${sizes[size]}
         ${fullWidth ? 'w-full' : ''}

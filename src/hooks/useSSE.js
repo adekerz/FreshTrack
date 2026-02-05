@@ -244,10 +244,10 @@ export function useSSE(options = {}) {
         })
       })
 
-      // Handle errors
+      // Handle errors (ожидаемо при недоступном бэкенде / переподключении — warn, чтобы не портить Lighthouse "errors in console")
       eventSource.onerror = (e) => {
         if (!mountedRef.current) return
-        console.error('[SSE] Connection error:', e)
+        console.warn('[SSE] Connection error:', e)
         
         setState(SSE_STATE.ERROR)
         onError?.(e)

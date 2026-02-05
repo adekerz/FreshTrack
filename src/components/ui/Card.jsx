@@ -2,14 +2,16 @@
  * Card Component
  * Container with variants for different use cases
  * Follows Law of Common Region - group related content
+ * Enhanced with smooth hover effects and micro-interactions
  */
 
 import { forwardRef } from 'react'
+import { cardHover } from '../../utils/animations'
 
 const variants = {
   default: 'bg-card border border-border',
-  elevated: 'bg-card shadow-soft',
-  interactive: 'bg-card border border-border hover:shadow-soft hover:border-transparent cursor-pointer transition-all duration-200',
+  elevated: `bg-card shadow-soft ${cardHover.subtle}`,
+  interactive: `bg-card border border-border ${cardHover.interactive}`,
   ghost: 'bg-transparent',
   accent: 'bg-accent/5 border border-accent/20',
 }

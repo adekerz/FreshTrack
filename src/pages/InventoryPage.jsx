@@ -29,7 +29,13 @@ import ProductCard from '../components/ProductCard'
 import { SkeletonInventory, Skeleton } from '../components/Skeleton'
 import { Loader, ConfirmDialog, TouchButton } from '../components/ui'
 import PageContainer from '../components/PageContainer'
+import AnimatedPage from '../components/AnimatedPage'
+import { AnimatedGrid } from '../components/AnimatedList'
+import EmptyState from '../components/EmptyState'
+import ExportProgress from '../components/ExportProgress'
+import Tooltip from '../components/Tooltip'
 import { usePullToRefresh } from '../hooks/usePullToRefresh'
+import { useExport } from '../hooks/useExport'
 
 // Иконки для отделов - универсальный маппинг
 const ICON_MAP = {
@@ -64,6 +70,7 @@ export default function InventoryPage() {
   const { isRefreshing, pullDistance } = usePullToRefresh(refresh)
   const { user, isStaff, isSuperAdmin } = useAuth()
   const { addToast } = useToast()
+  const { exportProgress, dismissExportProgress } = useExport()
   const prevHotelIdRef = useRef(selectedHotelId)
 
   // Проверка роли STAFF через helper функцию
@@ -308,6 +315,7 @@ export default function InventoryPage() {
   // Показываем скелетон при загрузке (когда уже есть отделы)
   if (loading && departments.length > 0) {
     return (
+      <AnimatedPage>
       <PageContainer
         title={t('inventory.title')}
         subtitle={t('inventory.subtitle') || ''}
@@ -322,12 +330,14 @@ export default function InventoryPage() {
           <SkeletonInventory rows={6} />
         </div>
       </PageContainer>
+      </AnimatedPage>
     )
   }
 
   // Если нет данных и идёт загрузка - показываем анимацию подключения к БД
   if (loading && departments.length === 0) {
     return (
+      <AnimatedPage>
       <PageContainer
         title={t('inventory.title')}
         subtitle={t('inventory.subtitle') || ''}
@@ -349,47 +359,40 @@ export default function InventoryPage() {
           </div>
         </div>
       </PageContainer>
+      </AnimatedPage>
     )
   }
 
   // Если нет отделов после загрузки - показываем empty state
   if (!loading && departments.length === 0) {
     return (
+      <AnimatedPage>
       <PageContainer
         title={t('inventory.title')}
         subtitle={t('inventory.subtitle') || ''}
         stickyHeader={true}
       >
-        <div className="flex-1 flex items-center justify-center py-16 sm:py-24 animate-fade-in">
-          <div className="flex flex-col items-center gap-4 text-center px-4">
-            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
-              <Package className="w-8 h-8 text-muted-foreground" />
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-foreground mb-1">
-                {t('inventory.noDepartments') || 'Нет отделов'}
-              </h3>
-              <p className="text-muted-foreground text-sm max-w-xs">
-                {t('inventory.noDepartmentsDescription') ||
-                  'Для этого отеля ещё не созданы отделы. Создайте отдел в настройках.'}
-              </p>
-            </div>
-            <TouchButton
-              variant="primary"
-              onClick={() => navigate('/settings')}
-              className="mt-2"
-            >
-              {t('common.goToSettings') || 'Перейти в настройки'}
-            </TouchButton>
-          </div>
-        </div>
+        <EmptyState
+          icon={Package}
+          title={t('inventory.noDepartments') || 'Нет отделов'}
+          description={
+            t('inventory.noDepartmentsDescription') ||
+            'Для этого отеля ещё не созданы отделы. Создайте отдел в настройках.'
+          }
+          action={{
+            label: t('common.goToSettings') || 'Перейти в настройки',
+            onClick: () => navigate('/settings')
+          }}
+        />
       </PageContainer>
+      </AnimatedPage>
     )
   }
 
   // Если отдел не выбран и есть несколько отделов - показываем выбор
   if (!selectedDeptId && departments.length > 1) {
     return (
+      <AnimatedPage>
       <PageContainer
         title={t('inventory.title')}
         subtitle={t('inventory.selectDepartment') || 'Выберите отдел'}
@@ -404,6 +407,7 @@ export default function InventoryPage() {
           />
         </div>
       </PageContainer>
+      </AnimatedPage>
     )
   }
 
@@ -414,6 +418,7 @@ export default function InventoryPage() {
   }
 
   return (
+    <AnimatedPage>
     <>
       {/* Pull-to-refresh indicator */}
       {pullDistance > 0 && (
@@ -439,15 +444,18 @@ export default function InventoryPage() {
         actions={
           <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
             {departments.length > 1 && (
-              <TouchButton
-                variant="ghost"
-                size="icon"
-                onClick={handleBackToDepartments}
-                className="rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted"
-                title={t('common.back') || 'Назад'}
-                aria-label={t('common.back') || 'Назад'}
-                icon={ArrowLeft}
-              />
+              <Tooltip content={t('common.back') || 'Назад'}>
+                <span className="inline-flex">
+                  <TouchButton
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleBackToDepartments}
+                    className="rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted"
+                    aria-label={t('common.back') || 'Назад'}
+                    icon={ArrowLeft}
+                  />
+                </span>
+              </Tooltip>
             )}
             <ExportButton
               exportType="inventory"
@@ -547,17 +555,24 @@ export default function InventoryPage() {
 
       {/* Сетка товаров */}
       {products.length === 0 ? (
-        <div className="text-center py-12 sm:py-16">
-          <Package className="w-12 h-12 sm:w-16 sm:h-16 text-muted mx-auto mb-4" />
-          <p className="text-muted-foreground text-base sm:text-lg">{t('inventory.noProducts')}</p>
-          <p className="text-muted-foreground/70 text-xs sm:text-sm mt-2">
-            {t('inventory.addBatchToStart')}
-          </p>
-        </div>
+        <EmptyState
+          icon={Package}
+          title={t('inventory.noProducts') || 'Нет товаров'}
+          description={t('inventory.addBatchToStart') || 'Добавьте партии товаров чтобы начать работу'}
+          action={{
+            label: t('inventory.applyTemplate') || 'Применить шаблон',
+            onClick: () => setShowSelectTemplateModal(true),
+            icon: FileBox
+          }}
+        />
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4 px-1 sm:px-0">
+        <AnimatedGrid
+          columns="grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
+          gap="gap-2 sm:gap-4"
+          staggerDelay={40}
+          className="px-1 sm:px-0"
+        >
           {products.map((product) => {
-            // Используем categoryName с бэкенда (single source of truth), fallback на локальный поиск
             const category = categories.find((c) => c.id === product.categoryId)
             const displayCategoryName =
               product.categoryName || (category ? getCategoryName(category) : null)
@@ -572,7 +587,7 @@ export default function InventoryPage() {
               />
             )
           })}
-        </div>
+        </AnimatedGrid>
       )}
 
       {/* Модальные окна */}
@@ -630,6 +645,16 @@ export default function InventoryPage() {
       )}
       </div>
       </PageContainer>
+
+      {/* Export Progress Notification */}
+      {exportProgress.status && (
+        <ExportProgress
+          status={exportProgress.status}
+          filename={exportProgress.filename}
+          onDismiss={dismissExportProgress}
+        />
+      )}
     </>
+    </AnimatedPage>
   )
 }

@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Sidebar from './Sidebar'
 import MobileSidebar from './layout/MobileSidebar'
 import Header from './Header'
+import HelpCenter from './HelpCenter'
 import NotificationPermissionBanner from './NotificationPermissionBanner'
 import MFAGracePeriodBanner from './MFAGracePeriodBanner'
 import Breadcrumbs from './Breadcrumbs'
@@ -12,7 +13,22 @@ import { useTranslation } from '../context/LanguageContext'
 export default function Layout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
+  const [helpOpen, setHelpOpen] = useState(false)
   const { t } = useTranslation()
+
+  // Горячая клавиша ? — открыть центр помощи
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if (e.key === '?' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        const target = e.target
+        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return
+        e.preventDefault()
+        setHelpOpen(true)
+      }
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [])
 
   return (
     <div className="min-h-screen bg-background flex overflow-x-hidden max-w-full transition-colors duration-300">
@@ -47,23 +63,30 @@ export default function Layout({ children }) {
         <Sidebar isOpen={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} />
       </div>
 
-      <main id="main-content" className="flex-1 min-w-0 overflow-auto" role="main">
+      {/* Область контента: Header (banner) и main — отдельные landmarks (axe: banner is top-level) */}
+      <div className="flex-1 min-w-0 flex flex-col min-h-0">
         <Header
           onOpenMobileMenu={() => setMobileSidebarOpen(true)}
           isMobileMenuOpen={mobileSidebarOpen}
+          onOpenHelp={() => setHelpOpen(true)}
         />
-        <div className="min-w-0 p-4 sm:p-8">
-          <MFAGracePeriodBanner />
-          <Breadcrumbs />
-          {children}
-        </div>
-      </main>
+        <main id="main-content" className="flex-1 min-w-0 overflow-auto min-h-0" role="main">
+          <div className="min-w-0 p-4 sm:p-8">
+            <MFAGracePeriodBanner />
+            <Breadcrumbs />
+            {children}
+          </div>
+        </main>
+      </div>
 
       {/* Push Notification Permission Banner */}
       <NotificationPermissionBanner />
 
       {/* Onboarding Tour for New Users */}
       <OnboardingTour />
+
+      {/* Центр помощи (модальное окно) */}
+      <HelpCenter isOpen={helpOpen} onClose={() => setHelpOpen(false)} />
 
       {/* ARIA Live Region for dynamic announcements */}
       <div 

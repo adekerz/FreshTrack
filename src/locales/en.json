@@ -7,7 +7,9 @@
     "dark": "Dark",
     "system": "System",
     "switchToLight": "Switch to light mode",
-    "switchToDark": "Switch to dark mode"
+    "switchToDark": "Switch to dark mode",
+    "highContrast": "High contrast",
+    "highContrastOff": "Turn off high contrast"
   },
   "a11y": {
     "skipToContent": "Skip to main content",
@@ -18,7 +20,22 @@
     "closeModal": "Close dialog",
     "required": "Required field",
     "error": "Error",
-    "success": "Success"
+    "success": "Success",
+    "statementTitle": "Accessibility Statement",
+    "statementUpdated": "Updated: February 2025",
+    "statementIntroTitle": "Our commitment",
+    "statementIntro": "FreshTrack is committed to making its web application accessible to people with disabilities. We follow WCAG 2.1 Level AA practices: keyboard navigation, screen reader support, contrast and touch target sizes.",
+    "statementWCAG": "WCAG 2.1 Level AA conformance. Supports prefers-reduced-motion, skip-to-content, ARIA labels and focus trap in modals.",
+    "statementKeyboardTitle": "Keyboard shortcuts",
+    "statementKeyboardIntro": "The application can be used entirely with the keyboard. Main shortcuts:",
+    "shortcutSearch": "Open search",
+    "shortcutExport": "Export data",
+    "shortcutHelp": "Open help center",
+    "shortcutClose": "Close modal",
+    "statementKeyboardMore": "Full list of shortcuts is available in the Help Center (Help button or ?).",
+    "statementFeedbackTitle": "Feedback",
+    "statementFeedbackIntro": "If you encounter an accessibility barrier, please let us know and we will work to address it.",
+    "statementContact": "Email for accessibility feedback"
   },
   "validation": {
     "required": "This field is required",
@@ -160,7 +177,8 @@
     "openMenu": "Open menu",
     "mobileNav": "Mobile navigation",
     "reports": "Reports",
-    "faq": "Help"
+    "faq": "Help",
+    "helpCenter": "Help (?)"
   },
   "faq": {
     "title": "Help & FAQ",

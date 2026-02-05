@@ -343,7 +343,7 @@ export default function NotificationsSettings() {
                               {chat.chat_photo_url ? (
                                 <img
                                   src={chat.chat_photo_url}
-                                  alt={chat.chat_title}
+                                  alt={chat.chat_title || t('notifications.chat') || 'Chat'}
                                   className="w-8 h-8 rounded-full flex-shrink-0"
                                 />
                               ) : (

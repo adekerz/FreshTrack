@@ -265,6 +265,93 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 .stagger-4 { animation-delay: 0.4s; }
 .stagger-5 { animation-delay: 0.5s; }
 
+/* ===== SMOOTH TRANSITIONS & MICRO-INTERACTIONS ===== */
+
+/* Smooth scroll for the entire document */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Universal smooth transitions for interactive properties */
+a, button, input, select, textarea, [role="button"], [tabindex] {
+  transition-property: color, background-color, border-color, transform, opacity, box-shadow;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+/* Smooth hover lift effect for cards and interactive elements */
+.hover-lift {
+  transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+}
+
+/* Smooth scale effect for buttons and interactive elements */
+.hover-scale {
+  transition: transform 0.15s ease-out;
+}
+
+.hover-scale:hover {
+  transform: scale(1.02);
+}
+
+.hover-scale:active {
+  transform: scale(0.98);
+}
+
+/* Fade in on scroll (for lazy-loaded content) */
+@keyframes fadeInOnScroll {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in-on-scroll {
+  animation: fadeInOnScroll 0.6s ease-out forwards;
+}
+
+/* Progress bar animation */
+@keyframes progressAnimation {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-progress {
+  animation: progressAnimation 2s linear infinite;
+}
+
+/* Skeleton shimmer with better performance */
+@keyframes skeletonShimmer {
+  0% {
+    background-position: -468px 0;
+  }
+  100% {
+    background-position: 468px 0;
+  }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    transparent
+  );
+  background-size: 468px 100%;
+  animation: skeletonShimmer 1.5s ease-in-out infinite;
+}
+
 /* Components */
 @layer components {
   .elegant-input {
@@ -733,7 +820,7 @@ textarea:focus-visible,
   @apply outline-none ring-2 ring-accent/50 ring-offset-1;
 }
 
-/* High contrast mode support */
+/* High contrast mode support (system preference) */
 @media (prefers-contrast: high) {
   .btn-primary {
     @apply border-2 border-charcoal;
@@ -746,6 +833,33 @@ textarea:focus-visible,
   input, select, textarea {
     @apply border-2;
   }
+}
+
+/* High contrast mode (user toggle — A11Y) */
+.high-contrast a:focus-visible,
+.high-contrast button:focus-visible,
+.high-contrast input:focus-visible,
+.high-contrast select:focus-visible,
+.high-contrast textarea:focus-visible,
+.high-contrast [tabindex]:focus-visible {
+  outline: 3px solid currentColor;
+  outline-offset: 2px;
+}
+
+.high-contrast .border-border,
+.high-contrast [class*="border-border"] {
+  border-color: rgba(0, 0, 0, 0.4);
+}
+
+.dark.high-contrast .border-border,
+.dark.high-contrast [class*="border-border"] {
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.high-contrast input,
+.high-contrast select,
+.high-contrast textarea {
+  border-width: 2px;
 }
 
 /* Screen reader only content */

@@ -6,7 +6,8 @@
  */
 
 import { useState, useEffect } from 'react'
-import { Search, X, Moon, Sun, LogOut, Settings, ChevronDown, Zap, Menu, Building2, Users, HelpCircle } from 'lucide-react'
+import { Search, X, Moon, Sun, LogOut, Settings, ChevronDown, Zap, Menu, Building2, Users, HelpCircle, Accessibility } from 'lucide-react'
+import Tooltip from './Tooltip'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useTranslation } from '../context/LanguageContext'
@@ -20,11 +21,11 @@ import { cn } from '../utils/classNames'
 import { apiFetch } from '../services/api'
 import { showNotification, getNotificationPermission, requestNotificationPermission } from '../utils/browserAlerts'
 
-export default function Header({ onOpenMobileMenu, isMobileMenuOpen = false }) {
+export default function Header({ onOpenMobileMenu, isMobileMenuOpen = false, onOpenHelp }) {
   const navigate = useNavigate()
   const { user, logout } = useAuth()
   const { t } = useTranslation()
-  const { theme, toggleTheme } = useTheme()
+  const { theme, toggleTheme, highContrast, toggleHighContrast } = useTheme()
   const { addToast } = useToast()
   
   const [showMobileSearch, setShowMobileSearch] = useState(false)
@@ -143,17 +144,21 @@ export default function Header({ onOpenMobileMenu, isMobileMenuOpen = false }) {
         {/* Left section - Hamburger (mobile) + Hotel selector; hotel ограничен по ширине на mobile */}
         <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-shrink">
           {typeof onOpenMobileMenu === 'function' && (
-            <TouchButton
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={onOpenMobileMenu}
-              className="sm:hidden -ml-1 flex-shrink-0 relative z-10 text-muted-foreground hover:text-foreground"
-              aria-label={t('nav.openMenu') || 'Open menu'}
-              aria-expanded={isMobileMenuOpen}
-              aria-haspopup="true"
-              icon={Menu}
-            />
+            <Tooltip content={t('nav.openMenu') || 'Открыть меню'}>
+              <span className="inline-flex sm:hidden">
+                <TouchButton
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={onOpenMobileMenu}
+                  className="-ml-1 flex-shrink-0 relative z-10 text-muted-foreground hover:text-foreground"
+                  aria-label={t('nav.openMenu') || 'Открыть меню'}
+                  aria-expanded={isMobileMenuOpen}
+                  aria-haspopup="true"
+                  icon={Menu}
+                />
+              </span>
+            </Tooltip>
           )}
           <HotelSelector />
         </div>
@@ -166,41 +171,82 @@ export default function Header({ onOpenMobileMenu, isMobileMenuOpen = false }) {
         {/* Right section - Actions */}
         <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
           {/* Mobile search toggle */}
-          <TouchButton
-            variant="ghost"
-            size="icon"
-            onClick={() => setShowMobileSearch(true)}
-            className="sm:hidden text-muted-foreground hover:text-foreground"
-            aria-label={t('search.open') || 'Search'}
-            icon={Search}
-          />
+          <Tooltip content={t('search.open') || 'Поиск'}>
+            <span className="inline-flex sm:hidden">
+              <TouchButton
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowMobileSearch(true)}
+                className="text-muted-foreground hover:text-foreground"
+                aria-label={t('search.open') || 'Поиск'}
+                icon={Search}
+              />
+            </span>
+          </Tooltip>
 
           {/* Theme toggle */}
-          <TouchButton
-            variant="ghost"
-            size="icon"
-            onClick={toggleTheme}
-            className="text-muted-foreground hover:text-foreground"
-            aria-label={theme === 'dark' ? t('theme.light') : t('theme.dark')}
-            icon={theme === 'dark' ? Sun : Moon}
-          />
+          <Tooltip content={theme === 'dark' ? (t('theme.switchToLight') || 'Светлая тема') : (t('theme.switchToDark') || 'Тёмная тема')}>
+            <span className="inline-flex">
+              <TouchButton
+                variant="ghost"
+                size="icon"
+                onClick={toggleTheme}
+                className="text-muted-foreground hover:text-foreground"
+                aria-label={theme === 'dark' ? t('theme.light') : t('theme.dark')}
+                icon={theme === 'dark' ? Sun : Moon}
+              />
+            </span>
+          </Tooltip>
+
+          <Tooltip content={highContrast ? (t('theme.highContrastOff') || 'Выключить высокий контраст') : (t('theme.highContrast') || 'Высокий контраст')}>
+            <span className="inline-flex">
+              <TouchButton
+                variant="ghost"
+                size="icon"
+                onClick={toggleHighContrast}
+                className={highContrast ? 'text-accent' : 'text-muted-foreground hover:text-foreground'}
+                aria-label={highContrast ? (t('theme.highContrastOff') || 'Выключить высокий контраст') : (t('theme.highContrast') || 'Высокий контраст')}
+                aria-pressed={highContrast}
+                icon={Accessibility}
+              />
+            </span>
+          </Tooltip>
 
           {/* Notifications */}
           <NotificationBell />
 
+          {/* Центр помощи — горячая клавиша ? */}
+          {typeof onOpenHelp === 'function' && (
+            <Tooltip content={t('nav.helpCenter') || 'Помощь (?)'}>
+              <span className="inline-flex">
+                <TouchButton
+                  variant="ghost"
+                  size="icon"
+                  onClick={onOpenHelp}
+                  className="text-muted-foreground hover:text-foreground"
+                  aria-label={t('nav.helpCenter') || 'Помощь'}
+                  icon={HelpCircle}
+                />
+              </span>
+            </Tooltip>
+          )}
+
           {/* Test Notification Button — только на dev */}
           {import.meta.env.MODE === 'development' && (
-            <TouchButton
-              variant="ghost"
-              size="icon"
-              onClick={handleTestNotification}
-              disabled={testingNotification}
-              loading={testingNotification}
-              className="text-muted-foreground hover:text-foreground"
-              aria-label={t('notifications.test.label') || 'Тест уведомлений'}
-              title={t('notifications.test.label') || 'Отправить тест: email, Telegram, браузер'}
-              icon={Zap}
-            />
+            <Tooltip content={t('notifications.test.label') || 'Тест уведомлений'}>
+              <span className="inline-flex">
+                <TouchButton
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleTestNotification}
+                  disabled={testingNotification}
+                  loading={testingNotification}
+                  className="text-muted-foreground hover:text-foreground"
+                  aria-label={t('notifications.test.label') || 'Тест уведомлений'}
+                  icon={Zap}
+                />
+              </span>
+            </Tooltip>
           )}
 
           {/* User menu (видно на всех экранах, включая mobile) */}
@@ -310,14 +356,18 @@ export default function Header({ onOpenMobileMenu, isMobileMenuOpen = false }) {
       {showMobileSearch && (
         <div className="fixed inset-0 z-50 bg-background sm:hidden animate-fade-in">
           <div className="flex items-center gap-3 p-3 border-b border-border">
-            <TouchButton
-              variant="ghost"
-              size="icon"
-              onClick={() => setShowMobileSearch(false)}
-              className="-ml-2 text-muted-foreground hover:text-foreground"
-              aria-label={t('common.close') || 'Close'}
-              icon={X}
-            />
+            <Tooltip content={t('common.close') || 'Закрыть'}>
+              <span className="inline-flex">
+                <TouchButton
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowMobileSearch(false)}
+                  className="-ml-2 text-muted-foreground hover:text-foreground"
+                  aria-label={t('common.close') || 'Закрыть'}
+                  icon={X}
+                />
+              </span>
+            </Tooltip>
             <div className="flex-1">
               <GlobalSearch 
                 autoFocus 

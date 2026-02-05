@@ -18,10 +18,10 @@ export default function NotFoundPage() {
   // Определяем режим по наличию пользователя
   const isAuthenticated = !!user
 
-  // Публичная версия — полноэкранная, для неавторизованных
+  // Публичная версия — полноэкранная, для неавторизованных (landmark main для axe)
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4 animate-fade-in">
+      <main className="min-h-screen bg-background flex flex-col items-center justify-center px-4 animate-fade-in" role="main">
         {/* Основной контент */}
         <div className="text-center max-w-md mx-auto">
           {/* 404 */}
@@ -70,7 +70,7 @@ export default function NotFoundPage() {
             <span className="font-serif text-lg tracking-wide">FreshTrack</span>
           </Link>
         </div>
-      </div>
+      </main>
     )
   }
 

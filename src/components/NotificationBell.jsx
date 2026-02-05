@@ -13,6 +13,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNotifications, NOTIFICATION_SEVERITY } from '../context/NotificationsContext'
 import { useLanguage } from '../context/LanguageContext'
+import Tooltip from './Tooltip'
 
 // Icons as SVG components for better performance
 const BellIcon = ({ className }) => (
@@ -199,19 +200,21 @@ export default function NotificationBell() {
   return (
     <div className="relative">
       {/* Bell Button */}
-      <button
-        type="button"
-        ref={buttonRef}
-        onClick={() => setIsOpen(!isOpen)}
-        className={`
-          relative min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg transition-colors touch-manipulation
-          hover:bg-muted focus:outline-none focus:ring-2 focus:ring-accent/50
-          ${hasCritical ? 'animate-pulse' : ''}
-        `}
-        aria-label={t('notifications.title') || 'Уведомления'}
-        aria-haspopup="true"
-        aria-expanded={isOpen}
-      >
+      <Tooltip content={t('notifications.title') || 'Уведомления'}>
+        <span className="inline-flex">
+          <button
+            type="button"
+            ref={buttonRef}
+            onClick={() => setIsOpen(!isOpen)}
+            className={`
+              relative min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg transition-colors touch-manipulation
+              hover:bg-muted focus:outline-none focus:ring-2 focus:ring-accent/50
+              ${hasCritical ? 'animate-pulse' : ''}
+            `}
+            aria-label={t('notifications.title') || 'Уведомления'}
+            aria-haspopup="true"
+            aria-expanded={isOpen}
+          >
         <BellIcon className="w-6 h-6 text-muted-foreground" />
 
         {/* Unread Badge */}
@@ -235,7 +238,9 @@ export default function NotificationBell() {
         `}
           title={isConnected ? 'Подключено' : 'Отключено'}
         />
-      </button>
+          </button>
+        </span>
+      </Tooltip>
 
       {/* Dropdown */}
       {isOpen && (

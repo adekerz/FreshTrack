@@ -35,17 +35,23 @@ import { formatDate } from '../utils/dateUtils'
 import { apiFetch } from '../services/api'
 import ExportButton from '../components/ExportButton'
 import PageContainer from '../components/PageContainer'
+import AnimatedPage from '../components/AnimatedPage'
 import { PageLoader } from '../components/ui'
 import { ActivityChart } from '../components/audit/ActivityChart'
 import { AuditDetailsModal } from '../components/audit/AuditDetailsModal'
 import { useToast } from '../context/ToastContext'
 import { useAuditSSE } from '../hooks/useAuditSSE'
+import EmptyState from '../components/EmptyState'
+import ExportProgress from '../components/ExportProgress'
+import Tooltip from '../components/Tooltip'
+import { useExport } from '../hooks/useExport'
 
 export default function AuditLogsPage() {
   const { t } = useTranslation()
   const { addToast } = useToast()
   const { selectedHotelId, selectedHotel } = useHotel()
   const { newLogs, clearNewLogs } = useAuditSSE(!!selectedHotelId)
+  const { exportProgress, dismissExportProgress } = useExport()
   const [logs, setLogs] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
@@ -272,31 +278,39 @@ export default function AuditLogsPage() {
 
   if (loading && logs.length === 0) {
     return (
-      <PageContainer
-        title={t('auditLogs.title')}
-        subtitle={t('auditLogs.subtitle')}
-        stickyHeader={true}
-      >
-        <PageLoader message={t('common.loading')} />
-      </PageContainer>
+      <AnimatedPage>
+        <PageContainer
+          title={t('auditLogs.title')}
+          subtitle={t('auditLogs.subtitle')}
+          stickyHeader={true}
+        >
+          <PageLoader message={t('common.loading')} />
+        </PageContainer>
+      </AnimatedPage>
     )
   }
 
   return (
+    <AnimatedPage>
     <PageContainer
       title={t('auditLogs.title')}
       subtitle={t('auditLogs.subtitle')}
       stickyHeader={true}
       actions={
         <div className="flex items-center gap-2 flex-wrap">
-          <button
-            onClick={loadLogs}
-            disabled={loading}
-            className="p-2 rounded-lg hover:bg-muted text-muted-foreground transition-colors min-h-[48px] min-w-[48px] flex items-center justify-center"
-            title={t('common.refresh')}
-          >
-            <RefreshCw className={cn('w-4 h-4 sm:w-5 sm:h-5', loading && 'animate-spin')} />
-          </button>
+          <Tooltip content={t('common.refresh') || 'Обновить'}>
+            <span className="inline-flex">
+              <button
+                onClick={loadLogs}
+                disabled={loading}
+                className="p-2 rounded-lg hover:bg-muted text-muted-foreground transition-colors min-h-[48px] min-w-[48px] flex items-center justify-center"
+                aria-label={t('common.refresh') || 'Обновить'}
+                title={t('common.refresh')}
+              >
+                <RefreshCw className={cn('w-4 h-4 sm:w-5 sm:h-5', loading && 'animate-spin')} />
+              </button>
+            </span>
+          </Tooltip>
           <ExportButton
             exportType="audit"
             filters={exportFilters}
@@ -371,8 +385,10 @@ export default function AuditLogsPage() {
                 type="button"
                 onClick={resetFilters}
                 className="flex items-center gap-2 px-3 sm:px-4 py-2 text-danger hover:bg-danger/10 rounded-lg text-sm transition-colors min-h-[44px]"
+                aria-label={t('common.reset') || 'Сбросить фильтры'}
+                title={t('common.reset')}
               >
-                <X className="w-4 h-4" />
+                <X className="w-4 h-4" aria-hidden="true" />
                 {t('common.reset')}
               </button>
             )}
@@ -465,10 +481,17 @@ export default function AuditLogsPage() {
       {/* Logs Table */}
       <div className="bg-card rounded-xl border border-border overflow-hidden">
         {filteredLogs.length === 0 ? (
-          <div className="p-8 text-center">
-            <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <p className="text-muted-foreground">{t('auditLogs.noLogs')}</p>
-          </div>
+          <EmptyState
+            icon={FileText}
+            title={t('auditLogs.noLogs') || 'Нет записей в журнале'}
+            description={
+              searchQuery
+                ? t('auditLogs.noSearchResults') || 'Попробуйте изменить поисковый запрос'
+                : hasActiveFilters
+                ? t('auditLogs.noFilterResults') || 'Попробуйте изменить фильтры'
+                : t('auditLogs.noLogsHint') || 'Здесь будет отображаться журнал действий пользователей'
+            }
+          />
         ) : (
           <>
             {/* Desktop Table */}
@@ -634,6 +657,16 @@ export default function AuditLogsPage() {
           />
         )}
       </div>
+
+      {/* Export Progress Notification */}
+      {exportProgress.status && (
+        <ExportProgress
+          status={exportProgress.status}
+          filename={exportProgress.filename}
+          onDismiss={dismissExportProgress}
+        />
+      )}
     </PageContainer>
+    </AnimatedPage>
   )
 }

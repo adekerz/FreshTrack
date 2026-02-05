@@ -52,6 +52,7 @@ import { ScheduledExportsManager } from '../components/ScheduledExports/Schedule
 import { ChangePasswordModal } from '../components/ui/ChangePasswordModal'
 import { ChangeEmailModal } from '../components/ui/ChangeEmailModal'
 import PageContainer from '../components/PageContainer'
+import AnimatedPage from '../components/AnimatedPage'
 
 const SETTINGS_TAB_IDS = new Set([
   'profile', 'language', 'general', 'users', 'join-requests', 'directories',
@@ -609,6 +610,7 @@ export default function SettingsPage() {
   )
 
   return (
+    <AnimatedPage>
     <PageContainer
       title={t('settings.title')}
       subtitle={t('settings.subtitle')}
@@ -797,5 +799,6 @@ export default function SettingsPage() {
       />
     </div>
     </PageContainer>
+    </AnimatedPage>
   )
 }

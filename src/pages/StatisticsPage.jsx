@@ -10,6 +10,7 @@ import { useProducts } from '../context/ProductContext'
 import { useThresholds } from '../hooks/useThresholds'
 import { Package, AlertTriangle, CheckCircle, Clock } from 'lucide-react'
 import PageContainer from '../components/PageContainer'
+import AnimatedPage from '../components/AnimatedPage'
 import StatCard from '../components/StatCard'
 
 export default function StatisticsPage() {
@@ -157,6 +158,7 @@ export default function StatisticsPage() {
   ]
 
   return (
+    <AnimatedPage>
     <PageContainer
       title={t('statistics.title')}
       subtitle={t('statistics.subtitle')}
@@ -355,5 +357,6 @@ export default function StatisticsPage() {
       </div>
       </div>
     </PageContainer>
+    </AnimatedPage>
   )
 }

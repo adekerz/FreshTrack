@@ -157,6 +157,10 @@ export function useExport() {
   const { t } = useTranslation()
   const { addToast } = useToast()
   const [exporting, setExporting] = useState(null)
+  const [exportProgress, setExportProgress] = useState({
+    status: null, // 'downloading' | 'success' | 'error'
+    filename: null
+  })
 
   /**
    * Экспорт данных с backend
@@ -174,6 +178,17 @@ export function useExport() {
     }
 
     setExporting(type)
+
+    // Генерируем имя файла заранее для прогресса
+    const extension = format === 'excel' ? 'xlsx' : format
+    const timestamp = new Date().toISOString().split('T')[0]
+    const filename = `${exportConfig.filename}_${timestamp}.${extension}`
+
+    // Показываем прогресс "загрузка"
+    setExportProgress({
+      status: 'downloading',
+      filename
+    })
 
     try {
       // Строим URL с фильтрами и форматом
@@ -212,11 +227,6 @@ export function useExport() {
         throw new Error('Нет данных для экспорта')
       }
 
-      // Определяем расширение файла
-      const extension = format === 'excel' ? 'xlsx' : format
-      const timestamp = new Date().toISOString().split('T')[0]
-      const filename = `${exportConfig.filename}_${timestamp}.${extension}`
-
       // Скачиваем файл
       const downloadUrl = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
@@ -227,18 +237,22 @@ export function useExport() {
       window.URL.revokeObjectURL(downloadUrl)
       document.body.removeChild(a)
 
-      // Показываем успех
-      let message = t('toast.exportSuccess') || 'Экспорт завершен'
-      if (options.filters) {
-        const filterCount = Object.keys(options.filters).filter(k => options.filters[k]).length
-        if (filterCount > 0) {
-          message += ` (применено фильтров: ${filterCount})`
-        }
-      }
-      addToast(message, 'success')
+      // Показываем успех в прогрессе
+      setExportProgress({
+        status: 'success',
+        filename
+      })
 
     } catch (error) {
       logError('Export error:', error)
+
+      // Показываем ошибку в прогрессе
+      setExportProgress({
+        status: 'error',
+        filename
+      })
+
+      // Также показываем toast с деталями
       addToast(
         error.message || t('toast.exportError') || 'Ошибка экспорта',
         'error'
@@ -267,6 +281,17 @@ export function useExport() {
 
     setExporting(type)
 
+    // Генерируем имя файла заранее для прогресса
+    const timestamp = new Date().toISOString().split('T')[0]
+    const extension = format === 'excel' ? 'xlsx' : format
+    const filename = `${exportConfig.filename}_${timestamp}.${extension}`
+
+    // Показываем прогресс "загрузка"
+    setExportProgress({
+      status: 'downloading',
+      filename
+    })
+
     try {
       // Форматируем данные
       const formattedData = options.skipFormatting
@@ -276,13 +301,9 @@ export function useExport() {
       // Получаем конфигурацию колонок
       const columns = options.columns || EXPORT_COLUMNS[exportConfig.columnsKey]?.(t) || []
 
-      // Генерируем имя файла
-      const timestamp = new Date().toISOString().split('T')[0]
-      const filename = `${exportConfig.filename}_${timestamp}`
-
       // Экспорт в нужном формате
       if (format === 'excel') {
-        exportToExcel(formattedData, columns, filename, exportConfig.title)
+        exportToExcel(formattedData, columns, `${exportConfig.filename}_${timestamp}`, exportConfig.title)
       } else if (format === 'pdf') {
         exportToPDF(exportConfig.title, formattedData, columns, {
           subtitle: exportConfig.subtitle,
@@ -291,13 +312,35 @@ export function useExport() {
         })
       }
 
-      addToast(t('toast.exportSuccess') || 'Экспорт завершен', 'success')
+      // Показываем успех в прогрессе
+      setExportProgress({
+        status: 'success',
+        filename
+      })
     } catch (error) {
       logError('Client export error:', error)
+
+      // Показываем ошибку в прогрессе
+      setExportProgress({
+        status: 'error',
+        filename
+      })
+
+      // Также показываем toast с деталями
       addToast(t('toast.exportError') || 'Ошибка экспорта', 'error')
     } finally {
       setExporting(null)
     }
+  }
+
+  /**
+   * Закрытие уведомления о прогрессе экспорта
+   */
+  const dismissExportProgress = () => {
+    setExportProgress({
+      status: null,
+      filename: null
+    })
   }
 
   return {
@@ -305,6 +348,8 @@ export function useExport() {
     exportClientData,
     exporting,
     isExporting: !!exporting,
+    exportProgress,
+    dismissExportProgress,
     EXPORT_TYPES
   }
 }

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { X, Plus, Check, Calendar, Package, User, Trash2, AlertTriangle, Zap } from 'lucide-react'
 import { ButtonLoader, TouchButton, Switch } from './ui'
+import Tooltip from './Tooltip'
 import { useProducts, categories } from '../context/ProductContext'
 import { useAuth } from '../context/AuthContext'
 import { useTranslation, useLanguage } from '../context/LanguageContext'
@@ -199,22 +200,31 @@ export default function ProductModal({ product, onClose }) {
               </TouchButton>
             )}
             {canDeleteProduct && (
-              <TouchButton
-                variant="ghost"
-                size="icon"
-                onClick={() => setShowDeleteConfirm(true)}
-                className="text-muted-foreground hover:text-danger p-2 min-w-0 min-h-0"
-                title={t('product.delete') || 'Удалить товар'}
-                icon={Trash2}
-              />
+              <Tooltip content={t('product.delete') || 'Удалить товар'}>
+                <span className="inline-flex">
+                  <TouchButton
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setShowDeleteConfirm(true)}
+                    className="text-muted-foreground hover:text-danger p-2 min-w-0 min-h-0"
+                    aria-label={t('product.delete') || 'Удалить товар'}
+                    icon={Trash2}
+                  />
+                </span>
+              </Tooltip>
             )}
-            <TouchButton
-              variant="ghost"
-              size="icon"
-              onClick={onClose}
-              className="text-muted-foreground hover:text-foreground p-2 min-w-0 min-h-0"
-              icon={X}
-            />
+            <Tooltip content={t('common.close') || 'Закрыть'}>
+              <span className="inline-flex">
+                <TouchButton
+                  variant="ghost"
+                  size="icon"
+                  onClick={onClose}
+                  className="text-muted-foreground hover:text-foreground p-2 min-w-0 min-h-0"
+                  aria-label={t('common.close') || 'Закрыть'}
+                  icon={X}
+                />
+              </span>
+            </Tooltip>
           </div>
         </div>
 

@@ -1,4 +1,5 @@
 import { useToast } from '../context/ToastContext'
+import { useTranslation } from '../context/LanguageContext'
 import { CheckCircle, XCircle, AlertTriangle, Info, X } from 'lucide-react'
 import { InlineLoader } from './ui'
 
@@ -46,6 +47,7 @@ const colors = {
 }
 
 function ToastItem({ toast, onRemove }) {
+  const { t } = useTranslation()
   const Icon = icons[toast.type] || Info
   const color = colors[toast.type] || colors.info
   const isLoading = toast.type === 'loading'
@@ -80,9 +82,10 @@ function ToastItem({ toast, onRemove }) {
         <button
           onClick={() => onRemove(toast.id)}
           className="flex-shrink-0 text-muted-foreground hover:text-foreground transition-colors p-1 -m-1"
-          aria-label="Закрыть"
+          aria-label={t('common.close') || 'Закрыть'}
+          title={t('common.close') || 'Закрыть'}
         >
-          <X className="w-4 h-4" />
+          <X className="w-4 h-4" aria-hidden="true" />
         </button>
       )}
 
@@ -104,15 +107,34 @@ export default function ToastContainer() {
 
   if (toasts.length === 0) return null
 
+  // Последнее уведомление для озвучивания скринридером (aria-live)
+  const latestToast = toasts[toasts.length - 1]
+  const liveMessage = latestToast
+    ? [latestToast.title, latestToast.message].filter(Boolean).join('. ')
+    : ''
+
   return (
-    <div
-      className="fixed bottom-20 sm:bottom-4 right-4 left-4 sm:left-auto z-[100] flex flex-col gap-2"
-      aria-live="polite"
-      aria-label="Уведомления"
-    >
-      {toasts.map((toast) => (
-        <ToastItem key={toast.id} toast={toast} onRemove={removeToast} />
-      ))}
-    </div>
+    <>
+      {/* Скрытая область для озвучивания новых уведомлений (screen readers) */}
+      <div
+        id="toast-aria-live"
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+        role="status"
+      >
+        {liveMessage}
+      </div>
+      <div
+        className="fixed bottom-20 sm:bottom-4 right-4 left-4 sm:left-auto z-[100] flex flex-col gap-2"
+        aria-live="polite"
+        aria-atomic="true"
+        aria-label="Уведомления"
+      >
+        {toasts.map((toast) => (
+          <ToastItem key={toast.id} toast={toast} onRemove={removeToast} />
+        ))}
+      </div>
+    </>
   )
 }

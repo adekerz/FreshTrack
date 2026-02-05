@@ -10,6 +10,7 @@ export const themes = [
 ]
 
 const STORAGE_KEY = 'freshtrack_theme'
+const HIGH_CONTRAST_KEY = 'freshtrack_high_contrast'
 
 export function ThemeProvider({ children }) {
   // Initialize theme from localStorage or system preference
@@ -19,6 +20,10 @@ export function ThemeProvider({ children }) {
       return saved
     }
     return 'system'
+  })
+
+  const [highContrast, setHighContrast] = useState(() => {
+    return localStorage.getItem(HIGH_CONTRAST_KEY) === 'true'
   })
 
   // Get the actual theme (resolving 'system' to light/dark)
@@ -60,6 +65,20 @@ export function ThemeProvider({ children }) {
     }
   }, [theme, resolvedTheme])
 
+  // High contrast mode (a11y)
+  useEffect(() => {
+    localStorage.setItem(HIGH_CONTRAST_KEY, highContrast ? 'true' : 'false')
+    if (highContrast) {
+      document.documentElement.classList.add('high-contrast')
+    } else {
+      document.documentElement.classList.remove('high-contrast')
+    }
+  }, [highContrast])
+
+  const toggleHighContrast = useCallback(() => {
+    setHighContrast(prev => !prev)
+  }, [])
+
   // Toggle between light and dark
   const toggleTheme = useCallback(() => {
     setTheme(prev => {
@@ -78,11 +97,13 @@ export function ThemeProvider({ children }) {
   }, [])
 
   const value = {
-    theme,           // User's preference: 'light' | 'dark' | 'system'
-    resolvedTheme,   // Actual theme being used: 'light' | 'dark'
+    theme,
+    resolvedTheme,
     isDark: resolvedTheme === 'dark',
     toggleTheme,
     changeTheme,
+    highContrast,
+    toggleHighContrast,
   }
 
   return (

@@ -1,6 +1,7 @@
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Leaf, PanelLeftClose, PanelLeftOpen, X, LogOut, Globe } from 'lucide-react'
 import TouchButton from './ui/TouchButton'
+import Tooltip from './Tooltip'
 import { useProducts } from '../context/ProductContext'
 import { useAuth } from '../context/AuthContext'
 import { useTranslation, useLanguage } from '../context/LanguageContext'
@@ -137,14 +138,18 @@ export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose, e
 
           {/* Кнопка закрытия для мобильной версии (не показываем при embedded) */}
           {isMobile && !embedded && (
-            <TouchButton
-              variant="ghost"
-              size="icon"
-              onClick={onClose}
-              className="p-2 hover:bg-white/10 rounded text-cream/80 hover:text-cream"
-              aria-label={t('common.close') || 'Close menu'}
-              icon={X}
-            />
+            <Tooltip content={t('common.close') || 'Закрыть меню'}>
+              <span className="inline-flex">
+                <TouchButton
+                  variant="ghost"
+                  size="icon"
+                  onClick={onClose}
+                  className="p-2 hover:bg-white/10 rounded text-cream/80 hover:text-cream"
+                  aria-label={t('common.close') || 'Закрыть меню'}
+                  icon={X}
+                />
+              </span>
+            </Tooltip>
           )}
         </div>
         )}
@@ -281,14 +286,18 @@ export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose, e
         {/* Toggle Button (только для десктопа, не при embedded) */}
         {!isMobile && !embedded && (
           <div className="p-4 border-t border-white/10">
-            <TouchButton
-              variant="ghost"
-              size="icon"
-              onClick={onToggle}
-              className="w-full rounded text-cream/80 hover:text-cream hover:bg-white/5"
-              title={isOpen ? t('sidebar.collapse') : t('sidebar.expand')}
-              icon={isOpen ? PanelLeftClose : PanelLeftOpen}
-            />
+            <Tooltip content={isOpen ? (t('sidebar.collapse') || 'Свернуть') : (t('sidebar.expand') || 'Развернуть')}>
+              <span className="inline-flex w-full justify-center">
+                <TouchButton
+                  variant="ghost"
+                  size="icon"
+                  onClick={onToggle}
+                  className="w-full rounded text-cream/80 hover:text-cream hover:bg-white/5"
+                  aria-label={isOpen ? t('sidebar.collapse') : t('sidebar.expand')}
+                  icon={isOpen ? PanelLeftClose : PanelLeftOpen}
+                />
+              </span>
+            </Tooltip>
           </div>
         )}
       </aside>

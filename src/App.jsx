@@ -28,6 +28,7 @@ const MFASetupPage = lazy(() => import('./pages/MFASetupPage'))
 const FAQPage = lazy(() => import('./pages/FAQPage'))
 const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage'))
 const TermsOfServicePage = lazy(() => import('./pages/TermsOfServicePage'))
+const AccessibilityStatementPage = lazy(() => import('./pages/AccessibilityStatementPage'))
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'))
 
 // Suspense fallback — используем единый PageLoader
@@ -41,15 +42,15 @@ function App() {
   // Check if user is pending approval
   const isPendingUser = user?.status === 'pending'
 
-  // Показываем загрузку при инициализации — используем единый Loader
+  // Показываем загрузку при инициализации — используем единый Loader (landmark main для axe)
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <main className="min-h-screen bg-background flex items-center justify-center" role="main">
         <div className="flex flex-col items-center gap-6" role="status" aria-live="polite">
           <Loader size="large" aria-label="Инициализация приложения" />
           <p className="text-accent font-serif text-xl">FreshTrack</p>
         </div>
-      </div>
+      </main>
     )
   }
 
@@ -135,12 +136,14 @@ function App() {
             <Route path="/" element={<DashboardPage />} />
             <Route path="/change-password" element={<ChangePasswordPage />} />
             <Route path="/verify-email" element={<VerifyEmailPage />} />
+            <Route path="/inventory/:departmentId" element={<InventoryPage />} />
             <Route path="/inventory" element={<InventoryPage />} />
             <Route path="/notifications" element={<NotificationsPage />} />
             <Route path="/calendar" element={<CalendarPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/mfa-setup" element={<MFASetupPage />} />
             <Route path="/faq" element={<FAQPage />} />
+            <Route path="/accessibility" element={<AccessibilityStatementPage />} />
             {/* Legal pages (accessible to logged-in users too) */}
             <Route path="/privacy" element={<PrivacyPolicyPage />} />
             <Route path="/terms" element={<TermsOfServicePage />} />
