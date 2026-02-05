@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   FileText,
   Search,
@@ -75,15 +75,48 @@ export default function AuditLogsPage() {
   const [stats, setStats] = useState(null)
   const [users, setUsers] = useState([])
   const [departments, setDepartments] = useState([])
+  const [statsLoaded, setStatsLoaded] = useState(false)
+  const filterOptionsLoadedRef = useRef(false)
 
+  // Первый рендер: только логи (таблица), limit 20
   useEffect(() => {
-    if (selectedHotelId) {
-      loadLogs()
-      loadStats()
-      loadUsers()
-      loadDepartments()
-    }
+    if (!selectedHotelId) return
+    loadLogs()
   }, [selectedHotelId, filters, pagination.page])
+
+  // Сброс графика и флага при смене отеля
+  const prevHotelRef = useRef(selectedHotelId)
+  useEffect(() => {
+    if (prevHotelRef.current !== selectedHotelId) {
+      prevHotelRef.current = selectedHotelId
+      setStats(null)
+      setStatsLoaded(false)
+      filterOptionsLoadedRef.current = false
+    }
+  }, [selectedHotelId])
+
+  // График: подгрузка после первого отображения таблицы (отложенная)
+  useEffect(() => {
+    if (!selectedHotelId || statsLoaded) return
+    let cancelled = false
+    const tid = setTimeout(() => {
+      loadStats().then(() => {
+        if (!cancelled) setStatsLoaded(true)
+      })
+    }, 150)
+    return () => {
+      cancelled = true
+      clearTimeout(tid)
+    }
+  }, [selectedHotelId, statsLoaded])
+
+  // Справочники для фильтров: только при открытии панели фильтров
+  useEffect(() => {
+    if (!selectedHotelId || !showFilters || filterOptionsLoadedRef.current) return
+    filterOptionsLoadedRef.current = true
+    loadUsers()
+    loadDepartments()
+  }, [selectedHotelId, showFilters])
 
   const loadLogs = async () => {
     setLoading(true)
@@ -366,13 +399,15 @@ export default function AuditLogsPage() {
               type="button"
               onClick={() => setShowFilters(!showFilters)}
               className={cn(
-                'flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg border transition-colors text-sm flex-1 sm:flex-none justify-center min-h-[44px]',
+                'flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg border transition-colors text-sm flex-1 sm:flex-none justify-center min-h-[44px] focus:outline-none focus:ring-2 focus:ring-accent/20',
                 showFilters || hasActiveFilters
                   ? 'border-accent bg-accent/10 text-accent'
                   : 'border-border text-muted-foreground hover:bg-muted'
               )}
+              aria-label={t('common.filters')}
+              aria-expanded={showFilters}
             >
-              <Filter className="w-4 h-4" />
+              <Filter className="w-4 h-4" aria-hidden="true" />
               {t('common.filters')}
               {activeFiltersCount > 0 && (
                 <span className="ml-1 w-5 h-5 bg-accent text-white text-xs rounded-full flex items-center justify-center">
@@ -399,10 +434,11 @@ export default function AuditLogsPage() {
         {showFilters && (
           <div className="mt-4 pt-4 border-t border-border grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
-              <label className="block text-sm font-medium text-foreground mb-1">
+              <label htmlFor="audit-filter-severity" className="block text-sm font-medium text-foreground mb-1">
                 {t('auditLogs.filters.severity')}
               </label>
               <select
+                id="audit-filter-severity"
                 value={filters.severity}
                 onChange={(e) => setFilters((prev) => ({ ...prev, severity: e.target.value }))}
                 className="w-full px-3 py-2 border border-border rounded-lg bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-accent/20"
@@ -414,10 +450,11 @@ export default function AuditLogsPage() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-foreground mb-1">
+              <label htmlFor="audit-filter-user" className="block text-sm font-medium text-foreground mb-1">
                 {t('auditLogs.filters.user')}
               </label>
               <select
+                id="audit-filter-user"
                 value={filters.userId}
                 onChange={(e) => setFilters((prev) => ({ ...prev, userId: e.target.value }))}
                 className="w-full px-3 py-2 border border-border rounded-lg bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-accent/20"
@@ -431,10 +468,11 @@ export default function AuditLogsPage() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-foreground mb-1">
+              <label htmlFor="audit-filter-department" className="block text-sm font-medium text-foreground mb-1">
                 {t('auditLogs.filters.department')}
               </label>
               <select
+                id="audit-filter-department"
                 value={filters.departmentId}
                 onChange={(e) =>
                   setFilters((prev) => ({ ...prev, departmentId: e.target.value }))
@@ -450,8 +488,9 @@ export default function AuditLogsPage() {
               </select>
             </div>
             <div className="flex items-center gap-2">
-              <label className="flex items-center gap-2 text-sm text-foreground cursor-pointer min-h-[44px]">
+              <label htmlFor="audit-filter-security" className="flex items-center gap-2 text-sm text-foreground cursor-pointer min-h-[44px]">
                 <input
+                  id="audit-filter-security"
                   type="checkbox"
                   checked={filters.securityOnly}
                   onChange={(e) =>
@@ -479,7 +518,11 @@ export default function AuditLogsPage() {
       </div>
 
       {/* Logs Table */}
-      <div className="bg-card rounded-xl border border-border overflow-hidden">
+      <div
+        className="bg-card rounded-xl border border-border overflow-hidden"
+        role="region"
+        aria-label={t('auditLogs.tableTitle') || t('auditLogs.title')}
+      >
         {filteredLogs.length === 0 ? (
           <EmptyState
             icon={FileText}

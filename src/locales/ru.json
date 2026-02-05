@@ -545,6 +545,7 @@
     "backToDepartments": "К отделам",
     "addNewProduct": "Добавить товар",
     "addBatchToStart": "Добавьте партию, чтобы начать",
+    "sortOrder": "Сортировка",
     "sortByExpiry": "По сроку",
     "sortByName": "По названию",
     "sortByQuantity": "По количеству",

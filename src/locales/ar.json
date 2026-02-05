@@ -283,6 +283,7 @@
     "backToDepartments": "العودة إلى الأقسام",
     "addNewProduct": "إضافة منتج",
     "addBatchToStart": "أضف دفعة للبدء",
+    "sortOrder": "الترتيب",
     "sortByExpiry": "حسب الانتهاء",
     "sortByName": "حسب الاسم",
     "sortByQuantity": "حسب الكمية",

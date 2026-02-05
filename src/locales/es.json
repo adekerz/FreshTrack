@@ -283,6 +283,7 @@
     "backToDepartments": "Volver a departamentos",
     "addNewProduct": "Añadir producto",
     "addBatchToStart": "Añada un lote para comenzar",
+    "sortOrder": "Ordenar por",
     "sortByExpiry": "Por caducidad",
     "sortByName": "Por nombre",
     "sortByQuantity": "Por cantidad",

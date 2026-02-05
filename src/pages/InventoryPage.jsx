@@ -470,6 +470,7 @@ export default function InventoryPage() {
               onClick={() => setShowSelectTemplateModal(true)}
               className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground hover:text-accent min-h-0 h-auto"
               title={t('inventory.applyTemplate')}
+              aria-label={t('inventory.applyTemplate')}
               icon={FileBox}
               iconPosition="left"
             >
@@ -482,6 +483,7 @@ export default function InventoryPage() {
                 onClick={() => setShowClearAllConfirm(true)}
                 className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground hover:text-accent min-h-0 h-auto"
                 title={t('inventory.clearAll') || 'Очистить все партии'}
+                aria-label={t('inventory.clearAll') || 'Очистить все партии'}
                 icon={Trash2}
                 iconPosition="left"
               >
@@ -489,17 +491,18 @@ export default function InventoryPage() {
               </TouchButton>
             )}
             {!userIsStaff && (
-              <TouchButton
-                variant="ghost"
-                size="small"
-                onClick={() => setShowAddCustomModal(true)}
-                className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground hover:text-accent min-h-0 h-auto"
-                title={t('inventory.addNewProduct')}
-                icon={Plus}
-                iconPosition="left"
-              >
-                <span className="hidden sm:inline">{t('inventory.addNewProduct')}</span>
-              </TouchButton>
+<TouchButton
+              variant="ghost"
+              size="small"
+              onClick={() => setShowAddCustomModal(true)}
+              className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground hover:text-accent min-h-0 h-auto"
+              title={t('inventory.addNewProduct')}
+              aria-label={t('inventory.addNewProduct')}
+              icon={Plus}
+              iconPosition="left"
+            >
+              <span className="hidden sm:inline">{t('inventory.addNewProduct')}</span>
+            </TouchButton>
             )}
           </div>
         }
@@ -515,7 +518,7 @@ export default function InventoryPage() {
             onClick={() => setSelectedCategory('all')}
             className={`px-3 sm:px-4 py-2 rounded-full text-sm whitespace-nowrap flex-shrink-0 min-h-0 h-auto font-medium transition-all duration-200 ${
               selectedCategory === 'all'
-                ? 'bg-primary-600 text-white hover:bg-primary-600/90 shadow-sm border-0 dark:bg-primary-500 dark:hover:bg-primary-500/90'
+                ? 'bg-accent-button text-white hover:bg-accent-button/90 shadow-sm border-0'
                 : 'bg-card border border-border text-foreground hover:bg-muted/80 hover:border-muted-foreground/30'
             }`}
           >
@@ -529,7 +532,7 @@ export default function InventoryPage() {
               onClick={() => setSelectedCategory(cat.id)}
               className={`px-3 sm:px-4 py-2 rounded-full text-sm whitespace-nowrap flex-shrink-0 min-h-0 h-auto font-medium transition-all duration-200 ${
                 selectedCategory === cat.id
-                  ? 'bg-primary-600 text-white hover:bg-primary-600/90 shadow-sm border-0 dark:bg-primary-500 dark:hover:bg-primary-500/90'
+                  ? 'bg-accent-button text-white hover:bg-accent-button/90 shadow-sm border-0'
                   : 'bg-card border border-border text-foreground hover:bg-muted/80 hover:border-muted-foreground/30'
               }`}
             >
@@ -540,10 +543,11 @@ export default function InventoryPage() {
 
         {/* Сортировка */}
         <div className="flex items-center gap-2 flex-shrink-0">
-          <ArrowUpDown className="w-4 h-4 text-muted-foreground" />
+          <ArrowUpDown className="w-4 h-4 text-muted-foreground" aria-hidden="true" />
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
+            aria-label={t('inventory.sortOrder') || 'Сортировка'}
             className="text-xs sm:text-sm bg-card border border-border rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-accent/20"
           >
             <option value="expiry">{t('inventory.sortByExpiry') || 'По сроку'}</option>

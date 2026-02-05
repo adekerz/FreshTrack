@@ -540,6 +540,7 @@
     "backToDepartments": "Back to departments",
     "addNewProduct": "Add Product",
     "addBatchToStart": "Add a batch to get started",
+    "sortOrder": "Sort order",
     "sortByExpiry": "By expiry",
     "sortByName": "By name",
     "sortByQuantity": "By quantity",

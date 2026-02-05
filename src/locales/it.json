@@ -283,6 +283,7 @@
     "backToDepartments": "Torna ai reparti",
     "addNewProduct": "Aggiungi prodotto",
     "addBatchToStart": "Aggiungi un lotto per iniziare",
+    "sortOrder": "Ordina per",
     "sortByExpiry": "Per scadenza",
     "sortByName": "Per nome",
     "sortByQuantity": "Per quantità",

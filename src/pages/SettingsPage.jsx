@@ -302,10 +302,11 @@ export default function SettingsPage() {
             {/* Информация - компактные inputs на мобильных */}
             <div className="grid sm:grid-cols-2 gap-3 sm:gap-4 pt-4">
               <div>
-                <label className="block text-xs sm:text-sm text-muted-foreground mb-1.5">
+                <label htmlFor="settings-profile-name" className="block text-xs sm:text-sm text-muted-foreground mb-1.5">
                   {t('settings.profile.name') || 'Имя'}
                 </label>
                 <input
+                  id="settings-profile-name"
                   type="text"
                   value={profileData.name}
                   onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
@@ -313,11 +314,12 @@ export default function SettingsPage() {
                 />
               </div>
               <div>
-                <label className="block text-xs sm:text-sm text-muted-foreground mb-1.5">
+                <label htmlFor="settings-profile-email" className="block text-xs sm:text-sm text-muted-foreground mb-1.5">
                   {t('settings.profile.email') || 'Email'}
                 </label>
                 <div className="flex gap-2">
                   <input
+                    id="settings-profile-email"
                     type="email"
                     value={profileData.email || user?.email || ''}
                     disabled
@@ -326,11 +328,13 @@ export default function SettingsPage() {
                   />
                   {user?.email && (
                     <button
+                      type="button"
                       onClick={() => setShowChangeEmailModal(true)}
-                      className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 border border-border rounded-lg text-foreground hover:bg-muted transition-colors whitespace-nowrap flex-shrink-0"
+                      className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 border border-border rounded-lg text-foreground hover:bg-muted transition-colors whitespace-nowrap flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-accent/20 min-h-[44px]"
                       title={t('auth.changeEmail') || 'Изменить email'}
+                      aria-label={t('auth.changeEmail') || 'Изменить email'}
                     >
-                      <Mail className="w-4 h-4" />
+                      <Mail className="w-4 h-4" aria-hidden="true" />
                       <span className="hidden sm:inline text-sm">{t('auth.changeEmail') || 'Изменить'}</span>
                     </button>
                   )}
@@ -342,10 +346,11 @@ export default function SettingsPage() {
                 )}
               </div>
               <div>
-                <label className="block text-xs sm:text-sm text-muted-foreground mb-1.5">
+                <label htmlFor="settings-profile-login" className="block text-xs sm:text-sm text-muted-foreground mb-1.5">
                   {t('settings.profile.login')}
                 </label>
                 <input
+                  id="settings-profile-login"
                   type="text"
                   value={user?.login || ''}
                   disabled
@@ -353,10 +358,11 @@ export default function SettingsPage() {
                 />
               </div>
               <div>
-                <label className="block text-xs sm:text-sm text-muted-foreground mb-1.5">
+                <label htmlFor="settings-profile-role" className="block text-xs sm:text-sm text-muted-foreground mb-1.5">
                   {t('settings.profile.role')}
                 </label>
                 <input
+                  id="settings-profile-role"
                   type="text"
                   value={user?.roleLabel || t(`settings.profile.role${user?.role}`) || user?.role}
                   disabled
@@ -446,12 +452,15 @@ export default function SettingsPage() {
           {languages.map((lang) => (
             <button
               key={lang.code}
+              type="button"
               onClick={() => changeLanguage(lang.code)}
-              className={`flex items-center gap-2 sm:gap-3 p-3 sm:p-4 rounded-lg border transition-all ${
+              className={`flex items-center gap-2 sm:gap-3 p-3 sm:p-4 rounded-lg border transition-all focus:outline-none focus:ring-2 focus:ring-accent/20 min-h-[44px] ${
                 language === lang.code
                   ? 'border-accent bg-accent/5'
                   : 'border-border hover:border-muted-foreground'
               }`}
+              aria-label={lang.name}
+              aria-pressed={language === lang.code}
             >
               <span className="text-2xl">{lang.flag}</span>
               <span
@@ -477,14 +486,16 @@ export default function SettingsPage() {
             'Restart the guided tour to learn about the app features.'}
         </p>
         <button
+          type="button"
           onClick={() => {
             resetOnboarding()
             startOnboarding()
             addToast(t('settings.onboarding.restarted') || 'Tour restarted', 'success')
           }}
-          className="flex items-center gap-2 px-4 py-2.5 bg-accent/10 text-accent border border-accent/20 rounded-lg hover:bg-accent/20 transition-colors text-sm font-medium"
+          className="flex items-center gap-2 px-4 py-2.5 bg-accent/10 text-accent border border-accent/20 rounded-lg hover:bg-accent/20 transition-colors text-sm font-medium focus:outline-none focus:ring-2 focus:ring-accent/20 min-h-[44px]"
+          aria-label={t('settings.onboarding.restart') || 'Restart Tour'}
         >
-          <RefreshCw className="w-4 h-4" />
+          <RefreshCw className="w-4 h-4" aria-hidden="true" />
           {t('settings.onboarding.restart') || 'Restart Tour'}
         </button>
       </div>
@@ -539,11 +550,13 @@ export default function SettingsPage() {
                 </span>
               </div>
               <button
+                type="button"
                 onClick={checkSystemHealth}
                 disabled={systemLoading}
-                className="p-2 hover:bg-muted-foreground/10 rounded-lg transition-colors"
+                className="p-2 hover:bg-muted-foreground/10 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-accent/20 min-h-[44px] min-w-[44px] flex items-center justify-center"
+                aria-label={t('common.refresh') || 'Обновить статус'}
               >
-                <RefreshCw className={`w-4 h-4 ${systemLoading ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`w-4 h-4 ${systemLoading ? 'animate-spin' : ''}`} aria-hidden="true" />
               </button>
             </div>
 
@@ -647,12 +660,16 @@ export default function SettingsPage() {
                   <User className="w-3.5 h-3.5" />
                   Личные
                 </div>
-                <div className="flex lg:flex-col gap-1 overflow-x-auto lg:overflow-visible">
+                <div className="flex lg:flex-col gap-1 overflow-x-auto lg:overflow-visible" role="tablist">
                   {personalTabs.map((tab) => (
                     <button
                       key={tab.id}
+                      type="button"
                       onClick={() => setActiveTab(tab.id)}
-                      className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm transition-colors flex-shrink-0 lg:w-full min-w-0 ${
+                      aria-label={tab.label}
+                      aria-selected={activeTab === tab.id}
+                      role="tab"
+                      className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm transition-colors flex-shrink-0 lg:w-full min-w-0 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:ring-offset-2 focus:ring-offset-background ${
                         activeTab === tab.id
                           ? 'bg-foreground text-background'
                           : 'text-muted-foreground hover:bg-muted hover:text-foreground'
@@ -671,14 +688,18 @@ export default function SettingsPage() {
                   <Wrench className="w-3.5 h-3.5" />
                   Управление
                 </div>
-                <div className="flex lg:flex-col gap-1 overflow-x-auto lg:overflow-visible">
+                <div className="flex lg:flex-col gap-1 overflow-x-auto lg:overflow-visible" role="tablist">
                   {managementTabs.map((tab) => {
                     const TabIcon = tab.icon ?? CalendarClock
                     return (
                       <button
                         key={tab.id}
+                        type="button"
                         onClick={() => setActiveTab(tab.id)}
-                        className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm transition-colors flex-shrink-0 lg:w-full min-w-0 ${
+                        aria-label={tab.label}
+                        aria-selected={activeTab === tab.id}
+                        role="tab"
+                        className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm transition-colors flex-shrink-0 lg:w-full min-w-0 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:ring-offset-2 focus:ring-offset-background ${
                           activeTab === tab.id
                             ? 'bg-foreground text-background'
                             : 'text-muted-foreground hover:bg-muted hover:text-foreground'
@@ -699,15 +720,19 @@ export default function SettingsPage() {
                     <Crown className="w-3.5 h-3.5" />
                     Супер-Админ
                   </div>
-                  <div className="flex lg:flex-col gap-1 overflow-x-auto lg:overflow-visible">
+                  <div className="flex lg:flex-col gap-1 overflow-x-auto lg:overflow-visible" role="tablist">
                     {superAdminTabs.map((tab) => (
                     <button
                       key={tab.id}
+                      type="button"
                       onClick={() => setActiveTab(tab.id)}
-                      className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm transition-colors flex-shrink-0 lg:w-full min-w-0 ${
+                      aria-label={tab.label}
+                      aria-selected={activeTab === tab.id}
+                      role="tab"
+                      className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm transition-colors flex-shrink-0 lg:w-full min-w-0 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-background ${
                         activeTab === tab.id
                           ? 'bg-amber-500 text-white'
-                          : 'text-amber-700 dark:text-amber-300 hover:bg-amber-500/20'
+                          : 'text-amber-800 dark:text-amber-200 hover:bg-amber-500/20'
                       }`}
                     >
                       <tab.icon className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
@@ -720,12 +745,16 @@ export default function SettingsPage() {
             </>
           ) : (
             /* Обычный пользователь */
-            <div className="bg-card rounded-xl border border-border p-1.5 sm:p-2 flex lg:flex-col gap-1 overflow-x-auto lg:overflow-visible">
+            <div className="bg-card rounded-xl border border-border p-1.5 sm:p-2 flex lg:flex-col gap-1 overflow-x-auto lg:overflow-visible" role="tablist">
               {userTabs.map((tab) => (
                 <button
                   key={tab.id}
+                  type="button"
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-lg text-xs sm:text-sm transition-colors flex-shrink-0 lg:w-full min-w-0 ${
+                  aria-label={tab.label}
+                  aria-selected={activeTab === tab.id}
+                  role="tab"
+                  className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-lg text-xs sm:text-sm transition-colors flex-shrink-0 lg:w-full min-w-0 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:ring-offset-2 focus:ring-offset-background ${
                     activeTab === tab.id
                       ? 'bg-foreground text-background'
                       : 'text-muted-foreground hover:bg-muted hover:text-foreground'

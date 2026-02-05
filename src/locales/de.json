@@ -283,6 +283,7 @@
     "backToDepartments": "Zurück zu Abteilungen",
     "addNewProduct": "Produkt hinzufügen",
     "addBatchToStart": "Fügen Sie eine Charge hinzu, um zu beginnen",
+    "sortOrder": "Sortierung",
     "sortByExpiry": "Nach Verfallsdatum",
     "sortByName": "Nach Name",
     "sortByQuantity": "Nach Menge",

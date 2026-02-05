@@ -283,6 +283,7 @@
     "backToDepartments": "Retour aux départements",
     "addNewProduct": "Ajouter un produit",
     "addBatchToStart": "Ajoutez un lot pour commencer",
+    "sortOrder": "Trier par",
     "sortByExpiry": "Par expiration",
     "sortByName": "Par nom",
     "sortByQuantity": "Par quantité",
