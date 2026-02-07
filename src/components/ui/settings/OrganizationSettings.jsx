@@ -10,30 +10,25 @@ import { useToast } from '../../../context/ToastContext'
 import { useAuth } from '../../../context/AuthContext'
 import { apiFetch } from '../../../services/api'
 import { formatDate } from '../../../utils/dateUtils'
-import MarshaCodeSelector from '../../MarshaCodeSelector'
-import { CityAutocomplete } from '../../hotels/CityAutocomplete'
-import { ButtonLoader, SectionLoader, Switch } from '..'
+import { ButtonLoader, SectionLoader } from '..'
 import {
   Building2,
   Plus,
-  Trash2,
-  Check,
-  X,
-  RefreshCw,
-  ChevronDown,
-  ChevronRight,
-  Copy,
   Users,
-  User,
   UserPlus,
   Ban,
-  Eye,
-  EyeOff,
   AlertTriangle,
-  Mail
+  Trash2
 } from 'lucide-react'
-import { cn } from '../../../utils/classNames'
 import SettingsLayout from './SettingsLayout'
+import {
+  UserRow,
+  HotelCard,
+  DepartmentsList,
+  CreateHotelModal,
+  CreateDepartmentModal,
+  CreateUserModal
+} from './organization'
 
 /** Конвертация названия страны → ISO код для detect-timezone */
 function getCountryCodeFromName(countryName) {
@@ -64,7 +59,6 @@ export default function OrganizationSettings() {
   const [loading, setLoading] = useState(true)
   const [expandedHotels, setExpandedHotels] = useState({})
   const [expandedDepts, setExpandedDepts] = useState({})
-  const [activeView, setActiveView] = useState('hotels') // hotels | users (для не-SuperAdmin)
 
   // Create hotel modal
   const [showCreateHotel, setShowCreateHotel] = useState(false)
@@ -269,19 +263,19 @@ export default function OrganizationSettings() {
       setUserError('Заполните обязательные поля (логин, имя)')
       return
     }
-    
+
     // If generatePassword is enabled, password is optional
     if (!generatePassword && !newUser.password) {
       setUserError('Укажите пароль или включите автоматическую генерацию')
       return
     }
-    
+
     // Email is required if generating password (to send it)
     if (generatePassword && !newUser.email) {
       setUserError('Email обязателен для отправки временного пароля')
       return
     }
-    
+
     setCreatingUser(true)
     setUserError(null)
     try {
@@ -296,7 +290,7 @@ export default function OrganizationSettings() {
         hotel_id: showCreateUser?.hotelId,
         department_id: showCreateUser?.departmentId
       }
-      
+
       // Only include password if manually set (not auto-generated)
       if (!generatePassword && newUser.password) {
         requestBody.password = newUser.password
@@ -306,13 +300,13 @@ export default function OrganizationSettings() {
         method: 'POST',
         body: JSON.stringify(requestBody)
       })
-      
+
       if (generatePassword && newUser.email) {
         addToast(`Пользователь создан. Временный пароль отправлен на ${newUser.email}`, 'success')
       } else {
         addToast('Пользователь создан', 'success')
       }
-      
+
       setShowCreateUser(null)
       setNewUser({ login: '', password: '', name: '', email: '', role: 'STAFF' })
       setGeneratePassword(true) // Reset to default
@@ -325,18 +319,18 @@ export default function OrganizationSettings() {
       setCreatingUser(false)
     }
   }
-  
+
   // Resend password to user
   const resendPassword = async (userId, userEmail) => {
     if (!window.confirm(`Отправить новый временный пароль на ${userEmail}?`)) {
       return
     }
-    
+
     try {
       const result = await apiFetch(`/auth/users/${userId}/resend-password`, {
         method: 'POST'
       })
-      
+
       if (result.success || !result.error) {
         addToast(`Временный пароль отправлен на ${userEmail}`, 'success')
       } else {
@@ -417,75 +411,21 @@ export default function OrganizationSettings() {
     )
   }
 
-  // Render user row
-  const renderUserRow = (user, showHotelInfo = false) => (
-    <div
+  const renderUserRow = (user) => (
+    <UserRow
       key={user.id}
-      className="flex items-center justify-between p-3 bg-card rounded-lg border border-border"
-    >
-      <div className="flex items-center gap-3 min-w-0">
-        <div className="w-8 h-8 bg-accent/10 rounded-full flex items-center justify-center flex-shrink-0">
-          <User className="w-4 h-4 text-accent" />
-        </div>
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="font-medium text-foreground truncate">{user.name}</span>
-            {getRoleBadge(user.role)}
-          </div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-            <span className="truncate">{user.login}</span>
-            {user.email && <span className="truncate">• {user.email}</span>}
-          </div>
-        </div>
-      </div>
-      <div className="flex items-center gap-2 flex-shrink-0">
-        <span
-          className={`px-2 py-0.5 rounded text-xs ${
-            user.is_active !== false ? 'bg-success/10 text-success' : 'bg-danger/10 text-danger'
-          }`}
-        >
-          {user.is_active !== false ? 'Активен' : 'Заблок.'}
-        </span>
-        {user.email && user.is_active !== false && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              resendPassword(user.id, user.email)
-            }}
-            className="p-1.5 text-muted-foreground hover:text-accent hover:bg-accent/10 rounded transition-colors"
-            title="Переотправить временный пароль"
-          >
-            <Mail className="w-4 h-4" />
-          </button>
-        )}
-        <button
-          onClick={() =>
-            setBlockConfirm({
-              userId: user.id,
-              userName: user.name,
-              isActive: user.is_active !== false
-            })
-          }
-          className={`p-1.5 rounded transition-colors ${
-            user.is_active !== false
-              ? 'text-muted-foreground hover:text-danger hover:bg-danger/10'
-              : 'text-muted-foreground hover:text-success hover:bg-success/10'
-          }`}
-          title={user.is_active !== false ? 'Заблокировать' : 'Разблокировать'}
-        >
-          <Ban className="w-4 h-4" />
-        </button>
-        {user.role !== 'SUPER_ADMIN' && (
-          <button
-            onClick={() => setDeleteConfirm({ type: 'user', id: user.id, name: user.name })}
-            className="p-1.5 text-muted-foreground hover:text-danger hover:bg-danger/10 rounded transition-colors"
-            title="Удалить"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
-        )}
-      </div>
-    </div>
+      user={user}
+      currentUserId={currentUser?.id}
+      onResendPassword={resendPassword}
+      onToggleStatus={(userId, isActive) =>
+        setBlockConfirm({ userId, userName: user.name, isActive })
+      }
+      onDelete={(userId, userName) =>
+        setDeleteConfirm({ type: 'user', id: userId, name: userName })
+      }
+      getRoleBadge={getRoleBadge}
+      t={t}
+    />
   )
 
   if (loading) {
@@ -519,7 +459,26 @@ export default function OrganizationSettings() {
         </div>
 
         {/* Modals */}
-        {renderCreateUserModal()}
+        <CreateUserModal
+          isOpen={!!showCreateUser}
+          onClose={() => {
+            setShowCreateUser(null)
+            setUserError(null)
+            setNewUser({ login: '', password: '', name: '', email: '', role: 'STAFF' })
+            setGeneratePassword(true)
+            setShowPassword(false)
+          }}
+          onSubmit={createUser}
+          formState={newUser}
+          setFormState={setNewUser}
+          hotels={[]}
+          departments={[]}
+          hotelId={currentUser?.hotel_id}
+          departmentId={null}
+          creating={creatingUser}
+          error={userError}
+          t={t}
+        />
         {renderBlockConfirmModal()}
         {renderDeleteConfirmModal()}
       </SettingsLayout>
@@ -553,651 +512,121 @@ export default function OrganizationSettings() {
           </div>
         ) : (
           hotels.map((hotel) => (
-            <div key={hotel.id} className="bg-card rounded-xl border border-border overflow-hidden">
-              {/* Hotel header */}
-              <div
-                className="flex items-center justify-between p-4 cursor-pointer hover:bg-muted/50 transition-colors"
-                onClick={() => toggleHotel(hotel.id)}
-              >
-                <div className="flex items-center gap-3">
-                  {expandedHotels[hotel.id] ? (
-                    <ChevronDown className="w-5 h-5 text-muted-foreground" />
-                  ) : (
-                    <ChevronRight className="w-5 h-5 text-muted-foreground" />
-                  )}
-                  <Building2 className="w-5 h-5 text-accent" />
-                  <div>
-                    <h3 className="font-medium text-foreground">{hotel.name}</h3>
-                    <div className="flex items-center gap-2 mt-1 flex-wrap">
-                      {hotel.marsha_code && (
-                        <>
-                          <code className="text-xs bg-purple-100 dark:bg-purple-900/30 px-2 py-0.5 rounded text-purple-700 dark:text-purple-400 font-mono">
-                            {hotel.marsha_code}
-                          </code>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              copyCode(hotel.marsha_code)
-                            }}
-                            className="p-1 hover:bg-muted rounded"
-                            title="Копировать MARSHA код"
-                          >
-                            <Copy className="w-3 h-3 text-muted-foreground" />
-                          </button>
-                        </>
-                      )}
-                      <span className="text-xs text-muted-foreground">
-                        • {hotel.departments?.length || 0} деп. • {hotel.users?.length || 0} польз.
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`px-2 py-1 rounded text-xs ${
-                      hotel.is_active !== false
-                        ? 'bg-success/10 text-success'
-                        : 'bg-danger/10 text-danger'
-                    }`}
-                  >
-                    {hotel.is_active !== false ? 'Активен' : 'Неактивен'}
-                  </span>
+            <HotelCard
+              key={hotel.id}
+              hotel={hotel}
+              isExpanded={expandedHotels[hotel.id]}
+              onToggle={() => toggleHotel(hotel.id)}
+              onDelete={(id, name) => setDeleteConfirm({ type: 'hotel', id, name })}
+              onCopyCode={copyCode}
+            >
+              <div className="p-4 bg-muted/10">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                    <Users className="w-4 h-4" />
+                    Админы отеля
+                  </h4>
                   <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setDeleteConfirm({ type: 'hotel', id: hotel.id, name: hotel.name })
-                    }}
-                    className="p-2 text-muted-foreground hover:text-danger hover:bg-danger/10 rounded-lg transition-colors"
+                    onClick={() => setShowCreateUser({ hotelId: hotel.id })}
+                    className="flex items-center gap-1 text-xs text-accent hover:text-accent/80"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <UserPlus className="w-3 h-3" />
+                    Добавить
                   </button>
                 </div>
-              </div>
-
-              {/* Expanded hotel content */}
-              {expandedHotels[hotel.id] && (
-                <div className="border-t border-border">
-                  {/* Hotel-level users */}
-                  <div className="p-4 bg-muted/10">
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                        <Users className="w-4 h-4" />
-                        Админы отеля
-                      </h4>
-                      <button
-                        onClick={() => setShowCreateUser({ hotelId: hotel.id })}
-                        className="flex items-center gap-1 text-xs text-accent hover:text-accent/80"
-                      >
-                        <UserPlus className="w-3 h-3" />
-                        Добавить
-                      </button>
-                    </div>
-                    <div className="space-y-2">
-                      {hotel.users?.filter((u) => !u.department_id).length === 0 ? (
-                        <p className="text-sm text-muted-foreground text-center py-2">
-                          Нет пользователей на уровне отеля
-                        </p>
-                      ) : (
-                        hotel.users
-                          ?.filter((u) => !u.department_id)
-                          .map((user) => renderUserRow(user))
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Departments */}
-                  <div className="p-4 bg-muted/20">
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="text-sm font-medium text-muted-foreground">Департаменты</h4>
-                      <button
-                        onClick={() => setShowCreateDept(hotel.id)}
-                        className="flex items-center gap-1 text-xs text-accent hover:text-accent/80"
-                      >
-                        <Plus className="w-3 h-3" />
-                        Добавить
-                      </button>
-                    </div>
-
-                    {hotel.departments?.length === 0 ? (
-                      <p className="text-sm text-muted-foreground py-4 text-center">
-                        Нет департаментов
-                      </p>
-                    ) : (
-                      <div className="space-y-3">
-                        {hotel.departments?.map((dept) => (
-                          <div
-                            key={dept.id}
-                            className="bg-card rounded-lg border border-border overflow-hidden"
-                          >
-                            {/* Department header */}
-                            <div
-                              className="flex items-center justify-between p-3 cursor-pointer hover:bg-muted/50 transition-colors"
-                              onClick={() => toggleDept(dept.id)}
-                            >
-                              <div className="flex items-center gap-2">
-                                {expandedDepts[dept.id] ? (
-                                  <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                                ) : (
-                                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                                )}
-                                <span className="text-foreground font-medium">{dept.name}</span>
-                                <code className="text-xs bg-muted px-1.5 py-0.5 rounded text-accent">
-                                  {dept.code}
-                                </code>
-                                <span className="text-xs text-muted-foreground">
-                                  • {dept.users?.length || 0} польз.
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    setShowCreateUser({ hotelId: hotel.id, departmentId: dept.id })
-                                  }}
-                                  className="p-1.5 text-muted-foreground hover:text-accent hover:bg-accent/10 rounded transition-colors"
-                                  title="Добавить пользователя"
-                                >
-                                  <UserPlus className="w-4 h-4" />
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    setDeleteConfirm({
-                                      type: 'department',
-                                      id: dept.id,
-                                      name: dept.name,
-                                      hotelId: hotel.id
-                                    })
-                                  }}
-                                  className="p-1.5 text-muted-foreground hover:text-danger hover:bg-danger/10 rounded transition-colors"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              </div>
-                            </div>
-
-                            {/* Department users */}
-                            {expandedDepts[dept.id] && (
-                              <div className="border-t border-border p-3 bg-muted/10 space-y-2">
-                                {dept.users?.length === 0 ? (
-                                  <p className="text-sm text-muted-foreground text-center py-2">
-                                    Нет пользователей
-                                  </p>
-                                ) : (
-                                  dept.users?.map((user) => renderUserRow(user))
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                <div className="space-y-2">
+                  {hotel.users?.filter((u) => !u.department_id).length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-2">
+                      Нет пользователей на уровне отеля
+                    </p>
+                  ) : (
+                    hotel.users
+                      ?.filter((u) => !u.department_id)
+                      .map((user) => renderUserRow(user))
+                  )}
                 </div>
-              )}
-            </div>
+              </div>
+              <DepartmentsList
+                departments={hotel.departments}
+                hotelId={hotel.id}
+                expandedDepts={expandedDepts}
+                onToggleDept={toggleDept}
+                onAddDepartment={(hotelId) => setShowCreateDept(hotelId)}
+                onAddUser={(hotelId, departmentId) =>
+                  setShowCreateUser({ hotelId, departmentId })
+                }
+                onDeleteDepartment={(deptId, deptName, hotelId) =>
+                  setDeleteConfirm({ type: 'department', id: deptId, name: deptName, hotelId })
+                }
+                renderUserRow={renderUserRow}
+              />
+            </HotelCard>
           ))
         )}
       </div>
 
       {/* Modals */}
-      {renderCreateHotelModal()}
-      {renderCreateDeptModal()}
-      {renderCreateUserModal()}
+      <CreateHotelModal
+        isOpen={showCreateHotel}
+        onClose={() => {
+          setShowCreateHotel(false)
+          setNewHotel({
+            name: '',
+            description: '',
+            address: '',
+            city: '',
+            country: '',
+            timezone: 'Asia/Qostanay',
+            latitude: null,
+            longitude: null,
+            timezone_auto_detected: false,
+            marsha_code: '',
+            marsha_code_id: null
+          })
+          setTimezoneDetected(false)
+        }}
+        onSubmit={createHotel}
+        formState={newHotel}
+        setFormState={setNewHotel}
+        t={t}
+      />
+      <CreateDepartmentModal
+        isOpen={!!showCreateDept}
+        onClose={() => {
+          setShowCreateDept(null)
+          setNewDept({ name: '', description: '', email: '', telegram_chat_id: '' })
+        }}
+        onSubmit={createDepartment}
+        formState={newDept}
+        setFormState={setNewDept}
+        creating={creatingDept}
+      />
+      <CreateUserModal
+        isOpen={!!showCreateUser}
+        onClose={() => {
+          setShowCreateUser(null)
+          setUserError(null)
+          setNewUser({ login: '', password: '', name: '', email: '', role: 'STAFF' })
+          setGeneratePassword(true)
+          setShowPassword(false)
+        }}
+        onSubmit={createUser}
+        formState={newUser}
+        setFormState={setNewUser}
+        hotels={hotels}
+        departments={hotels.find((h) => h.id === showCreateUser?.hotelId)?.departments}
+        hotelId={showCreateUser?.hotelId}
+        departmentId={showCreateUser?.departmentId}
+        creating={creatingUser}
+        error={userError}
+        t={t}
+      />
       {renderBlockConfirmModal()}
       {renderDeleteConfirmModal()}
     </SettingsLayout>
   )
 
   // Modal render functions
-  function renderCreateHotelModal() {
-    if (!showCreateHotel) return null
-    return (
-      <div className="fixed inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-        <div className="bg-card rounded-xl p-6 w-full max-w-xl shadow-xl animate-slide-up min-h-[500px] max-h-[90vh] overflow-y-auto">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-semibold text-foreground">Создать отель</h3>
-            <button
-              onClick={() => setShowCreateHotel(false)}
-              className="p-2 hover:bg-muted rounded-lg"
-            >
-              <X className="w-5 h-5 text-muted-foreground" />
-            </button>
-          </div>
-          <div className="space-y-4">
-            {/* MARSHA Code Selector - обязательный, идёт ПЕРВЫМ */}
-            <MarshaCodeSelector
-              hotelName={newHotel.name}
-              selectedCode={newHotel.marsha_code}
-              required={true}
-              onSelect={(code, codeId) =>
-                setNewHotel({
-                  ...newHotel,
-                  marsha_code: code,
-                  marsha_code_id: codeId
-                })
-              }
-              onSelectWithDetails={(marshaCode) => {
-                setNewHotel((prev) => ({
-                  ...prev,
-                  name: marshaCode.hotel_name,
-                  marsha_code: marshaCode.code,
-                  marsha_code_id: marshaCode.id,
-                  address: marshaCode.city && marshaCode.country ? `${marshaCode.city}, ${marshaCode.country}` : prev.address,
-                  city: marshaCode.city ?? prev.city,
-                  country: marshaCode.country ?? prev.country,
-                  timezone: marshaCode.timezone || prev.timezone || 'Asia/Qostanay',
-                  latitude: marshaCode.coordinates?.lat ?? prev.latitude ?? null,
-                  longitude: marshaCode.coordinates?.lng ?? prev.longitude ?? null,
-                  timezone_auto_detected: Boolean(marshaCode.timezone)
-                }))
-                if (marshaCode.timezone) {
-                  setTimezoneDetected(true)
-                  setTimeout(() => setTimezoneDetected(false), 3000)
-                }
-              }}
-              onClear={() =>
-                setNewHotel({
-                  name: '',
-                  description: '',
-                  address: '',
-                  city: '',
-                  country: '',
-                  timezone: 'Asia/Qostanay',
-                  latitude: null,
-                  longitude: null,
-                  timezone_auto_detected: false,
-                  marsha_code: '',
-                  marsha_code_id: null
-                })
-              }
-            />
-
-            {/* Название отеля - показываем только после выбора MARSHA кода */}
-            {newHotel.marsha_code && (
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1">
-                  Название отеля
-                </label>
-                <input
-                  type="text"
-                  value={newHotel.name}
-                  readOnly
-                  className="w-full px-4 py-2.5 border border-border rounded-lg bg-muted/50 text-foreground cursor-not-allowed"
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Заполняется автоматически из MARSHA кода
-                </p>
-              </div>
-            )}
-
-            {/* Адрес - можно редактировать */}
-            {newHotel.marsha_code && (
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1">Адрес</label>
-                <input
-                  type="text"
-                  placeholder="Уточните адрес"
-                  value={newHotel.address}
-                  onChange={(e) => setNewHotel({ ...newHotel, address: e.target.value })}
-                  className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-card"
-                />
-              </div>
-            )}
-
-            {/* Город — только если timezone не определился автоматически */}
-            {newHotel.marsha_code && !newHotel.timezone_auto_detected && (
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1">
-                  {t('hotels.cityLabel')}
-                  <span className="text-xs text-muted-foreground ml-2">
-                    ({t('hotels.timezoneAutoHint')})
-                  </span>
-                </label>
-                <CityAutocomplete
-                  value={newHotel.city}
-                  onChange={(city) =>
-                    setNewHotel((prev) => ({ ...prev, city }))
-                  }
-                  onTimezoneDetected={(data) => {
-                    if (data) {
-                      setNewHotel((prev) => ({
-                        ...prev,
-                        timezone: data.timezone,
-                        city: data.city,
-                        country: data.country,
-                        latitude: data.coordinates?.lat ?? null,
-                        longitude: data.coordinates?.lng ?? null,
-                        timezone_auto_detected: true
-                      }))
-                      setTimezoneDetected(true)
-                      setTimeout(() => setTimezoneDetected(false), 3000)
-                    } else {
-                      addToast(t('hotels.timezoneDetectError'), 'error')
-                    }
-                  }}
-                />
-              </div>
-            )}
-
-            {/* Город read-only если заполнен из MARSHA или по выбору города */}
-            {newHotel.marsha_code && newHotel.city && newHotel.timezone_auto_detected && (
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1">
-                  {t('hotels.cityLabel')}
-                </label>
-                <input
-                  type="text"
-                  value={[newHotel.city, newHotel.country].filter(Boolean).join(', ')}
-                  readOnly
-                  className="w-full px-4 py-2.5 border border-border rounded-lg bg-muted/50 text-foreground cursor-not-allowed"
-                />
-                <p className="text-xs text-success flex items-center gap-1.5 mt-1">
-                  <Check className="w-3.5 h-3.5 flex-shrink-0" aria-hidden />
-                  {t('hotels.filledFromMarsha')}
-                </p>
-              </div>
-            )}
-
-            {/* Часовой пояс — всегда после выбора MARSHA */}
-            {newHotel.marsha_code && (
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1">
-                  {t('hotels.timezoneLabel')}
-                </label>
-                <input
-                  type="text"
-                  value={newHotel.timezone}
-                  onChange={(e) =>
-                    setNewHotel({
-                      ...newHotel,
-                      timezone: e.target.value,
-                      timezone_auto_detected: false
-                    })
-                  }
-                  placeholder={t('hotels.timezonePlaceholder')}
-                  className={cn(
-                    'w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-card',
-                    timezoneDetected && 'border-green-500 dark:border-green-600'
-                  )}
-                />
-                {timezoneDetected && (
-                  <p className="text-xs text-green-600 dark:text-green-400 mt-1 flex items-center gap-1.5">
-                    <Check className="w-3.5 h-3.5 flex-shrink-0" aria-hidden />
-                    {t('hotels.timezoneDetected')}
-                  </p>
-                )}
-                {newHotel.timezone_auto_detected && !timezoneDetected && (
-                  <p className="text-xs text-success flex items-center gap-1.5 mt-1">
-                    <Check className="w-3.5 h-3.5 flex-shrink-0" aria-hidden />
-                    {t('hotels.timezoneFromMarsha')}
-                  </p>
-                )}
-                <p className="text-xs text-muted-foreground mt-1">
-                  {t('hotels.timezoneManualHint')}
-                </p>
-              </div>
-            )}
-
-            <button
-              onClick={createHotel}
-              disabled={creatingHotel}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-accent-button text-white rounded-lg hover:bg-accent-button/90 disabled:opacity-50"
-              aria-busy={creatingHotel}
-            >
-              {creatingHotel ? <ButtonLoader /> : <Plus className="w-4 h-4" />}
-              Создать
-            </button>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  function renderCreateDeptModal() {
-    if (!showCreateDept) return null
-    return (
-      <div className="fixed inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
-        <div className="bg-card rounded-xl p-6 w-full max-w-md mx-4 shadow-xl animate-slide-up">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-semibold text-foreground">Создать департамент</h3>
-            <button
-              onClick={() => setShowCreateDept(null)}
-              className="p-2 hover:bg-muted rounded-lg"
-            >
-              <X className="w-5 h-5 text-muted-foreground" />
-            </button>
-          </div>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1">Название *</label>
-              <input
-                type="text"
-                placeholder="Кухня"
-                value={newDept.name}
-                onChange={(e) => setNewDept({ ...newDept, name: e.target.value })}
-                className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-card"
-              />
-              <p className="text-xs text-muted-foreground mt-1">Код генерируется автоматически</p>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1">Описание</label>
-              <input
-                type="text"
-                placeholder="Описание департамента"
-                value={newDept.description}
-                onChange={(e) => setNewDept({ ...newDept, description: e.target.value })}
-                className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-card"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1">Email</label>
-              <input
-                type="email"
-                placeholder="department@example.com"
-                value={newDept.email}
-                onChange={(e) => setNewDept({ ...newDept, email: e.target.value })}
-                className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-card"
-              />
-              <p className="text-xs text-muted-foreground mt-1">Для рассылки отчётов по расписанию</p>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1">Telegram Chat ID</label>
-              <input
-                type="text"
-                placeholder="-1001234567890"
-                value={newDept.telegram_chat_id}
-                onChange={(e) => setNewDept({ ...newDept, telegram_chat_id: e.target.value })}
-                className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-card"
-              />
-              <p className="text-xs text-muted-foreground mt-1">Для отправки отчётов в Telegram</p>
-            </div>
-            <button
-              onClick={createDepartment}
-              disabled={creatingDept}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-accent-button text-white rounded-lg hover:bg-accent-button/90 disabled:opacity-50"
-              aria-busy={creatingDept}
-            >
-              {creatingDept ? <ButtonLoader /> : <Plus className="w-4 h-4" />}
-              Создать
-            </button>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  function renderCreateUserModal() {
-    if (!showCreateUser) return null
-    const hotelName = hotels.find((h) => h.id === showCreateUser.hotelId)?.name
-    const deptName = hotels
-      .find((h) => h.id === showCreateUser.hotelId)
-      ?.departments?.find((d) => d.id === showCreateUser.departmentId)?.name
-
-    return (
-      <div className="fixed inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
-        <div className="bg-card rounded-xl p-6 w-full max-w-md mx-4 shadow-xl animate-slide-up max-h-[90vh] overflow-y-auto">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="text-lg font-semibold text-foreground">Создать пользователя</h3>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {hotelName}
-                {deptName ? ` → ${deptName}` : ''}
-              </p>
-            </div>
-            <button
-              onClick={() => {
-                setShowCreateUser(null)
-                setUserError(null)
-                setNewUser({ login: '', password: '', name: '', email: '', role: 'STAFF' })
-                setGeneratePassword(true)
-                setShowPassword(false)
-              }}
-              className="p-2 hover:bg-muted rounded-lg"
-            >
-              <X className="w-5 h-5 text-muted-foreground" />
-            </button>
-          </div>
-
-          {userError && (
-            <div className="mb-4 p-3 bg-danger/10 border border-danger/20 rounded-lg text-danger text-sm">
-              {userError}
-            </div>
-          )}
-
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1">Логин *</label>
-              <input
-                type="text"
-                placeholder="username"
-                value={newUser.login}
-                onChange={(e) => setNewUser({ ...newUser, login: e.target.value })}
-                className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-card"
-              />
-            </div>
-            <div>
-              <div
-                className="flex items-center gap-2 mb-2 cursor-pointer"
-                onClick={() => {
-                  const next = !generatePassword
-                  setGeneratePassword(next)
-                  if (next) setNewUser((u) => ({ ...u, password: '' }))
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault()
-                    const next = !generatePassword
-                    setGeneratePassword(next)
-                    if (next) setNewUser((u) => ({ ...u, password: '' }))
-                  }
-                }}
-                role="button"
-                tabIndex={0}
-              >
-                <Switch
-                  checked={generatePassword}
-                  onChange={(v) => {
-                    setGeneratePassword(v)
-                    if (v) setNewUser((u) => ({ ...u, password: '' }))
-                  }}
-                  aria-label="Сгенерировать пароль автоматически"
-                />
-                <span className="text-sm font-medium text-foreground">
-                  Сгенерировать пароль автоматически
-                </span>
-              </div>
-              {generatePassword ? (
-                <div className="bg-info/10 border border-info/20 rounded-lg p-3">
-                  <p className="text-xs text-info">
-                    <strong>Временный пароль будет сгенерирован и отправлен на email.</strong> Пользователь должен будет сменить его при первом входе.
-                  </p>
-                </div>
-              ) : (
-                <>
-                  <label className="block text-sm font-medium text-foreground mb-1">Пароль *</label>
-                  <div className="relative">
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      placeholder="••••••••"
-                      value={newUser.password}
-                      onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-card pr-10"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-                    >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Мин. 8 символов, заглавные, строчные буквы и цифры
-                  </p>
-                </>
-              )}
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1">Имя *</label>
-              <input
-                type="text"
-                placeholder="Иван Иванов"
-                value={newUser.name}
-                onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
-                className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-card"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1">
-                Email {generatePassword && <span className="text-danger">*</span>}
-              </label>
-              <input
-                type="email"
-                placeholder="user@example.com"
-                value={newUser.email}
-                onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-card"
-              />
-              {generatePassword && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  Обязателен для отправки временного пароля
-                </p>
-              )}
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1">Роль</label>
-              {/* На уровне отеля (без departmentId) - только HOTEL_ADMIN */}
-              {!showCreateUser.departmentId ? (
-                <div className="w-full px-4 py-2.5 border border-border rounded-lg bg-muted/50 text-foreground">
-                  {t('users.roles.HOTEL_ADMIN')}
-                </div>
-              ) : (
-                <select
-                  value={newUser.role}
-                  onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
-                  className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-card"
-                >
-                  <option value="STAFF">{t('users.roles.STAFF')}</option>
-                  <option value="DEPARTMENT_MANAGER">{t('users.roles.DEPARTMENT_MANAGER')}</option>
-                </select>
-              )}
-            </div>
-            <button
-              onClick={createUser}
-              disabled={creatingUser}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-accent-button text-white rounded-lg hover:bg-accent-button/90 disabled:opacity-50"
-              aria-busy={creatingUser}
-            >
-              {creatingUser ? <ButtonLoader /> : <UserPlus className="w-4 h-4" />}
-              Создать
-            </button>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
   function renderBlockConfirmModal() {
     if (!blockConfirm) return null
     return (
@@ -1205,14 +634,12 @@ export default function OrganizationSettings() {
         <div className="bg-card rounded-xl p-6 max-w-sm w-full mx-4 shadow-xl animate-slide-up">
           <div className="flex items-center gap-3 mb-4">
             <div
-              className={`w-14 h-14 rounded-full flex items-center justify-center animate-danger-pulse ${
-                blockConfirm.isActive ? 'bg-danger/10' : 'bg-success/10'
-              }`}
+              className={`w-14 h-14 rounded-full flex items-center justify-center animate-danger-pulse ${blockConfirm.isActive ? 'bg-danger/10' : 'bg-success/10'
+                }`}
             >
               <Ban
-                className={`w-7 h-7 animate-danger-shake ${
-                  blockConfirm.isActive ? 'text-danger' : 'text-success'
-                }`}
+                className={`w-7 h-7 animate-danger-shake ${blockConfirm.isActive ? 'text-danger' : 'text-success'
+                  }`}
               />
             </div>
             <div>
@@ -1233,11 +660,10 @@ export default function OrganizationSettings() {
             <button
               onClick={() => toggleUserStatus(blockConfirm.userId, blockConfirm.isActive)}
               disabled={actionLoading}
-              className={`flex-1 px-4 py-2 rounded-lg text-white disabled:opacity-50 flex items-center justify-center gap-2 ${
-                blockConfirm.isActive
+              className={`flex-1 px-4 py-2 rounded-lg text-white disabled:opacity-50 flex items-center justify-center gap-2 ${blockConfirm.isActive
                   ? 'bg-danger hover:bg-danger/90'
                   : 'bg-success hover:bg-success/90'
-              }`}
+                }`}
               aria-busy={actionLoading}
             >
               {actionLoading && <ButtonLoader />}
