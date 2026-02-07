@@ -8,11 +8,10 @@
 
 import { RateLimiterMemory, RateLimiterRedis, RateLimiterRes } from 'rate-limiter-flexible'
 import { logWarn, logInfo, logError } from '../utils/logger.js'
-import Redis from 'ioredis'
 
 const isProduction = process.env.NODE_ENV === 'production'
 
-// ─── Redis connection ────────────────────────────────────────────────────────
+// ─── Redis connection (lazy: только при REDIS_URL, без обязательной зависимости ioredis) ───
 
 let redisClient = null
 let useRedis = false
@@ -20,6 +19,7 @@ let useRedis = false
 try {
   const redisUrl = process.env.REDIS_URL
   if (redisUrl) {
+    const { default: Redis } = await import('ioredis')
     redisClient = new Redis(redisUrl, {
       enableOfflineQueue: false,
       maxRetriesPerRequest: 1,
@@ -34,7 +34,11 @@ try {
     logWarn('RateLimiter', 'REDIS_URL not set — falling back to in-memory rate limiting')
   }
 } catch (err) {
-  logWarn('RateLimiter', `Redis unavailable, falling back to in-memory rate limiting: ${err.message}`)
+  if (err?.code === 'ERR_MODULE_NOT_FOUND' && err?.message?.includes('ioredis')) {
+    logWarn('RateLimiter', 'REDIS_URL set but ioredis not installed — falling back to in-memory. Add ioredis to dependencies to use Redis.')
+  } else {
+    logWarn('RateLimiter', `Redis unavailable, falling back to in-memory rate limiting: ${err.message}`)
+  }
   redisClient = null
   useRedis = false
 }
