@@ -15,11 +15,15 @@ export default function AddCustomProductModal({ onClose, departmentId = null }) 
   const { addToast } = useToast()
   
   // === REACT QUERY MUTATION ===
-  const { mutate: addProductMutation, isPending: isSubmitting } = useAddProduct(selectedHotelId)
+  const { mutate: addProductMutation, mutateAsync: addProductAsync, isPending: isSubmitting } =
+    useAddProduct(selectedHotelId)
 
   const [selectedDepartment, setSelectedDepartment] = useState(departmentId)
   const [selectedCategory, setSelectedCategory] = useState(null)
   const [productName, setProductName] = useState('')
+  const [batchMode, setBatchMode] = useState(false)
+  const [productNamesText, setProductNamesText] = useState('')
+  const [batchProgress, setBatchProgress] = useState(null)
   const [error, setError] = useState('')
 
   // Получить название категории
@@ -29,8 +33,7 @@ export default function AddCustomProductModal({ onClose, departmentId = null }) 
     return category.name || category.nameRu || 'Категория'
   }
 
-  // Отправка формы
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
 
     if (!selectedDepartment) {
@@ -41,14 +44,57 @@ export default function AddCustomProductModal({ onClose, departmentId = null }) 
       setError(t('customProduct.errorSelectCategory'))
       return
     }
+
+    setError('')
+
+    if (batchMode) {
+      const names = productNamesText
+        .split(/\n/)
+        .map((s) => s.trim())
+        .filter(Boolean)
+      if (names.length === 0) {
+        setError(t('customProduct.errorEnterName'))
+        return
+      }
+
+      setBatchProgress({ done: 0, total: names.length })
+      let added = 0
+      let failed = 0
+      for (let i = 0; i < names.length; i++) {
+        try {
+          await addProductAsync({
+            name: names[i],
+            categoryId: selectedCategory,
+            departmentId: selectedDepartment
+          })
+          added += 1
+        } catch {
+          failed += 1
+        }
+        setBatchProgress({ done: i + 1, total: names.length })
+      }
+      setBatchProgress(null)
+      if (added > 0) {
+        addToast(
+          failed > 0
+            ? t('customProduct.batchAddedPartial', { added, failed })
+            : t('customProduct.batchAdded', { count: added }),
+          failed > 0 ? 'warning' : 'success'
+        )
+        onClose()
+      }
+      if (failed > 0 && added === 0) {
+        setError(t('customProduct.batchAddError'))
+        addToast(t('toast.productAddError'), 'error')
+      }
+      return
+    }
+
     if (!productName.trim()) {
       setError(t('customProduct.errorEnterName'))
       return
     }
 
-    setError('')
-
-    // ✨ React Query mutation with optimistic update
     addProductMutation(
       {
         name: productName.trim(),
@@ -59,7 +105,6 @@ export default function AddCustomProductModal({ onClose, departmentId = null }) 
         onSuccess: () => {
           addToast(t('toast.productAdded'), 'success')
           onClose()
-          // React Query автоматически обновит каталог
         },
         onError: (err) => {
           setError(err.message || 'Error adding product')
@@ -152,39 +197,80 @@ export default function AddCustomProductModal({ onClose, departmentId = null }) 
             </div>
           </div>
 
-          {/* Название товара */}
-          <div>
-            <label className="block text-sm text-muted-foreground mb-2">
-              {t('customProduct.productName')} *
-            </label>
-            <input
-              type="text"
-              value={productName}
-              onChange={(e) => setProductName(e.target.value)}
-              placeholder={t('customProduct.productNamePlaceholder')}
-              className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:border-accent bg-card text-foreground"
-              autoFocus
-            />
+          {/* Режим: один товар / несколько */}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setBatchMode(false)}
+              className={`text-sm px-3 py-1.5 rounded-lg border transition-colors ${
+                !batchMode ? 'border-accent bg-accent/10 text-foreground' : 'border-border text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {t('customProduct.singleProduct')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setBatchMode(true)}
+              className={`text-sm px-3 py-1.5 rounded-lg border transition-colors ${
+                batchMode ? 'border-accent bg-accent/10 text-foreground' : 'border-border text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {t('customProduct.multipleProducts')}
+            </button>
           </div>
 
-          {/* Ошибка */}
+          {/* Название товара (один) или список (несколько) */}
+          {batchMode ? (
+            <div>
+              <label className="block text-sm text-muted-foreground mb-2">
+                {t('customProduct.productNamesLabel')} *
+              </label>
+              <textarea
+                value={productNamesText}
+                onChange={(e) => setProductNamesText(e.target.value)}
+                placeholder={t('customProduct.productNamesPlaceholder')}
+                rows={5}
+                className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:border-accent bg-card text-foreground resize-y min-h-[100px]"
+              />
+              <p className="text-xs text-muted-foreground mt-1">{t('customProduct.onePerLine')}</p>
+            </div>
+          ) : (
+            <div>
+              <label className="block text-sm text-muted-foreground mb-2">
+                {t('customProduct.productName')} *
+              </label>
+              <input
+                type="text"
+                value={productName}
+                onChange={(e) => setProductName(e.target.value)}
+                placeholder={t('customProduct.productNamePlaceholder')}
+                className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:border-accent bg-card text-foreground"
+                autoFocus
+              />
+            </div>
+          )}
+
           {error && <p className="text-sm text-danger">{error}</p>}
 
-          {/* Кнопки */}
           <div className="flex gap-3 pt-2">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-3 border border-border text-muted-foreground rounded-lg hover:border-foreground hover:text-foreground transition-colors"
+              disabled={batchProgress !== null}
+              className="flex-1 py-3 border border-border text-muted-foreground rounded-lg hover:border-foreground hover:text-foreground transition-colors disabled:opacity-50"
             >
               {t('common.cancel')}
             </button>
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || batchProgress !== null}
               className="flex-1 py-3 bg-foreground text-background rounded-lg hover:bg-foreground/90 transition-colors disabled:opacity-50"
             >
-              {t('customProduct.addToCatalog')}
+              {batchProgress
+                ? t('customProduct.addingCount', { done: batchProgress.done, total: batchProgress.total })
+                : batchMode
+                  ? t('customProduct.addMultipleToCatalog')
+                  : t('customProduct.addToCatalog')}
             </button>
           </div>
         </form>
