@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { useProducts } from '../context/ProductContext'
 import { useTranslation, useLanguage } from '../context/LanguageContext'
@@ -121,15 +122,21 @@ export default function AddCustomProductModal({ onClose, departmentId = null }) 
     }
   }
 
-  return (
+  const modalContent = (
     <div
-      className="fixed inset-0 bg-black/50 dark:bg-black/60 flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-black/50 dark:bg-black/60 flex items-center justify-center z-[100] p-4 overflow-y-auto"
       onClick={handleOverlayClick}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="add-product-modal-title"
     >
-      <div className="bg-card rounded-lg w-full max-w-md overflow-hidden animate-slide-up">
+      <div
+        className="bg-card rounded-lg w-full max-w-md overflow-hidden animate-slide-up my-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Заголовок */}
         <div className="flex items-center justify-between p-6 border-b border-border">
-          <h2 className="text-xl font-medium text-foreground">{t('customProduct.title')}</h2>
+          <h2 id="add-product-modal-title" className="text-xl font-medium text-foreground">{t('customProduct.title')}</h2>
           <button
             onClick={onClose}
             className="text-muted-foreground hover:text-foreground transition-colors p-2"
@@ -277,4 +284,6 @@ export default function AddCustomProductModal({ onClose, departmentId = null }) 
       </div>
     </div>
   )
+
+  return createPortal(modalContent, document.body)
 }
