@@ -4,6 +4,7 @@
  */
 
 import express from 'express'
+import { validate, CreateScheduledExportSchema, UpdateScheduledExportSchema } from './scheduled-exports.schemas.js'
 import { query } from '../../db/postgres.js'
 import { logError, logInfo } from '../../utils/logger.js'
 import { authMiddleware, allowRoles } from '../../middleware/auth.js'
@@ -184,42 +185,26 @@ router.get('/:id', authMiddleware, async (req, res) => {
 router.post('/', authMiddleware, allowRoles(['SUPER_ADMIN', 'HOTEL_ADMIN', 'DEPARTMENT_MANAGER']), async (req, res) => {
   try {
     const user = req.user
+
+    const validation = validate(CreateScheduledExportSchema, req.body)
+    if (!validation.isValid) {
+      return res.status(400).json({ error: 'Ошибка валидации', details: validation.errors })
+    }
+
     const {
       department_id,
       schedule_type,
       day_of_week,
       day_of_month,
       time,
-      timezone = 'Asia/Almaty',
+      timezone,
       export_types,
-      export_formats = ['excel'],
-      filters = {},
+      export_formats,
+      filters,
       delivery_method,
       email_override,
       telegram_chat_id_override
-    } = req.body
-
-    // Валидация обязательных полей
-    if (!schedule_type || !time || !export_types || !Array.isArray(export_types) || export_types.length === 0) {
-      return res.status(400).json({ error: 'Missing or invalid required fields' })
-    }
-
-    if (!delivery_method || !['email', 'telegram', 'both'].includes(delivery_method)) {
-      return res.status(400).json({ error: 'Invalid delivery_method' })
-    }
-
-    // Валидация schedule_type
-    if (!['daily', 'weekly', 'monthly'].includes(schedule_type)) {
-      return res.status(400).json({ error: 'Invalid schedule_type' })
-    }
-
-    if (schedule_type === 'weekly' && (day_of_week === null || day_of_week === undefined)) {
-      return res.status(400).json({ error: 'day_of_week is required for weekly schedules' })
-    }
-
-    if (schedule_type === 'monthly' && (day_of_month === null || day_of_month === undefined)) {
-      return res.status(400).json({ error: 'day_of_month is required for monthly schedules' })
-    }
+    } = validation.data
 
     // Проверка прав: менеджер может создавать только для своего отдела
     if (user.role === 'MANAGER' && department_id !== user.department_id) {
@@ -340,6 +325,11 @@ router.put('/:id', authMiddleware, allowRoles(['SUPER_ADMIN', 'HOTEL_ADMIN', 'DE
       return res.status(403).json({ error: 'You can only update schedules for your department' })
     }
 
+    const validation = validate(UpdateScheduledExportSchema, req.body)
+    if (!validation.isValid) {
+      return res.status(400).json({ error: 'Ошибка валидации', details: validation.errors })
+    }
+
     const {
       schedule_type,
       day_of_week,
@@ -353,7 +343,7 @@ router.put('/:id', authMiddleware, allowRoles(['SUPER_ADMIN', 'HOTEL_ADMIN', 'DE
       email_override,
       telegram_chat_id_override,
       is_active
-    } = req.body
+    } = validation.data
 
     // Используем существующие значения если новые не предоставлены
     const updatedScheduleType = schedule_type || existing.schedule_type

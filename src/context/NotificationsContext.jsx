@@ -12,7 +12,7 @@
  * Backend = Single Source of Truth
  */
 
-import { createContext, useContext, useState, useCallback, useEffect } from 'react'
+import { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react'
 import { useSSE, SSE_EVENTS } from '../hooks/useSSE'
 import { useAuth } from './AuthContext'
 
@@ -122,7 +122,7 @@ export function NotificationsProvider({ children }) {
   const [soundEnabled, setSoundEnabled] = useState(true)
 
   // Calculate unread count
-  const unreadCount = notifications.filter(n => !n.read).length
+  const unreadCount = useMemo(() => notifications.filter(n => !n.read).length, [notifications])
 
   // Add notification
   const addNotification = useCallback((type, data) => {
@@ -225,8 +225,9 @@ export function NotificationsProvider({ children }) {
   }, [notifications])
 
   // Get critical notifications
-  const criticalNotifications = notifications.filter(
-    n => n.severity === NOTIFICATION_SEVERITY.CRITICAL && !n.read
+  const criticalNotifications = useMemo(
+    () => notifications.filter(n => n.severity === NOTIFICATION_SEVERITY.CRITICAL && !n.read),
+    [notifications]
   )
 
   // Clear old notifications (older than 24h)
@@ -241,22 +242,22 @@ export function NotificationsProvider({ children }) {
     return () => clearInterval(interval)
   }, [])
 
-  const value = {
+  const value = useMemo(() => ({
     // State
     notifications,
     unreadCount,
     criticalNotifications,
     hasCritical: criticalNotifications.length > 0,
-    
+
     // SSE status
     isConnected,
     sseState,
     reconnect,
-    
+
     // Settings
     soundEnabled,
     setSoundEnabled,
-    
+
     // Actions
     addNotification,
     markAsRead,
@@ -264,7 +265,12 @@ export function NotificationsProvider({ children }) {
     removeNotification,
     clearAll,
     getByType
-  }
+  }), [
+    notifications, unreadCount, criticalNotifications,
+    isConnected, sseState, reconnect,
+    soundEnabled, setSoundEnabled,
+    addNotification, markAsRead, markAllAsRead, removeNotification, clearAll, getByType
+  ])
 
   return (
     <NotificationsContext.Provider value={value}>

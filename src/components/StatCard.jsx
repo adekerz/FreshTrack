@@ -3,6 +3,8 @@
  * Компактный режим для мобильных устройств
  */
 
+import { CachedDataBadge } from './ui'
+
 export default function StatCard({
   icon: Icon,
   title,
@@ -16,11 +18,14 @@ export default function StatCard({
   return (
     <div
       className={`
-        bg-card rounded-xl border border-border
+        bg-card rounded-xl border border-border relative
         hover:shadow-md transition-shadow
         ${compact ? 'p-2.5' : 'p-3 sm:p-4'}
       `}
     >
+      <div className="absolute top-2 right-2 z-[1]">
+        <CachedDataBadge compact />
+      </div>
       <div className="flex items-center justify-between mb-2 sm:mb-3">
         <div className={`${compact ? 'p-1' : 'p-1.5 sm:p-2'} rounded-lg ${bgColor}`}>
           <Icon className={`${compact ? 'w-3.5 h-3.5' : 'w-4 h-4 sm:w-5 sm:h-5'} ${color}`} />

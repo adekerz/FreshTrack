@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from 'react'
-import { X, ChevronRight, Wine, Coffee, Utensils, ChefHat, Warehouse, Package } from 'lucide-react'
+import { X, ChevronRight, Package } from 'lucide-react'
 import { useProducts } from '../context/ProductContext'
 import { useTranslation, useLanguage } from '../context/LanguageContext'
 import { useToast } from '../context/ToastContext'
@@ -7,14 +7,6 @@ import { useHotel } from '../context/HotelContext'
 import { useAddBatch } from '../hooks/useInventory'
 import { getDepartmentIcon } from '../utils/departmentUtils'
 import { TouchInput, TouchSelect, TouchButton, Switch } from './ui'
-
-// Иконки для отделов - универсальный маппинг
-const ICON_MAP = { Wine, Coffee, Utensils, ChefHat, Warehouse, Package }
-
-// Using centralized getDepartmentIcon from utils
-const getDeptIcon = (dept) => {
-  return getDepartmentIcon(dept)
-}
 
 export default function AddBatchModal({ onClose, preselectedProduct = null }) {
   const { t } = useTranslation()
@@ -194,7 +186,7 @@ export default function AddBatchModal({ onClose, preselectedProduct = null }) {
                   <p className="text-sm text-muted-foreground py-4">{t('common.loading') || 'Загрузка...'}</p>
                 ) : (
                   departments.map((dept) => {
-                    const Icon = getDeptIcon(dept)
+                    const Icon = getDepartmentIcon(dept)
                     const deptLabel = dept.name || dept.nameRu || dept.nameKz || dept.code || (t('batch.selectDepartment') || 'Отдел')
                     return (
                       <TouchButton

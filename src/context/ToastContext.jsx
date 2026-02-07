@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback } from 'react'
+import { createContext, useContext, useState, useCallback, useMemo } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 
 const ToastContext = createContext(null)
@@ -115,21 +115,21 @@ export function ToastProvider({ children }) {
     }
   }, [loading, updateToast])
 
+  const value = useMemo(() => ({
+    toasts,
+    addToast,
+    removeToast,
+    updateToast,
+    success,
+    error,
+    warning,
+    info,
+    loading,
+    promise
+  }), [toasts, addToast, removeToast, updateToast, success, error, warning, info, loading, promise])
+
   return (
-    <ToastContext.Provider
-      value={{
-        toasts,
-        addToast,
-        removeToast,
-        updateToast,
-        success,
-        error,
-        warning,
-        info,
-        loading,
-        promise
-      }}
-    >
+    <ToastContext.Provider value={value}>
       {children}
     </ToastContext.Provider>
   )

@@ -6,10 +6,11 @@
  */
 
 import express from 'express'
+import { validate, AssignMarshaCodeSchema } from './marsha-codes.schemas.js'
 import { authMiddleware, requirePermission, PermissionResource, PermissionAction } from '../../middleware/auth.js'
 import MarshaCodeService from '../../services/MarshaCodeService.js'
 import { GeoNamesService } from '../../services/GeoNamesService.js'
-import { logError } from '../../utils/logger.js'
+import { logError, logInfo } from '../../utils/logger.js'
 
 const router = express.Router()
 
@@ -76,7 +77,7 @@ router.get('/public/search', async (req, res) => {
   try {
     const { q, limit = 10 } = req.query
 
-    console.log('[MARSHA Public Search] Query:', q, 'Limit:', limit)
+    logInfo('MarshaCodesController', 'Public search', { q, limit: limit ? parseInt(limit) : 10 })
 
     if (!q || q.length < 2) {
       return res.json({ success: true, results: [] })
@@ -87,11 +88,10 @@ router.get('/public/search', async (req, res) => {
       includeAssigned: false // Only show unassigned for registration
     })
 
-    console.log('[MARSHA Public Search] Found', results.length, 'results')
+    logInfo('MarshaCodesController', 'Public search results', { count: results.length })
     res.json({ success: true, results })
   } catch (error) {
-    console.error('[MARSHA Public Search] Error:', error.message)
-    logError('MarshaCodesController', error)
+    logError('MarshaCodesController', error, { action: 'public/search' })
     res.status(500).json({
       success: false,
       error: 'Failed to search MARSHA codes'
@@ -159,10 +159,9 @@ router.get('/search', async (req, res) => {
   try {
     const { q, limit = 10, includeAssigned = false } = req.query
 
-    console.log('[MARSHA Search] Query:', q, 'Limit:', limit)
+    logInfo('MarshaCodesController', 'Search', { q, limit: limit ? parseInt(limit) : 10, includeAssigned: includeAssigned === 'true' })
 
     if (!q || q.length < 2) {
-      console.log('[MARSHA Search] Query too short, returning empty results')
       return res.json({ success: true, results: [] })
     }
 
@@ -171,11 +170,10 @@ router.get('/search', async (req, res) => {
       includeAssigned: includeAssigned === 'true'
     })
 
-    console.log('[MARSHA Search] Found', results.length, 'results')
+    logInfo('MarshaCodesController', 'Search results', { count: results.length })
     res.json({ success: true, results })
   } catch (error) {
-    console.error('[MARSHA Search] Error:', error.message)
-    logError('MarshaCodesController', error)
+    logError('MarshaCodesController', error, { action: 'search' })
     res.status(500).json({
       success: false,
       error: 'Failed to search MARSHA codes'
@@ -430,14 +428,12 @@ router.get('/:code', async (req, res) => {
  */
 router.post('/assign', requirePermission(PermissionResource.HOTELS, PermissionAction.MANAGE), async (req, res) => {
   try {
-    const { hotelId, marshaCodeId } = req.body
-
-    if (!hotelId || !marshaCodeId) {
-      return res.status(400).json({
-        success: false,
-        error: 'hotelId and marshaCodeId are required'
-      })
+    const validation = validate(AssignMarshaCodeSchema, req.body)
+    if (!validation.isValid) {
+      return res.status(400).json({ success: false, error: 'Ошибка валидации', details: validation.errors })
     }
+
+    const { hotelId, marshaCodeId } = validation.data
 
     const result = await MarshaCodeService.assignToHotel(
       hotelId,

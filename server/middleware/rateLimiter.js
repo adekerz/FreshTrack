@@ -1,74 +1,137 @@
 /**
  * FreshTrack Rate Limiter Middleware
  * Protection against DoS attacks using rate-limiter-flexible
+ *
+ * Uses Redis as persistent store (shared across instances, survives restarts).
+ * Falls back to in-memory store if Redis is unavailable.
  */
 
-import { RateLimiterMemory, RateLimiterRes } from 'rate-limiter-flexible'
-import { logWarn } from '../utils/logger.js'
+import { RateLimiterMemory, RateLimiterRedis, RateLimiterRes } from 'rate-limiter-flexible'
+import { logWarn, logInfo, logError } from '../utils/logger.js'
+import Redis from 'ioredis'
 
-/**
- * Rate limiter configurations for different endpoint types
- */
-
-// General API rate limiter - 100 requests per minute
 const isProduction = process.env.NODE_ENV === 'production'
 
-const generalLimiter = new RateLimiterMemory({
+// ─── Redis connection ────────────────────────────────────────────────────────
+
+let redisClient = null
+let useRedis = false
+
+try {
+  const redisUrl = process.env.REDIS_URL
+  if (redisUrl) {
+    redisClient = new Redis(redisUrl, {
+      enableOfflineQueue: false,
+      maxRetriesPerRequest: 1,
+      connectTimeout: 5000,
+      lazyConnect: true
+    })
+
+    await redisClient.connect()
+    useRedis = true
+    logInfo('RateLimiter', 'Connected to Redis for persistent rate limiting')
+  } else {
+    logWarn('RateLimiter', 'REDIS_URL not set — falling back to in-memory rate limiting')
+  }
+} catch (err) {
+  logWarn('RateLimiter', `Redis unavailable, falling back to in-memory rate limiting: ${err.message}`)
+  redisClient = null
+  useRedis = false
+}
+
+// ─── Limiter factory ─────────────────────────────────────────────────────────
+
+/**
+ * Create a rate limiter backed by Redis when available, Memory otherwise.
+ */
+function createLimiter(opts) {
+  if (useRedis && redisClient) {
+    try {
+      return new RateLimiterRedis({
+        storeClient: redisClient,
+        keyPrefix: opts.keyPrefix || 'rl',
+        ...opts
+      })
+    } catch (err) {
+      logWarn('RateLimiter', `Failed to create Redis limiter "${opts.keyPrefix}", using Memory: ${err.message}`)
+    }
+  }
+  return new RateLimiterMemory(opts)
+}
+
+// ─── Limiter instances ───────────────────────────────────────────────────────
+
+// General API rate limiter - 100 requests per minute
+const generalLimiter = createLimiter({
+  keyPrefix: 'rl_general',
   points: isProduction ? 100 : 1000,
   duration: 60,
-  blockDuration: isProduction ? 60 : 10 // Block for 1 minute in prod, 10 sec in dev
+  blockDuration: isProduction ? 60 : 10
 })
 
 // Auth endpoints - stricter limits (20 attempts per 15 minutes)
-const authLimiter = new RateLimiterMemory({
+const authLimiter = createLimiter({
+  keyPrefix: 'rl_auth',
   points: isProduction ? 20 : 500,
   duration: isProduction ? 15 * 60 : 60,
-  blockDuration: isProduction ? 5 * 60 : 10 // Block for 5 minutes in prod
+  blockDuration: isProduction ? 5 * 60 : 10
 })
 
-// Login specifically - strict but reasonable (настраивается через env)
-// In development, higher limit for testing
+// Login specifically - strict but reasonable
 const loginRatePoints = parseInt(process.env.RATE_LIMIT_LOGIN_POINTS) || (isProduction ? 10 : 500)
 const loginRateDuration = parseInt(process.env.RATE_LIMIT_LOGIN_DURATION) || (isProduction ? 15 * 60 : 60)
-const loginLimiter = new RateLimiterMemory({
+const loginLimiter = createLimiter({
+  keyPrefix: 'rl_login',
   points: loginRatePoints,
   duration: loginRateDuration,
-  blockDuration: isProduction ? 15 * 60 : 10 // 15 min block in prod
+  blockDuration: isProduction ? 15 * 60 : 10
 })
 
 // Heavy operations (export, reports) - 10 per minute
-const heavyLimiter = new RateLimiterMemory({
+const heavyLimiter = createLimiter({
+  keyPrefix: 'rl_heavy',
   points: 10,
   duration: 60,
   blockDuration: 60
 })
 
-// Strict rate limit для data export (10 per hour per user)
-const exportLimiter = new RateLimiterMemory({
+// Strict rate limit for data export (10 per hour per user)
+const exportLimiter = createLimiter({
+  keyPrefix: 'rl_export',
   points: parseInt(process.env.EXPORT_RATE_LIMIT_MAX) || 10,
-  duration: parseInt(process.env.EXPORT_RATE_LIMIT_WINDOW) || 60 * 60, // 1 hour in seconds
-  blockDuration: 60 * 60 // Block for 1 hour if exceeded
+  duration: parseInt(process.env.EXPORT_RATE_LIMIT_WINDOW) || 60 * 60,
+  blockDuration: 60 * 60
 })
 
 // Telegram/Webhook endpoints - 30 per minute
-const webhookLimiter = new RateLimiterMemory({
+const webhookLimiter = createLimiter({
+  keyPrefix: 'rl_webhook',
   points: 30,
   duration: 60,
   blockDuration: 120
 })
 
 // Pending status check - lightweight endpoint, 10 per minute per user
-const pendingStatusLimiter = new RateLimiterMemory({
+const pendingStatusLimiter = createLimiter({
+  keyPrefix: 'rl_pending',
   points: isProduction ? 10 : 100,
   duration: 60,
   blockDuration: isProduction ? 60 : 10
 })
 
+// Slow down limiter (scraper deterrent)
+const slowDownLimiter = createLimiter({
+  keyPrefix: 'rl_slow',
+  points: 50,
+  duration: 60
+})
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
 /**
  * Get client identifier for rate limiting
  */
 function getClientId(req) {
-  // Use user ID if authenticated, otherwise IP
   if (req.user?.id) {
     return `user_${req.user.id}`
   }
@@ -81,25 +144,25 @@ function getClientId(req) {
 function createRateLimiterMiddleware(limiter, name) {
   return async (req, res, next) => {
     const clientId = getClientId(req)
-    
+
     try {
       await limiter.consume(clientId)
       next()
     } catch (rejRes) {
       if (rejRes instanceof RateLimiterRes) {
         const retryAfter = Math.ceil(rejRes.msBeforeNext / 1000)
-        
+
         logWarn('RateLimiter', `Rate limit exceeded for ${name}`, {
           clientId,
           path: req.path,
           retryAfter
         })
-        
+
         res.set('Retry-After', retryAfter)
         res.set('X-RateLimit-Limit', limiter.points)
         res.set('X-RateLimit-Remaining', rejRes.remainingPoints)
         res.set('X-RateLimit-Reset', new Date(Date.now() + rejRes.msBeforeNext).toISOString())
-        
+
         return res.status(429).json({
           success: false,
           error: 'TOO_MANY_REQUESTS',
@@ -107,7 +170,7 @@ function createRateLimiterMiddleware(limiter, name) {
           retryAfter
         })
       }
-      
+
       // Unknown error - let request through but log it
       logWarn('RateLimiter', 'Rate limiter error', { error: rejRes })
       next()
@@ -115,62 +178,36 @@ function createRateLimiterMiddleware(limiter, name) {
   }
 }
 
-/**
- * General API rate limiter - apply to all routes
- */
+// ─── Exported middleware ─────────────────────────────────────────────────────
+
 export const rateLimitGeneral = createRateLimiterMiddleware(generalLimiter, 'general')
-
-/**
- * Auth rate limiter - apply to /api/auth routes
- */
 export const rateLimitAuth = createRateLimiterMiddleware(authLimiter, 'auth')
-
-/**
- * Login rate limiter - apply specifically to login endpoint
- */
 export const rateLimitLogin = createRateLimiterMiddleware(loginLimiter, 'login')
-
-/**
- * Heavy operations rate limiter - apply to export, reports
- */
 export const rateLimitHeavy = createRateLimiterMiddleware(heavyLimiter, 'heavy')
-
-/**
- * Webhook rate limiter - apply to telegram, notifications
- */
 export const rateLimitWebhook = createRateLimiterMiddleware(webhookLimiter, 'webhook')
-
-/**
- * Pending status rate limiter - lightweight for pending users checking status
- */
 export const rateLimitPendingStatus = createRateLimiterMiddleware(pendingStatusLimiter, 'pending-status')
-
-/**
- * Export rate limiter - strict limit for data exports (10 per hour)
- */
 export const rateLimitExport = createRateLimiterMiddleware(exportLimiter, 'export')
 
 /**
  * Export rate limiter with security alerting
- * Sends alert when limit exceeded
  */
 export async function rateLimitExportWithAlert(req, res, next) {
   const clientId = getClientId(req)
-  
+
   try {
     await exportLimiter.consume(clientId)
     next()
   } catch (rejRes) {
     if (rejRes instanceof RateLimiterRes) {
       const retryAfter = Math.ceil(rejRes.msBeforeNext / 1000)
-      
+
       logWarn('RateLimiter', `Export rate limit exceeded`, {
         clientId,
         path: req.path,
         retryAfter,
         userId: req.user?.id
       })
-      
+
       // Send security alert
       if (req.user) {
         try {
@@ -189,12 +226,12 @@ export async function rateLimitExportWithAlert(req, res, next) {
           logError('RateLimiter', 'Failed to send security alert', alertError)
         }
       }
-      
+
       res.set('Retry-After', retryAfter)
       res.set('X-RateLimit-Limit', exportLimiter.points)
       res.set('X-RateLimit-Remaining', rejRes.remainingPoints)
       res.set('X-RateLimit-Reset', new Date(Date.now() + rejRes.msBeforeNext).toISOString())
-      
+
       return res.status(429).json({
         success: false,
         error: 'TOO_MANY_REQUESTS',
@@ -202,7 +239,7 @@ export async function rateLimitExportWithAlert(req, res, next) {
         retryAfter
       })
     }
-    
+
     logWarn('RateLimiter', 'Rate limiter error', { error: rejRes })
     next()
   }
@@ -210,26 +247,19 @@ export async function rateLimitExportWithAlert(req, res, next) {
 
 /**
  * Slow down middleware - add delay after certain number of requests
- * Useful for slowing down scrapers without blocking
  */
-const slowDownLimiter = new RateLimiterMemory({
-  points: 50,
-  duration: 60
-})
-
 export async function slowDown(req, res, next) {
   const clientId = getClientId(req)
-  
+
   try {
-    const rateLimiterRes = await slowDownLimiter.consume(clientId, 0) // Just check, don't consume
+    const rateLimiterRes = await slowDownLimiter.consume(clientId, 0)
     const remaining = rateLimiterRes.remainingPoints
-    
-    // Add delay after 30 requests
+
     if (remaining < 20) {
-      const delay = (20 - remaining) * 50 // 50ms per request over limit
+      const delay = (20 - remaining) * 50
       await new Promise(resolve => setTimeout(resolve, delay))
     }
-    
+
     next()
   } catch {
     next()

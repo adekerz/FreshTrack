@@ -3,6 +3,7 @@
  */
 
 import { Router } from 'express'
+import { validate, ImportProductsSchema, ImportBatchesSchema } from './import.schemas.js'
 import { logError } from '../../utils/logger.js'
 import {
   createProduct,
@@ -25,13 +26,13 @@ const router = Router()
 
 router.post('/products', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.PRODUCTS, PermissionAction.CREATE), async (req, res) => {
   try {
-    const { products, options = {} } = req.body
-    
-    if (!products || !Array.isArray(products) || products.length === 0) {
-      return res.status(400).json({ success: false, error: 'Products array is required' })
+    const validation = validate(ImportProductsSchema, req.body)
+    if (!validation.isValid) {
+      return res.status(400).json({ success: false, error: 'Ошибка валидации', details: validation.errors })
     }
-    
-    const { skip_duplicates = true, create_categories = false } = options
+
+    const { products, options } = validation.data
+    const { skip_duplicates = true, create_categories = false } = options || {}
     const results = { imported: 0, skipped: 0, errors: [] }
     
     const targetDeptId = req.departmentId
@@ -113,11 +114,12 @@ router.post('/products', authMiddleware, hotelIsolation, departmentIsolation, re
 
 router.post('/batches', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.BATCHES, PermissionAction.CREATE), async (req, res) => {
   try {
-    const { batches } = req.body
-    
-    if (!batches || !Array.isArray(batches) || batches.length === 0) {
-      return res.status(400).json({ success: false, error: 'Batches array is required' })
+    const validation = validate(ImportBatchesSchema, req.body)
+    if (!validation.isValid) {
+      return res.status(400).json({ success: false, error: 'Ошибка валидации', details: validation.errors })
     }
+
+    const { batches } = validation.data
     
     const results = { imported: 0, errors: [] }
     const targetDeptId = req.departmentId

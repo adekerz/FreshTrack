@@ -14,10 +14,12 @@ import {
   verifyPassword,
   getAllUsers,
   updateLastLogin,
+  updateUserStatus,
+  createJoinRequest
+} from './auth.repository.js'
+import {
   logAudit,
   getHotelById,
-  updateUserStatus,
-  createJoinRequest,
   query as dbQuery
 } from '../../db/database.js'
 import { MFAService } from '../../services/MFAService.js'
@@ -25,7 +27,7 @@ import { query as dbQueryPostgres } from '../../db/postgres.js'
 import MarshaCodeService from '../../services/MarshaCodeService.js'
 import { generateToken } from '../../middleware/auth.js'
 import { PermissionService } from '../../services/PermissionService.js'
-import { logError, logInfo } from '../../utils/logger.js'
+import { logError, logInfo, logDebug } from '../../utils/logger.js'
 import jwt from 'jsonwebtoken'
 
 /**
@@ -203,9 +205,9 @@ export class AuthService {
   static async login(email, password, ipAddress) {
     try {
       // Найти пользователя
-      console.log('[AuthService] Login attempt:', email)
+      logDebug('AuthService', 'Login attempt', { login: email ? '(present)' : '(empty)' })
       const user = await getUserByLoginOrEmail(email)
-      console.log('[AuthService] User found:', user ? user.login : 'NOT FOUND')
+      logDebug('AuthService', 'User lookup', { found: !!user })
       if (!user) {
         return ServiceResult.unauthorized('Invalid credentials')
       }
@@ -216,9 +218,9 @@ export class AuthService {
       }
 
       // Проверить пароль
-      console.log('[AuthService] Password check, hash exists:', !!user.password)
+      logDebug('AuthService', 'Password check', { hashExists: !!user.password })
       const isValidPassword = verifyPassword(password, user.password)
-      console.log('[AuthService] Password valid:', isValidPassword)
+      logDebug('AuthService', 'Password valid', { valid: isValidPassword })
       if (!isValidPassword) {
         return ServiceResult.unauthorized('Invalid credentials')
       }
@@ -329,15 +331,14 @@ export class AuthService {
 
         if (hotelByCode.rows.length > 0) {
           hotelId = hotelByCode.rows[0].id
-          console.log('[AuthService] Found hotel by code/marsha_code:', codeUpper, '-> hotelId:', hotelId)
+          logDebug('AuthService', 'Hotel found by marsha_code', { code: codeUpper, hotelId })
         } else {
-          // Если не нашли в hotels, ищем через MarshaCodeService (в таблице marsha_codes)
           const hotel = await MarshaCodeService.getHotelByMarshaCode(data.hotelCode)
           if (hotel) {
             hotelId = hotel.id
-            console.log('[AuthService] Found hotel via MarshaCodeService:', codeUpper, '-> hotelId:', hotelId)
+            logDebug('AuthService', 'Hotel found via MarshaCodeService', { code: codeUpper, hotelId })
           } else {
-            console.log('[AuthService] Hotel NOT FOUND by code:', codeUpper)
+            logDebug('AuthService', 'Hotel not found by code', { code: codeUpper })
           }
         }
       }
@@ -363,9 +364,8 @@ export class AuthService {
           // Email not verified yet - don't create join request
           logInfo('AuthService', `User ${data.login} registered but email not verified - join request pending`)
         } else {
-          // No email or email verification not needed - create join request immediately
           await createJoinRequest(newUser.id, hotelId)
-          console.log('[AuthService] Created join request for user:', newUser.id, 'hotel:', hotelId)
+          logInfo('AuthService', 'Join request created', { userId: newUser.id, hotelId })
         }
       }
 

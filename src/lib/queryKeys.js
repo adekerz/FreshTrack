@@ -115,7 +115,7 @@ export const queryKeys = {
   deliveryTemplate: (templateId) => ['delivery-templates', 'detail', templateId],
   
   // === AUDIT (аудит) ===
-  
+
   /**
    * Логи аудита
    * @param {string} hotelId - ID отеля
@@ -123,6 +123,50 @@ export const queryKeys = {
    */
   auditLogs: (hotelId, filters = {}) => {
     const baseKey = ['audit', hotelId]
+    return Object.keys(filters).length > 0 ? [...baseKey, filters] : baseKey
+  },
+
+  /**
+   * Статистика аудита (для графиков)
+   * @param {string} hotelId - ID отеля
+   * @param {number} days - Количество дней
+   */
+  auditStats: (hotelId, days = 7) => ['audit', 'stats', hotelId, days],
+
+  /**
+   * Пользователи в аудите (для фильтра)
+   * @param {string} hotelId - ID отеля
+   */
+  auditUsers: (hotelId) => ['audit', 'users', hotelId],
+
+  // === COLLECTIONS (история сборов) ===
+
+  /**
+   * История сборов
+   * @param {string} hotelId - ID отеля
+   * @param {Object} filters - Фильтры (departmentId, reason, startDate, endDate)
+   */
+  collectionHistory: (hotelId, filters = {}) => {
+    const baseKey = ['collections', 'history', hotelId]
+    return Object.keys(filters).length > 0 ? [...baseKey, filters] : baseKey
+  },
+
+  /**
+   * Статистика сборов
+   * @param {string} hotelId - ID отеля
+   * @param {string} period - Период (month, week, etc.)
+   */
+  collectionStats: (hotelId, period = 'month') => ['collections', 'stats', hotelId, period],
+
+  // === NOTIFICATIONS (уведомления) ===
+
+  /**
+   * Логи уведомлений
+   * @param {string} hotelId - ID отеля
+   * @param {Object} filters - Фильтры (type, startDate, endDate, page, limit)
+   */
+  notificationLogs: (hotelId, filters = {}) => {
+    const baseKey = ['notifications', 'logs', hotelId]
     return Object.keys(filters).length > 0 ? [...baseKey, filters] : baseKey
   },
   

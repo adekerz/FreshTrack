@@ -22,9 +22,12 @@ export const emailSchema = z.string()
   .max(100, 'Email слишком длинный')
   .transform(val => val.trim().toLowerCase())
 
+// NIST 800-63B / Marriott audit: min 8, хотя бы одна заглавная, одна цифра
 export const passwordSchema = z.string()
-  .min(6, 'Пароль должен быть минимум 6 символов')
+  .min(8, 'Минимум 8 символов')
   .max(100, 'Пароль слишком длинный')
+  .regex(/[A-Z]/, 'Нужна хотя бы одна заглавная буква')
+  .regex(/[0-9]/, 'Нужна хотя бы одна цифра')
 
 export const nameSchema = z.string()
   .max(100, 'Имя должно быть максимум 100 символов')

@@ -14,9 +14,9 @@ import {
   logAudit,
   query
 } from '../../db/database.js'
-import { 
-  authMiddleware, 
-  hotelIsolation, 
+import {
+  authMiddleware,
+  hotelIsolation,
   departmentIsolation,
   requirePermission,
   PermissionResource,
@@ -26,20 +26,26 @@ import { rateLimitExportWithAlert } from '../../middleware/rateLimiter.js'
 import { requireAllowlistedIP } from '../../middleware/ipAllowlist.js'
 import { requireMFA } from '../../middleware/requireMFA.js'
 import { ExportService } from '../../services/ExportService.js'
+import { validate, ExportQuerySchema } from './export.schemas.js'
 
 const router = Router()
 
-router.get('/products', 
-  authMiddleware, 
-  hotelIsolation, 
-  departmentIsolation, 
+router.get('/products',
+  authMiddleware,
+  hotelIsolation,
+  departmentIsolation,
   requirePermission(PermissionResource.EXPORT, PermissionAction.READ),
   requireMFA,
   rateLimitExportWithAlert,
   requireAllowlistedIP,
   async (req, res) => {
     try {
-      const { format = 'json' } = req.query
+      const validation = validate(ExportQuerySchema, req.query)
+      if (!validation.isValid) {
+        return res.status(400).json({ error: 'Ошибка валидации', details: validation.errors })
+      }
+
+      const { format = 'json' } = validation.data
       const products = await getAllProducts(req.hotelId)
       
       // Check export size limit
@@ -68,17 +74,22 @@ router.get('/products',
   }
 })
 
-router.get('/batches', 
-  authMiddleware, 
-  hotelIsolation, 
-  departmentIsolation, 
+router.get('/batches',
+  authMiddleware,
+  hotelIsolation,
+  departmentIsolation,
   requirePermission(PermissionResource.EXPORT, PermissionAction.READ),
   requireMFA,
   rateLimitExportWithAlert,
   requireAllowlistedIP,
   async (req, res) => {
     try {
-      const { department_id, product_id, status, format = 'json' } = req.query
+      const validation = validate(ExportQuerySchema, req.query)
+      if (!validation.isValid) {
+        return res.status(400).json({ error: 'Ошибка валидации', details: validation.errors })
+      }
+
+      const { department_id, product_id, status, format = 'json' } = { ...req.query, ...validation.data }
       const deptId = req.canAccessAllDepartments ? (department_id || null) : req.departmentId
       const batches = await getAllBatches(req.hotelId, deptId, status)
       
@@ -108,17 +119,22 @@ router.get('/batches',
   }
 })
 
-router.get('/categories', 
-  authMiddleware, 
-  hotelIsolation, 
-  departmentIsolation, 
+router.get('/categories',
+  authMiddleware,
+  hotelIsolation,
+  departmentIsolation,
   requirePermission(PermissionResource.EXPORT, PermissionAction.READ),
   requireMFA,
   rateLimitExportWithAlert,
   requireAllowlistedIP,
   async (req, res) => {
     try {
-      const { format = 'xlsx' } = req.query
+      const validation = validate(ExportQuerySchema, req.query)
+      if (!validation.isValid) {
+        return res.status(400).json({ error: 'Ошибка валидации', details: validation.errors })
+      }
+
+      const { format = 'xlsx' } = validation.data
       const categories = await getAllCategories(req.hotelId)
       
       // Check export size limit
@@ -148,17 +164,22 @@ router.get('/categories',
   }
 )
 
-router.get('/departments', 
-  authMiddleware, 
-  hotelIsolation, 
-  departmentIsolation, 
+router.get('/departments',
+  authMiddleware,
+  hotelIsolation,
+  departmentIsolation,
   requirePermission(PermissionResource.EXPORT, PermissionAction.READ),
   requireMFA,
   rateLimitExportWithAlert,
   requireAllowlistedIP,
   async (req, res) => {
     try {
-      const { format = 'xlsx' } = req.query
+      const validation = validate(ExportQuerySchema, req.query)
+      if (!validation.isValid) {
+        return res.status(400).json({ error: 'Ошибка валидации', details: validation.errors })
+      }
+
+      const { format = 'xlsx' } = validation.data
       const departments = await getAllDepartments(req.hotelId)
       
       // Check export size limit
@@ -188,17 +209,22 @@ router.get('/departments',
   }
 )
 
-router.get('/inventory', 
-  authMiddleware, 
-  hotelIsolation, 
-  departmentIsolation, 
+router.get('/inventory',
+  authMiddleware,
+  hotelIsolation,
+  departmentIsolation,
   requirePermission(PermissionResource.EXPORT, PermissionAction.READ),
   requireMFA,
   rateLimitExportWithAlert,
   requireAllowlistedIP,
   async (req, res) => {
   try {
-    const { department_id, format = 'json' } = req.query
+    const validation = validate(ExportQuerySchema, req.query)
+    if (!validation.isValid) {
+      return res.status(400).json({ error: 'Ошибка валидации', details: validation.errors })
+    }
+
+    const { department_id, format = 'json' } = { ...req.query, ...validation.data }
     const deptId = req.canAccessAllDepartments ? (department_id || null) : req.departmentId
     
     const [products, batches] = await Promise.all([
@@ -247,17 +273,22 @@ router.get('/inventory',
   }
 })
 
-router.get('/collections', 
-  authMiddleware, 
-  hotelIsolation, 
-  departmentIsolation, 
+router.get('/collections',
+  authMiddleware,
+  hotelIsolation,
+  departmentIsolation,
   requirePermission(PermissionResource.EXPORT, PermissionAction.READ),
   requireMFA,
   rateLimitExportWithAlert,
   requireAllowlistedIP,
   async (req, res) => {
   try {
-    const { department_id, start_date, end_date, format = 'json' } = req.query
+    const validation = validate(ExportQuerySchema, req.query)
+    if (!validation.isValid) {
+      return res.status(400).json({ error: 'Ошибка валидации', details: validation.errors })
+    }
+
+    const { department_id, start_date, end_date, format = 'json' } = { ...req.query, ...validation.data }
     const deptId = req.canAccessAllDepartments ? (department_id || null) : req.departmentId
     
     let queryText = `
@@ -301,16 +332,21 @@ router.get('/collections',
   }
 })
 
-router.get('/audit', 
-  authMiddleware, 
-  hotelIsolation, 
+router.get('/audit',
+  authMiddleware,
+  hotelIsolation,
   requirePermission(PermissionResource.EXPORT, PermissionAction.READ),
   requireMFA,
   rateLimitExportWithAlert,
   requireAllowlistedIP,
   async (req, res) => {
   try {
-    const { start_date, end_date, limit = 1000, format = 'xlsx' } = req.query
+    const validation = validate(ExportQuerySchema, req.query)
+    if (!validation.isValid) {
+      return res.status(400).json({ error: 'Ошибка валидации', details: validation.errors })
+    }
+
+    const { start_date, end_date, limit = 1000, format = 'xlsx' } = { ...req.query, ...validation.data }
     const filters = { start_date, end_date, limit: parseInt(limit) }
     
     const logs = await getAuditLogs(req.hotelId, filters)

@@ -21,7 +21,7 @@ import { useAuth } from '../context/AuthContext'
 import { cn } from '../utils/classNames'
 import { apiFetch } from '../services/api'
 import PageContainer from '../components/PageContainer'
-import { PageLoader, ButtonSpinner } from '../components/ui'
+import { ButtonSpinner, SkeletonList } from '../components/ui'
 
 export default function NotificationRulesPage() {
   const { t } = useTranslation()
@@ -244,7 +244,9 @@ export default function NotificationRulesPage() {
         subtitle={t('notificationRules.subtitle')}
         stickyHeader={true}
       >
-        <PageLoader message={t('common.loading') || 'Загрузка...'} />
+        <div className="bg-card rounded-xl shadow-lg overflow-hidden p-4 sm:p-6" role="status" aria-live="polite" aria-label={t('common.loading') || 'Загрузка'}>
+          <SkeletonList items={5} className="space-y-4" />
+        </div>
       </PageContainer>
     )
   }

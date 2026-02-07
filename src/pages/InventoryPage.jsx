@@ -1,11 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
-  Wine,
-  Coffee,
-  Utensils,
-  ChefHat,
-  Warehouse,
   Package,
   Plus,
   FileBox,
@@ -36,28 +31,7 @@ import ExportProgress from '../components/ExportProgress'
 import Tooltip from '../components/Tooltip'
 import { usePullToRefresh } from '../hooks/usePullToRefresh'
 import { useExport } from '../hooks/useExport'
-
-// Иконки для отделов - универсальный маппинг
-const ICON_MAP = {
-  Wine,
-  Coffee,
-  Utensils,
-  ChefHat,
-  Warehouse,
-  Package
-}
-
-// Получить иконку по имени или типу
-const getDeptIcon = (dept) => {
-  if (dept?.icon && ICON_MAP[dept.icon]) return ICON_MAP[dept.icon]
-  const name = (dept?.name || dept?.code || '').toLowerCase()
-  if (name.includes('bar')) return Wine
-  if (name.includes('kitchen') || name.includes('кухня')) return ChefHat
-  if (name.includes('restaurant') || name.includes('ресторан')) return Utensils
-  if (name.includes('storage') || name.includes('склад')) return Warehouse
-  if (name.includes('cafe') || name.includes('кафе')) return Coffee
-  return Package
-}
+import { getDepartmentIcon } from '../utils/departmentUtils'
 
 export default function InventoryPage() {
   const { t } = useTranslation()
@@ -308,7 +282,7 @@ export default function InventoryPage() {
 
   // Экран инвентаря отдела
   const department = departments.find((d) => d.id === selectedDeptId || d.code === selectedDeptId)
-  const DeptIcon = getDeptIcon(department)
+  const DeptIcon = getDepartmentIcon(department)
   const products = getFilteredProducts()
   const availableCategories = getAvailableCategories()
 

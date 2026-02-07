@@ -11,6 +11,7 @@ import { TelegramService } from '../../services/TelegramService.js'
 import { query } from '../../db/postgres.js'
 import { logAudit } from '../../db/database.js'
 import { logInfo, logError } from '../../utils/logger.js'
+import { validate, RegisterTelegramChatSchema, TestTelegramMessageSchema } from './telegram.schemas.js'
 
 const router = express.Router()
 
@@ -101,15 +102,13 @@ router.get('/chats', authMiddleware, async (req, res) => {
 // ═══════════════════════════════════════════════════════════════
 router.post('/chats', authMiddleware, requirePermission('settings', 'write'), async (req, res) => {
   try {
-    const { chatId, chatTitle, hotelId, departmentId } = req.body
-    const { id: userId } = req.user
-
-    if (!chatId) {
-      return res.status(400).json({
-        success: false,
-        error: 'chatId is required'
-      })
+    const validation = validate(RegisterTelegramChatSchema, req.body)
+    if (!validation.isValid) {
+      return res.status(400).json({ error: 'Ошибка валидации', details: validation.errors })
     }
+
+    const { chatId, chatTitle, hotelId, departmentId } = validation.data
+    const { id: userId } = req.user
 
     // Verify the chat exists and bot has access
     try {
@@ -190,6 +189,11 @@ router.delete('/chats/:chatId', authMiddleware, requirePermission('settings', 'w
 // ═══════════════════════════════════════════════════════════════
 router.post('/test', authMiddleware, requirePermission('settings', 'write'), async (req, res) => {
   try {
+    const validation = validate(TestTelegramMessageSchema, req.body)
+    if (!validation.isValid) {
+      return res.status(400).json({ error: 'Ошибка валидации', details: validation.errors })
+    }
+
     // Check if Telegram is configured
     if (!TelegramService.isConfigured()) {
       return res.status(400).json({
@@ -199,7 +203,7 @@ router.post('/test', authMiddleware, requirePermission('settings', 'write'), asy
       })
     }
 
-    const { chatId } = req.body
+    const { chatId } = validation.data
     const { hotel_id } = req.user
 
     let targetChats = []

@@ -413,8 +413,28 @@ function Dropdown({ isOpen }) {
 
 ### Loading States
 
+На страницах со списками и таблицами используются **скелетоны** (SkeletonTable, SkeletonList и др.), а не только спиннер — так сохраняется layout и ожидание воспринимается лучше (соответствует ANIMATIONS_AND_DESIGN_SYSTEM и ACCESSIBILITY_CHECKLIST).
+
+**Страницы со скелетонами:**
+- **Audit Logs** — скелетон панели фильтров + SkeletonTable (6 колонок)
+- **Collection History** — SkeletonTable (8×6) в блоке контента
+- **Notifications History** — SkeletonTable (8×6)
+- **Accounts** — скелетон фильтров + SkeletonTable (10×6)
+- **Notification Rules** — SkeletonList (5 элементов)
+- **Marsha Codes** — скелетон поиска + SkeletonTable (10×5)
+- **Inventory** — SkeletonInventory + скелетон фильтров категорий (уже было)
+- **Dashboard** — SkeletonDashboard (уже было)
+- **Notifications** — SkeletonNotifications (уже было)
+
+У каждого блока скелетона: `role="status"`, `aria-live="polite"`, `aria-label={t('common.loading')}`.
+
 ```jsx
-// ✅ Accessible loading state
+// ✅ Accessible loading state (skeleton)
+<div role="status" aria-live="polite" aria-label={t('common.loading')}>
+  <SkeletonTable rows={10} columns={6} />
+</div>
+
+// ✅ Accessible loading state (spinner, когда скелетон не подходит)
 <div aria-live="polite" aria-busy="true">
   <span className="sr-only">Загрузка данных инвентаря</span>
   <Loader />

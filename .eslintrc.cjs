@@ -18,7 +18,12 @@ module.exports = {
       { allowConstantExport: true },
     ],
     'react/prop-types': 'off',
-    
+
+    'react-hooks/exhaustive-deps': 'warn',
+    'no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+    'consistent-return': 'error',
+    'no-console': 'warn',
+
     // ========================================
     // Architecture Rules (Feature-based)
     // ========================================

@@ -18,10 +18,7 @@ export function useAuditSSE(enabled = true) {
   useEffect(() => {
     if (!enabled) return
 
-    const token = localStorage.getItem('freshtrack_token')
-    if (!token) return
-
-    const url = `${API_BASE_URL}/audit-logs/stream?token=${encodeURIComponent(token)}`
+    const url = `${API_BASE_URL}/audit-logs/stream`
 
     const eventSource = new EventSource(url, { withCredentials: true })
     eventSourceRef.current = eventSource

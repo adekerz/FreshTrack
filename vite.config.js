@@ -1,10 +1,22 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { VitePWA } from 'vite-plugin-pwa'
 import path from 'path'
 
 export default defineConfig({
   plugins: [
     react(),
+    VitePWA({
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.js',
+      registerType: 'autoUpdate',
+      injectRegister: 'auto',
+      devOptions: { enabled: false },
+      injectManifest: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,woff,json}'],
+      },
+    }),
   ],
   // base: '/FreshTrack/', // Removed for Vercel deployment
   resolve: {
@@ -45,6 +57,8 @@ export default defineConfig({
           'utils-vendor': ['date-fns', 'clsx'],
           // Icons - separate chunk for tree-shaking
           'icons-vendor': ['lucide-react'],
+          // Chart.js - loaded only by AuditLogsPage (lazy)
+          'chart-vendor': ['chart.js', 'react-chartjs-2'],
         },
       },
     },

@@ -20,7 +20,7 @@ import { formatDate } from '../utils/dateUtils'
 import { apiFetch, API_BASE_URL } from '../services/api'
 import ExportButton from '../components/ExportButton'
 import PageContainer from '../components/PageContainer'
-import { PageLoader } from '../components/ui'
+import { SkeletonTable, Skeleton } from '../components/Skeleton'
 import { useToast } from '../context/ToastContext'
 import Modal from '../components/ui/Modal'
 
@@ -176,10 +176,9 @@ export default function MarshaCodesPage() {
       if (filters.brand) params.set('brand', filters.brand)
       if (filters.isAssigned !== '') params.set('isAssigned', filters.isAssigned)
 
-      const token = localStorage.getItem('freshtrack_token')
       const url = `${API_BASE_URL}/marsha-codes/export?${params}`
       const res = await fetch(url, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {}
+        credentials: 'include'
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
@@ -211,10 +210,9 @@ export default function MarshaCodesPage() {
       if (filters.brand) params.set('brand', filters.brand)
       if (filters.isAssigned !== '') params.set('isAssigned', filters.isAssigned)
 
-      const token = localStorage.getItem('freshtrack_token')
       const url = `${API_BASE_URL}/marsha-codes/export?${params}`
       const res = await fetch(url, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {}
+        credentials: 'include'
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
@@ -280,7 +278,15 @@ export default function MarshaCodesPage() {
         stickyHeader={true}
         titleIcon={Database}
       >
-        <PageLoader message={t('common.loading')} />
+        <div className="space-y-4 sm:space-y-6" role="status" aria-live="polite" aria-label={t('common.loading')}>
+          <div className="bg-card rounded-xl border border-border p-3 sm:p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
+              <Skeleton className="h-10 flex-1 rounded-lg" />
+              <Skeleton className="h-10 w-24 rounded-lg" />
+            </div>
+          </div>
+          <SkeletonTable rows={10} columns={5} />
+        </div>
       </PageContainer>
     )
   }

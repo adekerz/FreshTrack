@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, lazy, Suspense } from 'react'
 import {
   FileText,
   Search,
@@ -32,12 +32,15 @@ import { useTranslation } from '../context/LanguageContext'
 import { useHotel } from '../context/HotelContext'
 import { cn } from '../utils/classNames'
 import { formatDate } from '../utils/dateUtils'
-import { apiFetch } from '../services/api'
+import { useAuditLogs, useAuditStats, useAuditUsers } from '../hooks/useAuditLogs'
+import { useDepartments } from '../hooks/useInventory'
 import ExportButton from '../components/ExportButton'
 import PageContainer from '../components/PageContainer'
 import AnimatedPage from '../components/AnimatedPage'
-import { PageLoader } from '../components/ui'
-import { ActivityChart } from '../components/audit/ActivityChart'
+import { SkeletonTable, Skeleton } from '../components/Skeleton'
+const ActivityChart = lazy(() =>
+  import('../components/audit/ActivityChart').then(m => ({ default: m.ActivityChart }))
+)
 import { AuditDetailsModal } from '../components/audit/AuditDetailsModal'
 import { useToast } from '../context/ToastContext'
 import { useAuditSSE } from '../hooks/useAuditSSE'
@@ -52,8 +55,6 @@ export default function AuditLogsPage() {
   const { selectedHotelId, selectedHotel } = useHotel()
   const { newLogs, clearNewLogs } = useAuditSSE(!!selectedHotelId)
   const { exportProgress, dismissExportProgress } = useExport()
-  const [logs, setLogs] = useState([])
-  const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [filters, setFilters] = useState({
     actionType: '',
@@ -65,115 +66,32 @@ export default function AuditLogsPage() {
     severity: '',
     securityOnly: false
   })
-  const [pagination, setPagination] = useState({
-    page: 1,
-    limit: 20,
-    total: 0
-  })
+  const [page, setPage] = useState(1)
   const [showFilters, setShowFilters] = useState(false)
   const [selectedLog, setSelectedLog] = useState(null)
-  const [stats, setStats] = useState(null)
-  const [users, setUsers] = useState([])
-  const [departments, setDepartments] = useState([])
-  const [statsLoaded, setStatsLoaded] = useState(false)
-  const filterOptionsLoadedRef = useRef(false)
 
-  // Первый рендер: только логи (таблица), limit 20
-  useEffect(() => {
-    if (!selectedHotelId) return
-    loadLogs()
-  }, [selectedHotelId, filters, pagination.page])
-
-  // Сброс графика и флага при смене отеля
-  const prevHotelRef = useRef(selectedHotelId)
-  useEffect(() => {
-    if (prevHotelRef.current !== selectedHotelId) {
-      prevHotelRef.current = selectedHotelId
-      setStats(null)
-      setStatsLoaded(false)
-      filterOptionsLoadedRef.current = false
-    }
-  }, [selectedHotelId])
-
-  // График: подгрузка после первого отображения таблицы (отложенная)
-  useEffect(() => {
-    if (!selectedHotelId || statsLoaded) return
-    let cancelled = false
-    const tid = setTimeout(() => {
-      loadStats().then(() => {
-        if (!cancelled) setStatsLoaded(true)
-      })
-    }, 150)
-    return () => {
-      cancelled = true
-      clearTimeout(tid)
-    }
-  }, [selectedHotelId, statsLoaded])
-
-  // Справочники для фильтров: только при открытии панели фильтров
-  useEffect(() => {
-    if (!selectedHotelId || !showFilters || filterOptionsLoadedRef.current) return
-    filterOptionsLoadedRef.current = true
-    loadUsers()
-    loadDepartments()
-  }, [selectedHotelId, showFilters])
-
-  const loadLogs = async () => {
-    setLoading(true)
-    try {
-      const params = new URLSearchParams({
-        limit: pagination.limit.toString(),
-        offset: ((pagination.page - 1) * pagination.limit).toString(),
-        ...(filters.actionType && { action: filters.actionType }),
-        ...(filters.entityType && { entityType: filters.entityType }),
-        ...(filters.dateFrom && { dateFrom: filters.dateFrom }),
-        ...(filters.dateTo && { dateTo: filters.dateTo }),
-        ...(filters.userId && { userId: filters.userId }),
-        ...(filters.departmentId && { departmentId: filters.departmentId }),
-        ...(filters.severity && { severity: filters.severity }),
-        ...(filters.securityOnly && { securityOnly: 'true' })
-      })
-
-      const data = await apiFetch(`/audit-logs?${params}`)
-      setLogs(data.logs || [])
-      setPagination((prev) => ({
-        ...prev,
-        total: data.pagination?.total ?? data.total ?? 0
-      }))
-    } catch {
-      setLogs([])
-      addToast(t('auditLogs.loadError'), 'error')
-    } finally {
-      setLoading(false)
-    }
+  // React Query hooks
+  const queryFilters = {
+    limit: 20,
+    offset: (page - 1) * 20,
+    ...(filters.actionType && { action: filters.actionType }),
+    ...(filters.entityType && { entityType: filters.entityType }),
+    ...(filters.dateFrom && { dateFrom: filters.dateFrom }),
+    ...(filters.dateTo && { dateTo: filters.dateTo }),
+    ...(filters.userId && { userId: filters.userId }),
+    ...(filters.departmentId && { departmentId: filters.departmentId }),
+    ...(filters.severity && { severity: filters.severity }),
+    ...(filters.securityOnly && { securityOnly: true })
   }
 
-  const loadStats = async () => {
-    try {
-      const data = await apiFetch('/audit-logs/stats?days=7')
-      setStats(data.stats ?? null)
-    } catch {
-      setStats(null)
-    }
-  }
+  const { data: logsData, isLoading, isFetching, refetch: refetchLogs } = useAuditLogs(selectedHotelId, queryFilters)
+  const { data: stats } = useAuditStats(selectedHotelId)
+  const { data: users = [] } = useAuditUsers(selectedHotelId, showFilters)
+  const { data: departments = [] } = useDepartments(selectedHotelId)
 
-  const loadUsers = async () => {
-    try {
-      const data = await apiFetch('/audit-logs/users')
-      setUsers(data.users || [])
-    } catch {
-      setUsers([])
-    }
-  }
-
-  const loadDepartments = async () => {
-    try {
-      const data = await apiFetch('/departments')
-      setDepartments(data.departments || [])
-    } catch {
-      setDepartments([])
-    }
-  }
+  const logs = logsData?.logs || []
+  const loading = isFetching
+  const paginationTotal = logsData?.pagination?.total ?? 0
 
   const resetFilters = () => {
     setFilters({
@@ -186,7 +104,7 @@ export default function AuditLogsPage() {
       severity: '',
       securityOnly: false
     })
-    setPagination((prev) => ({ ...prev, page: 1 }))
+    setPage(1)
   }
 
   const getSeverityBadge = (severity) => {
@@ -284,7 +202,7 @@ export default function AuditLogsPage() {
     )
   })
 
-  const totalPages = Math.ceil(pagination.total / pagination.limit)
+  const totalPages = Math.ceil(paginationTotal / 20)
   const hasActiveFilters = Object.values(filters).some((v) => v !== '' && v !== false)
   const activeFiltersCount = [
     filters.actionType,
@@ -309,7 +227,7 @@ export default function AuditLogsPage() {
     ...(filters.securityOnly && { securityOnly: 'true' })
   }
 
-  if (loading && logs.length === 0) {
+  if (isLoading) {
     return (
       <AnimatedPage>
         <PageContainer
@@ -317,7 +235,18 @@ export default function AuditLogsPage() {
           subtitle={t('auditLogs.subtitle')}
           stickyHeader={true}
         >
-          <PageLoader message={t('common.loading')} />
+          <div className="space-y-4 sm:space-y-6" role="status" aria-live="polite" aria-label={t('common.loading')}>
+            <div className="bg-card rounded-xl border border-border p-3 sm:p-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
+                <Skeleton className="h-10 flex-1 rounded-lg" />
+                <div className="flex gap-2">
+                  <Skeleton className="h-10 w-24 rounded-lg" />
+                  <Skeleton className="h-10 w-20 rounded-lg" />
+                </div>
+              </div>
+            </div>
+            <SkeletonTable rows={10} columns={6} />
+          </div>
         </PageContainer>
       </AnimatedPage>
     )
@@ -334,7 +263,7 @@ export default function AuditLogsPage() {
           <Tooltip content={t('common.refresh') || 'Обновить'}>
             <span className="inline-flex">
               <button
-                onClick={loadLogs}
+                onClick={() => refetchLogs()}
                 disabled={loading}
                 className="p-2 rounded-lg hover:bg-muted text-muted-foreground transition-colors min-h-[48px] min-w-[48px] flex items-center justify-center"
                 aria-label={t('common.refresh') || 'Обновить'}
@@ -365,7 +294,7 @@ export default function AuditLogsPage() {
           <button
             type="button"
             onClick={() => {
-              loadLogs()
+              refetchLogs()
               clearNewLogs()
             }}
             className="text-sm font-medium text-accent underline hover:no-underline focus:outline-none focus:ring-2 focus:ring-accent/20 rounded min-h-[44px] min-w-[44px] flex items-center justify-center px-2"
@@ -375,9 +304,11 @@ export default function AuditLogsPage() {
         </div>
       )}
 
-      {/* Activity Chart */}
+      {/* Activity Chart (lazy — chart.js loaded on demand) */}
       {stats && stats.length > 0 && (
-        <ActivityChart data={stats} />
+        <Suspense fallback={<Skeleton className="h-64 w-full rounded-xl" />}>
+          <ActivityChart data={stats} />
+        </Suspense>
       )}
 
       {/* Filters Bar */}
@@ -508,7 +439,7 @@ export default function AuditLogsPage() {
       {/* Stats */}
       <div className="flex items-center gap-4 text-sm text-muted-foreground">
         <span>
-          {t('auditLogs.totalRecords', { count: pagination.total })}
+          {t('auditLogs.totalRecords', { count: paginationTotal })}
         </span>
         {searchQuery && (
           <span>
@@ -657,17 +588,15 @@ export default function AuditLogsPage() {
         {totalPages > 1 && (
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 py-3 border-t border-border">
             <div className="text-sm text-muted-foreground">
-              {(pagination.page - 1) * pagination.limit + 1}—{' '}
-              {Math.min(pagination.page * pagination.limit, pagination.total)}{' '}
-              {t('common.of')} {pagination.total}
+              {(page - 1) * 20 + 1}—{' '}
+              {Math.min(page * 20, paginationTotal)}{' '}
+              {t('common.of')} {paginationTotal}
             </div>
             <div className="flex gap-2">
               <button
                 type="button"
-                onClick={() =>
-                  setPagination((prev) => ({ ...prev, page: Math.max(1, prev.page - 1) }))
-                }
-                disabled={pagination.page === 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
                 className="p-2 rounded-lg hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] min-w-[44px] flex items-center justify-center"
                 aria-label={t('common.back')}
               >
@@ -675,13 +604,8 @@ export default function AuditLogsPage() {
               </button>
               <button
                 type="button"
-                onClick={() =>
-                  setPagination((prev) => ({
-                    ...prev,
-                    page: Math.min(totalPages, prev.page + 1)
-                  }))
-                }
-                disabled={pagination.page === totalPages}
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
                 className="p-2 rounded-lg hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] min-w-[44px] flex items-center justify-center"
                 aria-label={t('common.next')}
               >

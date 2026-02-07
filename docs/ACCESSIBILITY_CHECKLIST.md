@@ -56,6 +56,7 @@
 - [ ] Иконки имеют `aria-label` или `aria-hidden="true"`
 - [ ] Модальные окна имеют `aria-modal="true"` и `aria-labelledby`
 - [ ] Loading states используют `aria-busy="true"` и `aria-live="polite"`
+- [ ] На страницах со списками/таблицами при загрузке показываются скелетоны (SkeletonTable/SkeletonList), а не только спиннер
 - [ ] Ошибки форм имеют `aria-invalid` и `aria-describedby`
 
 ### 2.4 Dynamic Content

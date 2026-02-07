@@ -28,15 +28,9 @@ export default function MFAGracePeriodBanner() {
     // Check MFA status from API
     const checkGracePeriod = async () => {
       try {
-        const token = localStorage.getItem('freshtrack_token')
-        if (!token) {
-          console.log('[MFA Banner] No token found')
-          return
-        }
-        
         const response = await fetch(`${API_BASE_URL}/auth/mfa/status`, {
+          credentials: 'include',
           headers: {
-            'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
           }
         })

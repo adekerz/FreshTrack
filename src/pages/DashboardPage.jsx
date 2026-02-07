@@ -5,11 +5,6 @@ import {
   AlertTriangle,
   Check,
   Clock,
-  Wine,
-  Coffee,
-  Utensils,
-  ChefHat,
-  Warehouse,
   Calendar,
   ArrowRight,
   Plus,
@@ -24,29 +19,7 @@ import { formatDate } from '../utils/dateUtils'
 import { Loader, TouchButton } from '../components/ui'
 import PageContainer from '../components/PageContainer'
 import AddBatchModal from '../components/AddBatchModal'
-
-// Иконки для отделов - универсальный маппинг
-const ICON_MAP = {
-  Wine,
-  Coffee,
-  Utensils,
-  ChefHat,
-  Warehouse,
-  Package
-}
-
-// Получить иконку по имени или типу
-const getDeptIcon = (dept) => {
-  if (dept?.icon && ICON_MAP[dept.icon]) return ICON_MAP[dept.icon]
-  // Fallback based on type or name keywords
-  const name = (dept?.name || dept?.code || '').toLowerCase()
-  if (name.includes('bar')) return Wine
-  if (name.includes('kitchen') || name.includes('кухня')) return ChefHat
-  if (name.includes('restaurant') || name.includes('ресторан')) return Utensils
-  if (name.includes('storage') || name.includes('склад')) return Warehouse
-  if (name.includes('cafe') || name.includes('кафе')) return Coffee
-  return Package
-}
+import { getDepartmentIcon } from '../utils/departmentUtils'
 
 export default function DashboardPage() {
   const { t } = useTranslation()
@@ -276,7 +249,7 @@ export default function DashboardPage() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           {departments.map((dept, index) => {
-            const Icon = getDeptIcon(dept)
+            const Icon = getDepartmentIcon(dept)
             return (
               <Link
                 key={dept.id}

@@ -153,10 +153,9 @@ export default function AccountsSettings() {
       if (filters.role) params.set('role', filters.role)
       if (filters.isActive !== '') params.set('isActive', filters.isActive)
 
-      const token = localStorage.getItem('freshtrack_token')
       const url = `${API_BASE_URL}/auth/users/export?${params}`
       const res = await fetch(url, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {}
+        credentials: 'include'
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
@@ -187,10 +186,9 @@ export default function AccountsSettings() {
       if (filters.role) params.set('role', filters.role)
       if (filters.isActive !== '') params.set('isActive', filters.isActive)
 
-      const token = localStorage.getItem('freshtrack_token')
       const url = `${API_BASE_URL}/auth/users/export?${params}`
       const res = await fetch(url, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {}
+        credentials: 'include'
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))

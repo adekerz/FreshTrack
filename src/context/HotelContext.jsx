@@ -4,7 +4,7 @@
  * HOTEL_ADMIN видит только свой отель
  */
 
-import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react'
 import { useAuth } from './AuthContext'
 import { apiFetch } from '../services/api'
 
@@ -94,7 +94,10 @@ export function HotelProvider({ children }) {
   )
 
   // Получить текущий выбранный отель
-  const selectedHotel = hotels.find((h) => h.id === selectedHotelId) || null
+  const selectedHotel = useMemo(
+    () => hotels.find((h) => h.id === selectedHotelId) || null,
+    [hotels, selectedHotelId]
+  )
 
   // Может ли пользователь выбирать отель (для выпадающего списка)
   const canSelectHotel = userIsSuperAdmin && hotels.length > 1
@@ -107,7 +110,7 @@ export function HotelProvider({ children }) {
     fetchHotels()
   }, [fetchHotels])
 
-  const value = {
+  const value = useMemo(() => ({
     hotels,
     selectedHotelId,
     selectedHotel,
@@ -118,7 +121,10 @@ export function HotelProvider({ children }) {
     error,
     refreshHotels,
     isSuperAdmin: userIsSuperAdmin
-  }
+  }), [
+    hotels, selectedHotelId, selectedHotel, selectHotel,
+    canSelectHotel, showHotelSelector, loading, error, refreshHotels, userIsSuperAdmin
+  ])
 
   return <HotelContext.Provider value={value}>{children}</HotelContext.Provider>
 }

@@ -28,11 +28,10 @@ export default function MFASetupPage() {
   const startSetup = async () => {
     setLoading(true)
     try {
-      const token = localStorage.getItem('freshtrack_token')
       const response = await fetch(`${API_BASE_URL}/auth/mfa/setup`, {
         method: 'POST',
+        credentials: 'include',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       })
@@ -66,11 +65,10 @@ export default function MFASetupPage() {
 
     setLoading(true)
     try {
-      const token = localStorage.getItem('freshtrack_token')
       const response = await fetch(`${API_BASE_URL}/auth/mfa/verify-setup`, {
         method: 'POST',
+        credentials: 'include',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ token: codeToVerify })
@@ -88,8 +86,8 @@ export default function MFASetupPage() {
       // Обновляем данные пользователя через API для синхронизации
       try {
         const userResponse = await fetch(`${API_BASE_URL}/auth/me`, {
+          credentials: 'include',
           headers: {
-            'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
           }
         })

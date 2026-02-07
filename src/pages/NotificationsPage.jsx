@@ -16,7 +16,6 @@ import { useTranslation } from '../context/LanguageContext'
 import { useThresholds } from '../hooks/useThresholds'
 import { SkeletonNotifications, Skeleton } from '../components/Skeleton'
 import { formatDate } from '../utils/dateUtils'
-import { Loader } from '../components/ui'
 import PageContainer from '../components/PageContainer'
 import FIFOCollectModal from '../components/FIFOCollectModal'
 
@@ -113,7 +112,7 @@ export default function NotificationsPage() {
     )
   }
 
-  // Загрузка БД (нет данных и идёт загрузка)
+  // Загрузка БД (нет данных и идёт загрузка) — скелетон вместо спиннера (снижает perceived loading)
   if (loading && depts.length === 0) {
     return (
       <PageContainer
@@ -122,20 +121,17 @@ export default function NotificationsPage() {
         stickyHeader={true}
         titleIcon={Bell}
       >
-        <div className="flex-1 flex items-center justify-center py-16 sm:py-24 animate-fade-in">
-          <div className="flex flex-col items-center gap-6" role="status" aria-live="polite">
-            <Loader size="large" aria-label={t('common.loading') || 'Загрузка'} />
-            <div className="text-center">
-              <p className="text-foreground font-medium mb-1">
-                {t('common.loading') || 'Загрузка...'}
-              </p>
-              {retryCount > 0 && (
-                <p className="text-muted-foreground text-sm">
-                  {`${t('common.attempt') || 'Попытка'} ${retryCount}/10`}
-                </p>
-              )}
-            </div>
+        <div className="animate-fade-in" role="status" aria-live="polite" aria-label={t('common.loading') || 'Загрузка'}>
+          <div className="flex items-center gap-3 mb-6">
+            <Skeleton className="w-10 h-10 rounded-full" />
+            <Skeleton className="h-7 w-48" />
           </div>
+          <SkeletonNotifications count={5} />
+          {retryCount > 0 && (
+            <p className="text-muted-foreground text-sm mt-4 text-center">
+              {`${t('common.attempt') || 'Попытка'} ${retryCount}/10`}
+            </p>
+          )}
         </div>
       </PageContainer>
     )

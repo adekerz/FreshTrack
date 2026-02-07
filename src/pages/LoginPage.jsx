@@ -131,6 +131,7 @@ export default function LoginPage() {
     try {
       const response = await fetch(`${API_BASE_URL}/auth/mfa/verify`, {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json'
         },
@@ -156,8 +157,7 @@ export default function LoginPage() {
         return
       }
 
-      // Store token and user
-      localStorage.setItem('freshtrack_token', data.token)
+      // Store user data for fast initial render (token is in httpOnly cookie)
       localStorage.setItem('freshtrack_user', JSON.stringify(data.user))
 
       // Reload page to update auth context
@@ -176,9 +176,8 @@ export default function LoginPage() {
   }
 
   // Handle terms acceptance
-  const handleTermsAccept = (token, user) => {
-    // Store token and user
-    localStorage.setItem('freshtrack_token', token)
+  const handleTermsAccept = (_token, user) => {
+    // Store user data (token is in httpOnly cookie, set by server)
     localStorage.setItem('freshtrack_user', JSON.stringify(user))
 
     addToast(t('toast.loginSuccess') || 'Вход выполнен успешно', 'success')
@@ -355,11 +354,11 @@ export default function LoginPage() {
             <p className="text-muted-foreground">{t('auth.signInSubtitle')}</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-6" data-testid="login-form">
             {/* Server error */}
             {error && (
               <div className="space-y-2 animate-fade-in">
-                <div className="flex items-start gap-3 text-danger text-sm bg-danger/10 p-4 rounded-lg">
+                <div className="flex items-start gap-3 text-danger text-sm bg-danger/10 p-4 rounded-lg" data-testid="login-error">
                   <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
                   <span>{error}</span>
                 </div>
@@ -390,6 +389,7 @@ export default function LoginPage() {
                 error={identifierError}
                 autoComplete="username"
                 autoFocus
+                data-testid="login-identifier"
               />
             </div>
 
@@ -403,6 +403,7 @@ export default function LoginPage() {
                 icon={Lock}
                 error={passwordError}
                 autoComplete="current-password"
+                data-testid="login-password"
               />
             </div>
 
@@ -415,6 +416,7 @@ export default function LoginPage() {
                 fullWidth
                 icon={ArrowRight}
                 iconPosition="right"
+                data-testid="login-submit"
               >
                 {t('auth.signIn')}
               </TouchButton>

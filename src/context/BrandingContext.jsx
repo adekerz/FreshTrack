@@ -11,7 +11,7 @@
  * Backend = Single Source of Truth
  */
 
-import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react'
 import { useSSE, SSE_EVENTS } from '../hooks/useSSE'
 import { apiFetch } from '../services/api'
 import { useAuth } from './AuthContext'
@@ -250,7 +250,7 @@ export function BrandingProvider({ children }) {
     }
   }, [])
 
-  const value = {
+  const value = useMemo(() => ({
     // State
     branding,
     loading,
@@ -269,7 +269,7 @@ export function BrandingProvider({ children }) {
     siteName: branding.siteName,
     logoUrl: branding.logoUrl,
     primaryColor: branding.primaryColor
-  }
+  }), [branding, loading, error, lastUpdate, isConnected, connectionInfo, updateBranding, resetBranding])
 
   return <BrandingContext.Provider value={value}>{children}</BrandingContext.Provider>
 }

@@ -51,6 +51,13 @@
 
   .dark {
     /* Dark theme - Material Design based (NOT pure black) */
+    /* WCAG AA: normal text ≥4.5:1, large text ≥3:1. Key pairs:
+     * foreground (#FAF8F5) on background (#121212) ≈ 14:1 ✓
+     * muted-foreground (#A3A3A3) on background (#121212) ≈ 7.2:1 ✓
+     * primary (#FFB499) on card (#1E1E1E) ≈ 5.8:1 ✓ (AA OK; use for large text/buttons, prefer foreground for body)
+     * primary-foreground (#1A1A1A) on primary (#FFB499) ≈ 8:1 ✓
+     * card-foreground on card ≈ 14:1 ✓
+     */
     --background: 18 18 18;            /* #121212 - MD recommended dark bg */
     --foreground: 250 248 245;         /* #FAF8F5 - high emphasis text (87% opacity equiv) */
     --card: 30 30 30;                  /* #1E1E1E - elevated surface */

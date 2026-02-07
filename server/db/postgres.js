@@ -8,6 +8,7 @@
 
 import pg from 'pg'
 import dotenv from 'dotenv'
+import { logInfo, logWarn } from '../utils/logger.js'
 
 // Load environment variables
 dotenv.config()
@@ -50,9 +51,9 @@ const pool = new Pool({
   connectionString,
   // SSL: disabled for local Docker, enabled for Supabase/Railway
   ssl: isLocalDB ? false : { rejectUnauthorized: false },
-  // Pool settings optimized per environment
-  max: isLocalDB ? 5 : (isSupabase ? 10 : 10),      // Supabase/Railway: 10, Docker: 5
-  min: isLocalDB ? 1 : (isSupabase ? 2 : 2),         // Supabase/Railway: 2, Docker: 1
+  // Pool settings — configurable via env, with safe defaults per environment
+  max: parseInt(process.env.DB_POOL_MAX) || (isLocalDB ? 5 : (isRailway ? 5 : 10)),
+  min: parseInt(process.env.DB_POOL_MIN) || (isLocalDB ? 1 : 2),
   idleTimeoutMillis: isLocalDB ? 30000 : 60000,
   connectionTimeoutMillis: isLocalDB ? 10000 : 30000,
   acquireTimeoutMillis: isLocalDB ? 10000 : 30000,
@@ -167,6 +168,37 @@ export function getEnvironmentInfo() {
     nodeEnv,
     dbHost
   }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// POOL MONITORING
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Get current pool statistics
+ */
+export function getPoolStats() {
+  return {
+    totalCount: pool.totalCount,
+    idleCount: pool.idleCount,
+    waitingCount: pool.waitingCount
+  }
+}
+
+/**
+ * Start periodic pool monitoring (logs every intervalMs)
+ * @param {number} intervalMs - Interval in milliseconds (default 60s)
+ * @returns {NodeJS.Timeout} - Interval ID for cleanup
+ */
+export function startPoolMonitor(intervalMs = 60_000) {
+  return setInterval(() => {
+    const stats = getPoolStats()
+    if (stats.waitingCount > 0) {
+      logWarn('Pool', `total=${stats.totalCount} idle=${stats.idleCount} waiting=${stats.waitingCount}`, stats)
+    } else {
+      logInfo('Pool', `total=${stats.totalCount} idle=${stats.idleCount} waiting=${stats.waitingCount}`, stats)
+    }
+  }, intervalMs)
 }
 
 export default pool

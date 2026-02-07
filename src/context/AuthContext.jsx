@@ -1,28 +1,27 @@
 /**
  * FreshTrack Enterprise Auth Context
  * Clean authentication - NO demo users
+ * Split into AuthContext (state + permissions) and AuthActionsContext (stable actions)
  */
 
-import { createContext, useContext, useState, useEffect } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react'
 import { authAPI, API_BASE_URL } from '../services/api'
 import { logError } from '../utils/logger'
 
 const AuthContext = createContext(null)
+const AuthActionsContext = createContext(null)
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [token, setToken] = useState(null)
   const [authError, setAuthError] = useState(null)
 
   // Listen for global auth events (401/403 from api.js)
   useEffect(() => {
     const handleUnauthorized = (event) => {
       console.warn('[Auth] Unauthorized event received:', event.detail)
-      // Clear auth state
+      // Clear auth state (cookie cleared server-side or expired)
       localStorage.removeItem('freshtrack_user')
-      localStorage.removeItem('freshtrack_token')
-      setToken(null)
       setUser(null)
       setAuthError({ type: 'unauthorized', message: event.detail?.message })
     }
@@ -34,7 +33,6 @@ export function AuthProvider({ children }) {
 
     const handleUserUpdated = (event) => {
       console.log('[Auth] User updated event received:', event.detail)
-      // Update user in context
       if (event.detail) {
         setUser(event.detail)
       }
@@ -59,83 +57,70 @@ export function AuthProvider({ children }) {
     }
   }, [authError])
 
-  // Validate token and refresh user data on mount
+  // Validate session cookie and refresh user data on mount
   useEffect(() => {
     const initAuth = async () => {
       const savedUser = localStorage.getItem('freshtrack_user')
-      const savedToken = localStorage.getItem('freshtrack_token')
 
-      if (savedUser && savedToken) {
-        try {
-          // Set token first for API calls
-          setToken(savedToken)
+      // Always try to validate session via cookie
+      try {
+        const response = await fetch(`${API_BASE_URL}/auth/me`, {
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' }
+        })
 
-          // Fetch fresh user data from server
-          const response = await fetch(`${API_BASE_URL}/auth/me`, {
-            headers: {
-              Authorization: `Bearer ${savedToken}`,
-              'Content-Type': 'application/json'
-            }
-          })
-
-          if (response.ok) {
-            // Проверяем Content-Type перед парсингом JSON
-            const contentType = response.headers.get('content-type')
-            if (contentType && contentType.includes('application/json')) {
-              try {
-                const data = await response.json()
-                if (data.user) {
-                  // Update with fresh data from server
-                  setUser(data.user)
-                  localStorage.setItem('freshtrack_user', JSON.stringify(data.user))
-                } else {
-                  // Fallback to cached user if server returns no user
-                  setUser(JSON.parse(savedUser))
-                }
-              } catch (parseError) {
-                // JSON parse error - use cached data
-                console.warn('[Auth] Failed to parse JSON response, using cached data')
+        if (response.ok) {
+          const contentType = response.headers.get('content-type')
+          if (contentType && contentType.includes('application/json')) {
+            try {
+              const data = await response.json()
+              if (data.user) {
+                setUser(data.user)
+                localStorage.setItem('freshtrack_user', JSON.stringify(data.user))
+              } else if (savedUser) {
                 setUser(JSON.parse(savedUser))
               }
-            } else {
-              // Server returned non-JSON (likely HTML error page) - use cached data
-              console.warn('[Auth] Server returned non-JSON response, using cached data')
-              setUser(JSON.parse(savedUser))
+            } catch {
+              console.warn('[Auth] Failed to parse JSON response, using cached data')
+              if (savedUser) setUser(JSON.parse(savedUser))
             }
-          } else if (response.status === 401) {
-            // Token expired or invalid - logout
-            localStorage.removeItem('freshtrack_user')
-            localStorage.removeItem('freshtrack_token')
-            setToken(null)
-            setUser(null)
           } else {
-            // Server error - use cached data
-            console.warn(`[Auth] Server returned status ${response.status}, using cached data`)
-            setUser(JSON.parse(savedUser))
+            console.warn('[Auth] Server returned non-JSON response, using cached data')
+            if (savedUser) setUser(JSON.parse(savedUser))
           }
-        } catch (e) {
-          // Network error - use cached data (only log if not a common network error)
-          if (!e.message.includes('fetch') && !e.message.includes('network')) {
-            console.warn('[Auth] Failed to refresh user, using cached data:', e.message)
-          }
-          try {
-            setUser(JSON.parse(savedUser))
-          } catch {
-            localStorage.removeItem('freshtrack_user')
-            localStorage.removeItem('freshtrack_token')
-          }
+        } else if (response.status === 401) {
+          // Cookie expired or invalid
+          localStorage.removeItem('freshtrack_user')
+          setUser(null)
+        } else if (savedUser) {
+          // Server error - use cached data
+          console.warn(`[Auth] Server returned status ${response.status}, using cached data`)
+          setUser(JSON.parse(savedUser))
+        }
+      } catch (e) {
+        // Network error - use cached data for offline resilience
+        if (!e.message.includes('fetch') && !e.message.includes('network')) {
+          console.warn('[Auth] Failed to refresh user, using cached data:', e.message)
+        }
+        try {
+          if (savedUser) setUser(JSON.parse(savedUser))
+        } catch {
+          localStorage.removeItem('freshtrack_user')
         }
       }
+
       setLoading(false)
     }
 
     initAuth()
   }, [])
 
+  // ── Actions (stable, deps: []) ──────────────────────────
+
   /**
    * Login - supports email OR username
    */
-  const login = async (identifier, password) => {
+  const login = useCallback(async (identifier, password) => {
     try {
       const response = await authAPI.login(identifier, password)
 
@@ -158,30 +143,28 @@ export function AuthProvider({ children }) {
         }
       }
 
-      // API returns { user, token } on success
+      // API returns { user, token } on success (token also set as httpOnly cookie)
       if (response.user && response.token) {
         const userData = response.user
         setUser(userData)
-        setToken(response.token)
         localStorage.setItem('freshtrack_user', JSON.stringify(userData))
-        localStorage.setItem('freshtrack_token', response.token)
-        
+
         // Check if user must change password (first login with temporary password)
         if (userData.mustChangePassword) {
-          return { 
-            success: true, 
+          return {
+            success: true,
             mustChangePassword: true,
-            email: userData.email 
+            email: userData.email
           }
         }
-        
+
         return { success: true }
       }
 
       return { success: false, error: response.error || 'Invalid credentials' }
     } catch (error) {
       logError('Login error:', error.message)
-      // 429: rate limit — возвращаем отдельно для UI
+      // 429: rate limit
       const retryMin = error.retryAfter ? Math.ceil(error.retryAfter / 60) : 0
       const isRateLimit = error.status === 429
       const rateLimitMsg = isRateLimit && retryMin > 0
@@ -194,21 +177,21 @@ export function AuthProvider({ children }) {
         retryAfter: error.retryAfter || 0
       }
     }
-  }
+  }, [])
 
   /**
    * Register new user
    */
-  const register = async (userData) => {
+  const register = useCallback(async (userData) => {
     try {
       const response = await authAPI.register(userData)
 
       if (response.success) {
         const newUser = response.user
-        setUser(newUser)
-        setToken(response.token)
-        localStorage.setItem('freshtrack_user', JSON.stringify(newUser))
-        localStorage.setItem('freshtrack_token', response.token)
+        if (newUser) {
+          setUser(newUser)
+          localStorage.setItem('freshtrack_user', JSON.stringify(newUser))
+        }
         return { success: true, needsEmailVerification: !!response.needsEmailVerification }
       }
 
@@ -216,44 +199,59 @@ export function AuthProvider({ children }) {
     } catch (error) {
       return { success: false, error: 'Registration failed. Please try again.' }
     }
-  }
+  }, [])
 
   /**
    * Logout
    */
-  const logout = async () => {
-    // Log logout on server
-    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
+  const logout = useCallback(async () => {
+    // Server clears httpOnly cookie
     try {
-      const currentToken = token || localStorage.getItem('freshtrack_token')
-      if (currentToken) {
-        await fetch(`${API_URL}/auth/logout`, {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${currentToken}`
-          }
-        })
-      }
+      await fetch(`${API_BASE_URL}/auth/logout`, {
+        method: 'POST',
+        credentials: 'include'
+      })
     } catch (error) {
       console.log('Logout logging skipped:', error.message)
     }
 
     setUser(null)
-    setToken(null)
     localStorage.removeItem('freshtrack_user')
-    localStorage.removeItem('freshtrack_token')
-    // Очистка кэша данных при выходе
     localStorage.removeItem('freshtrack_catalog')
-    // Очистка выбранного отеля при выходе (важно для переключения между пользователями)
     localStorage.removeItem('freshtrack_selected_hotel')
-  }
+  }, [])
+
+  /**
+   * Update user data (functional setState — no dependency on current user)
+   */
+  const updateUser = useCallback((userData) => {
+    setUser(prev => {
+      const updatedUser = userData.id ? userData : { ...prev, ...userData }
+      localStorage.setItem('freshtrack_user', JSON.stringify(updatedUser))
+      return updatedUser
+    })
+  }, [])
+
+  /**
+   * Set user data after verification flows (token is in httpOnly cookie)
+   */
+  const setUserAndToken = useCallback((userData) => {
+    if (userData) {
+      setUser(userData)
+      localStorage.setItem('freshtrack_user', JSON.stringify(userData))
+    }
+  }, [])
+
+  const clearAuthError = useCallback(() => setAuthError(null), [])
+
+  // ── Permission helpers (depend on user) ──────────────────
 
   /**
    * Check if user has a specific permission
    * Permission format: 'resource:action' (e.g., 'products:delete', 'settings:manage')
    * Supports wildcard permissions: '*' for full access, 'resource:*' for all actions on resource
    */
-  const hasPermission = (permission) => {
+  const hasPermission = useCallback((permission) => {
     if (!user) return false
 
     const role = user?.role?.toUpperCase()
@@ -274,13 +272,13 @@ export function AuthProvider({ children }) {
     if (userPermissions.includes(`${resource}:manage`)) return true
 
     return false
-  }
+  }, [user])
 
   /**
    * Check if user is admin (HOTEL_ADMIN or SUPER_ADMIN)
    * Uses backend capabilities when available, falls back to role check
    */
-  const isAdmin = () => {
+  const isAdmin = useCallback(() => {
     // Prefer backend capabilities
     if (user?.capabilities?.isAdmin !== undefined) {
       return user.capabilities.isAdmin
@@ -293,124 +291,73 @@ export function AuthProvider({ children }) {
       role === 'SUPER_ADMIN' ||
       role === 'HOTEL_ADMIN'
     )
-  }
+  }, [user])
 
   /**
    * Check if user is super admin
    * Uses backend capabilities when available
    */
-  const isSuperAdmin = () => {
+  const isSuperAdmin = useCallback(() => {
     if (user?.capabilities?.isSuperAdmin !== undefined) {
       return user.capabilities.isSuperAdmin
     }
     return user?.role?.toUpperCase() === 'SUPER_ADMIN'
-  }
+  }, [user])
 
   /**
    * Check if user is hotel admin or super admin
    * Uses backend capabilities when available
    */
-  const isHotelAdmin = () => {
+  const isHotelAdmin = useCallback(() => {
     if (user?.capabilities?.isAdmin !== undefined) {
       return user.capabilities.isAdmin
     }
     const role = user?.role?.toUpperCase()
     return role === 'SUPER_ADMIN' || role === 'HOTEL_ADMIN'
-  }
+  }, [user])
 
-  /**
-   * Check if user is department manager
-   */
-  const isDepartmentManager = () => {
+  const isDepartmentManager = useCallback(() => {
     return user?.role?.toUpperCase() === 'DEPARTMENT_MANAGER'
-  }
+  }, [user])
 
-  /**
-   * Check if user is staff
-   */
-  const isStaff = () => {
+  const isStaff = useCallback(() => {
     return user?.role?.toUpperCase() === 'STAFF'
-  }
+  }, [user])
 
-  /**
-   * Get user capabilities object from backend
-   * Returns empty object if not available
-   */
-  const getCapabilities = () => {
+  const getCapabilities = useCallback(() => {
     return user?.capabilities || {}
-  }
+  }, [user])
 
-  /**
-   * Check specific capability
-   */
-  const hasCapability = (capability) => {
+  const hasCapability = useCallback((capability) => {
     return user?.capabilities?.[capability] === true
-  }
+  }, [user])
 
-  /**
-   * Check if user can manage a resource (has manage or specific action permission)
-   */
-  const canManage = (resource) => {
+  const canManage = useCallback((resource) => {
     return hasPermission(`${resource}:manage`) || isAdmin()
-  }
+  }, [hasPermission, isAdmin])
 
-  /**
-   * Check if user can perform action on resource
-   */
-  const canPerformAction = (resource, action) => {
+  const canPerformAction = useCallback((resource, action) => {
     return hasPermission(`${resource}:${action}`)
-  }
+  }, [hasPermission])
 
-  /**
-   * Check if user has access to department
-   */
-  const hasAccessToDepartment = (departmentId) => {
+  const hasAccessToDepartment = useCallback((departmentId) => {
     if (!user) return false
     if (isAdmin()) return true
     return user.departments?.includes(departmentId)
-  }
+  }, [user, isAdmin])
 
-  /**
-   * Get user's accessible departments
-   */
-  const getAccessibleDepartments = () => {
+  const getAccessibleDepartments = useCallback(() => {
     if (!user) return []
     return user.departments || []
-  }
+  }, [user])
 
-  /**
-   * Update user data
-   */
-  const updateUser = (userData) => {
-    // If userData is a complete user object, use it directly
-    // Otherwise merge with current user
-    const updatedUser = userData.id ? userData : { ...user, ...userData }
-    setUser(updatedUser)
-    localStorage.setItem('freshtrack_user', JSON.stringify(updatedUser))
-  }
+  // ── Memoized context values ──────────────────────────────
 
-  /**
-   * Установить user и token после верификации email (OTP)
-   */
-  const setUserAndToken = (userData, authToken) => {
-    if (userData) setUser(userData)
-    if (authToken) {
-      setToken(authToken)
-      localStorage.setItem('freshtrack_token', authToken)
-    }
-    if (userData) localStorage.setItem('freshtrack_user', JSON.stringify(userData))
-  }
-
-  const value = {
+  const authValue = useMemo(() => ({
     user,
-    token,
     loading,
     isAuthenticated: !!user,
     authError,
-    clearAuthError: () => setAuthError(null),
-    login,
-    register,
-    logout,
     isAdmin,
     isSuperAdmin,
     isHotelAdmin,
@@ -418,23 +365,45 @@ export function AuthProvider({ children }) {
     isStaff,
     hasAccessToDepartment,
     getAccessibleDepartments,
-    updateUser,
-    setUserAndToken,
     hasPermission,
     canManage,
     canPerformAction,
-    // New capability-based methods
     getCapabilities,
     hasCapability
-  }
+  }), [
+    user, loading, authError,
+    isAdmin, isSuperAdmin, isHotelAdmin, isDepartmentManager, isStaff,
+    hasAccessToDepartment, getAccessibleDepartments,
+    hasPermission, canManage, canPerformAction,
+    getCapabilities, hasCapability
+  ])
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+  const actionsValue = useMemo(() => ({
+    login, register, logout, updateUser, setUserAndToken, clearAuthError
+  }), [login, register, logout, updateUser, setUserAndToken, clearAuthError])
+
+  return (
+    <AuthContext.Provider value={authValue}>
+      <AuthActionsContext.Provider value={actionsValue}>
+        {children}
+      </AuthActionsContext.Provider>
+    </AuthContext.Provider>
+  )
 }
 
 export function useAuth() {
-  const context = useContext(AuthContext)
-  if (!context) {
+  const auth = useContext(AuthContext)
+  const actions = useContext(AuthActionsContext)
+  if (!auth) {
     throw new Error('useAuth must be used within an AuthProvider')
   }
-  return context
+  return { ...auth, ...actions }
+}
+
+export function useAuthActions() {
+  const actions = useContext(AuthActionsContext)
+  if (!actions) {
+    throw new Error('useAuthActions must be used within an AuthProvider')
+  }
+  return actions
 }

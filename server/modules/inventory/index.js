@@ -18,8 +18,8 @@ export * from './inventory.schemas.js'
 // Legacy validation (deprecated)
 export * from './inventory.validation.js'
 
-// Service exports (TODO: after migration)
-// export * from './inventory.service.js'
+// Repository (data access layer)
+export * from './inventory.repository.js'
 
 // Backward compatibility - re-export existing routes
 // These will be replaced after full migration

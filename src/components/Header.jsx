@@ -14,7 +14,6 @@ import { useTranslation } from '../context/LanguageContext'
 import { useTheme } from '../context/ThemeContext'
 import { useToast } from '../context/ToastContext'
 import GlobalSearch from './GlobalSearch'
-import NotificationBell from './NotificationBell'
 import HotelSelector from './HotelSelector'
 import { TouchButton } from './ui'
 import { cn } from '../utils/classNames'
@@ -212,8 +211,7 @@ export default function Header({ onOpenMobileMenu, isMobileMenuOpen = false, onO
             </span>
           </Tooltip>
 
-          {/* Notifications */}
-          <NotificationBell />
+          {/* Колокольчик уведомлений убран: по SSE пока приходят в основном события брендинга; алерты по срокам — на странице «Уведомления» в сайдбаре */}
 
           {/* Центр помощи — горячая клавиша ? */}
           {typeof onOpenHelp === 'function' && (
@@ -256,6 +254,7 @@ export default function Header({ onOpenMobileMenu, isMobileMenuOpen = false, onO
               onClick={() => setShowUserMenu(!showUserMenu)}
               className="flex items-center gap-2 p-2 min-h-[44px] rounded-lg hover:bg-muted"
               aria-expanded={showUserMenu}
+              data-testid="user-menu-button"
               aria-haspopup="menu"
             >
               <div className="w-8 h-8 bg-accent/20 rounded-full flex items-center justify-center">
@@ -342,6 +341,7 @@ export default function Header({ onOpenMobileMenu, isMobileMenuOpen = false, onO
                     className="w-full justify-start gap-3 px-4 py-2 text-sm text-danger hover:bg-danger/10 h-auto min-h-[44px] rounded-none"
                     icon={LogOut}
                     iconPosition="left"
+                    data-testid="logout-button"
                   >
                     {t('header.signOut') || 'Выйти'}
                   </TouchButton>

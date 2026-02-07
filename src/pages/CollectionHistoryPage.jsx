@@ -3,15 +3,15 @@
  * Страница для просмотра истории сборов товаров (только для admin)
  */
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState } from 'react'
 import { useTranslation } from '../context/LanguageContext'
 import { useAuth } from '../context/AuthContext'
 import { useProducts } from '../context/ProductContext'
 import { useHotel } from '../context/HotelContext'
-import { SectionLoader } from '../components/ui'
+import { SkeletonTable } from '../components/Skeleton'
 import { Navigate } from 'react-router-dom'
 import { Filter, RefreshCw, ChevronLeft, ChevronRight, ArchiveX, User, Package } from 'lucide-react'
-import { apiFetch } from '../services/api'
+import { useCollectionHistory, useCollectionStats } from '../hooks/useCollectionHistory'
 import { formatDate } from '../utils/dateUtils'
 import ExportButton from '../components/ExportButton'
 import PageContainer from '../components/PageContainer'
@@ -52,18 +52,6 @@ export default function CollectionHistoryPage() {
   const { departments } = useProducts()
   const { selectedHotelId, selectedHotel } = useHotel()
   const { exportProgress, dismissExportProgress } = useExport()
-  const [logs, setLogs] = useState([])
-  const [stats, setStats] = useState({ today: 0, week: 0, month: 0, total: 0 })
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-  const [pagination, setPagination] = useState({
-    page: 1,
-    limit: 20,
-    total: 0,
-    totalPages: 0
-  })
-
-  // Фильтры
   const [showFilters, setShowFilters] = useState(false)
   const [filters, setFilters] = useState({
     departmentId: '',
@@ -72,80 +60,21 @@ export default function CollectionHistoryPage() {
     endDate: ''
   })
   const [appliedFilters, setAppliedFilters] = useState({})
+  const [page, setPage] = useState(1)
 
-  // Загрузка статистики
-  const fetchStats = useCallback(async () => {
-    try {
-      const data = await apiFetch('/fifo-collect/stats?period=month')
-      if (data.success && data.totals) {
-        setStats({
-          today: 0, // TODO: API needs today stats
-          week: 0,
-          month: data.totals.quantity || 0,
-          total: data.totals.transactions || 0
-        })
-      }
-    } catch {
-      // Error already logged by apiFetch
-    }
-  }, [])
+  // React Query hooks
+  const queryFilters = {
+    limit: 20,
+    offset: (page - 1) * 20,
+    ...appliedFilters
+  }
+  const { data: historyData, isLoading, isFetching, refetch: refetchHistory } = useCollectionHistory(selectedHotelId, queryFilters)
+  const { data: stats = { today: 0, week: 0, month: 0, total: 0 }, refetch: refetchStats } = useCollectionStats(selectedHotelId)
 
-  // Загрузка логов
-  const fetchLogs = useCallback(
-    async (page = 1) => {
-      setLoading(true)
-      setError(null)
-
-      try {
-        const params = new URLSearchParams({
-          limit: pagination.limit.toString(),
-          offset: ((page - 1) * pagination.limit).toString()
-        })
-
-        if (appliedFilters.departmentId) params.append('departmentId', appliedFilters.departmentId)
-        if (appliedFilters.reason) params.append('reason', appliedFilters.reason)
-        if (appliedFilters.startDate) params.append('startDate', appliedFilters.startDate)
-        if (appliedFilters.endDate) params.append('endDate', appliedFilters.endDate)
-
-        const data = await apiFetch(`/fifo-collect/history?${params}`)
-        // Transform collection_history to expected log format
-        const historyItems = data.history || []
-        const transformedLogs = historyItems.map((item) => ({
-          id: item.id,
-          productName: item.product_name || item.productName || 'Неизвестный товар',
-          departmentId: item.department_id || item.departmentId,
-          quantity: item.quantity_collected || item.quantityCollected,
-          expiryDate: item.expiry_date || item.expiryDate,
-          reason: item.collection_reason || item.reason || 'consumption',
-          comment: item.notes || item.comment,
-          collectedAt: item.collected_at || item.collectedAt,
-          collectedByName: item.user_name || item.userName || 'Система'
-        }))
-
-        setLogs(transformedLogs)
-        // Calculate pagination from response or estimate
-        const total = data.count || historyItems.length
-        const totalPages = Math.ceil(total / pagination.limit) || 1
-        setPagination((prev) => ({ ...prev, page, total, totalPages }))
-      } catch (err) {
-        // Error already logged by apiFetch
-        setError(err.message)
-        setLogs([])
-      } finally {
-        setLoading(false)
-      }
-    },
-    [pagination.limit, appliedFilters]
-  )
-
-  // Перезагружаем при смене отеля
-  useEffect(() => {
-    // Permission-based access check
-    if (selectedHotelId && (isHotelAdmin() || hasPermission('collections:read'))) {
-      fetchLogs(pagination.page)
-      fetchStats()
-    }
-  }, [fetchLogs, fetchStats, pagination.page, isHotelAdmin, hasPermission, selectedHotelId])
+  const logs = historyData?.history || []
+  const loading = isFetching
+  const total = historyData?.count || 0
+  const totalPages = Math.ceil(total / 20) || 1
 
   // Проверка прав доступа (permission-based)
   const canAccessPage = isHotelAdmin() || hasPermission('collections:read')
@@ -156,7 +85,7 @@ export default function CollectionHistoryPage() {
   // Применение фильтров
   const handleApplyFilters = () => {
     setAppliedFilters({ ...filters })
-    setPagination((prev) => ({ ...prev, page: 1 }))
+    setPage(1)
     setShowFilters(false)
   }
 
@@ -164,7 +93,7 @@ export default function CollectionHistoryPage() {
   const handleResetFilters = () => {
     setFilters({ departmentId: '', reason: '', startDate: '', endDate: '' })
     setAppliedFilters({})
-    setPagination((prev) => ({ ...prev, page: 1 }))
+    setPage(1)
     setShowFilters(false)
   }
 
@@ -210,8 +139,8 @@ export default function CollectionHistoryPage() {
           </button>
           <button
             onClick={() => {
-              fetchLogs(pagination.page)
-              fetchStats()
+              refetchHistory()
+              refetchStats()
             }}
             disabled={loading}
             className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-foreground text-background rounded-lg text-xs sm:text-sm hover:bg-foreground/90 transition-colors disabled:opacity-50 min-h-[44px] sm:min-h-0"
@@ -339,15 +268,12 @@ export default function CollectionHistoryPage() {
         </div>
       )}
 
-      {/* Ошибка */}
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-600">{error}</div>
-      )}
-
       {/* Таблица сборов / Карточки на мобильных */}
       <div className="bg-card rounded-xl border border-border overflow-hidden">
-        {loading && logs.length === 0 ? (
-          <SectionLoader />
+        {isLoading ? (
+          <div className="p-4 sm:p-6" role="status" aria-live="polite" aria-label={t('common.loading')}>
+            <SkeletonTable rows={8} columns={6} />
+          </div>
         ) : logs.length === 0 ? (
           <EmptyState
             icon={ArchiveX}
@@ -506,35 +432,35 @@ export default function CollectionHistoryPage() {
             </div>
 
             {/* Пагинация */}
-            {pagination.totalPages > 1 && (
+            {totalPages > 1 && (
               <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-t border-border">
                 <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
                   {t('collectionHistory.showing', {
-                    from: (pagination.page - 1) * pagination.limit + 1,
-                    to: Math.min(pagination.page * pagination.limit, pagination.total),
-                    total: pagination.total
+                    from: (page - 1) * 20 + 1,
+                    to: Math.min(page * 20, total),
+                    total
                   })}
                 </p>
                 <p className="text-xs text-muted-foreground sm:hidden">
-                  {pagination.page} / {pagination.totalPages}
+                  {page} / {totalPages}
                 </p>
 
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => setPagination((prev) => ({ ...prev, page: prev.page - 1 }))}
-                    disabled={pagination.page <= 1}
+                    onClick={() => setPage((p) => p - 1)}
+                    disabled={page <= 1}
                     className="p-2 text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                   >
                     <ChevronLeft className="w-5 h-5" />
                   </button>
 
                   <span className="text-sm text-foreground hidden sm:inline">
-                    {pagination.page} / {pagination.totalPages}
+                    {page} / {totalPages}
                   </span>
 
                   <button
-                    onClick={() => setPagination((prev) => ({ ...prev, page: prev.page + 1 }))}
-                    disabled={pagination.page >= pagination.totalPages}
+                    onClick={() => setPage((p) => p + 1)}
+                    disabled={page >= totalPages}
                     className="p-2 text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                   >
                     <ChevronRight className="w-5 h-5" />

@@ -1,8 +1,8 @@
 /**
  * Inventory Controller
- * 
+ *
  * HTTP обработчики для inventory endpoints (batches, products, categories).
- * Использует Zod схемы для валидации.
+ * SQL-запросы вынесены в inventory.repository.js.
  */
 
 import { Router } from 'express'
@@ -21,10 +21,11 @@ import {
 } from './inventory.schemas.js'
 import { authMiddleware, requirePermission } from '../../middleware/auth.js'
 import { logAudit } from '../../db/database.js'
-import { query as dbQuery } from '../../db/postgres.js'
 import { StatisticsService } from '../../services/StatisticsService.js'
 import { enrichBatchesWithExpiryData } from '../../services/ExpiryService.js'
 import { isSuperAdmin, canAccessAllDepartments as checkCanAccessAllDepartments } from '../../utils/constants.js'
+import * as repo from './inventory.repository.js'
+import { logError } from '../../utils/logger.js'
 
 const router = Router()
 
@@ -32,26 +33,15 @@ const router = Router()
 // Helper: Get effective hotel ID
 // ========================================
 
-/**
- * Получить эффективный hotel_id
- * Для SUPER_ADMIN берём из query параметров или body, иначе из пользователя
- */
 function getEffectiveHotelId(req) {
-  // Query params (hotel_id или hotelId)
   const queryHotelId = req.query.hotel_id || req.query.hotelId
-
-  // Body params (для POST/PUT запросов)
   const bodyHotelId = req.body?.hotel_id || req.body?.hotelId
 
-  // Для SUPER_ADMIN используем query/body param если указан
   if (isSuperAdmin(req.user)) {
     const externalHotelId = queryHotelId || bodyHotelId
-    if (externalHotelId) {
-      return externalHotelId
-    }
+    if (externalHotelId) return externalHotelId
   }
 
-  // Иначе используем hotel_id пользователя
   return req.user.hotelId || req.user.hotel_id || queryHotelId || bodyHotelId
 }
 
@@ -61,39 +51,24 @@ function getEffectiveHotelId(req) {
 
 /**
  * GET /api/batches/stats
- * Получить статистику по партиям (для Dashboard)
- * Возвращает: total, byStatus, byCategory, trends
  */
 router.get('/batches/stats', authMiddleware, async (req, res) => {
   try {
-    // SUPER_ADMIN может не иметь hotel_id, берём из query params
     let hotelId = getEffectiveHotelId(req)
 
-    // Если всё ещё нет hotelId, получаем первый активный отель для SUPER_ADMIN
     if (!hotelId && isSuperAdmin(req.user)) {
-      const result = await dbQuery('SELECT id FROM hotels WHERE is_active = TRUE LIMIT 1')
-      if (result.rows.length > 0) {
-        hotelId = result.rows[0].id
-      }
+      const hotel = await repo.findFirstActiveHotel()
+      if (hotel) hotelId = hotel.id
     }
 
     if (!hotelId) {
       return res.json({
         success: true,
         stats: {
-          byStatus: [],
-          byCategory: [],
-          trends: [],
-          total: 0,
-          expired: 0,
-          critical: 0,
-          warning: 0,
-          good: 0,
-          needsAttention: 0,
-          totalBatches: 0,
-          totalProducts: 0,
-          totalCategories: 0,
-          healthScore: 100
+          byStatus: [], byCategory: [], trends: [],
+          total: 0, expired: 0, critical: 0, warning: 0, good: 0,
+          needsAttention: 0, totalBatches: 0, totalProducts: 0,
+          totalCategories: 0, healthScore: 100
         }
       })
     }
@@ -110,15 +85,11 @@ router.get('/batches/stats', authMiddleware, async (req, res) => {
     }
 
     if (req.query.dateFrom || req.query.dateTo) {
-      options.dateRange = {
-        from: req.query.dateFrom,
-        to: req.query.dateTo
-      }
+      options.dateRange = { from: req.query.dateFrom, to: req.query.dateTo }
     }
 
     const stats = await StatisticsService.getStatistics(context, options)
 
-    // Extract counts from byStatus for legacy compatibility
     const getStatusCount = (status) => {
       const item = stats.byStatus?.find(s => s.status === status)
       return item?.count || 0
@@ -131,19 +102,12 @@ router.get('/batches/stats', authMiddleware, async (req, res) => {
     const today = getStatusCount('today')
     const total = stats.total?.batches || 0
 
-    // Формат, который ожидает frontend
     res.json({
       success: true,
       stats: {
         ...stats,
-        // Legacy совместимость - flat numbers for Dashboard
-        total,
-        expired,
-        critical,
-        warning,
-        good,
+        total, expired, critical, warning, good,
         needsAttention: expired + critical + warning + today,
-        // Additional legacy fields
         totalBatches: total,
         totalProducts: stats.total?.products || 0,
         totalCategories: stats.total?.categories || 0,
@@ -152,158 +116,64 @@ router.get('/batches/stats', authMiddleware, async (req, res) => {
     })
 
   } catch (error) {
-    console.error('[Inventory] Get batches stats error:', error)
+    logError('Inventory', error, { action: 'getBatchesStats' })
     res.status(500).json({ error: 'Ошибка получения статистики' })
   }
 })
 
 /**
  * GET /api/batches
- * Получить список партий с фильтрацией
  */
 router.get('/batches', authMiddleware, async (req, res) => {
   try {
     const validation = validate(BatchFiltersSchema, req.query)
-
     if (!validation.isValid) {
-      return res.status(400).json({
-        error: 'Ошибка валидации',
-        details: validation.errors
-      })
+      return res.status(400).json({ error: 'Ошибка валидации', details: validation.errors })
     }
 
-    const filters = validation.data
-    const { page, limit, sortBy, sortOrder, ...where } = filters
-    const offset = (page - 1) * limit
-
-    // Базовый запрос с изоляцией по hotel_id
     const hotelId = getEffectiveHotelId(req)
-
     if (!hotelId) {
       return res.status(400).json({ error: 'hotel_id is required' })
     }
 
-    let sql = `
-      SELECT b.*, p.name as product_name, p.unit, c.name as category_name,
-             d.name as department_name, u.name as added_by_name
-      FROM batches b
-      JOIN products p ON b.product_id = p.id
-      LEFT JOIN categories c ON p.category_id = c.id
-      LEFT JOIN departments d ON b.department_id = d.id
-      LEFT JOIN users u ON b.added_by = u.id
-      WHERE b.hotel_id = $1
-    `
-    const params = [hotelId]
-    let paramIndex = 2
+    const filters = validation.data
+    const { page, limit } = filters
+    const { rows, total } = await repo.findBatches(hotelId, filters)
 
-    // Применяем фильтры
-    if (where.productId) {
-      sql += ` AND b.product_id = $${paramIndex++}`
-      params.push(where.productId)
-    }
-
-    if (where.categoryId) {
-      sql += ` AND p.category_id = $${paramIndex++}`
-      params.push(where.categoryId)
-    }
-
-    if (where.departmentId) {
-      sql += ` AND b.department_id = $${paramIndex++}`
-      params.push(where.departmentId)
-    }
-
-    if (where.status) {
-      sql += ` AND b.status = $${paramIndex++}`
-      params.push(where.status)
-    }
-
-    if (where.expiringWithin !== undefined) {
-      sql += ` AND b.expiry_date <= CURRENT_DATE + $${paramIndex++}::interval`
-      params.push(`${where.expiringWithin} days`)
-    }
-
-    if (where.expiredOnly) {
-      sql += ` AND b.expiry_date < CURRENT_DATE`
-    }
-
-    if (where.minQuantity !== undefined) {
-      sql += ` AND b.quantity >= $${paramIndex++}`
-      params.push(where.minQuantity)
-    }
-
-    if (where.search) {
-      sql += ` AND (p.name ILIKE $${paramIndex++} OR b.batch_number ILIKE $${paramIndex++})`
-      const searchPattern = `%${where.search}%`
-      params.push(searchPattern, searchPattern)
-    }
-
-    // Сортировка
-    const sortColumn = {
-      expiryDate: 'b.expiry_date',
-      quantity: 'b.quantity',
-      createdAt: 'b.created_at',
-      productName: 'p.name'
-    }[sortBy] || 'b.expiry_date'
-
-    sql += ` ORDER BY ${sortColumn} ${sortOrder.toUpperCase()}`
-    sql += ` LIMIT $${paramIndex++} OFFSET $${paramIndex++}`
-    params.push(limit, offset)
-
-    // Получаем count для пагинации
-    const countSql = sql.replace(/SELECT .* FROM/, 'SELECT COUNT(*) as total FROM')
-      .replace(/ORDER BY.*/, '')
-
-    const [batchesResult, countResult] = await Promise.all([
-      dbQuery(sql, params),
-      dbQuery(countSql.replace(/LIMIT.*/, ''), params.slice(0, -2))
-    ])
-
-    const total = parseInt(countResult.rows[0]?.total || 0)
-
-    // Enrich batches with expiry status using dynamic thresholds from notification_rules
-    const enrichedBatches = await enrichBatchesWithExpiryData(batchesResult.rows, { hotelId })
+    const enrichedBatches = await enrichBatchesWithExpiryData(rows, { hotelId })
 
     res.json({
       success: true,
-      batches: enrichedBatches,  // Frontend expects 'batches', not 'items'
+      batches: enrichedBatches,
       total,
       page,
       limit,
       totalPages: Math.ceil(total / limit),
-      hasMore: offset + batchesResult.rows.length < total
+      hasMore: ((page - 1) * limit) + rows.length < total
     })
 
   } catch (error) {
-    console.error('[Inventory] Get batches error:', error)
+    logError('Inventory', error, { action: 'getBatches' })
     res.status(500).json({ error: 'Ошибка сервера' })
   }
 })
 
 /**
  * POST /api/batches
- * Создать новую партию
- * Поддерживает productId (UUID) ИЛИ productName для автоматического поиска/создания продукта
  */
 router.post('/batches', authMiddleware, requirePermission('batches', 'create'), async (req, res) => {
   try {
     const hotelId = getEffectiveHotelId(req)
-
     if (!hotelId) {
       return res.status(400).json({ error: 'Не указан отель' })
     }
 
     const validation = validate(CreateBatchSchema, req.body)
-
     if (!validation.isValid) {
-      return res.status(400).json({
-        error: 'Ошибка валидации',
-        details: validation.errors
-      })
+      return res.status(400).json({ error: 'Ошибка валидации', details: validation.errors })
     }
 
     const data = validation.data
-
-    // Нормализуем departmentId (может прийти как department или departmentId)
     const departmentId = data.departmentId || data.department || req.user.department_id
 
     if (!departmentId) {
@@ -314,35 +184,19 @@ router.post('/batches', authMiddleware, requirePermission('batches', 'create'), 
 
     // Если указан productName вместо productId — ищем или создаём продукт
     if (!productId && data.productName) {
-      // Ищем продукт по имени в отеле
-      const existingProduct = await dbQuery(
-        `SELECT id FROM products WHERE LOWER(name) = LOWER($1) AND hotel_id = $2`,
-        [data.productName.trim(), hotelId]
-      )
+      const existing = await repo.findProductByName(data.productName, hotelId)
 
-      if (existingProduct.rows.length > 0) {
-        productId = existingProduct.rows[0].id
+      if (existing) {
+        productId = existing.id
       } else {
-        // Создаём новый продукт
-        // Находим категорию если указана
         let categoryId = data.categoryId || null
         if (!categoryId && data.category) {
-          const categoryResult = await dbQuery(
-            `SELECT id FROM categories WHERE LOWER(name) = LOWER($1) AND hotel_id = $2`,
-            [data.category.trim(), hotelId]
-          )
-          if (categoryResult.rows.length > 0) {
-            categoryId = categoryResult.rows[0].id
-          }
+          const cat = await repo.findCategoryByName(data.category, hotelId)
+          if (cat) categoryId = cat.id
         }
 
-        const newProduct = await dbQuery(`
-          INSERT INTO products (hotel_id, department_id, category_id, name, unit)
-          VALUES ($1, $2, $3, $4, 'pcs')
-          RETURNING id
-        `, [hotelId, departmentId, categoryId, data.productName.trim()])
-
-        productId = newProduct.rows[0].id
+        const newProduct = await repo.createProductInline(hotelId, departmentId, categoryId, data.productName)
+        productId = newProduct.id
       }
     }
 
@@ -350,17 +204,11 @@ router.post('/batches', authMiddleware, requirePermission('batches', 'create'), 
       return res.status(400).json({ error: 'Не удалось определить продукт' })
     }
 
-    // Проверяем что продукт существует и принадлежит отелю
-    const product = await dbQuery(
-      'SELECT id FROM products WHERE id = $1 AND hotel_id = $2',
-      [productId, hotelId]
-    )
-
-    if (product.rows.length === 0) {
+    const productOwner = await repo.findProductOwnership(productId, hotelId)
+    if (!productOwner) {
       return res.status(404).json({ error: 'Продукт не найден' })
     }
 
-    // Определяем статус на основе даты
     const expiryDate = new Date(data.expiryDate)
     const today = new Date()
     const daysUntilExpiry = Math.ceil((expiryDate - today) / (1000 * 60 * 60 * 24))
@@ -369,170 +217,82 @@ router.post('/batches', authMiddleware, requirePermission('batches', 'create'), 
     if (daysUntilExpiry <= 0) status = 'expired'
     else if (daysUntilExpiry <= 3) status = 'expiring'
 
-    // Check if batch with same product_id, expiry_date, and department_id already exists
-    const existingBatch = await dbQuery(`
-      SELECT * FROM batches 
-      WHERE product_id = $1 
-        AND expiry_date = $2 
-        AND department_id = $3 
-        AND status = 'active'
-      LIMIT 1
-    `, [productId, data.expiryDate, departmentId])
+    // Check for existing batch to merge
+    const existingBatch = await repo.findExistingBatchForMerge(productId, data.expiryDate, departmentId)
 
     let result
-    if (existingBatch.rows.length > 0) {
-      // Update existing batch - add quantities together
-      const batch = existingBatch.rows[0]
-      const newQuantity = (batch.quantity || 0) + (data.quantity || 1)
-      
-      result = await dbQuery(`
-        UPDATE batches 
-        SET quantity = $1, updated_at = CURRENT_TIMESTAMP
-        WHERE id = $2
-        RETURNING *
-      `, [newQuantity, batch.id])
-      
+    if (existingBatch) {
+      const newQuantity = (existingBatch.quantity || 0) + (data.quantity || 1)
+      result = await repo.updateBatchQuantity(existingBatch.id, newQuantity)
+
       await logAudit({
         hotel_id: hotelId,
         user_id: req.user.id,
         user_name: req.user.name || req.user.login,
         action: 'update',
         entity_type: 'batch',
-        entity_id: batch.id,
-        details: { 
-          productId, 
-          quantityAdded: data.quantity || 1,
-          newQuantity,
-          reason: 'merged_same_expiry'
-        }
+        entity_id: existingBatch.id,
+        details: { productId, quantityAdded: data.quantity || 1, newQuantity, reason: 'merged_same_expiry' }
       })
     } else {
-      // Create new batch
-      result = await dbQuery(`
-        INSERT INTO batches (
-          hotel_id, department_id, product_id, quantity,
-          expiry_date, batch_number, status, added_by
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-        RETURNING *
-      `, [
+      result = await repo.createBatch({
         hotelId,
         departmentId,
         productId,
-        data.quantity || 1,
-        data.expiryDate,
-        data.batchNumber || null,
+        quantity: data.quantity || 1,
+        expiryDate: data.expiryDate,
+        batchNumber: data.batchNumber || null,
         status,
-        req.user.id
-      ])
-      
+        addedBy: req.user.id
+      })
+
       await logAudit({
         hotel_id: hotelId,
         user_id: req.user.id,
         user_name: req.user.name || req.user.login,
         action: 'create',
         entity_type: 'batch',
-        entity_id: result.rows[0].id,
+        entity_id: result.id,
         details: { productId, quantity: data.quantity }
       })
     }
 
-    res.status(201).json(result.rows[0])
+    res.status(201).json(result)
 
   } catch (error) {
-    console.error('[Inventory] Create batch error:', error)
+    logError('Inventory', error, { action: 'createBatch' })
     res.status(500).json({ error: 'Ошибка сервера' })
   }
 })
 
 /**
  * PUT /api/batches/:id
- * Обновить партию
  */
 router.put('/batches/:id', authMiddleware, requirePermission('batches', 'update'), async (req, res) => {
   try {
     const batchId = req.params.id
     const hotelId = getEffectiveHotelId(req)
 
-    // Проверка UUID формата
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
     if (!uuidRegex.test(batchId)) {
       return res.status(400).json({ error: 'Неверный ID партии' })
     }
-
     if (!hotelId) {
       return res.status(400).json({ error: 'Не указан отель' })
     }
 
     const validation = validate(UpdateBatchSchema, req.body)
-
     if (!validation.isValid) {
-      return res.status(400).json({
-        error: 'Ошибка валидации',
-        details: validation.errors
-      })
+      return res.status(400).json({ error: 'Ошибка валидации', details: validation.errors })
     }
 
-    // Проверяем что партия существует и принадлежит отелю
-    const existing = await dbQuery(
-      'SELECT * FROM batches WHERE id = $1 AND hotel_id = $2',
-      [batchId, hotelId]
-    )
-
-    if (existing.rows.length === 0) {
+    const existing = await repo.findBatchById(batchId, hotelId)
+    if (!existing) {
       return res.status(404).json({ error: 'Партия не найдена' })
     }
 
     const data = validation.data
-    const updates = []
-    const values = []
-    let paramIndex = 1
-
-    // Динамически строим UPDATE запрос
-    if (data.quantity !== undefined) {
-      updates.push(`quantity = $${paramIndex++}`)
-      values.push(data.quantity)
-    }
-    if (data.expiryDate !== undefined) {
-      updates.push(`expiry_date = $${paramIndex++}`)
-      values.push(data.expiryDate)
-    }
-    if (data.productionDate !== undefined) {
-      updates.push(`production_date = $${paramIndex++}`)
-      values.push(data.productionDate)
-    }
-    if (data.supplierName !== undefined) {
-      updates.push(`supplier_name = $${paramIndex++}`)
-      values.push(data.supplierName)
-    }
-    if (data.batchNumber !== undefined) {
-      updates.push(`batch_number = $${paramIndex++}`)
-      values.push(data.batchNumber)
-    }
-    if (data.purchasePrice !== undefined) {
-      updates.push(`purchase_price = $${paramIndex++}`)
-      values.push(data.purchasePrice)
-    }
-    if (data.departmentId !== undefined) {
-      updates.push(`department_id = $${paramIndex++}`)
-      values.push(data.departmentId)
-    }
-    if (data.notes !== undefined) {
-      updates.push(`notes = $${paramIndex++}`)
-      values.push(data.notes)
-    }
-    if (data.status !== undefined) {
-      updates.push(`status = $${paramIndex++}`)
-      values.push(data.status)
-    }
-
-    updates.push(`updated_at = NOW()`)
-    values.push(batchId, hotelId)
-
-    const result = await dbQuery(`
-      UPDATE batches SET ${updates.join(', ')}
-      WHERE id = $${paramIndex++} AND hotel_id = $${paramIndex++}
-      RETURNING *
-    `, values)
+    const result = await repo.updateBatch(batchId, hotelId, data)
 
     await logAudit({
       hotel_id: hotelId,
@@ -544,105 +304,71 @@ router.put('/batches/:id', authMiddleware, requirePermission('batches', 'update'
       details: { changes: Object.keys(data) }
     })
 
-    res.json(result.rows[0])
+    res.json(result)
 
   } catch (error) {
-    console.error('[Inventory] Update batch error:', error)
+    logError('Inventory', error, { action: 'updateBatch' })
     res.status(500).json({ error: 'Ошибка сервера' })
   }
 })
 
 /**
  * POST /api/batches/:id/collect
- * Быстрый сбор партии
  */
 router.post('/batches/:id/collect', authMiddleware, requirePermission('batches', 'update'), async (req, res) => {
   try {
     const batchId = req.params.id
     const hotelId = getEffectiveHotelId(req)
 
-    // Проверка UUID формата
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
     if (!uuidRegex.test(batchId)) {
       return res.status(400).json({ error: 'Неверный ID партии' })
     }
-
     if (!hotelId) {
       return res.status(400).json({ error: 'Не указан отель' })
     }
 
     const validation = validate(QuickCollectSchema, req.body)
-
     if (!validation.isValid) {
-      return res.status(400).json({
-        error: 'Ошибка валидации',
-        details: validation.errors
-      })
+      return res.status(400).json({ error: 'Ошибка валидации', details: validation.errors })
     }
 
     const { quantity, type, reason } = validation.data
 
-    // Проверяем партию
-    const batch = await dbQuery(
-      'SELECT * FROM batches WHERE id = $1 AND hotel_id = $2',
-      [batchId, hotelId]
-    )
-
-    if (batch.rows.length === 0) {
+    const batch = await repo.findBatchById(batchId, hotelId)
+    if (!batch) {
       return res.status(404).json({ error: 'Партия не найдена' })
     }
 
-    if (batch.rows[0].quantity < quantity) {
+    if (batch.quantity < quantity) {
       return res.status(400).json({
-        error: `Недостаточно количества. Доступно: ${batch.rows[0].quantity}`
+        error: `Недостаточно количества. Доступно: ${batch.quantity}`
       })
     }
 
-    // Транзакция: создаём collection и обновляем batch
-    await dbQuery('BEGIN')
+    const updated = await repo.collectBatch(batchId, {
+      quantity,
+      type,
+      reason,
+      userId: req.user.id,
+      currentQuantity: batch.quantity,
+      currentStatus: batch.status
+    })
 
-    try {
-      // Создаём запись сбора
-      await dbQuery(`
-        INSERT INTO collections (batch_id, quantity, type, reason, collected_by_id)
-        VALUES ($1, $2, $3, $4, $5)
-      `, [batchId, quantity, type, reason, req.user.id])
+    await logAudit({
+      hotel_id: hotelId,
+      user_id: req.user.id,
+      user_name: req.user.name || req.user.login,
+      action: 'collect',
+      entity_type: 'batch',
+      entity_id: batchId,
+      details: { quantity, type, reason }
+    })
 
-      // Обновляем количество
-      const newQuantity = batch.rows[0].quantity - quantity
-      const newStatus = newQuantity === 0 ? 'collected' : batch.rows[0].status
-
-      const updated = await dbQuery(`
-        UPDATE batches 
-        SET quantity = $1, status = $2, updated_at = NOW()
-        WHERE id = $3
-        RETURNING *
-      `, [newQuantity, newStatus, batchId])
-
-      await dbQuery('COMMIT')
-
-      await logAudit({
-        hotel_id: hotelId,
-        user_id: req.user.id,
-        user_name: req.user.name || req.user.login,
-        action: 'collect',
-        entity_type: 'batch',
-        entity_id: batchId,
-        details: { quantity, type, reason }
-      })
-
-      res.json({
-        message: 'Сбор выполнен',
-        batch: updated.rows[0]
-      })
-
-    } catch (err) {
-      await dbQuery('ROLLBACK')
-      throw err
-    }
+    res.json({ message: 'Сбор выполнен', batch: updated })
 
   } catch (error) {
-    console.error('[Inventory] Collect batch error:', error)
+    logError('Inventory', error, { action: 'collectBatch' })
     res.status(500).json({ error: 'Ошибка сервера' })
   }
 })
@@ -650,57 +376,24 @@ router.post('/batches/:id/collect', authMiddleware, requirePermission('batches',
 /**
  * DELETE /api/batches/clear-all
  * DEVELOPMENT ONLY - SUPER ADMIN
- * Clear all active batches for a hotel (for testing purposes)
- * IMPORTANT: This route must be registered BEFORE /batches/:id to avoid route conflict
  */
 router.delete('/batches/clear-all', authMiddleware, async (req, res) => {
   try {
-    // Only allow in development and for super admin
-    // Check both NODE_ENV and MODE for development
     const isDev = process.env.NODE_ENV === 'development' || process.env.MODE === 'development'
     if (!isDev) {
-      console.log('[Clear All Batches] Not in development mode:', {
-        NODE_ENV: process.env.NODE_ENV,
-        MODE: process.env.MODE
-      })
       return res.status(403).json({ error: 'This endpoint is only available in development mode' })
     }
 
     if (!isSuperAdmin(req.user)) {
-      console.log('[Clear All Batches] Not super admin:', req.user.role)
       return res.status(403).json({ error: 'Only super admin can clear all batches' })
     }
 
-    // Get hotel_id from query params explicitly (for DELETE requests)
     const hotelId = req.query.hotel_id || req.query.hotelId || req.user.hotel_id || req.user.hotelId
-    
-    console.log('[Clear All Batches] Request:', {
-      query: req.query,
-      userHotelId: req.user.hotel_id || req.user.hotelId,
-      resolvedHotelId: hotelId,
-      userId: req.user.id,
-      userRole: req.user.role
-    })
-    
     if (!hotelId) {
-      return res.status(400).json({ 
-        error: 'Hotel ID is required',
-        details: {
-          query: req.query,
-          userHotelId: req.user.hotel_id || req.user.hotelId
-        }
-      })
+      return res.status(400).json({ error: 'Hotel ID is required' })
     }
 
-    // Delete all active batches for the hotel
-    console.log('[Clear All Batches] Executing DELETE query for hotel_id:', hotelId)
-    
-    const result = await dbQuery(
-      `DELETE FROM batches WHERE hotel_id = $1 AND status = 'active' RETURNING id`,
-      [hotelId]
-    )
-
-    console.log('[Clear All Batches] Deleted batches:', result.rows.length)
+    const deleted = await repo.clearAllActiveBatches(hotelId)
 
     await logAudit({
       hotel_id: hotelId,
@@ -709,50 +402,35 @@ router.delete('/batches/clear-all', authMiddleware, async (req, res) => {
       action: 'delete',
       entity_type: 'batch',
       entity_id: null,
-      details: { 
-        action: 'clear_all_batches',
-        deleted: result.rows.length,
-        environment: 'development'
-      }
+      details: { action: 'clear_all_batches', deleted: deleted.length, environment: 'development' }
     })
 
-    res.json({ 
-      success: true, 
-      deleted: result.rows.length,
-      message: `Deleted ${result.rows.length} batches` 
-    })
+    res.json({ success: true, deleted: deleted.length, message: `Deleted ${deleted.length} batches` })
 
   } catch (error) {
-    console.error('[Inventory] Clear all batches error:', error)
+    logError('Inventory', error, { action: 'clearAllBatches' })
     res.status(500).json({ error: 'Failed to clear batches' })
   }
 })
 
 /**
  * DELETE /api/batches/:id
- * Удалить партию
  */
 router.delete('/batches/:id', authMiddleware, requirePermission('batches', 'delete'), async (req, res) => {
   try {
     const batchId = req.params.id
     const hotelId = getEffectiveHotelId(req)
 
-    // Проверка UUID формата
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
     if (!uuidRegex.test(batchId)) {
       return res.status(400).json({ error: 'Неверный ID партии' })
     }
-
     if (!hotelId) {
       return res.status(400).json({ error: 'Не указан отель' })
     }
 
-    const result = await dbQuery(
-      'DELETE FROM batches WHERE id = $1 AND hotel_id = $2 RETURNING id',
-      [batchId, hotelId]
-    )
-
-    if (result.rows.length === 0) {
+    const deleted = await repo.deleteBatch(batchId, hotelId)
+    if (!deleted) {
       return res.status(404).json({ error: 'Партия не найдена' })
     }
 
@@ -769,7 +447,7 @@ router.delete('/batches/:id', authMiddleware, requirePermission('batches', 'dele
     res.json({ message: 'Партия удалена' })
 
   } catch (error) {
-    console.error('[Inventory] Delete batch error:', error)
+    logError('Inventory', error, { action: 'deleteBatch' })
     res.status(500).json({ error: 'Ошибка сервера' })
   }
 })
@@ -780,238 +458,116 @@ router.delete('/batches/:id', authMiddleware, requirePermission('batches', 'dele
 
 /**
  * GET /api/products/catalog
- * Получить простой список продуктов для выбора в шаблонах
  */
 router.get('/products/catalog', authMiddleware, async (req, res) => {
   try {
     const hotelId = getEffectiveHotelId(req)
-
     if (!hotelId) {
       return res.status(400).json({ error: 'hotel_id is required' })
     }
 
-    const result = await dbQuery(`
-      SELECT p.id, p.name, p.unit, p.barcode, p.default_shelf_life,
-             c.id as category_id, c.name as category_name
-      FROM products p
-      LEFT JOIN categories c ON p.category_id = c.id
-      WHERE p.hotel_id = $1
-      ORDER BY c.sort_order, c.name, p.name
-    `, [hotelId])
+    const products = await repo.findProductsCatalog(hotelId)
+    res.json({ success: true, products })
 
-    res.json({
-      success: true,
-      products: result.rows
-    })
   } catch (error) {
-    console.error('[Inventory] Get products catalog error:', error)
+    logError('Inventory', error, { action: 'getProductsCatalog' })
     res.status(500).json({ error: 'Ошибка сервера' })
   }
 })
 
 /**
  * GET /api/products/status/expired
- * Получить просроченные продукты (партии)
  */
 router.get('/products/status/expired', authMiddleware, async (req, res) => {
   try {
     const hotelId = getEffectiveHotelId(req)
-
     if (!hotelId) {
       return res.status(400).json({ error: 'hotel_id is required' })
     }
 
-    const result = await dbQuery(`
-      SELECT b.*, p.name as product_name, p.unit, c.name as category_name
-      FROM batches b
-      JOIN products p ON b.product_id = p.id
-      LEFT JOIN categories c ON p.category_id = c.id
-      WHERE b.hotel_id = $1 
-        AND b.quantity > 0 
-        AND b.expiry_date < CURRENT_DATE
-      ORDER BY b.expiry_date ASC
-    `, [hotelId])
+    const items = await repo.findExpiredBatches(hotelId)
+    res.json({ success: true, items, count: items.length })
 
-    res.json({
-      success: true,
-      items: result.rows,
-      count: result.rows.length
-    })
   } catch (error) {
-    console.error('[Inventory] Get expired products error:', error)
+    logError('Inventory', error, { action: 'getExpiredProducts' })
     res.status(500).json({ error: 'Ошибка сервера' })
   }
 })
 
 /**
  * GET /api/products/status/expiring-soon
- * Получить скоро истекающие продукты (партии)
  */
 router.get('/products/status/expiring-soon', authMiddleware, async (req, res) => {
   try {
     const hotelId = getEffectiveHotelId(req)
     const days = parseInt(req.query.days) || 7
-
     if (!hotelId) {
       return res.status(400).json({ error: 'hotel_id is required' })
     }
 
-    const result = await dbQuery(`
-      SELECT b.*, p.name as product_name, p.unit, c.name as category_name,
-             (b.expiry_date - CURRENT_DATE) as days_until_expiry
-      FROM batches b
-      JOIN products p ON b.product_id = p.id
-      LEFT JOIN categories c ON p.category_id = c.id
-      WHERE b.hotel_id = $1 
-        AND b.quantity > 0 
-        AND b.expiry_date >= CURRENT_DATE
-        AND b.expiry_date <= CURRENT_DATE + $2::interval
-      ORDER BY b.expiry_date ASC
-    `, [hotelId, `${days} days`])
+    const items = await repo.findExpiringSoonBatches(hotelId, days)
+    res.json({ success: true, items, count: items.length, days })
 
-    res.json({
-      success: true,
-      items: result.rows,
-      count: result.rows.length,
-      days
-    })
   } catch (error) {
-    console.error('[Inventory] Get expiring soon error:', error)
+    logError('Inventory', error, { action: 'getExpiringSoon' })
     res.status(500).json({ error: 'Ошибка сервера' })
   }
 })
 
 /**
  * GET /api/products
- * Получить список продуктов
  */
 router.get('/products', authMiddleware, async (req, res) => {
   try {
     const validation = validate(ProductFiltersSchema, req.query)
-
     if (!validation.isValid) {
-      return res.status(400).json({
-        error: 'Ошибка валидации',
-        details: validation.errors
-      })
+      return res.status(400).json({ error: 'Ошибка валидации', details: validation.errors })
     }
 
     const hotelId = getEffectiveHotelId(req)
-
     if (!hotelId) {
       return res.status(400).json({ error: 'hotel_id is required' })
     }
 
     const filters = validation.data
-    const { page, limit, sortBy, sortOrder, ...where } = filters
-    const offset = (page - 1) * limit
-
-    let sql = `
-      SELECT p.*, c.name as category_name, d.name as department_name,
-             COALESCE(SUM(b.quantity), 0) as total_stock
-      FROM products p
-      LEFT JOIN categories c ON p.category_id = c.id
-      LEFT JOIN departments d ON p.department_id = d.id
-      LEFT JOIN batches b ON p.id = b.product_id AND b.status != 'collected'
-      WHERE p.hotel_id = $1
-    `
-    const params = [hotelId]
-    let paramIndex = 2
-
-    // Фильтрация по отделу - ключевое изменение!
-    if (where.departmentId) {
-      sql += ` AND p.department_id = $${paramIndex++}`
-      params.push(where.departmentId)
-    }
-
-    if (where.categoryId) {
-      sql += ` AND p.category_id = $${paramIndex++}`
-      params.push(where.categoryId)
-    }
-
-    if (where.storageType) {
-      sql += ` AND p.storage_type = $${paramIndex++}`
-      params.push(where.storageType)
-    }
-
-    if (where.search) {
-      sql += ` AND (p.name ILIKE $${paramIndex++} OR p.barcode ILIKE $${paramIndex++})`
-      const searchPattern = `%${where.search}%`
-      params.push(searchPattern, searchPattern)
-    }
-
-    sql += ` GROUP BY p.id, p.hotel_id, p.category_id, p.department_id, p.name, p.name_en, p.name_kk, p.description, p.barcode, p.default_shelf_life, p.unit, p.storage_type, p.min_stock, p.image_url, p.is_active, p.created_at, c.name, d.name`
-
-    if (where.hasStock) {
-      sql += ` HAVING COALESCE(SUM(b.quantity), 0) > 0`
-    }
-
-    const sortColumn = {
-      name: 'p.name',
-      createdAt: 'p.created_at',
-      stock: 'total_stock'
-    }[sortBy] || 'p.name'
-
-    sql += ` ORDER BY ${sortColumn} ${sortOrder.toUpperCase()}`
-    sql += ` LIMIT $${paramIndex++} OFFSET $${paramIndex++}`
-    params.push(limit, offset)
-
-    const products = await dbQuery(sql, params)
+    const { page, limit } = filters
+    const { rows, total } = await repo.findProducts(hotelId, filters)
 
     res.json({
-      items: products.rows,
+      success: true,
+      items: rows,
+      total,
       page,
-      limit
+      limit,
+      totalPages: Math.ceil(total / limit),
+      hasMore: ((page - 1) * limit) + rows.length < total
     })
 
   } catch (error) {
-    console.error('[Inventory] Get products error:', error)
+    logError('Inventory', error, { action: 'getProducts' })
     res.status(500).json({ error: 'Ошибка сервера' })
   }
 })
 
 /**
  * POST /api/products
- * Создать продукт
  */
 router.post('/products', authMiddleware, requirePermission('products', 'create'), async (req, res) => {
   try {
     const hotelId = getEffectiveHotelId(req)
-
     if (!hotelId) {
       return res.status(400).json({ error: 'Не указан отель' })
     }
 
     const validation = validate(CreateProductSchema, req.body)
-
     if (!validation.isValid) {
-      return res.status(400).json({
-        error: 'Ошибка валидации',
-        details: validation.errors
-      })
+      return res.status(400).json({ error: 'Ошибка валидации', details: validation.errors })
     }
 
     const data = validation.data
+    data.departmentId = data.departmentId || req.user.departmentId || null
 
-    const result = await dbQuery(`
-      INSERT INTO products (
-        hotel_id, category_id, department_id, name, description, default_shelf_life,
-        unit, storage_type, min_stock, barcode, image_url
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-      RETURNING *
-    `, [
-      hotelId,
-      data.categoryId || null,
-      data.departmentId || req.user.departmentId || null,
-      data.name,
-      data.description || null,
-      data.defaultShelfLife || 7,
-      data.unit || 'pcs',
-      data.storageType || 'room_temp',
-      data.minStock || 0,
-      data.barcode || null,
-      data.imageUrl || null
-    ])
+    const result = await repo.createProduct(hotelId, data)
 
     await logAudit({
       hotel_id: hotelId,
@@ -1019,105 +575,45 @@ router.post('/products', authMiddleware, requirePermission('products', 'create')
       user_name: req.user.name || req.user.login,
       action: 'create',
       entity_type: 'product',
-      entity_id: result.rows[0].id,
+      entity_id: result.id,
       details: { name: data.name }
     })
 
-    res.status(201).json(result.rows[0])
+    res.status(201).json(result)
 
   } catch (error) {
-    console.error('[Inventory] Create product error:', error)
+    logError('Inventory', error, { action: 'createProduct' })
     res.status(500).json({ error: 'Ошибка сервера' })
   }
 })
 
 /**
  * PUT /api/products/:id
- * Обновить продукт
  */
 router.put('/products/:id', authMiddleware, requirePermission('products', 'update'), async (req, res) => {
   try {
     const productId = req.params.id
     const hotelId = getEffectiveHotelId(req)
-
     if (!hotelId) {
       return res.status(400).json({ error: 'Не указан отель' })
     }
 
     const validation = validate(UpdateProductSchema, req.body)
-
     if (!validation.isValid) {
-      return res.status(400).json({
-        error: 'Ошибка валидации',
-        details: validation.errors
-      })
+      return res.status(400).json({ error: 'Ошибка валидации', details: validation.errors })
     }
 
-    // Проверяем что продукт существует и принадлежит отелю
-    const existing = await dbQuery(
-      'SELECT * FROM products WHERE id = $1 AND hotel_id = $2',
-      [productId, hotelId]
-    )
-
-    if (existing.rows.length === 0) {
+    const existing = await repo.findProductById(productId, hotelId)
+    if (!existing) {
       return res.status(404).json({ error: 'Продукт не найден' })
     }
 
     const data = validation.data
-    const updates = []
-    const values = []
-    let paramIndex = 1
+    const result = await repo.updateProduct(productId, hotelId, data)
 
-    // Динамически строим UPDATE запрос
-    if (data.name !== undefined) {
-      updates.push(`name = $${paramIndex++}`)
-      values.push(data.name)
-    }
-    if (data.categoryId !== undefined) {
-      updates.push(`category_id = $${paramIndex++}`)
-      values.push(data.categoryId)
-    }
-    if (data.description !== undefined) {
-      updates.push(`description = $${paramIndex++}`)
-      values.push(data.description)
-    }
-    if (data.defaultShelfLife !== undefined) {
-      updates.push(`default_shelf_life = $${paramIndex++}`)
-      values.push(data.defaultShelfLife)
-    }
-    if (data.unit !== undefined) {
-      updates.push(`unit = $${paramIndex++}`)
-      values.push(data.unit)
-    }
-    if (data.storageType !== undefined) {
-      updates.push(`storage_type = $${paramIndex++}`)
-      values.push(data.storageType)
-    }
-    if (data.minStock !== undefined) {
-      updates.push(`min_stock = $${paramIndex++}`)
-      values.push(data.minStock)
-    }
-    if (data.barcode !== undefined) {
-      updates.push(`barcode = $${paramIndex++}`)
-      values.push(data.barcode)
-    }
-    if (data.imageUrl !== undefined) {
-      updates.push(`image_url = $${paramIndex++}`)
-      values.push(data.imageUrl)
-    }
-
-    if (updates.length === 0) {
+    if (!result) {
       return res.status(400).json({ error: 'Нет данных для обновления' })
     }
-
-    updates.push(`updated_at = NOW()`)
-    values.push(productId, hotelId)
-
-    const result = await dbQuery(`
-      UPDATE products SET ${updates.join(', ')}
-      WHERE id = $${paramIndex++} AND hotel_id = $${paramIndex++}
-      RETURNING *
-    `, values)
 
     await logAudit({
       hotel_id: hotelId,
@@ -1129,33 +625,27 @@ router.put('/products/:id', authMiddleware, requirePermission('products', 'updat
       details: { changes: Object.keys(data) }
     })
 
-    res.json(result.rows[0])
+    res.json(result)
 
   } catch (error) {
-    console.error('[Inventory] Update product error:', error)
+    logError('Inventory', error, { action: 'updateProduct' })
     res.status(500).json({ error: 'Ошибка сервера' })
   }
 })
 
 /**
  * DELETE /api/products/:id
- * Удалить продукт
  */
 router.delete('/products/:id', authMiddleware, requirePermission('products', 'delete'), async (req, res) => {
   try {
     const productId = req.params.id
     const hotelId = getEffectiveHotelId(req)
-
     if (!hotelId) {
       return res.status(400).json({ error: 'Не указан отель' })
     }
 
-    const result = await dbQuery(
-      'DELETE FROM products WHERE id = $1 AND hotel_id = $2 RETURNING id, name',
-      [productId, hotelId]
-    )
-
-    if (result.rows.length === 0) {
+    const result = await repo.deleteProduct(productId, hotelId)
+    if (!result) {
       return res.status(404).json({ error: 'Продукт не найден' })
     }
 
@@ -1166,13 +656,13 @@ router.delete('/products/:id', authMiddleware, requirePermission('products', 'de
       action: 'delete',
       entity_type: 'product',
       entity_id: productId,
-      details: { name: result.rows[0].name }
+      details: { name: result.name }
     })
 
     res.json({ success: true, id: productId })
 
   } catch (error) {
-    console.error('[Inventory] Delete product error:', error)
+    logError('Inventory', error, { action: 'deleteProduct' })
     res.status(500).json({ error: 'Ошибка сервера' })
   }
 })
@@ -1183,82 +673,46 @@ router.delete('/products/:id', authMiddleware, requirePermission('products', 'de
 
 /**
  * GET /api/categories
- * Получить список категорий
  */
 router.get('/categories', authMiddleware, async (req, res) => {
   try {
     const hotelId = getEffectiveHotelId(req)
-
     if (!hotelId) {
       return res.status(400).json({ error: 'hotel_id is required' })
     }
 
-    const result = await dbQuery(`
-      SELECT c.*,
-             COUNT(DISTINCT p.id) as products_count,
-             COUNT(DISTINCT b.id) as batches_count
-      FROM categories c
-      LEFT JOIN products p ON c.id = p.category_id
-      LEFT JOIN batches b ON p.id = b.product_id AND b.status != 'collected'
-      WHERE c.hotel_id = $1
-      GROUP BY c.id, c.hotel_id, c.name, c.name_en, c.name_kk, c.description, c.color, c.icon, c.parent_id, c.sort_order, c.is_active, c.created_at, c.department_id
-      ORDER BY c.sort_order, c.name
-    `, [hotelId])
-
-    res.json(result.rows)
+    const categories = await repo.findCategories(hotelId)
+    res.json(categories)
 
   } catch (error) {
-    console.error('[Inventory] Get categories error:', error)
+    logError('Inventory', error, { action: 'getCategories' })
     res.status(500).json({ error: 'Ошибка сервера' })
   }
 })
 
 /**
  * POST /api/categories
- * Создать категорию
  */
 router.post('/categories', authMiddleware, requirePermission('categories', 'create'), async (req, res) => {
   try {
     const hotelId = getEffectiveHotelId(req)
-
     if (!hotelId) {
       return res.status(400).json({ error: 'Не указан отель' })
     }
 
     const validation = validate(CreateCategorySchema, req.body)
-
     if (!validation.isValid) {
-      return res.status(400).json({
-        error: 'Ошибка валидации',
-        details: validation.errors
-      })
+      return res.status(400).json({ error: 'Ошибка валидации', details: validation.errors })
     }
 
     const data = validation.data
 
-    // Проверяем уникальность имени
-    const existing = await dbQuery(
-      'SELECT id FROM categories WHERE name = $1 AND hotel_id = $2',
-      [data.name, hotelId]
-    )
-
-    if (existing.rows.length > 0) {
+    const exists = await repo.checkCategoryNameExists(data.name, hotelId)
+    if (exists) {
       return res.status(400).json({ error: 'Категория с таким именем уже существует' })
     }
 
-    const result = await dbQuery(`
-      INSERT INTO categories (hotel_id, name, description, color, icon, parent_id, sort_order)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
-      RETURNING *
-    `, [
-      hotelId,
-      data.name,
-      data.description,
-      data.color,
-      data.icon,
-      data.parentId,
-      data.sortOrder
-    ])
+    const result = await repo.createCategory(hotelId, data)
 
     await logAudit({
       hotel_id: hotelId,
@@ -1266,100 +720,52 @@ router.post('/categories', authMiddleware, requirePermission('categories', 'crea
       user_name: req.user.name || req.user.login,
       action: 'create',
       entity_type: 'category',
-      entity_id: result.rows[0].id,
+      entity_id: result.id,
       details: { name: data.name }
     })
 
-    res.status(201).json(result.rows[0])
+    res.status(201).json(result)
 
   } catch (error) {
-    console.error('[Inventory] Create category error:', error)
+    logError('Inventory', error, { action: 'createCategory' })
     res.status(500).json({ error: 'Ошибка сервера' })
   }
 })
 
 /**
  * PUT /api/categories/:id
- * Обновить категорию
  */
 router.put('/categories/:id', authMiddleware, requirePermission('categories', 'update'), async (req, res) => {
   try {
     const categoryId = req.params.id
     const hotelId = getEffectiveHotelId(req)
-
     if (!hotelId) {
       return res.status(400).json({ error: 'Не указан отель' })
     }
 
     const validation = validate(UpdateCategorySchema, req.body)
-
     if (!validation.isValid) {
-      return res.status(400).json({
-        error: 'Ошибка валидации',
-        details: validation.errors
-      })
+      return res.status(400).json({ error: 'Ошибка валидации', details: validation.errors })
     }
 
-    // Проверяем что категория существует и принадлежит отелю
-    const existing = await dbQuery(
-      'SELECT * FROM categories WHERE id = $1 AND hotel_id = $2',
-      [categoryId, hotelId]
-    )
-
-    if (existing.rows.length === 0) {
+    const existing = await repo.findCategoryById(categoryId, hotelId)
+    if (!existing) {
       return res.status(404).json({ error: 'Категория не найдена' })
     }
 
     const data = validation.data
-    const updates = []
-    const values = []
-    let paramIndex = 1
 
-    // Динамически строим UPDATE запрос
     if (data.name !== undefined) {
-      // Проверяем уникальность имени (кроме текущей категории)
-      const duplicate = await dbQuery(
-        'SELECT id FROM categories WHERE name = $1 AND hotel_id = $2 AND id != $3',
-        [data.name, hotelId, categoryId]
-      )
-      if (duplicate.rows.length > 0) {
+      const duplicate = await repo.checkCategoryNameExists(data.name, hotelId, categoryId)
+      if (duplicate) {
         return res.status(400).json({ error: 'Категория с таким именем уже существует' })
       }
-      updates.push(`name = $${paramIndex++}`)
-      values.push(data.name)
-    }
-    if (data.description !== undefined) {
-      updates.push(`description = $${paramIndex++}`)
-      values.push(data.description)
-    }
-    if (data.color !== undefined) {
-      updates.push(`color = $${paramIndex++}`)
-      values.push(data.color)
-    }
-    if (data.icon !== undefined) {
-      updates.push(`icon = $${paramIndex++}`)
-      values.push(data.icon)
-    }
-    if (data.parentId !== undefined) {
-      updates.push(`parent_id = $${paramIndex++}`)
-      values.push(data.parentId)
-    }
-    if (data.sortOrder !== undefined) {
-      updates.push(`sort_order = $${paramIndex++}`)
-      values.push(data.sortOrder)
     }
 
-    if (updates.length === 0) {
+    const result = await repo.updateCategory(categoryId, hotelId, data)
+    if (!result) {
       return res.status(400).json({ error: 'Нет данных для обновления' })
     }
-
-    values.push(categoryId, hotelId)
-
-    const result = await dbQuery(`
-      UPDATE categories SET ${updates.join(', ')}
-      WHERE id = $${paramIndex++} AND hotel_id = $${paramIndex++}
-      RETURNING *
-    `, values)
 
     await logAudit({
       hotel_id: hotelId,
@@ -1371,58 +777,38 @@ router.put('/categories/:id', authMiddleware, requirePermission('categories', 'u
       details: { changes: Object.keys(data) }
     })
 
-    res.json(result.rows[0])
+    res.json(result)
 
   } catch (error) {
-    console.error('[Inventory] Update category error:', error)
+    logError('Inventory', error, { action: 'updateCategory' })
     res.status(500).json({ error: 'Ошибка сервера' })
   }
 })
 
 /**
  * DELETE /api/categories/:id
- * Удалить категорию
  */
 router.delete('/categories/:id', authMiddleware, requirePermission('categories', 'delete'), async (req, res) => {
   try {
     const categoryId = req.params.id
     const hotelId = getEffectiveHotelId(req)
-
     if (!hotelId) {
       return res.status(400).json({ error: 'Не указан отель' })
     }
 
-    // Проверяем что категория существует и принадлежит отелю
-    const existing = await dbQuery(
-      'SELECT id, name FROM categories WHERE id = $1 AND hotel_id = $2',
-      [categoryId, hotelId]
-    )
-
-    if (existing.rows.length === 0) {
+    const existing = await repo.findCategoryById(categoryId, hotelId)
+    if (!existing) {
       return res.status(404).json({ error: 'Категория не найдена' })
     }
 
-    const categoryName = existing.rows[0].name
+    const categoryName = existing.name
 
-    // Проверяем нет ли продуктов в этой категории
-    const products = await dbQuery(
-      'SELECT COUNT(*) as count FROM products WHERE category_id = $1',
-      [categoryId]
-    )
-
-    if (parseInt(products.rows[0].count) > 0) {
-      // Убираем категорию у продуктов (не удаляем продукты)
-      await dbQuery(
-        'UPDATE products SET category_id = NULL WHERE category_id = $1',
-        [categoryId]
-      )
+    const productCount = await repo.countProductsInCategory(categoryId)
+    if (productCount > 0) {
+      await repo.clearCategoryFromProducts(categoryId)
     }
 
-    // Удаляем категорию
-    await dbQuery(
-      'DELETE FROM categories WHERE id = $1 AND hotel_id = $2',
-      [categoryId, hotelId]
-    )
+    await repo.deleteCategory(categoryId, hotelId)
 
     await logAudit({
       hotel_id: hotelId,
@@ -1437,7 +823,7 @@ router.delete('/categories/:id', authMiddleware, requirePermission('categories',
     res.json({ message: 'Категория удалена' })
 
   } catch (error) {
-    console.error('[Inventory] Delete category error:', error)
+    logError('Inventory', error, { action: 'deleteCategory' })
     res.status(500).json({ error: 'Ошибка сервера' })
   }
 })

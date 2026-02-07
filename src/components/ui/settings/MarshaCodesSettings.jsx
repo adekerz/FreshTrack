@@ -178,10 +178,9 @@ export default function MarshaCodesSettings() {
       if (filters.brand) params.set('brand', filters.brand)
       if (filters.isAssigned !== '') params.set('isAssigned', filters.isAssigned)
 
-      const token = localStorage.getItem('freshtrack_token')
       const url = `${API_BASE_URL}/marsha-codes/export?${params}`
       const res = await fetch(url, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {}
+        credentials: 'include'
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
@@ -213,10 +212,9 @@ export default function MarshaCodesSettings() {
       if (filters.brand) params.set('brand', filters.brand)
       if (filters.isAssigned !== '') params.set('isAssigned', filters.isAssigned)
 
-      const token = localStorage.getItem('freshtrack_token')
       const url = `${API_BASE_URL}/marsha-codes/export?${params}`
       const res = await fetch(url, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {}
+        credentials: 'include'
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))

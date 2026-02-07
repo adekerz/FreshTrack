@@ -5,13 +5,14 @@
 import { Router } from 'express'
 import { logError } from '../../utils/logger.js'
 import { query, logAudit } from '../../db/database.js'
-import { 
-  authMiddleware, 
+import {
+  authMiddleware,
   hotelIsolation,
   requirePermission,
   PermissionResource,
   PermissionAction
 } from '../../middleware/auth.js'
+import { validate, UpdateDepartmentSettingsSchema } from './department-settings.schemas.js'
 
 const router = Router()
 
@@ -98,8 +99,13 @@ router.get('/:departmentId', authMiddleware, hotelIsolation, requirePermission(P
 
 router.put('/:departmentId', authMiddleware, hotelIsolation, requirePermission(PermissionResource.SETTINGS, PermissionAction.UPDATE), async (req, res) => {
   try {
+    const validation = validate(UpdateDepartmentSettingsSchema, req.body)
+    if (!validation.isValid) {
+      return res.status(400).json({ error: 'Ошибка валидации', details: validation.errors })
+    }
+
     const { departmentId } = req.params
-    const settings = req.body
+    const settings = validation.data
     
     const keyMap = {
       telegramEnabled: 'telegram_enabled',

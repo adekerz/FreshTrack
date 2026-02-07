@@ -7,6 +7,7 @@
 
 import { forwardRef } from 'react'
 import { cardHover } from '../../utils/animations'
+import CachedDataBadge from './CachedDataBadge'
 
 const variants = {
   default: 'bg-card border border-border',
@@ -21,19 +22,25 @@ const Card = forwardRef(({
   variant = 'default',
   className = '',
   padding = true,
+  showCachedBadge = false,
   ...props
 }, ref) => {
   return (
     <div
       ref={ref}
       className={`
-        rounded-xl
+        rounded-xl relative
         ${variants[variant]}
         ${padding ? 'p-4 md:p-6' : ''}
         ${className}
       `}
       {...props}
     >
+      {showCachedBadge && (
+        <div className="absolute top-2 right-2 z-[1]">
+          <CachedDataBadge compact />
+        </div>
+      )}
       {children}
     </div>
   )

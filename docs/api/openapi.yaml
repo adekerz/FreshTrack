@@ -67,7 +67,8 @@ components:
       type: object
       properties:
         id:
-          type: integer
+          type: string
+          format: uuid
         login:
           type: string
         name:
@@ -75,18 +76,30 @@ components:
         email:
           type: string
           format: email
+          nullable: true
         role:
           type: string
-          enum: [SUPER_ADMIN, HOTEL_ADMIN, MANAGER, STAFF, VIEWER]
+          enum: [SUPER_ADMIN, HOTEL_ADMIN, MANAGER, DEPARTMENT_MANAGER, STAFF]
         hotel_id:
-          type: integer
+          type: string
+          format: uuid
+          nullable: true
         department_id:
-          type: integer
+          type: string
+          format: uuid
           nullable: true
         is_active:
           type: boolean
         permissions:
           type: object
+        role_label:
+          type: string
+          nullable: true
+        departments:
+          type: array
+          items:
+            type: string
+          nullable: true
 
     Product:
       type: object
@@ -229,9 +242,10 @@ paths:
                 login:
                   type: string
                   minLength: 3
+                  description: Email or login
                 password:
                   type: string
-                  minLength: 6
+                  minLength: 8
       responses:
         '200':
           description: Login successful
@@ -256,6 +270,31 @@ paths:
       responses:
         '200':
           description: Current user info
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  user:
+                    $ref: '#/components/schemas/User'
+    put:
+      tags: [Auth]
+      summary: Update current user profile
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                locale:
+                  type: string
+      responses:
+        '200':
+          description: User updated
           content:
             application/json:
               schema:
@@ -294,6 +333,678 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/User'
+    post:
+      tags: [Auth]
+      summary: Create user (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [login, name]
+              properties:
+                login:
+                  type: string
+                  format: email
+                name:
+                  type: string
+                role:
+                  type: string
+                  enum: [HOTEL_ADMIN, MANAGER, DEPARTMENT_MANAGER, STAFF]
+                department_id:
+                  type: string
+                  format: uuid
+                password:
+                  type: string
+                  minLength: 8
+      responses:
+        '201':
+          description: User created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  user:
+                    $ref: '#/components/schemas/User'
+
+  /api/auth/register:
+    post:
+      tags: [Auth]
+      summary: Register new user (invite flow)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [login, password, name, hotel_code]
+              properties:
+                login:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  minLength: 8
+                name:
+                  type: string
+                hotel_code:
+                  type: string
+      responses:
+        '201':
+          description: User registered
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  user:
+                    $ref: '#/components/schemas/User'
+                  token:
+                    type: string
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/auth/logout:
+    post:
+      tags: [Auth]
+      summary: Logout (invalidate token)
+
+  /api/auth/validate-hotel-code:
+    get:
+      tags: [Auth]
+      summary: Validate hotel code (public)
+      security: []
+      parameters:
+        - name: code
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Valid or invalid
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  valid:
+                    type: boolean
+                  hotel_id:
+                    type: string
+                    format: uuid
+                  hotel_name:
+                    type: string
+
+  /api/auth/pending-status:
+    get:
+      tags: [Auth]
+      summary: Check if user has pending MFA/email/terms
+      responses:
+        '200':
+          description: Pending checks
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pendingMfa:
+                    type: boolean
+                  pendingEmailVerification:
+                    type: boolean
+                  pendingTerms:
+                    type: boolean
+
+  /api/auth/join-requests:
+    get:
+      tags: [Auth]
+      summary: List join requests (admin)
+      responses:
+        '200':
+          description: List of join requests
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  joinRequests:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          format: uuid
+                        login:
+                          type: string
+                        name:
+                          type: string
+                        hotel_id:
+                          type: string
+                        status:
+                          type: string
+                        created_at:
+                          type: string
+                          format: date-time
+
+  /api/auth/join-requests/{id}/approve:
+    post:
+      tags: [Auth]
+      summary: Approve join request
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                department_id:
+                  type: string
+                  format: uuid
+                role:
+                  type: string
+      responses:
+        '200':
+          description: Approved
+
+  /api/auth/join-requests/{id}/reject:
+    post:
+      tags: [Auth]
+      summary: Reject join request
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Rejected
+
+  /api/auth/users/export:
+    get:
+      tags: [Auth]
+      summary: Export users (admin, MFA + rate limit)
+      parameters:
+        - name: format
+          in: query
+          schema:
+            type: string
+            enum: [csv, xlsx]
+            default: csv
+      responses:
+        '200':
+          description: File download
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema:
+                type: string
+                format: binary
+
+  /api/auth/users/{id}:
+    put:
+      tags: [Auth]
+      summary: Update user (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                role:
+                  type: string
+                department_id:
+                  type: string
+                  format: uuid
+                is_active:
+                  type: boolean
+      responses:
+        '200':
+          description: User updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  user:
+                    $ref: '#/components/schemas/User'
+    delete:
+      tags: [Auth]
+      summary: Delete user (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: User deleted
+
+  /api/auth/users/{id}/toggle:
+    patch:
+      tags: [Auth]
+      summary: Toggle user active (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                is_active:
+                  type: boolean
+      responses:
+        '200':
+          description: User toggled
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  user:
+                    $ref: '#/components/schemas/User'
+
+  /api/auth/users/{id}/resend-password:
+    post:
+      tags: [Auth]
+      summary: Resend temporary password (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Password resent
+
+  /api/auth/password:
+    put:
+      tags: [Auth]
+      summary: Set password (first login / reset)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password]
+              properties:
+                password:
+                  type: string
+                  minLength: 8
+      responses:
+        '200':
+          description: Password set
+
+  /api/auth/change-password:
+    post:
+      tags: [Auth]
+      summary: Change password (authenticated)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [currentPassword, newPassword]
+              properties:
+                currentPassword:
+                  type: string
+                newPassword:
+                  type: string
+                  minLength: 8
+      responses:
+        '200':
+          description: Password changed
+        '401':
+          description: Invalid current password
+
+  /api/auth/accept-terms:
+    post:
+      tags: [Auth]
+      summary: Accept terms of use
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                version:
+                  type: string
+      responses:
+        '200':
+          description: Terms accepted
+
+  /api/auth/terms-status:
+    get:
+      tags: [Auth]
+      summary: Get terms acceptance status
+      responses:
+        '200':
+          description: Status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accepted:
+                    type: boolean
+                  version:
+                    type: string
+                  acceptedAt:
+                    type: string
+                    format: date-time
+                    nullable: true
+
+  /api/auth/verification-status:
+    get:
+      tags: [Auth]
+      summary: Email verification status
+      responses:
+        '200':
+          description: Verified or not
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  verified:
+                    type: boolean
+
+  /api/auth/verify-email-otp:
+    post:
+      tags: [Auth]
+      summary: Verify email with OTP
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code:
+                  type: string
+                  minLength: 6
+                  maxLength: 6
+      responses:
+        '200':
+          description: Email verified
+
+  /api/auth/request-email-verification:
+    post:
+      tags: [Auth]
+      summary: Request email verification (send OTP)
+      responses:
+        '200':
+          description: OTP sent
+
+  /api/auth/resend-email-otp:
+    post:
+      tags: [Auth]
+      summary: Resend email OTP
+      responses:
+        '200':
+          description: OTP resent
+
+  /api/auth/change-email:
+    post:
+      tags: [Auth]
+      summary: Request email change (sends OTP to new email)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [newEmail]
+              properties:
+                newEmail:
+                  type: string
+                  format: email
+      responses:
+        '200':
+          description: OTP sent to new email
+
+  /api/auth/verify-email-change:
+    post:
+      tags: [Auth]
+      summary: Confirm email change with OTP
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code:
+                  type: string
+                  minLength: 6
+                  maxLength: 6
+      responses:
+        '200':
+          description: Email changed
+
+  /api/auth/mfa/setup:
+    post:
+      tags: [Auth]
+      summary: Start MFA setup (returns secret + QR)
+      responses:
+        '200':
+          description: MFA setup data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  secret:
+                    type: string
+                  qrCode:
+                    type: string
+                  backupCodes:
+                    type: array
+                    items:
+                      type: string
+
+  /api/auth/mfa/verify-setup:
+    post:
+      tags: [Auth]
+      summary: Verify MFA setup with TOTP code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code:
+                  type: string
+                  minLength: 6
+                  maxLength: 6
+      responses:
+        '200':
+          description: MFA enabled
+
+  /api/auth/mfa/verify:
+    post:
+      tags: [Auth]
+      summary: Verify TOTP (login step)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code:
+                  type: string
+                  minLength: 6
+                  maxLength: 6
+      responses:
+        '200':
+          description: Full token issued
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  token:
+                    type: string
+                  user:
+                    $ref: '#/components/schemas/User'
+
+  /api/auth/mfa/disable:
+    post:
+      tags: [Auth]
+      summary: Disable MFA (requires current TOTP or backup code)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code:
+                  type: string
+      responses:
+        '200':
+          description: MFA disabled
+
+  /api/auth/mfa/status:
+    get:
+      tags: [Auth]
+      summary: MFA enabled status
+      responses:
+        '200':
+          description: Status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  enabled:
+                    type: boolean
+
+  /api/auth/mfa/request-recovery:
+    post:
+      tags: [Auth]
+      summary: Request MFA recovery (sends backup code to email)
+      responses:
+        '200':
+          description: Recovery email sent
+
+  /api/auth/mfa/emergency-recover:
+    get:
+      tags: [Auth]
+      summary: Consume one-time recovery link (from email)
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Recovery link consumed; user can set new MFA or continue
+        '302':
+          description: Redirect to app
+
+  /api/auth/mfa/admin-reset/{userId}:
+    post:
+      tags: [Auth]
+      summary: Admin reset MFA for user (SUPER_ADMIN)
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: MFA reset
+
+  /api/auth/mfa/recovery-requests:
+    get:
+      tags: [Auth]
+      summary: List MFA recovery requests (admin)
+      responses:
+        '200':
+          description: List of recovery requests
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  requests:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        user_id:
+                          type: string
+                        status:
+                          type: string
+                        created_at:
+                          type: string
+                          format: date-time
 
   # ========================================
   # Inventory Endpoints

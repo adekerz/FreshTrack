@@ -12,7 +12,9 @@ import {
   getDepartmentById,
   createDepartment,
   updateDepartment,
-  deleteDepartment,
+  deleteDepartment
+} from './departments.repository.js'
+import {
   logAudit,
   getHotelById
 } from '../../db/database.js'
@@ -119,14 +121,7 @@ router.post('/', authMiddleware, requirePermission(PermissionResource.DEPARTMENT
 
     res.status(201).json({ success: true, department })
   } catch (error) {
-    logError('Create department error', error)
-    console.error('[Departments] Create error details:', {
-      name,
-      description: departmentDescription,
-      hotel_id,
-      error: error.message,
-      stack: error.stack
-    })
+    logError('Departments', error, { action: 'create', name, description: departmentDescription, hotel_id })
     res.status(500).json({ 
       success: false, 
       error: 'Failed to create department',
@@ -181,13 +176,7 @@ router.put('/:id', authMiddleware, requirePermission(PermissionResource.DEPARTME
     }
     res.json({ success })
   } catch (error) {
-    logError('Update department error', error)
-    console.error('[Departments] Update error details:', {
-      departmentId: req.params.id,
-      updates,
-      error: error.message,
-      stack: error.stack
-    })
+    logError('Departments', error, { action: 'update', departmentId: req.params.id, updates: Object.keys(updates || {}) })
     res.status(500).json({ 
       success: false, 
       error: 'Failed to update department',
@@ -237,12 +226,7 @@ router.delete('/:id', authMiddleware, requirePermission(PermissionResource.DEPAR
     }
     res.json({ success })
   } catch (error) {
-    logError('Delete department error', error)
-    console.error('[Departments] Delete error details:', {
-      departmentId: req.params.id,
-      error: error.message,
-      stack: error.stack
-    })
+    logError('Departments', error, { action: 'delete', departmentId: req.params.id })
     res.status(500).json({ 
       success: false, 
       error: 'Failed to delete department',

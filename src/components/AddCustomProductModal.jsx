@@ -1,24 +1,11 @@
 import { useState } from 'react'
-import { X, Wine, Coffee, Utensils, ChefHat, Warehouse, Package } from 'lucide-react'
+import { X } from 'lucide-react'
 import { useProducts } from '../context/ProductContext'
 import { useTranslation, useLanguage } from '../context/LanguageContext'
 import { useToast } from '../context/ToastContext'
 import { useHotel } from '../context/HotelContext'
 import { useAddProduct } from '../hooks/useInventory'
-
-// Иконки для отделов - универсальный маппинг
-const ICON_MAP = { Wine, Coffee, Utensils, ChefHat, Warehouse, Package }
-
-const getDeptIcon = (dept) => {
-  if (dept?.icon && ICON_MAP[dept.icon]) return ICON_MAP[dept.icon]
-  const name = (dept?.name || dept?.code || '').toLowerCase()
-  if (name.includes('bar')) return Wine
-  if (name.includes('kitchen') || name.includes('кухня')) return ChefHat
-  if (name.includes('restaurant') || name.includes('ресторан')) return Utensils
-  if (name.includes('storage') || name.includes('склад')) return Warehouse
-  if (name.includes('cafe') || name.includes('кафе')) return Coffee
-  return Package
-}
+import { getDepartmentIcon } from '../utils/departmentUtils'
 
 export default function AddCustomProductModal({ onClose, departmentId = null }) {
   const { t } = useTranslation()
@@ -115,7 +102,7 @@ export default function AddCustomProductModal({ onClose, departmentId = null }) 
             </label>
             <div className="flex gap-2 flex-wrap">
               {departments.map((dept) => {
-                const Icon = getDeptIcon(dept)
+                const Icon = getDepartmentIcon(dept)
                 const isSelected = selectedDepartment === dept.id
                 return (
                   <button

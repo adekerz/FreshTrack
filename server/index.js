@@ -9,6 +9,7 @@ import * as Sentry from '@sentry/node'
 
 import express from 'express'
 import cors from 'cors'
+import cookieParser from 'cookie-parser'
 import dotenv from 'dotenv'
 import helmet from 'helmet'
 
@@ -64,7 +65,7 @@ import ScheduledExportService from './services/ScheduledExportService.js'
 
 // Import database
 import { initDatabase, getAllHotels } from './db/database.js'
-import { query } from './db/postgres.js'
+import { query, startPoolMonitor } from './db/postgres.js'
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -83,8 +84,8 @@ const allowedOrigins = [...baseOrigins, ...extraOrigins]
 console.log(`[CORS] Mode: ${process.env.NODE_ENV || 'development'}`)
 console.log(`[CORS] Allowed origins:`, allowedOrigins)
 
-// *.vercel.app preview deployments (e.g. fresh-track-xxx-adekerzs-projects.vercel.app)
-const vercelPreview = /^https:\/\/[a-z0-9-]+\.vercel\.app$/
+// Только превью этого проекта (не любой *.vercel.app — иначе evil-freshtrack.vercel.app мог бы стучаться в API)
+const vercelPreview = /^https:\/\/fresh-track-[a-z0-9-]+-adekerzs-projects\.vercel\.app$/
 
 app.use(
   cors({
@@ -126,6 +127,7 @@ app.use(
 // Preflight уже обрабатывается cors middleware выше
 // Удаляем дублирующий app.options('*', cors()) - он использовал дефолтные настройки
 
+app.use(cookieParser())
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true }))
 
@@ -251,8 +253,14 @@ Sentry.setupExpressErrorHandler(app)
 // Global error handler
 app.use((err, req, res, next) => {
   console.error('Server Error:', err)
-  res.status(500).json({
-    error: 'Internal server error',
+
+  if (res.headersSent) {
+    return next(err)
+  }
+
+  const statusCode = err.statusCode || err.status || 500
+  res.status(statusCode).json({
+    error: statusCode === 500 ? 'Internal server error' : err.message,
     message: process.env.NODE_ENV === 'development' ? err.message : undefined,
     sentryId: res.sentry
   })
@@ -277,6 +285,9 @@ async function startServer() {
     const productsResult = await query('SELECT COUNT(*) as count FROM products')
 
     console.log(`📊 Data: ${hotels.length} hotels, ${usersResult.rows[0]?.count || 0} users, ${productsResult.rows[0]?.count || 0} products`)
+
+    // Start pool monitoring (logs every 60s)
+    startPoolMonitor()
 
     // Start server
     app.listen(PORT, '0.0.0.0', async () => {

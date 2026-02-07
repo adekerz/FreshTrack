@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import ErrorBoundary from './components/ErrorBoundary'
+import RouteErrorBoundary from './components/RouteErrorBoundary'
 import Layout from './components/Layout'
 import { PageLoader, Loader } from './components/ui'
 import MobileDebugHelper from './components/dev/MobileDebugHelper'
@@ -133,28 +134,30 @@ function App() {
           <Suspense fallback={<SuspenseFallback />}>
             <Routes>
             {/* Общедоступные страницы (для всех авторизованных) */}
-            <Route path="/" element={<DashboardPage />} />
-            <Route path="/change-password" element={<ChangePasswordPage />} />
-            <Route path="/verify-email" element={<VerifyEmailPage />} />
-            <Route path="/inventory/:departmentId" element={<InventoryPage />} />
-            <Route path="/inventory" element={<InventoryPage />} />
-            <Route path="/notifications" element={<NotificationsPage />} />
-            <Route path="/calendar" element={<CalendarPage />} />
-            <Route path="/settings" element={<SettingsPage />} />
-            <Route path="/mfa-setup" element={<MFASetupPage />} />
-            <Route path="/faq" element={<FAQPage />} />
-            <Route path="/accessibility" element={<AccessibilityStatementPage />} />
+            <Route path="/" element={<RouteErrorBoundary><DashboardPage /></RouteErrorBoundary>} />
+            <Route path="/change-password" element={<RouteErrorBoundary><ChangePasswordPage /></RouteErrorBoundary>} />
+            <Route path="/verify-email" element={<RouteErrorBoundary><VerifyEmailPage /></RouteErrorBoundary>} />
+            <Route path="/inventory/:departmentId" element={<RouteErrorBoundary><InventoryPage /></RouteErrorBoundary>} />
+            <Route path="/inventory" element={<RouteErrorBoundary><InventoryPage /></RouteErrorBoundary>} />
+            <Route path="/notifications" element={<RouteErrorBoundary><NotificationsPage /></RouteErrorBoundary>} />
+            <Route path="/calendar" element={<RouteErrorBoundary><CalendarPage /></RouteErrorBoundary>} />
+            <Route path="/settings" element={<RouteErrorBoundary><SettingsPage /></RouteErrorBoundary>} />
+            <Route path="/mfa-setup" element={<RouteErrorBoundary><MFASetupPage /></RouteErrorBoundary>} />
+            <Route path="/faq" element={<RouteErrorBoundary><FAQPage /></RouteErrorBoundary>} />
+            <Route path="/accessibility" element={<RouteErrorBoundary><AccessibilityStatementPage /></RouteErrorBoundary>} />
             {/* Legal pages (accessible to logged-in users too) */}
-            <Route path="/privacy" element={<PrivacyPolicyPage />} />
-            <Route path="/terms" element={<TermsOfServicePage />} />
+            <Route path="/privacy" element={<RouteErrorBoundary><PrivacyPolicyPage /></RouteErrorBoundary>} />
+            <Route path="/terms" element={<RouteErrorBoundary><TermsOfServicePage /></RouteErrorBoundary>} />
 
             {/* Страницы с ограниченным доступом */}
             <Route
               path="/notifications/history"
               element={
-                <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'HOTEL_ADMIN', 'DEPARTMENT_MANAGER']}>
-                  <NotificationsHistoryPage />
-                </ProtectedRoute>
+                <RouteErrorBoundary>
+                  <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'HOTEL_ADMIN', 'DEPARTMENT_MANAGER']}>
+                    <NotificationsHistoryPage />
+                  </ProtectedRoute>
+                </RouteErrorBoundary>
               }
             />
 
@@ -162,18 +165,22 @@ function App() {
             <Route
               path="/collection-history"
               element={
-                <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'HOTEL_ADMIN', 'DEPARTMENT_MANAGER']}>
-                  <CollectionHistoryPage />
-                </ProtectedRoute>
+                <RouteErrorBoundary>
+                  <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'HOTEL_ADMIN', 'DEPARTMENT_MANAGER']}>
+                    <CollectionHistoryPage />
+                  </ProtectedRoute>
+                </RouteErrorBoundary>
               }
             />
 
             <Route
               path="/statistics"
               element={
-                <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'HOTEL_ADMIN', 'DEPARTMENT_MANAGER']}>
-                  <StatisticsPage />
-                </ProtectedRoute>
+                <RouteErrorBoundary>
+                  <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'HOTEL_ADMIN', 'DEPARTMENT_MANAGER']}>
+                    <StatisticsPage />
+                  </ProtectedRoute>
+                </RouteErrorBoundary>
               }
             />
 
@@ -181,9 +188,11 @@ function App() {
             <Route
               path="/audit-logs"
               element={
-                <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'HOTEL_ADMIN']}>
-                  <AuditLogsPage />
-                </ProtectedRoute>
+                <RouteErrorBoundary>
+                  <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'HOTEL_ADMIN']}>
+                    <AuditLogsPage />
+                  </ProtectedRoute>
+                </RouteErrorBoundary>
               }
             />
 

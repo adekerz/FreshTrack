@@ -3,10 +3,10 @@
  * Страница для просмотра истории отправленных Telegram уведомлений
  */
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState } from 'react'
 import { useTranslation } from '../context/LanguageContext'
 import { useHotel } from '../context/HotelContext'
-import { SectionLoader } from '../components/ui'
+import { SkeletonTable } from '../components/Skeleton'
 import {
   Send,
   Filter,
@@ -17,7 +17,7 @@ import {
   ChevronLeft,
   ChevronRight
 } from 'lucide-react'
-import { apiFetch } from '../services/api'
+import { useNotificationLogs } from '../hooks/useNotificationLogs'
 import { formatDate } from '../utils/dateUtils'
 import PageContainer from '../components/PageContainer'
 
@@ -53,17 +53,6 @@ const NOTIFICATION_TYPES = {
 export default function NotificationsHistoryPage() {
   const { t } = useTranslation()
   const { selectedHotelId, selectedHotel } = useHotel()
-  const [logs, setLogs] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-  const [pagination, setPagination] = useState({
-    page: 1,
-    limit: 20,
-    total: 0,
-    totalPages: 0
-  })
-
-  // Фильтры
   const [showFilters, setShowFilters] = useState(false)
   const [filters, setFilters] = useState({
     type: '',
@@ -71,47 +60,24 @@ export default function NotificationsHistoryPage() {
     endDate: ''
   })
   const [appliedFilters, setAppliedFilters] = useState({})
+  const [page, setPage] = useState(1)
 
-  // Загрузка логов
-  const fetchLogs = useCallback(
-    async (page = 1) => {
-      setLoading(true)
-      setError(null)
+  // React Query hook
+  const queryFilters = {
+    page,
+    limit: 20,
+    ...appliedFilters
+  }
+  const { data: logsData, isLoading, isFetching, refetch: refetchLogs } = useNotificationLogs(selectedHotelId, queryFilters)
 
-      try {
-        const params = new URLSearchParams({
-          page: page.toString(),
-          limit: pagination.limit.toString()
-        })
-
-        if (appliedFilters.type) params.append('type', appliedFilters.type)
-        if (appliedFilters.startDate) params.append('startDate', appliedFilters.startDate)
-        if (appliedFilters.endDate) params.append('endDate', appliedFilters.endDate)
-
-        const data = await apiFetch(`/notifications/logs?${params}`)
-        setLogs(data.logs)
-        setPagination(data.pagination)
-      } catch (err) {
-        // Error already logged by apiFetch
-        setError(err.message)
-      } finally {
-        setLoading(false)
-      }
-    },
-    [pagination.limit, appliedFilters]
-  )
-
-  // Перезагружаем при смене отеля
-  useEffect(() => {
-    if (selectedHotelId) {
-      fetchLogs(pagination.page)
-    }
-  }, [fetchLogs, pagination.page, selectedHotelId])
+  const logs = logsData?.logs || []
+  const loading = isFetching
+  const pagination = logsData?.pagination || { page: 1, limit: 20, total: 0, totalPages: 0 }
 
   // Применение фильтров
   const handleApplyFilters = () => {
     setAppliedFilters({ ...filters })
-    setPagination((prev) => ({ ...prev, page: 1 }))
+    setPage(1)
     setShowFilters(false)
   }
 
@@ -119,7 +85,7 @@ export default function NotificationsHistoryPage() {
   const handleResetFilters = () => {
     setFilters({ type: '', startDate: '', endDate: '' })
     setAppliedFilters({})
-    setPagination((prev) => ({ ...prev, page: 1 }))
+    setPage(1)
     setShowFilters(false)
   }
 
@@ -157,7 +123,7 @@ export default function NotificationsHistoryPage() {
             {hasActiveFilters && <span className="w-2 h-2 bg-accent rounded-full" />}
           </button>
           <button
-            onClick={() => fetchLogs(pagination.page)}
+            onClick={() => refetchLogs()}
             disabled={loading}
             className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 bg-foreground text-background rounded-lg text-xs sm:text-sm hover:bg-foreground/90 transition-colors disabled:opacity-50 min-h-[44px] sm:min-h-0"
           >
@@ -239,17 +205,12 @@ export default function NotificationsHistoryPage() {
         </div>
       )}
 
-      {/* Ошибка */}
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-3 sm:p-4 text-red-600 text-sm">
-          {error}
-        </div>
-      )}
-
       {/* Таблица/Карточки уведомлений */}
       <div className="bg-card rounded-xl border border-border overflow-hidden">
-        {loading && logs.length === 0 ? (
-          <SectionLoader />
+        {isLoading ? (
+          <div className="p-4 sm:p-6" role="status" aria-live="polite" aria-label={t('common.loading')}>
+            <SkeletonTable rows={8} columns={6} />
+          </div>
         ) : logs.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
             <Send className="w-10 h-10 sm:w-12 sm:h-12 mb-4 opacity-50" />
@@ -391,28 +352,28 @@ export default function NotificationsHistoryPage() {
               <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 sm:px-6 py-3 sm:py-4 border-t border-border">
                 <p className="text-xs sm:text-sm text-muted-foreground text-center sm:text-left">
                   {t('notificationHistory.showing', {
-                    from: (pagination.page - 1) * pagination.limit + 1,
-                    to: Math.min(pagination.page * pagination.limit, pagination.total),
+                    from: (page - 1) * pagination.limit + 1,
+                    to: Math.min(page * pagination.limit, pagination.total),
                     total: pagination.total
                   })}
                 </p>
 
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => setPagination((prev) => ({ ...prev, page: prev.page - 1 }))}
-                    disabled={pagination.page <= 1}
+                    onClick={() => setPage((p) => p - 1)}
+                    disabled={page <= 1}
                     className="p-2 text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                   >
                     <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
                   </button>
 
                   <span className="text-xs sm:text-sm text-foreground">
-                    {pagination.page} / {pagination.totalPages}
+                    {page} / {pagination.totalPages}
                   </span>
 
                   <button
-                    onClick={() => setPagination((prev) => ({ ...prev, page: prev.page + 1 }))}
-                    disabled={pagination.page >= pagination.totalPages}
+                    onClick={() => setPage((p) => p + 1)}
+                    disabled={page >= pagination.totalPages}
                     className="p-2 text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                   >
                     <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />

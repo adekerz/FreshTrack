@@ -287,6 +287,7 @@ progress: {
 - `.hover-scale` - плавное масштабирование
 - `fadeInOnScroll` - анимация при появлении в viewport
 - Улучшенный skeleton shimmer с лучшей производительностью
+- Скелетоны на страницах списков/таблиц: Audit Logs, Collection History, Notifications History, Accounts, Notification Rules, Marsha Codes (см. ACCESSIBILITY_IMPLEMENTATION.md — Loading States)
 
 ---
 

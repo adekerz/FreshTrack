@@ -10,6 +10,7 @@ import { logError, logInfo } from '../../utils/logger.js'
 import { query as dbQuery } from '../../db/postgres.js'
 import { AuthService } from '../auth/auth.service.js'
 import { logAudit } from '../../db/database.js'
+import { validate, DeleteAccountSchema } from './gdpr.schemas.js'
 
 const router = Router()
 
@@ -83,20 +84,18 @@ router.get('/my-data', authMiddleware, async (req, res) => {
  * User can request account deletion (anonymizes data, keeps audit logs)
  * MFA required for SUPER_ADMIN
  */
-router.post('/delete-my-account', 
-  authMiddleware, 
+router.post('/delete-my-account',
+  authMiddleware,
   requireMFA, // MFA required for SUPER_ADMIN
   async (req, res) => {
   try {
-    const userId = req.user.id
-    const { confirmPassword } = req.body
-    
-    if (!confirmPassword) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Password confirmation required' 
-      })
+    const validation = validate(DeleteAccountSchema, req.body)
+    if (!validation.isValid) {
+      return res.status(400).json({ error: 'Ошибка валидации', details: validation.errors })
     }
+
+    const userId = req.user.id
+    const { confirmPassword } = validation.data
     
     // Проверка пароля для подтверждения
     const user = await AuthService.getCurrentUser(userId)

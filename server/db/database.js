@@ -5,6 +5,7 @@
  */
 
 import { query, getClient, testConnection } from './postgres.js'
+import { runMigrations } from './migrate.js'
 import bcrypt from 'bcryptjs'
 import { v4 as uuidv4 } from 'uuid'
 import fs from 'fs'
@@ -28,204 +29,10 @@ export async function initDatabase() {
       throw new Error('Failed to connect to PostgreSQL')
     }
 
-    // Run schema migration
-    const schemaPath = path.join(__dirname, 'migrations', '001_initial_schema.sql')
-    if (fs.existsSync(schemaPath)) {
-      const schema = fs.readFileSync(schemaPath, 'utf8')
-      await query(schema)
-      console.log('✅ Schema migration 001 completed')
-    }
-
-    // Run migration 002 - relax department constraints
-    const migration002Path = path.join(__dirname, 'migrations', '002_relax_department_constraints.sql')
-    if (fs.existsSync(migration002Path)) {
-      try {
-        const migration002 = fs.readFileSync(migration002Path, 'utf8')
-        await query(migration002)
-        console.log('✅ Schema migration 002 completed')
-      } catch (err) {
-        // Ignore if already applied
-        if (!err.message.includes('already exists') && !err.message.includes('does not exist')) {
-          console.log('   Migration 002 already applied or skipped')
-        }
-      }
-    }
-
-    // Run migration 003 - department isolation
-    const migration003Path = path.join(__dirname, 'migrations', '003_department_isolation.sql')
-    if (fs.existsSync(migration003Path)) {
-      try {
-        const migration003 = fs.readFileSync(migration003Path, 'utf8')
-        await query(migration003)
-        console.log('✅ Schema migration 003 completed (department isolation)')
-      } catch (err) {
-        // Ignore if already applied
-        if (!err.message.includes('already exists')) {
-          console.log('   Migration 003 already applied or skipped:', err.message?.substring(0, 50))
-        }
-      }
-    }
-
-    // Run migration 004 - permissions system
-    const migration004Path = path.join(__dirname, 'migrations', '004_permissions_system.sql')
-    if (fs.existsSync(migration004Path)) {
-      try {
-        const migration004 = fs.readFileSync(migration004Path, 'utf8')
-        await query(migration004)
-        console.log('✅ Schema migration 004 completed (permissions system)')
-      } catch (err) {
-        if (!err.message.includes('already exists') && !err.message.includes('duplicate key')) {
-          console.log('   Migration 004 already applied or skipped:', err.message?.substring(0, 50))
-        }
-      }
-    }
-
-    // Run migration 005 - settings and audit snapshots
-    const migration005Path = path.join(__dirname, 'migrations', '005_settings_and_audit_snapshots.sql')
-    if (fs.existsSync(migration005Path)) {
-      try {
-        const migration005 = fs.readFileSync(migration005Path, 'utf8')
-        await query(migration005)
-        console.log('✅ Schema migration 005 completed (settings + audit)')
-      } catch (err) {
-        if (!err.message.includes('already exists') && !err.message.includes('duplicate key')) {
-          console.log('   Migration 005 already applied or skipped:', err.message?.substring(0, 50))
-        }
-      }
-    }
-
-    // Run migration 006 - batch snapshot write-offs
-    const migration006Path = path.join(__dirname, 'migrations', '006_batch_snapshot_write_offs.sql')
-    if (fs.existsSync(migration006Path)) {
-      try {
-        const migration006 = fs.readFileSync(migration006Path, 'utf8')
-        await query(migration006)
-        console.log('✅ Schema migration 006 completed (batch snapshots)')
-      } catch (err) {
-        if (!err.message.includes('already exists') && !err.message.includes('duplicate key')) {
-          console.log('   Migration 006 already applied or skipped:', err.message?.substring(0, 50))
-        }
-      }
-    }
-
-    // Run migration 007 - notification engine
-    const migration007Path = path.join(__dirname, 'migrations', '007_notification_engine.sql')
-    if (fs.existsSync(migration007Path)) {
-      try {
-        const migration007 = fs.readFileSync(migration007Path, 'utf8')
-        await query(migration007)
-        console.log('✅ Schema migration 007 completed (notification engine)')
-      } catch (err) {
-        if (!err.message.includes('already exists') && !err.message.includes('duplicate key')) {
-          console.log('   Migration 007 already applied or skipped:', err.message?.substring(0, 50))
-        }
-      }
-    }
-
-    // Run migration 008 - collection history
-    const migration008Path = path.join(__dirname, 'migrations', '008_collection_history.sql')
-    if (fs.existsSync(migration008Path)) {
-      try {
-        const migration008 = fs.readFileSync(migration008Path, 'utf8')
-        await query(migration008)
-        console.log('✅ Schema migration 008 completed (collection history)')
-      } catch (err) {
-        if (!err.message.includes('already exists') && !err.message.includes('duplicate key')) {
-          console.log('   Migration 008 already applied or skipped:', err.message?.substring(0, 50))
-        }
-      }
-    }
-
-    // Run migration 009 - branding settings
-    const migration009Path = path.join(__dirname, 'migrations', '009_branding_settings.sql')
-    if (fs.existsSync(migration009Path)) {
-      try {
-        const migration009 = fs.readFileSync(migration009Path, 'utf8')
-        await query(migration009)
-        console.log('✅ Schema migration 009 completed (branding settings)')
-      } catch (err) {
-        if (!err.message.includes('already exists') && !err.message.includes('duplicate key')) {
-          console.log('   Migration 009 already applied or skipped:', err.message?.substring(0, 50))
-        }
-      }
-    }
-
-    // Run migrations 010-025 dynamically
-    const additionalMigrations = [
-      { num: '010', name: '010_security_permissions_update.sql', desc: 'security permissions' },
-      { num: '011', name: '011_notifications_missing_columns.sql', desc: 'notifications columns' },
-      { num: '012', name: '012_fix_inventory_collect_permission.sql', desc: 'inventory permissions' },
-      { num: '013', name: '013_fix_batches_permissions.sql', desc: 'batches permissions' },
-      { num: '014', name: '014_fix_notification_queue_view.sql', desc: 'notification queue view' },
-      { num: '015', name: '015_add_missing_fk_indexes.sql', desc: 'FK indexes' },
-      { num: '016', name: '016_optimize_batch_stats_index.sql', desc: 'batch stats index' },
-      { num: '017', name: '017_join_requests_and_hotel_codes.sql', desc: 'join requests' },
-      { num: '018', name: '018_marsha_codes.sql', desc: 'MARSHA codes' },
-      { num: '019', name: '019_remove_hotel_legacy_code.sql', desc: 'remove legacy code' },
-      { num: '020', name: '020_fix_user_fk_constraints.sql', desc: 'user FK constraints' },
-      { num: '021', name: '021_staff_basic_permissions.sql', desc: 'staff permissions' },
-      { num: '022a', name: '022_restrict_staff_permissions.sql', desc: 'restrict staff' },
-      { num: '022b', name: '022_remove_system_notification_rules.sql', desc: 'remove system rules' },
-      { num: '023', name: '023_department_manager_basic_permissions.sql', desc: 'dept manager basic' },
-      { num: '024', name: '024_full_department_manager_permissions.sql', desc: 'dept manager full' },
-      { num: '025', name: '025_telegram_chat_thresholds.sql', desc: 'telegram thresholds' },
-      { num: '026', name: '026_seed_marsha_codes.sql', desc: 'seed MARSHA codes data' },
-      { num: '027', name: '027_unique_active_marsha_index.sql', desc: 'unique active marsha index' },
-      { num: '028', name: '028_external_ids_integration.sql', desc: 'external IDs integration' },
-      { num: '029', name: '029_protect_marsha_code.sql', desc: 'protect marsha code' },
-      { num: '030', name: '030_department_description.sql', desc: 'department description field' },
-      { num: '031', name: '031_email_status_tracking.sql', desc: 'email status tracking' },
-      { num: '032', name: '032_department_email.sql', desc: 'department email field' },
-      { num: '033', name: '033_add_must_change_password.sql', desc: 'must change password field' },
-      { num: '034', name: '034_set_dev_department_emails.sql', desc: 'set dev department emails' },
-      { num: '035', name: '035_department_email_verification.sql', desc: 'department email verification' },
-      { num: '036', name: '036_user_email_verification.sql', desc: 'user email verification' },
-      { num: '037', name: '037_mfa_for_superadmin.sql', desc: 'MFA for superadmin' },
-      { num: '038', name: '038_audit_trail_integrity.sql', desc: 'audit trail integrity' },
-      { num: '039', name: '039_audit_archival_instead_of_delete.sql', desc: 'audit archival' },
-      { num: '040', name: '040_mfa_grace_period.sql', desc: 'MFA grace period' },
-      { num: '041', name: '041_department_email_confirmation.sql', desc: 'department email confirmation' },
-      { num: '042', name: '042_mfa_recovery_requests.sql', desc: 'MFA recovery requests' },
-      { num: '043', name: '043_consolidate_email_fields.sql', desc: 'consolidate email fields' },
-      { num: '044', name: '044_mfa_emergency_recovery.sql', desc: 'MFA emergency recovery' },
-      { num: '045', name: '045_user_email_verification_token.sql', desc: 'user email verification token' },
-      { num: '046', name: '046_fix_audit_hash_function_types.sql', desc: 'fix audit hash function types' },
-      { num: '047', name: '047_email_otp_verification.sql', desc: 'email OTP verification' },
-      { num: '048', name: '048_audit_logs_metadata.sql', desc: 'audit logs metadata for readable journal' },
-      { num: '049', name: '049_audit_permissions.sql', desc: 'audit permissions (export, write)' },
-      { num: '050a', name: '050_audit_severity_extended.sql', desc: 'audit severity extended' },
-      { num: '050b', name: '050_hotel_coordinates.sql', desc: 'hotel coordinates' },
-      { num: '051', name: '051_fix_kazakhstan_timezones.sql', desc: 'fix Kazakhstan timezones' },
-      { num: '052', name: '052_terms_acceptance.sql', desc: 'terms acceptance tracking' },
-      { num: '053', name: '053_add_missing_inventory_fields.sql', desc: 'add missing fields to categories and products' },
-      { num: '054', name: '054_scheduled_exports.sql', desc: 'scheduled exports and logs tables' },
-      { num: '055', name: '055_scheduled_exports_rename_time.sql', desc: 'rename time to send_time in scheduled_exports' },
-      { num: '056', name: '056_scheduled_exports_force_send_time.sql', desc: 'force send_time column in scheduled_exports' },
-      { num: '057', name: '057_departments_telegram_chat_id.sql', desc: 'add telegram_chat_id to departments' },
-    ]
-
-    for (const migration of additionalMigrations) {
-      // Skip seed migrations in production (unless ALLOW_SEED=true)
-      const isSeedMigration = migration.name.includes('seed') || migration.desc.includes('seed')
-      if (isSeedMigration && process.env.NODE_ENV === 'production' && process.env.ALLOW_SEED !== 'true') {
-        console.log(`⏭️  Skipping seed migration ${migration.num} in production (${migration.desc})`)
-        continue
-      }
-
-      const migrationPath = path.join(__dirname, 'migrations', migration.name)
-      if (fs.existsSync(migrationPath)) {
-        try {
-          const migrationSql = fs.readFileSync(migrationPath, 'utf8')
-          await query(migrationSql)
-          console.log(`✅ Schema migration ${migration.num} completed (${migration.desc})`)
-        } catch (err) {
-          if (!err.message.includes('already exists') &&
-            !err.message.includes('duplicate key') &&
-            !err.message.includes('does not exist')) {
-            console.log(`   Migration ${migration.num} note:`, err.message?.substring(0, 60))
-          }
-        }
-      }
+    // Run all pending migrations (non-fatal: log warnings but don't crash)
+    const migrationResult = await runMigrations({ fatal: false })
+    if (migrationResult.failed.length > 0) {
+      console.warn(`   ${migrationResult.failed.length} migration(s) had issues (non-fatal)`)
     }
 
     // Check if pilot data exists (check by user to handle migration scenarios)
@@ -835,286 +642,49 @@ export function createAuditSnapshot(entity, entityType) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// USER FUNCTIONS
+// USER FUNCTIONS (moved to modules/auth/auth.repository.js)
 // ═══════════════════════════════════════════════════════════════
-
-export async function getUserByLogin(login) {
-  const result = await query('SELECT * FROM users WHERE login = $1', [login])
-  return result.rows[0] || null
-}
-
-export async function getUserById(id) {
-  const result = await query('SELECT * FROM users WHERE id = $1', [id])
-  return result.rows[0] || null
-}
-
-export async function getUserByLoginOrEmail(identifier) {
-  if (!identifier) return null
-  const isEmail = identifier.includes('@')
-  if (isEmail) {
-    const result = await query('SELECT * FROM users WHERE email = $1', [identifier])
-    return result.rows[0] || null
-  }
-  const result = await query('SELECT * FROM users WHERE login = $1', [identifier])
-  return result.rows[0] || null
-}
-
-export async function getAllUsers(hotelId = null) {
-  if (hotelId) {
-    const result = await query(`
-      SELECT id, login, name, email, role, hotel_id, department_id, telegram_chat_id, is_active, status, must_change_password, created_at 
-      FROM users 
-      WHERE hotel_id = $1 OR hotel_id IS NULL
-      ORDER BY created_at DESC
-    `, [hotelId])
-    return result.rows
-  }
-  const result = await query(`
-    SELECT id, login, name, email, role, hotel_id, department_id, telegram_chat_id, is_active, status, must_change_password, created_at 
-    FROM users 
-    ORDER BY created_at DESC
-  `)
-  return result.rows
-}
-
-export async function createUser(user) {
-  const { login, name, email, password, role, hotel_id, department_id, status, must_change_password } = user
-  const id = uuidv4()
-  const hashedPassword = bcrypt.hashSync(password, 10)
-  const userStatus = status || 'active'
-  const mustChangePassword = must_change_password !== undefined ? must_change_password : false
-  // Normalize email: empty string -> null
-  const normalizedEmail = email && email.trim() ? email.trim().toLowerCase() : null
-
-  await query(`
-    INSERT INTO users (id, login, name, email, password, role, hotel_id, department_id, is_active, status, must_change_password) 
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, TRUE, $9, $10)
-  `, [id, login, name, normalizedEmail, hashedPassword, role || 'STAFF', hotel_id, department_id, userStatus, mustChangePassword])
-
-  return { id, login, name, email: normalizedEmail, role: role || 'STAFF', hotel_id, department_id, status: userStatus, must_change_password: mustChangePassword }
-}
-
-export async function updateUser(id, updates) {
-  const fields = []
-  const values = []
-  let paramIndex = 1
-
-  if (updates.name !== undefined) { fields.push(`name = $${paramIndex++}`); values.push(updates.name) }
-  if (updates.email !== undefined) { 
-    fields.push(`email = $${paramIndex++}`); 
-    values.push(updates.email)
-    // Reset email status when email is updated
-    fields.push(`email_valid = TRUE`)
-    fields.push(`email_blocked = FALSE`)
-  }
-  if (updates.role !== undefined) { fields.push(`role = $${paramIndex++}`); values.push(updates.role) }
-  if (updates.department_id !== undefined) { fields.push(`department_id = $${paramIndex++}`); values.push(updates.department_id) }
-  if (updates.password !== undefined) {
-    fields.push(`password = $${paramIndex++}`)
-    values.push(bcrypt.hashSync(updates.password, 10))
-  }
-  if (updates.is_active !== undefined) { fields.push(`is_active = $${paramIndex++}`); values.push(updates.is_active) }
-  if (updates.telegram_chat_id !== undefined) { fields.push(`telegram_chat_id = $${paramIndex++}`); values.push(updates.telegram_chat_id) }
-  if (updates.email_valid !== undefined) { fields.push(`email_valid = $${paramIndex++}`); values.push(updates.email_valid) }
-  if (updates.email_blocked !== undefined) { fields.push(`email_blocked = $${paramIndex++}`); values.push(updates.email_blocked) }
-  if (updates.must_change_password !== undefined) { fields.push(`must_change_password = $${paramIndex++}`); values.push(updates.must_change_password) }
-
-  if (fields.length === 0) return false
-
-  values.push(id)
-  const result = await query(`UPDATE users SET ${fields.join(', ')} WHERE id = $${paramIndex}`, values)
-  return result.rowCount > 0
-}
-
-export async function deleteUser(id) {
-  // Очищаем ссылки в таблицах без ON DELETE CASCADE/SET NULL
-  await query('UPDATE join_requests SET processed_by = NULL WHERE processed_by = $1', [id])
-  await query('UPDATE notification_rules SET created_by = NULL WHERE created_by = $1', [id])
-  // Удаляем связанные данные (join_requests удалятся каскадно, но подстрахуемся)
-  await query('DELETE FROM join_requests WHERE user_id = $1', [id])
-  await query('DELETE FROM user_settings WHERE user_id = $1', [id])
-  // Удаляем пользователя
-  const result = await query('DELETE FROM users WHERE id = $1', [id])
-  return result.rowCount > 0
-}
-
-export function verifyPassword(plainPassword, hashedPassword) {
-  return bcrypt.compareSync(plainPassword, hashedPassword)
-}
-
-export async function updateLastLogin(userId) {
-  await query('UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = $1', [userId])
-}
+export {
+  getUserByLogin,
+  getUserById,
+  getUserByLoginOrEmail,
+  getAllUsers,
+  createUser,
+  updateUser,
+  deleteUser,
+  verifyPassword,
+  updateLastLogin,
+  updateUserStatus,
+  createJoinRequest,
+  getJoinRequestsForHotel,
+  getAllPendingJoinRequests,
+  getJoinRequestByUserId,
+  approveJoinRequest,
+  rejectJoinRequest
+} from '../modules/auth/auth.repository.js'
 
 // ═══════════════════════════════════════════════════════════════
-// HOTEL FUNCTIONS
+// HOTEL FUNCTIONS (moved to modules/hotels/hotels.repository.js)
 // ═══════════════════════════════════════════════════════════════
-
-/** При сохранении отеля: Казахстан → Asia/Qostanay (UTC+6). Asia/Almaty в IANA с 2024 = UTC+5. */
-function normalizeTimezoneForDb(tz) {
-  if (tz == null || typeof tz !== 'string') return tz
-  const s = String(tz).trim()
-  if (!s) return tz
-  if (s === 'Asia/Qostanay') return s
-  if (s === 'Asia/Almaty' || s === 'Asia/Aqtobe') return 'Asia/Qostanay'
-  if (/almat|алмат|астан|astana|qostanay/i.test(s)) return 'Asia/Qostanay'
-  return s
-}
-
-export async function getAllHotels() {
-  const result = await query('SELECT * FROM hotels WHERE is_active = TRUE ORDER BY name ASC')
-  return result.rows
-}
-
-export async function getHotelById(id) {
-  const result = await query('SELECT * FROM hotels WHERE id = $1', [id])
-  return result.rows[0] || null
-}
-
-export async function getHotelByCode(code) {
-  const upperCode = code.toUpperCase()
-
-  // Ищем по MARSHA коду
-  const result = await query(
-    'SELECT * FROM hotels WHERE marsha_code = $1 AND is_active = TRUE',
-    [upperCode]
-  )
-  return result.rows[0] || null
-}
-
-export async function createHotel(hotel) {
-  const {
-    name,
-    address,
-    city,
-    country,
-    timezone,
-    marsha_code,
-    marsha_code_id,
-    latitude,
-    longitude,
-    timezone_auto_detected
-  } = hotel
-  const id = uuidv4()
-
-  await query(`
-    INSERT INTO hotels (id, name, address, city, country, timezone, marsha_code, marsha_code_id, latitude, longitude, timezone_auto_detected)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-  `, [
-    id,
-    name,
-    address,
-    city ?? null,
-    country || 'Kazakhstan',
-    normalizeTimezoneForDb(timezone) || 'Asia/Qostanay',
-    marsha_code || null,
-    marsha_code_id || null,
-    latitude ?? null,
-    longitude ?? null,
-    timezone_auto_detected === true
-  ])
-
-  return {
-    id,
-    name,
-    address,
-    city,
-    country,
-    timezone,
-    marsha_code,
-    marsha_code_id,
-    latitude,
-    longitude,
-    timezone_auto_detected
-  }
-}
-
-export async function updateHotel(id, updates) {
-  const fields = []
-  const values = []
-  let paramIndex = 1
-
-  if (updates.name !== undefined) { fields.push(`name = $${paramIndex++}`); values.push(updates.name) }
-  if (updates.address !== undefined) { fields.push(`address = $${paramIndex++}`); values.push(updates.address) }
-  if (updates.city !== undefined) { fields.push(`city = $${paramIndex++}`); values.push(updates.city) }
-  if (updates.country !== undefined) { fields.push(`country = $${paramIndex++}`); values.push(updates.country) }
-  if (updates.timezone !== undefined) { fields.push(`timezone = $${paramIndex++}`); values.push(normalizeTimezoneForDb(updates.timezone)) }
-  if (updates.latitude !== undefined) { fields.push(`latitude = $${paramIndex++}`); values.push(updates.latitude) }
-  if (updates.longitude !== undefined) { fields.push(`longitude = $${paramIndex++}`); values.push(updates.longitude) }
-  if (updates.timezone_auto_detected !== undefined) { fields.push(`timezone_auto_detected = $${paramIndex++}`); values.push(updates.timezone_auto_detected) }
-  if (updates.is_active !== undefined) { fields.push(`is_active = $${paramIndex++}`); values.push(updates.is_active) }
-  if (updates.marsha_code !== undefined) { fields.push(`marsha_code = $${paramIndex++}`); values.push(updates.marsha_code) }
-  if (updates.marsha_code_id !== undefined) { fields.push(`marsha_code_id = $${paramIndex++}`); values.push(updates.marsha_code_id) }
-
-  if (fields.length === 0) return false
-
-  values.push(id)
-  const result = await query(`UPDATE hotels SET ${fields.join(', ')} WHERE id = $${paramIndex}`, values)
-  return result.rowCount > 0
-}
+export {
+  getAllHotels,
+  getHotelById,
+  getHotelByCode,
+  createHotel,
+  updateHotel,
+  deleteHotel
+} from '../modules/hotels/hotels.repository.js'
 
 // ═══════════════════════════════════════════════════════════════
-// DEPARTMENT FUNCTIONS
+// DEPARTMENT FUNCTIONS (moved to modules/departments/departments.repository.js)
 // ═══════════════════════════════════════════════════════════════
-
-export async function getAllDepartments(hotelId = null) {
-  if (hotelId) {
-    const result = await query('SELECT * FROM departments WHERE hotel_id = $1 AND is_active = TRUE ORDER BY name ASC', [hotelId])
-    return result.rows
-  }
-  const result = await query('SELECT * FROM departments WHERE is_active = TRUE ORDER BY name ASC')
-  return result.rows
-}
-
-export async function getDepartmentById(id) {
-  const result = await query('SELECT * FROM departments WHERE id = $1', [id])
-  return result.rows[0] || null
-}
-
-export async function createDepartment(dept) {
-  const { hotel_id, name, description, name_en, name_kk, type, color, icon, email } = dept
-  const id = uuidv4()
-
-  await query(`
-    INSERT INTO departments (id, hotel_id, name, description, name_en, name_kk, type, color, icon, email) 
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-  `, [id, hotel_id, name, description || null, name_en, name_kk, type || 'other', color || '#FF8D6B', icon || 'package', email || null])
-
-  return { id, hotel_id, name, description, name_en, name_kk, type, color, icon, email }
-}
-
-export async function updateDepartment(id, updates) {
-  const fields = []
-  const values = []
-  let paramIndex = 1
-
-  if (updates.name !== undefined) { fields.push(`name = $${paramIndex++}`); values.push(updates.name) }
-  if (updates.description !== undefined) { 
-    fields.push(`description = $${paramIndex++}`); 
-    values.push(updates.description === null || updates.description === '' ? null : updates.description) 
-  }
-  if (updates.name_en !== undefined) { fields.push(`name_en = $${paramIndex++}`); values.push(updates.name_en) }
-  if (updates.name_kk !== undefined) { fields.push(`name_kk = $${paramIndex++}`); values.push(updates.name_kk) }
-  if (updates.type !== undefined) { fields.push(`type = $${paramIndex++}`); values.push(updates.type) }
-  if (updates.color !== undefined) { fields.push(`color = $${paramIndex++}`); values.push(updates.color) }
-  if (updates.icon !== undefined) { fields.push(`icon = $${paramIndex++}`); values.push(updates.icon) }
-  if (updates.is_active !== undefined) { fields.push(`is_active = $${paramIndex++}`); values.push(updates.is_active) }
-  if (updates.email !== undefined) {
-    fields.push(`email = $${paramIndex++}`)
-    values.push(updates.email === null || updates.email === '' ? null : String(updates.email).trim())
-  }
-
-  if (fields.length === 0) return false
-
-  values.push(id)
-  const result = await query(`UPDATE departments SET ${fields.join(', ')} WHERE id = $${paramIndex}`, values)
-  return result.rowCount > 0
-}
-
-export async function deleteDepartment(id) {
-  const result = await query('UPDATE departments SET is_active = FALSE WHERE id = $1', [id])
-  return result.rowCount > 0
-}
+export {
+  getAllDepartments,
+  getDepartmentById,
+  createDepartment,
+  updateDepartment,
+  deleteDepartment
+} from '../modules/departments/departments.repository.js'
 
 // ═══════════════════════════════════════════════════════════════
 // CATEGORY FUNCTIONS
@@ -2099,21 +1669,6 @@ export async function getDeliveryTemplateById(id) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// HOTEL DELETE FUNCTION
-// ═══════════════════════════════════════════════════════════════
-
-export async function deleteHotel(id) {
-  // Освобождаем MARSHA-код, чтобы его можно было снова выбрать при добавлении отеля
-  await query(`
-    UPDATE marsha_codes
-    SET is_assigned = FALSE, assigned_to_hotel_id = NULL, assigned_at = NULL, assigned_by = NULL
-    WHERE assigned_to_hotel_id = $1
-  `, [id])
-  const result = await query('DELETE FROM hotels WHERE id = $1', [id])
-  return result.rowCount > 0
-}
-
-// ═══════════════════════════════════════════════════════════════
 // SETTINGS ALIASES
 // ═══════════════════════════════════════════════════════════════
 
@@ -2123,114 +1678,6 @@ export async function updateSettings(hotelId, settings) {
   for (const [key, value] of Object.entries(settings)) {
     await setSetting(hotelId, key, typeof value === 'object' ? JSON.stringify(value) : value)
   }
-  return true
-}
-
-// ═══════════════════════════════════════════════════════════════
-// JOIN REQUESTS - User registration with hotel code
-// ═══════════════════════════════════════════════════════════════
-
-export async function createJoinRequest(userId, hotelId) {
-  const id = uuidv4()
-  await query(`
-    INSERT INTO join_requests (id, user_id, hotel_id, status, requested_at)
-    VALUES ($1, $2, $3, 'pending', NOW())
-    ON CONFLICT (user_id, hotel_id) DO UPDATE SET status = 'pending', requested_at = NOW()
-  `, [id, userId, hotelId])
-  return { id, user_id: userId, hotel_id: hotelId, status: 'pending' }
-}
-
-export async function getJoinRequestsForHotel(hotelId) {
-  const result = await query(`
-    SELECT jr.*, u.name as user_name, u.email as user_email, u.login as user_login,
-           h.name as hotel_name
-    FROM join_requests jr
-    JOIN users u ON jr.user_id = u.id
-    JOIN hotels h ON jr.hotel_id = h.id
-    WHERE jr.hotel_id = $1 AND jr.status = 'pending'
-    ORDER BY jr.requested_at DESC
-  `, [hotelId])
-  return result.rows
-}
-
-// Get ALL pending join requests (for SUPER_ADMIN)
-export async function getAllPendingJoinRequests() {
-  const result = await query(`
-    SELECT jr.*, u.name as user_name, u.email as user_email, u.login as user_login,
-           h.name as hotel_name, h.marsha_code as hotel_code
-    FROM join_requests jr
-    JOIN users u ON jr.user_id = u.id
-    JOIN hotels h ON jr.hotel_id = h.id
-    WHERE jr.status = 'pending'
-    ORDER BY jr.requested_at DESC
-  `)
-  return result.rows
-}
-
-export async function getJoinRequestByUserId(userId) {
-  const result = await query(`
-    SELECT jr.*, h.name as hotel_name, h.marsha_code as hotel_code
-    FROM join_requests jr
-    JOIN hotels h ON jr.hotel_id = h.id
-    WHERE jr.user_id = $1
-    ORDER BY jr.requested_at DESC
-    LIMIT 1
-  `, [userId])
-  return result.rows[0] || null
-}
-
-export async function approveJoinRequest(requestId, adminId, departmentId = null, role = 'STAFF') {
-  const request = await query('SELECT * FROM join_requests WHERE id = $1', [requestId])
-  if (!request.rows[0]) return null
-
-  const jr = request.rows[0]
-
-  // Validate role - включаем DEPARTMENT_MANAGER
-  const validRoles = ['STAFF', 'DEPARTMENT_MANAGER', 'HOTEL_ADMIN']
-  const userRole = validRoles.includes(role) ? role : 'STAFF'
-
-  // HOTEL_ADMIN не привязывается к департаменту, STAFF и DEPARTMENT_MANAGER - привязываются
-  const deptId = userRole === 'HOTEL_ADMIN' ? null : departmentId
-
-  // Update user with hotel_id, role and optionally department_id
-  await query(`
-    UPDATE users 
-    SET hotel_id = $1, department_id = $2, role = $3, status = 'active'
-    WHERE id = $4
-  `, [jr.hotel_id, deptId, userRole, jr.user_id])
-
-  // Update request status
-  await query(`
-    UPDATE join_requests 
-    SET status = 'approved', processed_at = NOW(), processed_by = $1
-    WHERE id = $2
-  `, [adminId, requestId])
-
-  // Get department name for email notification
-  let departmentName = null
-  if (deptId) {
-    const deptResult = await query('SELECT name FROM departments WHERE id = $1', [deptId])
-    departmentName = deptResult.rows[0]?.name
-  }
-
-  return {
-    ...jr,
-    department_name: departmentName,
-    user_role: userRole
-  }
-}
-
-export async function rejectJoinRequest(requestId, adminId, notes = null) {
-  await query(`
-    UPDATE join_requests 
-    SET status = 'rejected', processed_at = NOW(), processed_by = $1, notes = $2
-    WHERE id = $3
-  `, [adminId, notes, requestId])
-  return true
-}
-
-export async function updateUserStatus(userId, isActive) {
-  await query('UPDATE users SET is_active = $1 WHERE id = $2', [isActive, userId])
   return true
 }
 

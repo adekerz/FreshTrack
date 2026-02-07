@@ -3,6 +3,7 @@
  */
 
 import { Router } from 'express'
+import { validate, UpdateContentValueSchema, UpdateContentBulkSchema, ContentKeyParamSchema } from './custom-content.schemas.js'
 import multer from 'multer'
 import path from 'path'
 import fs from 'fs'
@@ -156,11 +157,18 @@ router.get('/:key', async (req, res) => {
 router.put('/:key', requirePermission(PermissionResource.SETTINGS, PermissionAction.UPDATE), async (req, res) => {
   try {
     const { key } = req.params
-    const { value } = req.body
-    
-    if (!CONTENT_KEYS.includes(key)) {
-      return res.status(400).json({ success: false, error: 'Invalid content key' })
+
+    const keyValidation = validate(ContentKeyParamSchema, key)
+    if (!keyValidation.isValid) {
+      return res.status(400).json({ success: false, error: 'Invalid content key', details: keyValidation.errors })
     }
+
+    const bodyValidation = validate(UpdateContentValueSchema, req.body)
+    if (!bodyValidation.isValid) {
+      return res.status(400).json({ success: false, error: 'Ошибка валидации', details: bodyValidation.errors })
+    }
+
+    const { value } = bodyValidation.data
     
     const context = {
       hotelId: req.hotelId,
@@ -189,11 +197,12 @@ router.put('/:key', requirePermission(PermissionResource.SETTINGS, PermissionAct
 
 router.put('/', requirePermission(PermissionResource.SETTINGS, PermissionAction.UPDATE), async (req, res) => {
   try {
-    const { content } = req.body
-    
-    if (!content || typeof content !== 'object') {
-      return res.status(400).json({ success: false, error: 'Content object is required' })
+    const validation = validate(UpdateContentBulkSchema, req.body)
+    if (!validation.isValid) {
+      return res.status(400).json({ success: false, error: 'Ошибка валидации', details: validation.errors })
     }
+
+    const { content } = validation.data
     
     const context = {
       hotelId: req.hotelId,

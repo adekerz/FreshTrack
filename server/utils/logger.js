@@ -1,9 +1,11 @@
 /**
  * FreshTrack Server Logger
- * Centralized logging utility with environment-aware behavior
+ * JSON structured logging для Railway/production (один JSON на строку).
+ * В development — читаемый текст.
  */
 
 const isDev = process.env.NODE_ENV !== 'production'
+const useJson = process.env.LOG_FORMAT === 'json' || (process.env.NODE_ENV === 'production' && process.env.LOG_FORMAT !== 'text')
 
 /**
  * Log levels
@@ -16,20 +18,43 @@ const LogLevel = {
 }
 
 /**
- * Format log message with timestamp and level
+ * Вывод одной строки (JSON или текст). В production по умолчанию JSON для парсинга в Railway.
  */
-function formatMessage(level, context, message, meta = null) {
+function write(level, context, message, meta = null, errorDetails = null) {
   const timestamp = new Date().toISOString()
-  const metaStr = meta ? ` ${JSON.stringify(meta)}` : ''
-  return `[${timestamp}] [${level}] [${context}] ${message}${metaStr}`
+  if (useJson) {
+    const payload = {
+      timestamp,
+      level,
+      context,
+      message: typeof message === 'string' ? message : String(message)
+    }
+    if (meta != null && typeof meta === 'object' && Object.keys(meta).length > 0) {
+      payload.meta = meta
+    }
+    if (errorDetails != null) {
+      payload.error = errorDetails
+    }
+    const out = level === LogLevel.ERROR ? process.stderr : process.stdout
+    out.write(JSON.stringify(payload) + '\n')
+  } else {
+    const metaStr = meta ? ` ${JSON.stringify(meta)}` : ''
+    const text = `[${timestamp}] [${level}] [${context}] ${message}${metaStr}`
+    if (level === LogLevel.ERROR) {
+      process.stderr.write(text + '\n')
+      if (errorDetails?.stack) process.stderr.write(errorDetails.stack + '\n')
+    } else {
+      process.stdout.write(text + '\n')
+    }
+  }
 }
 
 /**
- * Log debug message (only in development)
+ * Log debug message (only in development, не в production)
  */
 export function logDebug(context, message, meta = null) {
   if (isDev) {
-    console.log(formatMessage(LogLevel.DEBUG, context, message, meta))
+    write(LogLevel.DEBUG, context, message, meta)
   }
 }
 
@@ -37,14 +62,14 @@ export function logDebug(context, message, meta = null) {
  * Log info message
  */
 export function logInfo(context, message, meta = null) {
-  console.log(formatMessage(LogLevel.INFO, context, message, meta))
+  write(LogLevel.INFO, context, message, meta)
 }
 
 /**
  * Log warning message
  */
 export function logWarn(context, message, meta = null) {
-  console.warn(formatMessage(LogLevel.WARN, context, message, meta))
+  write(LogLevel.WARN, context, message, meta)
 }
 
 /**
@@ -52,12 +77,13 @@ export function logWarn(context, message, meta = null) {
  */
 export function logError(context, error, meta = null) {
   const errorMessage = error instanceof Error ? error.message : String(error)
-  const errorStack = error instanceof Error && isDev ? error.stack : undefined
-  
-  console.error(formatMessage(LogLevel.ERROR, context, errorMessage, meta))
-  
-  if (errorStack) {
-    console.error(errorStack)
+  const errorDetails = error instanceof Error
+    ? { message: error.message, ...(error.stack && { stack: error.stack }) }
+    : { message: errorMessage }
+  if (useJson) {
+    write(LogLevel.ERROR, context, errorMessage, meta, errorDetails)
+  } else {
+    write(LogLevel.ERROR, context, errorMessage, meta, error instanceof Error ? { stack: error.stack } : null)
   }
 }
 
@@ -66,8 +92,7 @@ export function logError(context, error, meta = null) {
  */
 export function requestLogger(req, res, next) {
   if (isDev) {
-    const timestamp = new Date().toISOString()
-    console.log(`[${timestamp}] ${req.method} ${req.path}`)
+    write(LogLevel.INFO, 'Request', `${req.method} ${req.path}`, null)
   }
   next()
 }

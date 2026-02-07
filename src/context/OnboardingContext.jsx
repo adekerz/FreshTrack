@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react'
 
 const OnboardingContext = createContext(null)
 
@@ -102,7 +102,7 @@ export function OnboardingProvider({ children }) {
     localStorage.removeItem(STORAGE_KEY)
   }, [])
 
-  const value = {
+  const value = useMemo(() => ({
     isActive,
     currentStep,
     totalSteps: onboardingSteps.length,
@@ -114,7 +114,10 @@ export function OnboardingProvider({ children }) {
     skipOnboarding,
     completeOnboarding,
     resetOnboarding,
-  }
+  }), [
+    isActive, currentStep, hasCompleted,
+    startOnboarding, nextStep, prevStep, skipOnboarding, completeOnboarding, resetOnboarding
+  ])
 
   return (
     <OnboardingContext.Provider value={value}>

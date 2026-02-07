@@ -98,10 +98,14 @@ export const authMiddleware = async (req, res, next) => {
   try {
     let token = null
     const authHeader = req.headers.authorization
-    
+
     // Try Bearer token from header first
     if (authHeader && authHeader.startsWith('Bearer ')) {
       token = authHeader.split(' ')[1]
+    }
+    // Try httpOnly cookie
+    else if (req.cookies?.freshtrack_token) {
+      token = req.cookies.freshtrack_token
     }
     // Fallback to query param (for SSE/EventSource which doesn't support headers)
     else if (req.query.token) {

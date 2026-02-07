@@ -65,9 +65,6 @@ export default function VerifyEmailPage() {
         method: 'POST',
         body: JSON.stringify({ partialToken, otp: code })
       })
-      if (response.token) {
-        localStorage.setItem('freshtrack_token', response.token)
-      }
       localStorage.removeItem('partialToken')
       localStorage.removeItem('pendingEmail')
       if (response.user && response.token) {

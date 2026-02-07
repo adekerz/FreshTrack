@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react'
 
 // Импортируем файлы локализации
 import en from '../locales/en.json'
@@ -91,15 +91,18 @@ export function LanguageProvider({ children }) {
   )
 
   // Получить текущий язык
-  const currentLanguage = languages.find((l) => l.code === language)
+  const currentLanguage = useMemo(
+    () => languages.find((l) => l.code === language),
+    [language]
+  )
 
-  const value = {
+  const value = useMemo(() => ({
     language,
     currentLanguage,
     languages,
     changeLanguage,
     t
-  }
+  }), [language, currentLanguage, changeLanguage, t])
 
   return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>
 }

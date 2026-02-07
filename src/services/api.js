@@ -44,8 +44,7 @@ async function handleResponse(response, endpoint = '') {
   const isTelegramTestEndpoint = endpoint.includes('/notifications/test-telegram')
 
   if (response.status === 401 && !isAuthEndpoint && !isPasswordChangeEndpoint && !isTelegramTestEndpoint) {
-    // Токен истёк или невалиден — очищаем и редиректим
-    localStorage.removeItem('freshtrack_token')
+    // Токен истёк или невалиден — очищаем user data
     localStorage.removeItem('freshtrack_user')
 
     // Dispatch custom event для обработки в AuthContext
@@ -133,15 +132,10 @@ export async function apiFetch(endpoint, options = {}) {
     'Content-Type': 'application/json'
   }
 
-  // Добавляем токен авторизации если есть
-  const token = localStorage.getItem('freshtrack_token')
-  if (token) {
-    defaultHeaders['Authorization'] = `Bearer ${token}`
-  }
-
   // Правильно мержим headers: default + пользовательские
   const mergedOptions = {
     ...options,
+    credentials: 'include',
     headers: {
       ...defaultHeaders,
       ...(options.headers || {})
@@ -268,32 +262,20 @@ export async function getExpiringSoonProducts(days = 3) {
  * Авторизация
  */
 export async function login(email, password) {
-  const data = await apiFetch('/auth/login', {
+  return apiFetch('/auth/login', {
     method: 'POST',
     body: JSON.stringify({ email, password })
   })
-
-  if (data.token) {
-    localStorage.setItem('freshtrack_token', data.token)
-  }
-
-  return data
 }
 
 /**
  * Регистрация
  */
 export async function register(userData) {
-  const data = await apiFetch('/auth/register', {
+  return apiFetch('/auth/register', {
     method: 'POST',
     body: JSON.stringify(userData)
   })
-
-  if (data.token) {
-    localStorage.setItem('freshtrack_token', data.token)
-  }
-
-  return data
 }
 
 /**
@@ -306,8 +288,9 @@ export async function getCurrentUser() {
 /**
  * Выход из системы
  */
-export function logout() {
-  localStorage.removeItem('freshtrack_token')
+export async function logout() {
+  // Cookie is cleared server-side via POST /api/auth/logout
+  await apiFetch('/auth/logout', { method: 'POST' }).catch(() => {})
 }
 
 // ============================================

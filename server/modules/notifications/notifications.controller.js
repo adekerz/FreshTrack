@@ -366,8 +366,7 @@ router.post('/test', authMiddleware, hotelIsolation, departmentIsolation, requir
  */
 router.post('/test-telegram', authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.NOTIFICATIONS, PermissionAction.CREATE), async (req, res) => {
   try {
-    console.log('📤 Test Telegram request received')
-    console.log('   User:', req.user?.name, 'Hotel ID:', req.hotelId)
+    logInfo('Notifications', 'Test Telegram request', { userName: req.user?.name, hotelId: req.hotelId })
 
     const { TelegramService } = await import('../../services/TelegramService.js')
     

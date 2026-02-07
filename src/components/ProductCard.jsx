@@ -3,7 +3,7 @@
  * Оптимизирована для мобильных устройств
  */
 
-import { TouchButton } from './ui'
+import { TouchButton, CachedDataBadge } from './ui'
 
 // Цвета статусов
 const statusColors = {
@@ -25,12 +25,15 @@ export default function ProductCard({
       variant="ghost"
       onClick={() => onProductClick(product)}
       className={`
-        w-full h-auto min-h-0 justify-start items-stretch
+        w-full h-auto min-h-0 justify-start items-stretch relative
         bg-card border border-border rounded-lg
         text-left hover:shadow-md hover:border-accent group
         ${compact ? 'p-2.5' : 'p-3 sm:p-4'}
       `}
     >
+      <div className="absolute top-2 right-2 z-[1]">
+        <CachedDataBadge compact />
+      </div>
       <div className={`flex flex-col w-full ${compact ? 'gap-1.5' : 'gap-2 sm:gap-3'}`}>
         {/* Заголовок с индикатором статуса */}
         <div className="flex items-start justify-between gap-2">

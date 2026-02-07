@@ -209,9 +209,7 @@ export function useExport() {
       // Запрос к backend
       const response = await fetch(url.toString(), {
         method: 'GET',
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('freshtrack_token')}`
-        }
+        credentials: 'include'
       })
 
       if (!response.ok) {

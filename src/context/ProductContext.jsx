@@ -570,7 +570,21 @@ export function ProductProvider({ children }) {
     categories = categoriesData
   }, [departmentsData, categoriesData])
 
-  const value = {
+  const getDepartmentIcon = useCallback((deptId) => {
+    const dept = departmentsData.find((d) => d.id === deptId || d.code === deptId)
+    return dept?.icon || DEFAULT_DEPARTMENT_ICONS[dept?.type] || DEFAULT_DEPARTMENT_ICONS.default
+  }, [departmentsData])
+
+  const mutations = useMemo(() => ({
+    addBatch: addBatchMutation,
+    addBatchesBulk: addBatchesBulkMutation,
+    collectBatch: collectBatchMutation,
+    deleteBatch: deleteBatchMutation,
+    addProduct: addProductMutation,
+    deleteProduct: deleteProductMutation
+  }), [addBatchMutation, addBatchesBulkMutation, collectBatchMutation, deleteBatchMutation, addProductMutation, deleteProductMutation])
+
+  const value = useMemo(() => ({
     // Данные (из React Query)
     catalog,
     batches: batchesData,
@@ -602,21 +616,18 @@ export function ProductProvider({ children }) {
     findProduct,
 
     // Хелпер для иконок отделов
-    getDepartmentIcon: (deptId) => {
-      const dept = departmentsData.find((d) => d.id === deptId || d.code === deptId)
-      return dept?.icon || DEFAULT_DEPARTMENT_ICONS[dept?.type] || DEFAULT_DEPARTMENT_ICONS.default
-    },
+    getDepartmentIcon,
 
     // React Query mutations (для прямого использования в компонентах)
-    mutations: {
-      addBatch: addBatchMutation,
-      addBatchesBulk: addBatchesBulkMutation,
-      collectBatch: collectBatchMutation,
-      deleteBatch: deleteBatchMutation,
-      addProduct: addProductMutation,
-      deleteProduct: deleteProductMutation
-    }
-  }
+    mutations
+  }), [
+    catalog, batchesData, departmentsData, categoriesData, queryLoading, queryError, statsData,
+    addBatch, collectBatch, deleteBatch, refresh,
+    addCustomProduct, deleteProduct,
+    getBatchesByProduct, getProductsByDepartment, getCategoriesForDepartment,
+    getActiveBatches, getBatchesByStatus, getStats, getUnreadNotificationsCount, getAlerts, findProduct,
+    getDepartmentIcon, mutations
+  ])
 
   return <ProductContext.Provider value={value}>{children}</ProductContext.Provider>
 }

@@ -12,9 +12,9 @@ import {
   getHotelById,
   createHotel,
   updateHotel,
-  deleteHotel,
-  logAudit
-} from '../../db/database.js'
+  deleteHotel
+} from './hotels.repository.js'
+import { logAudit } from '../../db/database.js'
 import { 
   authMiddleware, 
   requirePermission,
@@ -182,7 +182,7 @@ router.post('/',
           WHERE id = $2
         `, [hotel.id, marsha_code_id])
       } catch (marshaError) {
-        console.error('Failed to assign MARSHA code:', marshaError)
+        logError('HotelsController', marshaError, { action: 'assignMarshaCode', hotelId: hotel.id, marsha_code_id })
       }
     }
     

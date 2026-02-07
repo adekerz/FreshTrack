@@ -441,9 +441,42 @@ export default function NotificationsSettings() {
           {expandedChannels.email && (
             <div className="mt-4 pt-4 border-t border-border">
               {settings.channels.email.enabled ? (
-                <p className="text-sm text-muted-foreground">
-                  Email уведомления отправляются на адреса отделов.
-                </p>
+                <div className="space-y-3">
+                  {(() => {
+                    const depsWithEmail = (departments || []).filter(
+                      (d) => d.email && String(d.email).trim()
+                    )
+                    if (depsWithEmail.length === 0) {
+                      return (
+                        <p className="text-sm text-muted-foreground">
+                          Ни у одного отдела не указан email. Настройте адреса в{' '}
+                          <Link to="/settings?tab=directories" className="text-accent hover:underline">
+                            Справочниках
+                          </Link>.
+                        </p>
+                      )
+                    }
+                    return depsWithEmail.map((dept) => (
+                      <div key={dept.id}>
+                        <label className="block text-sm font-medium text-foreground mb-1">
+                          {dept.name}
+                        </label>
+                        <input
+                          type="email"
+                          value={dept.email}
+                          readOnly
+                          className="w-full px-3 py-2 text-sm bg-muted border border-border rounded-lg text-muted-foreground cursor-default focus:outline-none"
+                        />
+                      </div>
+                    ))
+                  })()}
+                  <p className="text-sm text-muted-foreground">
+                    Уведомления отправляются на email отделов. Изменить адреса можно в{' '}
+                    <Link to="/settings?tab=directories" className="text-accent hover:underline">
+                      Справочниках
+                    </Link>.
+                  </p>
+                </div>
               ) : (
                 <p className="text-sm text-muted-foreground">
                   Включите канал, чтобы получать ежедневные сводки на почту отделов.

@@ -3,31 +3,9 @@
  * Показывает карточки отделов для выбора
  */
 
-import { Wine, Coffee, Utensils, ChefHat, Warehouse, Package, Users } from 'lucide-react'
+import { Package } from 'lucide-react'
 import { useTranslation, useLanguage } from '../context/LanguageContext'
-
-// Иконки для отделов
-const ICON_MAP = {
-  Wine,
-  Coffee,
-  Utensils,
-  ChefHat,
-  Warehouse,
-  Package,
-  Users
-}
-
-// Получить иконку по имени или типу
-const getDeptIcon = (dept) => {
-  if (dept?.icon && ICON_MAP[dept.icon]) return ICON_MAP[dept.icon]
-  const name = (dept?.name || dept?.code || '').toLowerCase()
-  if (name.includes('bar') || name.includes('бар')) return Wine
-  if (name.includes('kitchen') || name.includes('кухня')) return ChefHat
-  if (name.includes('restaurant') || name.includes('ресторан')) return Utensils
-  if (name.includes('storage') || name.includes('склад')) return Warehouse
-  if (name.includes('cafe') || name.includes('кафе')) return Coffee
-  return Package
-}
+import { getDepartmentIcon } from '../utils/departmentUtils'
 
 export default function DepartmentSelector({
   departments,
@@ -67,7 +45,7 @@ export default function DepartmentSelector({
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {departments.map((dept) => {
-          const Icon = getDeptIcon(dept)
+          const Icon = getDepartmentIcon(dept)
           const isSelected = selectedDepartment === dept.id
           const deptStats = stats[dept.id] || {}
 

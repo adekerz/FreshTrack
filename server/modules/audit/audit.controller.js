@@ -5,8 +5,8 @@
 import { Router } from 'express'
 import { logError } from '../../utils/logger.js'
 import { getAuditLogs, getAuditLogsWithMetadata, getHotelById } from '../../db/database.js'
-import { 
-  authMiddleware, 
+import {
+  authMiddleware,
   hotelIsolation,
   requirePermission,
   PermissionResource,
@@ -24,11 +24,17 @@ import { requireMFA } from '../../middleware/requireMFA.js'
 import { AuditExportService } from '../../services/AuditExportService.js'
 import { query as dbQuery } from '../../db/postgres.js'
 import { auditLogsSSE } from './audit.sse.js'
+import { validate, EnrichAuditLogsSchema, GetAuditLogsQuerySchema } from './audit.schemas.js'
 
 const router = Router()
 
 router.get('/', authMiddleware, hotelIsolation, requirePermission(PermissionResource.AUDIT, PermissionAction.READ), async (req, res) => {
   try {
+    const validation = validate(GetAuditLogsQuerySchema, req.query)
+    if (!validation.isValid) {
+      return res.status(400).json({ error: 'Ошибка валидации', details: validation.errors })
+    }
+
     const filters = UnifiedFilterService.parseCommonFilters(req.query)
     const hotelId = req.user?.role === 'SUPER_ADMIN' && req.query.hotelId ? req.query.hotelId : req.hotelId
 
@@ -391,7 +397,12 @@ router.post('/enrich',
   superAdminOnly,
   async (req, res) => {
     try {
-      const limit = Math.min(parseInt(req.body?.limit, 10) || 1000, 5000)
+      const validation = validate(EnrichAuditLogsSchema, req.body)
+      if (!validation.isValid) {
+        return res.status(400).json({ error: 'Ошибка валидации', details: validation.errors })
+      }
+
+      const limit = Math.min(parseInt(validation.data.limit, 10) || 1000, 5000)
       const result = await AuditEnrichmentService.enrichExistingLogs(limit)
       res.json({
         success: true,

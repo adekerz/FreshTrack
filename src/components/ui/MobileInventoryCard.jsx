@@ -9,6 +9,7 @@ import { ChevronDown, ChevronUp, MapPin, Tag, Clock, Package } from 'lucide-reac
 import { cn } from '../../utils/classNames'
 import ExpirationBadge from './ExpirationBadge'
 import SwipeableCard from './SwipeableCard'
+import CachedDataBadge from './CachedDataBadge'
 import { useTranslation } from '../../context/LanguageContext'
 import { formatDate } from '../../utils/dateUtils'
 
@@ -45,7 +46,7 @@ export default function MobileInventoryCard({
         {/* Основная информация (всегда видима) */}
         <div
           className={cn(
-            'p-4 flex items-center gap-3',
+            'p-4 flex items-center gap-3 relative',
             'cursor-pointer touch-manipulation',
             'active:bg-muted/50 transition-colors'
           )}
@@ -66,6 +67,9 @@ export default function MobileInventoryCard({
             }
           }}
         >
+          <div className="absolute top-3 right-3 z-[1]">
+            <CachedDataBadge compact />
+          </div>
           {/* Цветовой индикатор слева */}
           <div 
             className={cn(

@@ -167,10 +167,9 @@ export default function BrandingSettings() {
     try {
       const formData = new FormData()
       formData.append('logo', file)
-      const token = localStorage.getItem('freshtrack_token')
       const response = await fetch(`${API_BASE_URL}/custom-content/upload-logo`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
         body: formData
       })
       if (!response.ok) throw new Error('Upload failed')

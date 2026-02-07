@@ -54,9 +54,7 @@ export default function ImportExportSettings() {
     try {
       const response = await fetch(`${API_BASE_URL}/import/batches`, {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('freshtrack_token')}`
-        },
+        credentials: 'include',
         body: formData
       })
 

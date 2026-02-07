@@ -29,6 +29,7 @@ export { default as BottomSheet, BottomSheetActions, FilterChips } from './Botto
 export { default as SwipeableCard, useSwipeSupport } from './SwipeableCard'
 export { default as FAB, SpeedDial } from './FAB'
 export { default as OfflineIndicator, useOnlineStatus, usePendingSync } from './OfflineIndicator'
+export { default as CachedDataBadge } from './CachedDataBadge'
 export { default as MobileInventoryCard, MobileInventoryList } from './MobileInventoryCard'
 export { default as PullToRefresh, usePullToRefresh } from './PullToRefresh'
 export { default as TouchButton, IconButton } from './TouchButton'

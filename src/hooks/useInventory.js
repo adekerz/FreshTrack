@@ -1,65 +1,97 @@
 /**
  * Inventory Hooks - React Query integration
- * 
+ *
  * Hooks для управления инвентарем с автоматическим кэшированием,
- * оптимистичными обновлениями и синхронизацией
+ * server-side pagination и синхронизацией
  */
 
-import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueries, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import { queryKeys } from '../lib/queryKeys'
 import { STALE_TIMES, invalidateInventoryQueries } from '../lib/queryClient'
 import { apiFetch } from '../services/api'
 import { getBatchStatus } from '../utils/dateUtils'
 import { logDebug, logError, logWarn } from '../utils/logger'
 
+// === HELPERS ===
+
+/**
+ * Нормализация batch из snake_case в camelCase + enrichment
+ */
+function normalizeBatch(b) {
+  const expiryDate = b.expiry_date || b.expiryDate
+  const statusInfo = getBatchStatus(b)
+
+  return {
+    ...b,
+    productId: b.product_id || b.productId,
+    productName: b.product_name || b.productName,
+    departmentId: b.department_id || b.departmentId,
+    departmentName: b.department_name || b.departmentName,
+    categoryId: b.category_id || b.categoryId,
+    categoryName: b.category_name || b.categoryName,
+    expiryDate,
+    addedBy: b.added_by_name || b.added_by || b.addedBy,
+    collectedAt: b.collected_at || b.collectedAt,
+    collectedBy: b.collected_by || b.collectedBy,
+    hotelId: b.hotel_id || b.hotelId,
+    batchNumber: b.batch_number || b.batchNumber,
+    daysLeft: statusInfo.daysLeft,
+    status: statusInfo,
+    expiryStatus: statusInfo.status,
+    statusColor: statusInfo.color,
+    statusText: statusInfo.statusText,
+    isExpired: statusInfo.isExpired,
+    isUrgent: statusInfo.isUrgent
+  }
+}
+
+/**
+ * Построение query string из params
+ */
+function buildBatchQuery(hotelId, params) {
+  const sp = new URLSearchParams()
+  if (hotelId) sp.set('hotel_id', hotelId)
+  Object.entries(params).forEach(([k, v]) => {
+    if (v != null && v !== '' && v !== undefined) sp.set(k, String(v))
+  })
+  return sp.toString()
+}
+
 // === QUERIES (чтение данных) ===
 
 /**
- * Загружает все партии для отеля
+ * Загружает партии для отеля с server-side pagination
  * @param {string} hotelId - ID отеля
- * @param {Object} params - Параметры запроса (limit, offset)
+ * @param {Object} params - { page, limit, departmentId, categoryId, search, sortBy, sortOrder, ... }
+ * @returns {{ data: batch[], pagination: { total, page, limit, totalPages, hasMore } }}
  */
-export function useBatches(hotelId, params = { limit: 200 }) {
+export function useBatches(hotelId, params = { page: 1, limit: 20 }) {
   return useQuery({
     queryKey: queryKeys.batches(hotelId, params),
     queryFn: async () => {
-      const query = hotelId 
-        ? `?hotel_id=${hotelId}&limit=${params.limit || 200}` 
-        : `?limit=${params.limit || 200}`
-      const response = await apiFetch(`/batches${query}`)
-      const batchesRaw = Array.isArray(response) ? response : response.batches || []
-      
-      // Нормализация и обогащение данных
-      return batchesRaw.map((b) => {
-        const expiryDate = b.expiry_date || b.expiryDate
-        const statusInfo = getBatchStatus(b)
-        
-        return {
-          ...b,
-          productId: b.product_id || b.productId,
-          productName: b.product_name || b.productName,
-          departmentId: b.department_id || b.departmentId,
-          departmentName: b.department_name || b.departmentName,
-          categoryId: b.category_id || b.categoryId,
-          categoryName: b.category_name || b.categoryName,
-          expiryDate,
-          addedBy: b.added_by_name || b.added_by || b.addedBy,
-          collectedAt: b.collected_at || b.collectedAt,
-          collectedBy: b.collected_by || b.collectedBy,
-          hotelId: b.hotel_id || b.hotelId,
-          batchNumber: b.batch_number || b.batchNumber,
-          daysLeft: statusInfo.daysLeft,
-          status: statusInfo,
-          expiryStatus: statusInfo.status,
-          statusColor: statusInfo.color,
-          statusText: statusInfo.statusText,
-          isExpired: statusInfo.isExpired,
-          isUrgent: statusInfo.isUrgent
-        }
+      const qs = buildBatchQuery(hotelId, {
+        page: params.page || 1,
+        limit: params.limit || 20,
+        ...params
       })
+      const response = await apiFetch(`/batches?${qs}`)
+      const batchesRaw = Array.isArray(response) ? response : response.batches || []
+      const enriched = batchesRaw.map(normalizeBatch)
+
+      return {
+        data: enriched,
+        pagination: {
+          total: response.total || enriched.length,
+          page: response.page || params.page || 1,
+          limit: response.limit || params.limit || 20,
+          totalPages: response.totalPages || 1,
+          hasMore: response.hasMore || false
+        }
+      }
     },
     enabled: !!hotelId,
-    staleTime: STALE_TIMES.batches
+    staleTime: STALE_TIMES.batches,
+    placeholderData: keepPreviousData
   })
 }
 
@@ -122,31 +154,58 @@ export function useCategories(hotelId) {
 }
 
 /**
- * Загружает товары отеля
+ * Загружает товары отеля с server-side pagination
  * @param {string} hotelId - ID отеля
- * @param {Object} params - Параметры запроса (limit, offset)
+ * @param {Object} params - { page, limit, categoryId, search, ... }
+ * @returns {{ data: product[], pagination: { total, page, limit, totalPages, hasMore } }}
  */
-export function useProducts(hotelId, params = { limit: 200 }) {
+export function useProducts(hotelId, params = { page: 1, limit: 50 }) {
   return useQuery({
     queryKey: queryKeys.products(hotelId, params),
     queryFn: async () => {
-      const query = hotelId 
-        ? `?hotel_id=${hotelId}&limit=${params.limit || 200}` 
-        : `?limit=${params.limit || 200}`
-      const response = await apiFetch(`/products${query}`).catch(() => [])
-      return Array.isArray(response) 
-        ? response 
+      const sp = new URLSearchParams()
+      if (hotelId) sp.set('hotel_id', hotelId)
+      sp.set('page', String(params.page || 1))
+      sp.set('limit', String(params.limit || 50))
+      Object.entries(params).forEach(([k, v]) => {
+        if (v != null && v !== '' && k !== 'page' && k !== 'limit') sp.set(k, String(v))
+      })
+      const response = await apiFetch(`/products?${sp}`).catch(() => ({ items: [] }))
+
+      const items = Array.isArray(response)
+        ? response
         : response.items || response.products || []
+
+      return {
+        data: items,
+        pagination: {
+          total: response.total || items.length,
+          page: response.page || params.page || 1,
+          limit: response.limit || params.limit || 50,
+          totalPages: response.totalPages || 1,
+          hasMore: response.hasMore || false
+        }
+      }
     },
     enabled: !!hotelId,
-    staleTime: STALE_TIMES.products
+    staleTime: STALE_TIMES.products,
+    placeholderData: keepPreviousData
   })
 }
 
+// === Inventory limits for ProductContext ===
+const CONTEXT_BATCHES_LIMIT = 50
+const CONTEXT_PRODUCTS_LIMIT = 100
+
 /**
- * Комбинированный hook для загрузки всех данных инвентаря
+ * Комбинированный hook для загрузки данных инвентаря (для ProductContext)
  * Использует useQueries для параллельной загрузки
- * 
+ *
+ * Batches: limit=50 (для alerts на Dashboard)
+ * Products: limit=100 (для каталога / AddBatchModal)
+ * Departments, Categories: без лимита (справочники)
+ * Stats: отдельный endpoint
+ *
  * @param {string} hotelId - ID отеля
  * @returns {Object} - Объединенные данные + loading states
  */
@@ -154,39 +213,14 @@ export function useInventoryData(hotelId) {
   const queries = useQueries({
     queries: [
       {
-        queryKey: queryKeys.batches(hotelId, { limit: 200 }),
+        queryKey: queryKeys.batches(hotelId, { limit: CONTEXT_BATCHES_LIMIT }),
         queryFn: async () => {
-          const query = hotelId ? `?hotel_id=${hotelId}&limit=200` : '?limit=200'
+          const query = hotelId
+            ? `?hotel_id=${hotelId}&limit=${CONTEXT_BATCHES_LIMIT}`
+            : `?limit=${CONTEXT_BATCHES_LIMIT}`
           const response = await apiFetch(`/batches${query}`)
           const batchesRaw = Array.isArray(response) ? response : response.batches || []
-          
-          return batchesRaw.map((b) => {
-            const expiryDate = b.expiry_date || b.expiryDate
-            const statusInfo = getBatchStatus(b)
-            
-            return {
-              ...b,
-              productId: b.product_id || b.productId,
-              productName: b.product_name || b.productName,
-              departmentId: b.department_id || b.departmentId,
-              departmentName: b.department_name || b.departmentName,
-              categoryId: b.category_id || b.categoryId,
-              categoryName: b.category_name || b.categoryName,
-              expiryDate,
-              addedBy: b.added_by_name || b.added_by || b.addedBy,
-              collectedAt: b.collected_at || b.collectedAt,
-              collectedBy: b.collected_by || b.collectedBy,
-              hotelId: b.hotel_id || b.hotelId,
-              batchNumber: b.batch_number || b.batchNumber,
-              daysLeft: statusInfo.daysLeft,
-              status: statusInfo,
-              expiryStatus: statusInfo.status,
-              statusColor: statusInfo.color,
-              statusText: statusInfo.statusText,
-              isExpired: statusInfo.isExpired,
-              isUrgent: statusInfo.isUrgent
-            }
-          })
+          return batchesRaw.map(normalizeBatch)
         },
         enabled: !!hotelId,
         staleTime: STALE_TIMES.batches
@@ -229,12 +263,14 @@ export function useInventoryData(hotelId) {
         staleTime: STALE_TIMES.categories
       },
       {
-        queryKey: queryKeys.products(hotelId, { limit: 200 }),
+        queryKey: queryKeys.products(hotelId, { limit: CONTEXT_PRODUCTS_LIMIT }),
         queryFn: async () => {
-          const query = hotelId ? `?hotel_id=${hotelId}&limit=200` : '?limit=200'
-          const response = await apiFetch(`/products${query}`).catch(() => [])
-          return Array.isArray(response) 
-            ? response 
+          const query = hotelId
+            ? `?hotel_id=${hotelId}&limit=${CONTEXT_PRODUCTS_LIMIT}`
+            : `?limit=${CONTEXT_PRODUCTS_LIMIT}`
+          const response = await apiFetch(`/products${query}`).catch(() => ({ items: [] }))
+          return Array.isArray(response)
+            ? response
             : response.items || response.products || []
         },
         enabled: !!hotelId,
@@ -274,6 +310,9 @@ export function useInventoryData(hotelId) {
 }
 
 // === MUTATIONS (изменение данных) ===
+// Mutations use invalidation instead of optimistic updates.
+// With paginated queries the exact cache key is unknown,
+// and server roundtrip is fast (~200ms) so the UX difference is negligible.
 
 /**
  * Добавление одной партии
@@ -297,49 +336,8 @@ export function useAddBatch(hotelId) {
       return response.batch || response
     },
 
-    // Оптимистичное обновление
-    onMutate: async (newBatchData) => {
-      // Отменяем pending queries
-      await queryClient.cancelQueries({ queryKey: queryKeys.batches(hotelId) })
-
-      // Сохраняем предыдущее состояние для rollback
-      const previousBatches = queryClient.getQueryData(queryKeys.batches(hotelId, { limit: 200 }))
-
-      // Оптимистично добавляем партию
-      if (previousBatches) {
-        const optimisticBatch = {
-          id: `temp-${Date.now()}`,
-          productName: newBatchData.productName,
-          departmentId: newBatchData.department,
-          quantity: newBatchData.quantity,
-          expiryDate: newBatchData.expiryDate,
-          ...getBatchStatus({ expiryDate: newBatchData.expiryDate }),
-          _optimistic: true
-        }
-
-        queryClient.setQueryData(
-          queryKeys.batches(hotelId, { limit: 200 }),
-          [...previousBatches, optimisticBatch]
-        )
-      }
-
-      return { previousBatches }
-    },
-
-    // Rollback при ошибке
-    onError: (err, newBatchData, context) => {
-      if (context?.previousBatches) {
-        queryClient.setQueryData(
-          queryKeys.batches(hotelId, { limit: 200 }),
-          context.previousBatches
-        )
-      }
-      logError('Error adding batch:', err)
-    },
-
-    // Обновляем после успешного сохранения
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.batches(hotelId) })
+      queryClient.invalidateQueries({ queryKey: ['batches', hotelId] })
       queryClient.invalidateQueries({ queryKey: queryKeys.batchesStats(hotelId) })
     }
   })
@@ -369,51 +367,11 @@ export function useAddBatchesBulk(hotelId, departmentId) {
       return response
     },
 
-    // Оптимистичное обновление
-    onMutate: async ({ items }) => {
-      await queryClient.cancelQueries({ queryKey: queryKeys.batches(hotelId) })
-
-      const previousBatches = queryClient.getQueryData(queryKeys.batches(hotelId, { limit: 200 }))
-
-      // Оптимистично добавляем партии
-      if (previousBatches) {
-        const optimisticBatches = items.map((item, index) => ({
-          id: `temp-bulk-${Date.now()}-${index}`,
-          productId: item.productId || item.product_id,
-          productName: item.productName,
-          departmentId,
-          quantity: parseInt(item.quantity) || 1,
-          expiryDate: item.expiryDate,
-          ...getBatchStatus({ expiryDate: item.expiryDate }),
-          _optimistic: true
-        }))
-
-        queryClient.setQueryData(
-          queryKeys.batches(hotelId, { limit: 200 }),
-          [...previousBatches, ...optimisticBatches]
-        )
-      }
-
-      return { previousBatches }
-    },
-
-    onError: (err, variables, context) => {
-      if (context?.previousBatches) {
-        queryClient.setQueryData(
-          queryKeys.batches(hotelId, { limit: 200 }),
-          context.previousBatches
-        )
-      }
-      logError('Error adding batches in bulk:', err)
-    },
-
-    // Фоновая синхронизация через 2 секунды
     onSuccess: () => {
-      // Не блокируем UI - обновляем в фоне
       setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: queryKeys.batches(hotelId) })
+        queryClient.invalidateQueries({ queryKey: ['batches', hotelId] })
         queryClient.invalidateQueries({ queryKey: queryKeys.batchesStats(hotelId) })
-        queryClient.invalidateQueries({ queryKey: queryKeys.products(hotelId) })
+        queryClient.invalidateQueries({ queryKey: ['products', hotelId] })
       }, 2000)
     }
   })
@@ -434,34 +392,8 @@ export function useCollectBatch(hotelId) {
       })
     },
 
-    onMutate: async ({ batchId }) => {
-      await queryClient.cancelQueries({ queryKey: queryKeys.batches(hotelId) })
-
-      const previousBatches = queryClient.getQueryData(queryKeys.batches(hotelId, { limit: 200 }))
-
-      // Оптимистично удаляем из списка
-      if (previousBatches) {
-        queryClient.setQueryData(
-          queryKeys.batches(hotelId, { limit: 200 }),
-          previousBatches.filter(b => b.id !== batchId)
-        )
-      }
-
-      return { previousBatches }
-    },
-
-    onError: (err, variables, context) => {
-      if (context?.previousBatches) {
-        queryClient.setQueryData(
-          queryKeys.batches(hotelId, { limit: 200 }),
-          context.previousBatches
-        )
-      }
-      logError('Error collecting batch:', err)
-    },
-
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.batches(hotelId) })
+      queryClient.invalidateQueries({ queryKey: ['batches', hotelId] })
       queryClient.invalidateQueries({ queryKey: queryKeys.batchesStats(hotelId) })
     }
   })
@@ -479,32 +411,6 @@ export function useDeleteBatch(hotelId) {
       return await apiFetch(`/batches/${batchId}`, {
         method: 'DELETE'
       })
-    },
-
-    onMutate: async (batchId) => {
-      await queryClient.cancelQueries({ queryKey: queryKeys.batches(hotelId) })
-
-      const previousBatches = queryClient.getQueryData(queryKeys.batches(hotelId, { limit: 200 }))
-
-      // Оптимистично удаляем
-      if (previousBatches) {
-        queryClient.setQueryData(
-          queryKeys.batches(hotelId, { limit: 200 }),
-          previousBatches.filter(b => b.id !== batchId)
-        )
-      }
-
-      return { previousBatches }
-    },
-
-    onError: (err, batchId, context) => {
-      if (context?.previousBatches) {
-        queryClient.setQueryData(
-          queryKeys.batches(hotelId, { limit: 200 }),
-          context.previousBatches
-        )
-      }
-      logError('Error deleting batch:', err)
     },
 
     onSettled: () => {
@@ -538,43 +444,8 @@ export function useAddProduct(hotelId) {
       return response.product || response
     },
 
-    onMutate: async (newProduct) => {
-      await queryClient.cancelQueries({ queryKey: queryKeys.products(hotelId) })
-
-      const previousProducts = queryClient.getQueryData(queryKeys.products(hotelId, { limit: 200 }))
-
-      // Оптимистично добавляем товар
-      if (previousProducts) {
-        const optimisticProduct = {
-          id: `temp-product-${Date.now()}`,
-          name: newProduct.name,
-          categoryId: newProduct.categoryId,
-          departmentId: newProduct.departmentId,
-          isCustom: true,
-          _optimistic: true
-        }
-
-        queryClient.setQueryData(
-          queryKeys.products(hotelId, { limit: 200 }),
-          [...previousProducts, optimisticProduct]
-        )
-      }
-
-      return { previousProducts }
-    },
-
-    onError: (err, newProduct, context) => {
-      if (context?.previousProducts) {
-        queryClient.setQueryData(
-          queryKeys.products(hotelId, { limit: 200 }),
-          context.previousProducts
-        )
-      }
-      logError('Error adding product:', err)
-    },
-
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.products(hotelId) })
+      queryClient.invalidateQueries({ queryKey: ['products', hotelId] })
     }
   })
 }
@@ -593,50 +464,9 @@ export function useDeleteProduct(hotelId) {
       })
     },
 
-    onMutate: async (productId) => {
-      await queryClient.cancelQueries({ queryKey: queryKeys.products(hotelId) })
-      await queryClient.cancelQueries({ queryKey: queryKeys.batches(hotelId) })
-
-      const previousProducts = queryClient.getQueryData(queryKeys.products(hotelId, { limit: 200 }))
-      const previousBatches = queryClient.getQueryData(queryKeys.batches(hotelId, { limit: 200 }))
-
-      // Оптимистично удаляем товар и связанные партии
-      if (previousProducts) {
-        queryClient.setQueryData(
-          queryKeys.products(hotelId, { limit: 200 }),
-          previousProducts.filter(p => p.id !== productId)
-        )
-      }
-
-      if (previousBatches) {
-        queryClient.setQueryData(
-          queryKeys.batches(hotelId, { limit: 200 }),
-          previousBatches.filter(b => b.productId !== productId && b.product_id !== productId)
-        )
-      }
-
-      return { previousProducts, previousBatches }
-    },
-
-    onError: (err, productId, context) => {
-      if (context?.previousProducts) {
-        queryClient.setQueryData(
-          queryKeys.products(hotelId, { limit: 200 }),
-          context.previousProducts
-        )
-      }
-      if (context?.previousBatches) {
-        queryClient.setQueryData(
-          queryKeys.batches(hotelId, { limit: 200 }),
-          context.previousBatches
-        )
-      }
-      logError('Error deleting product:', err)
-    },
-
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.products(hotelId) })
-      queryClient.invalidateQueries({ queryKey: queryKeys.batches(hotelId) })
+      queryClient.invalidateQueries({ queryKey: ['products', hotelId] })
+      queryClient.invalidateQueries({ queryKey: ['batches', hotelId] })
     }
   })
 }

@@ -105,16 +105,11 @@ export function useSSE(options = {}) {
     return delay
   }, [])
 
-  // Get SSE URL with token
+  // Get SSE URL (auth via httpOnly cookie with withCredentials)
   const getSSEUrl = useCallback(() => {
-    const token = localStorage.getItem('freshtrack_token')
-    if (!token) return null
-
-    // VITE_API_URL may include /api, need base URL without it
     const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
     const baseUrl = apiUrl.replace(/\/api$/, '')
-    // EventSource doesn't support headers, so we pass token in query
-    return `${baseUrl}/api/events/stream?token=${encodeURIComponent(token)}`
+    return `${baseUrl}/api/events/stream`
   }, [])
 
   // Disconnect

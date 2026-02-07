@@ -12,6 +12,7 @@ import {
   PermissionResource,
   PermissionAction
 } from '../../middleware/auth.js'
+import { validate, CreateNotificationRuleSchema, UpdateTelegramChatSchema, TestTelegramSchema } from './notification-rules.schemas.js'
 import { NotificationEngine } from '../../services/NotificationEngine.js'
 import { TelegramService } from '../../services/TelegramService.js'
 import { clearThresholdsCache } from '../../services/ExpiryService.js'
@@ -130,12 +131,17 @@ router.get('/rules', requireAdminRole, requirePermission(PermissionResource.SETT
 
 router.post('/rules', requireAdminRole, requirePermission(PermissionResource.SETTINGS, PermissionAction.UPDATE), async (req, res) => {
   try {
+    const validation = validate(CreateNotificationRuleSchema, req.body)
+    if (!validation.isValid) {
+      return res.status(400).json({ error: 'Ошибка валидации', details: validation.errors })
+    }
+
     const {
       id, type, name, description,
       warningDays, criticalDays,
       channels, recipientRoles,
       departmentId, enabled
-    } = req.body
+    } = validation.data
 
     // Проверяем, что HOTEL_ADMIN может создавать правила только для своего отеля
     const targetHotelId = req.user.role === 'SUPER_ADMIN' 
@@ -382,7 +388,12 @@ router.get('/telegram-chats', requirePermission(PermissionResource.SETTINGS, Per
 
 router.put('/telegram-chats/:id', requirePermission(PermissionResource.SETTINGS, PermissionAction.UPDATE), async (req, res) => {
   try {
-    const { departmentId, notificationTypes, silentMode } = req.body
+    const validation = validate(UpdateTelegramChatSchema, req.body)
+    if (!validation.isValid) {
+      return res.status(400).json({ error: 'Ошибка валидации', details: validation.errors })
+    }
+
+    const { departmentId, notificationTypes, silentMode } = validation.data
 
     await query(`
       UPDATE telegram_chats 
@@ -478,11 +489,12 @@ router.post('/test-telegram', requirePermission(PermissionResource.SETTINGS, Per
       })
     }
 
-    const { chatId, message } = req.body
-
-    if (!chatId) {
-      return res.status(400).json({ success: false, error: 'chatId is required' })
+    const validation = validate(TestTelegramSchema, req.body)
+    if (!validation.isValid) {
+      return res.status(400).json({ error: 'Ошибка валидации', details: validation.errors })
     }
+
+    const { chatId, message } = validation.data
 
     const result = await TelegramService.sendMessage(
       chatId,

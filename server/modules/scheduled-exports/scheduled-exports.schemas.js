@@ -1,0 +1,92 @@
+/**
+ * Scheduled Exports Module - Zod Validation Schemas
+ */
+
+import { z } from 'zod'
+
+// ========================================
+// Базовые типы
+// ========================================
+
+const ScheduleTypeSchema = z.enum(['daily', 'weekly', 'monthly'])
+const DeliveryMethodSchema = z.enum(['email', 'telegram', 'both'])
+const TimeSchema = z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Время должно быть в формате HH:MM')
+
+// ========================================
+// Схемы для эндпоинтов
+// ========================================
+
+/**
+ * POST /api/scheduled-exports
+ */
+export const CreateScheduledExportSchema = z.object({
+  department_id: z.string().uuid('Невалидный ID отдела'),
+  schedule_type: ScheduleTypeSchema,
+  day_of_week: z.number().int().min(0).max(6).optional().nullable(),
+  day_of_month: z.number().int().min(1).max(31).optional().nullable(),
+  time: TimeSchema,
+  timezone: z.string().max(50).optional().default('Asia/Almaty'),
+  export_types: z.array(z.string().min(1)).min(1, 'Выберите хотя бы один тип экспорта'),
+  export_formats: z.array(z.string().min(1)).optional().default(['excel']),
+  filters: z.record(z.any()).optional().default({}),
+  delivery_method: DeliveryMethodSchema,
+  email_override: z.string().email('Невалидный email').optional().nullable(),
+  telegram_chat_id_override: z.string().optional().nullable()
+}).refine(data => {
+  if (data.schedule_type === 'weekly' && (data.day_of_week === null || data.day_of_week === undefined)) {
+    return false
+  }
+  return true
+}, {
+  message: 'day_of_week обязателен для еженедельного расписания',
+  path: ['day_of_week']
+}).refine(data => {
+  if (data.schedule_type === 'monthly' && (data.day_of_month === null || data.day_of_month === undefined)) {
+    return false
+  }
+  return true
+}, {
+  message: 'day_of_month обязателен для ежемесячного расписания',
+  path: ['day_of_month']
+})
+
+/**
+ * PUT /api/scheduled-exports/:id
+ */
+export const UpdateScheduledExportSchema = z.object({
+  schedule_type: ScheduleTypeSchema.optional(),
+  day_of_week: z.number().int().min(0).max(6).optional().nullable(),
+  day_of_month: z.number().int().min(1).max(31).optional().nullable(),
+  time: TimeSchema.optional(),
+  timezone: z.string().max(50).optional(),
+  export_types: z.array(z.string().min(1)).min(1).optional(),
+  export_formats: z.array(z.string().min(1)).optional(),
+  filters: z.record(z.any()).optional().nullable(),
+  delivery_method: DeliveryMethodSchema.optional(),
+  email_override: z.string().email('Невалидный email').optional().nullable(),
+  telegram_chat_id_override: z.string().optional().nullable(),
+  is_active: z.boolean().optional()
+})
+
+// ========================================
+// Вспомогательные функции
+// ========================================
+
+export function validate(schema, data) {
+  const result = schema.safeParse(data)
+
+  if (result.success) {
+    return { isValid: true, errors: [], data: result.data }
+  }
+
+  const issues = result.error?.issues || result.error?.errors || []
+  return {
+    isValid: false,
+    errors: issues.map(err => ({
+      field: err.path?.join('.') || '',
+      message: err.message,
+      code: err.code
+    })),
+    data: null
+  }
+}
