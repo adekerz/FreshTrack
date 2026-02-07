@@ -659,6 +659,8 @@
     "collectedBatches": "Collected Batches",
     "addBatch": "Add Batch",
     "addNewBatch": "Add New Batch",
+    "batchOne": "batch",
+    "batchesCount": "batches",
     "manufacturingDate": "Manufacturing Date",
     "expiryDate": "Expiry Date",
     "collectedAt": "Collected at",

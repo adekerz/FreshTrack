@@ -191,13 +191,11 @@ export function useExport() {
     })
 
     try {
-      // Строим URL с фильтрами и форматом
+      // PDF бэкенд не отдаёт — запрашиваем JSON и генерируем PDF на клиенте
+      const requestFormat = format === 'pdf' ? 'json' : format
       const url = new URL(`${API_BASE_URL}${exportConfig.endpoint}`)
+      url.searchParams.append('format', requestFormat)
 
-      // Добавляем формат
-      url.searchParams.append('format', format)
-
-      // Добавляем фильтры если есть
       if (options.filters) {
         Object.entries(options.filters).forEach(([key, value]) => {
           if (value !== null && value !== undefined && value !== '') {
@@ -206,7 +204,6 @@ export function useExport() {
         })
       }
 
-      // Запрос к backend
       const response = await fetch(url.toString(), {
         method: 'GET',
         credentials: 'include'
@@ -214,18 +211,32 @@ export function useExport() {
 
       if (!response.ok) {
         const error = await response.json().catch(() => ({ message: 'Export failed' }))
-        throw new Error(error.message || 'Export failed')
+        throw new Error(error.message || error.error || 'Export failed')
       }
 
-      // Backend возвращает файл напрямую - скачиваем его
-      const blob = await response.blob()
+      if (format === 'pdf') {
+        const body = await response.json()
+        const data = body.data ?? body
+        if (!Array.isArray(data) || data.length === 0) {
+          addToast(t('export.noData') || 'Нет данных для экспорта', 'warning')
+          setExportProgress({ status: null, filename: null })
+          return
+        }
+        const formattedData = formatDataForExport(data, type, t)
+        const columns = EXPORT_COLUMNS[exportConfig.columnsKey]?.(t) || []
+        exportToPDF(exportConfig.title, formattedData, columns, {
+          subtitle: exportConfig.subtitle,
+          companyName: 'FreshTrack'
+        })
+        setExportProgress({ status: 'success', filename })
+        return
+      }
 
-      // Проверяем что blob не пустой
+      const blob = await response.blob()
       if (blob.size === 0) {
         throw new Error('Нет данных для экспорта')
       }
 
-      // Скачиваем файл
       const downloadUrl = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = downloadUrl
@@ -235,7 +246,6 @@ export function useExport() {
       window.URL.revokeObjectURL(downloadUrl)
       document.body.removeChild(a)
 
-      // Показываем успех в прогрессе
       setExportProgress({
         status: 'success',
         filename

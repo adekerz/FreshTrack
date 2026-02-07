@@ -47,7 +47,14 @@ const EntityColumns = {
     { key: 'min_quantity', header: 'Мин. остаток' },
     { key: 'created_at', header: 'Дата создания' }
   ],
-  inventory: [], // авто-детект (API и scheduled экспорт имеют разную структуру)
+  inventory: [
+    { key: 'name', header: 'Товар' },
+    { key: 'category_name', header: 'Категория' },
+    { key: 'total_quantity', header: 'Количество' },
+    { key: 'unit', header: 'Ед.изм.' },
+    { key: 'nearest_expiry', header: 'Срок годности' },
+    { key: 'batch_count', header: 'Партий' }
+  ],
   batches: [
     { key: 'product_name', header: 'Продукт' },
     { key: 'batch_number', header: 'Номер партии' },
@@ -577,8 +584,8 @@ export class ExportService {
         case ExportFormat.CSV:
           res.setHeader('Content-Type', MimeTypes[ExportFormat.CSV])
           res.setHeader('Content-Disposition', `attachment; filename="${filename}.csv"`)
-          // Add BOM for Excel UTF-8 compatibility
-          res.send('\ufeff' + this.toCSV(data, entityType, options))
+          // BOM + разделитель ";" для корректного открытия в Excel (RU)
+          res.send('\ufeff' + this.toCSV(data, entityType, { ...options, delimiter: ';' }))
           break
           
         case ExportFormat.JSON:

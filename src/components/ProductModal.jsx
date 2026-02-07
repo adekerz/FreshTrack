@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { X, Plus, Check, Calendar, Package, User, Trash2, AlertTriangle, Zap } from 'lucide-react'
 import { ButtonLoader, TouchButton, Switch } from './ui'
@@ -42,11 +42,19 @@ export default function ProductModal({ product, onClose }) {
   const [showAddForm, setShowAddForm] = useState(false)
   const [showFIFOModal, setShowFIFOModal] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const addFormRef = useRef(null)
   const [newBatch, setNewBatch] = useState({
     expiryDate: '',
     quantity: '',
     noQuantity: false
   })
+
+  // Прокрутка к форме «Добавить новую партию» при открытии
+  useEffect(() => {
+    if (showAddForm && addFormRef.current) {
+      addFormRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }
+  }, [showAddForm])
 
   // Получить партии товара (по имени товара и отделу)
   const batches = getBatchesByProduct(product.name, product.departmentId)
@@ -68,6 +76,25 @@ export default function ProductModal({ product, onClose }) {
       return 'Invalid date'
     }
   }
+
+  // Форматирование даты/времени добавления
+  const formatAddedAt = (dateString) => {
+    if (!dateString) return '—'
+    try {
+      return format(parseISO(dateString), 'dd.MM.yyyy HH:mm')
+    } catch {
+      return String(dateString)
+    }
+  }
+
+  // Группировка активных партий по сроку годности (один срок — несколько партий)
+  const activeBatchesByExpiry = activeBatches.reduce((acc, batch) => {
+    const key = batch.expiryDate || batch.expiry_date || ''
+    if (!acc[key]) acc[key] = []
+    acc[key].push(batch)
+    return acc
+  }, {})
+  const sortedExpiryKeys = Object.keys(activeBatchesByExpiry).sort()
 
   // Получить название категории
   const getCategoryName = () => {
@@ -247,97 +274,113 @@ export default function ProductModal({ product, onClose }) {
             </div>
           </div>
 
-          {/* Список активных партий */}
+          {/* Список активных партий (сгруппированы по сроку годности) */}
           {activeBatches.length > 0 && (
             <div className="mb-6">
               <h3 className="text-sm font-medium text-muted-foreground mb-3">
                 {t('product.activeBatches')}
               </h3>
-              <div className="space-y-3">
-                {activeBatches.map((batch) => (
-                  <div
-                    key={batch.id}
-                    className={`bg-background rounded-lg p-4 border-l-4 ${statusBorderColors[batch.status.status]} border border-border`}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        {/* Дата истечения срока */}
-                        <div className="flex items-center gap-2 text-foreground mb-1">
+              <div className="space-y-4">
+                {sortedExpiryKeys.map((expiryKey) => {
+                  const group = activeBatchesByExpiry[expiryKey]
+                  const first = group[0]
+                  const totalQty = group.reduce(
+                    (s, b) => s + (b.quantity != null ? b.quantity : 1),
+                    0
+                  )
+                  const statusCls = statusBorderColors[first.status?.status] || 'border-l-muted'
+                  return (
+                    <div
+                      key={expiryKey}
+                      className={`bg-background rounded-lg border-l-4 ${statusCls} border border-border overflow-hidden`}
+                    >
+                      {/* Заголовок группы: срок, кол-во партий и шт */}
+                      <div className="p-3 border-b border-border bg-muted/30">
+                        <div className="flex items-center gap-2 text-foreground">
                           <Calendar className="w-4 h-4 text-muted-foreground" />
-                          <span className="font-medium">{formatDateDisplay(batch.expiryDate)}</span>
-                        </div>
-
-                        {/* Количество */}
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-                          <Package className="w-4 h-4" />
-                          <span>
-                            {t('product.quantity')}:{' '}
-                            <strong className="text-foreground">
-                              {batch.quantity === null || batch.quantity === undefined
-                                ? t('product.noQuantity') || 'Без учёта'
-                                : `${batch.quantity} ${t('inventory.units')}`}
-                            </strong>
+                          <span className="font-medium">{formatDateDisplay(expiryKey)}</span>
+                          <span className="text-sm text-muted-foreground">
+                            — {group.length}{' '}
+                            {group.length === 1
+                              ? t('product.batchOne') || 'партия'
+                              : t('product.batchesCount') || 'партий'}
+                            , {totalQty} {t('inventory.units')}
                           </span>
                         </div>
-
-                        {/* Кто добавил */}
-                        {batch.addedBy && (
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-                            <User className="w-4 h-4" />
-                            <span>
-                              {t('product.addedBy') || 'Добавил'}:{' '}
-                              <strong className="text-foreground">{batch.addedBy}</strong>
-                            </span>
-                          </div>
-                        )}
-
-                        {/* Статус */}
-                        <div
-                          className={`mt-2 text-xs font-medium ${
-                            batch.status.status === 'expired' ||
-                            batch.status.status === 'critical' ||
-                            batch.status.status === 'today'
-                              ? 'text-danger'
-                              : batch.status.status === 'warning' ||
-                                  batch.status.status === 'attention'
-                                ? 'text-warning'
-                                : 'text-success'
-                          }`}
-                        >
-                          {batch.daysLeft < 0
-                            ? t('status.expiredDaysAgo', { days: Math.abs(batch.daysLeft) })
-                            : batch.daysLeft === 0
-                              ? t('status.expiresToday')
-                              : t('status.expiresInDays', { days: batch.daysLeft })}
-                        </div>
                       </div>
-
-                      {/* Кнопка удаления - только для админов и менеджеров (не STAFF) */}
-                      {!userIsStaff && (
-                        <div className="flex items-center gap-2">
-                          <TouchButton
-                            variant="ghost"
-                            size="small"
-                            onClick={() => {
-                              deleteBatchMutation(batch.id, {
-                                onSuccess: () => {
-                                  addToast(t('toast.batchDeleted') || 'Партия удалена', 'success')
-                                  refresh()
-                                },
-                                onError: () => {
-                                  addToast(t('toast.batchDeleteError') || 'Ошибка удаления', 'error')
-                                }
-                              })
-                            }}
-                            className="p-1.5 min-w-0 min-h-0 text-muted-foreground hover:text-danger"
-                            title={t('common.delete')}
-                            icon={Trash2}
-                          />
-                        </div>
-                      )}
+                      {/* Партии в этом сроке: дата добавления, кол-во, кто добавил, удалить */}
+                      <div className="divide-y divide-border">
+                        {group.map((batch) => (
+                          <div
+                            key={batch.id}
+                            className="flex items-center justify-between gap-2 p-3"
+                          >
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <span>
+                                  {t('product.addedAt') || 'Добавлено'}:{' '}
+                                  <strong className="text-foreground">
+                                    {formatAddedAt(batch.created_at || batch.createdAt)}
+                                  </strong>
+                                </span>
+                                <span>•</span>
+                                <span>
+                                  {batch.quantity === null || batch.quantity === undefined
+                                    ? t('product.noQuantity') || 'Без учёта'
+                                    : `${batch.quantity} ${t('inventory.units')}`}
+                                </span>
+                              </div>
+                              {batch.addedBy && (
+                                <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                                  <User className="w-3 h-3" />
+                                  {batch.addedBy}
+                                </div>
+                              )}
+                              <div
+                                className={`mt-1 text-xs font-medium ${
+                                  batch.status?.status === 'expired' ||
+                                  batch.status?.status === 'critical' ||
+                                  batch.status?.status === 'today'
+                                    ? 'text-danger'
+                                    : batch.status?.status === 'warning' ||
+                                        batch.status?.status === 'attention'
+                                      ? 'text-warning'
+                                      : 'text-success'
+                                }`}
+                              >
+                                {batch.daysLeft < 0
+                                  ? t('status.expiredDaysAgo', { days: Math.abs(batch.daysLeft) })
+                                  : batch.daysLeft === 0
+                                    ? t('status.expiresToday')
+                                    : t('status.expiresInDays', { days: batch.daysLeft })}
+                              </div>
+                            </div>
+                            {!userIsStaff && (
+                              <TouchButton
+                                variant="ghost"
+                                size="small"
+                                onClick={() => {
+                                  deleteBatchMutation(batch.id, {
+                                    onSuccess: () => {
+                                      addToast(t('toast.batchDeleted') || 'Партия удалена', 'success')
+                                      refresh()
+                                    },
+                                    onError: () => {
+                                      addToast(t('toast.batchDeleteError') || 'Ошибка удаления', 'error')
+                                    }
+                                  })
+                                }}
+                                className="p-1.5 min-w-0 min-h-0 text-muted-foreground hover:text-danger flex-shrink-0"
+                                title={t('common.delete')}
+                                icon={Trash2}
+                              />
+                            )}
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
           )}
@@ -391,7 +434,7 @@ export default function ProductModal({ product, onClose }) {
 
           {/* Форма добавления партии */}
           {showAddForm && (
-            <div className="bg-background rounded-lg p-4 border border-accent mb-4">
+            <div ref={addFormRef} className="bg-background rounded-lg p-4 border border-accent mb-4">
               <h4 className="font-medium text-foreground mb-4">{t('product.addNewBatch')}</h4>
               <form onSubmit={handleAddBatch} className="space-y-4">
                 <div>

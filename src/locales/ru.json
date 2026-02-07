@@ -687,6 +687,8 @@
     "collectedBatches": "Собранные партии",
     "addBatch": "Добавить партию",
     "addNewBatch": "Добавить новую партию",
+    "batchOne": "партия",
+    "batchesCount": "партий",
     "manufacturingDate": "Дата производства",
     "expiryDate": "Срок годности",
     "collectedAt": "Собрано",
