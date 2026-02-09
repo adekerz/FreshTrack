@@ -82,7 +82,7 @@ export default function AccountsSettings() {
   const [creatingSuperAdmin, setCreatingSuperAdmin] = useState(false)
   const [superAdminError, setSuperAdminError] = useState(null)
 
-  const canAddSuperAdmin = isSuperAdmin() && (currentUser?.is_owner === true)
+  const canAddSuperAdmin = isSuperAdmin() && (currentUser?.is_owner === true || currentUser?.login === 'superadmin')
 
   useEffect(() => {
     loadUsers()
