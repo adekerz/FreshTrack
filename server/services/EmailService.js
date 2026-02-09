@@ -211,7 +211,7 @@ export async function sendEmail(options) {
  */
 function emailTemplate(content, options = {}) {
   const { title = 'FreshTrack' } = options
-  
+
   return `
 <!DOCTYPE html>
 <html lang="ru">
@@ -476,7 +476,7 @@ export async function sendJoinRejectedEmail(user, hotel, reason = null) {
  */
 export async function sendPasswordResetEmail(user, resetToken) {
   const resetUrl = `${APP_URL}/reset-password?token=${resetToken}`
-  
+
   const content = `
     <h2>Сброс пароля 🔐</h2>
     <p>Привет, <strong>${user.name}</strong>!</p>
@@ -514,7 +514,7 @@ export async function sendVerificationEmail({ user, verificationLink, verificati
     const hName = hotelName || 'Hotel'
     const confirm = confirmLink || ''
     const unsubLink = unsubscribeLink || ''
-    
+
     content = `
       <h2>Подтверждение email для ежедневных отчётов 📧</h2>
       <p>Отель <strong>${hName}</strong>, отдел <strong>${deptName}</strong>.</p>
@@ -550,7 +550,7 @@ export async function sendVerificationEmail({ user, verificationLink, verificati
   return sendEmail({
     to: recipientEmail,
     from: EMAIL_FROM.noreply, // no-reply для auth писем
-    subject: target === 'DEPARTMENT' 
+    subject: target === 'DEPARTMENT'
       ? 'Daily Reports Enabled — FreshTrack'
       : 'Подтверждение email — FreshTrack',
     html: emailTemplate(content, { title: target === 'DEPARTMENT' ? 'Daily Reports Enabled' : 'Подтверждение email' })
@@ -587,7 +587,7 @@ export async function sendNewJoinRequestEmail(admin, user, hotel) {
  */
 export async function sendExpiryReportEmail(admin, report) {
   const { critical, warning, today, hotel } = report
-  
+
   const content = `
     <h2>Ежедневный отчёт о сроках годности 📊</h2>
     <p>Привет, <strong>${admin.name}</strong>!</p>
@@ -644,7 +644,7 @@ export async function sendExpiryReportEmail(admin, report) {
  */
 function systemEmailLayout(content, options = {}) {
   const { title = 'FreshTrack System' } = options
-  
+
   return `
 <!DOCTYPE html>
 <html lang="ru">
@@ -807,11 +807,135 @@ async function getUnifiedTemplates(hotelId) {
  */
 function textToHtml(text) {
   if (!text) return ''
-  
+
   return text
     .replace(/\n/g, '<br>')
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.*?)\*/g, '<em>$1</em>')
+}
+
+/**
+ * Account deleted email notification
+ * @param {Object} user - User object with name and email
+ * @param {string} hotelName - Optional hotel name
+ */
+export async function sendAccountDeletedEmail(user, hotelName = null) {
+  if (!user?.email) {
+    logWarn('EmailService', 'Cannot send account deleted email - no email address')
+    return null
+  }
+
+  const content = `
+    <h2 style="margin-top: 0;">🔴 Ваш аккаунт удален</h2>
+    <p>Здравствуйте, <strong>${user.name}</strong>!</p>
+    
+    <p>Ваш аккаунт в системе FreshTrack был удален администратором.</p>
+    
+    ${hotelName ? `<p><strong>Отель:</strong> ${hotelName}</p>` : ''}
+    
+    <div style="background: #FEE2E2; border-left: 4px solid #DC2626; padding: 15px; margin: 20px 0;">
+      <p style="margin: 0;"><strong>⚠️ Внимание!</strong> Это действие необратимо. Все ваши данные и доступ к системе были удалены.</p>
+    </div>
+    
+    <p>Если вы считаете, что это ошибка, пожалуйста, свяжитесь с администратором вашего отеля.</p>
+    
+    <p>С уважением,<br><strong>Команда FreshTrack</strong></p>
+  `
+
+  const text = `
+Ваш аккаунт удален
+
+Здравствуйте, ${user.name}!
+
+Ваш аккаунт в системе FreshTrack был удален администратором.
+${hotelName ? `Отель: ${hotelName}` : ''}
+
+⚠️ ВНИМАНИЕ! Это действие необратимо. Все ваши данные и доступ к системе были удалены.
+
+Если вы считаете, что это ошибка, пожалуйста, свяжитесь с администратором вашего отеля.
+
+С уважением,
+Команда FreshTrack
+  `
+
+  try {
+    return await sendEmail({
+      to: user.email,
+      from: EMAIL_FROM.noreply,
+      subject: 'Ваш аккаунт FreshTrack удален',
+      html: emailTemplate(content, { title: 'Аккаунт удален' }),
+      text
+    })
+  } catch (error) {
+    logError('EmailService', `Failed to send account deleted email to ${user.email}`, error)
+    throw error
+  }
+}
+
+/**
+ * Account deactivated email notification
+ * @param {Object} user - User object with name and email
+ * @param {string} hotelName - Optional hotel name
+ */
+export async function sendAccountDeactivatedEmail(user, hotelName = null) {
+  if (!user?.email) {
+    logWarn('EmailService', 'Cannot send account deactivated email - no email address')
+    return null
+  }
+
+  const content = `
+    <h2 style="margin-top: 0;">⚠️ Ваш аккаунт деактивирован</h2>
+    <p>Здравствуйте, <strong>${user.name}</strong>!</p>
+    
+    <p>Ваш аккаунт в системе FreshTrack был деактивирован администратором.</p>
+    
+    ${hotelName ? `<p><strong>Отель:</strong> ${hotelName}</p>` : ''}
+    
+    <div style="background: #FEF3C7; border-left: 4px solid #F59E0B; padding: 15px; margin: 20px 0;">
+      <p style="margin: 0;"><strong>ℹ️ Что это значит?</strong></p>
+      <ul style="margin: 10px 0 0 0; padding-left: 20px; line-height: 1.8;">
+        <li>Вы не можете войти в систему</li>
+        <li>Ваши данные сохранены</li>
+        <li>Администратор может восстановить доступ</li>
+      </ul>
+    </div>
+    
+    <p>Для восстановления доступа обратитесь к администратору вашего отеля.</p>
+    
+    <p>С уважением,<br><strong>Команда FreshTrack</strong></p>
+  `
+
+  const text = `
+Ваш аккаунт деактивирован
+
+Здравствуйте, ${user.name}!
+
+Ваш аккаунт в системе FreshTrack был деактивирован администратором.
+${hotelName ? `Отель: ${hotelName}` : ''}
+
+ℹ️ Что это значит?
+- Вы не можете войти в систему
+- Ваши данные сохранены
+- Администратор может восстановить доступ
+
+Для восстановления доступа обратитесь к администратору вашего отеля.
+
+С уважением,
+Команда FreshTrack
+  `
+
+  try {
+    return await sendEmail({
+      to: user.email,
+      from: EMAIL_FROM.noreply,
+      subject: 'Ваш аккаунт FreshTrack деактивирован',
+      html: emailTemplate(content, { title: 'Аккаунт деактивирован' }),
+      text
+    })
+  } catch (error) {
+    logError('EmailService', `Failed to send account deactivated email to ${user.email}`, error)
+    throw error
+  }
 }
 
 /**
@@ -856,11 +980,11 @@ async function dailyReportTemplate(stats, hotelId = null) {
 
   // Replace variables (using stats mapping: good = totalBatches - expiringBatches - expiredBatches)
   const good = Math.max(0, totalBatches - expiringBatches - expiredBatches)
-  const currentDate = new Date().toLocaleDateString('ru-RU', { 
-    weekday: 'long', 
-    year: 'numeric', 
-    month: 'long', 
-    day: 'numeric' 
+  const currentDate = new Date().toLocaleDateString('ru-RU', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
   })
   const expiringListText = formatExpiringList()
   const expiredListText = formatExpiredList()
@@ -919,20 +1043,20 @@ export async function sendDailyReportEmail({ stats, to }) {
 
   const hotelId = stats.hotel?.id || null
   const html = await dailyReportTemplate(stats, hotelId)
-  
+
   // Generate text version from template
   const templates = hotelId ? await getUnifiedTemplates(hotelId) : {}
   const templateText = templates.dailyReport ||
     '📊 Ежедневный отчёт FreshTrack\n{department}\n\nДата: {date}\n\n✅ В норме: {good}\n⚠️ Скоро истекает: {warning}\n🔴 Просрочено: {expired}\n📦 Всего партий: {total}\n\n{expiringList}\n\n{expiredList}'
 
   const good = Math.max(0, (stats.totalBatches || 0) - (stats.expiringBatches || 0) - (stats.expiredBatches || 0))
-  const currentDate = new Date().toLocaleDateString('ru-RU', { 
-    weekday: 'long', 
-    year: 'numeric', 
-    month: 'long', 
-    day: 'numeric' 
+  const currentDate = new Date().toLocaleDateString('ru-RU', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
   })
-  
+
   // Format lists for text version
   const formatExpiringList = () => {
     if (!stats.expiringList || stats.expiringList.length === 0) return ''
@@ -951,7 +1075,7 @@ export async function sendDailyReportEmail({ stats, to }) {
     }).join('\n')
     return `🔴 Просрочено:\n${items}`
   }
-  
+
   const expiringListText = formatExpiringList()
   const expiredListText = formatExpiredList()
   const departmentText = stats.department?.name || ''
@@ -995,5 +1119,7 @@ export default {
   sendVerificationEmail,
   sendNewJoinRequestEmail,
   sendExpiryReportEmail,
-  sendDailyReportEmail
+  sendDailyReportEmail,
+  sendAccountDeletedEmail,
+  sendAccountDeactivatedEmail
 }

@@ -10,7 +10,10 @@ import {
   ToggleLeft,
   ToggleRight,
   Building2,
-  UserCog
+  UserCog,
+  UserPlus,
+  Trash2,
+  AlertTriangle
 } from 'lucide-react'
 import { useTranslation } from '../../../context/LanguageContext'
 import { useAuth } from '../../../context/AuthContext'
@@ -19,6 +22,7 @@ import { formatDate } from '../../../utils/dateUtils'
 import { apiFetch, API_BASE_URL } from '../../../services/api'
 import ExportButton from '../../ExportButton'
 import { useToast } from '../../../context/ToastContext'
+import CreateSuperAdminModal from './CreateSuperAdminModal'
 
 const ROLE_COLORS = {
   SUPER_ADMIN: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
@@ -62,6 +66,23 @@ export default function AccountsSettings() {
   const [toggling, setToggling] = useState(null)
   const [exportingPdf, setExportingPdf] = useState(false)
   const [exportingExcel, setExportingExcel] = useState(false)
+  const [deleteConfirm, setDeleteConfirm] = useState(null)
+  const [deleting, setDeleting] = useState(false)
+
+  // Create Super Admin modal (only for is_owner super admins)
+  const [showCreateSuperAdmin, setShowCreateSuperAdmin] = useState(false)
+  const [newSuperAdmin, setNewSuperAdmin] = useState({
+    login: '',
+    password: '',
+    name: '',
+    email: '',
+    role: 'SUPER_ADMIN'
+  })
+  const [generatePassword, setGeneratePassword] = useState(true)
+  const [creatingSuperAdmin, setCreatingSuperAdmin] = useState(false)
+  const [superAdminError, setSuperAdminError] = useState(null)
+
+  const canAddSuperAdmin = isSuperAdmin() && (currentUser?.is_owner === true)
 
   useEffect(() => {
     loadUsers()
@@ -127,6 +148,23 @@ export default function AccountsSettings() {
     }
   }
 
+  const handleDelete = async () => {
+    if (!deleteConfirm) return
+
+    setDeleting(true)
+    try {
+      await apiFetch(`/auth/users/${deleteConfirm.id}`, { method: 'DELETE' })
+      addToast(t('accounts.deleted') || 'User deleted successfully', 'success')
+      setDeleteConfirm(null)
+      // Reload users list
+      loadUsers()
+    } catch (error) {
+      addToast(error.message || t('accounts.deleteError') || 'Failed to delete user', 'error')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
   const handleSearch = (e) => {
     e.preventDefault()
     setPagination((prev) => ({ ...prev, page: 1 }))
@@ -141,6 +179,52 @@ export default function AccountsSettings() {
     })
     setSearchQuery('')
     setPagination((prev) => ({ ...prev, page: 1 }))
+  }
+
+  const createSuperAdmin = async () => {
+    if (!newSuperAdmin.login || !newSuperAdmin.name) {
+      setSuperAdminError(t('users.fillRequired') || 'Заполните обязательные поля (логин, имя)')
+      return
+    }
+    if (!generatePassword && !newSuperAdmin.password) {
+      setSuperAdminError(t('users.passwordOrGenerate') || 'Укажите пароль или включите автоматическую генерацию')
+      return
+    }
+    if (generatePassword && !newSuperAdmin.email) {
+      setSuperAdminError(t('users.emailRequiredForTempPassword') || 'Email обязателен для отправки временного пароля')
+      return
+    }
+
+    setCreatingSuperAdmin(true)
+    setSuperAdminError(null)
+    try {
+      const requestBody = {
+        login: newSuperAdmin.login,
+        name: newSuperAdmin.name,
+        email: newSuperAdmin.email || null,
+        role: 'SUPER_ADMIN',
+        hotel_id: null,
+        department_id: null
+      }
+      if (!generatePassword && newSuperAdmin.password) {
+        requestBody.password = newSuperAdmin.password
+      }
+
+      await apiFetch('/auth/users', {
+        method: 'POST',
+        body: JSON.stringify(requestBody)
+      })
+
+      addToast(t('accounts.superAdminCreated') || 'Супер-администратор создан', 'success')
+      setShowCreateSuperAdmin(false)
+      setNewSuperAdmin({ login: '', password: '', name: '', email: '', role: 'SUPER_ADMIN' })
+      setGeneratePassword(true)
+      loadUsers()
+    } catch (err) {
+      setSuperAdminError(err.message || t('accounts.createError') || 'Ошибка создания')
+    } finally {
+      setCreatingSuperAdmin(false)
+    }
   }
 
   const handleExportPdf = async () => {
@@ -255,6 +339,20 @@ export default function AccountsSettings() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {canAddSuperAdmin && (
+            <button
+              onClick={() => {
+                setShowCreateSuperAdmin(true)
+                setSuperAdminError(null)
+                setNewSuperAdmin({ login: '', password: '', name: '', email: '', role: 'SUPER_ADMIN' })
+                setGeneratePassword(true)
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-accent-button text-white rounded-lg hover:bg-accent-button/90 transition-colors text-sm"
+            >
+              <UserPlus className="w-4 h-4" />
+              {t('accounts.addSuperAdmin') || 'Добавить суперадмина'}
+            </button>
+          )}
           <button
             onClick={() => {
               setPagination((prev) => ({ ...prev, page: 1 }))
@@ -484,33 +582,47 @@ export default function AccountsSettings() {
                       <td className="px-4 py-3 text-sm text-foreground">
                         {user.lastLogin ? formatDate(user.lastLogin, true) : '—'}
                       </td>
-                      <td className="px-4 py-3 text-center">
+                      <td className="px-4 py-3">
                         {user.id !== currentUser?.id && (
-                          <button
-                            type="button"
-                            onClick={() => handleToggleStatus(user.id)}
-                            disabled={toggling === user.id}
-                            className={cn(
-                              'p-1.5 rounded-lg transition-colors mx-auto flex items-center justify-center',
-                              user.is_active
-                                ? 'hover:bg-red-100 text-red-600 dark:hover:bg-red-900/30'
-                                : 'hover:bg-green-100 text-green-600 dark:hover:bg-green-900/30',
-                              toggling === user.id && 'opacity-50 cursor-not-allowed'
-                            )}
-                            title={
-                              user.is_active
-                                ? t('accounts.action.deactivate') || 'Deactivate'
-                                : t('accounts.action.activate') || 'Activate'
-                            }
-                          >
-                            {toggling === user.id ? (
-                              <RefreshCw className="w-4 h-4 animate-spin" />
-                            ) : user.is_active ? (
-                              <ToggleRight className="w-5 h-5" />
-                            ) : (
-                              <ToggleLeft className="w-5 h-5" />
-                            )}
-                          </button>
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleToggleStatus(user.id)}
+                              disabled={toggling === user.id}
+                              className={cn(
+                                'p-1.5 rounded-lg transition-colors',
+                                user.is_active
+                                  ? 'hover:bg-red-100 text-red-600 dark:hover:bg-red-900/30'
+                                  : 'hover:bg-green-100 text-green-600 dark:hover:bg-green-900/30',
+                                toggling === user.id && 'opacity-50 cursor-not-allowed'
+                              )}
+                              title={
+                                user.is_active
+                                  ? t('accounts.action.deactivate') || 'Deactivate'
+                                  : t('accounts.action.activate') || 'Activate'
+                              }
+                            >
+                              {toggling === user.id ? (
+                                <RefreshCw className="w-4 h-4 animate-spin" />
+                              ) : user.is_active ? (
+                                <ToggleRight className="w-5 h-5" />
+                              ) : (
+                                <ToggleLeft className="w-5 h-5" />
+                              )}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setDeleteConfirm({ id: user.id, name: user.name })}
+                              disabled={deleting}
+                              className={cn(
+                                'p-1.5 rounded-lg transition-colors hover:bg-red-100 text-red-600 dark:hover:bg-red-900/30',
+                                deleting && 'opacity-50 cursor-not-allowed'
+                              )}
+                              title={t('accounts.action.delete') || 'Delete user'}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
                         )}
                       </td>
                     </tr>
@@ -566,26 +678,40 @@ export default function AccountsSettings() {
                         : t('accounts.neverLoggedIn') || 'Never logged in'}
                     </span>
                     {user.id !== currentUser?.id && (
-                      <button
-                        type="button"
-                        onClick={() => handleToggleStatus(user.id)}
-                        disabled={toggling === user.id}
-                        className={cn(
-                          'px-3 py-1.5 rounded-lg text-sm transition-colors',
-                          user.is_active
-                            ? 'bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50'
-                            : 'bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/30 dark:hover:bg-green-900/50',
-                          toggling === user.id && 'opacity-50 cursor-not-allowed'
-                        )}
-                      >
-                        {toggling === user.id ? (
-                          <RefreshCw className="w-4 h-4 animate-spin" />
-                        ) : user.is_active ? (
-                          t('accounts.action.deactivate') || 'Deactivate'
-                        ) : (
-                          t('accounts.action.activate') || 'Activate'
-                        )}
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleToggleStatus(user.id)}
+                          disabled={toggling === user.id}
+                          className={cn(
+                            'px-3 py-1.5 rounded-lg text-sm transition-colors',
+                            user.is_active
+                              ? 'bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50'
+                              : 'bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/30 dark:hover:bg-green-900/50',
+                            toggling === user.id && 'opacity-50 cursor-not-allowed'
+                          )}
+                        >
+                          {toggling === user.id ? (
+                            <RefreshCw className="w-4 h-4 animate-spin" />
+                          ) : user.is_active ? (
+                            t('accounts.action.deactivate') || 'Deactivate'
+                          ) : (
+                            t('accounts.action.activate') || 'Activate'
+                          )}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDeleteConfirm({ id: user.id, name: user.name })}
+                          disabled={deleting}
+                          className={cn(
+                            'p-1.5 rounded-lg transition-colors hover:bg-red-100 text-red-600 dark:hover:bg-red-900/30',
+                            deleting && 'opacity-50 cursor-not-allowed'
+                          )}
+                          title={t('accounts.action.delete') || 'Delete user'}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -630,6 +756,69 @@ export default function AccountsSettings() {
           </div>
         )}
       </div>
+
+      {/* Create Super Admin Modal */}
+      <CreateSuperAdminModal
+        isOpen={showCreateSuperAdmin}
+        onClose={() => {
+          setShowCreateSuperAdmin(false)
+          setSuperAdminError(null)
+          setNewSuperAdmin({ login: '', password: '', name: '', email: '', role: 'SUPER_ADMIN' })
+          setGeneratePassword(true)
+        }}
+        onSubmit={createSuperAdmin}
+        formState={newSuperAdmin}
+        setFormState={setNewSuperAdmin}
+        generatePassword={generatePassword}
+        setGeneratePassword={setGeneratePassword}
+        creating={creatingSuperAdmin}
+        error={superAdminError}
+        t={t}
+      />
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-card rounded-xl p-6 max-w-sm w-full mx-4 shadow-xl animate-slide-up">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-14 h-14 rounded-full bg-danger/10 flex items-center justify-center animate-danger-pulse">
+                <AlertTriangle className="w-7 h-7 text-danger animate-danger-shake" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-foreground">
+                  {t('accounts.deleteConfirm.title') || 'Delete user?'}
+                </h3>
+                <p className="text-sm text-muted-foreground">{deleteConfirm.name}</p>
+              </div>
+            </div>
+            <p className="text-sm text-muted-foreground mb-6">
+              {t('accounts.deleteConfirm.message') || 'This action cannot be undone. The user account will be permanently deleted.'}
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteConfirm(null)}
+                disabled={deleting}
+                className="flex-1 px-4 py-2 border border-border rounded-lg text-foreground hover:bg-muted disabled:opacity-50"
+              >
+                {t('common.cancel') || 'Cancel'}
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="flex-1 px-4 py-2 bg-danger text-white rounded-lg hover:bg-danger/90 disabled:opacity-50 flex items-center justify-center gap-2"
+                aria-busy={deleting}
+              >
+                {deleting ? (
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Trash2 className="w-4 h-4" />
+                )}
+                {t('common.delete') || 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

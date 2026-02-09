@@ -140,6 +140,7 @@ export class AuthService {
       emailVerified: user.email_verified || false,
       role: user.role,
       roleLabel: roleLabels[role] || user.role,
+      is_owner: user.is_owner || false,
       status: user.status || 'active',
       hotel_id: user.hotel_id,
       department_id: user.department_id,
@@ -166,6 +167,8 @@ export class AuthService {
         // Admin checks (prefer using specific capabilities below)
         isAdmin,
         isSuperAdmin: role === 'SUPER_ADMIN',
+        isOwner: user.is_owner || false,
+        canCreateSuperAdmin: role === 'SUPER_ADMIN' && user.is_owner === true,
 
         // Resource capabilities
         canViewAuditLogs: hasAll || isAdmin || permissions.includes('audit:read'),
@@ -414,9 +417,9 @@ export class AuthService {
       }
 
       // Обновить пароль и сбросить must_change_password
-      await dbUpdateUser(userId, { 
+      await dbUpdateUser(userId, {
         password: newPassword,
-        must_change_password: false 
+        must_change_password: false
       })
 
       // Логирование
@@ -517,7 +520,7 @@ export class AuthService {
         if (!data.email || !data.email.trim()) {
           return ServiceResult.error('Email is required when password is auto-generated')
         }
-        
+
         const { generateTemporaryPassword } = await import('../../utils/passwordGenerator.js')
         temporaryPassword = generateTemporaryPassword(12)
         password = temporaryPassword
@@ -536,7 +539,7 @@ export class AuthService {
         department_id: departmentId,
         must_change_password: mustChangePassword
       })
-      
+
       // Ensure newUser has all required fields for formatUserResponse
       if (!newUser.status) {
         newUser.status = 'active'
@@ -549,13 +552,13 @@ export class AuthService {
       if (temporaryPassword && data.email) {
         try {
           const { sendWelcomeEmailWithPassword } = await import('../../services/EmailService.js')
-          
+
           // Get hotel name using dbQuery (already imported at top of file)
           const hotelResult = await dbQuery('SELECT name FROM hotels WHERE id = $1', [hotelId])
           const hotelName = hotelResult.rows[0]?.name || 'FreshTrack'
-          
+
           const loginUrl = process.env.APP_URL || 'http://localhost:5173/login'
-          
+
           await sendWelcomeEmailWithPassword({
             to: data.email,
             userName: data.name,
@@ -563,7 +566,7 @@ export class AuthService {
             hotelName,
             loginUrl
           })
-          
+
           logInfo('AuthService', `Welcome email with password sent to ${data.email}`)
         } catch (emailError) {
           logError('AuthService', `Failed to send welcome email to ${data.email}`, emailError)
@@ -590,7 +593,7 @@ export class AuthService {
 
       try {
         const userData = await this.formatUserResponse(newUser, false)
-        return ServiceResult.created({ 
+        return ServiceResult.created({
           user: userData,
           message: temporaryPassword ? `User created. Temporary password sent to ${data.email}` : 'User created'
         })
@@ -678,6 +681,20 @@ export class AuthService {
         return ServiceResult.error('Cannot delete yourself')
       }
 
+      // Get user email and hotel info BEFORE deletion
+      const userEmail = user.email
+      const userName = user.name
+      let hotelName = null
+
+      if (user.hotel_id) {
+        try {
+          const hotelResult = await dbQuery('SELECT name FROM hotels WHERE id = $1', [user.hotel_id])
+          hotelName = hotelResult.rows[0]?.name || null
+        } catch (err) {
+          logError('AuthService.deleteUser', 'Failed to get hotel name', err)
+        }
+      }
+
       await dbDeleteUser(userId)
 
       // Логирование
@@ -694,6 +711,18 @@ export class AuthService {
         },
         ip_address: ipAddress
       })
+
+      // Send email notification AFTER successful deletion
+      if (userEmail) {
+        try {
+          const { sendAccountDeletedEmail } = await import('../../services/EmailService.js')
+          await sendAccountDeletedEmail({ name: userName, email: userEmail }, hotelName)
+          logInfo('AuthService', `Account deletion email sent to ${userEmail}`)
+        } catch (emailError) {
+          logError('AuthService.deleteUser', `Failed to send deletion email to ${userEmail}`, emailError)
+          // Don't fail the deletion if email fails
+        }
+      }
 
       return ServiceResult.ok({ message: 'User deleted successfully' })
     } catch (error) {
@@ -735,6 +764,29 @@ export class AuthService {
         },
         ip_address: ipAddress
       })
+
+      // Send email notification only when DEACTIVATING (newStatus = false)
+      if (!newStatus && user.email) {
+        try {
+          const { sendAccountDeactivatedEmail } = await import('../../services/EmailService.js')
+          let hotelName = null
+
+          if (user.hotel_id) {
+            try {
+              const hotelResult = await dbQuery('SELECT name FROM hotels WHERE id = $1', [user.hotel_id])
+              hotelName = hotelResult.rows[0]?.name || null
+            } catch (err) {
+              logError('AuthService.toggleUserStatus', 'Failed to get hotel name', err)
+            }
+          }
+
+          await sendAccountDeactivatedEmail({ name: user.name, email: user.email }, hotelName)
+          logInfo('AuthService', `Account deactivation email sent to ${user.email}`)
+        } catch (emailError) {
+          logError('AuthService.toggleUserStatus', `Failed to send deactivation email to ${user.email}`, emailError)
+          // Don't fail the status change if email fails
+        }
+      }
 
       return ServiceResult.ok({
         message: newStatus ? 'User unblocked' : 'User blocked',
