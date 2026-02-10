@@ -97,7 +97,7 @@ app.use(
           callback(null, true)
           return
         }
-        
+
         // In production: allow same-origin requests (they don't send Origin)
         // We can't check Referer here (not available in CORS callback)
         // But same-origin requests are automatically allowed by browsers
@@ -106,7 +106,7 @@ app.use(
         callback(null, true)
         return
       }
-      
+
       // Origin present - check against whitelist
       if (allowedOrigins.includes(origin)) {
         callback(null, true)
@@ -160,13 +160,13 @@ app.use(helmet({
       upgradeInsecureRequests: []
     }
   } : false,
-  
+
   hsts: {
     maxAge: 31536000, // 1 year
     includeSubDomains: true,
     preload: true
   },
-  
+
   frameguard: { action: 'deny' },
   noSniff: true,
   referrerPolicy: { policy: 'strict-origin-when-cross-origin' }
@@ -218,6 +218,79 @@ app.use('/api/events', eventsController)
 app.use('/api/marsha-codes', marshaCodesController)
 app.use('/api/gdpr', gdprController)
 app.use('/api/scheduled-exports', scheduledExportsController)
+
+// 🔍 TEMPORARY DEBUG ENDPOINT - Remove after fixing data
+app.get('/api/debug/products-check', async (req, res) => {
+  try {
+    const { hotel_id } = req.query
+
+    if (!hotel_id) {
+      return res.status(400).json({ error: 'hotel_id required' })
+    }
+
+    // 1. All products from products table
+    const productsResult = await query(`
+      SELECT id, name, department_id 
+      FROM products 
+      WHERE hotel_id = $1
+      ORDER BY name
+    `, [hotel_id])
+
+    // 2. All unique product_ids from batches table
+    const batchProductsResult = await query(`
+      SELECT DISTINCT b.product_id, 
+             COUNT(b.id) as batches_count,
+             MAX(p.name) as product_name
+      FROM batches b
+      LEFT JOIN products p ON b.product_id = p.id
+      WHERE b.hotel_id = $1
+      GROUP BY b.product_id
+      ORDER BY product_name
+    `, [hotel_id])
+
+    // 3. Orphaned batches (product_id doesn't exist in products)
+    const orphanedBatches = await query(`
+      SELECT b.id, b.product_id, b.quantity, b.status
+      FROM batches b
+      WHERE b.hotel_id = $1
+        AND NOT EXISTS (SELECT 1 FROM products p WHERE p.id = b.product_id)
+    `, [hotel_id])
+
+    // 4. Check specific IDs
+    const checkIds = [
+      'e29f626d-be5a-4258-97bf-91ce18ca618d',
+      'd46d416e-7d01-4865-8423-e01a74034a88'
+    ]
+
+    const idChecks = await Promise.all(checkIds.map(async (id) => {
+      const inProducts = await query('SELECT COUNT(*) as count FROM products WHERE id = $1', [id])
+      const inBatches = await query('SELECT COUNT(*) as count FROM batches WHERE product_id = $1', [id])
+
+      return {
+        id,
+        existsInProducts: inProducts.rows[0].count > 0,
+        existsInBatches: inBatches.rows[0].count > 0
+      }
+    }))
+
+    res.json({
+      success: true,
+      data: {
+        productsInProductsTable: productsResult.rows.length,
+        uniqueProductsInBatches: batchProductsResult.rows.length,
+        orphanedBatches: orphanedBatches.rows.length,
+        products: productsResult.rows.slice(0, 10),
+        batchProducts: batchProductsResult.rows.slice(0, 10),
+        orphaned: orphanedBatches.rows,
+        idChecks
+      }
+    })
+
+  } catch (error) {
+    console.error('Debug endpoint error:', error)
+    res.status(500).json({ error: error.message })
+  }
+})
 
 // Webhooks (with rate limiting - 60 requests per minute)
 app.use('/webhooks', rateLimitWebhook, webhooksRouter)
