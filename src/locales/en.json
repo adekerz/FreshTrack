@@ -397,6 +397,8 @@
     "sendVerificationCode": "Send code to email",
     "requestCodePrompt": "Click the button to send code to",
     "passwordMinLength": "Minimum 8 characters",
+    "passwordRequirements": "Password must be at least 8 characters",
+    "username": "Username",
     "sending": "Sending..."
   },
   "legal": {
@@ -1084,7 +1086,10 @@
       "status": "Status",
       "unhealthy": "Unhealthy",
       "database": "Database",
-      "disconnected": "Disconnected"
+      "disconnected": "Disconnected",
+      "healthy": "System is healthy",
+      "connected": "Connected",
+      "serverTime": "Server Time"
     },
     "cache": {
       "title": "Cache Management",
@@ -1392,6 +1397,10 @@
     "deactivated": "User deactivated",
     "toggleError": "Failed to toggle status",
     "neverLoggedIn": "Never logged in",
+    "deleteConfirm": {
+      "title": "Delete User?",
+      "message": "Are you sure? This action cannot be undone."
+    },
     "filters": {
       "hotel": "Hotel",
       "role": "Role",
@@ -1713,7 +1722,11 @@
     },
     "fillRequired": "Fill in required fields",
     "cannotCreateSuperAdmin": "Only the primary super administrator can create other super administrators",
-    "ownerBadge": "Owner"
+    "ownerBadge": "Owner",
+    "emailRequiredForTempPassword": "Email is required for temporary password",
+    "generatePasswordHint": "Generate secure password",
+    "password": "Password",
+    "generatePassword": "Generate Password"
   },
   "categorySettings": {
     "title": "Category Management",
@@ -1826,6 +1839,12 @@
       "return": "Return (Defect)",
       "compliment": "Guest Compliment",
       "other": "Other"
+    },
+    "errors": {
+      "NO_ACTIVE_BATCHES": "No active batches available for collection. Please add a batch for this product first.",
+      "INSUFFICIENT_STOCK": "Insufficient stock. Available: {{available}} units, requested: {{requested}} units.",
+      "INVALID_QUANTITY": "Please enter a valid quantity (greater than 0)",
+      "INVALID_DEPARTMENT": "Invalid department or product data"
     }
   },
   "fastIntake": {
@@ -1882,5 +1901,37 @@
     },
     "needMoreHelp": "Need more help?",
     "contactSupport": "If you didn't find an answer to your question, contact our support team."
+  },
+  "onboarding": {
+    "skip": "Skip tour",
+    "getStarted": "Get Started",
+    "welcome": {
+      "title": "Welcome to FreshTrack!",
+      "description": "Let's take a quick tour of the interface. This will only take a minute."
+    },
+    "dashboard": {
+      "title": "Dashboard",
+      "description": "Here you can see your inventory overview: active batches, expiring products, and urgent notifications."
+    },
+    "inventory": {
+      "title": "Inventory",
+      "description": "View all products in your department, add new batches, and manage expiration dates."
+    },
+    "addBatch": {
+      "title": "Add Batch",
+      "description": "Quickly add new product batches — select a product, set expiry date and quantity."
+    },
+    "notifications": {
+      "title": "Notifications",
+      "description": "The system automatically tracks expiring products and sends you notifications about critical batches."
+    },
+    "calendar": {
+      "title": "Calendar",
+      "description": "Visually plan expiration dates — click on any day to see which products expire."
+    },
+    "complete": {
+      "title": "You're all set!",
+      "description": "You're ready to use FreshTrack. If you have any questions, click the \"?\" icon to open the Help Center."
+    }
   }
 }

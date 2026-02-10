@@ -62,24 +62,61 @@ export default function FIFOCollectModal({
 
   // Загрузить preview при изменении количества
   const fetchPreview = useCallback(async () => {
-    if (!product?.id || quantity <= 0) return
+    // 🔍 ДИАГНОСТИКА: Проверяем что передается в API
+    console.log('[FIFO Debug] Product object:', product)
+    console.log('[FIFO Debug] Product ID:', product?.id)
+    console.log('[FIFO Debug] Quantity:', quantity)
+
+    if (!product?.id || quantity <= 0) {
+      if (!product?.id) {
+        console.warn('[FIFO Debug] ⚠️ Product ID is missing!')
+      }
+      if (quantity <= 0) {
+        console.warn('[FIFO Debug] ⚠️ Invalid quantity:', quantity)
+      }
+      return
+    }
 
     setIsLoading(true)
     setError(null)
 
     try {
-      const data = await apiFetch(
-        `/fifo-collect/preview?productId=${product.id}&quantity=${quantity}`
-      )
+      const apiUrl = `/fifo-collect/preview?productId=${product.id}&quantity=${quantity}`
+      console.log('[FIFO Debug] 📡 API Request URL:', apiUrl)
+
+      const data = await apiFetch(apiUrl)
+
+      console.log('[FIFO Debug] ✅ API Response:', data)
       setPreview(data)
     } catch (err) {
+      console.error('[FIFO Debug] ❌ API Error:', err)
+      console.error('[FIFO Debug] Error code:', err.error)
+      console.error('[FIFO Debug] Error message:', err.message)
       logError('Preview fetch error:', err)
-      setError(err.message)
+
+      // Показываем переведенное сообщение об ошибке
+      const errorCode = err.error || err.message
+      let errorMessage = err.message
+
+      if (errorCode === 'NO_ACTIVE_BATCHES') {
+        errorMessage = t('fifoCollect.errors.NO_ACTIVE_BATCHES') || 'Нет активных партий для списания. Сначала добавьте партию этого товара.'
+      } else if (errorCode === 'INSUFFICIENT_STOCK') {
+        errorMessage = t('fifoCollect.errors.INSUFFICIENT_STOCK', {
+          available: err.available || 0,
+          requested: err.requested || quantity
+        }) || `Недостаточно товара. Доступно: ${err.available || 0} шт., запрошено: ${err.requested || quantity} шт.`
+      } else if (errorCode === 'INVALID_QUANTITY') {
+        errorMessage = t('fifoCollect.errors.INVALID_QUANTITY') || 'Введите корректное количество (больше 0)'
+      } else if (errorCode === 'INVALID_DEPARTMENT') {
+        errorMessage = t('fifoCollect.errors.INVALID_DEPARTMENT') || 'Ошибка данных отдела или продукта'
+      }
+
+      setError(errorMessage)
       setPreview(null)
     } finally {
       setIsLoading(false)
     }
-  }, [product?.id, quantity])
+  }, [product?.id, quantity, t])
 
   useEffect(() => {
     if (isOpen && product?.id && quantity > 0) {
@@ -116,6 +153,8 @@ export default function FIFOCollectModal({
 
   const handleSubmit = async (e) => {
     e?.preventDefault()
+    // Защита от множественных кликов
+    if (isSubmitting) return
     setIsSubmitting(true)
     setError(null)
 
@@ -132,7 +171,7 @@ export default function FIFOCollectModal({
 
       addToast(
         t('fifoCollect.success', { count: result.totalCollected || quantity }) ||
-          `Успешно списано ${result.totalCollected || quantity} шт.`,
+        `Успешно списано ${result.totalCollected || quantity} шт.`,
         'success'
       )
 
@@ -140,8 +179,26 @@ export default function FIFOCollectModal({
       onClose()
     } catch (err) {
       logError('Collection error:', err)
-      setError(err.message)
-      addToast(t('fifoCollect.error') || 'Ошибка при списании', 'error')
+
+      // Показываем переведенное сообщение об ошибке
+      const errorCode = err.error || err.message
+      let errorMessage = err.message
+
+      if (errorCode === 'NO_ACTIVE_BATCHES') {
+        errorMessage = t('fifoCollect.errors.NO_ACTIVE_BATCHES') || 'Нет активных партий для списания. Сначала добавьте партию этого товара.'
+      } else if (errorCode === 'INSUFFICIENT_STOCK') {
+        errorMessage = t('fifoCollect.errors.INSUFFICIENT_STOCK', {
+          available: err.available || 0,
+          requested: err.requested || quantity
+        }) || `Недостаточно товара. Доступно: ${err.available || 0} шт., запрошено: ${err.requested || quantity} шт.`
+      } else if (errorCode === 'INVALID_QUANTITY') {
+        errorMessage = t('fifoCollect.errors.INVALID_QUANTITY') || 'Введите корректное количество (больше 0)'
+      } else if (errorCode === 'INVALID_DEPARTMENT') {
+        errorMessage = t('fifoCollect.errors.INVALID_DEPARTMENT') || 'Ошибка данных отдела или продукта'
+      }
+
+      setError(errorMessage)
+      addToast(errorMessage, 'error')
     } finally {
       setIsSubmitting(false)
     }
@@ -216,10 +273,9 @@ export default function FIFOCollectModal({
                     disabled={amount > maxQuantity}
                     className={`
                       py-2 px-3 rounded-lg border transition-all text-sm font-medium
-                      ${
-                        quantity === amount
-                          ? 'border-gold bg-gold/10 ring-2 ring-gold/30 text-foreground'
-                          : 'border-border hover:border-gold/50 hover:bg-muted text-foreground'
+                      ${quantity === amount
+                        ? 'border-gold bg-gold/10 ring-2 ring-gold/30 text-foreground'
+                        : 'border-border hover:border-gold/50 hover:bg-muted text-foreground'
                       }
                       ${amount > maxQuantity ? 'opacity-50 cursor-not-allowed' : ''}
                     `}
@@ -280,10 +336,9 @@ export default function FIFOCollectModal({
                     onClick={() => setReason(id)}
                     className={`
                       flex items-center gap-2 p-3 rounded-lg border transition-all
-                      ${
-                        reason === id
-                          ? 'border-gold bg-gold/10 ring-2 ring-gold/30'
-                          : 'border-border hover:border-gold/50 hover:bg-muted'
+                      ${reason === id
+                        ? 'border-gold bg-gold/10 ring-2 ring-gold/30'
+                        : 'border-border hover:border-gold/50 hover:bg-muted'
                       }
                     `}
                   >

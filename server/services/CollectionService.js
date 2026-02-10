@@ -53,7 +53,16 @@ export async function previewCollection({
   hotelId,
   departmentId
 }) {
+  // 🔍 ДИАГНОСТИКА: Логируем входные параметры
+  console.log('[FIFO Preview] 📥 Input params:', {
+    productId,
+    quantity,
+    hotelId,
+    departmentId
+  })
+
   if (!quantity || quantity <= 0) {
+    console.warn('[FIFO Preview] ⚠️ Invalid quantity:', quantity)
     return {
       success: false,
       error: CollectionError.INVALID_QUANTITY,
@@ -75,19 +84,28 @@ export async function previewCollection({
       AND (b.quantity > 0 OR b.quantity IS NULL)
   `
   const params = [productId, hotelId]
-  
+
   if (departmentId) {
     batchesQuery += ` AND b.department_id = $3`
     params.push(departmentId)
   }
-  
+
   batchesQuery += ` ORDER BY b.expiry_date ASC, b.added_at ASC`
-  
+
+  console.log('[FIFO Preview] 🔍 SQL Query params:', params)
+  console.log('[FIFO Preview] 🔍 Department filter:', departmentId ? `department_id = ${departmentId}` : 'ALL departments')
+
   const batchesResult = await query(batchesQuery, params)
 
   const batches = batchesResult.rows
 
+  console.log('[FIFO Preview] 📦 Batches found:', batches.length)
+  if (batches.length > 0) {
+    console.log('[FIFO Preview] 📦 First batch:', batches[0])
+  }
+
   if (batches.length === 0) {
+    console.warn('[FIFO Preview] ⚠️ NO_ACTIVE_BATCHES - No batches found with given filters')
     return {
       success: false,
       error: CollectionError.NO_ACTIVE_BATCHES,
@@ -203,14 +221,14 @@ export async function collect({
         AND (b.quantity > 0 OR b.quantity IS NULL)
     `
     const params = [productId, hotelId]
-    
+
     if (departmentId) {
       params.push(departmentId)
       query += ` AND b.department_id = $${params.length}`
     }
-    
+
     query += ` ORDER BY b.expiry_date ASC, b.added_at ASC FOR UPDATE OF b`
-    
+
     const batchesResult = await client.query(query, params)
 
     const batches = batchesResult.rows
@@ -253,7 +271,7 @@ export async function collect({
       // Use batch's department_id for accurate tracking (supports HOTEL_ADMIN without department)
       const historyId = uuidv4()
       const deptIdToUse = batch.department_id || departmentId
-      
+
       await client.query(`
         INSERT INTO collection_history (
           id, batch_id, product_id, hotel_id, department_id, user_id,
