@@ -12,21 +12,22 @@ export default function MFAGracePeriodBanner() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const [graceInfo, setGraceInfo] = useState(null)
-  
+
   useEffect(() => {
     // MFA баннер отключён на dev (VITE_DISABLE_MFA_IN_DEV=true в .env.local)
     if (import.meta.env.VITE_DISABLE_MFA_IN_DEV === 'true') return
 
-    // Only show for SUPER_ADMIN
-    if (!user || user.role !== 'SUPER_ADMIN') {
-      console.log('[MFA Banner] Not showing - user:', user?.role)
+    // Only show for specific roles
+    const requiredRoles = ['SUPER_ADMIN', 'HOTEL_ADMIN', 'DEPARTMENT_MANAGER']
+    if (!user || !requiredRoles.includes(user.role)) {
+      console.log('[MFA Banner] Not showing - user role not required:', user?.role)
       return
     }
-    
-    console.log('[MFA Banner] Checking grace period for SUPER_ADMIN:', user.id)
-    
+
+    console.log('[MFA Banner] Checking MFA status for:', user.role)
+
     // Check MFA status from API
-    const checkGracePeriod = async () => {
+    const checkStatus = async () => {
       try {
         const response = await fetch(`${API_BASE_URL}/auth/mfa/status`, {
           credentials: 'include',
@@ -34,98 +35,57 @@ export default function MFAGracePeriodBanner() {
             'Content-Type': 'application/json'
           }
         })
-        
-        if (!response.ok) {
-          console.log('[MFA Banner] API response not OK:', response.status)
-          return
-        }
-        
-        // Check if response is JSON
-        const contentType = response.headers.get('content-type')
-        if (!contentType || !contentType.includes('application/json')) {
-          const text = await response.text()
-          console.error('[MFA Banner] Received non-JSON response:', text.substring(0, 200))
-          return
-        }
-        
+
+        if (!response.ok) return
+
         const data = await response.json()
         if (data.mfaDisabledInDev) return
-        console.log('[MFA Banner] API response:', data)
-        console.log('[MFA Banner] Grace period check:', {
-          success: data.success,
-          daysLeft: data.gracePeriodDaysLeft,
-          gracePeriodEnds: data.gracePeriodEnds,
-          mfaEnabled: data.enabled,
-          mfaRequired: data.required,
-          condition: data.success && !data.enabled && data.gracePeriodDaysLeft !== null && data.gracePeriodDaysLeft > 0
-        })
-        
-        // Показываем баннер только если:
-        // 1. MFA еще не включен (data.enabled === false)
-        // 2. Grace period активен (daysLeft > 0)
-        if (data.success && !data.enabled && data.gracePeriodDaysLeft !== null && data.gracePeriodDaysLeft > 0) {
-          console.log('[MFA Banner] ✅ Setting grace info:', {
-            daysLeft: data.gracePeriodDaysLeft,
-            gracePeriodEnds: data.gracePeriodEnds
-          })
+
+        // Показываем баннер если MFA не включен
+        if (data.success && !data.enabled) {
           setGraceInfo({
-            daysLeft: data.gracePeriodDaysLeft,
+            daysLeft: data.gracePeriodDaysLeft, // Может быть null
             gracePeriodEnds: data.gracePeriodEnds
           })
         } else {
-          // Скрываем баннер если MFA включен или grace period истек
-          console.log('[MFA Banner] ❌ Hiding banner:', {
-            success: data.success,
-            mfaEnabled: data.enabled,
-            daysLeft: data.gracePeriodDaysLeft,
-            daysLeftType: typeof data.gracePeriodDaysLeft,
-            reason: !data.success ? 'success=false' : 
-                    data.enabled ? 'MFA already enabled' :
-                    data.gracePeriodDaysLeft === null ? 'daysLeft is null' :
-                    data.gracePeriodDaysLeft <= 0 ? `daysLeft=${data.gracePeriodDaysLeft} (<=0)` : 'unknown'
-          })
-          setGraceInfo(null) // Явно скрываем баннер
+          setGraceInfo(null)
         }
       } catch (error) {
-        console.error('[MFA Banner] Failed to check MFA grace period', error)
+        console.error('[MFA Banner] Failed to check MFA status', error)
       }
     }
-    
-    checkGracePeriod()
-    
-    // Listen for MFA enabled event
+
+    checkStatus()
+
     const handleMFAEnabled = () => {
-      console.log('[MFA Banner] MFA enabled event received, hiding banner')
       setGraceInfo(null)
-      // Re-check status to ensure it's updated
-      setTimeout(checkGracePeriod, 1000)
+      setTimeout(checkStatus, 1000)
     }
-    
+
     window.addEventListener('auth:mfaEnabled', handleMFAEnabled)
-    
-    // Check periodically (every hour)
-    const interval = setInterval(checkGracePeriod, 60 * 60 * 1000)
-    
+    const interval = setInterval(checkStatus, 60 * 60 * 1000)
+
     return () => {
       clearInterval(interval)
       window.removeEventListener('auth:mfaEnabled', handleMFAEnabled)
     }
   }, [user])
-  
-  if (!graceInfo || !user || user.role !== 'SUPER_ADMIN') {
+
+  const requiredRoles = ['SUPER_ADMIN', 'HOTEL_ADMIN', 'DEPARTMENT_MANAGER']
+  if (!graceInfo || !user || !requiredRoles.includes(user.role)) {
     return null
   }
-  
+
   const handleSetupClick = () => {
-    navigate('/mfa-setup')
+    navigate('/mfa-setup') // Или /settings/security
   }
-  
+
   return (
-    <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4">
+    <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4 dark:bg-yellow-900/10 dark:border-yellow-600">
       <div className="flex items-start">
         <div className="flex-shrink-0">
           <svg
-            className="h-5 w-5 text-yellow-400"
+            className="h-5 w-5 text-yellow-400 dark:text-yellow-600"
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 20 20"
             fill="currentColor"
@@ -139,23 +99,33 @@ export default function MFAGracePeriodBanner() {
           </svg>
         </div>
         <div className="ml-3 flex-1">
-          <h3 className="text-sm font-medium text-yellow-800">
-            MFA Setup Required
+          <h3 className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+            Требуется настройка двухфакторной аутентификации (MFA)
           </h3>
-          <div className="mt-2 text-sm text-yellow-700">
-            <p>
-              You have <strong>{graceInfo.daysLeft} day{graceInfo.daysLeft !== 1 ? 's' : ''}</strong> to enable 
-              two-factor authentication. After this period, you will not be able to access critical features 
-              without MFA.
+          <div className="mt-2 text-sm text-yellow-700 dark:text-yellow-300">
+            <p className="mb-2">
+              Для обеспечения безопасности вашего аккаунта необходимо включить MFA.
+              {graceInfo.daysLeft !== null && graceInfo.daysLeft > 0 && (
+                <span> У вас осталоcь <strong>{graceInfo.daysLeft} дней</strong> до блокировки доступа.</span>
+              )}
             </p>
+            <div className="bg-yellow-100/50 dark:bg-yellow-900/20 p-3 rounded-md mb-3">
+              <p className="font-semibold mb-1">Как настроить:</p>
+              <ol className="list-decimal list-inside space-y-0.5">
+                <li>Нажмите кнопку <strong>Настроить MFA</strong> ниже.</li>
+                <li>Скачайте приложение (Google Authenticator, Authy и др.).</li>
+                <li>Отсканируйте QR-код в приложении.</li>
+                <li>Введите код подтверждения.</li>
+              </ol>
+            </div>
           </div>
           <div className="mt-4">
             <button
               type="button"
               onClick={handleSetupClick}
-              className="bg-yellow-400 px-3 py-2 rounded-md text-sm font-medium text-yellow-800 hover:bg-yellow-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500"
+              className="bg-yellow-400 px-3 py-2 rounded-md text-sm font-medium text-yellow-800 hover:bg-yellow-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 transition-colors"
             >
-              Set up MFA now
+              Настроить MFA сейчас
             </button>
           </div>
         </div>

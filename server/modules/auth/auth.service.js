@@ -126,7 +126,6 @@ export class AuthService {
       SUPER_ADMIN: 'Супер Админ',
       HOTEL_ADMIN: 'Администратор отеля',
       DEPARTMENT_MANAGER: 'Менеджер отдела',
-      MANAGER: 'Менеджер',
       STAFF: 'Сотрудник'
     }
 
@@ -152,7 +151,10 @@ export class AuthService {
       department: department,
       telegram_chat_id: user.telegram_chat_id,
       is_active: user.is_active !== false,
-      mustChangePassword: user.must_change_password || false
+      is_active: user.is_active !== false,
+      mustChangePassword: user.must_change_password || false,
+      mfa_enabled: user.mfa_enabled || false,
+      last_login: user.last_login
     }
 
     if (includePermissions) {

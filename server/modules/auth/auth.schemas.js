@@ -42,16 +42,14 @@ export const nameSchema = z.string()
 export const UserRole = z.enum([
   'SUPER_ADMIN',
   'HOTEL_ADMIN',
-  'MANAGER',
   'DEPARTMENT_MANAGER',
   'STAFF'
 ])
 
 // Какие роли может создавать каждая роль
 export const ROLE_HIERARCHY = {
-  SUPER_ADMIN: ['SUPER_ADMIN', 'HOTEL_ADMIN', 'MANAGER', 'DEPARTMENT_MANAGER', 'STAFF'],
-  HOTEL_ADMIN: ['HOTEL_ADMIN', 'MANAGER', 'DEPARTMENT_MANAGER', 'STAFF'],
-  MANAGER: ['DEPARTMENT_MANAGER', 'STAFF'],
+  SUPER_ADMIN: ['SUPER_ADMIN', 'HOTEL_ADMIN', 'DEPARTMENT_MANAGER', 'STAFF'],
+  HOTEL_ADMIN: ['HOTEL_ADMIN', 'DEPARTMENT_MANAGER', 'STAFF'],
   DEPARTMENT_MANAGER: ['STAFF'],
   STAFF: []
 }

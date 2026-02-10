@@ -32,12 +32,22 @@ export default function UserRow({
       </div>
       <div className="flex items-center gap-2 flex-shrink-0">
         <span
-          className={`px-2 py-0.5 rounded text-xs ${
-            user.is_active !== false ? 'bg-success/10 text-success' : 'bg-danger/10 text-danger'
-          }`}
+          className={`px-2 py-0.5 rounded text-xs ${user.is_active !== false ? 'bg-success/10 text-success' : 'bg-danger/10 text-danger'
+            }`}
         >
           {user.is_active !== false ? 'Активен' : 'Заблок.'}
         </span>
+        {/* Session Status Indicator */}
+        <div
+          className={`w-3 h-3 rounded-full ${(user.last_login && (new Date() - new Date(user.last_login) < 15 * 60 * 1000))
+              ? 'bg-success animate-pulse'
+              : 'bg-muted'
+            }`}
+          title={(user.last_login && (new Date() - new Date(user.last_login) < 15 * 60 * 1000))
+            ? 'Сессия активна'
+            : 'Не в сети'
+          }
+        />
         {user.email && user.is_active !== false && (
           <button
             onClick={(e) => {
@@ -54,11 +64,10 @@ export default function UserRow({
           onClick={() =>
             onToggleStatus(user.id, user.is_active !== false)
           }
-          className={`p-1.5 rounded transition-colors ${
-            user.is_active !== false
+          className={`p-1.5 rounded transition-colors ${user.is_active !== false
               ? 'text-muted-foreground hover:text-danger hover:bg-danger/10'
               : 'text-muted-foreground hover:text-success hover:bg-success/10'
-          }`}
+            }`}
           title={user.is_active !== false ? 'Заблокировать' : 'Разблокировать'}
         >
           <Ban className="w-4 h-4" />

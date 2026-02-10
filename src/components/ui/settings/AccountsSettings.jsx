@@ -27,7 +27,6 @@ import CreateSuperAdminModal from './CreateSuperAdminModal'
 const ROLE_COLORS = {
   SUPER_ADMIN: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
   HOTEL_ADMIN: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-  MANAGER: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
   DEPARTMENT_MANAGER: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
   STAFF: 'bg-muted text-muted-foreground'
 }
@@ -35,7 +34,6 @@ const ROLE_COLORS = {
 const ROLE_LABELS = {
   SUPER_ADMIN: 'Super Admin',
   HOTEL_ADMIN: 'Hotel Admin',
-  MANAGER: 'Manager',
   DEPARTMENT_MANAGER: 'Dept Manager',
   STAFF: 'Staff'
 }
@@ -464,7 +462,6 @@ export default function AccountsSettings() {
                 <option value="">{t('common.all') || 'All'}</option>
                 <option value="SUPER_ADMIN">Super Admin</option>
                 <option value="HOTEL_ADMIN">Hotel Admin</option>
-                <option value="MANAGER">Manager</option>
                 <option value="DEPARTMENT_MANAGER">Department Manager</option>
                 <option value="STAFF">Staff</option>
               </select>
@@ -580,7 +577,12 @@ export default function AccountsSettings() {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-sm text-foreground">
-                        {user.lastLogin ? formatDate(user.lastLogin, true) : '—'}
+                        <div className="flex items-center gap-2">
+                          {user.lastLogin && (new Date() - new Date(user.lastLogin) < 15 * 60 * 1000) && (
+                            <div className="w-2.5 h-2.5 rounded-full bg-success animate-pulse" title="Online" />
+                          )}
+                          {user.lastLogin ? formatDate(user.lastLogin, true) : '—'}
+                        </div>
                       </td>
                       <td className="px-4 py-3">
                         {user.id !== currentUser?.id && (
