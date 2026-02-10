@@ -76,9 +76,9 @@ const generalLimiter = createLimiter({
 // Auth endpoints - stricter limits (20 attempts per 15 minutes)
 const authLimiter = createLimiter({
   keyPrefix: 'rl_auth',
-  points: isProduction ? 20 : 500,
+  points: isProduction ? 100 : 1000, // Increased from 20/500 to 100/1000
   duration: isProduction ? 15 * 60 : 60,
-  blockDuration: isProduction ? 5 * 60 : 10
+  blockDuration: isProduction ? 60 : 10 // Reduced block duration
 })
 
 // Login specifically - strict but reasonable
