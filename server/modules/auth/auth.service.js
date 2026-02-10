@@ -631,6 +631,19 @@ export class AuthService {
         return ServiceResult.notFound('User not found')
       }
 
+      // Защита Owner-аккаунта
+      if (user.is_owner) {
+        // Другие пользователи не могут редактировать владельца
+        if (user.id !== editor.id) {
+          return ServiceResult.forbidden('Основной владелец (Owner) не может быть изменен другими администраторами')
+        }
+
+        // Владелец не может понизить свою роль
+        if (data.role && data.role !== 'SUPER_ADMIN') {
+          return ServiceResult.forbidden('Основной владелец (Owner) всегда должен иметь роль SUPER_ADMIN')
+        }
+      }
+
       // Обновить
       const updateResult = await dbUpdateUser(userId, data)
       if (!updateResult) {
@@ -679,6 +692,11 @@ export class AuthService {
       // Нельзя удалить себя
       if (userId === deleter.id) {
         return ServiceResult.error('Cannot delete yourself')
+      }
+
+      // Защита Owner-аккаунта: никто не может удалить владельца
+      if (user.is_owner) {
+        return ServiceResult.forbidden('Основной владелец (Owner) не может быть удален')
       }
 
       // Get user email and hotel info BEFORE deletion
@@ -744,6 +762,11 @@ export class AuthService {
       // Нельзя заблокировать себя
       if (userId === editor.id) {
         return ServiceResult.error('Cannot block yourself')
+      }
+
+      // Защита Owner-аккаунта: никто не может заблокировать владельца
+      if (user.is_owner) {
+        return ServiceResult.forbidden('Основной владелец (Owner) не может быть заблокирован')
       }
 
       // Переключаем статус
