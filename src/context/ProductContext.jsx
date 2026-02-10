@@ -350,21 +350,24 @@ export function ProductProvider({ children }) {
             }
           })
 
-          products.push({
-            ...product,
-            categoryId,
-            departmentId,
-            batches: productBatches,
-            totalBatches: productBatches.length,
-            totalQuantity: hasNoQuantity && totalQuantity === 0 ? '—' : totalQuantity,
-            overallStatus,
-            hasExpired: productBatches.some((b) => (b.status?.status || b.status) === 'expired'),
-            hasExpiringSoon: productBatches.some((b) =>
-              ['critical', 'warning', 'today'].includes(b.status?.status || b.status)
-            )
-          })
+          // ✅ ИСПРАВЛЕНО: Показываем товар ТОЛЬКО если у него есть партии
+          if (productBatches.length > 0) {
+            products.push({
+              ...product,
+              categoryId,
+              departmentId,
+              batches: productBatches,
+              totalBatches: productBatches.length,
+              totalQuantity: hasNoQuantity && totalQuantity === 0 ? '—' : totalQuantity,
+              overallStatus,
+              hasExpired: productBatches.some((b) => (b.status?.status || b.status) === 'expired'),
+              hasExpiringSoon: productBatches.some((b) =>
+                ['critical', 'warning', 'today'].includes(b.status?.status || b.status)
+              )
+            })
 
-          addedProductNames.add(product.name)
+            addedProductNames.add(product.name)
+          }
         })
       })
 
