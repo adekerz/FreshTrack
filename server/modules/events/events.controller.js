@@ -34,8 +34,7 @@ router.get('/stream', authMiddleware, hotelIsolation, (req, res) => {
     res.setHeader('Cache-Control', 'no-cache, no-transform')
     res.setHeader('Connection', 'keep-alive')
     res.setHeader('X-Accel-Buffering', 'no') // Disable Nginx buffering
-    res.setHeader('Access-Control-Allow-Origin', '*')
-    res.setHeader('Access-Control-Allow-Credentials', 'true')
+    // CORS для stream задаётся глобально (cors middleware); не ставить Allow-Origin: * при credentials
 
     // Flush headers immediately
     res.flushHeaders()

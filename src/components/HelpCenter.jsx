@@ -6,7 +6,7 @@
 
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Book, Keyboard, Mail, MessageSquare, X, ExternalLink, Accessibility } from 'lucide-react'
+import { Book, Keyboard, Mail, MessageSquare, X, ExternalLink, Accessibility, HelpCircle } from 'lucide-react'
 import { useFocusTrap } from '../hooks/useFocusTrap'
 import { useEscapeKey } from '../hooks/useKeyboardNav'
 import Button from './ui/Button'
@@ -37,33 +37,7 @@ export default function HelpCenter({ isOpen, onClose }) {
     { keys: ['Tab'], keysMac: ['Tab'], description: 'Навигация по элементам' }
   ]
 
-  // FAQ
-  const faqs = [
-    {
-      q: 'Как настроить Telegram уведомления?',
-      a: 'Создайте групповой чат, добавьте бота @freshtrack_bot, отправьте команду /getchatid и скопируйте полученный Chat ID в настройки отдела. После этого вы будете получать уведомления о критических товарах.'
-    },
-    {
-      q: 'Как импортировать товары из Excel?',
-      a: 'Перейдите в Настройки → Импорт/Экспорт, скачайте шаблон Excel, заполните его данными (название, категория, срок годности) и загрузите обратно через форму импорта. Система автоматически создаст товары и партии.'
-    },
-    {
-      q: 'Как настроить автоматические отчеты?',
-      a: 'В настройках отдела включите "Запланированные экспорты", выберите периодичность (ежедневно/еженедельно/ежемесячно), формат файла и email получателей. Отчеты будут отправляться автоматически.'
-    },
-    {
-      q: 'Что означают цветовые статусы товаров?',
-      a: 'Зеленый (Хорошо) - срок годности >7 дней, Желтый (Внимание) - 3-7 дней, Оранжевый (Критично) - 1-2 дня, Красный (Просрочено) - истек срок годности.'
-    },
-    {
-      q: 'Как работает система FIFO?',
-      a: 'First In, First Out - система автоматически предлагает использовать товары с ближайшим сроком годности первыми. При сборе товаров система выбирает партии в правильном порядке.'
-    },
-    {
-      q: 'Можно ли редактировать уже созданные партии?',
-      a: 'Да, нажмите на товар в инвентаре, выберите партию и нажмите "Редактировать". Вы можете изменить количество, срок годности и примечания. История изменений сохраняется в журнале аудита.'
-    }
-  ]
+
 
   // Tabs configuration
   const tabs = [
@@ -71,11 +45,6 @@ export default function HelpCenter({ isOpen, onClose }) {
       id: 'shortcuts',
       label: 'Горячие клавиши',
       icon: Keyboard
-    },
-    {
-      id: 'faq',
-      label: 'FAQ',
-      icon: Book
     },
     {
       id: 'contact',
@@ -120,7 +89,7 @@ export default function HelpCenter({ isOpen, onClose }) {
                   Центр помощи
                 </h2>
                 <p className="text-xs sm:text-sm text-muted-foreground">
-                  Горячие клавиши, FAQ и контакты
+                  Горячие клавиши и контакты поддержки
                 </p>
               </div>
             </div>
@@ -149,10 +118,9 @@ export default function HelpCenter({ isOpen, onClose }) {
                     border-b-2 transition-all duration-150
                     text-xs sm:text-sm font-medium
                     whitespace-nowrap
-                    ${
-                      isActive
-                        ? 'border-accent text-accent'
-                        : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
+                    ${isActive
+                      ? 'border-accent text-accent'
+                      : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
                     }
                   `}
                   aria-current={isActive ? 'page' : undefined}
@@ -192,25 +160,6 @@ export default function HelpCenter({ isOpen, onClose }) {
                         </kbd>
                       ))}
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* FAQ */}
-            {activeTab === 'faq' && (
-              <div className="space-y-4 sm:space-y-6 animate-fade-in-up">
-                {faqs.map((faq, i) => (
-                  <div
-                    key={i}
-                    className="pb-4 sm:pb-6 border-b border-border last:border-0"
-                  >
-                    <h3 className="text-sm sm:text-base font-semibold text-foreground mb-2">
-                      {faq.q}
-                    </h3>
-                    <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                      {faq.a}
-                    </p>
                   </div>
                 ))}
               </div>
@@ -263,17 +212,34 @@ export default function HelpCenter({ isOpen, onClose }) {
                   <Book className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-0.5" />
                   <div className="flex-1">
                     <p className="font-medium text-foreground text-sm sm:text-base">Документация</p>
-                    <a
-                      href="https://docs.freshtrack.com"
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <Link
+                      to="/docs"
+                      onClick={onClose}
                       className="text-accent hover:underline text-xs sm:text-sm flex items-center gap-1 mt-1"
                     >
-                      docs.freshtrack.com
+                      Перейти к документации
                       <ExternalLink className="w-3 h-3" />
-                    </a>
+                    </Link>
                     <p className="text-xs text-muted-foreground mt-1">
                       Полное руководство пользователя
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 p-4 bg-success/5 rounded-lg border border-success/20">
+                  <HelpCircle className="w-5 h-5 text-success flex-shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="font-medium text-foreground text-sm sm:text-base">FAQ и Помощь</p>
+                    <Link
+                      to="/faq"
+                      onClick={onClose}
+                      className="text-accent hover:underline text-xs sm:text-sm flex items-center gap-1 mt-1"
+                    >
+                      Открыть полный FAQ
+                      <ExternalLink className="w-3 h-3" />
+                    </Link>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Ответы на часто задаваемые вопросы
                     </p>
                   </div>
                 </div>

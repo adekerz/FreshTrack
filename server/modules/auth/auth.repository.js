@@ -37,7 +37,7 @@ export async function getUserByLoginOrEmail(identifier) {
 export async function getAllUsers(hotelId = null) {
   if (hotelId) {
     const result = await query(`
-      SELECT id, login, name, email, role, hotel_id, department_id, telegram_chat_id, is_active, status, must_change_password, created_at
+      SELECT id, login, name, email, role, hotel_id, department_id, telegram_chat_id, is_active, status, must_change_password, is_owner, created_at
       FROM users
       WHERE hotel_id = $1 OR hotel_id IS NULL
       ORDER BY created_at DESC
@@ -45,7 +45,7 @@ export async function getAllUsers(hotelId = null) {
     return result.rows
   }
   const result = await query(`
-    SELECT id, login, name, email, role, hotel_id, department_id, telegram_chat_id, is_active, status, must_change_password, created_at
+    SELECT id, login, name, email, role, hotel_id, department_id, telegram_chat_id, is_active, status, must_change_password, is_owner, created_at
     FROM users
     ORDER BY created_at DESC
   `)

@@ -661,6 +661,10 @@
     "addNewBatch": "Add New Batch",
     "batchOne": "batch",
     "batchesCount": "batches",
+    "expand": "Expand",
+    "collapse": "Collapse",
+    "expandDetails": "Show batch details",
+    "batchNumber": "Batch {{num}}",
     "manufacturingDate": "Manufacturing Date",
     "expiryDate": "Expiry Date",
     "collectedAt": "Collected at",
@@ -1374,6 +1378,10 @@
   "accounts": {
     "title": "User Accounts",
     "subtitle": "Manage user accounts and access",
+    "addSuperAdmin": "Add Super Admin",
+    "addSuperAdminHint": "Super Admin has access to the entire system",
+    "superAdminCreated": "Super Administrator created",
+    "createError": "Creation error",
     "searchPlaceholder": "Search by name, login, email...",
     "loadError": "Failed to load users",
     "noUsers": "No users found",
@@ -1703,7 +1711,9 @@
       "DEPARTMENT_MANAGER": "Department Manager",
       "STAFF": "Staff"
     },
-    "fillRequired": "Fill in required fields"
+    "fillRequired": "Fill in required fields",
+    "cannotCreateSuperAdmin": "Only the primary super administrator can create other super administrators",
+    "ownerBadge": "Owner"
   },
   "categorySettings": {
     "title": "Category Management",
@@ -1846,5 +1856,31 @@
     "dataCached": "Data from cache",
     "online": "Online",
     "offline": "Offline"
+  },
+  "docs": {
+    "pageTitle": "Documentation",
+    "pageSubtitle": "Complete user guide",
+    "gettingStarted": {
+      "title": "Getting Started",
+      "content": "Welcome to FreshTrack. The system is designed for managing hotel inventory and product expiration dates. Start by creating departments and setting up users."
+    },
+    "inventory": {
+      "title": "Inventory Management",
+      "content": "Inventory is organized by departments. Use a barcode scanner or manually enter product data. Monitor color-coded expiration indicators (green - good, yellow - warning, red - critical)."
+    },
+    "reports": {
+      "title": "Reports and Export",
+      "content": "You can export data in Excel, PDF, or CSV formats. Export is available in the 'Statistics' and 'Inventory' sections."
+    },
+    "security": {
+      "title": "Security and MFA",
+      "content": "To protect your account, enable two-factor authentication (MFA/TOTP). Use Google Authenticator or Authy to generate codes."
+    },
+    "hotkeys": {
+      "title": "Keyboard Shortcuts",
+      "content": "Ctrl+K (Search), Ctrl+N (New product), Ctrl+E (Export), Esc (Close). Full list available in Help Center (?)."
+    },
+    "needMoreHelp": "Need more help?",
+    "contactSupport": "If you didn't find an answer to your question, contact our support team."
   }
 }

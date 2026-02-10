@@ -182,8 +182,15 @@ export function validate(schema, data) {
 
 /**
  * Проверка, может ли создатель назначить указанную роль
+ * @param {string} creatorRole - Роль создателя
+ * @param {string} targetRole - Целевая роль
+ * @param {boolean} creatorIsOwner - Является ли создатель владельцем (is_owner)
  */
-export function canAssignRole(creatorRole, targetRole) {
+export function canAssignRole(creatorRole, targetRole, creatorIsOwner = false) {
+  // Только владелец (is_owner=true) может создавать других SUPER_ADMIN
+  if (targetRole === 'SUPER_ADMIN') {
+    return creatorRole === 'SUPER_ADMIN' && creatorIsOwner === true
+  }
   const allowedRoles = ROLE_HIERARCHY[creatorRole] || []
   return allowedRoles.includes(targetRole)
 }

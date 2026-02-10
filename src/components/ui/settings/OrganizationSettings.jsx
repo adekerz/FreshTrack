@@ -279,8 +279,11 @@ export default function OrganizationSettings() {
     setCreatingUser(true)
     setUserError(null)
     try {
-      // На уровне отеля (без departmentId) - автоматически HOTEL_ADMIN
-      const effectiveRole = showCreateUser?.departmentId ? newUser.role : 'HOTEL_ADMIN'
+      // На уровне отеля (без departmentId) - HOTEL_ADMIN или SUPER_ADMIN (если выбран)
+      // На уровне департамента - выбранная роль (STAFF или DEPARTMENT_MANAGER)
+      const effectiveRole = showCreateUser?.departmentId
+        ? newUser.role
+        : (newUser.role === 'SUPER_ADMIN' ? 'SUPER_ADMIN' : 'HOTEL_ADMIN')
 
       const requestBody = {
         login: newUser.login,
@@ -478,6 +481,7 @@ export default function OrganizationSettings() {
           creating={creatingUser}
           error={userError}
           t={t}
+          canCreateSuperAdmin={currentUser?.capabilities?.canCreateSuperAdmin || false}
         />
         {renderBlockConfirmModal()}
         {renderDeleteConfirmModal()}
@@ -620,6 +624,7 @@ export default function OrganizationSettings() {
         creating={creatingUser}
         error={userError}
         t={t}
+        canCreateSuperAdmin={currentUser?.capabilities?.canCreateSuperAdmin || false}
       />
       {renderBlockConfirmModal()}
       {renderDeleteConfirmModal()}
@@ -661,8 +666,8 @@ export default function OrganizationSettings() {
               onClick={() => toggleUserStatus(blockConfirm.userId, blockConfirm.isActive)}
               disabled={actionLoading}
               className={`flex-1 px-4 py-2 rounded-lg text-white disabled:opacity-50 flex items-center justify-center gap-2 ${blockConfirm.isActive
-                  ? 'bg-danger hover:bg-danger/90'
-                  : 'bg-success hover:bg-success/90'
+                ? 'bg-danger hover:bg-danger/90'
+                : 'bg-success hover:bg-success/90'
                 }`}
               aria-busy={actionLoading}
             >

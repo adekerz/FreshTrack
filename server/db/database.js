@@ -105,11 +105,11 @@ async function initializePilotData() {
   const hotelAdminId = uuidv4()
   const staffId = uuidv4()
 
-  // Super Admin (no hotel restriction)
+  // Super Admin (no hotel restriction, is_owner=true — primary owner)
   await query(`
-    INSERT INTO users (id, login, password, name, role, hotel_id, department_id, is_active) 
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-  `, [superAdminId, 'superadmin', bcrypt.hashSync('SuperAdmin123!', 10), 'Супер Администратор', 'SUPER_ADMIN', null, null, true])
+    INSERT INTO users (id, login, password, name, role, hotel_id, department_id, is_active, is_owner) 
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+  `, [superAdminId, 'superadmin', bcrypt.hashSync('SuperAdmin123!', 10), 'Супер Администратор', 'SUPER_ADMIN', null, null, true, true])
 
   // Hotel Admin (Ritz-Carlton)
   await query(`
@@ -435,7 +435,7 @@ async function enrichAuditLogMetadata(log) {
  */
 async function getSeverityForAction(action, entityType) {
   const normAction = (action || '').toUpperCase().replace(/-/g, '_')
-  
+
   try {
     const result = await query(
       'SELECT severity FROM audit_action_severity WHERE action = $1',
@@ -457,7 +457,7 @@ async function getSeverityForAction(action, entityType) {
   if (normAction === 'IMPORT') return 'important'
   if (entityType?.toUpperCase() === 'USER') return 'important'
   if (normAction.includes('TOGGLE') && entityType?.toUpperCase() === 'USER') return 'important'
-  
+
   return 'normal'
 }
 
@@ -1310,13 +1310,13 @@ export async function getAuditLogs(hotelId, filters = {}) {
 function parseAuditRow(log) {
   const parsed = { ...log }
   if (parsed.details && typeof parsed.details === 'string') {
-    try { parsed.details = JSON.parse(parsed.details) } catch {}
+    try { parsed.details = JSON.parse(parsed.details) } catch { }
   }
   if (parsed.snapshot_after && typeof parsed.snapshot_after === 'string') {
-    try { parsed.snapshot_after = JSON.parse(parsed.snapshot_after) } catch {}
+    try { parsed.snapshot_after = JSON.parse(parsed.snapshot_after) } catch { }
   }
   if (parsed.snapshot_before && typeof parsed.snapshot_before === 'string') {
-    try { parsed.snapshot_before = JSON.parse(parsed.snapshot_before) } catch {}
+    try { parsed.snapshot_before = JSON.parse(parsed.snapshot_before) } catch { }
   }
   return parsed
 }
@@ -1404,12 +1404,12 @@ export async function getAuditLogsWithMetadata(hotelId, filters = {}) {
       parsed.human_readable_description = parsed.human_readable_description ?? row.human_readable_description
       parsed.human_readable_details = parsed.human_readable_details ?? row.human_readable_details
       parsed.department_name = row.department_name
-      
+
       // Fallback severity если metadata нет
       if (!parsed.severity) {
         parsed.severity = getFallbackSeverity(parsed.action, parsed.entity_type)
       }
-      
+
       // Всегда отдаём created_at в UTC (ISO с Z) для однозначного отображения в timezone отеля на фронте
       const originalCreatedAt = parsed.created_at
       if (parsed.created_at instanceof Date) {
@@ -1429,22 +1429,22 @@ export async function getAuditLogsWithMetadata(hotelId, filters = {}) {
  */
 function getFallbackSeverity(action, entityType) {
   const normAction = (action || '').toUpperCase().replace(/-/g, '_')
-  
+
   // Critical actions
   if (['DELETE', 'PASSWORD_CHANGE', 'PASSWORD_RESET', 'ROLE_CHANGED', 'MFA_DISABLED', 'DELETE_USER', 'DELETE_HOTEL', 'GDPR_DELETE'].includes(normAction)) {
     return 'critical'
   }
-  
+
   // Important actions
   if (['USER_ACTIVATED', 'USER_DEACTIVATED', 'TOGGLE', 'EXPORT', 'IMPORT', 'EMAIL_CHANGED', 'MFA_ENABLED', 'MFA_SETUP', 'LOGIN_FAILED', 'ASSIGN_MARSHA', 'RELEASE_MARSHA', 'CREATE_USER', 'APPROVE_JOIN', 'REJECT_JOIN', 'RESEND_PASSWORD'].includes(normAction)) {
     return 'important'
   }
-  
+
   // User-related actions are important by default
   if (entityType?.toUpperCase() === 'USER') {
     return 'important'
   }
-  
+
   return 'normal'
 }
 

@@ -91,6 +91,7 @@ export function useSSE(options = {}) {
   const reconnectAttemptRef = useRef(0)
   const reconnectTimeoutRef = useRef(null)
   const mountedRef = useRef(true)
+  const MAX_RECONNECT_ATTEMPTS = 10
 
   // Keep handlers ref updated
   useEffect(() => {
@@ -148,7 +149,8 @@ export function useSSE(options = {}) {
     console.log('[SSE] Connecting...', url.split('?')[0])
 
     try {
-      const eventSource = new EventSource(url, { withCredentials: false })
+      // withCredentials: true — отправка httpOnly cookie (freshtrack_token) для авторизации на проде
+      const eventSource = new EventSource(url, { withCredentials: true })
       eventSourceRef.current = eventSource
 
       // Connection opened
@@ -239,7 +241,7 @@ export function useSSE(options = {}) {
         })
       })
 
-      // Handle errors (ожидаемо при недоступном бэкенде / переподключении — warn, чтобы не портить Lighthouse "errors in console")
+      // Handle errors (401 / сеть — не зацикливать переподключения)
       eventSource.onerror = (e) => {
         if (!mountedRef.current) return
         console.warn('[SSE] Connection error:', e)
@@ -247,14 +249,18 @@ export function useSSE(options = {}) {
         setState(SSE_STATE.ERROR)
         onError?.(e)
         
-        // Close and try to reconnect
         eventSource.close()
         eventSourceRef.current = null
         
-        // Schedule reconnect with backoff
-        const delay = getReconnectDelay()
         reconnectAttemptRef.current++
-        console.log(`[SSE] Reconnecting in ${delay}ms (attempt ${reconnectAttemptRef.current})`)
+        if (reconnectAttemptRef.current > MAX_RECONNECT_ATTEMPTS) {
+          console.warn('[SSE] Max reconnect attempts reached, stopping')
+          onDisconnect?.()
+          return
+        }
+        
+        const delay = getReconnectDelay()
+        console.log(`[SSE] Reconnecting in ${delay}ms (attempt ${reconnectAttemptRef.current}/${MAX_RECONNECT_ATTEMPTS})`)
         
         reconnectTimeoutRef.current = setTimeout(() => {
           if (mountedRef.current && enabled) {

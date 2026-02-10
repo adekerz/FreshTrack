@@ -142,23 +142,24 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
 app.set('trust proxy', 1)
 
 // Security headers with Helmet
+// CSP: connectSrc — 'self', APP_URL (фронт), API_ORIGIN (fetch + SSE /api/events/stream). При split (Vercel + Railway) задать API_ORIGIN.
+const appUrl = process.env.APP_URL || 'https://freshtrack.systems'
+const connectSrcList = ["'self'", appUrl]
+if (process.env.API_ORIGIN) connectSrcList.push(process.env.API_ORIGIN)
+
 app.use(helmet({
-  // Отключить CSP в development (ломает HMR)
   contentSecurityPolicy: process.env.NODE_ENV === 'production' ? {
     directives: {
       defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"], // Tailwind CSS
-      scriptSrc: ["'self'"], // Vite bundles скрипты
+      styleSrc: ["'self'", "'unsafe-inline'"], // Tailwind — inline неизбежен
+      scriptSrc: ["'self'"], // Vite bundles. При inline scripts — перейти на nonce: script-src 'self' 'nonce-<runtime>'
       imgSrc: ["'self'", "data:", "https:", "blob:"],
-      connectSrc: [
-        "'self'",
-        process.env.APP_URL || 'https://freshtrack.systems'
-      ],
-      fontSrc: ["'self'", "data:"],
+      connectSrc: connectSrcList, // APP_URL + API_ORIGIN (fetch, EventSource /api/events/stream)
+      fontSrc: ["'self'", "data:", "https://fonts.gstatic.com"],
       objectSrc: ["'none'"],
       upgradeInsecureRequests: []
     }
-  } : false, // ← ОТКЛЮЧИТЬ в dev!
+  } : false,
   
   hsts: {
     maxAge: 31536000, // 1 year

@@ -7,7 +7,22 @@
       "Bash(git commit -m \"$\\(cat <<''EOF''\nMajor update: FAQ page, improved UX, settings reorganization, bug fixes\n\nUser Interface:\n- Add FAQ page with role-based content for all user roles\n- Move Settings from sidebar to dropdown menu \\(Header\\)\n- Add hotel and department info to user dropdown menu\n- Improve inventory page mobile layout and text wrapping\n- Add Help/FAQ link to both desktop and mobile navigation\n\nSettings Reorganization:\n- Move Accounts and MARSHA Codes pages into Settings tabs\n- Create dedicated settings components in ui/settings folder\n- Reorganize settings into Personal, Admin Panel, Super Admin Panel\n- Remove duplicate settings navigation items from sidebar\n\nBackend Improvements:\n- Add department info to user response \\(formatUserResponse\\)\n- Fix account deactivation bug \\(updateUserStatus was using wrong column\\)\n- Add audit logging improvements and SSE support\n- Add email verification service with OTP\n- Improve MARSHA codes management endpoints\n\nBug Fixes:\n- Fix account toggle status not persisting \\(is_active vs status column\\)\n- Fix bcrypt.compare error when password_hash is undefined\n- Improve date formatting and timezone handling\n\nTranslations:\n- Add comprehensive FAQ translations for English and Russian\n- Add navigation translations for FAQ/Help\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
       "Bash(npm run migrate:*)",
       "Bash(npm run build:*)",
-      "Bash(node --check:*)"
+      "Bash(node --check:*)",
+      "Bash(dir:*)",
+      "Bash(npx vite build:*)",
+      "Bash(npm install:*)",
+      "Bash(npx playwright install chromium)",
+      "Bash(ls:*)",
+      "Bash(npx playwright test --list)",
+      "Bash(npx vite-bundle-visualizer:*)",
+      "Bash(npx --yes acorn:*)",
+      "Bash(npx vitest run:*)",
+      "Bash(for f in server/modules/notification-rules/notification-rules.schemas.js server/modules/scheduled-exports/scheduled-exports.schemas.js server/modules/import/import.schemas.js server/modules/custom-content/custom-content.schemas.js server/modules/marsha-codes/marsha-codes.schemas.js server/modules/telegram/telegram.schemas.js server/modules/department-settings/department-settings.schemas.js server/modules/audit/audit.schemas.js server/modules/export/export.schemas.js server/modules/gdpr/gdpr.schemas.js)",
+      "Bash(do node --check:*)",
+      "Bash(echo:*)",
+      "Bash(done)",
+      "Bash(for f in src/hooks/useAuditLogs.js src/hooks/useCollectionHistory.js src/hooks/useNotificationLogs.js src/lib/queryKeys.js src/lib/queryClient.js)",
+      "Bash(grep:*)"
     ]
   }
 }

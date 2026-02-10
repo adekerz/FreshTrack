@@ -19,7 +19,8 @@ export default function CreateUserModal({
   departmentId,
   creating,
   error,
-  t
+  t,
+  canCreateSuperAdmin = false
 }) {
   const [showPassword, setShowPassword] = useState(false)
   const [generatePassword, setGeneratePassword] = useState(true)
@@ -163,9 +164,20 @@ export default function CreateUserModal({
           <div>
             <label className="block text-sm font-medium text-foreground mb-1">Роль</label>
             {!departmentId ? (
-              <div className="w-full px-4 py-2.5 border border-border rounded-lg bg-muted/50 text-foreground">
-                {t('users.roles.HOTEL_ADMIN')}
-              </div>
+              canCreateSuperAdmin ? (
+                <select
+                  value={formState.role}
+                  onChange={(e) => setFormState({ ...formState, role: e.target.value })}
+                  className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-card"
+                >
+                  <option value="HOTEL_ADMIN">{t('users.roles.HOTEL_ADMIN')}</option>
+                  <option value="SUPER_ADMIN">{t('users.roles.SUPER_ADMIN')}</option>
+                </select>
+              ) : (
+                <div className="w-full px-4 py-2.5 border border-border rounded-lg bg-muted/50 text-foreground">
+                  {t('users.roles.HOTEL_ADMIN')}
+                </div>
+              )
             ) : (
               <select
                 value={formState.role}

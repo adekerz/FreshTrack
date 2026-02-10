@@ -29,6 +29,7 @@ const MFASetupPage = lazy(() => import('./pages/MFASetupPage'))
 const FAQPage = lazy(() => import('./pages/FAQPage'))
 const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage'))
 const TermsOfServicePage = lazy(() => import('./pages/TermsOfServicePage'))
+const DocumentationPage = lazy(() => import('./pages/DocumentationPage'))
 const AccessibilityStatementPage = lazy(() => import('./pages/AccessibilityStatementPage'))
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'))
 
@@ -133,75 +134,76 @@ function App() {
         <Layout>
           <Suspense fallback={<SuspenseFallback />}>
             <Routes>
-            {/* Общедоступные страницы (для всех авторизованных) */}
-            <Route path="/" element={<RouteErrorBoundary><DashboardPage /></RouteErrorBoundary>} />
-            <Route path="/change-password" element={<RouteErrorBoundary><ChangePasswordPage /></RouteErrorBoundary>} />
-            <Route path="/verify-email" element={<RouteErrorBoundary><VerifyEmailPage /></RouteErrorBoundary>} />
-            <Route path="/inventory/:departmentId" element={<RouteErrorBoundary><InventoryPage /></RouteErrorBoundary>} />
-            <Route path="/inventory" element={<RouteErrorBoundary><InventoryPage /></RouteErrorBoundary>} />
-            <Route path="/notifications" element={<RouteErrorBoundary><NotificationsPage /></RouteErrorBoundary>} />
-            <Route path="/calendar" element={<RouteErrorBoundary><CalendarPage /></RouteErrorBoundary>} />
-            <Route path="/settings" element={<RouteErrorBoundary><SettingsPage /></RouteErrorBoundary>} />
-            <Route path="/mfa-setup" element={<RouteErrorBoundary><MFASetupPage /></RouteErrorBoundary>} />
-            <Route path="/faq" element={<RouteErrorBoundary><FAQPage /></RouteErrorBoundary>} />
-            <Route path="/accessibility" element={<RouteErrorBoundary><AccessibilityStatementPage /></RouteErrorBoundary>} />
-            {/* Legal pages (accessible to logged-in users too) */}
-            <Route path="/privacy" element={<RouteErrorBoundary><PrivacyPolicyPage /></RouteErrorBoundary>} />
-            <Route path="/terms" element={<RouteErrorBoundary><TermsOfServicePage /></RouteErrorBoundary>} />
+              {/* Общедоступные страницы (для всех авторизованных) */}
+              <Route path="/" element={<RouteErrorBoundary><DashboardPage /></RouteErrorBoundary>} />
+              <Route path="/change-password" element={<RouteErrorBoundary><ChangePasswordPage /></RouteErrorBoundary>} />
+              <Route path="/verify-email" element={<RouteErrorBoundary><VerifyEmailPage /></RouteErrorBoundary>} />
+              <Route path="/inventory/:departmentId" element={<RouteErrorBoundary><InventoryPage /></RouteErrorBoundary>} />
+              <Route path="/inventory" element={<RouteErrorBoundary><InventoryPage /></RouteErrorBoundary>} />
+              <Route path="/notifications" element={<RouteErrorBoundary><NotificationsPage /></RouteErrorBoundary>} />
+              <Route path="/calendar" element={<RouteErrorBoundary><CalendarPage /></RouteErrorBoundary>} />
+              <Route path="/settings" element={<RouteErrorBoundary><SettingsPage /></RouteErrorBoundary>} />
+              <Route path="/mfa-setup" element={<RouteErrorBoundary><MFASetupPage /></RouteErrorBoundary>} />
+              <Route path="/faq" element={<RouteErrorBoundary><FAQPage /></RouteErrorBoundary>} />
+              <Route path="/docs" element={<RouteErrorBoundary><DocumentationPage /></RouteErrorBoundary>} />
+              <Route path="/accessibility" element={<RouteErrorBoundary><AccessibilityStatementPage /></RouteErrorBoundary>} />
+              {/* Legal pages (accessible to logged-in users too) */}
+              <Route path="/privacy" element={<RouteErrorBoundary><PrivacyPolicyPage /></RouteErrorBoundary>} />
+              <Route path="/terms" element={<RouteErrorBoundary><TermsOfServicePage /></RouteErrorBoundary>} />
 
-            {/* Страницы с ограниченным доступом */}
-            <Route
-              path="/notifications/history"
-              element={
-                <RouteErrorBoundary>
-                  <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'HOTEL_ADMIN', 'DEPARTMENT_MANAGER']}>
-                    <NotificationsHistoryPage />
-                  </ProtectedRoute>
-                </RouteErrorBoundary>
-              }
-            />
+              {/* Страницы с ограниченным доступом */}
+              <Route
+                path="/notifications/history"
+                element={
+                  <RouteErrorBoundary>
+                    <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'HOTEL_ADMIN', 'DEPARTMENT_MANAGER']}>
+                      <NotificationsHistoryPage />
+                    </ProtectedRoute>
+                  </RouteErrorBoundary>
+                }
+              />
 
-            {/* Для администраторов и менеджеров отделов */}
-            <Route
-              path="/collection-history"
-              element={
-                <RouteErrorBoundary>
-                  <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'HOTEL_ADMIN', 'DEPARTMENT_MANAGER']}>
-                    <CollectionHistoryPage />
-                  </ProtectedRoute>
-                </RouteErrorBoundary>
-              }
-            />
+              {/* Для администраторов и менеджеров отделов */}
+              <Route
+                path="/collection-history"
+                element={
+                  <RouteErrorBoundary>
+                    <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'HOTEL_ADMIN', 'DEPARTMENT_MANAGER']}>
+                      <CollectionHistoryPage />
+                    </ProtectedRoute>
+                  </RouteErrorBoundary>
+                }
+              />
 
-            <Route
-              path="/statistics"
-              element={
-                <RouteErrorBoundary>
-                  <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'HOTEL_ADMIN', 'DEPARTMENT_MANAGER']}>
-                    <StatisticsPage />
-                  </ProtectedRoute>
-                </RouteErrorBoundary>
-              }
-            />
+              <Route
+                path="/statistics"
+                element={
+                  <RouteErrorBoundary>
+                    <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'HOTEL_ADMIN', 'DEPARTMENT_MANAGER']}>
+                      <StatisticsPage />
+                    </ProtectedRoute>
+                  </RouteErrorBoundary>
+                }
+              />
 
-            {/* Только для администраторов (аудит логи) */}
-            <Route
-              path="/audit-logs"
-              element={
-                <RouteErrorBoundary>
-                  <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'HOTEL_ADMIN']}>
-                    <AuditLogsPage />
-                  </ProtectedRoute>
-                </RouteErrorBoundary>
-              }
-            />
+              {/* Только для администраторов (аудит логи) */}
+              <Route
+                path="/audit-logs"
+                element={
+                  <RouteErrorBoundary>
+                    <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'HOTEL_ADMIN']}>
+                      <AuditLogsPage />
+                    </ProtectedRoute>
+                  </RouteErrorBoundary>
+                }
+              />
 
-            {/* 404 — страница не найдена */}
-            <Route path="*" element={<NotFoundPage />} />
-          </Routes>
-        </Suspense>
-      </Layout>
-    </ErrorBoundary>
+              {/* 404 — страница не найдена */}
+              <Route path="*" element={<NotFoundPage />} />
+            </Routes>
+          </Suspense>
+        </Layout>
+      </ErrorBoundary>
     </>
   )
 }

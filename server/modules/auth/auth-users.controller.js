@@ -112,8 +112,14 @@ router.post('/users', authMiddleware, requirePermission('users', 'create'), asyn
     })
   }
 
-  // Проверка права назначать роль
-  if (!canAssignRole(req.user.role, validation.data.role)) {
+  // Проверка права назначать роль (is_owner требуется для создания SUPER_ADMIN)
+  if (!canAssignRole(req.user.role, validation.data.role, req.user.is_owner)) {
+    // Специальное сообщение для SUPER_ADMIN
+    if (validation.data.role === 'SUPER_ADMIN') {
+      return res.status(403).json({
+        error: 'Только основной супер-администратор может создавать других супер-администраторов'
+      })
+    }
     return res.status(403).json({
       error: `Вы не можете создавать пользователей с ролью ${validation.data.role}`
     })
@@ -237,8 +243,13 @@ router.put('/users/:id', authMiddleware, requirePermission('users', 'update'), a
     })
   }
 
-  // Проверка смены роли
-  if (validation.data.role && !canAssignRole(req.user.role, validation.data.role)) {
+  // Проверка смены роли (is_owner требуется для назначения SUPER_ADMIN)
+  if (validation.data.role && !canAssignRole(req.user.role, validation.data.role, req.user.is_owner)) {
+    if (validation.data.role === 'SUPER_ADMIN') {
+      return res.status(403).json({
+        error: 'Только основной супер-администратор может назначать роль супер-администратора'
+      })
+    }
     return res.status(403).json({
       error: `Вы не можете назначить роль ${validation.data.role}`
     })

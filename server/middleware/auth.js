@@ -151,6 +151,7 @@ export const authMiddleware = async (req, res, next) => {
       name: user.name,
       email: user.email,
       role: user.role,
+      is_owner: user.is_owner || false,
       status: user.status || 'active',
       hotel_id: user.hotel_id,
       department_id: user.department_id,

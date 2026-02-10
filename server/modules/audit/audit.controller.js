@@ -17,6 +17,7 @@ import { UnifiedFilterService } from '../../services/FilterService.js'
 import { ExportService } from '../../services/ExportService.js'
 import { logAudit, AuditAction, AuditEntityType, auditService, default as AuditService } from '../../services/AuditService.js'
 import { AuditIntegrityService } from '../../services/AuditIntegrityService.js'
+import { SecurityAlertService } from '../../services/SecurityAlertService.js'
 import { AuditEnrichmentService } from '../../services/AuditEnrichmentService.js'
 import { rateLimitExport, rateLimitExportWithAlert } from '../../middleware/rateLimiter.js'
 import { requireAllowlistedIP } from '../../middleware/ipAllowlist.js'
@@ -71,6 +72,28 @@ router.get('/', authMiddleware, hotelIsolation, requirePermission(PermissionReso
         total,
         pages: Math.ceil(total / (filters.limit || 20)) || 1
       }
+    })
+
+    // Фоновая верификация цепочки при чтении (не блокируем ответ)
+    setImmediate(() => {
+      AuditIntegrityService.verifyRecent(100)
+        .then((result) => {
+          if (!result.valid) {
+            logError('AuditIntegrity', 'Violation on read', {
+              valid: false,
+              errorsCount: result.errors.length,
+              errors: result.errors.slice(0, 5)
+            })
+            return SecurityAlertService.sendAlert('audit_integrity_violation', {
+              source: 'on_read',
+              totalRecords: result.totalRecords,
+              errorsCount: result.errors.length,
+              errors: result.errors.slice(0, 5),
+              timestamp: new Date().toISOString()
+            })
+          }
+        })
+        .catch((err) => logError('AuditIntegrity', 'Verify on read failed', err))
     })
   } catch (error) {
     logError('Get audit logs error', error)

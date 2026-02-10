@@ -73,6 +73,10 @@ export class AuditIntegrityService {
             actual: row.previous_hash,
             timestamp: row.created_at
           })
+          await query(
+            'UPDATE audit_logs SET verified = FALSE WHERE id = $1',
+            [row.id]
+          )
         }
         
         // Пересчитываем current_hash
@@ -86,8 +90,6 @@ export class AuditIntegrityService {
             actual: row.current_hash,
             timestamp: row.created_at
           })
-          
-          // Помечаем как скомпрометированный
           await query(
             'UPDATE audit_logs SET verified = FALSE WHERE id = $1',
             [row.id]
@@ -118,6 +120,15 @@ export class AuditIntegrityService {
         }
       }
       
+      if (errors.length > 0) {
+        logError('AuditIntegrity', 'Hash chain violation(s) detected', {
+          errorsCount: errors.length,
+          totalRecords: rows.length,
+          errors: errors.slice(0, 20),
+          types: [...new Set(errors.map(e => e.type))]
+        })
+      }
+
       return {
         valid: errors.length === 0,
         totalRecords: rows.length,

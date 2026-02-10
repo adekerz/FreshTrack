@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { X, Plus, Check, Calendar, Package, User, Trash2, AlertTriangle, Zap } from 'lucide-react'
+import { X, Plus, Check, Calendar, Package, User, Trash2, AlertTriangle, Zap, ChevronDown, ChevronUp } from 'lucide-react'
 import { ButtonLoader, TouchButton, Switch } from './ui'
 import Tooltip from './Tooltip'
 import { useProducts, categories } from '../context/ProductContext'
@@ -42,7 +42,17 @@ export default function ProductModal({ product, onClose }) {
   const [showAddForm, setShowAddForm] = useState(false)
   const [showFIFOModal, setShowFIFOModal] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [expandedExpiry, setExpandedExpiry] = useState(() => new Set())
   const addFormRef = useRef(null)
+
+  const toggleExpiry = (key) => {
+    setExpandedExpiry((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
   const [newBatch, setNewBatch] = useState({
     expiryDate: '',
     quantity: '',
@@ -274,7 +284,7 @@ export default function ProductModal({ product, onClose }) {
             </div>
           </div>
 
-          {/* Список активных партий (сгруппированы по сроку годности) */}
+          {/* Список активных партий: по сроку годности, сводка + развертываемый список */}
           {activeBatches.length > 0 && (
             <div className="mb-6">
               <h3 className="text-sm font-medium text-muted-foreground mb-3">
@@ -288,95 +298,131 @@ export default function ProductModal({ product, onClose }) {
                     (s, b) => s + (b.quantity != null ? b.quantity : 1),
                     0
                   )
+                  const isMulti = group.length > 1
+                  const isExpanded = expandedExpiry.has(expiryKey)
+                  // По умолчанию показываем детали только если одна партия, или если развернуто
+                  const showDetails = group.length === 1 || isExpanded
                   const statusCls = statusBorderColors[first.status?.status] || 'border-l-muted'
                   return (
                     <div
                       key={expiryKey}
                       className={`bg-background rounded-lg border-l-4 ${statusCls} border border-border overflow-hidden`}
                     >
-                      {/* Заголовок группы: срок, кол-во партий и шт */}
-                      <div className="p-3 border-b border-border bg-muted/30">
-                        <div className="flex items-center gap-2 text-foreground">
-                          <Calendar className="w-4 h-4 text-muted-foreground" />
-                          <span className="font-medium">{formatDateDisplay(expiryKey)}</span>
-                          <span className="text-sm text-muted-foreground">
-                            — {group.length}{' '}
-                            {group.length === 1
-                              ? t('product.batchOne') || 'партия'
-                              : t('product.batchesCount') || 'партий'}
-                            , {totalQty} {t('inventory.units')}
-                          </span>
+                      <div className="p-3">
+                        {/* Строка 1: дата срока */}
+                        <div className="text-base font-medium text-foreground">
+                          {formatDateDisplay(expiryKey)}
                         </div>
-                      </div>
-                      {/* Партии в этом сроке: дата добавления, кол-во, кто добавил, удалить */}
-                      <div className="divide-y divide-border">
-                        {group.map((batch) => (
-                          <div
-                            key={batch.id}
-                            className="flex items-center justify-between gap-2 p-3"
+                        {/* Строка 2: N партия, X шт. */}
+                        <div className="text-sm text-muted-foreground mt-1">
+                          {group.length}{' '}
+                          {group.length === 1
+                            ? t('product.batchOne') || 'партия'
+                            : t('product.batchesCount') || 'партий'}
+                          , {totalQty} {t('inventory.units')}
+                        </div>
+
+                        {/* Кнопка развернуть/свернуть - ПЕРЕД деталями */}
+                        {isMulti && (
+                          <button
+                            type="button"
+                            onClick={() => toggleExpiry(expiryKey)}
+                            className="mt-2 flex items-center gap-1 text-sm text-accent hover:underline"
                           >
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                <span>
-                                  {t('product.addedAt') || 'Добавлено'}:{' '}
-                                  <strong className="text-foreground">
-                                    {formatAddedAt(batch.created_at || batch.createdAt)}
-                                  </strong>
-                                </span>
-                                <span>•</span>
-                                <span>
-                                  {batch.quantity === null || batch.quantity === undefined
-                                    ? t('product.noQuantity') || 'Без учёта'
-                                    : `${batch.quantity} ${t('inventory.units')}`}
-                                </span>
-                              </div>
-                              {batch.addedBy && (
-                                <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                                  <User className="w-3 h-3" />
-                                  {batch.addedBy}
-                                </div>
-                              )}
+                            {isExpanded ? (
+                              <>
+                                <ChevronUp className="w-4 h-4" />
+                                {t('product.collapse') || 'Свернуть'}
+                              </>
+                            ) : (
+                              <>
+                                <ChevronDown className="w-4 h-4" />
+                                {t('product.expandDetails') || 'Показать детали партий'}
+                              </>
+                            )}
+                          </button>
+                        )}
+
+                        {/* Развертываемый блок: по каждой партии — Добавлено / кол-во / кто */}
+                        {showDetails && (
+                          <div className={`${isMulti ? 'mt-3 pt-3 border-t border-border' : 'mt-3'} space-y-3`}>
+                            {group.map((batch, idx) => (
                               <div
-                                className={`mt-1 text-xs font-medium ${
-                                  batch.status?.status === 'expired' ||
-                                  batch.status?.status === 'critical' ||
-                                  batch.status?.status === 'today'
-                                    ? 'text-danger'
-                                    : batch.status?.status === 'warning' ||
-                                        batch.status?.status === 'attention'
-                                      ? 'text-warning'
-                                      : 'text-success'
+                                key={batch.id}
+                                className={`flex items-start justify-between gap-2 ${
+                                  isMulti ? 'pl-3 border-l-2 border-muted' : ''
                                 }`}
                               >
-                                {batch.daysLeft < 0
-                                  ? t('status.expiredDaysAgo', { days: Math.abs(batch.daysLeft) })
-                                  : batch.daysLeft === 0
-                                    ? t('status.expiresToday')
-                                    : t('status.expiresInDays', { days: batch.daysLeft })}
+                                <div className="flex-1 min-w-0">
+                                  {/* Номер партии - только если несколько */}
+                                  {isMulti && (
+                                    <div className="text-xs font-medium text-accent mb-1">
+                                      {t('product.batchNumber', { num: idx + 1 }) || `${idx + 1} партия`}
+                                    </div>
+                                  )}
+                                  {/* Количество */}
+                                  <div className="text-sm text-foreground">
+                                    {batch.quantity === null || batch.quantity === undefined
+                                      ? t('product.noQuantity') || 'Без учёта'
+                                      : `${batch.quantity} ${t('inventory.units')}`}
+                                  </div>
+                                  {/* Дата добавления */}
+                                  <div className="text-sm text-muted-foreground mt-0.5">
+                                    {t('product.addedAt') || 'Добавлено'}:{' '}
+                                    {formatAddedAt(batch.created_at || batch.createdAt)}
+                                  </div>
+                                  {/* Кем добавлено */}
+                                  {batch.addedBy && (
+                                    <div className="flex items-center gap-1.5 text-sm text-muted-foreground mt-0.5">
+                                      <User className="w-3.5 h-3.5 flex-shrink-0" />
+                                      {batch.addedBy}
+                                    </div>
+                                  )}
+                                </div>
+                                {!userIsStaff && (
+                                  <TouchButton
+                                    variant="ghost"
+                                    size="small"
+                                    onClick={() => {
+                                      deleteBatchMutation(batch.id, {
+                                        onSuccess: () => {
+                                          addToast(t('toast.batchDeleted') || 'Партия удалена', 'success')
+                                          refresh()
+                                        },
+                                        onError: () => {
+                                          addToast(t('toast.batchDeleteError') || 'Ошибка удаления', 'error')
+                                        }
+                                      })
+                                    }}
+                                    className="p-1.5 min-w-0 min-h-0 text-muted-foreground hover:text-danger flex-shrink-0"
+                                    title={t('common.delete')}
+                                    icon={Trash2}
+                                  />
+                                )}
                               </div>
-                            </div>
-                            {!userIsStaff && (
-                              <TouchButton
-                                variant="ghost"
-                                size="small"
-                                onClick={() => {
-                                  deleteBatchMutation(batch.id, {
-                                    onSuccess: () => {
-                                      addToast(t('toast.batchDeleted') || 'Партия удалена', 'success')
-                                      refresh()
-                                    },
-                                    onError: () => {
-                                      addToast(t('toast.batchDeleteError') || 'Ошибка удаления', 'error')
-                                    }
-                                  })
-                                }}
-                                className="p-1.5 min-w-0 min-h-0 text-muted-foreground hover:text-danger flex-shrink-0"
-                                title={t('common.delete')}
-                                icon={Trash2}
-                              />
-                            )}
+                            ))}
                           </div>
-                        ))}
+                        )}
+
+                        {/* Одна строка внизу: Истекает через N дн. */}
+                        <div
+                          className={`mt-2 text-xs font-medium ${
+                            first.status?.status === 'expired' ||
+                            first.status?.status === 'critical' ||
+                            first.status?.status === 'today'
+                              ? 'text-danger'
+                              : first.status?.status === 'warning' ||
+                                  first.status?.status === 'attention'
+                                ? 'text-warning'
+                                : 'text-success'
+                          }`}
+                        >
+                          {first.daysLeft < 0
+                            ? t('status.expiredDaysAgo', { days: Math.abs(first.daysLeft) })
+                            : first.daysLeft === 0
+                              ? t('status.expiresToday')
+                              : t('status.expiresInDays', { days: first.daysLeft })}
+                        </div>
                       </div>
                     </div>
                   )
