@@ -89,7 +89,7 @@ export function ProductProvider({ children }) {
     // Если отель изменился, инвалидируем все queries
     if (prevHotelIdRef.current !== selectedHotelId && prevHotelIdRef.current !== null) {
       logDebug('🏨 Hotel changed, invalidating queries for new hotel:', selectedHotelId)
-      
+
       // React Query автоматически перезагрузит данные благодаря invalidation
       invalidateInventoryQueries(queryClient, selectedHotelId)
     }
@@ -112,7 +112,7 @@ export function ProductProvider({ children }) {
 
     departmentsData.forEach((dept) => {
       newCatalog[dept.id] = {}
-      
+
       // Фильтруем товары ТОЛЬКО для этого отдела
       const deptProducts = productsData.filter((p) => {
         const pDeptId = p.departmentId || p.department_id
@@ -415,7 +415,8 @@ export function ProductProvider({ children }) {
         })
 
         products.push({
-          id: `custom-${productName}`,
+          // ✅ ИСПРАВЛЕНО: Используем настоящий product_id из БД вместо синтетического ID
+          id: productBatches[0]?.product_id || productBatches[0]?.productId || `custom-${productName}`,
           name: productName,
           // Используем categoryId или category_id с бэкенда
           categoryId: productBatches[0]?.categoryId || productBatches[0]?.category_id || 'other',
