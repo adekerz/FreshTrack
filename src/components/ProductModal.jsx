@@ -118,15 +118,17 @@ export default function ProductModal({ product, onClose }) {
   // Обработка добавления партии
   const handleAddBatch = (e) => {
     e.preventDefault()
+    // Защита от множественных кликов
+    if (isAddingBatch) return
     if (!newBatch.expiryDate) return
-    
+
     // Защита от старых дат: год должен быть >= 2026
     const year = parseInt(newBatch.expiryDate.split('-')[0], 10)
     if (year < 2026) {
       addToast('Год должен быть 2026 или позже', 'error')
       return
     }
-    
+
     if (!newBatch.noQuantity && (!newBatch.quantity || parseInt(newBatch.quantity) <= 0)) return
 
     // ✨ React Query mutation with optimistic update
@@ -349,9 +351,8 @@ export default function ProductModal({ product, onClose }) {
                             {group.map((batch, idx) => (
                               <div
                                 key={batch.id}
-                                className={`flex items-start justify-between gap-2 ${
-                                  isMulti ? 'pl-3 border-l-2 border-muted' : ''
-                                }`}
+                                className={`flex items-start justify-between gap-2 ${isMulti ? 'pl-3 border-l-2 border-muted' : ''
+                                  }`}
                               >
                                 <div className="flex-1 min-w-0">
                                   {/* Номер партии - только если несколько */}
@@ -406,16 +407,15 @@ export default function ProductModal({ product, onClose }) {
 
                         {/* Одна строка внизу: Истекает через N дн. */}
                         <div
-                          className={`mt-2 text-xs font-medium ${
-                            first.status?.status === 'expired' ||
+                          className={`mt-2 text-xs font-medium ${first.status?.status === 'expired' ||
                             first.status?.status === 'critical' ||
                             first.status?.status === 'today'
-                              ? 'text-danger'
-                              : first.status?.status === 'warning' ||
-                                  first.status?.status === 'attention'
-                                ? 'text-warning'
-                                : 'text-success'
-                          }`}
+                            ? 'text-danger'
+                            : first.status?.status === 'warning' ||
+                              first.status?.status === 'attention'
+                              ? 'text-warning'
+                              : 'text-success'
+                            }`}
                         >
                           {first.daysLeft < 0
                             ? t('status.expiredDaysAgo', { days: Math.abs(first.daysLeft) })
@@ -508,11 +508,10 @@ export default function ProductModal({ product, onClose }) {
                     value={newBatch.quantity}
                     onChange={(e) => setNewBatch((prev) => ({ ...prev, quantity: e.target.value }))}
                     disabled={newBatch.noQuantity}
-                    className={`w-full px-3 py-2 border border-border rounded focus:outline-none focus:border-accent transition-colors ${
-                      newBatch.noQuantity
-                        ? 'bg-muted text-muted-foreground cursor-not-allowed'
-                        : 'bg-card text-foreground'
-                    }`}
+                    className={`w-full px-3 py-2 border border-border rounded focus:outline-none focus:border-accent transition-colors ${newBatch.noQuantity
+                      ? 'bg-muted text-muted-foreground cursor-not-allowed'
+                      : 'bg-card text-foreground'
+                      }`}
                     required={!newBatch.noQuantity}
                     placeholder={
                       newBatch.noQuantity ? t('batch.noQuantity') || 'Нет количества' : ''
@@ -572,6 +571,8 @@ export default function ProductModal({ product, onClose }) {
                     type="submit"
                     variant="primary"
                     size="small"
+                    disabled={isAddingBatch}
+                    loading={isAddingBatch}
                     className="px-4 py-2 text-sm"
                   >
                     {t('common.add')}

@@ -12,21 +12,21 @@ import { TouchButton } from './ui'
 import { cn } from '../utils/classNames'
 
 export default function OnboardingTour() {
-  const { 
-    isActive, 
-    currentStep, 
+  const {
+    isActive,
+    currentStep,
     totalSteps,
     currentStepData,
-    nextStep, 
-    prevStep, 
-    skipOnboarding 
+    nextStep,
+    prevStep,
+    skipOnboarding
   } = useOnboarding()
   const { t } = useTranslation()
   const [targetRect, setTargetRect] = useState(null)
   const [tooltipPos, setTooltipPos] = useState(null)
   const tooltipRef = useRef(null)
 
-  // Find and highlight target element
+  // Find and highlight target element with scroll support
   useEffect(() => {
     if (!isActive || !currentStepData?.target) {
       setTargetRect(null)
@@ -36,18 +36,32 @@ export default function OnboardingTour() {
     const findTarget = () => {
       const target = document.querySelector(currentStepData.target)
       if (target) {
-        const rect = target.getBoundingClientRect()
-        setTargetRect({
-          top: rect.top - 8,
-          left: rect.left - 8,
-          width: rect.width + 16,
-          height: rect.height + 16,
-          // Original element rect for tooltip positioning
-          originalTop: rect.top,
-          originalLeft: rect.left,
-          originalWidth: rect.width,
-          originalHeight: rect.height,
+        // Scroll element into view smoothly
+        target.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center',
+          inline: 'center'
         })
+
+        // Wait for scroll to complete before calculating position
+        setTimeout(() => {
+          const rect = target.getBoundingClientRect()
+          const scrollTop = window.pageYOffset || document.documentElement.scrollTop
+          const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft
+
+          setTargetRect({
+            // Absolute positions including scroll
+            top: rect.top + scrollTop - 8,
+            left: rect.left + scrollLeft - 8,
+            width: rect.width + 16,
+            height: rect.height + 16,
+            // Viewport positions for tooltip
+            viewportTop: rect.top,
+            viewportLeft: rect.left,
+            viewportWidth: rect.width,
+            viewportHeight: rect.height,
+          })
+        }, 300)
       } else {
         setTargetRect(null)
       }
@@ -55,13 +69,22 @@ export default function OnboardingTour() {
 
     // Small delay to ensure DOM is ready
     const timer = setTimeout(findTarget, 50)
+
+    // Throttle scroll updates to avoid performance issues
+    let scrollTimeout
+    const handleScroll = () => {
+      clearTimeout(scrollTimeout)
+      scrollTimeout = setTimeout(findTarget, 100)
+    }
+
     window.addEventListener('resize', findTarget)
-    window.addEventListener('scroll', findTarget, { passive: true })
+    window.addEventListener('scroll', handleScroll, { passive: true })
 
     return () => {
       clearTimeout(timer)
+      clearTimeout(scrollTimeout)
       window.removeEventListener('resize', findTarget)
-      window.removeEventListener('scroll', findTarget)
+      window.removeEventListener('scroll', handleScroll)
     }
   }, [isActive, currentStep, currentStepData])
 
@@ -81,6 +104,7 @@ export default function OnboardingTour() {
       setTooltipPos({
         top: Math.max(padding, (viewportHeight - tooltipRect.height) / 2),
         left: Math.max(padding, (viewportWidth - tooltipRect.width) / 2),
+        fixed: true
       })
       return
     }
@@ -89,36 +113,54 @@ export default function OnboardingTour() {
     let top = 0
     let left = 0
 
+    // Use viewport positions for tooltip calculation
     switch (placement) {
       case 'top':
-        top = targetRect.originalTop - tooltipRect.height - padding
-        left = targetRect.originalLeft + targetRect.originalWidth / 2 - tooltipRect.width / 2
+        top = targetRect.viewportTop - tooltipRect.height - padding
+        left = targetRect.viewportLeft + targetRect.viewportWidth / 2 - tooltipRect.width / 2
         break
       case 'bottom':
-        top = targetRect.originalTop + targetRect.originalHeight + padding
-        left = targetRect.originalLeft + targetRect.originalWidth / 2 - tooltipRect.width / 2
+        top = targetRect.viewportTop + targetRect.viewportHeight + padding
+        left = targetRect.viewportLeft + targetRect.viewportWidth / 2 - tooltipRect.width / 2
         break
       case 'left':
-        top = targetRect.originalTop + targetRect.originalHeight / 2 - tooltipRect.height / 2
-        left = targetRect.originalLeft - tooltipRect.width - padding
+        top = targetRect.viewportTop + targetRect.viewportHeight / 2 - tooltipRect.height / 2
+        left = targetRect.viewportLeft - tooltipRect.width - padding
         break
       case 'right':
-        top = targetRect.originalTop + targetRect.originalHeight / 2 - tooltipRect.height / 2
-        left = targetRect.originalLeft + targetRect.originalWidth + padding
+        top = targetRect.viewportTop + targetRect.viewportHeight / 2 - tooltipRect.height / 2
+        left = targetRect.viewportLeft + targetRect.viewportWidth + padding
         break
     }
 
-    // Bounds checking - keep tooltip within viewport
+    // Smart positioning: if tooltip goes off screen, try alternate placement
+    if (top < padding) {
+      // Try bottom
+      top = targetRect.viewportTop + targetRect.viewportHeight + padding
+    } else if (top + tooltipRect.height > viewportHeight - padding) {
+      // Try top
+      top = targetRect.viewportTop - tooltipRect.height - padding
+    }
+
+    if (left < padding) {
+      // Try right
+      left = targetRect.viewportLeft + targetRect.viewportWidth + padding
+    } else if (left + tooltipRect.width > viewportWidth - padding) {
+      // Try left
+      left = targetRect.viewportLeft - tooltipRect.width - padding
+    }
+
+    // Final bounds checking - keep tooltip within viewport
     left = Math.max(padding, Math.min(left, viewportWidth - tooltipRect.width - padding))
     top = Math.max(padding, Math.min(top, viewportHeight - tooltipRect.height - padding))
 
-    setTooltipPos({ top, left })
+    setTooltipPos({ top, left, fixed: true })
   }, [targetRect, currentStepData])
 
   // Recalculate tooltip position when target or step changes
   useEffect(() => {
     if (!isActive) return
-    
+
     // Use requestAnimationFrame to ensure DOM is painted
     const frame = requestAnimationFrame(() => {
       calculateTooltipPosition()
@@ -135,8 +177,8 @@ export default function OnboardingTour() {
   return createPortal(
     <div className="fixed inset-0 z-[200]" role="dialog" aria-modal="true">
       {/* Single overlay with spotlight cutout using SVG mask */}
-      <svg 
-        className="absolute inset-0 w-full h-full pointer-events-none"
+      <svg
+        className="fixed inset-0 w-full h-full pointer-events-none"
         style={{ zIndex: 1 }}
       >
         <defs>
@@ -145,10 +187,10 @@ export default function OnboardingTour() {
             <rect x="0" y="0" width="100%" height="100%" fill="white" />
             {targetRect && (
               <rect
-                x={targetRect.left}
-                y={targetRect.top}
-                width={targetRect.width}
-                height={targetRect.height}
+                x={targetRect.viewportLeft - 8}
+                y={targetRect.viewportTop - 8}
+                width={targetRect.viewportWidth + 16}
+                height={targetRect.viewportHeight + 16}
                 rx="12"
                 fill="black"
               />
@@ -168,21 +210,21 @@ export default function OnboardingTour() {
       {/* Spotlight ring highlight */}
       {targetRect && (
         <div
-          className="absolute rounded-xl ring-2 ring-accent pointer-events-none"
+          className="fixed rounded-xl ring-2 ring-accent pointer-events-none animate-pulse"
           style={{
             zIndex: 2,
-            top: targetRect.top,
-            left: targetRect.left,
-            width: targetRect.width,
-            height: targetRect.height,
+            top: targetRect.viewportTop - 8,
+            left: targetRect.viewportLeft - 8,
+            width: targetRect.viewportWidth + 16,
+            height: targetRect.viewportHeight + 16,
             boxShadow: '0 0 20px rgba(255, 107, 107, 0.4)',
           }}
         />
       )}
 
       {/* Click blocker - allows clicking on highlighted element */}
-      <div 
-        className="absolute inset-0" 
+      <div
+        className="fixed inset-0"
         style={{ zIndex: 3 }}
         onClick={(e) => {
           // Allow clicks on the highlighted area to pass through
@@ -190,10 +232,10 @@ export default function OnboardingTour() {
             const x = e.clientX
             const y = e.clientY
             if (
-              x >= targetRect.left &&
-              x <= targetRect.left + targetRect.width &&
-              y >= targetRect.top &&
-              y <= targetRect.top + targetRect.height
+              x >= targetRect.viewportLeft - 8 &&
+              x <= targetRect.viewportLeft + targetRect.viewportWidth + 8 &&
+              y >= targetRect.viewportTop - 8 &&
+              y <= targetRect.viewportTop + targetRect.viewportHeight + 8
             ) {
               return
             }
@@ -206,8 +248,8 @@ export default function OnboardingTour() {
       <div
         ref={tooltipRef}
         className={cn(
-          'absolute bg-card rounded-2xl shadow-2xl border border-border',
-          'p-6 max-w-sm w-[calc(100vw-2rem)]',
+          'fixed bg-card rounded-2xl shadow-2xl border border-border',
+          'p-5 sm:p-6 w-[calc(100vw-2rem)] sm:max-w-sm',
           'transition-opacity duration-200',
           tooltipPos ? 'opacity-100' : 'opacity-0'
         )}
@@ -215,7 +257,7 @@ export default function OnboardingTour() {
           zIndex: 10,
           top: tooltipPos?.top ?? '50%',
           left: tooltipPos?.left ?? '50%',
-          transform: tooltipPos ? 'none' : 'translate(-50%, -50%)',
+          transform: tooltipPos?.fixed ? 'none' : 'translate(-50%, -50%)',
         }}
       >
         {/* Close button */}
@@ -253,10 +295,10 @@ export default function OnboardingTour() {
               key={index}
               className={cn(
                 'w-2 h-2 rounded-full transition-all',
-                index === currentStep 
-                  ? 'w-6 bg-accent' 
-                  : index < currentStep 
-                    ? 'bg-accent/50' 
+                index === currentStep
+                  ? 'w-6 bg-accent'
+                  : index < currentStep
+                    ? 'bg-accent/50'
                     : 'bg-muted'
               )}
             />

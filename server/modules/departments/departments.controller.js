@@ -20,6 +20,7 @@ import {
 } from '../../db/database.js'
 import {
   authMiddleware,
+  hotelIsolation,
   requirePermission,
   PermissionResource,
   PermissionAction
@@ -34,22 +35,11 @@ const router = Router()
 /**
  * GET /api/departments
  */
-router.get('/', authMiddleware, requirePermission(PermissionResource.DEPARTMENTS, PermissionAction.READ), async (req, res) => {
+router.get('/', authMiddleware, hotelIsolation, requirePermission(PermissionResource.DEPARTMENTS, PermissionAction.READ), async (req, res) => {
   try {
-    let departments
-
-    // Support query parameters: hotel_id or hotelId
-    const queryHotelId = req.query.hotel_id || req.query.hotelId
-
-    if (req.user.role === 'SUPER_ADMIN') {
-      // SUPER_ADMIN can filter by hotel_id or get all
-      departments = await getAllDepartments(queryHotelId || null)
-    } else if (req.user.hotel_id) {
-      // Regular users only see their hotel's departments
-      departments = await getAllDepartments(req.user.hotel_id)
-    } else {
-      departments = []
-    }
+    // hotelIsolation sets req.hotelId: user's own hotel for non-SUPER_ADMIN,
+    // or requested hotel (or first active) for SUPER_ADMIN
+    const departments = await getAllDepartments(req.hotelId || null)
     res.json({ success: true, departments })
   } catch (error) {
     logError('Get departments error', error)
@@ -60,13 +50,14 @@ router.get('/', authMiddleware, requirePermission(PermissionResource.DEPARTMENTS
 /**
  * GET /api/departments/:id
  */
-router.get('/:id', authMiddleware, async (req, res) => {
+router.get('/:id', authMiddleware, hotelIsolation, requirePermission(PermissionResource.DEPARTMENTS, PermissionAction.READ), async (req, res) => {
   try {
     const department = await getDepartmentById(req.params.id)
     if (!department) {
       return res.status(404).json({ success: false, error: 'Department not found' })
     }
-    if (req.user.role !== 'SUPER_ADMIN' && req.user.hotel_id !== department.hotel_id) {
+    // hotelIsolation already enforces hotel boundary; double-check department belongs to hotel
+    if (req.hotelId && department.hotel_id !== req.hotelId) {
       return res.status(403).json({ success: false, error: 'Access denied' })
     }
     res.json({ success: true, department })
@@ -79,7 +70,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
 /**
  * POST /api/departments
  */
-router.post('/', authMiddleware, requirePermission(PermissionResource.DEPARTMENTS, PermissionAction.CREATE), async (req, res) => {
+router.post('/', authMiddleware, hotelIsolation, requirePermission(PermissionResource.DEPARTMENTS, PermissionAction.CREATE), async (req, res) => {
   try {
     const validation = validate(CreateDepartmentSchema, req.body)
     if (!validation.isValid) {
@@ -88,11 +79,9 @@ router.post('/', authMiddleware, requirePermission(PermissionResource.DEPARTMENT
 
     const { name, description, settings, email } = validation.data
 
-    // hotel_id: из header X-Hotel-Id, query, body, или из пользователя
-    const hotel_id = req.headers['x-hotel-id'] ||
-      req.query.hotel_id ||
-      validation.data.hotel_id ||
-      req.user.hotel_id
+    // SECURITY: Use req.hotelId from hotelIsolation middleware
+    // This ensures non-SUPER_ADMIN can only create in their own hotel
+    const hotel_id = req.hotelId
 
     if (!hotel_id) {
       return res.status(400).json({ success: false, error: 'hotel_id is required' })
@@ -122,8 +111,8 @@ router.post('/', authMiddleware, requirePermission(PermissionResource.DEPARTMENT
     res.status(201).json({ success: true, department })
   } catch (error) {
     logError('Departments', error, { action: 'create', name, description: departmentDescription, hotel_id })
-    res.status(500).json({ 
-      success: false, 
+    res.status(500).json({
+      success: false,
       error: 'Failed to create department',
       details: process.env.NODE_ENV === 'development' ? error.message : undefined
     })
@@ -133,7 +122,7 @@ router.post('/', authMiddleware, requirePermission(PermissionResource.DEPARTMENT
 /**
  * PUT /api/departments/:id
  */
-router.put('/:id', authMiddleware, requirePermission(PermissionResource.DEPARTMENTS, PermissionAction.UPDATE, {
+router.put('/:id', authMiddleware, hotelIsolation, requirePermission(PermissionResource.DEPARTMENTS, PermissionAction.UPDATE, {
   getTargetHotelId: async (req) => {
     const dept = await getDepartmentById(req.params.id)
     return dept?.hotel_id
@@ -145,7 +134,8 @@ router.put('/:id', authMiddleware, requirePermission(PermissionResource.DEPARTME
       return res.status(404).json({ success: false, error: 'Department not found' })
     }
 
-    if (req.user.role !== 'SUPER_ADMIN' && req.user.hotel_id !== department.hotel_id) {
+    // hotelIsolation enforces boundary; double-check department belongs to isolated hotel
+    if (req.hotelId && department.hotel_id !== req.hotelId) {
       return res.status(403).json({ success: false, error: 'Access denied' })
     }
 
@@ -177,8 +167,8 @@ router.put('/:id', authMiddleware, requirePermission(PermissionResource.DEPARTME
     res.json({ success })
   } catch (error) {
     logError('Departments', error, { action: 'update', departmentId: req.params.id, updates: Object.keys(updates || {}) })
-    res.status(500).json({ 
-      success: false, 
+    res.status(500).json({
+      success: false,
       error: 'Failed to update department',
       details: process.env.NODE_ENV === 'development' ? error.message : undefined
     })
@@ -188,14 +178,15 @@ router.put('/:id', authMiddleware, requirePermission(PermissionResource.DEPARTME
 /**
  * DELETE /api/departments/:id
  */
-router.delete('/:id', authMiddleware, requirePermission(PermissionResource.DEPARTMENTS, PermissionAction.DELETE), async (req, res) => {
+router.delete('/:id', authMiddleware, hotelIsolation, requirePermission(PermissionResource.DEPARTMENTS, PermissionAction.DELETE), async (req, res) => {
   try {
     const department = await getDepartmentById(req.params.id)
     if (!department) {
       return res.status(404).json({ success: false, error: 'Department not found' })
     }
 
-    if (req.user.role !== 'SUPER_ADMIN' && req.user.hotel_id !== department.hotel_id) {
+    // hotelIsolation enforces boundary; double-check department belongs to isolated hotel
+    if (req.hotelId && department.hotel_id !== req.hotelId) {
       return res.status(403).json({ success: false, error: 'Access denied' })
     }
 
@@ -206,11 +197,11 @@ router.delete('/:id', authMiddleware, requirePermission(PermissionResource.DEPAR
        WHERE p.department_id = $1 AND b.status = 'active'`,
       [req.params.id]
     )
-    
+
     const activeBatchesCount = parseInt(activeBatchesResult.rows[0].count)
     if (activeBatchesCount > 0) {
-      return res.status(400).json({ 
-        success: false, 
+      return res.status(400).json({
+        success: false,
         error: 'Cannot delete department with active batches',
         activeBatches: activeBatchesCount
       })
@@ -227,8 +218,8 @@ router.delete('/:id', authMiddleware, requirePermission(PermissionResource.DEPAR
     res.json({ success })
   } catch (error) {
     logError('Departments', error, { action: 'delete', departmentId: req.params.id })
-    res.status(500).json({ 
-      success: false, 
+    res.status(500).json({
+      success: false,
       error: 'Failed to delete department',
       details: process.env.NODE_ENV === 'development' ? error.message : undefined
     })
@@ -348,26 +339,32 @@ router.get('/:id/verification-status', authMiddleware, requirePermission(Permiss
  */
 router.post('/:id/send-confirmation',
   authMiddleware,
+  hotelIsolation,
   requirePermission(PermissionResource.DEPARTMENTS, PermissionAction.UPDATE),
   async (req, res) => {
     try {
       const { id } = req.params
       const department = await getDepartmentById(id)
-      
+
       if (!department) {
         return res.status(404).json({ success: false, error: 'Department not found' })
       }
-      
+
+      // SECURITY: Ensure department belongs to the isolated hotel
+      if (req.hotelId && department.hotel_id !== req.hotelId) {
+        return res.status(403).json({ success: false, error: 'Access denied' })
+      }
+
       if (!department.email) {
         return res.status(400).json({ success: false, error: 'No email configured for this department' })
       }
-      
+
       // Токен для ссылок «подтвердить» и «отписаться» (один токен — два endpoint)
       const token = crypto.randomBytes(32).toString('hex')
       const appUrl = process.env.APP_URL || 'http://localhost:5173'
       const confirmLink = `${appUrl}/api/departments/${id}/confirm?token=${token}`
       const unsubscribeLink = `${appUrl}/api/departments/${id}/unsubscribe?token=${token}`
-      
+
       // Сохраняем токен; email_confirmed = TRUE только после перехода по ссылке «Подтвердить»
       await dbQuery(
         `UPDATE departments 
@@ -375,7 +372,7 @@ router.post('/:id/send-confirmation',
          WHERE id = $2`,
         [token, id]
       )
-      
+
       const hotel = await getHotelById(department.hotel_id)
       const hotelName = hotel?.name
         ? (hotel.marsha_code ? `${hotel.name} / ${hotel.marsha_code}` : hotel.name)
@@ -391,7 +388,7 @@ router.post('/:id/send-confirmation',
         confirmLink,
         unsubscribeLink
       })
-      
+
       await logAudit({
         hotel_id: department.hotel_id,
         user_id: req.user.id,
@@ -402,7 +399,7 @@ router.post('/:id/send-confirmation',
         details: { email: department.email },
         ip_address: req.ip
       })
-      
+
       res.json({ success: true, message: 'Confirmation email sent' })
     } catch (error) {
       logError('Send department confirmation error', error)
@@ -472,7 +469,7 @@ router.get('/:id/unsubscribe',
     try {
       const { id } = req.params
       const { token } = req.query
-      
+
       if (!token) {
         return res.status(400).send(`
           <html>
@@ -483,7 +480,7 @@ router.get('/:id/unsubscribe',
           </html>
         `)
       }
-      
+
       const result = await dbQuery(
         `UPDATE departments
          SET email_confirmed = FALSE,
@@ -492,7 +489,7 @@ router.get('/:id/unsubscribe',
          RETURNING id, name`,
         [id, token]
       )
-      
+
       if (result.rows.length === 0) {
         return res.status(400).send(`
           <html>
@@ -503,7 +500,7 @@ router.get('/:id/unsubscribe',
           </html>
         `)
       }
-      
+
       res.send(`
         <html>
           <body style="font-family: sans-serif; text-align: center; padding: 50px;">

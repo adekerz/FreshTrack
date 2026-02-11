@@ -62,36 +62,17 @@ export default function FIFOCollectModal({
 
   // Загрузить preview при изменении количества
   const fetchPreview = useCallback(async () => {
-    // 🔍 ДИАГНОСТИКА: Проверяем что передается в API
-    console.log('[FIFO Debug] Product object:', product)
-    console.log('[FIFO Debug] Product ID:', product?.id)
-    console.log('[FIFO Debug] Quantity:', quantity)
-
-    if (!product?.id || quantity <= 0) {
-      if (!product?.id) {
-        console.warn('[FIFO Debug] ⚠️ Product ID is missing!')
-      }
-      if (quantity <= 0) {
-        console.warn('[FIFO Debug] ⚠️ Invalid quantity:', quantity)
-      }
-      return
-    }
+    if (!product?.id || quantity <= 0) return
 
     setIsLoading(true)
     setError(null)
 
     try {
-      const apiUrl = `/fifo-collect/preview?productId=${product.id}&quantity=${quantity}`
-      console.log('[FIFO Debug] 📡 API Request URL:', apiUrl)
-
-      const data = await apiFetch(apiUrl)
-
-      console.log('[FIFO Debug] ✅ API Response:', data)
+      const data = await apiFetch(
+        `/fifo-collect/preview?productId=${product.id}&quantity=${quantity}`
+      )
       setPreview(data)
     } catch (err) {
-      console.error('[FIFO Debug] ❌ API Error:', err)
-      console.error('[FIFO Debug] Error code:', err.error)
-      console.error('[FIFO Debug] Error message:', err.message)
       logError('Preview fetch error:', err)
 
       // Показываем переведенное сообщение об ошибке

@@ -14,7 +14,7 @@ export default function AddCustomProductModal({ onClose, departmentId = null }) 
   const { selectedHotelId } = useHotel()
   const { departments, categories } = useProducts()
   const { addToast } = useToast()
-  
+
   // === REACT QUERY MUTATION ===
   const { mutate: addProductMutation, mutateAsync: addProductAsync, isPending: isSubmitting } =
     useAddProduct(selectedHotelId)
@@ -36,6 +36,9 @@ export default function AddCustomProductModal({ onClose, departmentId = null }) 
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+
+    // Защита от множественных кликов
+    if (isSubmitting) return
 
     if (!selectedDepartment) {
       setError(t('customProduct.errorSelectDepartment'))
@@ -161,11 +164,10 @@ export default function AddCustomProductModal({ onClose, departmentId = null }) 
                     key={dept.id}
                     type="button"
                     onClick={() => setSelectedDepartment(dept.id)}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-all ${
-                      isSelected
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-all ${isSelected
                         ? 'border-accent bg-accent/10 text-foreground'
                         : 'border-border bg-card text-muted-foreground hover:border-foreground'
-                    }`}
+                      }`}
                   >
                     <Icon
                       className="w-4 h-4"
@@ -191,11 +193,10 @@ export default function AddCustomProductModal({ onClose, departmentId = null }) 
                     key={cat.id}
                     type="button"
                     onClick={() => setSelectedCategory(cat.id)}
-                    className={`px-4 py-2 rounded-lg border text-sm transition-all ${
-                      isSelected
+                    className={`px-4 py-2 rounded-lg border text-sm transition-all ${isSelected
                         ? 'border-accent bg-accent/10 text-foreground'
                         : 'border-border bg-card text-muted-foreground hover:border-foreground'
-                    }`}
+                      }`}
                   >
                     {getCategoryName(cat)}
                   </button>
@@ -209,18 +210,16 @@ export default function AddCustomProductModal({ onClose, departmentId = null }) 
             <button
               type="button"
               onClick={() => setBatchMode(false)}
-              className={`text-sm px-3 py-1.5 rounded-lg border transition-colors ${
-                !batchMode ? 'border-accent bg-accent/10 text-foreground' : 'border-border text-muted-foreground hover:text-foreground'
-              }`}
+              className={`text-sm px-3 py-1.5 rounded-lg border transition-colors ${!batchMode ? 'border-accent bg-accent/10 text-foreground' : 'border-border text-muted-foreground hover:text-foreground'
+                }`}
             >
               {t('customProduct.singleProduct')}
             </button>
             <button
               type="button"
               onClick={() => setBatchMode(true)}
-              className={`text-sm px-3 py-1.5 rounded-lg border transition-colors ${
-                batchMode ? 'border-accent bg-accent/10 text-foreground' : 'border-border text-muted-foreground hover:text-foreground'
-              }`}
+              className={`text-sm px-3 py-1.5 rounded-lg border transition-colors ${batchMode ? 'border-accent bg-accent/10 text-foreground' : 'border-border text-muted-foreground hover:text-foreground'
+                }`}
             >
               {t('customProduct.multipleProducts')}
             </button>

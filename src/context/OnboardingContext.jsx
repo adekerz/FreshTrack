@@ -8,7 +8,7 @@ const STORAGE_KEY = 'freshtrack_onboarding_completed'
 export const onboardingSteps = [
   {
     id: 'welcome',
-    target: null, // No target - just a welcome modal
+    target: null,
     title: 'onboarding.welcome.title',
     description: 'onboarding.welcome.description',
     placement: 'center',
@@ -18,14 +18,7 @@ export const onboardingSteps = [
     target: '[data-onboarding="dashboard"]',
     title: 'onboarding.dashboard.title',
     description: 'onboarding.dashboard.description',
-    placement: 'bottom',
-  },
-  {
-    id: 'add-batch',
-    target: '[data-onboarding="add-batch"]',
-    title: 'onboarding.addBatch.title',
-    description: 'onboarding.addBatch.description',
-    placement: 'bottom',
+    placement: 'right',
   },
   {
     id: 'inventory',
@@ -35,10 +28,24 @@ export const onboardingSteps = [
     placement: 'right',
   },
   {
+    id: 'add-batch',
+    target: '[data-onboarding="add-batch"]',
+    title: 'onboarding.addBatch.title',
+    description: 'onboarding.addBatch.description',
+    placement: 'bottom',
+  },
+  {
     id: 'notifications',
     target: '[data-onboarding="notifications"]',
     title: 'onboarding.notifications.title',
     description: 'onboarding.notifications.description',
+    placement: 'right',
+  },
+  {
+    id: 'calendar',
+    target: '[data-onboarding="calendar"]',
+    title: 'onboarding.calendar.title',
+    description: 'onboarding.calendar.description',
     placement: 'right',
   },
   {

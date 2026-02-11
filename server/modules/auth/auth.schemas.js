@@ -27,7 +27,9 @@ export const passwordSchema = z.string()
   .min(8, 'Минимум 8 символов')
   .max(100, 'Пароль слишком длинный')
   .regex(/[A-Z]/, 'Нужна хотя бы одна заглавная буква')
+  .regex(/[a-z]/, 'Нужна хотя бы одна строчная буква')
   .regex(/[0-9]/, 'Нужна хотя бы одна цифра')
+  .regex(/[!@#$%^&*-_=+]/, 'Нужен хотя бы один спецсимвол (!@#$%^&*-_=+)')
 
 export const nameSchema = z.string()
   .max(100, 'Имя должно быть максимум 100 символов')
@@ -202,8 +204,15 @@ export function getAllowedRolesForCreator(creatorRole) {
 
 /**
  * Проверка прав на редактирование пользователя
+ * Supports both camelCase (hotelId) and snake_case (hotel_id) property names
  */
 export function canEditUser(editor, targetUser) {
+  // Normalize property access to support both naming conventions
+  const editorHotelId = editor.hotelId || editor.hotel_id
+  const targetHotelId = targetUser.hotelId || targetUser.hotel_id
+  const editorDeptId = editor.departmentId || editor.department_id
+  const targetDeptId = targetUser.departmentId || targetUser.department_id
+
   // SUPER_ADMIN может редактировать всех
   if (editor.role === 'SUPER_ADMIN') {
     return true
@@ -215,19 +224,19 @@ export function canEditUser(editor, targetUser) {
   }
 
   // HOTEL_ADMIN может редактировать пользователей своего отеля
-  if (editor.role === 'HOTEL_ADMIN' && editor.hotelId === targetUser.hotelId) {
+  if (editor.role === 'HOTEL_ADMIN' && editorHotelId && editorHotelId === targetHotelId) {
     return canAssignRole(editor.role, targetUser.role)
   }
 
   // MANAGER может редактировать STAFF своего отеля
-  if (editor.role === 'MANAGER' && editor.hotelId === targetUser.hotelId) {
+  if (editor.role === 'MANAGER' && editorHotelId && editorHotelId === targetHotelId) {
     return ['DEPARTMENT_MANAGER', 'STAFF'].includes(targetUser.role)
   }
 
   // DEPARTMENT_MANAGER может редактировать STAFF своего отдела
   if (editor.role === 'DEPARTMENT_MANAGER' &&
-    editor.hotelId === targetUser.hotelId &&
-    editor.departmentId === targetUser.departmentId) {
+    editorHotelId && editorHotelId === targetHotelId &&
+    editorDeptId && editorDeptId === targetDeptId) {
     return targetUser.role === 'STAFF'
   }
 

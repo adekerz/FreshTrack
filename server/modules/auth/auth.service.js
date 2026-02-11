@@ -509,6 +509,11 @@ export class AuthService {
         hotelId = creator.hotel_id
       }
 
+      // SECURITY: Non-SUPER_ADMIN can only create users in their own hotel
+      if (creator.role !== 'SUPER_ADMIN' && hotelId && hotelId !== creator.hotel_id) {
+        return ServiceResult.forbidden('You can only create users in your own hotel')
+      }
+
       // Определить department_id (поддержка camelCase и snake_case)
       const departmentId = data.departmentId || data.department_id
 
@@ -646,6 +651,11 @@ export class AuthService {
         }
       }
 
+      // SECURITY: Non-SUPER_ADMIN can only edit users in their own hotel
+      if (editor.role !== 'SUPER_ADMIN' && user.hotel_id && editor.hotel_id !== user.hotel_id) {
+        return ServiceResult.forbidden('You can only edit users in your own hotel')
+      }
+
       // Обновить
       const updateResult = await dbUpdateUser(userId, data)
       if (!updateResult) {
@@ -699,6 +709,11 @@ export class AuthService {
       // Защита Owner-аккаунта: никто не может удалить владельца
       if (user.is_owner) {
         return ServiceResult.forbidden('Основной владелец (Owner) не может быть удален')
+      }
+
+      // SECURITY: Non-SUPER_ADMIN can only delete users in their own hotel
+      if (deleter.role !== 'SUPER_ADMIN' && user.hotel_id && deleter.hotel_id !== user.hotel_id) {
+        return ServiceResult.forbidden('You can only delete users in your own hotel')
       }
 
       // Get user email and hotel info BEFORE deletion
@@ -769,6 +784,11 @@ export class AuthService {
       // Защита Owner-аккаунта: никто не может заблокировать владельца
       if (user.is_owner) {
         return ServiceResult.forbidden('Основной владелец (Owner) не может быть заблокирован')
+      }
+
+      // SECURITY: Non-SUPER_ADMIN can only toggle users in their own hotel
+      if (editor.role !== 'SUPER_ADMIN' && user.hotel_id && editor.hotel_id !== user.hotel_id) {
+        return ServiceResult.forbidden('You can only manage users in your own hotel')
       }
 
       // Переключаем статус

@@ -27,24 +27,24 @@ import { apiFetch } from '../services/api'
  * onFastApply - для быстрого режима: применяет шаблон БЕЗ закрытия модалки (только обновление данных)
  * onClose - явное закрытие пользователем (кнопка X или backdrop в стандартном режиме)
  */
-export default function DeliveryTemplateModal({ 
-  isOpen, 
-  onClose, 
+export default function DeliveryTemplateModal({
+  isOpen,
+  onClose,
   onApplyAndClose,  // Стандартный режим: apply + close
   onFastApply,      // Быстрый режим: apply без close
-  departmentId 
+  departmentId
 }) {
   const { t } = useTranslation()
   const { departments } = useProducts()
   const { addToast } = useToast()
-  
+
   // === Основные состояния ===
   const [templates, setTemplates] = useState([])
   const [selectedTemplate, setSelectedTemplate] = useState(null)
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [applying, setApplying] = useState(false)
-  
+
   // === Fast Intake Mode состояния ===
   // Состояние управляется внутри модалки, без синхронизации с родителем
   // Для восстановления после перерендеринга используем sessionStorage (если нужно)
@@ -52,17 +52,17 @@ export default function DeliveryTemplateModal({
   const [sessionHistory, setSessionHistory] = useState([]) // История добавленных в этой сессии
   const [lastExpiryByProduct, setLastExpiryByProduct] = useState({}) // Последний срок годности по продукту
   const [globalLastExpiry, setGlobalLastExpiry] = useState('') // Последний введённый срок годности
-  
+
   // Refs для управления фокусом (если понадобятся в будущем)
-  
+
   // Ref для сохранения быстрого режима при перерендерингах (только для внутреннего использования)
   const fastModeRef = useRef(false)
-  
+
   // Синхронизируем ref с state (для внутреннего использования в обработчиках)
   useEffect(() => {
     fastModeRef.current = fastIntakeMode
   }, [fastIntakeMode])
-  
+
   // Целевой отдел
   const targetDepartment = departmentId || (departments.length > 0 ? departments[0].id : null)
 
@@ -79,7 +79,7 @@ export default function DeliveryTemplateModal({
       }
     }
   }, [isOpen])
-  
+
   // При закрытии модалки сбрасываем состояние быстрого режима
   useEffect(() => {
     if (!isOpen) {
@@ -96,8 +96,8 @@ export default function DeliveryTemplateModal({
       const data = await apiFetch('/delivery-templates')
       const templates = (data.templates || []).map(template => ({
         ...template,
-        items: typeof template.items === 'string' 
-          ? JSON.parse(template.items) 
+        items: typeof template.items === 'string'
+          ? JSON.parse(template.items)
           : template.items || []
       }))
       setTemplates(templates)
@@ -111,22 +111,22 @@ export default function DeliveryTemplateModal({
   // === Выбор шаблона ===
   const selectTemplate = (template) => {
     setSelectedTemplate(template)
-    
+
     // Подготавливаем items с датами
     const today = new Date()
-    const templateItems = typeof template.items === 'string' 
-      ? JSON.parse(template.items) 
+    const templateItems = typeof template.items === 'string'
+      ? JSON.parse(template.items)
       : template.items || []
-    
+
     const preparedItems = templateItems.map((item) => {
       const shelfLife = item.shelf_life_days || item.defaultShelfLife || 30
       const expiryDate = new Date(today)
       expiryDate.setDate(expiryDate.getDate() + shelfLife)
 
-      const defaultQty = item.default_quantity !== undefined && item.default_quantity !== null 
-        ? item.default_quantity 
-        : (item.defaultQuantity !== undefined && item.defaultQuantity !== null 
-          ? item.defaultQuantity 
+      const defaultQty = item.default_quantity !== undefined && item.default_quantity !== null
+        ? item.default_quantity
+        : (item.defaultQuantity !== undefined && item.defaultQuantity !== null
+          ? item.defaultQuantity
           : 1)
 
       return {
@@ -154,6 +154,8 @@ export default function DeliveryTemplateModal({
 
   // === Стандартный режим: применение шаблона ===
   const handleApply = async () => {
+    // Защита от множественных кликов
+    if (applying) return
     if (!targetDepartment || items.length === 0) return
 
     // Проверка на старые даты (год < 2026)
@@ -161,7 +163,7 @@ export default function DeliveryTemplateModal({
       const year = parseInt(item.expiryDate?.split('-')[0], 10)
       return year < 2026
     })
-    
+
     if (invalidItems.length > 0) {
       addToast(`${invalidItems.length} товар(ов) с годом до 2026. Исправьте даты.`, 'error')
       return
@@ -196,51 +198,51 @@ export default function DeliveryTemplateModal({
   // === Fast Intake: Парсинг даты из различных форматов ===
   const parseExpiryInput = useCallback((input) => {
     if (!input) return null
-    
+
     const cleaned = input.replace(/[^\d./-]/g, '')
-    
+
     // Форматы: DD.MM.YY, DD.MM.YYYY, DD/MM/YY, DD-MM-YY
     const patterns = [
       /^(\d{1,2})[./-](\d{1,2})[./-](\d{2,4})$/, // DD.MM.YY или DD.MM.YYYY
       /^(\d{1,2})[./-](\d{1,2})$/, // DD.MM (текущий год)
     ]
-    
+
     for (const pattern of patterns) {
       const match = cleaned.match(pattern)
       if (match) {
         let day = parseInt(match[1], 10)
         let month = parseInt(match[2], 10) // Не уменьшаем сразу
         let year = match[3] ? parseInt(match[3], 10) : new Date().getFullYear()
-        
+
         // Если год двузначный, добавляем 2000
         if (year < 100) {
           year += 2000
         }
-        
+
         // Валидация: месяц должен быть от 1 до 12
         if (month < 1 || month > 12) {
           return null
         }
-        
+
         // Валидация: год должен быть >= 2026 и <= 2099
         if (year < 2026 || year > 2099) {
           return null
         }
-        
+
         // Валидация: день должен быть валидным для месяца
         const daysInMonth = new Date(year, month, 0).getDate() // 0 день = последний день предыдущего месяца
         if (day < 1 || day > daysInMonth) {
           return null
         }
-        
+
         // Создаем дату в локальном времени (месяц в JS 0-based)
         const date = new Date(year, month - 1, day)
-        
+
         // Проверяем что дата валидна и соответствует введенным значениям
-        if (!isNaN(date.getTime()) && 
-            date.getDate() === day && 
-            date.getMonth() === month - 1 && 
-            date.getFullYear() === year) {
+        if (!isNaN(date.getTime()) &&
+          date.getDate() === day &&
+          date.getMonth() === month - 1 &&
+          date.getFullYear() === year) {
           // Форматируем в YYYY-MM-DD вручную для избежания проблем с часовыми поясами
           const yearStr = String(year).padStart(4, '0')
           const monthStr = String(month).padStart(2, '0')
@@ -249,7 +251,7 @@ export default function DeliveryTemplateModal({
         }
       }
     }
-    
+
     return null
   }, [])
 
@@ -264,7 +266,7 @@ export default function DeliveryTemplateModal({
   const autoFormatDateInput = (value) => {
     // Убираем всё кроме цифр
     const digits = value.replace(/\D/g, '')
-    
+
     // Форматируем с точками
     let formatted = ''
     for (let i = 0; i < digits.length && i < 8; i++) {
@@ -273,7 +275,7 @@ export default function DeliveryTemplateModal({
       }
       formatted += digits[i]
     }
-    
+
     return formatted
   }
 
@@ -323,7 +325,7 @@ export default function DeliveryTemplateModal({
               </div>
               <div>
                 <h2 className="text-lg font-semibold text-foreground">
-                  {fastIntakeMode 
+                  {fastIntakeMode
                     ? (t('fastIntake.title') || 'Быстрый ввод')
                     : (t('templates.title') || 'Шаблоны поставок')
                   }
@@ -333,7 +335,7 @@ export default function DeliveryTemplateModal({
                 )}
               </div>
             </div>
-            
+
             <div className="flex items-center gap-2">
               {/* Переключатель Fast Intake Mode - только иконка на мобильных */}
               {selectedTemplate && (
@@ -346,9 +348,8 @@ export default function DeliveryTemplateModal({
                     fastModeRef.current = newMode
                     if (newMode) resetFastIntakeForm()
                   }}
-                  className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-sm font-medium min-h-0 h-auto ${
-                    fastIntakeMode ? 'bg-amber-500 text-white hover:bg-amber-600' : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                  }`}
+                  className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-sm font-medium min-h-0 h-auto ${fastIntakeMode ? 'bg-amber-500 text-white hover:bg-amber-600' : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                    }`}
                   icon={Zap}
                   iconPosition="left"
                 >
@@ -397,7 +398,7 @@ export default function DeliveryTemplateModal({
                             {template.items.length} позиций
                           </p>
                         </div>
-                        
+
                         {/* Быстрый режим - главная кнопка */}
                         <TouchButton
                           variant="primary"
@@ -520,10 +521,10 @@ export default function DeliveryTemplateModal({
                               // Автоформатируем дату с точками
                               const formatted = autoFormatDateInput(e.target.value)
                               const newItems = [...items]
-                              newItems[index] = { 
-                                ...newItems[index], 
-                                _inputExpiry: formatted, 
-                                _invalidYear: false 
+                              newItems[index] = {
+                                ...newItems[index],
+                                _inputExpiry: formatted,
+                                _invalidYear: false
                               }
                               setItems(newItems)
                             }}
@@ -532,11 +533,11 @@ export default function DeliveryTemplateModal({
                               if (parsed) {
                                 // Парсинг успешен - сохраняем дату
                                 const newItems = [...items]
-                                newItems[index] = { 
-                                  ...newItems[index], 
-                                  expiryDate: parsed, 
-                                  _inputExpiry: undefined, 
-                                  _invalidYear: false 
+                                newItems[index] = {
+                                  ...newItems[index],
+                                  expiryDate: parsed,
+                                  _inputExpiry: undefined,
+                                  _invalidYear: false
                                 }
                                 setItems(newItems)
                                 // Сохраняем последний срок для автозаполнения
@@ -551,7 +552,7 @@ export default function DeliveryTemplateModal({
                                   const month = parseInt(digits.slice(2, 4), 10)
                                   let year = parseInt(digits.slice(4, 6), 10)
                                   if (year < 100) year += 2000
-                                  
+
                                   if (year < 2026 || year > 2099) {
                                     addToast('Год должен быть от 2026 до 2099', 'error')
                                     const newItems = [...items]
@@ -573,11 +574,11 @@ export default function DeliveryTemplateModal({
                                 const parsed = parseExpiryInput(e.target.value)
                                 if (parsed) {
                                   const newItems = [...items]
-                                  newItems[index] = { 
-                                    ...newItems[index], 
-                                    expiryDate: parsed, 
-                                    _inputExpiry: undefined, 
-                                    _invalidYear: false 
+                                  newItems[index] = {
+                                    ...newItems[index],
+                                    expiryDate: parsed,
+                                    _inputExpiry: undefined,
+                                    _invalidYear: false
                                   }
                                   setItems(newItems)
                                   setGlobalLastExpiry(parsed)
@@ -604,11 +605,10 @@ export default function DeliveryTemplateModal({
                               e.target.select()
                             }}
                             placeholder="ДД.ММ.ГГ"
-                            className={`flex-1 sm:w-24 text-center px-2 py-2 sm:py-1.5 border rounded-lg bg-card text-foreground text-base sm:text-sm focus:outline-none focus:ring-2 ${
-                              item._invalidYear 
-                                ? 'border-red-500 focus:ring-red-500/30 focus:border-red-500' 
-                                : 'border-border focus:ring-amber-500/30 focus:border-amber-500'
-                            }`}
+                            className={`flex-1 sm:w-24 text-center px-2 py-2 sm:py-1.5 border rounded-lg bg-card text-foreground text-base sm:text-sm focus:outline-none focus:ring-2 ${item._invalidYear
+                              ? 'border-red-500 focus:ring-red-500/30 focus:border-red-500'
+                              : 'border-border focus:ring-amber-500/30 focus:border-amber-500'
+                              }`}
                           />
                         </div>
 
@@ -635,6 +635,8 @@ export default function DeliveryTemplateModal({
                   loading={applying}
                   disabled={applying || items.length === 0}
                   onClick={async () => {
+                    // Защита от множественных кликов
+                    if (applying) return
                     if (!targetDepartment || items.length === 0) return
                     const invalidItems = items.filter(item => {
                       const year = parseInt(item.expiryDate?.split('-')[0], 10)
@@ -710,7 +712,7 @@ export default function DeliveryTemplateModal({
                     </h4>
                     <div className="space-y-1 max-h-32 overflow-y-auto">
                       {sessionHistory.slice(0, 10).map((entry) => (
-                        <div 
+                        <div
                           key={entry.id}
                           className="flex items-center justify-between py-1.5 px-2 bg-green-50 dark:bg-green-900/20 rounded text-xs"
                         >
@@ -855,7 +857,7 @@ export default function DeliveryTemplateModal({
           {selectedTemplate && fastIntakeMode && (
             <div className="flex items-center justify-between gap-4 p-3 border-t border-border bg-muted/50">
               <div className="text-sm text-muted-foreground">
-                {sessionHistory.length > 0 
+                {sessionHistory.length > 0
                   ? `✓ ${sessionHistory.length} добавлено`
                   : 'Выберите товар'
                 }

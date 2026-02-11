@@ -31,6 +31,8 @@ export function ChangeEmailModal({ isOpen, onClose, currentEmail, onSuccess }) {
 
   const handleRequestChange = async (e) => {
     e.preventDefault()
+    // Защита от множественных кликов
+    if (loading) return
     setLoading(true)
 
     try {

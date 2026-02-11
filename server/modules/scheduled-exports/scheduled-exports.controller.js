@@ -7,7 +7,7 @@ import express from 'express'
 import { validate, CreateScheduledExportSchema, UpdateScheduledExportSchema } from './scheduled-exports.schemas.js'
 import { query } from '../../db/postgres.js'
 import { logError, logInfo } from '../../utils/logger.js'
-import { authMiddleware, allowRoles } from '../../middleware/auth.js'
+import { authMiddleware, hotelIsolation, allowRoles } from '../../middleware/auth.js'
 
 const router = express.Router()
 
@@ -78,21 +78,17 @@ function calculateNextRun({ schedule_type, day_of_week, day_of_month, time, time
   return nextRun
 }
 
-/** Для SUPER_ADMIN: hotel_id из JWT может быть null, используем hotel_id из query */
-function effectiveHotelId(req) {
-  const { user } = req
-  return user.hotel_id ?? req.query.hotel_id
-}
+// effectiveHotelId removed — use req.hotelId from hotelIsolation middleware instead
 
 /**
  * GET /api/scheduled-exports
  * Get all scheduled exports for the user's hotel
  */
-router.get('/', authMiddleware, async (req, res) => {
+router.get('/', authMiddleware, hotelIsolation, async (req, res) => {
   try {
     const user = req.user
     const { department_id } = req.query
-    const hotelId = effectiveHotelId(req)
+    const hotelId = req.hotelId
 
     if (!hotelId && user.role === 'SUPER_ADMIN') {
       return res.json([])
@@ -138,11 +134,11 @@ router.get('/', authMiddleware, async (req, res) => {
  * GET /api/scheduled-exports/:id
  * Get a single scheduled export by ID
  */
-router.get('/:id', authMiddleware, async (req, res) => {
+router.get('/:id', authMiddleware, hotelIsolation, async (req, res) => {
   try {
     const user = req.user
     const { id } = req.params
-    const hotelId = effectiveHotelId(req)
+    const hotelId = req.hotelId
 
     const result = await query(
       `SELECT
@@ -182,7 +178,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
  * POST /api/scheduled-exports
  * Create a new scheduled export
  */
-router.post('/', authMiddleware, allowRoles(['SUPER_ADMIN', 'HOTEL_ADMIN', 'DEPARTMENT_MANAGER']), async (req, res) => {
+router.post('/', authMiddleware, hotelIsolation, allowRoles(['SUPER_ADMIN', 'HOTEL_ADMIN', 'DEPARTMENT_MANAGER']), async (req, res) => {
   try {
     const user = req.user
 
@@ -224,7 +220,7 @@ router.post('/', authMiddleware, allowRoles(['SUPER_ADMIN', 'HOTEL_ADMIN', 'DEPA
     }
 
     const department = deptResult.rows[0]
-    const hotelId = user.hotel_id ?? department.hotel_id ?? req.query.hotel_id
+    const hotelId = req.hotelId ?? department.hotel_id
 
     // Проверка наличия email/telegram в зависимости от delivery_method
     if (delivery_method === 'email' || delivery_method === 'both') {
@@ -303,11 +299,11 @@ router.post('/', authMiddleware, allowRoles(['SUPER_ADMIN', 'HOTEL_ADMIN', 'DEPA
  * PUT /api/scheduled-exports/:id
  * Update an existing scheduled export
  */
-router.put('/:id', authMiddleware, allowRoles(['SUPER_ADMIN', 'HOTEL_ADMIN', 'DEPARTMENT_MANAGER']), async (req, res) => {
+router.put('/:id', authMiddleware, hotelIsolation, allowRoles(['SUPER_ADMIN', 'HOTEL_ADMIN', 'DEPARTMENT_MANAGER']), async (req, res) => {
   try {
     const user = req.user
     const { id } = req.params
-    const hotelId = effectiveHotelId(req)
+    const hotelId = req.hotelId
 
     const existingResult = await query(
       `SELECT * FROM scheduled_exports WHERE id = $1${hotelId ? ' AND hotel_id = $2' : ''}`,
@@ -356,12 +352,12 @@ router.put('/:id', authMiddleware, allowRoles(['SUPER_ADMIN', 'HOTEL_ADMIN', 'DE
     const next_run_at =
       schedule_type || day_of_week !== undefined || day_of_month !== undefined || time || timezone
         ? calculateNextRun({
-            schedule_type: updatedScheduleType,
-            day_of_week: updatedDayOfWeek,
-            day_of_month: updatedDayOfMonth,
-            time: updatedTime,
-            timezone: updatedTimezone
-          })
+          schedule_type: updatedScheduleType,
+          day_of_week: updatedDayOfWeek,
+          day_of_month: updatedDayOfMonth,
+          time: updatedTime,
+          timezone: updatedTimezone
+        })
         : existing.next_run_at
 
     await getTimeColumnName()
@@ -419,11 +415,11 @@ router.put('/:id', authMiddleware, allowRoles(['SUPER_ADMIN', 'HOTEL_ADMIN', 'DE
  * DELETE /api/scheduled-exports/:id
  * Delete a scheduled export
  */
-router.delete('/:id', authMiddleware, allowRoles(['SUPER_ADMIN', 'HOTEL_ADMIN', 'DEPARTMENT_MANAGER']), async (req, res) => {
+router.delete('/:id', authMiddleware, hotelIsolation, allowRoles(['SUPER_ADMIN', 'HOTEL_ADMIN', 'DEPARTMENT_MANAGER']), async (req, res) => {
   try {
     const user = req.user
     const { id } = req.params
-    const hotelId = effectiveHotelId(req)
+    const hotelId = req.hotelId
 
     const existingResult = await query(
       `SELECT * FROM scheduled_exports WHERE id = $1${hotelId ? ' AND hotel_id = $2' : ''}`,
@@ -457,11 +453,11 @@ router.delete('/:id', authMiddleware, allowRoles(['SUPER_ADMIN', 'HOTEL_ADMIN', 
  * POST /api/scheduled-exports/:id/test
  * Test a scheduled export (run it immediately)
  */
-router.post('/:id/test', authMiddleware, allowRoles(['SUPER_ADMIN', 'HOTEL_ADMIN', 'DEPARTMENT_MANAGER']), async (req, res) => {
+router.post('/:id/test', authMiddleware, hotelIsolation, allowRoles(['SUPER_ADMIN', 'HOTEL_ADMIN', 'DEPARTMENT_MANAGER']), async (req, res) => {
   try {
     const user = req.user
     const { id } = req.params
-    const hotelId = effectiveHotelId(req)
+    const hotelId = req.hotelId
 
     const result = await query(
       `SELECT
@@ -506,13 +502,13 @@ router.post('/:id/test', authMiddleware, allowRoles(['SUPER_ADMIN', 'HOTEL_ADMIN
  * GET /api/scheduled-exports/:id/logs
  * Get execution logs for a scheduled export
  */
-router.get('/:id/logs', authMiddleware, async (req, res) => {
+router.get('/:id/logs', authMiddleware, hotelIsolation, async (req, res) => {
   try {
     const user = req.user
     const { id } = req.params
     const { limit = 20, offset = 0 } = req.query
 
-    const hotelId = effectiveHotelId(req)
+    const hotelId = req.hotelId
     const scheduleResult = await query(
       `SELECT department_id FROM scheduled_exports WHERE id = $1${hotelId ? ' AND hotel_id = $2' : ''}`,
       hotelId ? [id, hotelId] : [id]

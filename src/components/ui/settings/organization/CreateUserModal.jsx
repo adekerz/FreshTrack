@@ -128,9 +128,25 @@ export default function CreateUserModal({
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Мин. 8 символов, заглавные, строчные буквы и цифры
-                </p>
+                <div className="bg-muted/50 rounded-lg p-3 space-y-1.5 mt-2">
+                  <p className="text-xs font-medium text-foreground mb-1">Требования к паролю:</p>
+                  {[
+                    { key: 'length', label: 'Минимум 8 символов', valid: formState.password.length >= 8 },
+                    { key: 'uppercase', label: 'Заглавная буква (A-Z)', valid: /[A-Z]/.test(formState.password) },
+                    { key: 'lowercase', label: 'Строчная буква (a-z)', valid: /[a-z]/.test(formState.password) },
+                    { key: 'number', label: 'Цифра (0-9)', valid: /\d/.test(formState.password) },
+                    { key: 'special', label: 'Спецсимвол (!@#$%^&*-_=+)', valid: /[!@#$%^&*\-_=+]/.test(formState.password) }
+                  ].map(req => (
+                    <div key={req.key} className="flex items-center gap-2 text-xs">
+                      <span className={req.valid ? 'text-success' : 'text-muted-foreground'}>
+                        {req.valid ? '✓' : '•'}
+                      </span>
+                      <span className={req.valid ? 'text-success' : 'text-muted-foreground'}>
+                        {req.label}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </>
             )}
           </div>

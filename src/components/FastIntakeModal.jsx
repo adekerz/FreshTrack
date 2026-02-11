@@ -40,26 +40,26 @@ export default function FastIntakeModal({
   const { departments } = useProducts()
   const { selectedHotelId } = useHotel()
   const { addToast } = useToast()
-  
+
   // === REACT QUERY MUTATION ===
   // Заменяет ручной API вызов - автоматические оптимистичные обновления
   const { mutate: applyTemplate, isPending } = useAddBatchesBulk(
-    selectedHotelId, 
+    selectedHotelId,
     departmentId
   )
-  
+
   // === STATE OWNED BY THIS COMPONENT ===
   const [template, setTemplate] = useState(null)
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
-  
+
   // UI-only history for current intake session
   // Resets on modal close, NOT persisted
   // If you need persistent history → move to backend (audit) or InventoryPage
   const [sessionHistory, setSessionHistory] = useState([])
   const [lastExpiryByProduct, setLastExpiryByProduct] = useState({})
   const [globalLastExpiry, setGlobalLastExpiry] = useState('')
-  
+
   const targetDepartment = departmentId || (departments.length > 0 ? departments[0].id : null)
 
   // === Load template when templateId changes ===
@@ -88,14 +88,14 @@ export default function FastIntakeModal({
         ...t,
         items: typeof t.items === 'string' ? JSON.parse(t.items) : t.items || []
       }))
-      
+
       const foundTemplate = templates.find(t => t.id === templateId)
       if (!foundTemplate) {
         addToast('Шаблон не найден', 'error')
         onClose()
         return
       }
-      
+
       setTemplate(foundTemplate)
       prepareItems(foundTemplate)
     } catch (error) {
@@ -107,19 +107,19 @@ export default function FastIntakeModal({
 
   const prepareItems = (template) => {
     const today = new Date()
-    const templateItems = typeof template.items === 'string' 
-      ? JSON.parse(template.items) 
+    const templateItems = typeof template.items === 'string'
+      ? JSON.parse(template.items)
       : template.items || []
-    
+
     const preparedItems = templateItems.map((item) => {
       const shelfLife = item.shelf_life_days || item.defaultShelfLife || 30
       const expiryDate = new Date(today)
       expiryDate.setDate(expiryDate.getDate() + shelfLife)
 
-      const defaultQty = item.default_quantity !== undefined && item.default_quantity !== null 
-        ? item.default_quantity 
-        : (item.defaultQuantity !== undefined && item.defaultQuantity !== null 
-          ? item.defaultQuantity 
+      const defaultQty = item.default_quantity !== undefined && item.default_quantity !== null
+        ? item.default_quantity
+        : (item.defaultQuantity !== undefined && item.defaultQuantity !== null
+          ? item.defaultQuantity
           : 1)
 
       return {
@@ -149,33 +149,33 @@ export default function FastIntakeModal({
   // === Date parsing utilities ===
   const parseExpiryInput = useCallback((input) => {
     if (!input) return null
-    
+
     const cleaned = input.replace(/[^\d./-]/g, '')
     const patterns = [
       /^(\d{1,2})[./-](\d{1,2})[./-](\d{2,4})$/,
       /^(\d{1,2})[./-](\d{1,2})$/,
     ]
-    
+
     for (const pattern of patterns) {
       const match = cleaned.match(pattern)
       if (match) {
         let day = parseInt(match[1], 10)
         let month = parseInt(match[2], 10)
         let year = match[3] ? parseInt(match[3], 10) : new Date().getFullYear()
-        
+
         if (year < 100) year += 2000
-        
+
         if (month < 1 || month > 12) return null
         if (year < 2026 || year > 2099) return null
-        
+
         const daysInMonth = new Date(year, month, 0).getDate()
         if (day < 1 || day > daysInMonth) return null
-        
+
         const date = new Date(year, month - 1, day)
-        if (!isNaN(date.getTime()) && 
-            date.getDate() === day && 
-            date.getMonth() === month - 1 && 
-            date.getFullYear() === year) {
+        if (!isNaN(date.getTime()) &&
+          date.getDate() === day &&
+          date.getMonth() === month - 1 &&
+          date.getFullYear() === year) {
           const yearStr = String(year).padStart(4, '0')
           const monthStr = String(month).padStart(2, '0')
           const dayStr = String(day).padStart(2, '0')
@@ -206,19 +206,21 @@ export default function FastIntakeModal({
 
   // === Save and continue - resets form but keeps modal open ===
   const handleSaveAndContinue = () => {
+    // Защита от множественных кликов
+    if (isPending) return
     if (!targetDepartment || items.length === 0 || !template) return
-    
+
     // Validate dates
     const invalidItems = items.filter(item => {
       const year = parseInt(item.expiryDate?.split('-')[0], 10)
       return year < 2026
     })
-    
+
     if (invalidItems.length > 0) {
       addToast(`${invalidItems.length} товар(ов) с годом до 2026. Исправьте даты.`, 'error')
       return
     }
-    
+
     // ✨ React Query mutation - автоматические оптимистичные обновления
     applyTemplate(
       {
@@ -240,7 +242,7 @@ export default function FastIntakeModal({
               setLastExpiryByProduct(prev => ({ ...prev, [productId]: item.expiryDate }))
             })
           }
-          
+
           // 2. Add to session history
           const newHistoryEntries = items.map((item, idx) => ({
             id: Date.now() + idx,
@@ -250,19 +252,19 @@ export default function FastIntakeModal({
             timestamp: new Date()
           }))
           setSessionHistory(prev => [...newHistoryEntries, ...prev])
-          
+
           // 3. Show notification
           addToast(
-            t('fastIntake.totalAdded', { count: items.length }) || 
+            t('fastIntake.totalAdded', { count: items.length }) ||
             `Добавлено: ${items.length} позиций`,
             'success'
           )
-          
+
           // 4. Reset ONLY form data, NOT modal state
           // ✅ Resets: items, quantities, expiry dates
           // ❌ Keeps: template, sessionHistory, modal open, lastExpiry cache
           prepareItems(template)
-          
+
           // 5. НЕ ВЫЗЫВАЕМ onFastApply - React Query автоматически обновит инвентарь!
           // Фоновая синхронизация происходит автоматически через 2 секунды (см. useInventory.js)
         },
@@ -404,10 +406,10 @@ export default function FastIntakeModal({
                             onChange={(e) => {
                               const formatted = autoFormatDateInput(e.target.value)
                               const newItems = [...items]
-                              newItems[index] = { 
-                                ...newItems[index], 
-                                _inputExpiry: formatted, 
-                                _invalidYear: false 
+                              newItems[index] = {
+                                ...newItems[index],
+                                _inputExpiry: formatted,
+                                _invalidYear: false
                               }
                               setItems(newItems)
                             }}
@@ -415,11 +417,11 @@ export default function FastIntakeModal({
                               const parsed = parseExpiryInput(e.target.value)
                               if (parsed) {
                                 const newItems = [...items]
-                                newItems[index] = { 
-                                  ...newItems[index], 
-                                  expiryDate: parsed, 
-                                  _inputExpiry: undefined, 
-                                  _invalidYear: false 
+                                newItems[index] = {
+                                  ...newItems[index],
+                                  expiryDate: parsed,
+                                  _inputExpiry: undefined,
+                                  _invalidYear: false
                                 }
                                 setItems(newItems)
                                 setGlobalLastExpiry(parsed)
@@ -432,7 +434,7 @@ export default function FastIntakeModal({
                                   const month = parseInt(digits.slice(2, 4), 10)
                                   let year = parseInt(digits.slice(4, 6), 10)
                                   if (year < 100) year += 2000
-                                  
+
                                   if (year < 2026 || year > 2099) {
                                     addToast('Год должен быть от 2026 до 2099', 'error')
                                     const newItems = [...items]
@@ -452,11 +454,11 @@ export default function FastIntakeModal({
                                 const parsed = parseExpiryInput(e.target.value)
                                 if (parsed) {
                                   const newItems = [...items]
-                                  newItems[index] = { 
-                                    ...newItems[index], 
-                                    expiryDate: parsed, 
-                                    _inputExpiry: undefined, 
-                                    _invalidYear: false 
+                                  newItems[index] = {
+                                    ...newItems[index],
+                                    expiryDate: parsed,
+                                    _inputExpiry: undefined,
+                                    _invalidYear: false
                                   }
                                   setItems(newItems)
                                   setGlobalLastExpiry(parsed)
@@ -481,11 +483,10 @@ export default function FastIntakeModal({
                               e.target.select()
                             }}
                             placeholder="ДД.ММ.ГГ"
-                            className={`flex-1 sm:w-24 text-center px-2 py-2 sm:py-1.5 border rounded-lg bg-card text-foreground text-base sm:text-sm focus:outline-none focus:ring-2 ${
-                              item._invalidYear 
-                                ? 'border-red-500 focus:ring-red-500/30 focus:border-red-500' 
+                            className={`flex-1 sm:w-24 text-center px-2 py-2 sm:py-1.5 border rounded-lg bg-card text-foreground text-base sm:text-sm focus:outline-none focus:ring-2 ${item._invalidYear
+                                ? 'border-red-500 focus:ring-red-500/30 focus:border-red-500'
                                 : 'border-border focus:ring-amber-500/30 focus:border-amber-500'
-                            }`}
+                              }`}
                           />
                         </div>
 
@@ -525,7 +526,7 @@ export default function FastIntakeModal({
                     </h4>
                     <div className="space-y-1 max-h-32 overflow-y-auto">
                       {sessionHistory.slice(0, 10).map((entry) => (
-                        <div 
+                        <div
                           key={entry.id}
                           className="flex items-center justify-between py-1.5 px-2 bg-green-50 dark:bg-green-900/20 rounded text-xs"
                         >
@@ -549,7 +550,7 @@ export default function FastIntakeModal({
           {/* Footer */}
           <div className="flex items-center justify-between gap-4 p-3 border-t border-border bg-muted/50">
             <div className="text-sm text-muted-foreground">
-              {sessionHistory.length > 0 
+              {sessionHistory.length > 0
                 ? `✓ ${sessionHistory.length} добавлено`
                 : 'Выберите товар'
               }

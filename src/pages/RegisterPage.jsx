@@ -57,13 +57,13 @@ export default function RegisterPage() {
             response.hotel ||
             (response.marsha
               ? {
-                  name: response.marsha.hotelName,
-                  code: response.marsha.code,
-                  city: response.marsha.city,
-                  country: response.marsha.country,
-                  brand: response.marsha.brand,
-                  isNew: true
-                }
+                name: response.marsha.hotelName,
+                code: response.marsha.code,
+                city: response.marsha.city,
+                country: response.marsha.country,
+                brand: response.marsha.brand,
+                isNew: true
+              }
               : null)
           setHotelValidation({ loading: false, valid: true, hotel: hotelInfo })
         } else {
@@ -121,8 +121,8 @@ export default function RegisterPage() {
       return
     }
 
-    if (formData.password.length < 6) {
-      setError(t('auth.passwordTooShort'))
+    if (formData.password.length < 8) {
+      setError(t('auth.passwordTooShort') || 'Пароль должен быть минимум 8 символов')
       return
     }
 
@@ -366,6 +366,25 @@ export default function RegisterPage() {
                 error={errors.password}
                 autoComplete="new-password"
               />
+              <div className="bg-muted/50 rounded-lg p-3 space-y-1.5 mt-2">
+                <p className="text-xs font-medium text-foreground mb-1">Требования к паролю:</p>
+                {[
+                  { key: 'length', label: 'Минимум 8 символов', valid: formData.password.length >= 8 },
+                  { key: 'uppercase', label: 'Заглавная буква (A-Z)', valid: /[A-Z]/.test(formData.password) },
+                  { key: 'lowercase', label: 'Строчная буква (a-z)', valid: /[a-z]/.test(formData.password) },
+                  { key: 'number', label: 'Цифра (0-9)', valid: /\d/.test(formData.password) },
+                  { key: 'special', label: 'Спецсимвол (!@#$%^&*-_=+)', valid: /[!@#$%^&*\-_=+]/.test(formData.password) }
+                ].map(req => (
+                  <div key={req.key} className="flex items-center gap-2 text-xs">
+                    <span className={req.valid ? 'text-success' : 'text-muted-foreground'}>
+                      {req.valid ? '✓' : '•'}
+                    </span>
+                    <span className={req.valid ? 'text-success' : 'text-muted-foreground'}>
+                      {req.label}
+                    </span>
+                  </div>
+                ))}
+              </div>
               {/* Password strength indicator */}
               {formData.password && (
                 <div className="mt-2 animate-fade-in">
@@ -373,11 +392,10 @@ export default function RegisterPage() {
                     {[1, 2, 3, 4, 5].map((level) => (
                       <div
                         key={level}
-                        className={`h-1 flex-1 rounded-full transition-colors ${
-                          passwordStrength >= level
-                            ? strengthColors[passwordStrength]
-                            : 'bg-gray-200'
-                        }`}
+                        className={`h-1 flex-1 rounded-full transition-colors ${passwordStrength >= level
+                          ? strengthColors[passwordStrength]
+                          : 'bg-gray-200'
+                          }`}
                       />
                     ))}
                   </div>

@@ -53,16 +53,7 @@ export async function previewCollection({
   hotelId,
   departmentId
 }) {
-  // 🔍 ДИАГНОСТИКА: Логируем входные параметры
-  console.log('[FIFO Preview] 📥 Input params:', {
-    productId,
-    quantity,
-    hotelId,
-    departmentId
-  })
-
   if (!quantity || quantity <= 0) {
-    console.warn('[FIFO Preview] ⚠️ Invalid quantity:', quantity)
     return {
       success: false,
       error: CollectionError.INVALID_QUANTITY,
@@ -92,20 +83,11 @@ export async function previewCollection({
 
   batchesQuery += ` ORDER BY b.expiry_date ASC, b.added_at ASC`
 
-  console.log('[FIFO Preview] 🔍 SQL Query params:', params)
-  console.log('[FIFO Preview] 🔍 Department filter:', departmentId ? `department_id = ${departmentId}` : 'ALL departments')
-
   const batchesResult = await query(batchesQuery, params)
 
   const batches = batchesResult.rows
 
-  console.log('[FIFO Preview] 📦 Batches found:', batches.length)
-  if (batches.length > 0) {
-    console.log('[FIFO Preview] 📦 First batch:', batches[0])
-  }
-
   if (batches.length === 0) {
-    console.warn('[FIFO Preview] ⚠️ NO_ACTIVE_BATCHES - No batches found with given filters')
     return {
       success: false,
       error: CollectionError.NO_ACTIVE_BATCHES,

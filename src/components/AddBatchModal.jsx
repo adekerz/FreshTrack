@@ -14,7 +14,7 @@ export default function AddBatchModal({ onClose, preselectedProduct = null }) {
   const { selectedHotelId } = useHotel()
   const { catalog, departments, categories } = useProducts()
   const toast = useToast()
-  
+
   // === REACT QUERY MUTATION ===
   const { mutate: addBatchMutation, isPending: isSubmitting } = useAddBatch(selectedHotelId)
 
@@ -83,6 +83,8 @@ export default function AddBatchModal({ onClose, preselectedProduct = null }) {
   // Отправка формы
   const handleSubmit = (e) => {
     e.preventDefault()
+    // Защита от множественных кликов
+    if (isSubmitting) return
     if (!selectedProduct || !batchData.expiryDate) return
 
     // Защита от старых дат: год должен быть >= 2026
@@ -156,9 +158,8 @@ export default function AddBatchModal({ onClose, preselectedProduct = null }) {
                 {[1, 2, 3, 4].map((s) => (
                   <div
                     key={s}
-                    className={`w-2 h-2 rounded-full transition-colors ${
-                      s <= step ? 'bg-accent' : 'bg-muted'
-                    }`}
+                    className={`w-2 h-2 rounded-full transition-colors ${s <= step ? 'bg-accent' : 'bg-muted'
+                      }`}
                   />
                 ))}
               </div>

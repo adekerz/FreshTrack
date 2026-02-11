@@ -18,7 +18,8 @@ import {
   UserPlus,
   Ban,
   AlertTriangle,
-  Trash2
+  Trash2,
+  RefreshCw
 } from 'lucide-react'
 import SettingsLayout from './SettingsLayout'
 import {
@@ -443,13 +444,23 @@ export default function OrganizationSettings() {
         description="Управление учётными записями"
         icon={Users}
         headerActions={
-          <button
-            onClick={() => setShowCreateUser({ hotelId: currentUser?.hotel_id })}
-            className="flex items-center gap-2 px-4 py-2 bg-accent-button text-white rounded-lg hover:bg-accent-button/90 transition-colors"
-          >
-            <UserPlus className="w-4 h-4" />
-            Создать
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={fetchData}
+              disabled={loading}
+              className="p-2 rounded-lg hover:bg-muted text-muted-foreground transition-colors"
+              title={t('common.refresh')}
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            </button>
+            <button
+              onClick={() => setShowCreateUser({ hotelId: currentUser?.hotel_id })}
+              className="flex items-center gap-2 px-4 py-2 bg-accent-button text-white rounded-lg hover:bg-accent-button/90 transition-colors"
+            >
+              <UserPlus className="w-4 h-4" />
+              Создать
+            </button>
+          </div>
         }
       >
 
@@ -496,13 +507,23 @@ export default function OrganizationSettings() {
       description="Отели, департаменты и пользователи"
       icon={Building2}
       headerActions={
-        <button
-          onClick={() => setShowCreateHotel(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-accent-button text-white rounded-lg hover:bg-accent-button/90 transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          Создать отель
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={fetchData}
+            disabled={loading}
+            className="p-2 rounded-lg hover:bg-muted text-muted-foreground transition-colors"
+            title={t('common.refresh')}
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          </button>
+          <button
+            onClick={() => setShowCreateHotel(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-accent-button text-white rounded-lg hover:bg-accent-button/90 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            Создать отель
+          </button>
+        </div>
       }
     >
 

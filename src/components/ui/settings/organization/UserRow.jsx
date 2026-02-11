@@ -39,13 +39,13 @@ export default function UserRow({
         </span>
         {/* Session Status Indicator */}
         <div
-          className={`w-3 h-3 rounded-full ${(user.last_login && (new Date() - new Date(user.last_login) < 15 * 60 * 1000))
-              ? 'bg-success animate-pulse'
+          className={`w-3 h-3 rounded-full border border-background ${((user.id === currentUserId) || (user.last_login && (new Date() - new Date(user.last_login) < 60 * 60 * 1000)))
+              ? 'bg-success animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.5)]'
               : 'bg-muted'
             }`}
-          title={(user.last_login && (new Date() - new Date(user.last_login) < 15 * 60 * 1000))
+          title={((user.id === currentUserId) || (user.last_login && (new Date() - new Date(user.last_login) < 60 * 60 * 1000)))
             ? 'Сессия активна'
-            : 'Не в сети'
+            : `Был в сети: ${user.last_login ? new Date(user.last_login).toLocaleString() : 'Никогда'}`
           }
         />
         {user.email && user.is_active !== false && (
@@ -65,8 +65,8 @@ export default function UserRow({
             onToggleStatus(user.id, user.is_active !== false)
           }
           className={`p-1.5 rounded transition-colors ${user.is_active !== false
-              ? 'text-muted-foreground hover:text-danger hover:bg-danger/10'
-              : 'text-muted-foreground hover:text-success hover:bg-success/10'
+            ? 'text-muted-foreground hover:text-danger hover:bg-danger/10'
+            : 'text-muted-foreground hover:text-success hover:bg-success/10'
             }`}
           title={user.is_active !== false ? 'Заблокировать' : 'Разблокировать'}
         >

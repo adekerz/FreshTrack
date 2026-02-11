@@ -42,6 +42,9 @@ export function ChangePasswordModal({ isOpen, onClose }) {
   const handleSubmit = async (e) => {
     e.preventDefault()
 
+    // Защита от множественных кликов
+    if (loading) return
+
     if (formData.newPassword !== formData.confirmPassword) {
       addToast(t('auth.passwordMismatch') || 'Passwords do not match', 'error')
       return
@@ -135,9 +138,27 @@ export function ChangePasswordModal({ isOpen, onClose }) {
               {showPasswords.new ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
           </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            {t('auth.passwordMinLength') || 'Минимум 8 символов'}
-          </p>
+        </div>
+
+        {/* Password Requirements Checklist */}
+        <div className="bg-muted/50 rounded-lg p-3 space-y-1.5 mt-3">
+          <p className="text-xs font-medium text-foreground mb-1">Требования к паролю:</p>
+          {[
+            { key: 'length', label: 'Минимум 8 символов', valid: formData.newPassword.length >= 8 },
+            { key: 'uppercase', label: 'Заглавная буква (A-Z)', valid: /[A-Z]/.test(formData.newPassword) },
+            { key: 'lowercase', label: 'Строчная буква (a-z)', valid: /[a-z]/.test(formData.newPassword) },
+            { key: 'number', label: 'Цифра (0-9)', valid: /\d/.test(formData.newPassword) },
+            { key: 'special', label: 'Спецсимвол (!@#$%^&*-_=+)', valid: /[!@#$%^&*\-_=+]/.test(formData.newPassword) }
+          ].map(req => (
+            <div key={req.key} className="flex items-center gap-2 text-xs">
+              <span className={req.valid ? 'text-success' : 'text-muted-foreground'}>
+                {req.valid ? '✓' : '•'}
+              </span>
+              <span className={req.valid ? 'text-success' : 'text-muted-foreground'}>
+                {req.label}
+              </span>
+            </div>
+          ))}
         </div>
 
         <div>

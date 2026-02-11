@@ -106,10 +106,10 @@ export function ScheduleCreateModal({ onClose, onSuccess }) {
   /** Привязанные чаты для выбранного отдела: по department_id или hotel-level (department_id null) */
   const linkedChatsForDepartment = selectedDepartment
     ? linkedChats.filter(
-        (c) =>
-          c.department_id === selectedDepartment.id ||
-          (c.department_id == null && c.hotel_id === selectedDepartment.hotel_id)
-      )
+      (c) =>
+        c.department_id === selectedDepartment.id ||
+        (c.department_id == null && c.hotel_id === selectedDepartment.hotel_id)
+    )
     : []
 
   /** Эффективный Telegram Chat ID: override → отдел → привязанный чат */
@@ -121,6 +121,8 @@ export function ScheduleCreateModal({ onClose, onSuccess }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    // Защита от множественных кликов
+    if (loading) return
     if (!formData.department_id) {
       addToast(t('scheduledExports.selectDepartment'), 'error')
       return
@@ -143,7 +145,7 @@ export function ScheduleCreateModal({ onClose, onSuccess }) {
       if (!effectiveTelegramChatId) {
         addToast(
           t('scheduledExports.telegramRequired') ||
-            'Привяжите бота в чат (Уведомления) или укажите Chat ID в настройках отдела',
+          'Привяжите бота в чат (Уведомления) или укажите Chat ID в настройках отдела',
           'error'
         )
         return
@@ -333,11 +335,10 @@ export function ScheduleCreateModal({ onClose, onSuccess }) {
               return (
                 <label
                   key={opt.value}
-                  className={`flex items-start gap-3 p-3 border-2 rounded-lg cursor-pointer transition-all min-h-[48px] ${
-                    isChecked
+                  className={`flex items-start gap-3 p-3 border-2 rounded-lg cursor-pointer transition-all min-h-[48px] ${isChecked
                       ? 'border-accent bg-accent/10'
                       : 'border-border hover:border-accent/50'
-                  }`}
+                    }`}
                 >
                   <input
                     type="checkbox"
@@ -401,27 +402,23 @@ export function ScheduleCreateModal({ onClose, onSuccess }) {
               </p>
               <div className="space-y-2 text-sm">
                 <div
-                  className={`flex items-center gap-1.5 ${
-                    selectedDepartment.email ? 'text-success' : 'text-muted-foreground'
-                  }`}
+                  className={`flex items-center gap-1.5 ${selectedDepartment.email ? 'text-success' : 'text-muted-foreground'
+                    }`}
                 >
                   <span
-                    className={`w-2 h-2 rounded-full shrink-0 ${
-                      selectedDepartment.email ? 'bg-success' : 'bg-muted-foreground'
-                    }`}
+                    className={`w-2 h-2 rounded-full shrink-0 ${selectedDepartment.email ? 'bg-success' : 'bg-muted-foreground'
+                      }`}
                     aria-hidden
                   />
                   Email: {selectedDepartment.email || (t('scheduledExports.notConfigured') || 'Не настроен')}
                 </div>
                 <div
-                  className={`flex items-center gap-1.5 ${
-                    effectiveTelegramChatId ? 'text-success' : 'text-muted-foreground'
-                  }`}
+                  className={`flex items-center gap-1.5 ${effectiveTelegramChatId ? 'text-success' : 'text-muted-foreground'
+                    }`}
                 >
                   <span
-                    className={`w-2 h-2 rounded-full shrink-0 ${
-                      effectiveTelegramChatId ? 'bg-success' : 'bg-muted-foreground'
-                    }`}
+                    className={`w-2 h-2 rounded-full shrink-0 ${effectiveTelegramChatId ? 'bg-success' : 'bg-muted-foreground'
+                      }`}
                     aria-hidden
                   />
                   Telegram:{' '}

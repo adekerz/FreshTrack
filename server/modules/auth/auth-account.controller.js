@@ -98,15 +98,15 @@ router.post('/change-password', authMiddleware, asyncHandler(async (req, res) =>
   const user = userResult.rows[0]
 
   // Check if user has a password set
-  if (!user.password_hash || user.password_hash === null) {
+  if (!user.password || user.password === null) {
     return res.status(400).json({
       success: false,
       error: 'Password not set. Please set a password first.'
     })
   }
 
-  // Verify current password (ensure password_hash is a string)
-  const passwordMatch = await bcrypt.compare(currentPassword, String(user.password_hash))
+  // Verify current password (ensure password is a string)
+  const passwordMatch = await bcrypt.compare(currentPassword, String(user.password))
   if (!passwordMatch) {
     return res.status(401).json({
       success: false,
@@ -119,7 +119,7 @@ router.post('/change-password', authMiddleware, asyncHandler(async (req, res) =>
 
   // Update password
   await dbQuery(
-    'UPDATE users SET password_hash = $1 WHERE id = $2',
+    'UPDATE users SET password = $1 WHERE id = $2',
     [hashedPassword, req.user.id]
   )
 

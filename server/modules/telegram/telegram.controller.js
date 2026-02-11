@@ -6,7 +6,7 @@
  */
 
 import express from 'express'
-import { authMiddleware, requirePermission } from '../../middleware/auth.js'
+import { authMiddleware, hotelIsolation, requirePermission } from '../../middleware/auth.js'
 import { TelegramService } from '../../services/TelegramService.js'
 import { query } from '../../db/postgres.js'
 import { logAudit } from '../../db/database.js'
@@ -54,9 +54,9 @@ router.get('/status', authMiddleware, async (req, res) => {
 // ═══════════════════════════════════════════════════════════════
 // GET /api/telegram/chats - Get all registered chats for user's context
 // ═══════════════════════════════════════════════════════════════
-router.get('/chats', authMiddleware, async (req, res) => {
+router.get('/chats', authMiddleware, hotelIsolation, async (req, res) => {
   try {
-    const { hotel_id, department_id, role } = req.user
+    const { department_id } = req.user
 
     let queryText = `
       SELECT 
@@ -71,16 +71,14 @@ router.get('/chats', authMiddleware, async (req, res) => {
     `
     const params = []
 
-    // Filter by user's context
-    if (role !== 'SUPER_ADMIN') {
-      if (hotel_id) {
-        params.push(hotel_id)
-        queryText += ` AND tc.hotel_id = $${params.length}`
-      }
-      if (department_id) {
-        params.push(department_id)
-        queryText += ` AND (tc.department_id = $${params.length} OR tc.department_id IS NULL)`
-      }
+    // SECURITY: Use req.hotelId from hotelIsolation middleware
+    if (req.hotelId) {
+      params.push(req.hotelId)
+      queryText += ` AND tc.hotel_id = $${params.length}`
+    }
+    if (department_id && req.user.role !== 'SUPER_ADMIN' && req.user.role !== 'HOTEL_ADMIN') {
+      params.push(department_id)
+      queryText += ` AND (tc.department_id = $${params.length} OR tc.department_id IS NULL)`
     }
 
     queryText += ' ORDER BY tc.added_at DESC'
@@ -100,15 +98,21 @@ router.get('/chats', authMiddleware, async (req, res) => {
 // ═══════════════════════════════════════════════════════════════
 // POST /api/telegram/chats - Manually register a chat
 // ═══════════════════════════════════════════════════════════════
-router.post('/chats', authMiddleware, requirePermission('settings', 'write'), async (req, res) => {
+router.post('/chats', authMiddleware, hotelIsolation, requirePermission('settings', 'write'), async (req, res) => {
   try {
     const validation = validate(RegisterTelegramChatSchema, req.body)
     if (!validation.isValid) {
       return res.status(400).json({ error: 'Ошибка валидации', details: validation.errors })
     }
 
-    const { chatId, chatTitle, hotelId, departmentId } = validation.data
+    const { chatId, chatTitle, departmentId } = validation.data
     const { id: userId } = req.user
+
+    // SECURITY: Use req.hotelId from hotelIsolation middleware instead of user-supplied hotelId
+    const hotelId = req.hotelId
+    if (!hotelId) {
+      return res.status(400).json({ success: false, error: 'Hotel context required' })
+    }
 
     // Verify the chat exists and bot has access
     try {
@@ -136,6 +140,7 @@ router.post('/chats', authMiddleware, requirePermission('settings', 'write'), as
 
     // Audit logging
     await logAudit({
+      hotel_id: hotelId,
       userId: userId,
       action: 'CREATE',
       resource: 'TelegramChat',
@@ -156,9 +161,18 @@ router.post('/chats', authMiddleware, requirePermission('settings', 'write'), as
 // ═══════════════════════════════════════════════════════════════
 // DELETE /api/telegram/chats/:chatId - Unlink a chat
 // ═══════════════════════════════════════════════════════════════
-router.delete('/chats/:chatId', authMiddleware, requirePermission('settings', 'write'), async (req, res) => {
+router.delete('/chats/:chatId', authMiddleware, hotelIsolation, requirePermission('settings', 'write'), async (req, res) => {
   try {
     const { chatId } = req.params
+
+    // SECURITY: Only unlink chat if it belongs to user's hotel
+    const chatResult = await query(
+      'SELECT hotel_id FROM telegram_chats WHERE chat_id = $1',
+      [chatId]
+    )
+    if (chatResult.rows.length > 0 && req.hotelId && chatResult.rows[0].hotel_id !== req.hotelId) {
+      return res.status(403).json({ success: false, error: 'Access denied to this chat' })
+    }
 
     await query(
       'UPDATE telegram_chats SET is_active = false, hotel_id = NULL, department_id = NULL WHERE chat_id = $1',
@@ -167,6 +181,7 @@ router.delete('/chats/:chatId', authMiddleware, requirePermission('settings', 'w
 
     // Audit logging
     await logAudit({
+      hotel_id: req.hotelId,
       userId: req.user.id,
       action: 'DELETE',
       resource: 'TelegramChat',
@@ -187,7 +202,7 @@ router.delete('/chats/:chatId', authMiddleware, requirePermission('settings', 'w
 // ═══════════════════════════════════════════════════════════════
 // POST /api/telegram/test - Send test notification
 // ═══════════════════════════════════════════════════════════════
-router.post('/test', authMiddleware, requirePermission('settings', 'write'), async (req, res) => {
+router.post('/test', authMiddleware, hotelIsolation, requirePermission('settings', 'write'), async (req, res) => {
   try {
     const validation = validate(TestTelegramMessageSchema, req.body)
     if (!validation.isValid) {
@@ -204,16 +219,21 @@ router.post('/test', authMiddleware, requirePermission('settings', 'write'), asy
     }
 
     const { chatId } = validation.data
-    const { hotel_id } = req.user
 
     let targetChats = []
 
     if (chatId) {
-      // Send to specific chat
+      // SECURITY: Verify chat belongs to user's hotel before sending
+      if (req.hotelId) {
+        const chatCheck = await query('SELECT hotel_id FROM telegram_chats WHERE chat_id = $1', [chatId])
+        if (chatCheck.rows.length > 0 && chatCheck.rows[0].hotel_id !== req.hotelId) {
+          return res.status(403).json({ success: false, error: 'Access denied to this chat' })
+        }
+      }
       targetChats = [{ chat_id: chatId }]
-    } else if (hotel_id) {
-      // Send to all hotel chats
-      targetChats = await TelegramService.getChatsForContext(hotel_id)
+    } else if (req.hotelId) {
+      // SECURITY: Use req.hotelId from hotelIsolation
+      targetChats = await TelegramService.getChatsForContext(req.hotelId)
     }
 
     if (targetChats.length === 0) {

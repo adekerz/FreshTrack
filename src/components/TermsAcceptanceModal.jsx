@@ -25,6 +25,8 @@ export default function TermsAcceptanceModal({
   const [error, setError] = useState(null)
 
   const handleAccept = async () => {
+    // Защита от множественных кликов
+    if (loading) return
     if (!accepted) {
       setError('Необходимо принять условия использования')
       return

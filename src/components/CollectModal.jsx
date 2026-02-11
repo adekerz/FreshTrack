@@ -41,6 +41,8 @@ export default function CollectModal({ isOpen, onClose, batch, onConfirm }) {
 
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault()
+    // Защита от множественных кликов
+    if (isSubmitting) return
     setIsSubmitting(true)
 
     try {
@@ -110,13 +112,12 @@ export default function CollectModal({ isOpen, onClose, batch, onConfirm }) {
                   📅 {t('product.expiryDate') || 'Срок годности'}: {batch.expiryDate}
                 </p>
                 <p
-                  className={`font-medium ${
-                    batch.status === 'expired'
+                  className={`font-medium ${batch.status === 'expired'
                       ? 'text-danger'
                       : batch.status === 'critical'
                         ? 'text-warning'
                         : 'text-yellow-600'
-                  }`}
+                    }`}
                 >
                   ⚡ {batch.daysLeft} {t('common.days')}{' '}
                   {batch.daysLeft < 0
@@ -141,10 +142,9 @@ export default function CollectModal({ isOpen, onClose, batch, onConfirm }) {
                       onClick={() => setReason(r.id)}
                       className={`
                         flex items-center gap-2 p-3 rounded-lg border transition-all
-                        ${
-                          reason === r.id
-                            ? 'border-gold bg-gold/10 ring-2 ring-gold/30'
-                            : 'border-border hover:border-gold/50 hover:bg-muted'
+                        ${reason === r.id
+                          ? 'border-gold bg-gold/10 ring-2 ring-gold/30'
+                          : 'border-border hover:border-gold/50 hover:bg-muted'
                         }
                       `}
                     >
