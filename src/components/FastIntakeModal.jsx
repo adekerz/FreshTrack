@@ -405,6 +405,12 @@ export default function FastIntakeModal({
           // ❌ Keeps: template, sessionHistory, modal open, lastExpiry cache
           prepareItems(template)
 
+          // Scroll to top
+          const scrollContainer = document.querySelector('.overflow-y-auto')
+          if (scrollContainer) {
+            scrollContainer.scrollTo({ top: 0, behavior: 'smooth' })
+          }
+
           // 5. НЕ ВЫЗЫВАЕМ onFastApply - React Query автоматически обновит инвентарь!
           // Фоновая синхронизация происходит автоматически через 2 секунды (см. useInventory.js)
         },
@@ -502,111 +508,74 @@ export default function FastIntakeModal({
                       : isGrouped && !isLastInGroup ? 'border-border/50 border-b-0' : 'border-border/50'
 
                     return (
-                    <div
-                      key={index}
-                      data-item-index={index}
-                      className={`flex flex-col sm:flex-row items-start sm:items-center gap-2 px-3 py-2.5 sm:p-4 bg-muted/50 border transition-colors ${roundingClass} ${borderClass}`}
-                    >
-                      {/* Product name */}
-                      <div className="flex-1 min-w-0 w-full sm:w-auto">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <p className="font-medium text-foreground text-sm truncate">
-                            {item.productName}
-                          </p>
-                          {isGrouped && (
-                            <span className="text-xs text-amber-500 font-semibold shrink-0 bg-amber-500/10 px-1.5 py-0.5 rounded">
-                              {item._groupIndex + 1}/{item._groupTotal}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Expiry + remove */}
-                      <div className="flex items-center gap-2 w-full sm:w-auto">
-                        {/* Quantity control — только у первой строки группы */}
-                        {showQtyControl ? (
-                          <div className="flex items-center gap-0.5 shrink-0">
-                            <button
-                              type="button"
-                              onClick={() => changeGroupSize(firstInGroupIndex, -1)}
-                              disabled={currentGroupSize <= 1}
-                              className="p-1.5 rounded-md bg-muted hover:bg-muted/80 transition-colors touch-manipulation active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
-                              aria-label="Уменьшить количество"
-                            >
-                              <Minus className="w-3.5 h-3.5" />
-                            </button>
-                            <span className="w-6 text-center text-sm font-medium text-foreground tabular-nums">
-                              {currentGroupSize}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => changeGroupSize(firstInGroupIndex, 1)}
-                              className="p-1.5 rounded-md bg-muted hover:bg-muted/80 transition-colors touch-manipulation active:scale-95"
-                              aria-label="Увеличить количество"
-                            >
-                              <Plus className="w-3.5 h-3.5" />
-                            </button>
+                      <div
+                        key={index}
+                        data-item-index={index}
+                        className={`flex flex-col sm:flex-row items-start sm:items-center gap-2 px-3 py-2.5 sm:p-4 bg-muted/50 border transition-colors ${roundingClass} ${borderClass}`}
+                      >
+                        {/* Product name */}
+                        <div className="flex-1 min-w-0 w-full sm:w-auto">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <p className="font-medium text-foreground text-sm truncate">
+                              {item.productName}
+                            </p>
+                            {isGrouped && (
+                              <span className="text-xs text-amber-500 font-semibold shrink-0 bg-amber-500/10 px-1.5 py-0.5 rounded">
+                                {item._groupIndex + 1}/{item._groupTotal}
+                              </span>
+                            )}
                           </div>
-                        ) : (
-                          // Заглушка для выравнивания у дочерних строк группы (ширина = кнопка + цифра + кнопка)
-                          <div className="w-[76px] shrink-0" />
-                        )}
+                        </div>
 
-                        {/* Expiry date */}
-                        <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                          <Calendar className={`w-4 h-4 shrink-0 ${item._invalidYear ? 'text-red-500' : 'text-gray-400'}`} />
-                          <input
-                            type="text"
-                            inputMode="numeric"
-                            value={item._inputExpiry !== undefined ? item._inputExpiry : formatDateForDisplay(item.expiryDate)}
-                            onChange={(e) => {
-                              const formatted = autoFormatDateInput(e.target.value)
-                              const newItems = [...items]
-                              newItems[index] = {
-                                ...newItems[index],
-                                _inputExpiry: formatted,
-                                _invalidYear: false
-                              }
-                              setItems(newItems)
-                            }}
-                            onBlur={(e) => {
-                              const parsed = parseExpiryInput(e.target.value)
-                              if (parsed) {
+                        {/* Expiry + remove */}
+                        <div className="flex items-center gap-2 w-full sm:w-auto">
+                          {/* Quantity control — только у первой строки группы */}
+                          {showQtyControl ? (
+                            <div className="flex items-center gap-0.5 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => changeGroupSize(firstInGroupIndex, -1)}
+                                disabled={currentGroupSize <= 1}
+                                className="p-1.5 rounded-md bg-muted hover:bg-muted/80 transition-colors touch-manipulation active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
+                                aria-label="Уменьшить количество"
+                              >
+                                <Minus className="w-3.5 h-3.5" />
+                              </button>
+                              <span className="w-6 text-center text-sm font-medium text-foreground tabular-nums">
+                                {currentGroupSize}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => changeGroupSize(firstInGroupIndex, 1)}
+                                className="p-1.5 rounded-md bg-muted hover:bg-muted/80 transition-colors touch-manipulation active:scale-95"
+                                aria-label="Увеличить количество"
+                              >
+                                <Plus className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          ) : (
+                            // Заглушка для выравнивания у дочерних строк группы (ширина = кнопка + цифра + кнопка)
+                            <div className="w-[76px] shrink-0" />
+                          )}
+
+                          {/* Expiry date */}
+                          <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                            <Calendar className={`w-4 h-4 shrink-0 ${item._invalidYear ? 'text-red-500' : 'text-gray-400'}`} />
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              value={item._inputExpiry !== undefined ? item._inputExpiry : formatDateForDisplay(item.expiryDate)}
+                              onChange={(e) => {
+                                const formatted = autoFormatDateInput(e.target.value)
                                 const newItems = [...items]
                                 newItems[index] = {
                                   ...newItems[index],
-                                  expiryDate: parsed,
-                                  _inputExpiry: undefined,
+                                  _inputExpiry: formatted,
                                   _invalidYear: false
                                 }
                                 setItems(newItems)
-                                setGlobalLastExpiry(parsed)
-                                const productId = item.productId || item.product_id
-                                setLastExpiryByProduct(prev => ({ ...prev, [productId]: parsed }))
-                              } else if (e.target.value.trim()) {
-                                const digits = e.target.value.replace(/\D/g, '')
-                                if (digits.length >= 6) {
-                                  const day = parseInt(digits.slice(0, 2), 10)
-                                  const month = parseInt(digits.slice(2, 4), 10)
-                                  let year = parseInt(digits.slice(4, 6), 10)
-                                  if (year < 100) year += 2000
-
-                                  if (year < 2026 || year > 2099) {
-                                    addToast('Год должен быть от 2026 до 2099', 'error')
-                                    const newItems = [...items]
-                                    newItems[index] = { ...newItems[index], _invalidYear: true }
-                                    setItems(newItems)
-                                    return
-                                  }
-                                }
-                                const newItems = [...items]
-                                newItems[index] = { ...newItems[index], _inputExpiry: undefined, _invalidYear: false }
-                                setItems(newItems)
-                              }
-                            }}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                e.preventDefault()
+                              }}
+                              onBlur={(e) => {
                                 const parsed = parseExpiryInput(e.target.value)
                                 if (parsed) {
                                   const newItems = [...items]
@@ -620,43 +589,80 @@ export default function FastIntakeModal({
                                   setGlobalLastExpiry(parsed)
                                   const productId = item.productId || item.product_id
                                   setLastExpiryByProduct(prev => ({ ...prev, [productId]: parsed }))
-                                }
-                                // Move to next item or save button
-                                const nextRow = e.target.closest('.rounded-xl')?.nextElementSibling
-                                if (nextRow) {
-                                  const nextDateInput = nextRow.querySelector('input[type="text"]')
-                                  if (nextDateInput) {
-                                    nextDateInput.focus()
-                                    nextDateInput.select()
-                                  }
-                                } else {
-                                  const saveButton = e.target.closest('.space-y-4')?.querySelector('button[aria-label*="Сохранить"]')
-                                  if (saveButton) saveButton.focus()
-                                }
-                              }
-                            }}
-                            onFocus={(e) => {
-                              e.target.select()
-                            }}
-                            placeholder={item._invalidYear ? '--.--.--' : 'ДД.ММ.ГГ'}
-                            className={`w-full min-w-0 text-center px-2 py-2 sm:py-1.5 border rounded-lg bg-card text-base sm:text-sm focus:outline-none focus:ring-2 ${item._invalidYear
-                              ? 'border-red-500 focus:ring-red-500/30 focus:border-red-500 text-red-400 placeholder-red-400'
-                              : 'border-border focus:ring-amber-500/30 focus:border-amber-500 text-foreground'
-                              }`}
-                          />
-                        </div>
+                                } else if (e.target.value.trim()) {
+                                  const digits = e.target.value.replace(/\D/g, '')
+                                  if (digits.length >= 6) {
+                                    const day = parseInt(digits.slice(0, 2), 10)
+                                    const month = parseInt(digits.slice(2, 4), 10)
+                                    let year = parseInt(digits.slice(4, 6), 10)
+                                    if (year < 100) year += 2000
 
-                        {/* Remove item */}
-                        <button
-                          type="button"
-                          onClick={() => removeItem(index)}
-                          className="p-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg shrink-0 transition-colors touch-manipulation active:scale-95"
-                          aria-label="Удалить товар"
-                        >
-                          <X className="w-5 h-5" />
-                        </button>
+                                    if (year < 2026 || year > 2099) {
+                                      addToast('Год должен быть от 2026 до 2099', 'error')
+                                      const newItems = [...items]
+                                      newItems[index] = { ...newItems[index], _invalidYear: true }
+                                      setItems(newItems)
+                                      return
+                                    }
+                                  }
+                                  const newItems = [...items]
+                                  newItems[index] = { ...newItems[index], _inputExpiry: undefined, _invalidYear: false }
+                                  setItems(newItems)
+                                }
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault()
+                                  const parsed = parseExpiryInput(e.target.value)
+                                  if (parsed) {
+                                    const newItems = [...items]
+                                    newItems[index] = {
+                                      ...newItems[index],
+                                      expiryDate: parsed,
+                                      _inputExpiry: undefined,
+                                      _invalidYear: false
+                                    }
+                                    setItems(newItems)
+                                    setGlobalLastExpiry(parsed)
+                                    const productId = item.productId || item.product_id
+                                    setLastExpiryByProduct(prev => ({ ...prev, [productId]: parsed }))
+                                  }
+                                  // Move to next item or save button
+                                  const nextRow = e.target.closest('.rounded-xl')?.nextElementSibling
+                                  if (nextRow) {
+                                    const nextDateInput = nextRow.querySelector('input[type="text"]')
+                                    if (nextDateInput) {
+                                      nextDateInput.focus()
+                                      nextDateInput.select()
+                                    }
+                                  } else {
+                                    const saveButton = e.target.closest('.space-y-4')?.querySelector('button[aria-label*="Сохранить"]')
+                                    if (saveButton) saveButton.focus()
+                                  }
+                                }
+                              }}
+                              onFocus={(e) => {
+                                e.target.select()
+                              }}
+                              placeholder={item._invalidYear ? '--.--.--' : 'ДД.ММ.ГГ'}
+                              className={`w-full min-w-0 text-center px-2 py-2 sm:py-1.5 border rounded-lg bg-card text-base sm:text-sm focus:outline-none focus:ring-2 ${item._invalidYear
+                                ? 'border-red-500 focus:ring-red-500/30 focus:border-red-500 text-red-400 placeholder-red-400'
+                                : 'border-border focus:ring-amber-500/30 focus:border-amber-500 text-foreground'
+                                }`}
+                            />
+                          </div>
+
+                          {/* Remove item */}
+                          <button
+                            type="button"
+                            onClick={() => removeItem(index)}
+                            className="p-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg shrink-0 transition-colors touch-manipulation active:scale-95"
+                            aria-label="Удалить товар"
+                          >
+                            <X className="w-5 h-5" />
+                          </button>
+                        </div>
                       </div>
-                    </div>
                     )
                   })}
                 </div>

@@ -23,8 +23,8 @@ import { useTranslation } from '../context/LanguageContext'
 import { useProducts } from '../context/ProductContext'
 import { apiFetch } from '../services/api'
 
-export default function SelectTemplateModal({ 
-  isOpen, 
+export default function SelectTemplateModal({
+  isOpen,
   onSelect,  // (templateId) => void
   onClose    // () => void
 }) {
@@ -46,8 +46,8 @@ export default function SelectTemplateModal({
       const data = await apiFetch('/delivery-templates')
       const templates = (data.templates || []).map(template => ({
         ...template,
-        items: typeof template.items === 'string' 
-          ? JSON.parse(template.items) 
+        items: typeof template.items === 'string'
+          ? JSON.parse(template.items)
           : template.items || []
       }))
       setTemplates(templates)
@@ -97,9 +97,9 @@ export default function SelectTemplateModal({
                 </p>
               </div>
             </div>
-            
-            <button 
-              onClick={onClose} 
+
+            <button
+              onClick={onClose}
               className="p-2 hover:bg-muted rounded-lg transition-colors"
             >
               <X className="w-5 h-5 text-gray-500" />
@@ -129,14 +129,13 @@ export default function SelectTemplateModal({
                         {template.departmentId && ` • ${getDepartmentName(template.departmentId)}`}
                       </p>
                     </div>
-                    
+
                     {/* Fast mode button - main action */}
                     <button
                       onClick={() => handleTemplateSelect(template)}
                       className="flex items-center gap-1.5 px-3 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors text-sm font-medium touch-manipulation"
                     >
-                      <Zap className="w-4 h-4" />
-                      <span className="hidden sm:inline">Быстрый</span>
+                      <span className="hidden sm:inline">Выбрать</span>
                     </button>
                   </div>
                 ))}
@@ -145,7 +144,7 @@ export default function SelectTemplateModal({
           </div>
         </div>
       </div>
-    </div>,
+    </div >,
     document.body
   )
 }
