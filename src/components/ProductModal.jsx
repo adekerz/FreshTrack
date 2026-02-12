@@ -135,13 +135,9 @@ export default function ProductModal({ product, onClose }) {
   }
 
   // Форматирование даты/времени добавления
+  // Форматирование даты/времени добавления
   const formatAddedAt = (dateString) => {
-    if (!dateString) return '—'
-    try {
-      return format(parseISO(dateString), 'dd.MM.yyyy HH:mm')
-    } catch {
-      return String(dateString)
-    }
+    return formatDate(dateString, true)
   }
 
   // Группировка активных партий по сроку годности (один срок — несколько партий)

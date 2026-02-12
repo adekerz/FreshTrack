@@ -222,7 +222,14 @@ export async function collectBatch(batchId, { quantity, type, reason, userId, cu
   }
 }
 
-export async function clearAllActiveBatches(hotelId) {
+export async function clearAllActiveBatches(hotelId, departmentId = null) {
+  if (departmentId) {
+    const result = await dbQuery(
+      `DELETE FROM batches WHERE hotel_id = $1 AND department_id = $2 AND status = 'active' RETURNING id`,
+      [hotelId, departmentId]
+    )
+    return result.rows
+  }
   const result = await dbQuery(
     `DELETE FROM batches WHERE hotel_id = $1 AND status = 'active' RETURNING id`,
     [hotelId]

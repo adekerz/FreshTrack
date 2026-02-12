@@ -373,15 +373,10 @@ router.post('/batches/:id/collect',
 
 /**
  * DELETE /api/batches/clear-all
- * DEVELOPMENT ONLY - SUPER ADMIN
+ * SUPER ADMIN ONLY — очистить все активные партии по отелю (и опционально по отделу)
  */
 router.delete('/batches/clear-all', authMiddleware, async (req, res) => {
   try {
-    const isDev = process.env.NODE_ENV === 'development' || process.env.MODE === 'development'
-    if (!isDev) {
-      return res.status(403).json({ error: 'This endpoint is only available in development mode' })
-    }
-
     if (!isSuperAdmin(req.user)) {
       return res.status(403).json({ error: 'Only super admin can clear all batches' })
     }
@@ -391,7 +386,13 @@ router.delete('/batches/clear-all', authMiddleware, async (req, res) => {
       return res.status(400).json({ error: 'Hotel ID is required' })
     }
 
-    const deleted = await repo.clearAllActiveBatches(hotelId)
+    // Обязательный параметр — очистка только в пределах отдела, не всего отеля
+    const departmentId = req.query.department_id || req.query.departmentId || null
+    if (!departmentId) {
+      return res.status(400).json({ error: 'Department ID is required. Clearing entire hotel is not allowed.' })
+    }
+
+    const deleted = await repo.clearAllActiveBatches(hotelId, departmentId)
 
     await logAudit({
       hotel_id: hotelId,
@@ -400,7 +401,11 @@ router.delete('/batches/clear-all', authMiddleware, async (req, res) => {
       action: 'delete',
       entity_type: 'batch',
       entity_id: null,
-      details: { action: 'clear_all_batches', deleted: deleted.length, environment: 'development' }
+      details: {
+        action: 'clear_all_batches',
+        deleted: deleted.length,
+        department_id: departmentId
+      }
     })
 
     res.json({ success: true, deleted: deleted.length, message: `Deleted ${deleted.length} batches` })

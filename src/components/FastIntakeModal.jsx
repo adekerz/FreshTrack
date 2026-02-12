@@ -107,7 +107,6 @@ export default function FastIntakeModal({
   }
 
   const prepareItems = (template) => {
-    const today = new Date()
     const templateItems = typeof template.items === 'string'
       ? JSON.parse(template.items)
       : template.items || []
@@ -116,9 +115,6 @@ export default function FastIntakeModal({
 
     templateItems.forEach((item) => {
       const shelfLife = item.shelf_life_days || item.defaultShelfLife || 30
-      const expiryDate = new Date(today)
-      expiryDate.setDate(expiryDate.getDate() + shelfLife)
-      const expiryIso = expiryDate.toISOString().split('T')[0]
 
       const defaultQty = item.default_quantity !== undefined && item.default_quantity !== null
         ? item.default_quantity
@@ -130,31 +126,27 @@ export default function FastIntakeModal({
       const productId = item.product_id || item.productId
       const productName = item.product_name || item.productName || 'Без названия'
 
+      // Дата НЕ подставляется — юзер обязан вводить вручную
+      const baseItem = {
+        ...item,
+        productId,
+        productName,
+        quantity: 1,
+        expiryDate: null,   // null = не введена, заблокирует сохранение
+        shelfLife
+      }
+
       if (qty > 1) {
-        // Разбиваем на qty отдельных строк — у каждой своя дата
         for (let i = 0; i < qty; i++) {
           preparedItems.push({
-            ...item,
-            productId,
-            productName,
-            quantity: 1,
-            expiryDate: expiryIso,
-            shelfLife,
-            // Метаданные для группировки (только UI)
+            ...baseItem,
             _groupId: productId,
             _groupIndex: i,
             _groupTotal: qty
           })
         }
       } else {
-        preparedItems.push({
-          ...item,
-          productId,
-          productName,
-          quantity: 1,
-          expiryDate: expiryIso,
-          shelfLife
-        })
+        preparedItems.push(baseItem)
       }
     })
 
@@ -222,6 +214,7 @@ export default function FastIntakeModal({
       for (let d = 0; d < delta; d++) {
         newItems.splice(lastIdx + 1 + d, 0, {
           ...sourceItem,
+          expiryDate: null,       // новая строка — дату нужно ввести вручную
           _inputExpiry: undefined,
           _invalidYear: false
         })
@@ -300,16 +293,20 @@ export default function FastIntakeModal({
     return null
   }, [])
 
+  // Показываем ДД.ММ.ГГ (двузначный год) для быстрого ввода
+  // null → пустая строка (плейсхолдер "--.--.--" покажется через placeholder)
   const formatDateForDisplay = (isoDate) => {
     if (!isoDate) return ''
     const [year, month, day] = isoDate.split('-')
-    return `${day}.${month}.${year}`
+    const shortYear = year.slice(2)   // 2026 → 26
+    return `${day}.${month}.${shortYear}`
   }
 
+  // Форматирует ввод как ДД.ММ.ГГ (6 цифр максимум)
   const autoFormatDateInput = (value) => {
     const digits = value.replace(/\D/g, '')
     let formatted = ''
-    for (let i = 0; i < digits.length && i < 8; i++) {
+    for (let i = 0; i < digits.length && i < 6; i++) {
       if (i === 2 || i === 4) {
         formatted += '.'
       }
@@ -324,14 +321,43 @@ export default function FastIntakeModal({
     if (isPending) return
     if (!targetDepartment || items.length === 0 || !template) return
 
-    // Validate dates
-    const invalidItems = items.filter(item => {
+    // Валидация: найти все строки без даты или с невалидной датой
+    const invalidIndices = []
+    const newItems = items.map((item, idx) => {
+      const isEmpty = !item.expiryDate
       const year = parseInt(item.expiryDate?.split('-')[0], 10)
-      return year < 2026
+      const isBadYear = !isEmpty && year < 2026
+      if (isEmpty || isBadYear) {
+        invalidIndices.push(idx)
+        return { ...item, _invalidYear: true }
+      }
+      return { ...item, _invalidYear: false }
     })
 
-    if (invalidItems.length > 0) {
-      addToast(`${invalidItems.length} товар(ов) с годом до 2026. Исправьте даты.`, 'error')
+    if (invalidIndices.length > 0) {
+      // Помечаем проблемные строки красным
+      setItems(newItems)
+
+      // Скроллим к первой проблемной строке
+      const firstBadIdx = invalidIndices[0]
+      const el = document.querySelector(`[data-item-index="${firstBadIdx}"]`)
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        // Фокусируемся на поле даты
+        setTimeout(() => {
+          const dateInput = el.querySelector('input[type="text"]')
+          if (dateInput) {
+            dateInput.focus()
+            dateInput.select()
+          }
+        }, 300)
+      }
+
+      const emptyCount = invalidIndices.length
+      addToast(
+        `${emptyCount} ${emptyCount === 1 ? 'товар' : 'товаров'}: укажите срок годности`,
+        'error'
+      )
       return
     }
 
@@ -467,18 +493,19 @@ export default function FastIntakeModal({
                       ? items.findIndex(it => it._groupId === item._groupId && it._groupIndex === 0)
                       : index
 
+                    // Вычисляем классы скругления отдельно
+                    const roundingClass = isGrouped
+                      ? isFirstInGroup ? 'rounded-t-xl rounded-b-none' : isLastInGroup ? 'rounded-b-xl rounded-t-none' : 'rounded-none'
+                      : 'rounded-xl'
+                    const borderClass = item._invalidYear
+                      ? 'border-red-500/60 bg-red-500/5'
+                      : isGrouped && !isLastInGroup ? 'border-border/50 border-b-0' : 'border-border/50'
+
                     return (
                     <div
                       key={index}
-                      className={`flex flex-col sm:flex-row items-start sm:items-center gap-2 px-3 py-2.5 sm:p-4 bg-muted/50 border border-border/50 ${
-                        isGrouped
-                          ? isFirstInGroup
-                            ? 'rounded-t-xl rounded-b-none border-b-0'
-                            : isLastInGroup
-                              ? 'rounded-b-xl rounded-t-none'
-                              : 'rounded-none border-b-0'
-                          : 'rounded-xl'
-                      }`}
+                      data-item-index={index}
+                      className={`flex flex-col sm:flex-row items-start sm:items-center gap-2 px-3 py-2.5 sm:p-4 bg-muted/50 border transition-colors ${roundingClass} ${borderClass}`}
                     >
                       {/* Product name */}
                       <div className="flex-1 min-w-0 w-full sm:w-auto">
@@ -527,7 +554,7 @@ export default function FastIntakeModal({
 
                         {/* Expiry date */}
                         <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                          <Calendar className="w-4 h-4 text-gray-400 shrink-0" />
+                          <Calendar className={`w-4 h-4 shrink-0 ${item._invalidYear ? 'text-red-500' : 'text-gray-400'}`} />
                           <input
                             type="text"
                             inputMode="numeric"
@@ -611,10 +638,10 @@ export default function FastIntakeModal({
                             onFocus={(e) => {
                               e.target.select()
                             }}
-                            placeholder="ДД.ММ.ГГ"
-                            className={`w-full min-w-0 text-center px-2 py-2 sm:py-1.5 border rounded-lg bg-card text-foreground text-base sm:text-sm focus:outline-none focus:ring-2 ${item._invalidYear
-                              ? 'border-red-500 focus:ring-red-500/30 focus:border-red-500'
-                              : 'border-border focus:ring-amber-500/30 focus:border-amber-500'
+                            placeholder={item._invalidYear ? '--.--.--' : 'ДД.ММ.ГГ'}
+                            className={`w-full min-w-0 text-center px-2 py-2 sm:py-1.5 border rounded-lg bg-card text-base sm:text-sm focus:outline-none focus:ring-2 ${item._invalidYear
+                              ? 'border-red-500 focus:ring-red-500/30 focus:border-red-500 text-red-400 placeholder-red-400'
+                              : 'border-border focus:ring-amber-500/30 focus:border-amber-500 text-foreground'
                               }`}
                           />
                         </div>

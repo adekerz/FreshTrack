@@ -165,28 +165,37 @@ router.post('/:id/apply', authMiddleware, hotelIsolation, departmentIsolation, r
     }
     
     const createdBatches = []
-    
+    const { getEnrichedExpiryData } = await import('../../services/ExpiryService.js')
+
     for (const item of items) {
       const product = await getProductById(item.productId)
       if (!product) {
         logWarn(`Product ${item.productId} not found, skipping`)
         continue
       }
-      
+
+      // Рассчитываем статус партии по дате (как в inventory.controller.js)
+      let status = 'active'
+      if (item.expiryDate) {
+        const expiryData = await getEnrichedExpiryData(item.expiryDate, { hotelId: req.hotelId })
+        if (expiryData.status === 'expired') status = 'expired'
+        else if (['critical', 'today'].includes(expiryData.status)) status = 'expiring'
+      }
+
       const batch = await createBatch({
         hotel_id: req.hotelId,
         department_id: targetDeptId,
         product_id: item.productId,
         quantity: item.quantity || 1,
         expiry_date: item.expiryDate,
-        created_by: req.user.id
+        added_by: req.user.id    // исправлено: было created_by — поле в БД: added_by
       })
-      
+
       createdBatches.push(batch)
     }
-    
+
     await logAudit({
-      hotel_id: req.hotelId, user_id: req.user.id, user_name: req.user.name,
+      hotel_id: req.hotelId, user_id: req.user.id, user_name: req.user.name || req.user.login,
       action: 'apply_template', entity_type: 'delivery_template', entity_id: req.params.id,
       details: { template_name: template.name, batches_created: createdBatches.length }, ip_address: req.ip
     })

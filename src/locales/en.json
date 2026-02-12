@@ -522,6 +522,7 @@
   },
   "inventory": {
     "title": "Inventory",
+    "subtitle": "Manage your inventory stock",
     "selectDepartment": "Select Department",
     "selectDepartmentDesc": "Select a department to view products",
     "allCategories": "All Categories",
@@ -552,6 +553,7 @@
     "createDepartment": "Create department",
     "clearAll": "Clear All",
     "confirmClearAll": "WARNING! This will delete ALL active batches from inventory. This action cannot be undone.",
+    "confirmClearAllDept": "WARNING! This will delete ALL active batches from department \"{{name}}\". This action cannot be undone.",
     "allBatchesCleared": "Deleted {{count}} batches"
   },
   "notifications": {

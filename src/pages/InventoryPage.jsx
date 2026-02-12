@@ -184,46 +184,42 @@ export default function InventoryPage() {
     return categories
   }
 
-  // Clear all batches (DEVELOPMENT ONLY - SUPER ADMIN)
+  // Clear all batches — SUPER ADMIN ONLY, только в рамках текущего отдела
   const handleClearAllBatches = async () => {
-    if (!isDevelopment || !userIsSuperAdmin) return
-    
+    if (!userIsSuperAdmin) return
+
+    // Обязательно должен быть выбран отдел — очистка только в его пределах
+    if (!selectedDeptId) {
+      addToast('Выберите отдел для очистки партий', 'error')
+      return
+    }
+
     setClearingBatches(true)
     try {
-      // Use hotel_id from context or localStorage
       const hotelId = selectedHotelId || localStorage.getItem('freshtrack_selected_hotel')
-      
+
       if (!hotelId) {
         addToast('Не указан отель', 'error')
-        setClearingBatches(false)
         return
       }
-      
-      const url = `/batches/clear-all?hotel_id=${hotelId}`
-      
-      console.log('[Clear All Batches] Request:', {
-        url,
-        hotelId,
-        isDevelopment,
-        userIsSuperAdmin,
-        userRole: user?.role
+
+      const params = new URLSearchParams({
+        hotel_id: hotelId,
+        department_id: selectedDeptId
       })
-      
-      const response = await apiFetch(url, {
+
+      const response = await apiFetch(`/batches/clear-all?${params.toString()}`, {
         method: 'DELETE'
       })
-      
-      console.log('[Clear All Batches] Response:', response)
-      
+
       addToast(
-        t('inventory.allBatchesCleared', { count: response.deleted || 0 }) || 
+        t('inventory.allBatchesCleared', { count: response.deleted || 0 }) ||
         `Удалено ${response.deleted || 0} партий`,
         'success'
       )
       refresh()
       setShowClearAllConfirm(false)
     } catch (error) {
-      console.error('[Clear All Batches] Error:', error)
       const errorMessage = error.message || error.error || 'Ошибка очистки партий'
       addToast(errorMessage, 'error')
     } finally {
@@ -450,12 +446,12 @@ export default function InventoryPage() {
             >
               <span className="hidden sm:inline">{t('inventory.applyTemplate')}</span>
             </TouchButton>
-            {isDevelopment && userIsSuperAdmin && (
+            {userIsSuperAdmin && selectedDeptId && (
               <TouchButton
                 variant="ghost"
                 size="small"
                 onClick={() => setShowClearAllConfirm(true)}
-                className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground hover:text-accent min-h-0 h-auto"
+                className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground hover:text-red-500 min-h-0 h-auto"
                 title={t('inventory.clearAll') || 'Очистить все партии'}
                 aria-label={t('inventory.clearAll') || 'Очистить все партии'}
                 icon={Trash2}
@@ -607,14 +603,14 @@ export default function InventoryPage() {
         />
       )}
 
-      {/* Clear All Batches Confirmation Dialog */}
-      {isDevelopment && userIsSuperAdmin && (
+      {/* Clear All Batches Confirmation Dialog — SUPER ADMIN ONLY, только текущий отдел */}
+      {userIsSuperAdmin && selectedDeptId && (
         <ConfirmDialog
           isOpen={showClearAllConfirm}
           onClose={() => setShowClearAllConfirm(false)}
           onConfirm={handleClearAllBatches}
           title={t('inventory.clearAll') || 'Очистить все партии'}
-          description={t('inventory.confirmClearAll') || 'ВНИМАНИЕ! Это удалит ВСЕ активные партии из инвентаря. Это действие нельзя отменить.'}
+          description={t('inventory.confirmClearAllDept') || 'ВНИМАНИЕ! Это удалит ВСЕ активные партии текущего отдела. Это действие нельзя отменить.'}
           confirmLabel={t('common.confirm') || 'Подтвердить'}
           cancelLabel={t('common.cancel') || 'Отмена'}
           variant="danger"
