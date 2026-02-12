@@ -135,7 +135,7 @@ export default function SelectTemplateModal({
                       onClick={() => handleTemplateSelect(template)}
                       className="flex items-center gap-1.5 px-3 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors text-sm font-medium touch-manipulation"
                     >
-                      <span className="hidden sm:inline">Выбрать</span>
+                      <span>Выбрать</span>
                     </button>
                   </div>
                 ))}
