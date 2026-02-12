@@ -50,7 +50,7 @@ export default function InventoryPage() {
   // Проверка роли STAFF через helper функцию
   const userIsStaff = isStaff()
   const userIsSuperAdmin = isSuperAdmin()
-  
+
   // Check if running in development mode
   const isDevelopment = import.meta.env.MODE === 'development'
 
@@ -89,27 +89,27 @@ export default function InventoryPage() {
       setShowFastIntakeModal(true)
     }, 0)
   }, [])
-  
+
   // Handle "change template" - opens selector, keeps fast intake state
   const handleChangeTemplate = useCallback(() => {
     setShowFastIntakeModal(false)
     setShowSelectTemplateModal(true)
     // DON'T reset selectedTemplateId here - will be set on new selection
   }, [])
-  
+
   // Handle fast intake close - full reset
   const handleFastIntakeClose = useCallback(() => {
     setShowFastIntakeModal(false)
     setSelectedTemplateId(null)
   }, [])
-  
+
   // DEPRECATED: React Query автоматически обновляет инвентарь через invalidation
   // Этот callback больше не нужен, но оставлен для обратной совместимости
   const handleFastApply = useCallback((batches) => {
     // React Query автоматически обновит данные через фоновую синхронизацию
     // refresh() больше не нужен - данные обновятся через 2 секунды автоматически
   }, [])
-  
+
   // Handle template selector close - full reset
   const handleSelectTemplateClose = useCallback(() => {
     setShowSelectTemplateModal(false)
@@ -286,20 +286,20 @@ export default function InventoryPage() {
   if (loading && departments.length > 0) {
     return (
       <AnimatedPage>
-      <PageContainer
-        title={t('inventory.title')}
-        subtitle={t('inventory.subtitle') || ''}
-        stickyHeader={true}
-      >
-        <div className="animate-fade-in">
-          <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Skeleton key={i} className="h-8 w-24 rounded-full flex-shrink-0" />
-            ))}
+        <PageContainer
+          title={t('inventory.title')}
+          subtitle={t('inventory.subtitle') || ''}
+          stickyHeader={true}
+        >
+          <div className="animate-fade-in">
+            <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Skeleton key={i} className="h-8 w-24 rounded-full flex-shrink-0" />
+              ))}
+            </div>
+            <SkeletonInventory rows={6} />
           </div>
-          <SkeletonInventory rows={6} />
-        </div>
-      </PageContainer>
+        </PageContainer>
       </AnimatedPage>
     )
   }
@@ -308,27 +308,27 @@ export default function InventoryPage() {
   if (loading && departments.length === 0) {
     return (
       <AnimatedPage>
-      <PageContainer
-        title={t('inventory.title')}
-        subtitle={t('inventory.subtitle') || ''}
-        stickyHeader={true}
-      >
-        <div className="flex-1 flex items-center justify-center py-16 sm:py-24 animate-fade-in">
-          <div className="flex flex-col items-center gap-6" role="status" aria-live="polite">
-            <Loader size="large" aria-label={t('common.loading') || 'Загрузка'} />
-            <div className="text-center">
-              <p className="text-foreground font-medium mb-1">
-                {t('common.loading') || 'Загрузка...'}
-              </p>
-              {retryCount > 0 && (
-                <p className="text-muted-foreground text-sm">
-                  {`${t('common.attempt') || 'Попытка'} ${retryCount}/10`}
+        <PageContainer
+          title={t('inventory.title')}
+          subtitle={t('inventory.subtitle') || ''}
+          stickyHeader={true}
+        >
+          <div className="flex-1 flex items-center justify-center py-16 sm:py-24 animate-fade-in">
+            <div className="flex flex-col items-center gap-6" role="status" aria-live="polite">
+              <Loader size="large" aria-label={t('common.loading') || 'Загрузка'} />
+              <div className="text-center">
+                <p className="text-foreground font-medium mb-1">
+                  {t('common.loading') || 'Загрузка...'}
                 </p>
-              )}
+                {retryCount > 0 && (
+                  <p className="text-muted-foreground text-sm">
+                    {`${t('common.attempt') || 'Попытка'} ${retryCount}/10`}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      </PageContainer>
+        </PageContainer>
       </AnimatedPage>
     )
   }
@@ -337,24 +337,24 @@ export default function InventoryPage() {
   if (!loading && departments.length === 0) {
     return (
       <AnimatedPage>
-      <PageContainer
-        title={t('inventory.title')}
-        subtitle={t('inventory.subtitle') || ''}
-        stickyHeader={true}
-      >
-        <EmptyState
-          icon={Package}
-          title={t('inventory.noDepartments') || 'Нет отделов'}
-          description={
-            t('inventory.noDepartmentsDescription') ||
-            'Для этого отеля ещё не созданы отделы. Создайте отдел в настройках.'
-          }
-          action={{
-            label: t('common.goToSettings') || 'Перейти в настройки',
-            onClick: () => navigate('/settings')
-          }}
-        />
-      </PageContainer>
+        <PageContainer
+          title={t('inventory.title')}
+          subtitle={t('inventory.subtitle') || ''}
+          stickyHeader={true}
+        >
+          <EmptyState
+            icon={Package}
+            title={t('inventory.noDepartments') || 'Нет отделов'}
+            description={
+              t('inventory.noDepartmentsDescription') ||
+              'Для этого отеля ещё не созданы отделы. Создайте отдел в настройках.'
+            }
+            action={{
+              label: t('common.goToSettings') || 'Перейти в настройки',
+              onClick: () => navigate('/settings')
+            }}
+          />
+        </PageContainer>
       </AnimatedPage>
     )
   }
@@ -363,20 +363,20 @@ export default function InventoryPage() {
   if (!selectedDeptId && departments.length > 1) {
     return (
       <AnimatedPage>
-      <PageContainer
-        title={t('inventory.title')}
-        subtitle={t('inventory.selectDepartment') || 'Выберите отдел'}
-        stickyHeader={true}
-      >
-        <div className="animate-fade-in">
-          <DepartmentSelector
-            departments={departments}
-            selectedDepartment={selectedDeptId}
-            onSelect={handleSelectDepartment}
-            title={t('inventory.selectDepartment') || 'Выберите отдел'}
-          />
-        </div>
-      </PageContainer>
+        <PageContainer
+          title={t('inventory.title')}
+          subtitle={t('inventory.selectDepartment') || 'Выберите отдел'}
+          stickyHeader={true}
+        >
+          <div className="animate-fade-in">
+            <DepartmentSelector
+              departments={departments}
+              selectedDepartment={selectedDeptId}
+              onSelect={handleSelectDepartment}
+              title={t('inventory.selectDepartment') || 'Выберите отдел'}
+            />
+          </div>
+        </PageContainer>
       </AnimatedPage>
     )
   }
@@ -389,246 +389,244 @@ export default function InventoryPage() {
 
   return (
     <AnimatedPage>
-    <>
-      {/* Pull-to-refresh indicator */}
-      {pullDistance > 0 && (
-        <div
-          className="fixed left-0 right-0 top-0 z-30 flex items-center justify-center py-4 bg-card/95 backdrop-blur-sm border-b border-border transition-opacity"
-          style={{ height: Math.min(pullDistance, 80) }}
-          role="status"
-          aria-live="polite"
-        >
-          {pullDistance >= 80 ? (
-            <Loader className="w-6 h-6 text-accent" />
-          ) : (
-            <span className="text-sm text-muted-foreground">
-              {t('common.pullToRefresh') || 'Потяните для обновления'}
-            </span>
-          )}
-        </div>
-      )}
-      <PageContainer
-        title={`${t('inventory.title')} — ${department?.name || selectedDeptId}`}
-        subtitle=""
-        stickyHeader={true}
-        actions={
-          <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
-            {departments.length > 1 && (
-              <Tooltip content={t('common.back') || 'Назад'}>
-                <span className="inline-flex">
-                  <TouchButton
-                    variant="ghost"
-                    size="icon"
-                    onClick={handleBackToDepartments}
-                    className="rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted"
-                    aria-label={t('common.back') || 'Назад'}
-                    icon={ArrowLeft}
-                  />
-                </span>
-              </Tooltip>
+      <>
+        {/* Pull-to-refresh indicator */}
+        {pullDistance > 0 && (
+          <div
+            className="fixed left-0 right-0 top-0 z-30 flex items-center justify-center py-4 bg-card/95 backdrop-blur-sm border-b border-border transition-opacity"
+            style={{ height: Math.min(pullDistance, 80) }}
+            role="status"
+            aria-live="polite"
+          >
+            {pullDistance >= 80 ? (
+              <Loader className="w-6 h-6 text-accent" />
+            ) : (
+              <span className="text-sm text-muted-foreground">
+                {t('common.pullToRefresh') || 'Потяните для обновления'}
+              </span>
             )}
-            <ExportButton
-              exportType="inventory"
-              filters={exportFilters}
-              formats={['excel', 'csv', 'pdf']}
-              showFilterCount={true}
-              compact={true}
-            />
-            <TouchButton
-              variant="ghost"
-              size="small"
-              onClick={() => setShowSelectTemplateModal(true)}
-              className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground hover:text-accent min-h-0 h-auto"
-              title={t('inventory.applyTemplate')}
-              aria-label={t('inventory.applyTemplate')}
-              icon={FileBox}
-              iconPosition="left"
-            >
-              <span className="hidden sm:inline">{t('inventory.applyTemplate')}</span>
-            </TouchButton>
-            {userIsSuperAdmin && selectedDeptId && (
+          </div>
+        )}
+        <PageContainer
+          title={`${t('inventory.title')} — ${department?.name || selectedDeptId}`}
+          subtitle=""
+          stickyHeader={true}
+          actions={
+            <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
+              {departments.length > 1 && (
+                <Tooltip content={t('common.back') || 'Назад'}>
+                  <span className="inline-flex">
+                    <TouchButton
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleBackToDepartments}
+                      className="rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted"
+                      aria-label={t('common.back') || 'Назад'}
+                      icon={ArrowLeft}
+                    />
+                  </span>
+                </Tooltip>
+              )}
+              <ExportButton
+                exportType="inventory"
+                filters={exportFilters}
+                formats={['excel', 'csv', 'pdf']}
+                showFilterCount={true}
+                compact={true}
+              />
               <TouchButton
                 variant="ghost"
                 size="small"
-                onClick={() => setShowClearAllConfirm(true)}
-                className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground hover:text-red-500 min-h-0 h-auto"
-                title={t('inventory.clearAll') || 'Очистить все партии'}
-                aria-label={t('inventory.clearAll') || 'Очистить все партии'}
-                icon={Trash2}
+                onClick={() => setShowSelectTemplateModal(true)}
+                className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground hover:text-accent min-h-0 h-auto"
+                title={t('inventory.applyTemplate')}
+                aria-label={t('inventory.applyTemplate')}
+                icon={FileBox}
                 iconPosition="left"
               >
-                <span className="hidden sm:inline">{t('inventory.clearAll') || 'Очистить все'}</span>
+                <span className="hidden sm:inline">{t('inventory.applyTemplate')}</span>
               </TouchButton>
+              {userIsSuperAdmin && selectedDeptId && (
+                <TouchButton
+                  variant="ghost"
+                  size="small"
+                  onClick={() => setShowClearAllConfirm(true)}
+                  className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground hover:text-red-500 min-h-0 h-auto"
+                  title={t('inventory.clearAll') || 'Очистить все партии'}
+                  aria-label={t('inventory.clearAll') || 'Очистить все партии'}
+                  icon={Trash2}
+                  iconPosition="left"
+                >
+                  <span className="hidden sm:inline">{t('inventory.clearAll') || 'Очистить все'}</span>
+                </TouchButton>
+              )}
+              {!userIsStaff && (
+                <TouchButton
+                  variant="ghost"
+                  size="small"
+                  onClick={() => setShowAddCustomModal(true)}
+                  className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground hover:text-accent min-h-0 h-auto"
+                  title={t('inventory.addNewProduct')}
+                  aria-label={t('inventory.addNewProduct')}
+                  icon={Plus}
+                  iconPosition="left"
+                >
+                  <span className="hidden sm:inline">{t('inventory.addNewProduct')}</span>
+                </TouchButton>
+              )}
+            </div>
+          }
+        >
+          <div className="animate-fade-in">
+            {/* Фильтры категорий и сортировка */}
+            <div className="flex flex-col sm:flex-row gap-3 mb-4 sm:mb-8">
+              {/* Категории */}
+              <div className="flex gap-2 flex-wrap overflow-x-auto pb-2 flex-1">
+                <TouchButton
+                  variant="ghost"
+                  size="small"
+                  onClick={() => setSelectedCategory('all')}
+                  className={`px-3 sm:px-4 py-2 rounded-full text-sm whitespace-nowrap flex-shrink-0 min-h-0 h-auto font-medium transition-all duration-200 ${selectedCategory === 'all'
+                      ? 'bg-accent-button text-white hover:bg-accent-button/90 shadow-sm border-0'
+                      : 'bg-card border border-border text-foreground hover:bg-muted/80 hover:border-muted-foreground/30'
+                    }`}
+                >
+                  {t('common.all')}
+                </TouchButton>
+                {availableCategories.map((cat) => (
+                  <TouchButton
+                    key={cat.id}
+                    variant="ghost"
+                    size="small"
+                    onClick={() => setSelectedCategory(cat.id)}
+                    className={`px-3 sm:px-4 py-2 rounded-full text-sm whitespace-nowrap flex-shrink-0 min-h-0 h-auto font-medium transition-all duration-200 ${selectedCategory === cat.id
+                        ? 'bg-accent-button text-white hover:bg-accent-button/90 shadow-sm border-0'
+                        : 'bg-card border border-border text-foreground hover:bg-muted/80 hover:border-muted-foreground/30'
+                      }`}
+                  >
+                    {getCategoryName(cat)}
+                  </TouchButton>
+                ))}
+              </div>
+
+              {/* Сортировка */}
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <ArrowUpDown className="w-4 h-4 text-muted-foreground" aria-hidden="true" />
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  aria-label={t('inventory.sortOrder') || 'Сортировка'}
+                  className="text-xs sm:text-sm bg-card border border-border rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-accent/20"
+                >
+                  <option value="expiry">{t('inventory.sortByExpiry') || 'По сроку'}</option>
+                  <option value="name">{t('inventory.sortByName') || 'По названию'}</option>
+                  <option value="quantity">{t('inventory.sortByQuantity') || 'По количеству'}</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Сетка товаров */}
+            {products.length === 0 ? (
+              <EmptyState
+                icon={Package}
+                title={t('inventory.noProducts') || 'Нет товаров'}
+                description={t('inventory.addBatchToStart') || 'Добавьте партии товаров чтобы начать работу'}
+                action={{
+                  label: t('inventory.applyTemplate') || 'Применить шаблон',
+                  onClick: () => setShowSelectTemplateModal(true),
+                  icon: FileBox
+                }}
+              />
+            ) : (
+              <AnimatedGrid
+                columns="grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
+                gap="gap-2 sm:gap-4"
+                staggerDelay={40}
+                className="px-1 sm:px-0"
+              >
+                {products.map((product) => {
+                  const category = categories.find((c) => c.id === product.categoryId)
+                  const displayCategoryName =
+                    product.categoryName || (category ? getCategoryName(category) : null)
+                  return (
+                    <ProductCard
+                      key={product.id}
+                      product={product}
+                      categoryName={displayCategoryName}
+                      onProductClick={handleProductClick}
+                      compact={isMobile}
+                      t={t}
+                    />
+                  )
+                })}
+              </AnimatedGrid>
             )}
-            {!userIsStaff && (
-<TouchButton
-              variant="ghost"
-              size="small"
-              onClick={() => setShowAddCustomModal(true)}
-              className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground hover:text-accent min-h-0 h-auto"
-              title={t('inventory.addNewProduct')}
-              aria-label={t('inventory.addNewProduct')}
-              icon={Plus}
-              iconPosition="left"
-            >
-              <span className="hidden sm:inline">{t('inventory.addNewProduct')}</span>
-            </TouchButton>
+
+            {/* Модальные окна */}
+            {showProductModal && selectedProduct && (
+              <ProductModal
+                product={selectedProduct}
+                onClose={() => {
+                  setShowProductModal(false)
+                  setSelectedProduct(null)
+                }}
+              />
+            )}
+
+            {showAddCustomModal && (
+              <AddCustomProductModal
+                departmentId={selectedDeptId}
+                onClose={() => setShowAddCustomModal(false)}
+              />
+            )}
+
+            {/* Template Selection Modal - stateless */}
+            {showSelectTemplateModal && (
+              <SelectTemplateModal
+                isOpen={true}
+                onSelect={handleTemplateSelect}
+                onClose={handleSelectTemplateClose}
+              />
+            )}
+
+            {/* Fast Intake Modal - stateful with selected template */}
+            {showFastIntakeModal && selectedTemplateId && (
+              <FastIntakeModal
+                isOpen={true}
+                templateId={selectedTemplateId}
+                departmentId={selectedDeptId}
+                onChangeTemplate={handleChangeTemplate}
+                onClose={handleFastIntakeClose}
+                onFastApply={handleFastApply}
+              />
+            )}
+
+            {/* Clear All Batches Confirmation Dialog — SUPER ADMIN ONLY, только текущий отдел */}
+            {userIsSuperAdmin && selectedDeptId && (
+              <ConfirmDialog
+                isOpen={showClearAllConfirm}
+                onClose={() => setShowClearAllConfirm(false)}
+                onConfirm={handleClearAllBatches}
+                title={t('inventory.clearAll') || 'Очистить все партии'}
+                description={t('inventory.confirmClearAllDept', { name: department?.name || '...' }) || `ВНИМАНИЕ! Это удалит ВСЕ активные партии из отдела «${department?.name}». Это действие нельзя отменить.`}
+                confirmLabel={t('common.confirm') || 'Подтвердить'}
+                cancelLabel={t('common.cancel') || 'Отмена'}
+                variant="danger"
+                loading={clearingBatches}
+              />
             )}
           </div>
-        }
-      >
-      <div className="animate-fade-in">
-      {/* Фильтры категорий и сортировка */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-4 sm:mb-8">
-        {/* Категории */}
-        <div className="flex gap-2 flex-wrap overflow-x-auto pb-2 flex-1">
-          <TouchButton
-            variant="ghost"
-            size="small"
-            onClick={() => setSelectedCategory('all')}
-            className={`px-3 sm:px-4 py-2 rounded-full text-sm whitespace-nowrap flex-shrink-0 min-h-0 h-auto font-medium transition-all duration-200 ${
-              selectedCategory === 'all'
-                ? 'bg-accent-button text-white hover:bg-accent-button/90 shadow-sm border-0'
-                : 'bg-card border border-border text-foreground hover:bg-muted/80 hover:border-muted-foreground/30'
-            }`}
-          >
-            {t('common.all')}
-          </TouchButton>
-          {availableCategories.map((cat) => (
-            <TouchButton
-              key={cat.id}
-              variant="ghost"
-              size="small"
-              onClick={() => setSelectedCategory(cat.id)}
-              className={`px-3 sm:px-4 py-2 rounded-full text-sm whitespace-nowrap flex-shrink-0 min-h-0 h-auto font-medium transition-all duration-200 ${
-                selectedCategory === cat.id
-                  ? 'bg-accent-button text-white hover:bg-accent-button/90 shadow-sm border-0'
-                  : 'bg-card border border-border text-foreground hover:bg-muted/80 hover:border-muted-foreground/30'
-              }`}
-            >
-              {getCategoryName(cat)}
-            </TouchButton>
-          ))}
-        </div>
+        </PageContainer>
 
-        {/* Сортировка */}
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <ArrowUpDown className="w-4 h-4 text-muted-foreground" aria-hidden="true" />
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            aria-label={t('inventory.sortOrder') || 'Сортировка'}
-            className="text-xs sm:text-sm bg-card border border-border rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-accent/20"
-          >
-            <option value="expiry">{t('inventory.sortByExpiry') || 'По сроку'}</option>
-            <option value="name">{t('inventory.sortByName') || 'По названию'}</option>
-            <option value="quantity">{t('inventory.sortByQuantity') || 'По количеству'}</option>
-          </select>
-        </div>
-      </div>
-
-      {/* Сетка товаров */}
-      {products.length === 0 ? (
-        <EmptyState
-          icon={Package}
-          title={t('inventory.noProducts') || 'Нет товаров'}
-          description={t('inventory.addBatchToStart') || 'Добавьте партии товаров чтобы начать работу'}
-          action={{
-            label: t('inventory.applyTemplate') || 'Применить шаблон',
-            onClick: () => setShowSelectTemplateModal(true),
-            icon: FileBox
-          }}
-        />
-      ) : (
-        <AnimatedGrid
-          columns="grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
-          gap="gap-2 sm:gap-4"
-          staggerDelay={40}
-          className="px-1 sm:px-0"
-        >
-          {products.map((product) => {
-            const category = categories.find((c) => c.id === product.categoryId)
-            const displayCategoryName =
-              product.categoryName || (category ? getCategoryName(category) : null)
-            return (
-              <ProductCard
-                key={product.id}
-                product={product}
-                categoryName={displayCategoryName}
-                onProductClick={handleProductClick}
-                compact={isMobile}
-                t={t}
-              />
-            )
-          })}
-        </AnimatedGrid>
-      )}
-
-      {/* Модальные окна */}
-      {showProductModal && selectedProduct && (
-        <ProductModal
-          product={selectedProduct}
-          onClose={() => {
-            setShowProductModal(false)
-            setSelectedProduct(null)
-          }}
-        />
-      )}
-
-      {showAddCustomModal && (
-        <AddCustomProductModal
-          departmentId={selectedDeptId}
-          onClose={() => setShowAddCustomModal(false)}
-        />
-      )}
-
-      {/* Template Selection Modal - stateless */}
-      {showSelectTemplateModal && (
-        <SelectTemplateModal
-          isOpen={true}
-          onSelect={handleTemplateSelect}
-          onClose={handleSelectTemplateClose}
-        />
-      )}
-
-      {/* Fast Intake Modal - stateful with selected template */}
-      {showFastIntakeModal && selectedTemplateId && (
-        <FastIntakeModal
-          isOpen={true}
-          templateId={selectedTemplateId}
-          departmentId={selectedDeptId}
-          onChangeTemplate={handleChangeTemplate}
-          onClose={handleFastIntakeClose}
-          onFastApply={handleFastApply}
-        />
-      )}
-
-      {/* Clear All Batches Confirmation Dialog — SUPER ADMIN ONLY, только текущий отдел */}
-      {userIsSuperAdmin && selectedDeptId && (
-        <ConfirmDialog
-          isOpen={showClearAllConfirm}
-          onClose={() => setShowClearAllConfirm(false)}
-          onConfirm={handleClearAllBatches}
-          title={t('inventory.clearAll') || 'Очистить все партии'}
-          description={t('inventory.confirmClearAllDept') || 'ВНИМАНИЕ! Это удалит ВСЕ активные партии текущего отдела. Это действие нельзя отменить.'}
-          confirmLabel={t('common.confirm') || 'Подтвердить'}
-          cancelLabel={t('common.cancel') || 'Отмена'}
-          variant="danger"
-          loading={clearingBatches}
-        />
-      )}
-      </div>
-      </PageContainer>
-
-      {/* Export Progress Notification */}
-      {exportProgress.status && (
-        <ExportProgress
-          status={exportProgress.status}
-          filename={exportProgress.filename}
-          onDismiss={dismissExportProgress}
-        />
-      )}
-    </>
+        {/* Export Progress Notification */}
+        {exportProgress.status && (
+          <ExportProgress
+            status={exportProgress.status}
+            filename={exportProgress.filename}
+            onDismiss={dismissExportProgress}
+          />
+        )}
+      </>
     </AnimatedPage>
   )
 }

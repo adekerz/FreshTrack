@@ -135,10 +135,7 @@ export default function ProductModal({ product, onClose }) {
   }
 
   // Форматирование даты/времени добавления
-  // Форматирование даты/времени добавления
-  const formatAddedAt = (dateString) => {
-    return formatDate(dateString, true)
-  }
+
 
   // Группировка активных партий по сроку годности (один срок — несколько партий)
   const activeBatchesByExpiry = activeBatches.reduce((acc, batch) => {
@@ -413,7 +410,7 @@ export default function ProductModal({ product, onClose }) {
                                   {/* Дата добавления */}
                                   <div className="text-sm text-muted-foreground mt-0.5">
                                     {t('product.addedAt') || 'Добавлено'}:{' '}
-                                    {formatAddedAt(batch.created_at || batch.createdAt)}
+                                    {formatDate(batch.created_at || batch.createdAt, true)}
                                   </div>
                                   {/* Кем добавлено */}
                                   {batch.addedBy && (
