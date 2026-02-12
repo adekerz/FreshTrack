@@ -350,8 +350,9 @@ export function ProductProvider({ children }) {
             }
           })
 
-          // ✅ ИСПРАВЛЕНО: Показываем товар ТОЛЬКО если у него есть партии
-          if (productBatches.length > 0) {
+          // Show products even if they don't have active batches yet
+          // This allows users to see newly created products and add batches to them
+          if (true) {
             products.push({
               ...product,
               categoryId,
