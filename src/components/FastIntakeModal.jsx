@@ -18,7 +18,7 @@
  * - "Change template" is an explicit user action (calls onChangeTemplate)
  */
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { X, Package, Calendar, Check, ArrowRight, History, Zap, Plus, Minus } from 'lucide-react'
 import { SectionLoader, ButtonLoader } from './ui'
@@ -60,6 +60,7 @@ export default function FastIntakeModal({
   const [sessionHistory, setSessionHistory] = useState([])
   const [lastExpiryByProduct, setLastExpiryByProduct] = useState({})
   const [globalLastExpiry, setGlobalLastExpiry] = useState('')
+  const scrollContainerRef = useRef(null)
 
   const targetDepartment = departmentId || (departments.length > 0 ? departments[0].id : null)
 
@@ -406,9 +407,8 @@ export default function FastIntakeModal({
           prepareItems(template)
 
           // Scroll to top
-          const scrollContainer = document.querySelector('.overflow-y-auto')
-          if (scrollContainer) {
-            scrollContainer.scrollTo({ top: 0, behavior: 'smooth' })
+          if (scrollContainerRef.current) {
+            scrollContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' })
           }
 
           // 5. НЕ ВЫЗЫВАЕМ onFastApply - React Query автоматически обновит инвентарь!
@@ -463,7 +463,10 @@ export default function FastIntakeModal({
           </div>
 
           {/* Content — scrollable */}
-          <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6">
+          <div
+            ref={scrollContainerRef}
+            className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6"
+          >
             {loading ? (
               <SectionLoader />
             ) : !template ? (
