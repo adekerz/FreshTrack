@@ -20,7 +20,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
-import { X, Package, Calendar, Check, ArrowRight, History, Zap } from 'lucide-react'
+import { X, Package, Calendar, Check, ArrowRight, History, Zap, Plus, Minus } from 'lucide-react'
 import { SectionLoader, ButtonLoader } from './ui'
 import { useTranslation } from '../context/LanguageContext'
 import { useProducts } from '../context/ProductContext'
@@ -168,9 +168,96 @@ export default function FastIntakeModal({
     setItems(newItems)
   }
 
-  // === Remove item from list ===
+  // === Remove item from list (с пересчётом группы) ===
   const removeItem = (index) => {
-    setItems(items.filter((_, i) => i !== index))
+    const item = items[index]
+    const filtered = items.filter((_, i) => i !== index)
+
+    // Если элемент был в группе — пересчитываем _groupIndex/_groupTotal
+    if (item._groupId) {
+      const groupId = item._groupId
+      let groupCounter = 0
+      const recalculated = filtered.map((it) => {
+        if (it._groupId === groupId) {
+          const newTotal = filtered.filter(x => x._groupId === groupId).length
+          const result = { ...it, _groupIndex: groupCounter, _groupTotal: newTotal }
+          groupCounter++
+          // Если осталась 1 в группе — убираем метаданные группы
+          if (newTotal === 1) {
+            delete result._groupId
+            delete result._groupIndex
+            delete result._groupTotal
+          }
+          return result
+        }
+        return it
+      })
+      setItems(recalculated)
+    } else {
+      setItems(filtered)
+    }
+  }
+
+  // === Изменить размер группы (+1 или -1) ===
+  // Принимает itemIndex — индекс первой (или любой) строки товара
+  const changeGroupSize = (itemIndex, delta) => {
+    const sourceItem = items[itemIndex]
+    if (!sourceItem) return
+
+    // Уникальный ключ группы — productId товара
+    const productId = sourceItem.productId || sourceItem.product_id
+    // Все текущие строки этого товара (по productId)
+    const groupIndices = items.reduce((acc, it, i) =>
+      (it.productId || it.product_id) === productId ? [...acc, i] : acc, [])
+
+    const currentSize = groupIndices.length
+    const newSize = Math.max(1, currentSize + delta)
+    if (newSize === currentSize) return
+
+    let newItems = [...items]
+
+    if (delta > 0) {
+      // Вставляем новые строки после последней строки этого товара
+      const lastIdx = groupIndices[groupIndices.length - 1]
+      for (let d = 0; d < delta; d++) {
+        newItems.splice(lastIdx + 1 + d, 0, {
+          ...sourceItem,
+          _inputExpiry: undefined,
+          _invalidYear: false
+        })
+      }
+    } else {
+      // Удаляем последнюю строку этого товара
+      for (let d = 0; d < Math.abs(delta); d++) {
+        const currentGroupIdx = newItems.reduce((acc, it, i) =>
+          (it.productId || it.product_id) === productId ? [...acc, i] : acc, [])
+        const lastIdx = currentGroupIdx[currentGroupIdx.length - 1]
+        if (lastIdx >= 0) newItems.splice(lastIdx, 1)
+      }
+    }
+
+    // Пересчитываем _groupIndex и _groupTotal для всех строк этого товара
+    const finalGroup = newItems.reduce((acc, it, i) =>
+      (it.productId || it.product_id) === productId ? [...acc, i] : acc, [])
+    const total = finalGroup.length
+
+    let counter = 0
+    newItems = newItems.map((it) => {
+      if ((it.productId || it.product_id) !== productId) return it
+      const copy = { ...it }
+      if (total === 1) {
+        delete copy._groupId
+        delete copy._groupIndex
+        delete copy._groupTotal
+      } else {
+        copy._groupId = productId
+        copy._groupIndex = counter++
+        copy._groupTotal = total
+      }
+      return copy
+    })
+
+    setItems(newItems)
   }
 
   // === Date parsing utilities ===
@@ -372,6 +459,13 @@ export default function FastIntakeModal({
                     const isGrouped = item._groupTotal > 1
                     const isFirstInGroup = isGrouped && item._groupIndex === 0
                     const isLastInGroup = isGrouped && item._groupIndex === item._groupTotal - 1
+                    // Показываем контрол кол-ва только у первой строки группы (или у одиночного)
+                    const showQtyControl = !isGrouped || isFirstInGroup
+                    const currentGroupSize = isGrouped ? item._groupTotal : 1
+                    // Индекс первой строки группы для changeGroupSize
+                    const firstInGroupIndex = isGrouped
+                      ? items.findIndex(it => it._groupId === item._groupId && it._groupIndex === 0)
+                      : index
 
                     return (
                     <div
@@ -402,8 +496,34 @@ export default function FastIntakeModal({
 
                       {/* Expiry + remove */}
                       <div className="flex items-center gap-2 w-full sm:w-auto">
-                        {/* Quantity badge — всегда 1 шт */}
-                        <span className="text-sm text-muted-foreground shrink-0 w-6 text-center">1</span>
+                        {/* Quantity control — только у первой строки группы */}
+                        {showQtyControl ? (
+                          <div className="flex items-center gap-0.5 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => changeGroupSize(firstInGroupIndex, -1)}
+                              disabled={currentGroupSize <= 1}
+                              className="p-1.5 rounded-md bg-muted hover:bg-muted/80 transition-colors touch-manipulation active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
+                              aria-label="Уменьшить количество"
+                            >
+                              <Minus className="w-3.5 h-3.5" />
+                            </button>
+                            <span className="w-6 text-center text-sm font-medium text-foreground tabular-nums">
+                              {currentGroupSize}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => changeGroupSize(firstInGroupIndex, 1)}
+                              className="p-1.5 rounded-md bg-muted hover:bg-muted/80 transition-colors touch-manipulation active:scale-95"
+                              aria-label="Увеличить количество"
+                            >
+                              <Plus className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ) : (
+                          // Заглушка для выравнивания у дочерних строк группы (ширина = кнопка + цифра + кнопка)
+                          <div className="w-[76px] shrink-0" />
+                        )}
 
                         {/* Expiry date */}
                         <div className="flex items-center gap-1.5 flex-1 min-w-0">
