@@ -579,11 +579,11 @@ export default function AccountsSettings() {
                       <td className="px-4 py-3 text-sm text-foreground">
                         <div className="flex items-center gap-2">
                           <div
-                            className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${(user.id === currentUser?.id) || (user.lastLogin && (new Date() - new Date(user.lastLogin) < 60 * 60 * 1000))
-                                ? 'bg-success animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.4)]'
-                                : 'bg-muted border border-border'
+                            className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${(user.id === currentUser?.id) || (user.lastLogin && (new Date() - new Date(user.lastLogin) < 15 * 60 * 1000))
+                              ? 'bg-success animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.4)]'
+                              : 'bg-muted border border-border'
                               }`}
-                            title={(user.id === currentUser?.id) || (user.lastLogin && (new Date() - new Date(user.lastLogin) < 60 * 60 * 1000)) ? 'Online' : 'Offline'}
+                            title={(user.id === currentUser?.id) || (user.lastLogin && (new Date() - new Date(user.lastLogin) < 15 * 60 * 1000)) ? 'Online' : 'Offline'}
                           />
                           {user.lastLogin ? formatDate(user.lastLogin, true) : '—'}
                         </div>
