@@ -90,7 +90,8 @@ export function useBatches(hotelId, params = { page: 1, limit: 20 }) {
       }
     },
     enabled: !!hotelId,
-    staleTime: STALE_TIMES.batches,
+    refetchOnWindowFocus: true,     // Обновляем при фокусе (важно для инвентаря)
+    refetchOnMount: true,           // Обновляем при монтировании
     placeholderData: keepPreviousData
   })
 }
@@ -115,6 +116,8 @@ export function useBatchesStats(hotelId) {
       }
     },
     enabled: !!hotelId,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
     staleTime: STALE_TIMES.batchesStats
   })
 }
@@ -223,7 +226,9 @@ export function useInventoryData(hotelId) {
           return batchesRaw.map(normalizeBatch)
         },
         enabled: !!hotelId,
-        staleTime: STALE_TIMES.batches
+        staleTime: STALE_TIMES.batches,
+        refetchOnWindowFocus: true,
+        refetchOnMount: true
       },
       {
         queryKey: queryKeys.batchesStats(hotelId),
@@ -240,7 +245,9 @@ export function useInventoryData(hotelId) {
           }
         },
         enabled: !!hotelId,
-        staleTime: STALE_TIMES.batchesStats
+        staleTime: STALE_TIMES.batchesStats,
+        refetchOnWindowFocus: true,
+        refetchOnMount: true
       },
       {
         queryKey: queryKeys.departments(hotelId),
