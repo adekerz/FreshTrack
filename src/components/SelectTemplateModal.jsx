@@ -16,6 +16,7 @@
  */
 
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { X, Package, Zap } from 'lucide-react'
 import { SectionLoader } from './ui'
 import { useTranslation } from '../context/LanguageContext'
@@ -70,8 +71,8 @@ export default function SelectTemplateModal({
 
   if (!isOpen) return null
 
-  return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] overflow-y-auto">
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-black/50 dark:bg-black/60 backdrop-blur-sm"
@@ -144,6 +145,7 @@ export default function SelectTemplateModal({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

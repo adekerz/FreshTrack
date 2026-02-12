@@ -23,6 +23,52 @@ const statusBorderColors = {
   good: 'border-l-success'
 }
 
+// Helper for DD.MM.YYYY input masking
+const autoFormatDateInput = (value) => {
+  // Remove non-digits
+  const digits = value.replace(/\D/g, '')
+  // Limit to 8 digits (DDMMYYYY)
+  const truncated = digits.slice(0, 8)
+
+  let formatted = ''
+  for (let i = 0; i < truncated.length; i++) {
+    if (i === 2 || i === 4) {
+      formatted += '.'
+    }
+    formatted += truncated[i]
+  }
+  return formatted
+}
+
+// Helper to parse DD.MM.YYYY to YYYY-MM-DD
+const parseExpiryInput = (input) => {
+  if (!input) return null
+
+  // Clean input
+  const cleaned = input.replace(/[^\d./-]/g, '')
+
+  // Match DD.MM.YYYY or DD-MM-YYYY or DD/MM/YYYY
+  const match = cleaned.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})$/)
+
+  if (match) {
+    const day = parseInt(match[1], 10)
+    const month = parseInt(match[2], 10)
+    const year = parseInt(match[3], 10)
+
+    // Basic validation
+    if (month < 1 || month > 12) return null
+    // Check days in month
+    const daysInMonth = new Date(year, month, 0).getDate()
+    if (day < 1 || day > daysInMonth) return null
+
+    // Check year range (reasonable bounds)
+    if (year < 2000 || year > 2100) return null
+
+    return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+  }
+  return null
+}
+
 export default function ProductModal({ product, onClose }) {
   const { t } = useTranslation()
   const { language } = useLanguage()
@@ -55,6 +101,7 @@ export default function ProductModal({ product, onClose }) {
   }
   const [newBatch, setNewBatch] = useState({
     expiryDate: '',
+    expiryInputValue: '',
     quantity: '',
     noQuantity: false
   })
@@ -142,7 +189,7 @@ export default function ProductModal({ product, onClose }) {
       },
       {
         onSuccess: () => {
-          setNewBatch({ expiryDate: '', quantity: '', noQuantity: false })
+          setNewBatch({ expiryDate: '', expiryInputValue: '', quantity: '', noQuantity: false })
           setShowAddForm(false)
           addToast(t('toast.batchAdded'), 'success')
           // React Query автоматически обновит список партий
@@ -487,16 +534,38 @@ export default function ProductModal({ product, onClose }) {
                   <label className="block text-sm text-muted-foreground mb-1">
                     {t('product.expiryDate')} *
                   </label>
-                  <input
-                    type="date"
-                    value={newBatch.expiryDate}
-                    min="2026-01-01"
-                    onChange={(e) =>
-                      setNewBatch((prev) => ({ ...prev, expiryDate: e.target.value }))
-                    }
-                    className="w-full px-3 py-2 border border-border rounded focus:outline-none focus:border-accent bg-card text-foreground"
-                    required
-                  />
+                  <div className="relative">
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="ДД.ММ.ГГГГ"
+                      value={newBatch.expiryInputValue || ''}
+                      onChange={(e) => {
+                        const formatted = autoFormatDateInput(e.target.value)
+                        const parsed = parseExpiryInput(formatted)
+
+                        setNewBatch((prev) => ({
+                          ...prev,
+                          expiryInputValue: formatted,
+                          expiryDate: parsed || ''
+                        }))
+                      }}
+                      onBlur={(e) => {
+                        const parsed = parseExpiryInput(e.target.value)
+                        if (parsed) {
+                          setNewBatch((prev) => ({ ...prev, expiryDate: parsed }))
+                        }
+                      }}
+                      className={`w-full px-3 py-2 border rounded focus:outline-none focus:border-accent bg-card text-foreground ${newBatch.expiryInputValue && !newBatch.expiryDate
+                        ? 'border-danger focus:border-danger'
+                        : 'border-border'
+                        }`}
+                      required
+                    />
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">
+                      <Calendar className="w-4 h-4" />
+                    </div>
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm text-muted-foreground mb-1">

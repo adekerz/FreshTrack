@@ -19,7 +19,8 @@
  */
 
 import { useState, useEffect, useCallback } from 'react'
-import { X, Package, Plus, Minus, Calendar, Check, ArrowRight, History, Zap } from 'lucide-react'
+import { createPortal } from 'react-dom'
+import { X, Package, Calendar, Check, ArrowRight, History, Zap } from 'lucide-react'
 import { SectionLoader, ButtonLoader } from './ui'
 import { useTranslation } from '../context/LanguageContext'
 import { useProducts } from '../context/ProductContext'
@@ -111,10 +112,13 @@ export default function FastIntakeModal({
       ? JSON.parse(template.items)
       : template.items || []
 
-    const preparedItems = templateItems.map((item) => {
+    const preparedItems = []
+
+    templateItems.forEach((item) => {
       const shelfLife = item.shelf_life_days || item.defaultShelfLife || 30
       const expiryDate = new Date(today)
       expiryDate.setDate(expiryDate.getDate() + shelfLife)
+      const expiryIso = expiryDate.toISOString().split('T')[0]
 
       const defaultQty = item.default_quantity !== undefined && item.default_quantity !== null
         ? item.default_quantity
@@ -122,15 +126,38 @@ export default function FastIntakeModal({
           ? item.defaultQuantity
           : 1)
 
-      return {
-        ...item,
-        productId: item.product_id || item.productId,
-        productName: item.product_name || item.productName || 'Без названия',
-        quantity: parseInt(defaultQty) || 1,
-        expiryDate: expiryDate.toISOString().split('T')[0],
-        shelfLife: shelfLife
+      const qty = parseInt(defaultQty) || 1
+      const productId = item.product_id || item.productId
+      const productName = item.product_name || item.productName || 'Без названия'
+
+      if (qty > 1) {
+        // Разбиваем на qty отдельных строк — у каждой своя дата
+        for (let i = 0; i < qty; i++) {
+          preparedItems.push({
+            ...item,
+            productId,
+            productName,
+            quantity: 1,
+            expiryDate: expiryIso,
+            shelfLife,
+            // Метаданные для группировки (только UI)
+            _groupId: productId,
+            _groupIndex: i,
+            _groupTotal: qty
+          })
+        }
+      } else {
+        preparedItems.push({
+          ...item,
+          productId,
+          productName,
+          quantity: 1,
+          expiryDate: expiryIso,
+          shelfLife
+        })
       }
     })
+
     setItems(preparedItems)
   }
 
@@ -189,7 +216,7 @@ export default function FastIntakeModal({
   const formatDateForDisplay = (isoDate) => {
     if (!isoDate) return ''
     const [year, month, day] = isoDate.split('-')
-    return `${day}.${month}.${year.slice(-2)}`
+    return `${day}.${month}.${year}`
   }
 
   const autoFormatDateInput = (value) => {
@@ -278,8 +305,8 @@ export default function FastIntakeModal({
 
   if (!isOpen) return null
 
-  return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] overflow-y-auto">
       {/* Backdrop - don't close on click in fast mode */}
       <div
         className="fixed inset-0 bg-black/50 dark:bg-black/60 backdrop-blur-sm"
@@ -340,64 +367,46 @@ export default function FastIntakeModal({
                 </div>
 
                 {/* Items list - inline editing */}
-                <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-1">
-                  {items.map((item, index) => (
+                <div className="space-y-2">
+                  {items.map((item, index) => {
+                    const isGrouped = item._groupTotal > 1
+                    const isFirstInGroup = isGrouped && item._groupIndex === 0
+                    const isLastInGroup = isGrouped && item._groupIndex === item._groupTotal - 1
+
+                    return (
                     <div
                       key={index}
-                      className="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-3 sm:p-4 bg-muted/50 rounded-xl border border-border/50"
+                      className={`flex flex-col sm:flex-row items-start sm:items-center gap-2 px-3 py-2.5 sm:p-4 bg-muted/50 border border-border/50 ${
+                        isGrouped
+                          ? isFirstInGroup
+                            ? 'rounded-t-xl rounded-b-none border-b-0'
+                            : isLastInGroup
+                              ? 'rounded-b-xl rounded-t-none'
+                              : 'rounded-none border-b-0'
+                          : 'rounded-xl'
+                      }`}
                     >
                       {/* Product name */}
                       <div className="flex-1 min-w-0 w-full sm:w-auto">
-                        <p className="font-medium text-foreground text-base sm:text-sm truncate">
-                          {item.productName}
-                        </p>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <p className="font-medium text-foreground text-sm truncate">
+                            {item.productName}
+                          </p>
+                          {isGrouped && (
+                            <span className="text-xs text-amber-500 font-semibold shrink-0 bg-amber-500/10 px-1.5 py-0.5 rounded">
+                              {item._groupIndex + 1}/{item._groupTotal}
+                            </span>
+                          )}
+                        </div>
                       </div>
 
-                      {/* Quantity and expiry */}
-                      <div className="flex items-center gap-3 w-full sm:w-auto flex-wrap sm:flex-nowrap">
-                        {/* Quantity with +/- */}
-                        <div className="flex items-center gap-1 sm:gap-0.5 shrink-0">
-                          <button
-                            type="button"
-                            onClick={() => updateItem(index, 'quantity', Math.max(1, item.quantity - 1))}
-                            className="p-2 sm:p-1.5 rounded-lg bg-muted hover:bg-muted/80 transition-colors touch-manipulation active:scale-95"
-                            aria-label="Уменьшить количество"
-                          >
-                            <Minus className="w-5 h-5 sm:w-4 sm:h-4" />
-                          </button>
-                          <input
-                            type="number"
-                            inputMode="numeric"
-                            value={item.quantity}
-                            onChange={(e) => {
-                              const value = parseInt(e.target.value) || 1
-                              updateItem(index, 'quantity', Math.max(1, value))
-                            }}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                e.preventDefault()
-                                const dateInput = e.target.closest('.rounded-xl')?.querySelector('input[type="text"]')
-                                if (dateInput) {
-                                  dateInput.focus()
-                                  dateInput.select()
-                                }
-                              }
-                            }}
-                            className="w-16 sm:w-14 text-center px-1 py-2 sm:py-1.5 border border-border rounded-lg bg-card text-foreground text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500"
-                            min="1"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => updateItem(index, 'quantity', item.quantity + 1)}
-                            className="p-2 sm:p-1.5 rounded-lg bg-muted hover:bg-muted/80 transition-colors touch-manipulation active:scale-95"
-                            aria-label="Увеличить количество"
-                          >
-                            <Plus className="w-5 h-5 sm:w-4 sm:h-4" />
-                          </button>
-                        </div>
+                      {/* Expiry + remove */}
+                      <div className="flex items-center gap-2 w-full sm:w-auto">
+                        {/* Quantity badge — всегда 1 шт */}
+                        <span className="text-sm text-muted-foreground shrink-0 w-6 text-center">1</span>
 
                         {/* Expiry date */}
-                        <div className="flex items-center gap-2 flex-1 sm:flex-none min-w-[120px]">
+                        <div className="flex items-center gap-1.5 flex-1 min-w-0">
                           <Calendar className="w-4 h-4 text-gray-400 shrink-0" />
                           <input
                             type="text"
@@ -483,9 +492,9 @@ export default function FastIntakeModal({
                               e.target.select()
                             }}
                             placeholder="ДД.ММ.ГГ"
-                            className={`flex-1 sm:w-24 text-center px-2 py-2 sm:py-1.5 border rounded-lg bg-card text-foreground text-base sm:text-sm focus:outline-none focus:ring-2 ${item._invalidYear
-                                ? 'border-red-500 focus:ring-red-500/30 focus:border-red-500'
-                                : 'border-border focus:ring-amber-500/30 focus:border-amber-500'
+                            className={`w-full min-w-0 text-center px-2 py-2 sm:py-1.5 border rounded-lg bg-card text-foreground text-base sm:text-sm focus:outline-none focus:ring-2 ${item._invalidYear
+                              ? 'border-red-500 focus:ring-red-500/30 focus:border-red-500'
+                              : 'border-border focus:ring-amber-500/30 focus:border-amber-500'
                               }`}
                           />
                         </div>
@@ -494,14 +503,15 @@ export default function FastIntakeModal({
                         <button
                           type="button"
                           onClick={() => removeItem(index)}
-                          className="p-2 sm:p-1.5 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg shrink-0 transition-colors touch-manipulation active:scale-95"
+                          className="p-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg shrink-0 transition-colors touch-manipulation active:scale-95"
                           aria-label="Удалить товар"
                         >
-                          <X className="w-5 h-5 sm:w-4 sm:h-4" />
+                          <X className="w-5 h-5" />
                         </button>
                       </div>
                     </div>
-                  ))}
+                    )
+                  })}
                 </div>
 
                 {/* Save and continue button */}
@@ -564,6 +574,7 @@ export default function FastIntakeModal({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
