@@ -20,6 +20,7 @@ const API_CACHE = 'freshtrack-api-v1'
 const API_CACHE_PATTERNS = [
   /\/api\/products/,
   /\/api\/categories/,
+  /\/api\/batches/,
   /\/api\/settings/,
 ]
 
