@@ -7,6 +7,8 @@ import RouteErrorBoundary from './components/RouteErrorBoundary'
 import Layout from './components/Layout'
 import { PageLoader, Loader } from './components/ui'
 import MobileDebugHelper from './components/dev/MobileDebugHelper'
+import { useAutoLogout } from './hooks/useAutoLogout'
+import { useSessionSettings } from './hooks/useSessionSettings'
 
 // Eager loading для критичных страниц (auth, change password)
 import LoginPage from './pages/LoginPage'
@@ -39,7 +41,13 @@ function SuspenseFallback() {
 }
 
 function App() {
-  const { user, loading } = useAuth()
+  const { user, loading, logout, isAuthenticated } = useAuth()
+
+  // Load hotel session settings (autoLogoutMinutes, rememberDevice)
+  const { autoLogoutMinutes } = useSessionSettings(isAuthenticated)
+
+  // Auto-logout on inactivity based on hotel settings
+  useAutoLogout({ timeoutMinutes: autoLogoutMinutes, logout, isAuthenticated })
 
   // Check if user is pending approval
   const isPendingUser = user?.status === 'pending'

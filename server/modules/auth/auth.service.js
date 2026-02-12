@@ -280,6 +280,28 @@ export class AuthService {
       // Сгенерировать токен
       const token = generateToken(user)
 
+      // Читаем настройку rememberDevice из настроек отеля
+      // Это определяет срок жизни cookie (30 дней vs session cookie)
+      let rememberDevice = true // default: persist cookie
+      if (user.hotel_id) {
+        try {
+          const settingResult = await dbQuery(`
+            SELECT value FROM settings
+            WHERE key = 'rememberDevice' AND scope = 'hotel' AND hotel_id = $1
+            LIMIT 1
+          `, [user.hotel_id])
+          if (settingResult.rows.length > 0) {
+            const val = settingResult.rows[0].value
+            // JSONB may return boolean directly or JSON-parsed boolean
+            if (typeof val === 'boolean') rememberDevice = val
+            else if (typeof val === 'string') rememberDevice = val === 'true'
+            // else keep default true
+          }
+        } catch {
+          // Если не удалось прочитать — используем default
+        }
+      }
+
       // Логирование
       await logAudit({
         hotel_id: user.hotel_id,
@@ -297,7 +319,8 @@ export class AuthService {
 
       return ServiceResult.ok({
         user: userData,
-        token
+        token,
+        rememberDevice
       })
     } catch (error) {
       logError('AuthService.login', error)

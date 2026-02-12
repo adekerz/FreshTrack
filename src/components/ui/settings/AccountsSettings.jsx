@@ -327,7 +327,7 @@ export default function AccountsSettings() {
   return (
     <div className="space-y-4">
       {/* Header with actions */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h3 className="text-lg font-medium text-foreground">
             {t('accounts.title') || 'User Accounts'}
@@ -336,7 +336,7 @@ export default function AccountsSettings() {
             {t('accounts.subtitle') || 'Manage user accounts and access'}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 self-end sm:self-auto">
           {canAddSuperAdmin && (
             <button
               onClick={() => {
@@ -345,10 +345,11 @@ export default function AccountsSettings() {
                 setNewSuperAdmin({ login: '', password: '', name: '', email: '', role: 'SUPER_ADMIN' })
                 setGeneratePassword(true)
               }}
-              className="flex items-center gap-2 px-4 py-2 bg-accent-button text-white rounded-lg hover:bg-accent-button/90 transition-colors text-sm"
+              className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-accent-button text-white rounded-lg hover:bg-accent-button/90 transition-colors text-sm"
+              title={t('accounts.addSuperAdmin') || 'Добавить суперадмина'}
             >
               <UserPlus className="w-4 h-4" />
-              {t('accounts.addSuperAdmin') || 'Добавить суперадмина'}
+              <span className="hidden sm:inline">{t('accounts.addSuperAdmin') || 'Добавить суперадмина'}</span>
             </button>
           )}
           <button
@@ -678,11 +679,18 @@ export default function AccountsSettings() {
                     {user.email && <span className="ml-2">{user.email}</span>}
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">
-                      {user.lastLogin
-                        ? formatDate(user.lastLogin, true)
-                        : t('accounts.neverLoggedIn') || 'Never logged in'}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <div
+                        className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${(user.id === currentUser?.id) || (user.lastLogin && (new Date() - new Date(user.lastLogin) < 15 * 60 * 1000))
+                          ? 'bg-success animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.4)]'
+                          : 'bg-muted border border-border'
+                          }`}
+                        title={(user.id === currentUser?.id) || (user.lastLogin && (new Date() - new Date(user.lastLogin) < 15 * 60 * 1000)) ? 'Online' : 'Offline'}
+                      />
+                      <span className="text-xs text-muted-foreground">
+                        {user.lastLogin ? formatDate(user.lastLogin, true) : '—'}
+                      </span>
+                    </div>
                     {user.id !== currentUser?.id && (
                       <div className="flex items-center gap-2">
                         <button
@@ -690,19 +698,24 @@ export default function AccountsSettings() {
                           onClick={() => handleToggleStatus(user.id)}
                           disabled={toggling === user.id}
                           className={cn(
-                            'px-3 py-1.5 rounded-lg text-sm transition-colors',
+                            'p-2 rounded-lg transition-colors',
                             user.is_active
-                              ? 'bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50'
-                              : 'bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/30 dark:hover:bg-green-900/50',
+                              ? 'hover:bg-red-100 text-red-600 dark:hover:bg-red-900/30'
+                              : 'hover:bg-green-100 text-green-600 dark:hover:bg-green-900/30',
                             toggling === user.id && 'opacity-50 cursor-not-allowed'
                           )}
+                          title={
+                            user.is_active
+                              ? t('accounts.action.deactivate') || 'Deactivate'
+                              : t('accounts.action.activate') || 'Activate'
+                          }
                         >
                           {toggling === user.id ? (
                             <RefreshCw className="w-4 h-4 animate-spin" />
                           ) : user.is_active ? (
-                            t('accounts.action.deactivate') || 'Deactivate'
+                            <ToggleRight className="w-5 h-5" />
                           ) : (
-                            t('accounts.action.activate') || 'Activate'
+                            <ToggleLeft className="w-5 h-5" />
                           )}
                         </button>
                         <button

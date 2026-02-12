@@ -52,8 +52,9 @@ router.post('/login', asyncHandler(async (req, res) => {
   }
 
   // Set httpOnly cookie if token is present (not MFA/terms partial flow)
+  // rememberDevice controls cookie lifetime: true = 30 days, false = session cookie
   if (result.data.token) {
-    setTokenCookie(res, result.data.token)
+    setTokenCookie(res, result.data.token, result.data.rememberDevice === true)
   }
 
   res.json(result.data)

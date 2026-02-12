@@ -48,24 +48,31 @@ export default function DepartmentsList({
         {departments.map((dept) => (
           <div key={dept.id} className="bg-card rounded-lg border border-border overflow-hidden">
             <div
-              className="flex items-center justify-between p-3 cursor-pointer hover:bg-muted/50 transition-colors"
+              className="flex items-center gap-2 p-3 cursor-pointer hover:bg-muted/50 transition-colors"
               onClick={() => onToggleDept(dept.id)}
             >
-              <div className="flex items-center gap-2">
+              {/* Chevron */}
+              <div className="flex-shrink-0">
                 {expandedDepts[dept.id] ? (
                   <ChevronDown className="w-4 h-4 text-muted-foreground" />
                 ) : (
                   <ChevronRight className="w-4 h-4 text-muted-foreground" />
                 )}
-                <span className="text-foreground font-medium">{dept.name}</span>
-                <code className="text-xs bg-muted px-1.5 py-0.5 rounded text-accent">
+              </div>
+
+              {/* Название + счётчик — растягивается */}
+              <div className="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
+                <span className="text-foreground font-medium truncate">{dept.name}</span>
+                <code className="text-xs bg-muted px-1.5 py-0.5 rounded text-accent flex-shrink-0">
                   {dept.code}
                 </code>
-                <span className="text-xs text-muted-foreground">
+                <span className="text-xs text-muted-foreground flex-shrink-0">
                   • {dept.users?.length || 0} польз.
                 </span>
               </div>
-              <div className="flex items-center gap-1">
+
+              {/* Кнопки — не сжимаются */}
+              <div className="flex items-center gap-1 flex-shrink-0">
                 <button
                   onClick={(e) => {
                     e.stopPropagation()
@@ -82,6 +89,7 @@ export default function DepartmentsList({
                     onDeleteDepartment(dept.id, dept.name, hotelId)
                   }}
                   className="p-1.5 text-muted-foreground hover:text-danger hover:bg-danger/10 rounded transition-colors"
+                  title="Удалить департамент"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
