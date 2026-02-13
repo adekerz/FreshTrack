@@ -883,18 +883,18 @@ export async function getBatchById(id) {
 }
 
 export async function createBatch(batch) {
-  const { hotel_id, department_id, product_id, quantity, expiry_date, batch_number, added_by } = batch
+  const { hotel_id, department_id, product_id, quantity, expiry_date, batch_number, added_by, comment } = batch
   const id = uuidv4()
 
   // quantity может быть null для "без учёта количества"
   const batchQuantity = quantity === null || quantity === undefined ? null : quantity
 
   await query(`
-    INSERT INTO batches (id, hotel_id, department_id, product_id, quantity, expiry_date, batch_number, added_by, status) 
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'active')
-  `, [id, hotel_id, department_id, product_id, batchQuantity, expiry_date, batch_number, added_by])
+    INSERT INTO batches (id, hotel_id, department_id, product_id, quantity, expiry_date, batch_number, added_by, status, comment)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'active', $9)
+  `, [id, hotel_id, department_id, product_id, batchQuantity, expiry_date, batch_number, added_by, comment || null])
 
-  return { id, hotel_id, department_id, product_id, quantity: batchQuantity, expiry_date, batch_number, status: 'active' }
+  return { id, hotel_id, department_id, product_id, quantity: batchQuantity, expiry_date, batch_number, status: 'active', comment: comment || null }
 }
 
 export async function updateBatch(id, updates) {

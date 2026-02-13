@@ -157,7 +157,7 @@ router.post('/:id/apply', authMiddleware, hotelIsolation, departmentIsolation, r
       return res.status(400).json({ success: false, error: 'Validation failed', details: validation.errors })
     }
     
-    const { items, departmentId } = validation.data
+    const { items, departmentId, comment } = validation.data
     const targetDeptId = departmentId || req.departmentId
     
     if (!req.canAccessAllDepartments && departmentId && departmentId !== req.departmentId) {
@@ -188,7 +188,8 @@ router.post('/:id/apply', authMiddleware, hotelIsolation, departmentIsolation, r
         product_id: item.productId,
         quantity: item.quantity || 1,
         expiry_date: item.expiryDate,
-        added_by: req.user.id    // исправлено: было created_by — поле в БД: added_by
+        added_by: req.user.id,    // исправлено: было created_by — поле в БД: added_by
+        comment: comment || null
       })
 
       createdBatches.push(batch)

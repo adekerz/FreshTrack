@@ -1850,6 +1850,7 @@
     }
   },
   "fastIntake": {
+    "commentPlaceholder": "Comment (optional)",
     "title": "Fast Intake",
     "modeOn": "Fast Mode",
     "modeOff": "Fast Mode",

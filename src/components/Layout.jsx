@@ -59,7 +59,7 @@ export default function Layout({ children }) {
       </MobileSidebar>
 
       {/* Desktop Sidebar - скрыт на мобильных */}
-      <div className="hidden sm:block">
+      <div className="hidden sm:block self-stretch">
         <Sidebar isOpen={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} />
       </div>
 

@@ -948,7 +948,8 @@
     }
   },
   "fastIntake": {
-    "title": "Entrada rápida",
+    "commentPlaceholder": "Comentario (opcional)",
+    "title": "Ingreso rápido",
     "modeOn": "Modo rápido",
     "modeOff": "Modo rápido",
     "switchToStandard": "Cambiar al modo estándar",

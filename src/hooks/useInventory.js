@@ -359,7 +359,7 @@ export function useAddBatchesBulk(hotelId, departmentId) {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async ({ templateId, items }) => {
+    mutationFn: async ({ templateId, items, comment }) => {
       const response = await apiFetch(`/delivery-templates/${templateId}/apply`, {
         method: 'POST',
         body: JSON.stringify({
@@ -368,7 +368,8 @@ export function useAddBatchesBulk(hotelId, departmentId) {
             quantity: parseInt(item.quantity) || 1,
             expiryDate: item.expiryDate
           })),
-          departmentId
+          departmentId,
+          comment: comment || null
         })
       })
       return response

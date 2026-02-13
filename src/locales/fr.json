@@ -948,6 +948,7 @@
     }
   },
   "fastIntake": {
+    "commentPlaceholder": "Commentaire (optionnel)",
     "title": "Saisie rapide",
     "modeOn": "Mode rapide",
     "modeOff": "Mode rapide",

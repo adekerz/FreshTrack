@@ -20,7 +20,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { X, Package, Calendar, Check, ArrowRight, History, Zap, Plus, Minus } from 'lucide-react'
+import { X, Package, Calendar, Check, ArrowRight, History, Zap, Plus, Minus, MessageSquare } from 'lucide-react'
 import { SectionLoader, ButtonLoader } from './ui'
 import { useTranslation } from '../context/LanguageContext'
 import { useProducts } from '../context/ProductContext'
@@ -60,6 +60,7 @@ export default function FastIntakeModal({
   const [sessionHistory, setSessionHistory] = useState([])
   const [lastExpiryByProduct, setLastExpiryByProduct] = useState({})
   const [globalLastExpiry, setGlobalLastExpiry] = useState('')
+  const [comment, setComment] = useState('')
   const scrollContainerRef = useRef(null)
 
   const targetDepartment = departmentId || (departments.length > 0 ? departments[0].id : null)
@@ -78,6 +79,7 @@ export default function FastIntakeModal({
       setSessionHistory([])
       setLastExpiryByProduct({})
       setGlobalLastExpiry('')
+      setComment('')
     }
   }, [isOpen])
 
@@ -370,7 +372,8 @@ export default function FastIntakeModal({
           productId: item.productId || item.product_id,
           quantity: parseInt(item.quantity) || 1,
           expiryDate: item.expiryDate
-        }))
+        })),
+        comment: comment.trim() || null
       },
       {
         // Callbacks выполняются ПОСЛЕ mutation
@@ -385,14 +388,19 @@ export default function FastIntakeModal({
           }
 
           // 2. Add to session history
+          const savedComment = comment.trim() || null
           const newHistoryEntries = items.map((item, idx) => ({
             id: Date.now() + idx,
             productName: item.productName,
             quantity: parseInt(item.quantity) || 1,
             expiryDate: item.expiryDate,
+            comment: savedComment,
             timestamp: new Date()
           }))
           setSessionHistory(prev => [...newHistoryEntries, ...prev])
+
+          // 2a. Reset comment after successful save
+          setComment('')
 
           // 3. Show notification
           addToast(
@@ -670,6 +678,19 @@ export default function FastIntakeModal({
                   })}
                 </div>
 
+                {/* Comment field — applies to all batches in this intake */}
+                <div className="flex items-start gap-2 px-3 py-2.5 sm:p-4 bg-muted/30 border border-border/50 rounded-xl">
+                  <MessageSquare className="w-4 h-4 text-gray-400 mt-2.5 shrink-0" />
+                  <textarea
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
+                    placeholder={t('fastIntake.commentPlaceholder') || 'Комментарий к партии (необязательно)'}
+                    rows={2}
+                    maxLength={1000}
+                    className="flex-1 resize-none bg-transparent text-sm text-foreground placeholder-muted-foreground focus:outline-none"
+                  />
+                </div>
+
                 {/* Save and continue button */}
                 <button
                   onClick={handleSaveAndContinue}
@@ -703,6 +724,11 @@ export default function FastIntakeModal({
                           <div className="flex items-center gap-2 text-muted-foreground shrink-0">
                             <span>×{entry.quantity}</span>
                             <span>{formatDateForDisplay(entry.expiryDate)}</span>
+                            {entry.comment && (
+                              <span className="text-amber-500 truncate max-w-[80px]" title={entry.comment}>
+                                {entry.comment}
+                              </span>
+                            )}
                           </div>
                         </div>
                       ))}

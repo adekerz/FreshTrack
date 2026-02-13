@@ -56,7 +56,8 @@ export const ApplyTemplateSchema = z.object({
     quantity: z.number().positive().optional().default(1),
     expiryDate: z.string()
   })).min(1, 'At least one item is required'),
-  departmentId: z.string().uuid().optional()
+  departmentId: z.string().uuid().optional(),
+  comment: z.string().max(1000).optional().nullable()
 })
 
 export function validate(schema, data) {

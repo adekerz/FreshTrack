@@ -942,6 +942,7 @@
     }
   },
   "fastIntake": {
+    "commentPlaceholder": "Kommentar (optional)",
     "title": "Schnelleingabe",
     "modeOn": "Schnellmodus",
     "modeOff": "Schnellmodus",

@@ -964,6 +964,7 @@
     }
   },
   "fastIntake": {
+    "commentPlaceholder": "تعليق (اختياري)",
     "title": "إدخال سريع",
     "modeOn": "الوضع السريع",
     "modeOff": "الوضع السريع",

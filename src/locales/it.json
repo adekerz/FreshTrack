@@ -944,6 +944,7 @@
     }
   },
   "fastIntake": {
+    "commentPlaceholder": "Commento (opzionale)",
     "title": "Inserimento rapido",
     "modeOn": "Modalità rapida",
     "modeOff": "Modalità rapida",
