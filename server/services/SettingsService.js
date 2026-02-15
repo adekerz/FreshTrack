@@ -3,7 +3,7 @@
  * ═══════════════════════════════════════════════════════════════
  * Hierarchical settings management with inheritance:
  * System → Hotel → Department → User
- * 
+ *
  * Settings are resolved with priority:
  * 1. User-specific settings (highest priority)
  * 2. Department settings
@@ -91,9 +91,9 @@ const SYSTEM_DEFAULTS = {
   [SettingsKey.DISPLAY_LOCALE]: 'ru',
   [SettingsKey.DISPLAY_TIMEZONE]: 'Asia/Almaty',
 
-  // Branding defaults (Phase 7.3) - Текущие цвета сайта
-  [SettingsKey.BRANDING_PRIMARY_COLOR]: '#FF8D6B',  // Coral/Salmon
-  [SettingsKey.BRANDING_SECONDARY_COLOR]: '#4A7C59', // Forest Green
+  // Branding defaults (Phase 7.3)
+  [SettingsKey.BRANDING_PRIMARY_COLOR]: '#3B82F6', // Blue
+  [SettingsKey.BRANDING_SECONDARY_COLOR]: '#10B981', // Green
   [SettingsKey.BRANDING_ACCENT_COLOR]: '#F59E0B', // Amber
   [SettingsKey.BRANDING_DANGER_COLOR]: '#C4554D', // Terracotta Red
   [SettingsKey.BRANDING_LOGO_URL]: '/assets/logo.svg',
@@ -106,7 +106,8 @@ const SYSTEM_DEFAULTS = {
   // Login page branding defaults (Phase 7.5)
   [SettingsKey.LOGIN_TITLE]: 'Точность в каждой',
   [SettingsKey.LOGIN_HIGHLIGHT]: 'Детали',
-  [SettingsKey.LOGIN_DESCRIPTION]: 'Поднимаем управление запасами на новый уровень. Умный контроль сроков годности, минимизация потерь и максимальная эффективность.',
+  [SettingsKey.LOGIN_DESCRIPTION]:
+    'Поднимаем управление запасами на новый уровень. Умный контроль сроков годности, минимизация потерь и максимальная эффективность.',
   [SettingsKey.LOGIN_FEATURE_1]: 'Безопасно',
   [SettingsKey.LOGIN_FEATURE_2]: 'Умные оповещения',
   [SettingsKey.LOGIN_FEATURE_3]: 'Аналитика',
@@ -121,7 +122,7 @@ const SYSTEM_DEFAULTS = {
   [SettingsKey.FIFO_ENABLED]: true,
   [SettingsKey.FIFO_SORT_BY]: 'expiry_date',
   [SettingsKey.STATS_DEFAULT_PERIOD]: 'month',
-  [SettingsKey.EXPORT_DEFAULT_FORMAT]: 'xlsx'
+  [SettingsKey.EXPORT_DEFAULT_FORMAT]: 'xlsx',
 }
 
 // Cache for settings (with TTL)
@@ -181,7 +182,7 @@ async function fetchSettingsFromDb(context) {
     return settings
   } catch (error) {
     // Table might not exist yet, return empty
-    logWarn('SettingsService',)
+    logWarn('SettingsService')
     return {}
   }
 }
@@ -223,7 +224,7 @@ export async function getSettings(context = {}) {
   // Merge with system defaults (defaults are lowest priority)
   const mergedSettings = {
     ...SYSTEM_DEFAULTS,
-    ...dbSettings
+    ...dbSettings,
   }
 
   // Build structured settings object
@@ -242,18 +243,18 @@ function buildStructuredSettings(flatSettings) {
   return {
     expiryThresholds: {
       critical: flatSettings[SettingsKey.EXPIRY_CRITICAL_DAYS],
-      warning: flatSettings[SettingsKey.EXPIRY_WARNING_DAYS]
+      warning: flatSettings[SettingsKey.EXPIRY_WARNING_DAYS],
     },
     notifications: {
       enabled: flatSettings[SettingsKey.NOTIFY_EXPIRY_ENABLED],
       daysBefore: flatSettings[SettingsKey.NOTIFY_EXPIRY_DAYS_BEFORE],
       channels: flatSettings[SettingsKey.NOTIFY_CHANNELS],
-      schedule: flatSettings[SettingsKey.NOTIFY_SCHEDULE]
+      schedule: flatSettings[SettingsKey.NOTIFY_SCHEDULE],
     },
     display: {
       dateFormat: flatSettings[SettingsKey.DISPLAY_DATE_FORMAT],
       locale: flatSettings[SettingsKey.DISPLAY_LOCALE],
-      timezone: flatSettings[SettingsKey.DISPLAY_TIMEZONE]
+      timezone: flatSettings[SettingsKey.DISPLAY_TIMEZONE],
     },
     // Phase 7.3: Branding settings
     branding: {
@@ -265,7 +266,7 @@ function buildStructuredSettings(flatSettings) {
       siteName: flatSettings[SettingsKey.BRANDING_SITE_NAME],
       companyName: flatSettings[SettingsKey.BRANDING_COMPANY_NAME],
       faviconUrl: flatSettings[SettingsKey.BRANDING_FAVICON_URL],
-      welcomeMessage: flatSettings[SettingsKey.BRANDING_WELCOME_MESSAGE]
+      welcomeMessage: flatSettings[SettingsKey.BRANDING_WELCOME_MESSAGE],
     },
     // Phase 7.4: Locale settings
     locale: {
@@ -273,20 +274,20 @@ function buildStructuredSettings(flatSettings) {
       dateFormat: flatSettings[SettingsKey.LOCALE_DATE_FORMAT],
       timeFormat: flatSettings[SettingsKey.LOCALE_TIME_FORMAT],
       currency: flatSettings[SettingsKey.LOCALE_CURRENCY],
-      timezone: flatSettings[SettingsKey.LOCALE_TIMEZONE]
+      timezone: flatSettings[SettingsKey.LOCALE_TIMEZONE],
     },
     fifo: {
       enabled: flatSettings[SettingsKey.FIFO_ENABLED],
-      sortBy: flatSettings[SettingsKey.FIFO_SORT_BY]
+      sortBy: flatSettings[SettingsKey.FIFO_SORT_BY],
     },
     stats: {
-      defaultPeriod: flatSettings[SettingsKey.STATS_DEFAULT_PERIOD]
+      defaultPeriod: flatSettings[SettingsKey.STATS_DEFAULT_PERIOD],
     },
     export: {
-      defaultFormat: flatSettings[SettingsKey.EXPORT_DEFAULT_FORMAT]
+      defaultFormat: flatSettings[SettingsKey.EXPORT_DEFAULT_FORMAT],
     },
     // Raw access to any setting
-    raw: flatSettings
+    raw: flatSettings,
   }
 }
 
@@ -313,20 +314,26 @@ export async function setSetting(key, value, context = {}) {
 
   try {
     // Validate scope
-    if (scope === 'hotel' && !hotelId) throw new Error('hotelId required for hotel scope')
-    if (scope === 'department' && !departmentId) throw new Error('departmentId required for department scope')
-    if (scope === 'user' && !userId) throw new Error('userId required for user scope')
+    if (scope === 'hotel' && !hotelId)
+      throw new Error('hotelId required for hotel scope')
+    if (scope === 'department' && !departmentId)
+      throw new Error('departmentId required for department scope')
+    if (scope === 'user' && !userId)
+      throw new Error('userId required for user scope')
 
     // Get current value for before snapshot
     let beforeValue = null
     try {
-      const existing = await query(`
+      const existing = await query(
+        `
         SELECT value FROM settings 
         WHERE key = $1 AND scope = $2 
           AND COALESCE(hotel_id, '00000000-0000-0000-0000-000000000000') = COALESCE($3::uuid, '00000000-0000-0000-0000-000000000000')
           AND COALESCE(department_id, '00000000-0000-0000-0000-000000000000') = COALESCE($4::uuid, '00000000-0000-0000-0000-000000000000')
           AND COALESCE(user_id, '00000000-0000-0000-0000-000000000000') = COALESCE($5::uuid, '00000000-0000-0000-0000-000000000000')
-      `, [key, scope, hotelId || null, departmentId || null, userId || null])
+      `,
+        [key, scope, hotelId || null, departmentId || null, userId || null]
+      )
       if (existing.rows.length > 0) {
         beforeValue = parseSettingValue(existing.rows[0].value)
       }
@@ -337,12 +344,22 @@ export async function setSetting(key, value, context = {}) {
     // Upsert setting
     const valueJson = JSON.stringify(value)
 
-    await query(`
+    await query(
+      `
       INSERT INTO settings (id, key, value, scope, hotel_id, department_id, user_id, updated_at)
       VALUES (uuid_generate_v4(), $1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP)
       ON CONFLICT (key, scope, COALESCE(hotel_id, '00000000-0000-0000-0000-000000000000'), COALESCE(department_id, '00000000-0000-0000-0000-000000000000'), COALESCE(user_id, '00000000-0000-0000-0000-000000000000'))
       DO UPDATE SET value = $2, updated_at = CURRENT_TIMESTAMP
-    `, [key, valueJson, scope, hotelId || null, departmentId || null, userId || null])
+    `,
+      [
+        key,
+        valueJson,
+        scope,
+        hotelId || null,
+        departmentId || null,
+        userId || null,
+      ]
+    )
 
     // Clear cache
     clearSettingsCache(context)
@@ -404,7 +421,9 @@ export function clearSettingsCache(context = null) {
       settingsCache.delete(getCacheKey({ ...context, userId: null }))
     }
     if (context.departmentId) {
-      settingsCache.delete(getCacheKey({ ...context, departmentId: null, userId: null }))
+      settingsCache.delete(
+        getCacheKey({ ...context, departmentId: null, userId: null })
+      )
     }
     if (context.hotelId) {
       settingsCache.delete(getCacheKey({ hotelId: context.hotelId }))
@@ -450,9 +469,9 @@ export async function getAllSettingsForScope(scope, context = {}) {
 
   try {
     const result = await query(queryText, params)
-    return result.rows.map(row => ({
+    return result.rows.map((row) => ({
       ...row,
-      value: parseSettingValue(row.value)
+      value: parseSettingValue(row.value),
     }))
   } catch {
     return []
@@ -467,9 +486,5 @@ export default {
   deleteSetting,
   clearSettingsCache,
   getSystemDefaults,
-  getAllSettingsForScope
+  getAllSettingsForScope,
 }
-
-
-
-

@@ -9,7 +9,8 @@ import { beforeAll, afterAll, vi } from 'vitest'
 // Mock environment variables
 process.env.NODE_ENV = 'test'
 process.env.JWT_SECRET = 'test-secret-key-for-jwt'
-process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/test'
+// Use DATABASE_URL from CI environment OR fallback to local test DB
+process.env.DATABASE_URL = process.env.DATABASE_URL || 'postgresql://freshtrack:testpassword@localhost:5432/freshtrack_test'
 
 // Mock database
 vi.mock('../db/postgres.js', () => ({
@@ -26,7 +27,7 @@ vi.mock('../utils/logger.js', () => ({
   logInfo: vi.fn(),
   logWarn: vi.fn(),
   logDebug: vi.fn(),
-  requestLogger: (req, res, next) => next()
+  requestLogger: (req: any, res: any, next: any) => next()
 }))
 
 beforeAll(() => {
