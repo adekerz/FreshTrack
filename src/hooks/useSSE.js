@@ -89,15 +89,23 @@ export function useSSE(options = {}) {
 
   const eventSourceRef = useRef(null)
   const handlersRef = useRef(handlers)
+  // Store callbacks in refs to keep 'connect' dependency list stable
+  const onConnectRef = useRef(onConnect)
+  const onDisconnectRef = useRef(onDisconnect)
+  const onErrorRef = useRef(onError)
+
   const reconnectAttemptRef = useRef(0)
   const reconnectTimeoutRef = useRef(null)
   const mountedRef = useRef(true)
   const MAX_RECONNECT_ATTEMPTS = 10
 
-  // Keep handlers ref updated
+  // Keep refs updated
   useEffect(() => {
     handlersRef.current = handlers
-  }, [handlers])
+    onConnectRef.current = onConnect
+    onDisconnectRef.current = onDisconnect
+    onErrorRef.current = onError
+  }, [handlers, onConnect, onDisconnect, onError])
 
   // Calculate backoff delay
   const getReconnectDelay = useCallback(() => {
@@ -174,7 +182,7 @@ export function useSSE(options = {}) {
           // Reset reconnect attempts only after successful handshake
           reconnectAttemptRef.current = 0
 
-          onConnect?.(data)
+          onConnectRef.current?.(data)
         } catch (err) {
           logError('[SSE] Parse error:', err)
         }
@@ -258,7 +266,7 @@ export function useSSE(options = {}) {
         logWarn('[SSE] Connection error:', e)
 
         setState(SSE_STATE.ERROR)
-        onError?.(e)
+        onErrorRef.current?.(e)
 
         eventSource.close()
         eventSourceRef.current = null
@@ -266,7 +274,7 @@ export function useSSE(options = {}) {
         reconnectAttemptRef.current++
         if (reconnectAttemptRef.current > MAX_RECONNECT_ATTEMPTS) {
           logWarn('[SSE] Max reconnect attempts reached, stopping')
-          onDisconnect?.()
+          onDisconnectRef.current?.()
           return
         }
 
@@ -281,14 +289,14 @@ export function useSSE(options = {}) {
           }
         }, delay)
 
-        onDisconnect?.()
+        onDisconnectRef.current?.()
       }
     } catch (error) {
       logError('[SSE] Failed to create EventSource:', error)
       setState(SSE_STATE.ERROR)
-      onError?.(error)
+      onErrorRef.current?.(error)
     }
-  }, [enabled, getSSEUrl, getReconnectDelay, onConnect, onDisconnect, onError])
+  }, [enabled, getSSEUrl, getReconnectDelay])
 
   // Manual reconnect
   const reconnect = useCallback(() => {
