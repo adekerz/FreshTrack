@@ -1,0 +1,13 @@
+# Nixpacks configuration for Railway (Server)
+
+[phases.setup]
+nixPkgs = ["nodejs_22", "npm-9_x", "openssl"]
+
+[phases.install]
+cmds = ["npm ci"]
+
+[phases.build]
+cmds = []
+
+[start]
+cmd = "npm run migrate && node index.js"
