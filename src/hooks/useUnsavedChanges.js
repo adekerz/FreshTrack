@@ -23,7 +23,7 @@ export function useUnsavedChanges(initialData, currentData, options = {}) {
 
   // Warn on page unload (browser close/refresh)
   useEffect(() => {
-    if (!enabled || !hasChanges) return
+    if (!enabled || !hasChanges) return undefined
 
     const handleBeforeUnload = (e) => {
       e.preventDefault()
@@ -76,7 +76,7 @@ export function useSimpleUnsavedChanges(initialData, currentData) {
   }, [initialData, currentData])
 
   useEffect(() => {
-    if (!hasChanges) return
+    if (!hasChanges) return undefined
 
     const handleBeforeUnload = (e) => {
       e.preventDefault()

@@ -20,10 +20,12 @@ import {
 import SettingsLayout from './SettingsLayout'
 import { formatDate } from '../../../utils/dateUtils'
 
+import { logError } from '../../../utils/logger'
+
 export default function JoinRequestsSettings() {
   const { t } = useTranslation()
   const { addToast } = useToast()
-  const { user } = useAuth()
+  useAuth()
 
   const [requests, setRequests] = useState([])
   const [departments, setDepartments] = useState([])
@@ -47,7 +49,7 @@ export default function JoinRequestsSettings() {
         setRequests(response.requests || [])
       }
     } catch (err) {
-      console.error('Failed to fetch join requests:', err)
+      logError('Failed to fetch join requests', err)
     } finally {
       setLoading(false)
       setRefreshing(false)
@@ -63,7 +65,7 @@ export default function JoinRequestsSettings() {
         setDepartments(response.departments || [])
       }
     } catch (err) {
-      console.error('Failed to fetch departments:', err)
+      logError('Failed to fetch departments', err)
     }
   }, [])
 

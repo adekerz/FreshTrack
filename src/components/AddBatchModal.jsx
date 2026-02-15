@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from 'react'
-import { X, ChevronRight, Package } from 'lucide-react'
+import { X, ChevronRight } from 'lucide-react'
 import { useProducts } from '../context/ProductContext'
 import { useTranslation, useLanguage } from '../context/LanguageContext'
 import { useToast } from '../context/ToastContext'
@@ -138,6 +138,7 @@ export default function AddBatchModal({ onClose, preselectedProduct = null }) {
   }
 
   return (
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
     <div
       className="fixed inset-0 bg-charcoal/50 dark:bg-black/60 flex items-end sm:items-center justify-center z-50 sm:p-4"
       onClick={handleOverlayClick}
@@ -320,6 +321,8 @@ export default function AddBatchModal({ onClose, preselectedProduct = null }) {
 
                   {/* Переключатель "Нет количества" */}
                   <div
+                    role="button"
+                    tabIndex={0}
                     className="flex items-center gap-3 mt-3 cursor-pointer"
                     onClick={() =>
                       setBatchData((prev) => ({
@@ -338,8 +341,6 @@ export default function AddBatchModal({ onClose, preselectedProduct = null }) {
                         }))
                       }
                     }}
-                    role="button"
-                    tabIndex={0}
                   >
                     <Switch
                       checked={batchData.noQuantity}

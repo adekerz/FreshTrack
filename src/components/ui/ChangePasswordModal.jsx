@@ -3,7 +3,7 @@
  */
 
 import { useState, useCallback, useRef } from 'react'
-import { Lock, Eye, EyeOff } from 'lucide-react'
+import { Eye, EyeOff } from 'lucide-react'
 import Modal from './Modal'
 import { apiFetch } from '../../services/api'
 import { useToast } from '../../context/ToastContext'

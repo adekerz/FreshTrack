@@ -13,8 +13,10 @@
  */
 
 import { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react'
-import { useSSE, SSE_EVENTS } from '../hooks/useSSE'
+import { useSSE } from '../hooks/useSSE'
 import { useAuth } from './AuthContext'
+import { apiFetch } from '../services/api'
+import { logError } from '../utils/logger'
 
 // Notification severity levels
 export const NOTIFICATION_SEVERITY = {
@@ -128,7 +130,7 @@ export function NotificationsProvider({ children }) {
   const addNotification = useCallback((type, data) => {
     const severity = getSeverity(type, data)
     const notification = createNotification(type, data, severity)
-    
+
     setNotifications(prev => {
       const updated = [notification, ...prev]
       // Keep only last MAX_NOTIFICATIONS
@@ -188,36 +190,91 @@ export function NotificationsProvider({ children }) {
       onNotification: handleNotification
     },
     onConnect: () => {
-      console.log('[Notifications] SSE connected')
+      // SSE connected - logging disabled for production
     },
     onDisconnect: () => {
-      console.log('[Notifications] SSE disconnected')
+      // SSE disconnected - logging disabled for production
     }
   })
 
   // Mark single notification as read
-  const markAsRead = useCallback((notificationId) => {
-    setNotifications(prev => 
-      prev.map(n => 
-        n.id === notificationId ? { ...n, read: true } : n
-      )
+  const markAsRead = useCallback(async (notificationId) => {
+    // Optimistic update
+    const prevNotifications = notifications
+    setNotifications(prev =>
+      prev.map(n => (n.id === notificationId && !n.read ? { ...n, read: true } : n))
     )
-  }, [])
+
+    try {
+      const response = await apiFetch(`/notifications/${notificationId}/read`, { method: 'PUT' })
+      if (!response.success) {
+        logError('Failed to mark notification as read on backend', response.error)
+        // Rollback on failure
+        setNotifications(prevNotifications)
+      }
+    } catch (err) {
+      logError('Failed to mark notification as read', err)
+      // Rollback on error
+      setNotifications(prevNotifications)
+    }
+  }, [notifications])
 
   // Mark all as read
-  const markAllAsRead = useCallback(() => {
+  const markAllAsRead = useCallback(async () => {
+    const prevNotifications = notifications
     setNotifications(prev => prev.map(n => ({ ...n, read: true })))
-  }, [])
+
+    try {
+      const response = await apiFetch('/notifications/read-all', { method: 'PUT' })
+      if (!response.success) {
+        logError('Failed to mark all notifications as read on backend', response.error)
+        // Rollback on failure
+        setNotifications(prevNotifications)
+      }
+    } catch (err) {
+      logError('Failed to mark all as read', err)
+      // Rollback on error
+      setNotifications(prevNotifications)
+    }
+  }, [notifications])
 
   // Clear all notifications
-  const clearAll = useCallback(() => {
+  const clearAll = useCallback(async () => {
+    const prevNotifications = notifications
     setNotifications([])
-  }, [])
+
+    try {
+      const response = await apiFetch('/notifications/clear-all', { method: 'DELETE' })
+      if (!response.success) {
+        logError('Failed to clear all notifications on backend', response.error)
+        // Rollback on failure
+        setNotifications(prevNotifications)
+      }
+    } catch (err) {
+      logError('Failed to clear all notifications', err)
+      // Rollback on error
+      setNotifications(prevNotifications)
+    }
+  }, [notifications])
 
   // Remove single notification
-  const removeNotification = useCallback((notificationId) => {
+  const removeNotification = useCallback(async (notificationId) => {
+    const prevNotifications = notifications
     setNotifications(prev => prev.filter(n => n.id !== notificationId))
-  }, [])
+
+    try {
+      const response = await apiFetch(`/notifications/${notificationId}`, { method: 'DELETE' })
+      if (!response.success) {
+        logError('Failed to remove notification on backend', response.error)
+        // Rollback on failure
+        setNotifications(prevNotifications)
+      }
+    } catch (err) {
+      logError('Failed to remove notification', err)
+      // Rollback on error
+      setNotifications(prevNotifications)
+    }
+  }, [notifications])
 
   // Get notifications by type
   const getByType = useCallback((type) => {
@@ -234,7 +291,7 @@ export function NotificationsProvider({ children }) {
   useEffect(() => {
     const interval = setInterval(() => {
       const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-      setNotifications(prev => 
+      setNotifications(prev =>
         prev.filter(n => n.createdAt > cutoff || !n.read)
       )
     }, 60000) // Check every minute
@@ -288,17 +345,17 @@ function playNotificationSound() {
     const audioContext = new (window.AudioContext || window.webkitAudioContext)()
     const oscillator = audioContext.createOscillator()
     const gainNode = audioContext.createGain()
-    
+
     oscillator.connect(gainNode)
     gainNode.connect(audioContext.destination)
-    
+
     oscillator.frequency.value = 880 // A5 note
     oscillator.type = 'sine'
     gainNode.gain.value = 0.1
-    
+
     oscillator.start()
     oscillator.stop(audioContext.currentTime + 0.15)
-    
+
     // Second beep
     setTimeout(() => {
       const osc2 = audioContext.createOscillator()
@@ -309,8 +366,7 @@ function playNotificationSound() {
       osc2.stop(audioContext.currentTime + 0.15)
     }, 200)
   } catch (e) {
-    // Audio not supported or blocked
-    console.warn('[Notifications] Sound playback failed:', e)
+    // Audio not supported or blocked - silent fail
   }
 }
 

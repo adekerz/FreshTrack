@@ -4,12 +4,12 @@
  * Для HOTEL_ADMIN: управление пользователями своего отеля
  */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from '../../../context/LanguageContext'
 import { useToast } from '../../../context/ToastContext'
 import { useAuth } from '../../../context/AuthContext'
 import { apiFetch } from '../../../services/api'
-import { formatDate } from '../../../utils/dateUtils'
+// formatDate removed - unused import
 import { ButtonLoader, SectionLoader } from '..'
 import {
   Building2,
@@ -51,7 +51,7 @@ function getCountryCodeFromName(countryName) {
 export default function OrganizationSettings() {
   const { t } = useTranslation()
   const { addToast } = useToast()
-  const { user: currentUser, hasPermission } = useAuth()
+  const { user: currentUser } = useAuth()
 
   const isSuperAdmin = currentUser?.role === 'SUPER_ADMIN'
 
@@ -76,8 +76,8 @@ export default function OrganizationSettings() {
     marsha_code: '',
     marsha_code_id: null
   })
-  const [timezoneDetected, setTimezoneDetected] = useState(false)
-  const [creatingHotel, setCreatingHotel] = useState(false)
+  const [_timezoneDetected, setTimezoneDetected] = useState(false)
+  const [_creatingHotel, setCreatingHotel] = useState(false)
 
   // Create department modal
   const [showCreateDept, setShowCreateDept] = useState(null) // hotelId
@@ -94,7 +94,7 @@ export default function OrganizationSettings() {
     role: 'STAFF'
   })
   const [creatingUser, setCreatingUser] = useState(false)
-  const [showPassword, setShowPassword] = useState(false)
+  const [_showPassword, setShowPassword] = useState(false)
   const [userError, setUserError] = useState(null)
   const [generatePassword, setGeneratePassword] = useState(true) // Default: auto-generate password
 
@@ -103,11 +103,7 @@ export default function OrganizationSettings() {
   const [blockConfirm, setBlockConfirm] = useState(null)
   const [actionLoading, setActionLoading] = useState(false)
 
-  useEffect(() => {
-    fetchData()
-  }, [currentUser])
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true)
     try {
       if (isSuperAdmin) {
@@ -143,7 +139,11 @@ export default function OrganizationSettings() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [isSuperAdmin, addToast])
+
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
 
   // Hotel CRUD
   const createHotel = async () => {
@@ -300,7 +300,7 @@ export default function OrganizationSettings() {
         requestBody.password = newUser.password
       }
 
-      const result = await apiFetch('/auth/users', {
+      await apiFetch('/auth/users', {
         method: 'POST',
         body: JSON.stringify(requestBody)
       })

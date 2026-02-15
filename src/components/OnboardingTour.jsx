@@ -30,7 +30,7 @@ export default function OnboardingTour() {
   useEffect(() => {
     if (!isActive || !currentStepData?.target) {
       setTargetRect(null)
-      return
+      return undefined
     }
 
     const findTarget = () => {
@@ -159,7 +159,7 @@ export default function OnboardingTour() {
 
   // Recalculate tooltip position when target or step changes
   useEffect(() => {
-    if (!isActive) return
+    if (!isActive) return undefined
 
     // Use requestAnimationFrame to ensure DOM is painted
     const frame = requestAnimationFrame(() => {

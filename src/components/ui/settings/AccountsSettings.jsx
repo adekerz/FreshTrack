@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   Users,
   Search,
@@ -82,14 +82,7 @@ export default function AccountsSettings() {
 
   const canAddSuperAdmin = isSuperAdmin() && (currentUser?.is_owner === true || currentUser?.login === 'superadmin')
 
-  useEffect(() => {
-    loadUsers()
-    if (isSuperAdmin()) {
-      loadHotels()
-    }
-  }, [filters, pagination.page])
-
-  const loadUsers = async () => {
+  const loadUsers = useCallback(async () => {
     setLoading(true)
     try {
       const params = new URLSearchParams({
@@ -113,16 +106,23 @@ export default function AccountsSettings() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [pagination.page, pagination.limit, searchQuery, filters, addToast, t])
 
-  const loadHotels = async () => {
+  const loadHotels = useCallback(async () => {
     try {
       const data = await apiFetch('/hotels')
       setHotels(data.hotels || [])
     } catch {
       setHotels([])
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    loadUsers()
+    if (isSuperAdmin()) {
+      loadHotels()
+    }
+  }, [loadUsers, loadHotels, isSuperAdmin])
 
   const handleToggleStatus = async (userId) => {
     setToggling(userId)

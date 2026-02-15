@@ -3,7 +3,6 @@
  */
 
 import { useState, useCallback, useRef } from 'react'
-import { Mail, X, Lock } from 'lucide-react'
 import Modal from './Modal'
 import CodeInput from './CodeInput'
 import { apiFetch } from '../../services/api'
@@ -15,7 +14,7 @@ export function ChangeEmailModal({ isOpen, onClose, currentEmail, onSuccess }) {
   const { t } = useTranslation()
   const [step, setStep] = useState('password') // password, otp
   const [formData, setFormData] = useState({ newEmail: '', password: '' })
-  const [otp, setOtp] = useState('')
+  const [_otp, setOtp] = useState('')
   const [partialToken, setPartialToken] = useState('')
   const [loading, setLoading] = useState(false)
   const newEmailInputRef = useRef(null)

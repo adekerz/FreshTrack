@@ -30,7 +30,7 @@ export default function NotificationsPage() {
     refresh,
     departments: depts
   } = useProducts()
-  const { user, isStaff } = useAuth()
+  const { isStaff } = useAuth()
   const [retryCount, setRetryCount] = useState(0)
 
   // Проверка роли STAFF через helper функцию
@@ -44,12 +44,12 @@ export default function NotificationsPage() {
   // Делаем retry только если не loading и прошло достаточно времени
   useEffect(() => {
     // Не делаем retry если уже идёт загрузка или достигнут лимит
-    if (loading || retryCount >= 5) return
+    if (loading || retryCount >= 5) return undefined
 
     // Если данные есть - сбрасываем счётчик
     if (depts.length > 0) {
       if (retryCount > 0) setRetryCount(0)
-      return
+      return undefined
     }
 
     // Retry с увеличивающимся интервалом (3s, 6s, 9s...)
@@ -186,13 +186,12 @@ export default function NotificationsPage() {
           {batches.map((batch) => (
             <div
               key={batch.id}
-              className={`bg-card rounded-lg p-3 sm:p-4 border-l-4 ${
-                batch.daysLeft < 0
+              className={`bg-card rounded-lg p-3 sm:p-4 border-l-4 ${batch.daysLeft < 0
                   ? 'border-l-danger'
                   : batch.daysLeft <= thresholds.critical
                     ? 'border-l-critical'
                     : 'border-l-warning'
-              } border border-border`}
+                } border border-border`}
             >
               <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                 <div className="flex-1 min-w-0">
@@ -228,13 +227,12 @@ export default function NotificationsPage() {
 
                   {/* Статус */}
                   <div
-                    className={`mt-2 text-xs sm:text-sm font-medium ${
-                      batch.daysLeft < 0
+                    className={`mt-2 text-xs sm:text-sm font-medium ${batch.daysLeft < 0
                         ? 'text-danger'
                         : batch.daysLeft <= thresholds.critical
                           ? 'text-critical'
                           : 'text-warning'
-                    }`}
+                      }`}
                   >
                     {batch.daysLeft < 0
                       ? t('status.expiredDaysAgo', { days: Math.abs(batch.daysLeft) })

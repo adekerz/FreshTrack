@@ -4,7 +4,7 @@
  */
 
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Book, FileText, Settings, ShieldCheck, Key } from 'lucide-react'
+import { ArrowLeft, Book, FileText, ShieldCheck, Key } from 'lucide-react'
 import { TouchButton } from '../components/ui'
 import { useTranslation } from '../context/LanguageContext'
 

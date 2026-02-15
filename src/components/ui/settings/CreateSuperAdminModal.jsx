@@ -5,7 +5,7 @@
 
 import { useState } from 'react'
 import { X, UserPlus, Eye, EyeOff } from 'lucide-react'
-import { useTranslation } from '../../../context/LanguageContext'
+// useTranslation removed - unused import
 import { ButtonLoader, Switch } from '../index'
 
 export default function CreateSuperAdminModal({

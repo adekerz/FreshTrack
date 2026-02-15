@@ -6,7 +6,7 @@
 
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Cookie, X, Check, Settings } from 'lucide-react'
+import { Cookie, Check, Settings } from 'lucide-react'
 import { TouchButton } from './ui'
 import { cn } from '../utils/classNames'
 

@@ -13,6 +13,7 @@ import { useOnboarding } from '../context/OnboardingContext'
 import { departments } from '../context/ProductContext'
 import { useToast } from '../context/ToastContext'
 import { apiFetch } from '../services/api'
+import { logError } from '../utils/logger'
 import {
   User,
   Users,
@@ -24,7 +25,6 @@ import {
   AlertCircle,
   Tags,
   FileBox,
-  Send,
   CalendarClock,
   Mail,
   Palette,
@@ -64,8 +64,6 @@ export default function SettingsPage() {
   const { t } = useTranslation()
   const {
     user,
-    hasPermission,
-    canManage,
     isHotelAdmin,
     isSuperAdmin,
     isDepartmentManager,
@@ -77,8 +75,6 @@ export default function SettingsPage() {
   const { addToast } = useToast()
   const [searchParams] = useSearchParams()
   const [activeTab, setActiveTab] = useState('profile')
-  const [saving, setSaving] = useState(false)
-  const [message, setMessage] = useState(null)
 
   useEffect(() => {
     const tab = searchParams.get('tab')
@@ -199,22 +195,6 @@ export default function SettingsPage() {
   ]
 
   // Сохранение настроек
-  const handleSave = async () => {
-    setSaving(true)
-    try {
-      // Симуляция сохранения (в реальности - API запрос)
-      await new Promise((resolve) => setTimeout(resolve, 500))
-      setMessage({ type: 'success', text: t('settings.saved') })
-      addToast(t('toast.settingsSaved'), 'success')
-      setTimeout(() => setMessage(null), 3000)
-    } catch (error) {
-      setMessage({ type: 'error', text: t('settings.saveError') })
-      addToast(t('toast.settingsSaveError'), 'error')
-    } finally {
-      setSaving(false)
-    }
-  }
-
   // Сохранение профиля
   const handleSaveProfile = async () => {
     setSavingProfile(true)
@@ -271,8 +251,8 @@ export default function SettingsPage() {
         {profileMessage && (
           <div
             className={`flex items-center gap-2 p-3 rounded-lg mb-4 ${profileMessage.type === 'success'
-                ? 'bg-success/10 text-success border border-success/20'
-                : 'bg-danger/10 text-danger border border-danger/20'
+              ? 'bg-success/10 text-success border border-success/20'
+              : 'bg-danger/10 text-danger border border-danger/20'
               }`}
           >
             {profileMessage.type === 'success' ? (
@@ -454,8 +434,8 @@ export default function SettingsPage() {
               type="button"
               onClick={() => changeLanguage(lang.code)}
               className={`flex items-center gap-2 sm:gap-3 p-3 sm:p-4 rounded-lg border transition-all focus:outline-none focus:ring-2 focus:ring-accent/20 min-h-[44px] ${language === lang.code
-                  ? 'border-accent bg-accent/5'
-                  : 'border-border hover:border-muted-foreground'
+                ? 'border-accent bg-accent/5'
+                : 'border-border hover:border-muted-foreground'
                 }`}
               aria-label={lang.name}
               aria-pressed={language === lang.code}
@@ -626,23 +606,6 @@ export default function SettingsPage() {
         stickyHeader={true}
       >
         <div className="space-y-4 sm:space-y-6">
-          {/* Сообщение */}
-          {message && (
-            <div
-              className={`flex items-center gap-2 p-3 sm:p-4 rounded-lg text-sm ${message.type === 'success'
-                  ? 'bg-green-50 text-green-800 border border-green-200'
-                  : 'bg-red-50 text-red-800 border border-red-200'
-                }`}
-            >
-              {message.type === 'success' ? (
-                <Check className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
-              ) : (
-                <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
-              )}
-              <span className="truncate">{message.text}</span>
-            </div>
-          )}
-
           <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
             {/* Табы - горизонтальная прокрутка на мобильных */}
             <div className="lg:w-64 shrink-0 space-y-3">
@@ -665,8 +628,8 @@ export default function SettingsPage() {
                           aria-selected={activeTab === tab.id}
                           role="tab"
                           className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm transition-colors flex-shrink-0 lg:w-full min-w-0 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:ring-offset-2 focus:ring-offset-background ${activeTab === tab.id
-                              ? 'bg-foreground text-background'
-                              : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                            ? 'bg-foreground text-background'
+                            : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                             }`}
                         >
                           <tab.icon className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
@@ -694,8 +657,8 @@ export default function SettingsPage() {
                             aria-selected={activeTab === tab.id}
                             role="tab"
                             className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm transition-colors flex-shrink-0 lg:w-full min-w-0 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:ring-offset-2 focus:ring-offset-background ${activeTab === tab.id
-                                ? 'bg-foreground text-background'
-                                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                              ? 'bg-foreground text-background'
+                              : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                               }`}
                           >
                             <TabIcon className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
@@ -723,8 +686,8 @@ export default function SettingsPage() {
                             aria-selected={activeTab === tab.id}
                             role="tab"
                             className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm transition-colors flex-shrink-0 lg:w-full min-w-0 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-background ${activeTab === tab.id
-                                ? 'bg-amber-500 text-white'
-                                : 'text-amber-800 dark:text-amber-200 hover:bg-amber-500/20'
+                              ? 'bg-amber-500 text-white'
+                              : 'text-amber-800 dark:text-amber-200 hover:bg-amber-500/20'
                               }`}
                           >
                             <tab.icon className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
@@ -747,8 +710,8 @@ export default function SettingsPage() {
                       aria-selected={activeTab === tab.id}
                       role="tab"
                       className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-lg text-xs sm:text-sm transition-colors flex-shrink-0 lg:w-full min-w-0 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:ring-offset-2 focus:ring-offset-background ${activeTab === tab.id
-                          ? 'bg-foreground text-background'
-                          : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                        ? 'bg-foreground text-background'
+                        : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                         }`}
                     >
                       <tab.icon className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" aria-hidden="true" />
@@ -813,7 +776,7 @@ export default function SettingsPage() {
                   })
                 }
               } catch (error) {
-                console.error('Failed to refresh user data:', error)
+                logError('Failed to refresh user data:', error)
               }
             }}
           />

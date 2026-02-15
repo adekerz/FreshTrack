@@ -9,6 +9,8 @@ import { Download, FileSpreadsheet, FileText, FileType, Loader2, ChevronDown } f
 import { useExport } from '../hooks/useExport'
 import { useTranslation } from '../context/LanguageContext'
 
+import { logError } from '../utils/logger'
+
 /**
  * Format configurations with icons and descriptions
  */
@@ -61,16 +63,16 @@ export default function ExportButton({
   onExportComplete
 }) {
   const { t } = useTranslation()
-  const { exportData, exporting, isExporting } = useExport()
+  const { exportData, isExporting } = useExport()
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const dropdownRef = useRef(null)
 
   // Calculate active filter count
   const activeFilterCount = showFilterCount
     ? Object.keys(filters).filter(key => {
-        const value = filters[key]
-        return value !== null && value !== undefined && value !== ''
-      }).length
+      const value = filters[key]
+      return value !== null && value !== undefined && value !== ''
+    }).length
     : 0
 
   // Close dropdown when clicking outside
@@ -85,6 +87,7 @@ export default function ExportButton({
       document.addEventListener('mousedown', handleClickOutside)
       return () => document.removeEventListener('mousedown', handleClickOutside)
     }
+    return undefined
   }, [isDropdownOpen])
 
   // Handle export action
@@ -95,7 +98,7 @@ export default function ExportButton({
       await exportData(exportType, format, { filters })
       onExportComplete?.()
     } catch (error) {
-      console.error('Export failed:', error)
+      logError('Export failed', error)
     }
   }
 
@@ -167,6 +170,7 @@ export default function ExportButton({
           {/* Backdrop */}
           <div
             className="fixed inset-0 z-40"
+            // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
             onClick={() => setIsDropdownOpen(false)}
           />
 

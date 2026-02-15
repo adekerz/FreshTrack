@@ -12,7 +12,7 @@
  * - Мобильного использования
  */
 
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { X, Package, Plus, Minus, Calendar, Check, Zap, ArrowRight, History } from 'lucide-react'
 import { SectionLoader, TouchButton } from './ui'
 import { useTranslation } from '../context/LanguageContext'
@@ -50,8 +50,8 @@ export default function DeliveryTemplateModal({
   // Для восстановления после перерендеринга используем sessionStorage (если нужно)
   const [fastIntakeMode, setFastIntakeMode] = useState(false)
   const [sessionHistory, setSessionHistory] = useState([]) // История добавленных в этой сессии
-  const [lastExpiryByProduct, setLastExpiryByProduct] = useState({}) // Последний срок годности по продукту
-  const [globalLastExpiry, setGlobalLastExpiry] = useState('') // Последний введённый срок годности
+  const [_lastExpiryByProduct, setLastExpiryByProduct] = useState({}) // Последний срок годности по продукту
+  const [_globalLastExpiry, setGlobalLastExpiry] = useState('') // Последний введённый срок годности
 
   // Refs для управления фокусом (если понадобятся в будущем)
 
@@ -78,7 +78,7 @@ export default function DeliveryTemplateModal({
         setGlobalLastExpiry('')
       }
     }
-  }, [isOpen])
+  }, [isOpen, loadTemplates])
 
   // При закрытии модалки сбрасываем состояние быстрого режима
   useEffect(() => {
@@ -90,7 +90,7 @@ export default function DeliveryTemplateModal({
 
 
   // === Загрузка данных ===
-  const loadTemplates = async () => {
+  const loadTemplates = useCallback(async () => {
     setLoading(true)
     try {
       const data = await apiFetch('/delivery-templates')
@@ -106,7 +106,7 @@ export default function DeliveryTemplateModal({
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
   // === Выбор шаблона ===
   const selectTemplate = (template) => {
@@ -280,20 +280,14 @@ export default function DeliveryTemplateModal({
   }
 
 
-  // === Получение названия отдела ===
-  const getDepartmentName = (id) => {
-    const dept = departments.find((d) => d.id === id)
-    return dept ? dept.name : id
-  }
-
   // === Последний добавленный товар (для быстрого +1) ===
-  const lastAddedItem = sessionHistory[0]
+  const _lastAddedItem = sessionHistory[0]
 
   // === Рендер: закрытое состояние ===
   if (!isOpen) return null
 
   // Защита от закрытия в быстром режиме через backdrop
-  const handleBackdropClick = (e) => {
+  const handleBackdropClick = (_e) => {
     // В быстром режиме не закрываем модалку при клике на backdrop
     // (предотвращает случайное закрытие во время быстрого ввода)
     if (fastIntakeMode || fastModeRef.current) {
@@ -346,7 +340,7 @@ export default function DeliveryTemplateModal({
                     const newMode = !fastIntakeMode
                     setFastIntakeMode(newMode)
                     fastModeRef.current = newMode
-                    if (newMode) resetFastIntakeForm()
+                    // fast intake mode toggled
                   }}
                   className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-sm font-medium min-h-0 h-auto ${fastIntakeMode ? 'bg-amber-500 text-white hover:bg-amber-600' : 'bg-muted text-muted-foreground hover:bg-muted/80'
                     }`}
@@ -548,8 +542,8 @@ export default function DeliveryTemplateModal({
                                 // Проверяем причину ошибки
                                 const digits = e.target.value.replace(/\D/g, '')
                                 if (digits.length >= 6) {
-                                  const day = parseInt(digits.slice(0, 2), 10)
-                                  const month = parseInt(digits.slice(2, 4), 10)
+                                  const _day = parseInt(digits.slice(0, 2), 10)
+                                  const _month = parseInt(digits.slice(2, 4), 10)
                                   let year = parseInt(digits.slice(4, 6), 10)
                                   if (year < 100) year += 2000
 

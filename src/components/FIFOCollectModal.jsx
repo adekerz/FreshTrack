@@ -104,6 +104,7 @@ export default function FIFOCollectModal({
       const timer = setTimeout(fetchPreview, 300) // Debounce
       return () => clearTimeout(timer)
     }
+    return undefined
   }, [isOpen, product?.id, quantity, fetchPreview])
 
   // Сброс при открытии

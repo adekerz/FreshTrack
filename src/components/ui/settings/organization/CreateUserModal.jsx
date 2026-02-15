@@ -4,7 +4,6 @@
 
 import { useState } from 'react'
 import { X, UserPlus, Eye, EyeOff } from 'lucide-react'
-import { useTranslation } from '../../../../context/LanguageContext'
 import { ButtonLoader, Switch } from '../..'
 
 export default function CreateUserModal({
@@ -14,7 +13,7 @@ export default function CreateUserModal({
   formState,
   setFormState,
   hotels,
-  departments,
+  departments: _departments,
   hotelId,
   departmentId,
   creating,

@@ -24,7 +24,7 @@ export function useFocusTrap(isActive = false, options = {}) {
   const previouslyFocusedElement = useRef(null)
 
   useEffect(() => {
-    if (!isActive || !containerRef.current) return
+    if (!isActive || !containerRef.current) return undefined
 
     const container = containerRef.current
 
@@ -117,7 +117,7 @@ export function useFocusLock(isActive = false) {
   const containerRef = useRef(null)
 
   useEffect(() => {
-    if (!isActive || !containerRef.current) return
+    if (!isActive || !containerRef.current) return undefined
 
     const container = containerRef.current
 

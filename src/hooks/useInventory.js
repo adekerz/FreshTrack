@@ -10,7 +10,7 @@ import { queryKeys } from '../lib/queryKeys'
 import { STALE_TIMES, invalidateInventoryQueries } from '../lib/queryClient'
 import { apiFetch } from '../services/api'
 import { getBatchStatus } from '../utils/dateUtils'
-import { logDebug, logError, logWarn } from '../utils/logger'
+// logger imports removed - unused
 
 // === HELPERS ===
 

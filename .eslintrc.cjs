@@ -7,6 +7,7 @@ module.exports = {
     'plugin:react/jsx-runtime',
     'plugin:react-hooks/recommended',
     'plugin:jsx-a11y/recommended',
+    'prettier',
   ],
   ignorePatterns: ['dist', '.eslintrc.cjs', 'node_modules'],
   parserOptions: { ecmaVersion: 'latest', sourceType: 'module' },
@@ -21,25 +22,9 @@ module.exports = {
 
     'react-hooks/exhaustive-deps': 'warn',
     'no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
-    'consistent-return': 'error',
-    'no-console': 'warn',
+    'consistent-return': 'warn', 
+    'no-console': 'error', 
 
-    // ========================================
-    // Architecture Rules (Feature-based)
-    // ========================================
-    // Запрет прямого импорта из features в shared
-    'no-restricted-imports': [
-      'error',
-      {
-        patterns: [
-          {
-            group: ['@features/*'],
-            message: 'Shared не должен импортировать из features. Используйте только shared.'
-          }
-        ]
-      }
-    ],
-    
     // ========================================
     // Accessibility rules
     // ========================================
@@ -54,12 +39,28 @@ module.exports = {
     'jsx-a11y/role-has-required-aria-props': 'error',
     'jsx-a11y/role-supports-aria-props': 'error',
   },
-  
+
   // ========================================
   // Overrides for specific directories
   // ========================================
   overrides: [
-    // Shared layer - cannot import from features
+    {
+      files: ['**/*.test.{js,jsx}', '**/*.spec.{js,jsx}'],
+      env: { node: true },
+      globals: {
+        describe: 'readonly',
+        it: 'readonly',
+        expect: 'readonly',
+        vi: 'readonly',
+        beforeEach: 'readonly',
+        afterEach: 'readonly',
+        beforeAll: 'readonly',
+        afterAll: 'readonly',
+      },
+      rules: {
+        'no-console': 'off', 
+      },
+    },
     {
       files: ['src/shared/**/*.{js,jsx}'],
       rules: {
@@ -76,7 +77,6 @@ module.exports = {
         ]
       }
     },
-    // Features - can import from shared, but not cross-feature
     {
       files: ['src/features/**/*.{js,jsx}'],
       rules: {

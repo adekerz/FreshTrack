@@ -14,6 +14,7 @@ export default function Switch({
 }) {
   return (
     <button
+      id={id}
       type="button"
       role="switch"
       aria-checked={checked}

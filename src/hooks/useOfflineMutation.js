@@ -25,7 +25,7 @@ import { logInfo, logWarn } from '../utils/logger'
 export function useOfflineMutation(options) {
   const queryClient = useQueryClient()
   const isOnline = useOnlineStatus()
-  
+
   const {
     mutationFn,
     offlineConfig = {},
@@ -100,6 +100,8 @@ export function useOfflineMutation(options) {
 
         return { previousData }
       }
+
+      return undefined
     },
 
     onSuccess: (data, variables, context) => {
@@ -158,7 +160,7 @@ export function useOfflineCollectMutation(options) {
     ...options,
     offlineConfig: {
       type: SyncOperationType.COLLECT,
-      getEndpoint: (data) => `/collections`,
+      getEndpoint: (_data) => `/collections`,
       getMethod: () => 'POST',
       queryKey: ['batches'],
       optimisticUpdate: (old, collectionData) => {

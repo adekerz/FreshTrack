@@ -14,7 +14,7 @@ import {
   getPersistedCacheInfo,
   clearPersistedCache
 } from '../../../lib/queryPersistence'
-import SettingsLayout, { SettingsSection } from './SettingsLayout'
+import SettingsLayout from './SettingsLayout'
 
 export default function CacheManagement() {
   const { t } = useTranslation()

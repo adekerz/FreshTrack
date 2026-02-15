@@ -137,7 +137,7 @@ function App() {
 
   return (
     <>
-      {process.env.NODE_ENV === 'development' && <MobileDebugHelper />}
+      {import.meta.env.DEV && <MobileDebugHelper />}
       <ErrorBoundary>
         <Layout>
           <Suspense fallback={<SuspenseFallback />}>

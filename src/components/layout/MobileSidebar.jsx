@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { X, Leaf } from 'lucide-react'
 import { useLocation } from 'react-router-dom'
 import { useTranslation } from '../../context/LanguageContext'
@@ -15,7 +15,7 @@ import TouchButton from '../ui/TouchButton'
  * - Auto-close on navigation
  * - Swipe-to-close gesture
  */
-export default function MobileSidebar({ children, isOpen, onClose, onOpen }) {
+export default function MobileSidebar({ children, isOpen, onClose, _onOpen }) {
   const location = useLocation()
   const panelRef = useRef(null)
   const { t } = useTranslation()

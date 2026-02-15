@@ -12,7 +12,6 @@ import {
   ChevronRight,
   Filter,
   RefreshCw,
-  Calendar,
   X,
   Eye,
   Settings,
@@ -42,7 +41,6 @@ const ActivityChart = lazy(() =>
   import('../components/audit/ActivityChart').then(m => ({ default: m.ActivityChart }))
 )
 import { AuditDetailsModal } from '../components/audit/AuditDetailsModal'
-import { useToast } from '../context/ToastContext'
 import { useAuditSSE } from '../hooks/useAuditSSE'
 import EmptyState from '../components/EmptyState'
 import ExportProgress from '../components/ExportProgress'
@@ -51,8 +49,7 @@ import { useExport } from '../hooks/useExport'
 
 export default function AuditLogsPage() {
   const { t } = useTranslation()
-  const { addToast } = useToast()
-  const { selectedHotelId, selectedHotel } = useHotel()
+  const { selectedHotelId } = useHotel()
   const { newLogs, clearNewLogs } = useAuditSSE(!!selectedHotelId)
   const { exportProgress, dismissExportProgress } = useExport()
   const [searchQuery, setSearchQuery] = useState('')
@@ -254,262 +251,312 @@ export default function AuditLogsPage() {
 
   return (
     <AnimatedPage>
-    <PageContainer
-      title={t('auditLogs.title')}
-      subtitle={t('auditLogs.subtitle')}
-      stickyHeader={true}
-      actions={
-        <div className="flex items-center gap-2 flex-wrap">
-          <Tooltip content={t('common.refresh') || 'Обновить'}>
-            <span className="inline-flex">
-              <button
-                onClick={() => refetchLogs()}
-                disabled={loading}
-                className="p-2 rounded-lg hover:bg-muted text-muted-foreground transition-colors min-h-[48px] min-w-[48px] flex items-center justify-center"
-                aria-label={t('common.refresh') || 'Обновить'}
-                title={t('common.refresh')}
-              >
-                <RefreshCw className={cn('w-4 h-4 sm:w-5 sm:h-5', loading && 'animate-spin')} />
-              </button>
-            </span>
-          </Tooltip>
-          <ExportButton
-            exportType="audit"
-            filters={exportFilters}
-            formats={['excel', 'csv', 'pdf']}
-            showFilterCount={true}
-            size="sm"
-            compact={true}
-          />
-        </div>
-      }
-    >
-      <div className="space-y-4 sm:space-y-6">
-        {/* New records banner (SSE) */}
-      {newLogs.length > 0 && (
-        <div className="bg-accent/10 border border-accent/30 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
-          <span className="text-sm text-foreground">
-            {t('auditLogs.newRecords', { count: newLogs.length })}
-          </span>
-          <button
-            type="button"
-            onClick={() => {
-              refetchLogs()
-              clearNewLogs()
-            }}
-            className="text-sm font-medium text-accent underline hover:no-underline focus:outline-none focus:ring-2 focus:ring-accent/20 rounded min-h-[44px] min-w-[44px] flex items-center justify-center px-2"
-          >
-            {t('auditLogs.refreshList')}
-          </button>
-        </div>
-      )}
-
-      {/* Activity Chart (lazy — chart.js loaded on demand) */}
-      {stats && stats.length > 0 && (
-        <Suspense fallback={<Skeleton className="h-64 w-full rounded-xl" />}>
-          <ActivityChart data={stats} />
-        </Suspense>
-      )}
-
-      {/* Filters Bar */}
-      <div className="bg-card rounded-xl border border-border p-3 sm:p-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={t('auditLogs.searchPlaceholder')}
-              className="w-full pl-9 sm:pl-10 pr-4 py-2 border border-border rounded-lg bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
-              aria-label={t('common.search')}
+      <PageContainer
+        title={t('auditLogs.title')}
+        subtitle={t('auditLogs.subtitle')}
+        stickyHeader={true}
+        actions={
+          <div className="flex items-center gap-2 flex-wrap">
+            <Tooltip content={t('common.refresh') || 'Обновить'}>
+              <span className="inline-flex">
+                <button
+                  onClick={() => refetchLogs()}
+                  disabled={loading}
+                  className="p-2 rounded-lg hover:bg-muted text-muted-foreground transition-colors min-h-[48px] min-w-[48px] flex items-center justify-center"
+                  aria-label={t('common.refresh') || 'Обновить'}
+                  title={t('common.refresh')}
+                >
+                  <RefreshCw className={cn('w-4 h-4 sm:w-5 sm:h-5', loading && 'animate-spin')} />
+                </button>
+              </span>
+            </Tooltip>
+            <ExportButton
+              exportType="audit"
+              filters={exportFilters}
+              formats={['excel', 'csv', 'pdf']}
+              showFilterCount={true}
+              size="sm"
+              compact={true}
             />
           </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <button
-              type="button"
-              onClick={() => setShowFilters(!showFilters)}
-              className={cn(
-                'flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg border transition-colors text-sm flex-1 sm:flex-none justify-center min-h-[44px] focus:outline-none focus:ring-2 focus:ring-accent/20',
-                showFilters || hasActiveFilters
-                  ? 'border-accent bg-accent/10 text-accent'
-                  : 'border-border text-muted-foreground hover:bg-muted'
-              )}
-              aria-label={t('common.filters')}
-              aria-expanded={showFilters}
-            >
-              <Filter className="w-4 h-4" aria-hidden="true" />
-              {t('common.filters')}
-              {activeFiltersCount > 0 && (
-                <span className="ml-1 w-5 h-5 bg-accent text-white text-xs rounded-full flex items-center justify-center">
-                  {activeFiltersCount}
-                </span>
-              )}
-            </button>
-            {hasActiveFilters && (
+        }
+      >
+        <div className="space-y-4 sm:space-y-6">
+          {/* New records banner (SSE) */}
+          {newLogs.length > 0 && (
+            <div className="bg-accent/10 border border-accent/30 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
+              <span className="text-sm text-foreground">
+                {t('auditLogs.newRecords', { count: newLogs.length })}
+              </span>
               <button
                 type="button"
-                onClick={resetFilters}
-                className="flex items-center gap-2 px-3 sm:px-4 py-2 text-danger hover:bg-danger/10 rounded-lg text-sm transition-colors min-h-[44px]"
-                aria-label={t('common.reset') || 'Сбросить фильтры'}
-                title={t('common.reset')}
+                onClick={() => {
+                  refetchLogs()
+                  clearNewLogs()
+                }}
+                className="text-sm font-medium text-accent underline hover:no-underline focus:outline-none focus:ring-2 focus:ring-accent/20 rounded min-h-[44px] min-w-[44px] flex items-center justify-center px-2"
               >
-                <X className="w-4 h-4" aria-hidden="true" />
-                {t('common.reset')}
+                {t('auditLogs.refreshList')}
               </button>
+            </div>
+          )}
+
+          {/* Activity Chart (lazy — chart.js loaded on demand) */}
+          {stats && stats.length > 0 && (
+            <Suspense fallback={<Skeleton className="h-64 w-full rounded-xl" />}>
+              <ActivityChart data={stats} />
+            </Suspense>
+          )}
+
+          {/* Filters Bar */}
+          <div className="bg-card rounded-xl border border-border p-3 sm:p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder={t('auditLogs.searchPlaceholder')}
+                  className="w-full pl-9 sm:pl-10 pr-4 py-2 border border-border rounded-lg bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
+                  aria-label={t('common.search')}
+                />
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => setShowFilters(!showFilters)}
+                  className={cn(
+                    'flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg border transition-colors text-sm flex-1 sm:flex-none justify-center min-h-[44px] focus:outline-none focus:ring-2 focus:ring-accent/20',
+                    showFilters || hasActiveFilters
+                      ? 'border-accent bg-accent/10 text-accent'
+                      : 'border-border text-muted-foreground hover:bg-muted'
+                  )}
+                  aria-label={t('common.filters')}
+                  aria-expanded={showFilters}
+                >
+                  <Filter className="w-4 h-4" aria-hidden="true" />
+                  {t('common.filters')}
+                  {activeFiltersCount > 0 && (
+                    <span className="ml-1 w-5 h-5 bg-accent text-white text-xs rounded-full flex items-center justify-center">
+                      {activeFiltersCount}
+                    </span>
+                  )}
+                </button>
+                {hasActiveFilters && (
+                  <button
+                    type="button"
+                    onClick={resetFilters}
+                    className="flex items-center gap-2 px-3 sm:px-4 py-2 text-danger hover:bg-danger/10 rounded-lg text-sm transition-colors min-h-[44px]"
+                    aria-label={t('common.reset') || 'Сбросить фильтры'}
+                    title={t('common.reset')}
+                  >
+                    <X className="w-4 h-4" aria-hidden="true" />
+                    {t('common.reset')}
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Extended Filters */}
+            {showFilters && (
+              <div className="mt-4 pt-4 border-t border-border grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                  <label htmlFor="audit-filter-severity" className="block text-sm font-medium text-foreground mb-1">
+                    {t('auditLogs.filters.severity')}
+                  </label>
+                  <select
+                    id="audit-filter-severity"
+                    value={filters.severity}
+                    onChange={(e) => setFilters((prev) => ({ ...prev, severity: e.target.value }))}
+                    className="w-full px-3 py-2 border border-border rounded-lg bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-accent/20"
+                  >
+                    <option value="">{t('auditLogs.severityAll')}</option>
+                    <option value="critical">{t('auditLogs.severityCritical')}</option>
+                    <option value="important">{t('auditLogs.severityImportant')}</option>
+                    <option value="normal">{t('auditLogs.severityNormal')}</option>
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="audit-filter-user" className="block text-sm font-medium text-foreground mb-1">
+                    {t('auditLogs.filters.user')}
+                  </label>
+                  <select
+                    id="audit-filter-user"
+                    value={filters.userId}
+                    onChange={(e) => setFilters((prev) => ({ ...prev, userId: e.target.value }))}
+                    className="w-full px-3 py-2 border border-border rounded-lg bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-accent/20"
+                  >
+                    <option value="">{t('common.all')}</option>
+                    {users.map((user) => (
+                      <option key={user.id} value={user.id}>
+                        {user.name} {user.action_count != null ? `(${user.action_count})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="audit-filter-department" className="block text-sm font-medium text-foreground mb-1">
+                    {t('auditLogs.filters.department')}
+                  </label>
+                  <select
+                    id="audit-filter-department"
+                    value={filters.departmentId}
+                    onChange={(e) =>
+                      setFilters((prev) => ({ ...prev, departmentId: e.target.value }))
+                    }
+                    className="w-full px-3 py-2 border border-border rounded-lg bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-accent/20"
+                  >
+                    <option value="">{t('common.all')}</option>
+                    {departments.map((dept) => (
+                      <option key={dept.id} value={dept.id}>
+                        {dept.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex items-center gap-2">
+                  <label htmlFor="audit-filter-security" className="flex items-center gap-2 text-sm text-foreground cursor-pointer min-h-[44px]">
+                    <input
+                      id="audit-filter-security"
+                      type="checkbox"
+                      checked={filters.securityOnly}
+                      onChange={(e) =>
+                        setFilters((prev) => ({ ...prev, securityOnly: e.target.checked }))
+                      }
+                      className="rounded border-border text-accent focus:ring-2 focus:ring-accent/20 w-4 h-4"
+                    />
+                    {t('auditLogs.filters.securityOnly')}
+                  </label>
+                </div>
+              </div>
             )}
           </div>
-        </div>
 
-        {/* Extended Filters */}
-        {showFilters && (
-          <div className="mt-4 pt-4 border-t border-border grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div>
-              <label htmlFor="audit-filter-severity" className="block text-sm font-medium text-foreground mb-1">
-                {t('auditLogs.filters.severity')}
-              </label>
-              <select
-                id="audit-filter-severity"
-                value={filters.severity}
-                onChange={(e) => setFilters((prev) => ({ ...prev, severity: e.target.value }))}
-                className="w-full px-3 py-2 border border-border rounded-lg bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-accent/20"
-              >
-                <option value="">{t('auditLogs.severityAll')}</option>
-                <option value="critical">{t('auditLogs.severityCritical')}</option>
-                <option value="important">{t('auditLogs.severityImportant')}</option>
-                <option value="normal">{t('auditLogs.severityNormal')}</option>
-              </select>
-            </div>
-            <div>
-              <label htmlFor="audit-filter-user" className="block text-sm font-medium text-foreground mb-1">
-                {t('auditLogs.filters.user')}
-              </label>
-              <select
-                id="audit-filter-user"
-                value={filters.userId}
-                onChange={(e) => setFilters((prev) => ({ ...prev, userId: e.target.value }))}
-                className="w-full px-3 py-2 border border-border rounded-lg bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-accent/20"
-              >
-                <option value="">{t('common.all')}</option>
-                {users.map((user) => (
-                  <option key={user.id} value={user.id}>
-                    {user.name} {user.action_count != null ? `(${user.action_count})` : ''}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label htmlFor="audit-filter-department" className="block text-sm font-medium text-foreground mb-1">
-                {t('auditLogs.filters.department')}
-              </label>
-              <select
-                id="audit-filter-department"
-                value={filters.departmentId}
-                onChange={(e) =>
-                  setFilters((prev) => ({ ...prev, departmentId: e.target.value }))
-                }
-                className="w-full px-3 py-2 border border-border rounded-lg bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-accent/20"
-              >
-                <option value="">{t('common.all')}</option>
-                {departments.map((dept) => (
-                  <option key={dept.id} value={dept.id}>
-                    {dept.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex items-center gap-2">
-              <label htmlFor="audit-filter-security" className="flex items-center gap-2 text-sm text-foreground cursor-pointer min-h-[44px]">
-                <input
-                  id="audit-filter-security"
-                  type="checkbox"
-                  checked={filters.securityOnly}
-                  onChange={(e) =>
-                    setFilters((prev) => ({ ...prev, securityOnly: e.target.checked }))
-                  }
-                  className="rounded border-border text-accent focus:ring-2 focus:ring-accent/20 w-4 h-4"
-                />
-                {t('auditLogs.filters.securityOnly')}
-              </label>
-            </div>
+          {/* Stats */}
+          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            <span>
+              {t('auditLogs.totalRecords', { count: paginationTotal })}
+            </span>
+            {searchQuery && (
+              <span>
+                {t('auditLogs.found', { count: filteredLogs.length })}
+              </span>
+            )}
           </div>
-        )}
-      </div>
 
-      {/* Stats */}
-      <div className="flex items-center gap-4 text-sm text-muted-foreground">
-        <span>
-          {t('auditLogs.totalRecords', { count: paginationTotal })}
-        </span>
-        {searchQuery && (
-          <span>
-            {t('auditLogs.found', { count: filteredLogs.length })}
-          </span>
-        )}
-      </div>
-
-      {/* Logs Table */}
-      <div
-        className="bg-card rounded-xl border border-border overflow-hidden"
-        role="region"
-        aria-label={t('auditLogs.tableTitle') || t('auditLogs.title')}
-      >
-        {filteredLogs.length === 0 ? (
-          <EmptyState
-            icon={FileText}
-            title={t('auditLogs.noLogs') || 'Нет записей в журнале'}
-            description={
-              searchQuery
-                ? t('auditLogs.noSearchResults') || 'Попробуйте изменить поисковый запрос'
-                : hasActiveFilters
-                ? t('auditLogs.noFilterResults') || 'Попробуйте изменить фильтры'
-                : t('auditLogs.noLogsHint') || 'Здесь будет отображаться журнал действий пользователей'
-            }
-          />
-        ) : (
-          <>
-            {/* Desktop Table */}
-            <div className="hidden md:block overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-muted">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      {t('auditLogs.timestamp')}
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      {t('auditLogs.user')}
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      {t('auditLogs.action')}
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      {t('auditLogs.details')}
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      {t('auditLogs.filters.severity')}
-                    </th>
-                    <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider w-20">
-                      {t('common.actions')}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {filteredLogs.map((log) => (
-                    <tr key={log.id} className="hover:bg-muted/50 transition-colors">
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-foreground">
-                        {formatDate(log.created_at, true)}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div>
-                          <span className="font-medium text-foreground">{log.user_name}</span>
-                          {log.department_name && (
-                            <span className="block text-xs text-muted-foreground">
-                              {log.department_name}
+          {/* Logs Table */}
+          <div
+            className="bg-card rounded-xl border border-border overflow-hidden"
+            role="region"
+            aria-label={t('auditLogs.tableTitle') || t('auditLogs.title')}
+          >
+            {filteredLogs.length === 0 ? (
+              <EmptyState
+                icon={FileText}
+                title={t('auditLogs.noLogs') || 'Нет записей в журнале'}
+                description={
+                  searchQuery
+                    ? t('auditLogs.noSearchResults') || 'Попробуйте изменить поисковый запрос'
+                    : hasActiveFilters
+                      ? t('auditLogs.noFilterResults') || 'Попробуйте изменить фильтры'
+                      : t('auditLogs.noLogsHint') || 'Здесь будет отображаться журнал действий пользователей'
+                }
+              />
+            ) : (
+              <>
+                {/* Desktop Table */}
+                <div className="hidden md:block overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-muted">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                          {t('auditLogs.timestamp')}
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                          {t('auditLogs.user')}
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                          {t('auditLogs.action')}
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                          {t('auditLogs.details')}
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                          {t('auditLogs.filters.severity')}
+                        </th>
+                        <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider w-20">
+                          {t('common.actions')}
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {filteredLogs.map((log) => (
+                        <tr key={log.id} className="hover:bg-muted/50 transition-colors">
+                          <td className="px-4 py-3 whitespace-nowrap text-sm text-foreground">
+                            {formatDate(log.created_at, true)}
+                          </td>
+                          <td className="px-4 py-3">
+                            <div>
+                              <span className="font-medium text-foreground">{log.user_name}</span>
+                              {log.department_name && (
+                                <span className="block text-xs text-muted-foreground">
+                                  {log.department_name}
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span
+                              className={cn(
+                                'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium',
+                                getActionColor(log.action)
+                              )}
+                            >
+                              {getActionIcon(log.action)}
+                              {log.human_readable_description || log.action}
                             </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
+                          </td>
+                          <td className="px-4 py-3 text-sm text-foreground max-w-xs truncate">
+                            {log.human_readable_details || '—'}
+                          </td>
+                          <td className="px-4 py-3">
+                            {getSeverityBadge(log.severity || 'normal')}
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <button
+                              type="button"
+                              onClick={() => setSelectedLog(log)}
+                              className="p-1.5 rounded-lg hover:bg-muted transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center mx-auto"
+                              title={t('common.viewDetails')}
+                              aria-label={t('common.viewDetails')}
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Mobile Cards */}
+                <div className="md:hidden divide-y divide-border">
+                  {filteredLogs.map((log) => (
+                    <div
+                      key={log.id}
+                      role="button"
+                      tabIndex={0}
+                      className="p-4 space-y-3 cursor-pointer hover:bg-muted transition-colors focus:outline-none focus:ring-2 focus:ring-accent/20"
+                      onClick={() => setSelectedLog(log)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault()
+                          setSelectedLog(log)
+                        }
+                      }}
+                    >
+                      <div className="flex items-center justify-between gap-2">
                         <span
                           className={cn(
                             'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium',
@@ -519,121 +566,71 @@ export default function AuditLogsPage() {
                           {getActionIcon(log.action)}
                           {log.human_readable_description || log.action}
                         </span>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-foreground max-w-xs truncate">
-                        {log.human_readable_details || '—'}
-                      </td>
-                      <td className="px-4 py-3">
                         {getSeverityBadge(log.severity || 'normal')}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <button
-                          type="button"
-                          onClick={() => setSelectedLog(log)}
-                          className="p-1.5 rounded-lg hover:bg-muted transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center mx-auto"
-                          title={t('common.viewDetails')}
-                          aria-label={t('common.viewDetails')}
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
-                      </td>
-                    </tr>
+                      </div>
+                      <p className="text-sm text-foreground line-clamp-2">
+                        {log.human_readable_details || '—'}
+                      </p>
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span>{log.user_name}</span>
+                        <span>{formatDate(log.created_at, true)}</span>
+                      </div>
+                    </div>
                   ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Mobile Cards */}
-            <div className="md:hidden divide-y divide-border">
-              {filteredLogs.map((log) => (
-                <div
-                  key={log.id}
-                  role="button"
-                  tabIndex={0}
-                  className="p-4 space-y-3 cursor-pointer hover:bg-muted transition-colors focus:outline-none focus:ring-2 focus:ring-accent/20"
-                  onClick={() => setSelectedLog(log)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault()
-                      setSelectedLog(log)
-                    }
-                  }}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span
-                      className={cn(
-                        'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium',
-                        getActionColor(log.action)
-                      )}
-                    >
-                      {getActionIcon(log.action)}
-                      {log.human_readable_description || log.action}
-                    </span>
-                    {getSeverityBadge(log.severity || 'normal')}
-                  </div>
-                  <p className="text-sm text-foreground line-clamp-2">
-                    {log.human_readable_details || '—'}
-                  </p>
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>{log.user_name}</span>
-                    <span>{formatDate(log.created_at, true)}</span>
-                  </div>
                 </div>
-              ))}
-            </div>
-          </>
-        )}
+              </>
+            )}
 
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 py-3 border-t border-border">
-            <div className="text-sm text-muted-foreground">
-              {(page - 1) * 20 + 1}—{' '}
-              {Math.min(page * 20, paginationTotal)}{' '}
-              {t('common.of')} {paginationTotal}
-            </div>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="p-2 rounded-lg hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] min-w-[44px] flex items-center justify-center"
-                aria-label={t('common.back')}
-              >
-                <ChevronLeft className="w-5 h-5 text-foreground" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-                className="p-2 rounded-lg hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] min-w-[44px] flex items-center justify-center"
-                aria-label={t('common.next')}
-              >
-                <ChevronRight className="w-5 h-5 text-foreground" />
-              </button>
-            </div>
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 py-3 border-t border-border">
+                <div className="text-sm text-muted-foreground">
+                  {(page - 1) * 20 + 1}—{' '}
+                  {Math.min(page * 20, paginationTotal)}{' '}
+                  {t('common.of')} {paginationTotal}
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                    className="p-2 rounded-lg hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] min-w-[44px] flex items-center justify-center"
+                    aria-label={t('common.back')}
+                  >
+                    <ChevronLeft className="w-5 h-5 text-foreground" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={page === totalPages}
+                    className="p-2 rounded-lg hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] min-w-[44px] flex items-center justify-center"
+                    aria-label={t('common.next')}
+                  >
+                    <ChevronRight className="w-5 h-5 text-foreground" />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
-        )}
-      </div>
 
-        {/* Details Modal */}
-        {selectedLog && (
-          <AuditDetailsModal
-            log={selectedLog}
-            onClose={() => setSelectedLog(null)}
+          {/* Details Modal */}
+          {selectedLog && (
+            <AuditDetailsModal
+              log={selectedLog}
+              onClose={() => setSelectedLog(null)}
+            />
+          )}
+        </div>
+
+        {/* Export Progress Notification */}
+        {exportProgress.status && (
+          <ExportProgress
+            status={exportProgress.status}
+            filename={exportProgress.filename}
+            onDismiss={dismissExportProgress}
           />
         )}
-      </div>
-
-      {/* Export Progress Notification */}
-      {exportProgress.status && (
-        <ExportProgress
-          status={exportProgress.status}
-          filename={exportProgress.filename}
-          onDismiss={dismissExportProgress}
-        />
-      )}
-    </PageContainer>
+      </PageContainer>
     </AnimatedPage>
   )
 }

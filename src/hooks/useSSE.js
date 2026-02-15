@@ -13,6 +13,7 @@
  */
 
 import { useEffect, useRef, useState, useCallback } from 'react'
+import { logInfo, logError, logWarn } from '../utils/logger'
 
 // Connection states
 export const SSE_STATE = {
@@ -27,36 +28,36 @@ export const SSE_EVENTS = {
   // System events
   CONNECTED: 'connected',
   INIT: 'init',
-  
+
   // Branding & Settings
   BRANDING_UPDATE: 'branding-update',
   SETTINGS_UPDATE: 'settings-update',
-  
+
   // Inventory (Products)
   PRODUCT_CREATED: 'product-created',
   PRODUCT_UPDATED: 'product-updated',
   PRODUCT_DELETED: 'product-deleted',
-  
+
   // Batches
   BATCH_ADDED: 'batch-added',
   BATCH_UPDATED: 'batch-updated',
-  
+
   // Write-offs
   WRITE_OFF: 'write-off',
   BULK_WRITE_OFF: 'bulk-write-off',
-  
+
   // Expiry alerts
   EXPIRING_CRITICAL: 'expiring-critical',
   EXPIRING_WARNING: 'expiring-warning',
   EXPIRED: 'expired',
-  
+
   // Users (admins only)
   USER_ONLINE: 'user-online',
   USER_OFFLINE: 'user-offline',
-  
+
   // Dashboard
   STATS_UPDATE: 'stats-update',
-  
+
   // Generic notifications
   NOTIFICATION: 'notification'
 }
@@ -85,7 +86,7 @@ export function useSSE(options = {}) {
   const [state, setState] = useState(SSE_STATE.DISCONNECTED)
   const [lastEvent, setLastEvent] = useState(null)
   const [connectionInfo, setConnectionInfo] = useState(null)
-  
+
   const eventSourceRef = useRef(null)
   const handlersRef = useRef(handlers)
   const reconnectAttemptRef = useRef(0)
@@ -136,7 +137,7 @@ export function useSSE(options = {}) {
 
     const url = getSSEUrl()
     if (!url) {
-      console.warn('[SSE] No auth token, skipping connection')
+      logWarn('[SSE] No auth token, skipping connection')
       return
     }
 
@@ -146,7 +147,7 @@ export function useSSE(options = {}) {
     }
 
     setState(SSE_STATE.CONNECTING)
-    console.log('[SSE] Connecting...', url.split('?')[0])
+    logInfo('[SSE] Connecting...', url.split('?')[0])
 
     try {
       // withCredentials: true — отправка httpOnly cookie (freshtrack_token) для авторизации на проде
@@ -156,7 +157,7 @@ export function useSSE(options = {}) {
       // Connection opened
       eventSource.onopen = () => {
         if (!mountedRef.current) return
-        console.log('[SSE] Connection opened')
+        logInfo('[SSE] Connection opened')
         reconnectAttemptRef.current = 0
       }
 
@@ -165,13 +166,13 @@ export function useSSE(options = {}) {
         if (!mountedRef.current) return
         try {
           const data = JSON.parse(e.data)
-          console.log('[SSE] Connected:', data)
+          logInfo('[SSE] Connected:', data)
           setState(SSE_STATE.CONNECTED)
           setConnectionInfo(data)
           setLastEvent({ event: 'connected', data, time: new Date() })
           onConnect?.(data)
         } catch (err) {
-          console.error('[SSE] Parse error:', err)
+          logError('[SSE] Parse error:', err)
         }
       })
 
@@ -180,11 +181,11 @@ export function useSSE(options = {}) {
         if (!mountedRef.current) return
         try {
           const data = JSON.parse(e.data)
-          console.log('[SSE] Init:', data)
+          logInfo('[SSE] Init:', data)
           setConnectionInfo(prev => ({ ...prev, ...data }))
           handlersRef.current.onInit?.(data)
         } catch (err) {
-          console.error('[SSE] Parse error:', err)
+          logError('[SSE] Parse error:', err)
         }
       })
 
@@ -221,22 +222,22 @@ export function useSSE(options = {}) {
           if (!mountedRef.current) return
           try {
             const data = JSON.parse(e.data)
-            console.log(`[SSE] Event [${eventType}]:`, data)
+            logInfo(`[SSE] Event [${eventType}]:`, data)
             setLastEvent({ event: eventType, data, time: new Date() })
-            
+
             // Call specific handler if exists
             // Convert event-name to camelCase: 'branding-update' → 'onBrandingUpdate'
             const handlerName = 'on' + eventType
               .split('-')
-              .map((word, i) => word.charAt(0).toUpperCase() + word.slice(1))
+              .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
               .join('')
-            
+
             handlersRef.current[handlerName]?.(data)
-            
+
             // Also call generic handler
             handlersRef.current.onEvent?.(eventType, data)
           } catch (err) {
-            console.error(`[SSE] Parse error for ${eventType}:`, err)
+            logError(`[SSE] Parse error for ${eventType}:`, err)
           }
         })
       })
@@ -244,24 +245,24 @@ export function useSSE(options = {}) {
       // Handle errors (401 / сеть — не зацикливать переподключения)
       eventSource.onerror = (e) => {
         if (!mountedRef.current) return
-        console.warn('[SSE] Connection error:', e)
-        
+        logWarn('[SSE] Connection error:', e)
+
         setState(SSE_STATE.ERROR)
         onError?.(e)
-        
+
         eventSource.close()
         eventSourceRef.current = null
-        
+
         reconnectAttemptRef.current++
         if (reconnectAttemptRef.current > MAX_RECONNECT_ATTEMPTS) {
-          console.warn('[SSE] Max reconnect attempts reached, stopping')
+          logWarn('[SSE] Max reconnect attempts reached, stopping')
           onDisconnect?.()
           return
         }
-        
+
         const delay = getReconnectDelay()
-        console.log(`[SSE] Reconnecting in ${delay}ms (attempt ${reconnectAttemptRef.current}/${MAX_RECONNECT_ATTEMPTS})`)
-        
+        logInfo(`[SSE] Reconnecting in ${delay}ms (attempt ${reconnectAttemptRef.current}/${MAX_RECONNECT_ATTEMPTS})`)
+
         reconnectTimeoutRef.current = setTimeout(() => {
           if (mountedRef.current && enabled) {
             connect()
@@ -272,7 +273,7 @@ export function useSSE(options = {}) {
       }
 
     } catch (error) {
-      console.error('[SSE] Failed to create EventSource:', error)
+      logError('[SSE] Failed to create EventSource:', error)
       setState(SSE_STATE.ERROR)
       onError?.(error)
     }
@@ -297,7 +298,7 @@ export function useSSE(options = {}) {
       mountedRef.current = false
       disconnect()
     }
-  }, [enabled]) // Only re-run if enabled changes
+  }, [enabled, connect, disconnect])
 
   return {
     state,

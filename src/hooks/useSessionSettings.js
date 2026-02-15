@@ -24,7 +24,7 @@ export function useSessionSettings(isAuthenticated) {
     if (!isAuthenticated) {
       setSettings(DEFAULT_SETTINGS)
       setLoading(false)
-      return
+      return undefined
     }
 
     let cancelled = false

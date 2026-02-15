@@ -9,6 +9,7 @@ import de from '../locales/de.json'
 import es from '../locales/es.json'
 import it from '../locales/it.json'
 import ar from '../locales/ar.json'
+import { logWarn } from '../utils/logger'
 
 const LanguageContext = createContext(null)
 
@@ -73,7 +74,7 @@ export function LanguageProvider({ children }) {
           value = value[k]
         } else {
           // Если перевод не найден, возвращаем ключ
-          console.warn(`Translation not found: ${key}`)
+          logWarn(`Translation not found for key: ${key} in language: ${language}`)
           return key
         }
       }

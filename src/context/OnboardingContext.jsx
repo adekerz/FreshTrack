@@ -73,6 +73,7 @@ export function OnboardingProvider({ children }) {
       }, 1000)
       return () => clearTimeout(timer)
     }
+    return undefined
   }, [hasCompleted])
 
   const startOnboarding = useCallback(() => {

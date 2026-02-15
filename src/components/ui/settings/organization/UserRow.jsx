@@ -13,7 +13,7 @@ export default function UserRow({
   onToggleStatus,
   onDelete,
   getRoleBadge,
-  t
+  t: _t
 }) {
   const isOnline = (user.id === currentUserId) ||
     (user.last_login && (new Date() - new Date(user.last_login) < 60 * 60 * 1000))

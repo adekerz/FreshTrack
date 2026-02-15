@@ -21,7 +21,7 @@ const locales = { ru, en: enUS, kk }
 export default function CalendarPage() {
   const { t, language } = useTranslation()
   const { batches, departments } = useProducts()
-  const { user, isStaff } = useAuth()
+  const { isStaff } = useAuth()
 
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState(new Date())

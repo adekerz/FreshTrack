@@ -6,6 +6,7 @@
  * Если timeoutMinutes === 0 — автовыход отключён.
  */
 
+import { logInfo } from '../utils/logger'
 import { useEffect, useRef, useCallback } from 'react'
 
 const ACTIVITY_EVENTS = ['mousemove', 'keydown', 'scroll', 'touchstart', 'click']
@@ -16,7 +17,7 @@ const THROTTLE_MS = 1000
 export function useAutoLogout({ timeoutMinutes, logout, isAuthenticated }) {
   const timerRef = useRef(null)
   const lastActivityRef = useRef(Date.now())
-  const throttleRef = useRef(null)
+  const _throttleRef = useRef(null)
 
   const clearTimer = useCallback(() => {
     if (timerRef.current) {
@@ -29,7 +30,7 @@ export function useAutoLogout({ timeoutMinutes, logout, isAuthenticated }) {
     if (!timeoutMinutes || timeoutMinutes <= 0) return
     clearTimer()
     timerRef.current = setTimeout(() => {
-      console.info('[AutoLogout] Выход по неактивности')
+      logInfo('Auto logout due to inactivity')
       logout()
     }, timeoutMinutes * 60 * 1000)
   }, [timeoutMinutes, logout, clearTimer])
@@ -46,7 +47,7 @@ export function useAutoLogout({ timeoutMinutes, logout, isAuthenticated }) {
     // Не запускаем если пользователь не авторизован или таймаут отключён
     if (!isAuthenticated || !timeoutMinutes || timeoutMinutes <= 0) {
       clearTimer()
-      return
+      return undefined
     }
 
     // Запускаем начальный таймер

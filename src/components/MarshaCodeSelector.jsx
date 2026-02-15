@@ -7,8 +7,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useTranslation } from '../context/LanguageContext'
 import { apiFetch } from '../services/api'
-import { Search, Check, X, ChevronDown, Building2, MapPin, Globe, AlertCircle } from 'lucide-react'
+import { Search, X, ChevronDown, Building2, MapPin, Globe, AlertCircle } from 'lucide-react'
 import { InlineLoader } from './ui'
+import { logError } from '../utils/logger'
 
 /**
  * @param {Object} props
@@ -65,7 +66,7 @@ export default function MarshaCodeSelector({
     if (hotelName && hotelName.length >= 3 && !selectedCode) {
       fetchSuggestions(hotelName)
     }
-  }, [hotelName, selectedCode, usePublicApi])
+  }, [hotelName, selectedCode, fetchSuggestions])
 
   // Загрузка деталей выбранного кода
   useEffect(() => {
@@ -74,30 +75,30 @@ export default function MarshaCodeSelector({
     } else {
       setSelectedDetails(null)
     }
-  }, [selectedCode, usePublicApi])
+  }, [selectedCode, fetchCodeDetails])
 
   // Определяем базовый путь API в зависимости от режима
   const apiBasePath = usePublicApi ? '/marsha-codes/public' : '/marsha-codes'
 
-  const fetchSuggestions = async (name) => {
+  const fetchSuggestions = useCallback(async (name) => {
     try {
       const data = await apiFetch(`${apiBasePath}/suggest?hotelName=${encodeURIComponent(name)}`)
       setSuggestions(data.suggestions || [])
     } catch (error) {
-      console.error('Failed to fetch suggestions:', error)
+      logError('Failed to fetch suggestions:', error)
     }
-  }
+  }, [apiBasePath])
 
-  const fetchCodeDetails = async (code) => {
+  const fetchCodeDetails = useCallback(async (code) => {
     try {
       const data = await apiFetch(`${apiBasePath}/${code}`)
       setSelectedDetails(data.marshaCode || null)
       setError(null)
     } catch (err) {
-      console.error('Failed to fetch code details:', err)
+      logError('Failed to fetch code details:', err)
       setSelectedDetails(null)
     }
-  }
+  }, [apiBasePath, t])
 
   const handleSearch = useCallback(
     (query) => {
@@ -115,14 +116,12 @@ export default function MarshaCodeSelector({
       debounceRef.current = setTimeout(async () => {
         setLoading(true)
         try {
-          console.log('[MarshaCodeSelector] Searching for:', query, 'Public API:', usePublicApi)
           const data = await apiFetch(
             `${apiBasePath}/search?q=${encodeURIComponent(query)}&limit=10`
           )
-          console.log('[MarshaCodeSelector] Search results:', data)
           setSearchResults(data.results || [])
         } catch (error) {
-          console.error('[MarshaCodeSelector] Search failed:', error)
+          logError('MarshaCodeSelector search failed:', error)
           setSearchResults([])
         } finally {
           setLoading(false)
@@ -195,10 +194,9 @@ export default function MarshaCodeSelector({
       disabled={code.is_assigned}
       className={`
         w-full text-left p-3 rounded-lg transition-colors
-        ${
-          code.is_assigned
-            ? 'bg-muted/50 cursor-not-allowed opacity-60'
-            : 'hover:bg-accent/10 cursor-pointer'
+        ${code.is_assigned
+          ? 'bg-muted/50 cursor-not-allowed opacity-60'
+          : 'hover:bg-accent/10 cursor-pointer'
         }
       `}
     >

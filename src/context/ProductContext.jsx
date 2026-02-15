@@ -12,9 +12,9 @@
 import { createContext, useContext, useMemo, useCallback, useEffect, useRef } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { getBatchStatus } from '../utils/dateUtils'
-import { logDebug, logWarn, logError } from '../utils/logger'
-import { useHotel } from './HotelContext'
 import { useAuth } from './AuthContext'
+import { useHotel } from './HotelContext'
+import { logDebug, logError } from '../utils/logger'
 import { invalidateInventoryQueries } from '../lib/queryClient'
 import {
   useInventoryData,
@@ -95,7 +95,7 @@ export function ProductProvider({ children }) {
     }
 
     prevHotelIdRef.current = selectedHotelId
-  }, [selectedHotelId, hotelLoading, user?.status, queryClient])
+  }, [selectedHotelId, hotelLoading, user?.status, user?.role, user?.hotel_id, queryClient])
 
   // === BUILD CATALOG from React Query data ===
   // Построение каталога из загруженных данных (мемоизировано для оптимизации)
@@ -352,7 +352,7 @@ export function ProductProvider({ children }) {
 
           // Show products even if they don't have active batches yet
           // This allows users to see newly created products and add batches to them
-          if (true) {
+          {
             products.push({
               ...product,
               categoryId,

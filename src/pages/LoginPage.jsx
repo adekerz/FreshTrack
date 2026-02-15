@@ -47,7 +47,7 @@ export default function LoginPage() {
           setLoginBranding(data.loginBranding)
         }
       } catch (error) {
-        console.error('Failed to load login branding:', error)
+        // Failed to load login branding - use defaults
         // Use defaults on error
       } finally {
         setBrandingLoading(false)

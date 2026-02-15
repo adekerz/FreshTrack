@@ -4,27 +4,10 @@
 
 import { useState } from 'react'
 import { X, Plus, Check } from 'lucide-react'
-import { useTranslation } from '../../../../context/LanguageContext'
 import MarshaCodeSelector from '../../../MarshaCodeSelector'
 import { CityAutocomplete } from '../../../hotels/CityAutocomplete'
-import { ButtonLoader } from '../..'
 import { cn } from '../../../../utils/classNames'
 
-function getCountryCodeFromName(countryName) {
-  if (!countryName || typeof countryName !== 'string') return null
-  const name = countryName.trim()
-  const map = {
-    Kazakhstan: 'KZ', 'United Kingdom': 'GB', France: 'FR', Germany: 'DE',
-    Spain: 'ES', Italy: 'IT', Netherlands: 'NL', Belgium: 'BE', Austria: 'AT',
-    Switzerland: 'CH', Portugal: 'PT', 'Czech Republic': 'CZ', Poland: 'PL',
-    Greece: 'GR', Turkey: 'TR', Sweden: 'SE', Denmark: 'DK', Norway: 'NO',
-    Finland: 'FI', UAE: 'AE', 'Saudi Arabia': 'SA', Qatar: 'QA', Kuwait: 'KW',
-    Bahrain: 'BH', Oman: 'OM', Jordan: 'JO', Israel: 'IL', Egypt: 'EG',
-    'South Africa': 'ZA', Morocco: 'MA', Kenya: 'KE', Nigeria: 'NG', Ghana: 'GH',
-    Australia: 'AU', 'New Zealand': 'NZ', USA: 'US', 'United States': 'US'
-  }
-  return map[name] || null
-}
 
 export default function CreateHotelModal({
   isOpen,

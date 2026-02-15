@@ -50,7 +50,7 @@ export default function CollectionHistoryPage() {
   const { t } = useTranslation()
   const { isHotelAdmin, hasPermission } = useAuth()
   const { departments } = useProducts()
-  const { selectedHotelId, selectedHotel } = useHotel()
+  const { selectedHotelId } = useHotel()
   const { exportProgress, dismissExportProgress } = useExport()
   const [showFilters, setShowFilters] = useState(false)
   const [filters, setFilters] = useState({

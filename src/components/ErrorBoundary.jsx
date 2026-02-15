@@ -20,10 +20,12 @@ function isAdminUser() {
   return false
 }
 
+import { logError } from '../utils/logger'
+
 class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props)
-    this.state = { hasError: false, error: null, errorInfo: null }
+    this.state = { hasError: false, error: null }
   }
 
   static getDerivedStateFromError(error) {
@@ -31,12 +33,7 @@ class ErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    this.setState({ errorInfo })
-
-    // Log error in development only
-    if (import.meta.env.DEV) {
-      console.error('ErrorBoundary caught error:', error, errorInfo)
-    }
+    logError('ErrorBoundary caught an error', { error, errorInfo })
 
     // TODO: Send to error monitoring service in production
     // e.g., Sentry.captureException(error, { extra: errorInfo })

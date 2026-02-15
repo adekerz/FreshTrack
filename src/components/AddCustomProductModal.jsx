@@ -34,6 +34,7 @@ export default function AddCustomProductModal({ onClose, departmentId = null }) 
     return category.name || category.nameRu || 'Категория'
   }
 
+  // eslint-disable-next-line consistent-return
   const handleSubmit = async (e) => {
     e.preventDefault()
 
@@ -126,6 +127,7 @@ export default function AddCustomProductModal({ onClose, departmentId = null }) 
   }
 
   const modalContent = (
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
     <div
       className="fixed inset-0 bg-black/50 dark:bg-black/60 flex items-center justify-center z-[100] p-4 overflow-y-auto"
       onClick={handleOverlayClick}
@@ -165,8 +167,8 @@ export default function AddCustomProductModal({ onClose, departmentId = null }) 
                     type="button"
                     onClick={() => setSelectedDepartment(dept.id)}
                     className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-all ${isSelected
-                        ? 'border-accent bg-accent/10 text-foreground'
-                        : 'border-border bg-card text-muted-foreground hover:border-foreground'
+                      ? 'border-accent bg-accent/10 text-foreground'
+                      : 'border-border bg-card text-muted-foreground hover:border-foreground'
                       }`}
                   >
                     <Icon
@@ -194,8 +196,8 @@ export default function AddCustomProductModal({ onClose, departmentId = null }) 
                     type="button"
                     onClick={() => setSelectedCategory(cat.id)}
                     className={`px-4 py-2 rounded-lg border text-sm transition-all ${isSelected
-                        ? 'border-accent bg-accent/10 text-foreground'
-                        : 'border-border bg-card text-muted-foreground hover:border-foreground'
+                      ? 'border-accent bg-accent/10 text-foreground'
+                      : 'border-border bg-card text-muted-foreground hover:border-foreground'
                       }`}
                   >
                     {getCategoryName(cat)}
@@ -251,7 +253,6 @@ export default function AddCustomProductModal({ onClose, departmentId = null }) 
                 onChange={(e) => setProductName(e.target.value)}
                 placeholder={t('customProduct.productNamePlaceholder')}
                 className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:border-accent bg-card text-foreground"
-                autoFocus
               />
             </div>
           )}

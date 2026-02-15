@@ -10,7 +10,7 @@ import { useHotel } from '../context/HotelContext'
 import { cn } from '../utils/classNames'
 
 export default function HotelSelector({ className = '' }) {
-  const { hotels, selectedHotel, selectHotel, canSelectHotel, loading, isSuperAdmin } = useHotel()
+  const { hotels, selectedHotel, selectHotel, loading, isSuperAdmin } = useHotel()
 
   const [isOpen, setIsOpen] = useState(false)
   const dropdownRef = useRef(null)

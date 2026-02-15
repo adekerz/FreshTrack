@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   Bell,
   Plus,
@@ -12,7 +12,8 @@ import {
   MessageSquare,
   Smartphone,
   AlertTriangle,
-  Lock
+  Lock,
+  Clock
 } from 'lucide-react'
 import { useTranslation } from '../context/LanguageContext'
 import { useHotel } from '../context/HotelContext'
@@ -26,8 +27,8 @@ import { ButtonSpinner, SkeletonList } from '../components/ui'
 export default function NotificationRulesPage() {
   const { t } = useTranslation()
   const { addToast } = useToast()
-  const { selectedHotelId, selectedHotel } = useHotel()
-  const { user, isAdmin } = useAuth()
+  const { selectedHotelId } = useHotel()
+  const { isAdmin } = useAuth()
   const [rules, setRules] = useState([])
   const [loading, setLoading] = useState(true)
   const [editingRule, setEditingRule] = useState(null)
@@ -48,10 +49,10 @@ export default function NotificationRulesPage() {
     if (selectedHotelId && isAdmin()) {
       loadRules()
     }
-  }, [selectedHotelId, isAdmin])
+  }, [selectedHotelId, isAdmin, loadRules])
 
   // Нормализуем данные из БД (snake_case) в формат UI
-  const normalizeRule = (dbRule) => ({
+  const normalizeRule = useCallback((dbRule) => ({
     id: dbRule.id,
     name: dbRule.name,
     condition: dbRule.type === 'expiry' ? 'daysToExpiry' : dbRule.type,
@@ -65,9 +66,9 @@ export default function NotificationRulesPage() {
     schedule: 'daily', // schedule не хранится в БД, используем дефолт
     enabled: dbRule.enabled,
     isSystemRule: dbRule.isSystemRule || dbRule.hotel_id === null
-  })
+  }), [])
 
-  const loadRules = async () => {
+  const loadRules = useCallback(async () => {
     setLoading(true)
     try {
       const data = await apiFetch('/notification-rules/')
@@ -81,7 +82,7 @@ export default function NotificationRulesPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [addToast, t, normalizeRule])
 
   // Сохранение отдельного правила через POST /notification-rules/rules
   const saveRule = async (ruleData) => {
@@ -267,267 +268,267 @@ export default function NotificationRulesPage() {
       }
     >
       <div className="space-y-6">
-      {/* Rules List */}
-      <div className="bg-card rounded-xl shadow-lg overflow-hidden">
-        {rules.length === 0 ? (
-          <div className="p-8 text-center">
-            <AlertTriangle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-muted-foreground">{t('notificationRules.noRules')}</p>
-          </div>
-        ) : (
-          <div className="divide-y divide-border">
-            {rules.map((rule) => (
-              <div
-                key={rule.id}
-                className={cn(
-                  'p-4 md:p-6 flex flex-col md:flex-row md:items-center gap-4',
-                  !rule.enabled && 'opacity-50'
-                )}
-              >
-                {/* Rule Info */}
-                <div className="flex-1">
-                  <div className="flex items-center gap-3">
-                    <h3 className="font-semibold text-foreground">{rule.name}</h3>
-                    <span
-                      className={cn(
-                        'px-2 py-0.5 rounded-full text-xs font-medium',
-                        rule.enabled
-                          ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                          : 'bg-muted text-muted-foreground'
-                      )}
-                    >
-                      {rule.enabled
-                        ? t('notificationRules.enabled')
-                        : t('notificationRules.disabled')}
-                    </span>
-                  </div>
-
-                  <div className="mt-2 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <AlertTriangle className="w-4 h-4" />
-                      {getConditionLabel(rule.condition)}: {rule.threshold}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Clock className="w-4 h-4" />
-                      {getScheduleLabel(rule.schedule)}
-                    </span>
-                  </div>
-
-                  {/* Channels */}
-                  <div className="mt-3 flex gap-2">
-                    {rule.channels.map((channel) => (
+        {/* Rules List */}
+        <div className="bg-card rounded-xl shadow-lg overflow-hidden">
+          {rules.length === 0 ? (
+            <div className="p-8 text-center">
+              <AlertTriangle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-muted-foreground">{t('notificationRules.noRules')}</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-border">
+              {rules.map((rule) => (
+                <div
+                  key={rule.id}
+                  className={cn(
+                    'p-4 md:p-6 flex flex-col md:flex-row md:items-center gap-4',
+                    !rule.enabled && 'opacity-50'
+                  )}
+                >
+                  {/* Rule Info */}
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3">
+                      <h3 className="font-semibold text-foreground">{rule.name}</h3>
                       <span
+                        className={cn(
+                          'px-2 py-0.5 rounded-full text-xs font-medium',
+                          rule.enabled
+                            ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                            : 'bg-muted text-muted-foreground'
+                        )}
+                      >
+                        {rule.enabled
+                          ? t('notificationRules.enabled')
+                          : t('notificationRules.disabled')}
+                      </span>
+                    </div>
+
+                    <div className="mt-2 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <AlertTriangle className="w-4 h-4" />
+                        {getConditionLabel(rule.condition)}: {rule.threshold}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Clock className="w-4 h-4" />
+                        {getScheduleLabel(rule.schedule)}
+                      </span>
+                    </div>
+
+                    {/* Channels */}
+                    <div className="mt-3 flex gap-2">
+                      {rule.channels.map((channel) => (
+                        <span
+                          key={channel}
+                          className="inline-flex items-center gap-1 px-2 py-1 bg-muted rounded text-xs"
+                        >
+                          {getChannelIcon(channel)}
+                          {channel === 'email' && t('notificationRules.email')}
+                          {channel === 'telegram' && t('notificationRules.telegram')}
+                          {channel === 'push' && t('notificationRules.push')}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleToggleRule(rule.id)}
+                      className="p-2 rounded-lg hover:bg-muted transition-colors"
+                      title={rule.enabled ? 'Disable' : 'Enable'}
+                    >
+                      {rule.enabled ? (
+                        <ToggleRight className="w-6 h-6 text-green-500" />
+                      ) : (
+                        <ToggleLeft className="w-6 h-6 text-gray-400" />
+                      )}
+                    </button>
+                    <button
+                      onClick={() => handleEditRule(rule)}
+                      className="p-2 rounded-lg hover:bg-muted transition-colors"
+                    >
+                      <Edit2 className="w-5 h-5 text-gray-500" />
+                    </button>
+                    {/* Системные правила нельзя удалять */}
+                    {!rule.isSystemRule && (
+                      <button
+                        onClick={() => handleDeleteRule(rule.id, rule.name)}
+                        className="p-2 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
+                      >
+                        <Trash2 className="w-5 h-5 text-red-500" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Edit/Add Modal */}
+        {showForm && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-card rounded-xl shadow-xl w-full max-w-md">
+              <div className="flex items-center justify-between p-4 border-b dark:border-gray-700">
+                <h2 className="text-lg font-semibold text-foreground">
+                  {editingRule ? t('notificationRules.editRule') : t('notificationRules.addRule')}
+                </h2>
+                <button onClick={() => setShowForm(false)} className="p-1 hover:bg-muted rounded">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="p-4 space-y-4">
+                {/* Rule Name */}
+                <div>
+                  <label className="block text-sm font-medium text-muted-foreground mb-1">
+                    {t('notificationRules.ruleName')}
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="w-full px-3 py-2 border border-border rounded-lg bg-card text-foreground"
+                    placeholder="Введите название..."
+                  />
+                </div>
+
+                {/* Condition */}
+                <div>
+                  <label className="block text-sm font-medium text-muted-foreground mb-1">
+                    {t('notificationRules.condition')}
+                  </label>
+                  <select
+                    value={formData.condition}
+                    onChange={(e) => setFormData({ ...formData, condition: e.target.value })}
+                    className="w-full px-3 py-2 border border-border rounded-lg bg-card text-foreground"
+                  >
+                    <option value="daysToExpiry">
+                      {t('notificationRules.conditions.daysToExpiry')}
+                    </option>
+                    <option value="quantity">{t('notificationRules.conditions.quantity')}</option>
+                    <option value="newExpired">{t('notificationRules.conditions.newExpired')}</option>
+                  </select>
+                </div>
+
+                {/* Threshold */}
+                <div>
+                  <label className="block text-sm font-medium text-muted-foreground mb-1">
+                    {t('notificationRules.threshold')}
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.threshold}
+                    onChange={(e) =>
+                      setFormData({ ...formData, threshold: parseInt(e.target.value) || 0 })
+                    }
+                    className="w-full px-3 py-2 border border-border rounded-lg bg-card text-foreground"
+                    min="0"
+                  />
+                </div>
+
+                {/* Schedule */}
+                <div>
+                  <label className="block text-sm font-medium text-muted-foreground mb-1">
+                    {t('notificationRules.schedule')}
+                  </label>
+                  <select
+                    value={formData.schedule}
+                    onChange={(e) => setFormData({ ...formData, schedule: e.target.value })}
+                    className="w-full px-3 py-2 border border-border rounded-lg bg-card text-foreground"
+                  >
+                    <option value="immediate">{t('notificationRules.immediate')}</option>
+                    <option value="daily">{t('notificationRules.daily')}</option>
+                    <option value="weekly">{t('notificationRules.weekly')}</option>
+                  </select>
+                </div>
+
+                {/* Channels */}
+                <div>
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">
+                    {t('notificationRules.channels')}
+                  </label>
+                  <div className="flex gap-2">
+                    {['email', 'telegram', 'push'].map((channel) => (
+                      <button
                         key={channel}
-                        className="inline-flex items-center gap-1 px-2 py-1 bg-muted rounded text-xs"
+                        onClick={() => toggleChannel(channel)}
+                        className={cn(
+                          'flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors',
+                          formData.channels.includes(channel)
+                            ? 'bg-primary-100 border-primary-500 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400'
+                            : 'border-border text-muted-foreground'
+                        )}
                       >
                         {getChannelIcon(channel)}
                         {channel === 'email' && t('notificationRules.email')}
                         {channel === 'telegram' && t('notificationRules.telegram')}
                         {channel === 'push' && t('notificationRules.push')}
-                      </span>
+                      </button>
                     ))}
                   </div>
                 </div>
+              </div>
 
-                {/* Actions */}
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => handleToggleRule(rule.id)}
-                    className="p-2 rounded-lg hover:bg-muted transition-colors"
-                    title={rule.enabled ? 'Disable' : 'Enable'}
-                  >
-                    {rule.enabled ? (
-                      <ToggleRight className="w-6 h-6 text-green-500" />
-                    ) : (
-                      <ToggleLeft className="w-6 h-6 text-gray-400" />
-                    )}
-                  </button>
-                  <button
-                    onClick={() => handleEditRule(rule)}
-                    className="p-2 rounded-lg hover:bg-muted transition-colors"
-                  >
-                    <Edit2 className="w-5 h-5 text-gray-500" />
-                  </button>
-                  {/* Системные правила нельзя удалять */}
-                  {!rule.isSystemRule && (
-                    <button
-                      onClick={() => handleDeleteRule(rule.id, rule.name)}
-                      className="p-2 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
-                    >
-                      <Trash2 className="w-5 h-5 text-red-500" />
-                    </button>
-                  )}
+              <div className="flex justify-end gap-2 p-4 border-t dark:border-gray-700">
+                <button
+                  onClick={() => setShowForm(false)}
+                  className="px-4 py-2 text-muted-foreground hover:bg-muted rounded-lg transition-colors"
+                >
+                  {t('common.cancel')}
+                </button>
+                <button
+                  onClick={handleSaveRule}
+                  disabled={!formData.name.trim()}
+                  className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <Save className="w-4 h-4" />
+                  {t('common.save')}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Модальное окно подтверждения удаления */}
+        {deleteConfirm && (
+          <div className="fixed inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
+            <div className="bg-card rounded-xl p-6 max-w-sm w-full mx-4 shadow-xl animate-slide-up">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-14 h-14 rounded-full bg-danger/10 flex items-center justify-center animate-danger-pulse">
+                  <AlertTriangle className="w-7 h-7 text-danger animate-danger-shake" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-foreground">
+                    {t('notificationRules.deleteTitle') || 'Удалить правило?'}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">{deleteConfirm.name}</p>
                 </div>
               </div>
-            ))}
+              <p className="text-sm text-muted-foreground mb-6">
+                {t('notificationRules.deleteWarning') || 'Это действие нельзя отменить.'}
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setDeleteConfirm(null)}
+                  disabled={deleting}
+                  className="flex-1 px-4 py-2 border border-border rounded-lg text-foreground hover:bg-muted disabled:opacity-50"
+                >
+                  {t('common.cancel') || 'Отмена'}
+                </button>
+                <button
+                  onClick={handleConfirmDelete}
+                  disabled={deleting}
+                  className="flex-1 px-4 py-2 bg-danger text-white rounded-lg hover:bg-danger/90 disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {deleting ? <ButtonSpinner /> : <Trash2 className="w-4 h-4" />}
+                  {t('common.delete') || 'Удалить'}
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>
-
-      {/* Edit/Add Modal */}
-      {showForm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-card rounded-xl shadow-xl w-full max-w-md">
-            <div className="flex items-center justify-between p-4 border-b dark:border-gray-700">
-              <h2 className="text-lg font-semibold text-foreground">
-                {editingRule ? t('notificationRules.editRule') : t('notificationRules.addRule')}
-              </h2>
-              <button onClick={() => setShowForm(false)} className="p-1 hover:bg-muted rounded">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="p-4 space-y-4">
-              {/* Rule Name */}
-              <div>
-                <label className="block text-sm font-medium text-muted-foreground mb-1">
-                  {t('notificationRules.ruleName')}
-                </label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-border rounded-lg bg-card text-foreground"
-                  placeholder="Введите название..."
-                />
-              </div>
-
-              {/* Condition */}
-              <div>
-                <label className="block text-sm font-medium text-muted-foreground mb-1">
-                  {t('notificationRules.condition')}
-                </label>
-                <select
-                  value={formData.condition}
-                  onChange={(e) => setFormData({ ...formData, condition: e.target.value })}
-                  className="w-full px-3 py-2 border border-border rounded-lg bg-card text-foreground"
-                >
-                  <option value="daysToExpiry">
-                    {t('notificationRules.conditions.daysToExpiry')}
-                  </option>
-                  <option value="quantity">{t('notificationRules.conditions.quantity')}</option>
-                  <option value="newExpired">{t('notificationRules.conditions.newExpired')}</option>
-                </select>
-              </div>
-
-              {/* Threshold */}
-              <div>
-                <label className="block text-sm font-medium text-muted-foreground mb-1">
-                  {t('notificationRules.threshold')}
-                </label>
-                <input
-                  type="number"
-                  value={formData.threshold}
-                  onChange={(e) =>
-                    setFormData({ ...formData, threshold: parseInt(e.target.value) || 0 })
-                  }
-                  className="w-full px-3 py-2 border border-border rounded-lg bg-card text-foreground"
-                  min="0"
-                />
-              </div>
-
-              {/* Schedule */}
-              <div>
-                <label className="block text-sm font-medium text-muted-foreground mb-1">
-                  {t('notificationRules.schedule')}
-                </label>
-                <select
-                  value={formData.schedule}
-                  onChange={(e) => setFormData({ ...formData, schedule: e.target.value })}
-                  className="w-full px-3 py-2 border border-border rounded-lg bg-card text-foreground"
-                >
-                  <option value="immediate">{t('notificationRules.immediate')}</option>
-                  <option value="daily">{t('notificationRules.daily')}</option>
-                  <option value="weekly">{t('notificationRules.weekly')}</option>
-                </select>
-              </div>
-
-              {/* Channels */}
-              <div>
-                <label className="block text-sm font-medium text-muted-foreground mb-2">
-                  {t('notificationRules.channels')}
-                </label>
-                <div className="flex gap-2">
-                  {['email', 'telegram', 'push'].map((channel) => (
-                    <button
-                      key={channel}
-                      onClick={() => toggleChannel(channel)}
-                      className={cn(
-                        'flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors',
-                        formData.channels.includes(channel)
-                          ? 'bg-primary-100 border-primary-500 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400'
-                          : 'border-border text-muted-foreground'
-                      )}
-                    >
-                      {getChannelIcon(channel)}
-                      {channel === 'email' && t('notificationRules.email')}
-                      {channel === 'telegram' && t('notificationRules.telegram')}
-                      {channel === 'push' && t('notificationRules.push')}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-2 p-4 border-t dark:border-gray-700">
-              <button
-                onClick={() => setShowForm(false)}
-                className="px-4 py-2 text-muted-foreground hover:bg-muted rounded-lg transition-colors"
-              >
-                {t('common.cancel')}
-              </button>
-              <button
-                onClick={handleSaveRule}
-                disabled={!formData.name.trim()}
-                className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                <Save className="w-4 h-4" />
-                {t('common.save')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Модальное окно подтверждения удаления */}
-      {deleteConfirm && (
-        <div className="fixed inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-card rounded-xl p-6 max-w-sm w-full mx-4 shadow-xl animate-slide-up">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-14 h-14 rounded-full bg-danger/10 flex items-center justify-center animate-danger-pulse">
-                <AlertTriangle className="w-7 h-7 text-danger animate-danger-shake" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-foreground">
-                  {t('notificationRules.deleteTitle') || 'Удалить правило?'}
-                </h3>
-                <p className="text-sm text-muted-foreground">{deleteConfirm.name}</p>
-              </div>
-            </div>
-            <p className="text-sm text-muted-foreground mb-6">
-              {t('notificationRules.deleteWarning') || 'Это действие нельзя отменить.'}
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setDeleteConfirm(null)}
-                disabled={deleting}
-                className="flex-1 px-4 py-2 border border-border rounded-lg text-foreground hover:bg-muted disabled:opacity-50"
-              >
-                {t('common.cancel') || 'Отмена'}
-              </button>
-              <button
-                onClick={handleConfirmDelete}
-                disabled={deleting}
-                className="flex-1 px-4 py-2 bg-danger text-white rounded-lg hover:bg-danger/90 disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {deleting ? <ButtonSpinner /> : <Trash2 className="w-4 h-4" />}
-                {t('common.delete') || 'Удалить'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
     </PageContainer>
   )
 }

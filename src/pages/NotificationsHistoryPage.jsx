@@ -52,7 +52,7 @@ const NOTIFICATION_TYPES = {
 
 export default function NotificationsHistoryPage() {
   const { t } = useTranslation()
-  const { selectedHotelId, selectedHotel } = useHotel()
+  const { selectedHotelId } = useHotel()
   const [showFilters, setShowFilters] = useState(false)
   const [filters, setFilters] = useState({
     type: '',

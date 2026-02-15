@@ -11,7 +11,7 @@ export function usePullToRefresh(onRefresh, threshold = 80) {
   const pullDistanceRef = useRef(0)
 
   useEffect(() => {
-    if (!('ontouchstart' in window)) return
+    if (!('ontouchstart' in window)) return undefined
 
     const handleTouchStart = (e) => {
       if (window.scrollY === 0) {

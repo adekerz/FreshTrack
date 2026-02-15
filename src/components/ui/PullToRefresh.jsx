@@ -5,6 +5,7 @@
 
 import { useState, useRef, useCallback } from 'react'
 import { RefreshCw } from 'lucide-react'
+import { logError } from '../../utils/logger'
 import { cn } from '../../utils/classNames'
 
 const PULL_THRESHOLD = 80 // Минимальная дистанция для активации
@@ -24,27 +25,27 @@ export default function PullToRefresh({
 
   const handleTouchStart = useCallback((e) => {
     if (disabled || isRefreshing) return
-    
+
     // Проверяем, что скроллер в самом верху
     const scrollTop = containerRef.current?.scrollTop || window.scrollY
     if (scrollTop > 0) return
-    
+
     startY.current = e.touches[0].clientY
     setIsPulling(true)
   }, [disabled, isRefreshing])
 
   const handleTouchMove = useCallback((e) => {
     if (!isPulling || disabled || isRefreshing) return
-    
+
     const currentY = e.touches[0].clientY
     const diff = currentY - startY.current
-    
+
     if (diff > 0) {
       // Добавляем сопротивление для естественного ощущения
       const resistance = 0.5
       const newDistance = Math.min(MAX_PULL, diff * resistance)
       setPullDistance(newDistance)
-      
+
       // Предотвращаем скролл страницы
       if (newDistance > 10) {
         e.preventDefault()
@@ -54,19 +55,19 @@ export default function PullToRefresh({
 
   const handleTouchEnd = useCallback(async () => {
     if (!isPulling || disabled) return
-    
+
     setIsPulling(false)
-    
+
     if (pullDistance >= PULL_THRESHOLD && onRefresh) {
       setIsRefreshing(true)
-      
+
       // Haptic feedback
       if (navigator.vibrate) navigator.vibrate(20)
-      
+
       try {
         await onRefresh()
       } catch (error) {
-        console.error('Refresh failed:', error)
+        logError('Refresh failed', error)
       } finally {
         setIsRefreshing(false)
         setPullDistance(0)
@@ -116,8 +117,8 @@ export default function PullToRefresh({
               isRefreshing && 'animate-spin'
             )}
             style={{
-              transform: isRefreshing 
-                ? undefined 
+              transform: isRefreshing
+                ? undefined
                 : `rotate(${progress * 180}deg)`
             }}
           />
@@ -128,8 +129,8 @@ export default function PullToRefresh({
       <div
         className="transition-transform duration-200 ease-out"
         style={{
-          transform: isRefreshing 
-            ? 'translateY(60px)' 
+          transform: isRefreshing
+            ? 'translateY(60px)'
             : `translateY(${pullDistance}px)`
         }}
       >

@@ -16,7 +16,7 @@ export function useAuditSSE(enabled = true) {
   const clearNewLogs = useCallback(() => setNewLogs([]), [])
 
   useEffect(() => {
-    if (!enabled) return
+    if (!enabled) return undefined
 
     const url = `${API_BASE_URL}/audit-logs/stream`
 

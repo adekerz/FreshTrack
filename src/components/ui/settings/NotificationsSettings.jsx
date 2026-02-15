@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from '../../../context/LanguageContext'
 import { useToast } from '../../../context/ToastContext'
+import { logError } from '../../../utils/logger'
 import { useHotel } from '../../../context/HotelContext'
 import { apiFetch } from '../../../services/api'
 import {
@@ -94,7 +95,7 @@ export default function NotificationsSettings() {
     try {
       // Загружаем объединённые настройки уведомлений
       const data = await apiFetch('/settings/notifications')
-      
+
       if (data) {
         setSettings((prev) => ({
           ...prev,
@@ -125,7 +126,8 @@ export default function NotificationsSettings() {
           }))
         }
       } catch (fallbackError) {
-        console.warn('Failed to load notification settings:', fallbackError)
+        logError('Failed to load notification settings from fallback', fallbackError)
+        addToast(fallbackError.message || 'Failed to load notification settings', 'error')
       }
     } finally {
       setLoading(false)

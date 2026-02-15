@@ -50,7 +50,7 @@ export default function MobileInventoryCard({
             'cursor-pointer touch-manipulation',
             'active:bg-muted/50 transition-colors'
           )}
-          onClick={(e) => {
+          onClick={() => {
             if (onClick) {
               onClick(item)
             } else {

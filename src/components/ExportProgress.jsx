@@ -26,6 +26,7 @@ export default function ExportProgress({
       const timer = setTimeout(onDismiss, autoDismissDelay)
       return () => clearTimeout(timer)
     }
+    return undefined
   }, [status, onDismiss, autoDismissDelay])
 
   const statusConfig = {

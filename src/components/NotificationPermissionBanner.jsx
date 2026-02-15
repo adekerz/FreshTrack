@@ -34,6 +34,7 @@ export default function NotificationPermissionBanner() {
       const timer = setTimeout(() => setVisible(true), 2000)
       return () => clearTimeout(timer)
     }
+    return undefined
   }, [])
 
   const handleRequestPermission = async () => {

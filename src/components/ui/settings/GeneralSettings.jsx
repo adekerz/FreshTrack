@@ -1,10 +1,14 @@
+
 /**
  * GeneralSettings - Общие настройки системы
  * Региональные параметры, отображение, валюта, сессия
  */
 
 import { useState, useEffect } from 'react'
+import { useAuth } from '../../../context/AuthContext'
+import { useToast } from '../../../context/ToastContext'
 import { useTranslation } from '../../../context/LanguageContext'
+import { logError } from '../../../utils/logger'
 import { Globe, Coins, Clock } from 'lucide-react'
 import SettingsLayout, { SettingsSection } from './SettingsLayout'
 import { Switch } from '..'
@@ -34,13 +38,13 @@ function SwitchRow({ id, checked, onChange, label }) {
       }}
       role="button"
       tabIndex={0}
-      id={id ? `${id}-label` : undefined}
+      id={id ? `${id} -label` : undefined}
     >
       <span className="text-sm text-foreground">{label}</span>
       <Switch
         checked={checked}
         onChange={onChange}
-        aria-labelledby={id ? `${id}-label` : undefined}
+        aria-labelledby={id ? `${id} -label` : undefined}
       />
     </div>
   )
@@ -57,7 +61,7 @@ function SelectField({ id, label, value, onChange, options, hint }) {
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-card text-sm"
-        aria-describedby={hint ? `${id}-hint` : undefined}
+        aria-describedby={hint ? `${id} -hint` : undefined}
       >
         {options.map((opt) => (
           <option key={opt.value} value={opt.value}>
@@ -66,7 +70,7 @@ function SelectField({ id, label, value, onChange, options, hint }) {
         ))}
       </select>
       {hint && (
-        <p id={`${id}-hint`} className="text-xs text-muted-foreground mt-1">
+        <p id={`${id} -hint`} className="text-xs text-muted-foreground mt-1">
           {hint}
         </p>
       )}
@@ -76,6 +80,7 @@ function SelectField({ id, label, value, onChange, options, hint }) {
 
 export default function GeneralSettings() {
   const { t } = useTranslation()
+  const { addToast } = useToast()
   const [loading, setLoading] = useState(true)
   const [initialSettings, setInitialSettings] = useState(defaultSettings)
   const [settings, setSettings] = useState({ ...defaultSettings })
@@ -96,19 +101,28 @@ export default function GeneralSettings() {
         setInitialSettings(next)
       }
     } catch (error) {
-      console.error('Load settings error:', error)
+      logError('Failed to load settings', error)
+      addToast(error.message || 'Failed to load settings', 'error')
     } finally {
       setLoading(false)
     }
   }
 
   const handleSave = async () => {
-    await apiFetch('/settings/general', {
-      method: 'PUT',
-      body: JSON.stringify(settings)
-    })
-    setInitialSettings(settings)
-    return { message: t('settings.saved') || 'Настройки сохранены' }
+    setLoading(true)
+    try {
+      await apiFetch('/settings/general', {
+        method: 'PUT',
+        body: JSON.stringify(settings)
+      })
+      setInitialSettings(settings)
+      addToast(t('settings.saved') || 'Настройки сохранены', 'success')
+    } catch (error) {
+      logError('Failed to save settings', error)
+      addToast(error.message || 'Failed to save settings', 'error')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const updateSetting = (key, value) => {

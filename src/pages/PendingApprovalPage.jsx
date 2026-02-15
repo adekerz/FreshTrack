@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Leaf, Clock, RefreshCw, LogOut, CheckCircle, XCircle, Building2 } from 'lucide-react'
 import { useTranslation } from '../context/LanguageContext'
+import { logInfo, logWarn } from '../utils/logger'
 import { useAuth } from '../context/AuthContext'
 import { apiFetch } from '../services/api'
 import { TouchButton } from '../components/ui'
@@ -25,7 +26,7 @@ export default function PendingApprovalPage() {
     setIsRefreshing(true)
     try {
       const response = await apiFetch('/auth/pending-status')
-      console.log('[PendingApprovalPage] Status response:', response)
+      logInfo('[PendingApprovalPage] Status response:', response)
 
       if (response.success) {
         if (response.status === 'active') {
@@ -65,7 +66,7 @@ export default function PendingApprovalPage() {
       }
       setLastChecked(new Date())
     } catch (err) {
-      console.error('Failed to check status:', err)
+      logWarn('Failed to check status:', err)
       setStatus((prev) => ({ ...prev, loading: false, error: err.message || 'Ошибка сети' }))
     } finally {
       setIsRefreshing(false)
@@ -105,9 +106,20 @@ export default function PendingApprovalPage() {
     }
   }, [status.approved, status.data, updateUser, user?.role])
 
-  const handleLogout = () => {
-    logout()
-    navigate('/login')
+  useEffect(() => {
+    if (user?.status === 'active') {
+      logInfo('User approved, redirecting')
+      navigate('/', { replace: true })
+    }
+  }, [user, navigate])
+
+  const handleLogout = async () => {
+    try {
+      await logout()
+      navigate('/login')
+    } catch (error) {
+      logWarn('Logout failed', error)
+    }
   }
 
   const formatTime = (date) => {

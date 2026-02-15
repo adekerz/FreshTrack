@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /**
  * Per-route Error Boundary
  * Catches errors within route content without hiding navigation.
@@ -7,6 +8,7 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react'
+import { logError } from '../utils/logger'
 
 class RouteErrorBoundary extends React.Component {
   constructor(props) {
@@ -19,6 +21,9 @@ class RouteErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, errorInfo) {
+    // Log the error using logger
+    logError('RouteErrorBoundary caught error', { error, errorInfo })
+
     // In production: send to Sentry via global captureException (if loaded)
     if (import.meta.env.PROD && typeof window !== 'undefined' && window.__SENTRY__) {
       try {
@@ -28,10 +33,6 @@ class RouteErrorBoundary extends React.Component {
       } catch {
         // Sentry SDK not properly initialized — safe to ignore
       }
-    }
-
-    if (import.meta.env.DEV) {
-      console.error('RouteErrorBoundary caught error:', error, errorInfo)
     }
   }
 

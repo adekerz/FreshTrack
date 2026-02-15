@@ -5,7 +5,7 @@
  */
 
 import { useState } from 'react'
-import { Filter, X } from 'lucide-react'
+import { Filter } from 'lucide-react'
 import BottomSheet, { BottomSheetActions, FilterChips } from './ui/BottomSheet'
 import { TouchButton, TouchSelect } from './ui'
 import { cn } from '../utils/classNames'
@@ -18,7 +18,7 @@ export default function FilterBottomSheet({
   setFilters,
   categories = [],
   departments = [],
-  locations = [],
+  locations: _locations = [],
   onApply,
   onClear,
 }) {

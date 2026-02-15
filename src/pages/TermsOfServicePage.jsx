@@ -14,7 +14,7 @@ const LAST_UPDATED = '1 февраля 2024 г.'
 
 export default function TermsOfServicePage() {
   const navigate = useNavigate()
-  const { theme } = useTheme()
+  useTheme()
 
   return (
     <div className="min-h-screen bg-background">

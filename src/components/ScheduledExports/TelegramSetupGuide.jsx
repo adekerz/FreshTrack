@@ -3,7 +3,7 @@
  * Модальное окно с инструкцией по настройке Telegram для scheduled exports
  */
 
-import { X, ExternalLink, Copy, Check } from 'lucide-react'
+import { ExternalLink, Copy, Check } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from '../../context/LanguageContext'
 import { useToast } from '../../context/ToastContext'

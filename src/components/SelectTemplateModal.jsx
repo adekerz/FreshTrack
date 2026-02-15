@@ -17,7 +17,7 @@
 
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { X, Package, Zap } from 'lucide-react'
+import { X, Package } from 'lucide-react'
 import { SectionLoader } from './ui'
 import { useTranslation } from '../context/LanguageContext'
 import { useProducts } from '../context/ProductContext'

@@ -3,7 +3,7 @@
  * Категории товаров и отделы в одной вкладке
  */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from '../../../context/LanguageContext'
 import { useToast } from '../../../context/ToastContext'
 import { useHotel } from '../../../context/HotelContext'
@@ -26,7 +26,7 @@ const TABS = [
 function DepartmentsContent() {
   const { t } = useTranslation()
   const { addToast } = useToast()
-  const { selectedHotelId, selectedHotel } = useHotel()
+  const { selectedHotelId } = useHotel()
   const { refresh: refreshProducts } = useProducts()
   const queryClient = useQueryClient()
 
@@ -46,9 +46,9 @@ function DepartmentsContent() {
     if (selectedHotelId) {
       fetchDepartments()
     }
-  }, [selectedHotelId])
+  }, [selectedHotelId, fetchDepartments])
 
-  const fetchDepartments = async () => {
+  const fetchDepartments = useCallback(async () => {
     setLoading(true)
     try {
       const hotelQuery = selectedHotelId ? `?hotel_id=${selectedHotelId}` : ''
@@ -59,7 +59,7 @@ function DepartmentsContent() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [selectedHotelId, addToast, t])
 
   const addDepartment = async () => {
     if (!newDepartment.name.trim()) {
@@ -144,7 +144,7 @@ function DepartmentsContent() {
     setDeleting(true)
     try {
       const response = await apiFetch(`/departments/${deleteConfirm.id}`, { method: 'DELETE' })
-      
+
       // Success
       if (response.success !== false) {
         addToast(t('settings.departments.deleted') || 'Отдел удалён', 'success')
@@ -158,7 +158,7 @@ function DepartmentsContent() {
       } else {
         // Check for active batches error
         if (response.activeBatches !== undefined && response.activeBatches > 0) {
-          const errorMsg = t('settings.departments.hasActiveBatches', { count: response.activeBatches }) 
+          const errorMsg = t('settings.departments.hasActiveBatches', { count: response.activeBatches })
             || `В отделе есть ${response.activeBatches} активных партий. Сначала очистите отдел от партий.`
           addToast(errorMsg, 'error')
         } else {
@@ -170,7 +170,7 @@ function DepartmentsContent() {
       // Handle network/API errors (400, 404, 500, etc.)
       // Check if error contains activeBatches info (from API response)
       if (error.activeBatches !== undefined && error.activeBatches > 0) {
-        const errorMsg = t('settings.departments.hasActiveBatches', { count: error.activeBatches }) 
+        const errorMsg = t('settings.departments.hasActiveBatches', { count: error.activeBatches })
           || `В отделе есть ${error.activeBatches} активных партий. Сначала очистите отдел от партий.`
         addToast(errorMsg, 'error')
       } else {
@@ -217,7 +217,6 @@ function DepartmentsContent() {
             placeholder={t('settings.departments.namePlaceholder') || 'Название отдела'}
             className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-accent/50"
             disabled={adding}
-            autoFocus
           />
 
           <input
@@ -291,7 +290,6 @@ function DepartmentsContent() {
                       onChange={(e) => setEditName(e.target.value)}
                       placeholder={t('settings.departments.namePlaceholder') || 'Название отдела'}
                       className="w-full px-3 py-1.5 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-accent/50"
-                      autoFocus
                     />
                     <input
                       type="text"

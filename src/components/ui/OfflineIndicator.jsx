@@ -7,8 +7,9 @@
 import { useState, useEffect } from 'react'
 import { WifiOff, Wifi, RefreshCw, AlertCircle } from 'lucide-react'
 import { cn } from '../../utils/classNames'
-import { useTranslation } from '../../context/LanguageContext'
+import { logError } from '../../utils/logger'
 import { useOfflineSync } from '../../lib/offlineSync'
+import { useTranslation } from '../../context/LanguageContext'
 
 export default function OfflineIndicator({ className = '' }) {
   const { t } = useTranslation()
@@ -142,7 +143,7 @@ export function usePendingSync() {
       localStorage.setItem('freshtrack_pending_sync', JSON.stringify(pending))
       window.dispatchEvent(new Event('storage'))
     } catch (error) {
-      console.error('Failed to save pending change:', error)
+      logError('Sync failed', error)
     }
   }
 

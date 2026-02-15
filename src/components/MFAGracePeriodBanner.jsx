@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { API_BASE_URL } from '../services/api'
+import { logError } from '../utils/logger'
 
 export default function MFAGracePeriodBanner() {
   const { user } = useAuth()
@@ -15,16 +16,13 @@ export default function MFAGracePeriodBanner() {
 
   useEffect(() => {
     // MFA баннер отключён на dev (VITE_DISABLE_MFA_IN_DEV=true в .env.local)
-    if (import.meta.env.VITE_DISABLE_MFA_IN_DEV === 'true') return
-
-    // Only show for specific roles
     const requiredRoles = ['SUPER_ADMIN', 'HOTEL_ADMIN', 'DEPARTMENT_MANAGER']
-    if (!user || !requiredRoles.includes(user.role)) {
-      console.log('[MFA Banner] Not showing - user role not required:', user?.role)
-      return
-    }
+    const isDisabledInDev = import.meta.env.VITE_DISABLE_MFA_IN_DEV === 'true'
+    const shouldShow = !isDisabledInDev && user && requiredRoles.includes(user.role)
 
-    console.log('[MFA Banner] Checking MFA status for:', user.role)
+    if (!shouldShow) {
+      return undefined
+    }
 
     // Check MFA status from API
     const checkStatus = async () => {
@@ -44,14 +42,14 @@ export default function MFAGracePeriodBanner() {
         // Показываем баннер если MFA не включен
         if (data.success && !data.enabled) {
           setGraceInfo({
-            daysLeft: data.gracePeriodDaysLeft, // Может быть null
+            daysLeft: data.gracePeriodDaysLeft,
             gracePeriodEnds: data.gracePeriodEnds
           })
         } else {
           setGraceInfo(null)
         }
       } catch (error) {
-        console.error('[MFA Banner] Failed to check MFA status', error)
+        logError('[MFA Banner] Failed to check MFA status', error)
       }
     }
 

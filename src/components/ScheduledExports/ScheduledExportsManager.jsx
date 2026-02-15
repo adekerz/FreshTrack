@@ -4,11 +4,11 @@
  */
 
 import { useState, useEffect } from 'react'
-import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
 import { useTranslation } from '../../context/LanguageContext'
 import { apiFetch } from '../../services/api'
-import { Send, Calendar, Clock, BarChart3, FileText, Mail, Loader2, Pencil, Trash2, Power, PowerOff, Package, FileSpreadsheet, FolderTree, Tags, History } from 'lucide-react'
+import { logError } from '../../utils/logger'
+import { Send, Calendar, Clock, BarChart3, FileText, Mail, Pencil, Trash2, Power, PowerOff, Package, FileSpreadsheet, FolderTree, Tags, History } from 'lucide-react'
 import { SectionLoader, TouchButton } from '../ui'
 import SettingsLayout from '../ui/settings/SettingsLayout'
 import { ScheduleCreateModal } from './ScheduleCreateModal'
@@ -67,20 +67,18 @@ function ScheduleCard({ schedule, t, testingSchedule, onTest, onEdit, onToggleAc
 
   return (
     <div
-      className={`p-5 border border-border rounded-xl bg-card transition-colors ${
-        !schedule.is_active ? 'opacity-75 border-muted-foreground/30' : 'hover:border-accent/50'
-      }`}
+      className={`p-5 border border-border rounded-xl bg-card transition-colors ${!schedule.is_active ? 'opacity-75 border-muted-foreground/30' : 'hover:border-accent/50'
+        }`}
     >
       <div className="flex items-start justify-between gap-3 mb-4">
         <h3 className="font-semibold text-foreground truncate flex-1 min-w-0">
           {schedule.department_name}
         </h3>
         <span
-          className={`shrink-0 text-xs font-medium px-2.5 py-1 rounded-full ${
-            schedule.is_active
-              ? 'bg-success/15 text-success'
-              : 'bg-muted text-muted-foreground'
-          }`}
+          className={`shrink-0 text-xs font-medium px-2.5 py-1 rounded-full ${schedule.is_active
+            ? 'bg-success/15 text-success'
+            : 'bg-muted text-muted-foreground'
+            }`}
         >
           {schedule.is_active ? t('common.active') : t('common.inactive')}
         </span>
@@ -147,9 +145,9 @@ function ScheduleCard({ schedule, t, testingSchedule, onTest, onEdit, onToggleAc
             <span className="font-medium text-foreground">{t('scheduledExports.nextRun')}: </span>
             {schedule.next_run_at
               ? new Date(schedule.next_run_at).toLocaleString(undefined, {
-                  dateStyle: 'short',
-                  timeStyle: 'short'
-                })
+                dateStyle: 'short',
+                timeStyle: 'short'
+              })
               : '–'}
           </span>
         </li>
@@ -220,7 +218,6 @@ function ScheduleCard({ schedule, t, testingSchedule, onTest, onEdit, onToggleAc
 }
 
 export function ScheduledExportsManager() {
-  const { user } = useAuth()
   const { addToast } = useToast()
   const { t } = useTranslation()
   const [schedules, setSchedules] = useState([])
@@ -236,55 +233,72 @@ export function ScheduledExportsManager() {
   const loadSchedules = async () => {
     try {
       setLoading(true)
-      const data = await apiFetch('/scheduled-exports')
-      setSchedules(data)
-    } catch (error) {
-      console.error('Failed to load schedules:', error)
-      addToast(t('scheduledExports.loadError'), 'error')
+      const response = await apiFetch('/scheduled-exports')
+      if (response.success) {
+        setSchedules(response.schedules || [])
+      }
+    } catch (err) {
+      logError('Failed to load schedules', err)
+      // Don't show blocking error, just empty list
     } finally {
       setLoading(false)
     }
   }
 
-  const handleDelete = async (schedule) => {
-    if (!confirm(t('scheduledExports.confirmDelete'))) return
+  // Toggle active status
+  const handleToggleStatus = async (scheduleId, currentStatus) => {
     try {
-      await apiFetch(`/scheduled-exports/${schedule.id}`, { method: 'DELETE' })
-      addToast(t('scheduledExports.deleteSuccess'), 'success')
-      loadSchedules()
-    } catch (error) {
-      console.error('Failed to delete schedule:', error)
-      addToast(t('scheduledExports.deleteError'), 'error')
+      const response = await apiFetch(`/scheduled-exports/${scheduleId}/toggle`, {
+        method: 'POST',
+        body: JSON.stringify({ is_active: !currentStatus })
+      })
+
+      if (response.success) {
+        addToast(t('common.saved') || 'Сохранено', 'success')
+        loadSchedules()
+      }
+    } catch (err) {
+      logError('Failed to toggle status', err)
+      addToast('Ошибка при изменении статуса', 'error')
     }
   }
 
-  const handleTest = async (schedule) => {
-    setTestingSchedule(schedule.id)
+  // Delete schedule
+  const handleDelete = async (scheduleId) => {
+    if (!window.confirm('Вы уверены, что хотите удалить это расписание?')) return
+
     try {
-      await apiFetch(`/scheduled-exports/${schedule.id}/test`, { method: 'POST' })
-      addToast(t('scheduledExports.testStarted'), 'success')
-    } catch (error) {
-      console.error('Failed to test schedule:', error)
-      addToast(t('scheduledExports.testError'), 'error')
+      const response = await apiFetch(`/scheduled-exports/${scheduleId}`, {
+        method: 'DELETE'
+      })
+
+      if (response.success) {
+        addToast(t('common.deleted') || 'Удалено', 'success')
+        loadSchedules()
+      }
+    } catch (err) {
+      logError('Failed to delete schedule', err)
+      addToast('Ошибка при удалении', 'error')
+    }
+  }
+
+  // Trigger manual run
+  const handleRunNow = async (scheduleId) => {
+    try {
+      setTestingSchedule(scheduleId)
+      addToast('Запуск экспорта...', 'info')
+      const response = await apiFetch(`/scheduled-exports/${scheduleId}/run`, {
+        method: 'POST'
+      })
+
+      if (response.success) {
+        addToast('Экспорт успешно отправлен', 'success')
+      }
+    } catch (err) {
+      logError('Failed to run schedule', err)
+      addToast('Ошибка при запуске', 'error')
     } finally {
       setTestingSchedule(null)
-    }
-  }
-
-  const handleToggleActive = async (schedule) => {
-    try {
-      await apiFetch(`/scheduled-exports/${schedule.id}`, {
-        method: 'PUT',
-        body: JSON.stringify({ is_active: !schedule.is_active })
-      })
-      addToast(
-        schedule.is_active ? t('scheduledExports.disabled') : t('scheduledExports.enabled'),
-        'success'
-      )
-      loadSchedules()
-    } catch (error) {
-      console.error('Failed to toggle schedule:', error)
-      addToast(t('scheduledExports.toggleError'), 'error')
     }
   }
 
@@ -341,10 +355,10 @@ export function ScheduledExportsManager() {
               schedule={schedule}
               t={t}
               testingSchedule={testingSchedule}
-              onTest={handleTest}
+              onTest={(schedule) => handleRunNow(schedule.id)}
               onEdit={setEditingSchedule}
-              onToggleActive={handleToggleActive}
-              onDelete={handleDelete}
+              onToggleActive={(schedule) => handleToggleStatus(schedule.id, schedule.is_active)}
+              onDelete={() => handleDelete(schedule.id)}
             />
           ))}
         </div>

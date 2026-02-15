@@ -3,7 +3,7 @@
  * Клиент для взаимодействия с backend API
  */
 
-import { logError } from '../utils/logger'
+import { logError, logWarn } from '../utils/logger'
 
 // Базовый URL API - использует переменную окружения или localhost для разработки
 export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
@@ -21,12 +21,12 @@ export function getStaticUrl(path) {
   if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:')) {
     return path // уже полный URL
   }
-  
+
   // Если путь начинается с /uploads, это файл с бэкенда (API)
   if (path.startsWith('/uploads')) {
     return `${SERVER_BASE_URL}${path}`
   }
-  
+
   // Для остальных путей (статические файлы фронтенда) используем относительный путь
   // Браузер автоматически загрузит их с текущего домена (фронтенда)
   return path
@@ -157,7 +157,7 @@ export async function apiFetch(endpoint, options = {}) {
         RETRY_CONFIG.retryableStatuses.includes(response.status) &&
         attempt < maxAttempts) {
         const delay = RETRY_CONFIG.retryDelay * Math.pow(2, attempt - 1) // Exponential backoff
-        console.warn(`[API] Retry ${attempt}/${RETRY_CONFIG.maxRetries} for ${endpoint} after ${delay}ms (status: ${response.status})`)
+        logWarn(`[API] Retry ${attempt}/${RETRY_CONFIG.maxRetries} for ${endpoint} after ${delay}ms (status: ${response.status})`)
         await sleep(delay)
         continue
       }
@@ -169,7 +169,7 @@ export async function apiFetch(endpoint, options = {}) {
       // Retry on network errors for safe methods
       if (isRetryable && attempt < maxAttempts && error.name !== 'AbortError') {
         const delay = RETRY_CONFIG.retryDelay * Math.pow(2, attempt - 1)
-        console.warn(`[API] Retry ${attempt}/${RETRY_CONFIG.maxRetries} for ${endpoint} after ${delay}ms (error: ${error.message})`)
+        logWarn(`[API] Retry ${attempt}/${RETRY_CONFIG.maxRetries} for ${endpoint} after ${delay}ms (error: ${error.message})`)
         await sleep(delay)
         continue
       }
@@ -290,7 +290,7 @@ export async function getCurrentUser() {
  */
 export async function logout() {
   // Cookie is cleared server-side via POST /api/auth/logout
-  await apiFetch('/auth/logout', { method: 'POST' }).catch(() => {})
+  await apiFetch('/auth/logout', { method: 'POST' }).catch(() => { })
 }
 
 // ============================================

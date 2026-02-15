@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /**
  * Accessibility utilities for FreshTrack
  * Based on A11Y Project checklist and WCAG 2.1 guidelines
@@ -13,7 +14,7 @@ export function announce(message, priority = 'polite') {
   if (liveRegion) {
     liveRegion.setAttribute('aria-live', priority)
     liveRegion.textContent = message
-    
+
     // Clear after announcement to allow repeated announcements
     setTimeout(() => {
       liveRegion.textContent = ''
@@ -109,18 +110,19 @@ export function getAriaDescribedBy(inputId, error, hint) {
  * @param {string} background - Hex color
  * @returns {number} - Contrast ratio
  */
+/* eslint-disable no-console */
 export function getContrastRatio(foreground, background) {
   const getLuminance = (hex) => {
     const rgb = parseInt(hex.slice(1), 16)
     const r = (rgb >> 16) & 0xff
     const g = (rgb >> 8) & 0xff
     const b = (rgb >> 0) & 0xff
-    
+
     const [rs, gs, bs] = [r, g, b].map(c => {
       c = c / 255
       return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)
     })
-    
+
     return 0.2126 * rs + 0.7152 * gs + 0.0722 * bs
   }
 
@@ -224,7 +226,7 @@ export function runA11yAudit() {
   document.querySelectorAll('input:not([type="hidden"]):not([type="submit"]):not([type="button"])').forEach(input => {
     const hasLabel = input.id && document.querySelector(`label[for="${input.id}"]`)
     const hasAriaLabel = input.getAttribute('aria-label') || input.getAttribute('aria-labelledby')
-    
+
     if (!hasLabel && !hasAriaLabel) {
       issues.push({
         type: 'error',

@@ -12,8 +12,9 @@
  */
 
 import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react'
-import { useSSE, SSE_EVENTS } from '../hooks/useSSE'
+import { useSSE } from '../hooks/useSSE'
 import { apiFetch } from '../services/api'
+import { logError } from '../utils/logger'
 import { useAuth } from './AuthContext'
 
 // Default branding (fallback only)
@@ -102,10 +103,10 @@ function hexToRgb(hex) {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
   return result
     ? {
-        r: parseInt(result[1], 16),
-        g: parseInt(result[2], 16),
-        b: parseInt(result[3], 16)
-      }
+      r: parseInt(result[1], 16),
+      g: parseInt(result[2], 16),
+      b: parseInt(result[3], 16)
+    }
     : null
 }
 
@@ -119,7 +120,7 @@ export function BrandingProvider({ children }) {
   // Handle SSE branding update
   const handleBrandingUpdate = useCallback(
     (data) => {
-      console.log('[Branding] SSE update received:', data)
+      // SSE update received - apply branding settings
 
       if (data.settings) {
         const newBranding = { ...branding, ...data.settings }
@@ -191,7 +192,7 @@ export function BrandingProvider({ children }) {
           applyBrandingToCSS(serverBranding)
         }
       } catch (err) {
-        console.error('[Branding] Failed to load:', err)
+        logError('[Branding] Failed to load:', err)
         setError(err.message)
         // Apply defaults on error
         applyBrandingToCSS(DEFAULT_BRANDING)
@@ -222,7 +223,7 @@ export function BrandingProvider({ children }) {
 
         return { success: false, error: response.error }
       } catch (err) {
-        console.error('[Branding] Failed to update:', err)
+        logError('[Branding] Failed to update:', err)
         return { success: false, error: err.message }
       }
     },
@@ -246,6 +247,7 @@ export function BrandingProvider({ children }) {
 
       return { success: false, error: response.error }
     } catch (err) {
+      logError('Failed to reset branding', err) // Replaced console.error
       return { success: false, error: err.message }
     }
   }, [])

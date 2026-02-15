@@ -9,7 +9,7 @@ import {
   X,
   AlertTriangle
 } from 'lucide-react'
-import { ButtonLoader, TouchButton } from './ui'
+import { TouchButton } from './ui'
 import { useTranslation } from '../context/LanguageContext'
 import { useToast } from '../context/ToastContext'
 import { useProducts } from '../context/ProductContext'
@@ -17,7 +17,7 @@ import { logError } from '../utils/logger'
 import { cn } from '../utils/classNames'
 import { apiFetch } from '../services/api'
 import { useDebouncedCallback } from '../hooks/useDebounce'
-import SettingsLayout, { SettingsSection } from './ui/settings/SettingsLayout'
+import SettingsLayout from './ui/settings/SettingsLayout'
 
 export default function NotificationRulesSettings() {
   const { t } = useTranslation()

@@ -19,11 +19,13 @@ const createWrapper = () => {
             },
         },
     })
-    return ({ children }) => (
+    const Wrapper = ({ children }) => (
         <QueryClientProvider client={queryClient}>
             {children}
         </QueryClientProvider>
     )
+    Wrapper.displayName = 'TestWrapper'
+    return Wrapper
 }
 
 describe('useInventory Hooks', () => {

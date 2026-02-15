@@ -26,11 +26,6 @@ const BellIcon = ({ className }) => (
   </svg>
 )
 
-const CheckIcon = ({ className }) => (
-  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-  </svg>
-)
 
 const XIcon = ({ className }) => (
   <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -215,29 +210,29 @@ export default function NotificationBell() {
             aria-haspopup="true"
             aria-expanded={isOpen}
           >
-        <BellIcon className="w-6 h-6 text-muted-foreground" />
+            <BellIcon className="w-6 h-6 text-muted-foreground" />
 
-        {/* Unread Badge */}
-        {unreadCount > 0 && (
-          <span
-            className={`
+            {/* Unread Badge */}
+            {unreadCount > 0 && (
+              <span
+                className={`
             absolute -top-1 -right-1 flex items-center justify-center
             min-w-[18px] h-[18px] px-1 text-xs font-bold rounded-full
             ${hasCritical ? 'bg-red-500 text-white' : 'bg-primary text-primary-foreground'}
           `}
-          >
-            {unreadCount > 99 ? '99+' : unreadCount}
-          </span>
-        )}
+              >
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
+            )}
 
-        {/* SSE Connection Indicator */}
-        <span
-          className={`
+            {/* SSE Connection Indicator */}
+            <span
+              className={`
           absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-background
           ${isConnected ? 'bg-green-500' : 'bg-red-500'}
         `}
-          title={isConnected ? 'Подключено' : 'Отключено'}
-        />
+              title={isConnected ? 'Подключено' : 'Отключено'}
+            />
           </button>
         </span>
       </Tooltip>
@@ -294,6 +289,7 @@ export default function NotificationBell() {
                       ${!notification.read ? colors.bg : ''}
                     `}
                     role="menuitem"
+                    tabIndex={-1}
                   >
                     {/* Severity Icon */}
                     <div className={`flex-shrink-0 mt-0.5 ${colors.icon}`}>

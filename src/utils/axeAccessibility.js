@@ -17,6 +17,7 @@ export const initAxe = async () => {
 
   try {
     const axe = await import('@axe-core/react')
+    /* eslint-disable no-console */
     const React = await import('react')
     const ReactDOM = await import('react-dom')
 
@@ -48,7 +49,7 @@ export const initAxe = async () => {
 
     console.log('🔍 Axe accessibility testing initialized')
     console.log('   Check console for accessibility violations')
-    
+
   } catch (error) {
     // Silently fail if axe is not installed
     if (error.code !== 'MODULE_NOT_FOUND') {
@@ -66,7 +67,7 @@ export const runManualAxeCheck = async () => {
 
   try {
     const axe = await import('axe-core')
-    
+
     const results = await axe.default.run(document.body, {
       runOnly: {
         type: 'tag',
@@ -75,12 +76,12 @@ export const runManualAxeCheck = async () => {
     })
 
     console.group('🔍 Axe Accessibility Report')
-    
+
     if (results.violations.length === 0) {
       console.log('✅ No accessibility violations found!')
     } else {
       console.error(`❌ Found ${results.violations.length} accessibility violations:`)
-      
+
       results.violations.forEach((violation, index) => {
         console.group(`${index + 1}. ${violation.help} (${violation.impact})`)
         console.log('Description:', violation.description)

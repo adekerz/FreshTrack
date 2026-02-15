@@ -11,6 +11,7 @@ import { apiFetch } from '../../services/api'
 import Modal from '../ui/Modal'
 import { TouchButton } from '../ui'
 import { EXPORT_TYPES } from '../../config/exportConfig'
+import { logError } from '../../utils/logger'
 import { Package, FileSpreadsheet, FolderTree, Tags, History, FileText, Loader2, MessageSquare } from 'lucide-react'
 
 const dayKeys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat']
@@ -61,7 +62,8 @@ export function ScheduleCreateModal({ onClose, onSuccess }) {
     try {
       const data = await apiFetch('/settings/telegram/chats')
       setLinkedChats(data?.chats ?? [])
-    } catch {
+    } catch (err) {
+      logError('Failed to load linked chats', err)
       setLinkedChats([])
     }
   }
@@ -76,7 +78,7 @@ export function ScheduleCreateModal({ onClose, onSuccess }) {
         await loadDepartmentDetails(user.department_id)
       }
     } catch (error) {
-      console.error('Failed to load departments:', error)
+      logError('Failed to load departments:', error)
     }
   }
 
@@ -91,7 +93,7 @@ export function ScheduleCreateModal({ onClose, onSuccess }) {
       const dept = data?.department ?? data
       setSelectedDepartment(dept || null)
     } catch (err) {
-      console.error('Failed to load department details:', err)
+      logError('Failed to load department details:', err)
       setSelectedDepartment(null)
     } finally {
       setLoadingDepartment(false)
@@ -171,7 +173,7 @@ export function ScheduleCreateModal({ onClose, onSuccess }) {
       addToast(t('scheduledExports.createSuccess'), 'success')
       onSuccess()
     } catch (error) {
-      console.error('Failed to create schedule:', error)
+      logError('Failed to create schedule:', error)
       addToast(error?.message || t('scheduledExports.createError'), 'error')
     } finally {
       setLoading(false)
@@ -336,8 +338,8 @@ export function ScheduleCreateModal({ onClose, onSuccess }) {
                 <label
                   key={opt.value}
                   className={`flex items-start gap-3 p-3 border-2 rounded-lg cursor-pointer transition-all min-h-[48px] ${isChecked
-                      ? 'border-accent bg-accent/10'
-                      : 'border-border hover:border-accent/50'
+                    ? 'border-accent bg-accent/10'
+                    : 'border-border hover:border-accent/50'
                     }`}
                 >
                   <input

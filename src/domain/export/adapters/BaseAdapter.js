@@ -12,7 +12,7 @@ export class BaseAdapter {
    * @param {Array} rawData - данные с backend
    * @returns {Array} нормализованные данные
    */
-  normalize(rawData) {
+  normalize(_rawData) {
     throw new Error('Subclass must implement normalize()')
   }
 

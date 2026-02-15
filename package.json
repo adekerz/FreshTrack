@@ -31,7 +31,10 @@
     "prepare": "husky"
   },
   "lint-staged": {
-    "*.{js,jsx}": ["eslint --fix", "prettier --write"]
+    "*.{js,jsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ]
   },
   "dependencies": {
     "@sentry/node": "^10.32.1",
@@ -79,13 +82,16 @@
     "@vitejs/plugin-react": "^4.2.0",
     "autoprefixer": "^10.4.16",
     "eslint": "^8.53.0",
+    "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-jsx-a11y": "^6.10.2",
     "eslint-plugin-react": "^7.33.2",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.4",
     "happy-dom": "^20.0.11",
+    "husky": "^9.0.0",
     "jsdom": "^27.4.0",
     "lighthouse": "^11.4.0",
+    "lint-staged": "^15.0.0",
     "postcss": "^8.4.31",
     "prettier": "^3.7.4",
     "sharp": "^0.33.5",
@@ -98,8 +104,6 @@
     "vite-plugin-pwa": "^0.21.0",
     "vitest": "^4.0.16",
     "workbox-core": "^7.0.0",
-    "workbox-precaching": "^7.0.0",
-    "husky": "^9.0.0",
-    "lint-staged": "^15.0.0"
+    "workbox-precaching": "^7.0.0"
   }
 }

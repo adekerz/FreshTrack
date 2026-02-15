@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { X, Plus, Check, Calendar, Package, User, Trash2, AlertTriangle, Zap, ChevronDown, ChevronUp } from 'lucide-react'
-import { ButtonLoader, TouchButton, Switch } from './ui'
+import { TouchButton, Switch } from './ui'
 import Tooltip from './Tooltip'
 import { useProducts, categories } from '../context/ProductContext'
 import { useAuth } from '../context/AuthContext'
@@ -72,7 +72,7 @@ const parseExpiryInput = (input) => {
 export default function ProductModal({ product, onClose }) {
   const { t } = useTranslation()
   const { language } = useLanguage()
-  const { hasPermission, user, isStaff } = useAuth()
+  const { hasPermission, isStaff } = useAuth()
   const { selectedHotelId } = useHotel()
   const { getBatchesByProduct, refresh } = useProducts()
   const { addToast } = useToast()

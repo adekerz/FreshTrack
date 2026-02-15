@@ -20,7 +20,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { X, Package, Calendar, Check, ArrowRight, History, Zap, Plus, Minus, MessageSquare } from 'lucide-react'
+import { X, Calendar, Check, ArrowRight, History, Zap, Plus, Minus, MessageSquare } from 'lucide-react'
 import { SectionLoader, ButtonLoader } from './ui'
 import { useTranslation } from '../context/LanguageContext'
 import { useProducts } from '../context/ProductContext'
@@ -35,7 +35,7 @@ export default function FastIntakeModal({
   onChangeTemplate,     // () => void - opens SelectTemplateModal
   onClose,             // () => void - full reset
   departmentId,
-  onFastApply          // (batches) => void - DEPRECATED: React Query handles updates automatically
+  onFastApply: _onFastApply  // (batches) => void - DEPRECATED: React Query handles updates automatically
 }) {
   const { t } = useTranslation()
   const { departments } = useProducts()
@@ -58,8 +58,8 @@ export default function FastIntakeModal({
   // Resets on modal close, NOT persisted
   // If you need persistent history → move to backend (audit) or InventoryPage
   const [sessionHistory, setSessionHistory] = useState([])
-  const [lastExpiryByProduct, setLastExpiryByProduct] = useState({})
-  const [globalLastExpiry, setGlobalLastExpiry] = useState('')
+  const [_lastExpiryByProduct, setLastExpiryByProduct] = useState({})
+  const [_globalLastExpiry, setGlobalLastExpiry] = useState('')
   const [comment, setComment] = useState('')
   const scrollContainerRef = useRef(null)
 
@@ -71,7 +71,7 @@ export default function FastIntakeModal({
   useEffect(() => {
     if (!templateId) return
     loadTemplate()
-  }, [templateId])
+  }, [templateId, loadTemplate])
 
   // Reset session history when modal closes
   useEffect(() => {
@@ -83,33 +83,7 @@ export default function FastIntakeModal({
     }
   }, [isOpen])
 
-  const loadTemplate = async () => {
-    setLoading(true)
-    try {
-      // Load all templates to find the one we need
-      const data = await apiFetch('/delivery-templates')
-      const templates = (data.templates || []).map(t => ({
-        ...t,
-        items: typeof t.items === 'string' ? JSON.parse(t.items) : t.items || []
-      }))
-
-      const foundTemplate = templates.find(t => t.id === templateId)
-      if (!foundTemplate) {
-        addToast('Шаблон не найден', 'error')
-        onClose()
-        return
-      }
-
-      setTemplate(foundTemplate)
-      prepareItems(foundTemplate)
-    } catch (error) {
-      addToast('Ошибка загрузки шаблона', 'error')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const prepareItems = (template) => {
+  const prepareItems = useCallback((template) => {
     const templateItems = typeof template.items === 'string'
       ? JSON.parse(template.items)
       : template.items || []
@@ -154,10 +128,38 @@ export default function FastIntakeModal({
     })
 
     setItems(preparedItems)
-  }
+  }, [])
+
+  const loadTemplate = useCallback(async () => {
+    setLoading(true)
+    try {
+      // Load all templates to find the one we need
+      const data = await apiFetch('/delivery-templates')
+      const templates = (data.templates || []).map(t => ({
+        ...t,
+        items: typeof t.items === 'string' ? JSON.parse(t.items) : t.items || []
+      }))
+
+      const foundTemplate = templates.find(t => t.id === templateId)
+      if (!foundTemplate) {
+        addToast('Шаблон не найден', 'error')
+        onClose()
+        return
+      }
+
+      setTemplate(foundTemplate)
+      prepareItems(foundTemplate)
+    } catch (error) {
+      addToast('Ошибка загрузки шаблона', 'error')
+    } finally {
+      setLoading(false)
+    }
+  }, [templateId, onClose, addToast, prepareItems])
+
+
 
   // === Update item in list ===
-  const updateItem = (index, field, value) => {
+  const _updateItem = (index, field, value) => {
     const newItems = [...items]
     newItems[index] = { ...newItems[index], [field]: value }
     setItems(newItems)
@@ -377,7 +379,7 @@ export default function FastIntakeModal({
       },
       {
         // Callbacks выполняются ПОСЛЕ mutation
-        onSuccess: (data) => {
+        onSuccess: (_data) => {
           // 1. Save last expiry dates for autocomplete
           if (items.length > 0) {
             setGlobalLastExpiry(items[0].expiryDate)
@@ -603,8 +605,8 @@ export default function FastIntakeModal({
                                 } else if (e.target.value.trim()) {
                                   const digits = e.target.value.replace(/\D/g, '')
                                   if (digits.length >= 6) {
-                                    const day = parseInt(digits.slice(0, 2), 10)
-                                    const month = parseInt(digits.slice(2, 4), 10)
+                                    const _day = parseInt(digits.slice(0, 2), 10)
+                                    const _month = parseInt(digits.slice(2, 4), 10)
                                     let year = parseInt(digits.slice(4, 6), 10)
                                     if (year < 100) year += 2000
 

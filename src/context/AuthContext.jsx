@@ -6,7 +6,7 @@
 
 import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react'
 import { authAPI, API_BASE_URL } from '../services/api'
-import { logError } from '../utils/logger'
+import { logInfo, logError, logWarn } from '../utils/logger'
 
 const AuthContext = createContext(null)
 const AuthActionsContext = createContext(null)
@@ -19,7 +19,7 @@ export function AuthProvider({ children }) {
   // Listen for global auth events (401/403 from api.js)
   useEffect(() => {
     const handleUnauthorized = (event) => {
-      console.warn('[Auth] Unauthorized event received:', event.detail)
+      logWarn('[Auth] Unauthorized event received', event.detail)
       // Clear auth state (cookie cleared server-side or expired)
       localStorage.removeItem('freshtrack_user')
       setUser(null)
@@ -27,12 +27,12 @@ export function AuthProvider({ children }) {
     }
 
     const handleForbidden = (event) => {
-      console.warn('[Auth] Forbidden event received:', event.detail)
+      logWarn('[Auth] Forbidden event received', event.detail)
       setAuthError({ type: 'forbidden', message: event.detail?.message, url: event.detail?.url })
     }
 
     const handleUserUpdated = (event) => {
-      console.log('[Auth] User updated event received:', event.detail)
+      logInfo('[Auth] User updated event received', event.detail)
       if (event.detail) {
         setUser(event.detail)
       }
@@ -55,6 +55,7 @@ export function AuthProvider({ children }) {
       const timer = setTimeout(() => setAuthError(null), 5000)
       return () => clearTimeout(timer)
     }
+    return undefined
   }, [authError])
 
   // Validate session cookie and refresh user data on mount
@@ -81,11 +82,11 @@ export function AuthProvider({ children }) {
                 setUser(JSON.parse(savedUser))
               }
             } catch {
-              console.warn('[Auth] Failed to parse JSON response, using cached data')
+              logWarn('[Auth] Failed to parse JSON response, using cached data')
               if (savedUser) setUser(JSON.parse(savedUser))
             }
           } else {
-            console.warn('[Auth] Server returned non-JSON response, using cached data')
+            logWarn('[Auth] Server returned non-JSON response, using cached data')
             if (savedUser) setUser(JSON.parse(savedUser))
           }
         } else if (response.status === 401) {
@@ -94,13 +95,13 @@ export function AuthProvider({ children }) {
           setUser(null)
         } else if (savedUser) {
           // Server error - use cached data
-          console.warn(`[Auth] Server returned status ${response.status}, using cached data`)
+          logWarn(`[Auth] Server returned status ${response.status}, using cached data`)
           setUser(JSON.parse(savedUser))
         }
       } catch (e) {
         // Network error - use cached data for offline resilience
         if (!e.message.includes('fetch') && !e.message.includes('network')) {
-          console.warn('[Auth] Failed to refresh user, using cached data:', e.message)
+          logWarn('[Auth] Failed to refresh user, using cached data', e.message)
         }
         try {
           if (savedUser) setUser(JSON.parse(savedUser))
@@ -212,7 +213,7 @@ export function AuthProvider({ children }) {
         credentials: 'include'
       })
     } catch (error) {
-      console.log('Logout logging skipped:', error.message)
+      logInfo('Logout logging skipped', error.message)
     }
 
     setUser(null)

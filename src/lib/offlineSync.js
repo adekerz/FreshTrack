@@ -183,7 +183,7 @@ class OfflineSyncManager {
    * Синхронизировать одну операцию
    */
   async syncOperation(operation) {
-    const { type, endpoint, method, data, hotelId } = operation
+    const { type, endpoint, method, data } = operation
 
     logInfo(`Syncing ${type} operation:`, endpoint)
 

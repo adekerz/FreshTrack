@@ -82,7 +82,7 @@ export function useKeyboardNav(callbacks = {}, enabled = true) {
   )
 
   useEffect(() => {
-    if (!enabled) return
+    if (!enabled) return undefined
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
@@ -96,7 +96,7 @@ export function useKeyboardNav(callbacks = {}, enabled = true) {
  */
 export function useEscapeKey(onEscape, enabled = true) {
   useEffect(() => {
-    if (!enabled) return
+    if (!enabled) return undefined
 
     const handleEscape = (event) => {
       if (event.key === 'Escape') {
@@ -123,7 +123,7 @@ export function useArrowKeys(
   enabled = true
 ) {
   useEffect(() => {
-    if (!enabled) return
+    if (!enabled) return undefined
 
     const handleKeyDown = (event) => {
       switch (event.key) {

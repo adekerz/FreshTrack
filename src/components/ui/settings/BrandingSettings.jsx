@@ -7,6 +7,7 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
 import { useTranslation } from '../../../context/LanguageContext'
 import { useToast } from '../../../context/ToastContext'
+import { logError } from '../../../utils/logger'
 import { useBranding } from '../../../context/BrandingContext'
 import { useAuth } from '../../../context/AuthContext'
 import {
@@ -85,7 +86,7 @@ export default function BrandingSettings() {
         setInitialLoginBranding(next)
       }
     } catch (error) {
-      console.error('Failed to load login branding:', error)
+      logError('Failed to load login branding:', error)
     } finally {
       setLoginLoading(false)
     }
@@ -196,11 +197,10 @@ export default function BrandingSettings() {
 
   const headerExtra = (
     <div
-      className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs ${
-        isConnected
-          ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800'
-          : 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800'
-      }`}
+      className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs ${isConnected
+        ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800'
+        : 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800'
+        }`}
     >
       <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-amber-500'}`} />
       {isConnected ? 'Real-time' : 'Offline'}
@@ -333,7 +333,7 @@ export default function BrandingSettings() {
           <div className="mt-4 p-4 bg-card rounded-lg border border-border">
             <p className="text-sm text-muted-foreground mb-2">{t('branding.preview') || 'Превью цветов:'}</p>
             <div className="flex gap-2">
-              {['primaryColor', 'secondaryColor', 'accentColor', 'dangerColor'].map((key, i) => (
+              {['primaryColor', 'secondaryColor', 'accentColor', 'dangerColor'].map((key) => (
                 <div
                   key={key}
                   className="w-12 h-12 rounded-lg"

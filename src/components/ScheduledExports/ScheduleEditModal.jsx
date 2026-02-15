@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react'
 import { useToast } from '../../context/ToastContext'
 import { useTranslation } from '../../context/LanguageContext'
+import { logError } from '../../utils/logger'
 import { apiFetch } from '../../services/api'
 import Modal from '../ui/Modal'
 import { TouchButton, Switch } from '../ui'
@@ -82,7 +83,7 @@ export function ScheduleEditModal({ schedule, onClose, onSuccess }) {
         await loadDepartmentDetails(schedule.department_id, list)
       }
     } catch (error) {
-      console.error('Failed to load departments:', error)
+      logError('Failed to load departments:', error)
     }
   }
 
@@ -157,7 +158,7 @@ export function ScheduleEditModal({ schedule, onClose, onSuccess }) {
       addToast(t('scheduledExports.updateSuccess'), 'success')
       onSuccess()
     } catch (error) {
-      console.error('Failed to update schedule:', error)
+      logError('Failed to update schedule:', error)
       addToast(error?.message || t('scheduledExports.updateError'), 'error')
     } finally {
       setLoading(false)

@@ -3,12 +3,12 @@
  * Создание, редактирование, удаление категорий
  */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from '../../../context/LanguageContext'
 import { useToast } from '../../../context/ToastContext'
 import { useProducts } from '../../../context/ProductContext'
 import { useHotel } from '../../../context/HotelContext'
-import { Plus, X, RefreshCw, Tag, Palette, AlertTriangle, Trash2 } from 'lucide-react'
+import { Plus, X, Tag, Palette, AlertTriangle, Trash2 } from 'lucide-react'
 import { ButtonLoader, SectionLoader } from '..'
 import { apiFetch } from '../../../services/api'
 
@@ -42,9 +42,9 @@ export default function CategoriesSettings({ readOnly = false }) {
     if (selectedHotelId) {
       fetchCategories()
     }
-  }, [selectedHotelId])
+  }, [selectedHotelId, fetchCategories])
 
-  const fetchCategories = async () => {
+  const fetchCategories = useCallback(async () => {
     setLoading(true)
     try {
       const hotelQuery = selectedHotelId ? `?hotel_id=${selectedHotelId}` : ''
@@ -62,7 +62,7 @@ export default function CategoriesSettings({ readOnly = false }) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [selectedHotelId])
   const addCategory = async () => {
     if (!newCategory.name.trim()) return
 
@@ -182,11 +182,10 @@ export default function CategoriesSettings({ readOnly = false }) {
               <button
                 key={color}
                 onClick={() => setNewCategory({ ...newCategory, color })}
-                className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 ${
-                  newCategory.color === color
-                    ? 'border-charcoal ring-2 ring-offset-2 ring-charcoal'
-                    : 'border-transparent'
-                }`}
+                className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 ${newCategory.color === color
+                  ? 'border-charcoal ring-2 ring-offset-2 ring-charcoal'
+                  : 'border-transparent'
+                  }`}
                 style={{ backgroundColor: color }}
                 title={color}
               />
