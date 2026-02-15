@@ -169,7 +169,7 @@ describe('Auth Validation Schemas', () => {
 
   describe('Role Hierarchy', () => {
     it('SUPER_ADMIN can assign any role', () => {
-      expect(canAssignRole('SUPER_ADMIN', 'SUPER_ADMIN')).toBe(true)
+      expect(canAssignRole('SUPER_ADMIN', 'SUPER_ADMIN', true)).toBe(true) // is_owner=true
       expect(canAssignRole('SUPER_ADMIN', 'HOTEL_ADMIN')).toBe(true)
       expect(canAssignRole('SUPER_ADMIN', 'STAFF')).toBe(true)
     })

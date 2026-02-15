@@ -31,7 +31,7 @@ describe('Inventory Validation Schemas', () => {
     it('should validate product with all fields', () => {
       const result = validate(CreateProductSchema, {
         name: 'Full Product',
-        categoryId: 'f47ac10b-58cc-4372-a567-0e02b2c3d479', // UUID вместо числа
+        categoryId: 'f47ac10b-58cc-4372-a567-0e02b2c3d479', // Валидный UUID v4
         unit: 'kg',
         storageType: 'refrigerated',
         minStock: 10,
@@ -64,26 +64,26 @@ describe('Inventory Validation Schemas', () => {
   describe('CreateBatchSchema', () => {
     it('should validate batch with required fields', () => {
       const result = validate(CreateBatchSchema, {
-        productId: 'a1b2c3d4-e5f6-4789-a012-bcdef1234567', // UUID вместо числа
+        productId: '550e8400-e29b-41d4-a716-446655440000', // Валидный UUID v4
         quantity: 100,
         expiryDate: '2025-12-31'
       })
 
       expect(result.isValid).toBe(true)
-      expect(result.data?.productId).toBe('a1b2c3d4-e5f6-4789-a012-bcdef1234567')
+      expect(result.data?.productId).toBe('550e8400-e29b-41d4-a716-446655440000')
       expect(result.data?.quantity).toBe(100)
     })
 
     it('should validate batch with all fields', () => {
       const result = validate(CreateBatchSchema, {
-        productId: 'a1b2c3d4-e5f6-4789-a012-bcdef1234567',
+        productId: '550e8400-e29b-41d4-a716-446655440000',
         quantity: 50,
         expiryDate: '2025-06-15',
         productionDate: '2025-01-01',
         supplierName: 'Test Supplier',
         batchNumber: 'BATCH-001',
         purchasePrice: 99.99,
-        departmentId: 'b2c3d4e5-f6a7-4890-b123-cdef12345678', // UUID для departmentId
+        departmentId: '6ba7b810-9dad-11d1-80b4-00c04fd430c8', // Валидный UUID для departmentId
         notes: 'Test notes'
       })
 
@@ -93,7 +93,7 @@ describe('Inventory Validation Schemas', () => {
 
     it('should reject negative quantity', () => {
       const result = validate(CreateBatchSchema, {
-        productId: 'a1b2c3d4-e5f6-4789-a012-bcdef1234567',
+        productId: '550e8400-e29b-41d4-a716-446655440000',
         quantity: -10,
         expiryDate: '2025-12-31'
       })
@@ -103,9 +103,9 @@ describe('Inventory Validation Schemas', () => {
 
     it('should reject invalid date format', () => {
       const result = validate(CreateBatchSchema, {
-        productId: 'a1b2c3d4-e5f6-4789-a012-bcdef1234567',
+        productId: '550e8400-e29b-41d4-a716-446655440000',
         quantity: 100,
-        expiryDate: '31-12-2025' // Неверный формат
+        expiryDate: '31-12-2025' // Неверный формат даты
       })
 
       expect(result.isValid).toBe(false)
@@ -113,7 +113,7 @@ describe('Inventory Validation Schemas', () => {
 
     it('should coerce string quantity to number', () => {
       const result = validate(CreateBatchSchema, {
-        productId: 'a1b2c3d4-e5f6-4789-a012-bcdef1234567',
+        productId: '550e8400-e29b-41d4-a716-446655440000',
         quantity: '100', // Строка конвертируется в число
         expiryDate: '2025-12-31'
       })
@@ -154,7 +154,7 @@ describe('Inventory Validation Schemas', () => {
   describe('CreateCollectionSchema', () => {
     it('should validate collection', () => {
       const result = validate(CreateCollectionSchema, {
-        batchId: 'c3d4e5f6-a7b8-4901-c234-def123456789', // UUID для batchId
+        batchId: '6ba7b814-9dad-11d1-80b4-00c04fd430c8', // Ва лидный UUID для batchId
         quantity: 10,
         type: 'used'
       })
@@ -164,7 +164,7 @@ describe('Inventory Validation Schemas', () => {
 
     it('should default type to used', () => {
       const result = validate(CreateCollectionSchema, {
-        batchId: 'c3d4e5f6-a7b8-4901-c234-def123456789',
+        batchId: '6ba7b814-9dad-11d1-80b4-00c04fd430c8',
         quantity: 10
       })
 
@@ -174,7 +174,7 @@ describe('Inventory Validation Schemas', () => {
 
     it('should reject invalid collection type', () => {
       const result = validate(CreateCollectionSchema, {
-        batchId: 'c3d4e5f6-a7b8-4901-c234-def123456789',
+        batchId: '6ba7b814-9dad-11d1-80b4-00c04fd430c8',
         quantity: 10,
         type: 'invalid_type'
       })
@@ -196,14 +196,14 @@ describe('Inventory Validation Schemas', () => {
 
     it('should coerce query parameters', () => {
       const result = validate(BatchFiltersSchema, {
-        productId: 'd4e5f6a7-b8c9-4012-d345-ef1234567890', // UUID вместо строки '5'
+        productId: '7c9e6679-7425-40de-944b-e07fc1f90ae7', // Валидный UUID v4
         page: '2',
         limit: '25',
         expiredOnly: 'true'
       })
 
       expect(result.isValid).toBe(true)
-      expect(result.data?.productId).toBe('d4e5f6a7-b8c9-4012-d345-ef1234567890')
+      expect(result.data?.productId).toBe('7c9e6679-7425-40de-944b-e07fc1f90ae7')
       expect(result.data?.page).toBe(2)
       expect(result.data?.expiredOnly).toBe(true)
     })

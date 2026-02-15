@@ -7,34 +7,41 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 // Mock database and services
 vi.mock('../db/database.js', () => ({
-  query: vi.fn().mockResolvedValue({ rows: [] })
+  query: vi.fn().mockResolvedValue({ rows: [] }),
 }))
 
 vi.mock('../services/TelegramService.js', () => ({
   TelegramService: {
     sendMessage: vi.fn().mockResolvedValue({ message_id: 123 }),
-    sendBatchNotification: vi.fn().mockResolvedValue({ success: true, sentTo: 1 })
-  }
+    sendBatchNotification: vi
+      .fn()
+      .mockResolvedValue({ success: true, sentTo: 1 }),
+  },
 }))
 
 vi.mock('../services/ExpiryService.js', () => ({
-  calculateExpiryStatus: vi.fn().mockReturnValue({ status: 'warning', color: 'yellow' }),
-  enrichBatchWithExpiryData: vi.fn((batch) => ({ ...batch, expiryStatus: 'warning' }))
+  calculateExpiryStatus: vi
+    .fn()
+    .mockReturnValue({ status: 'warning', color: 'yellow' }),
+  enrichBatchWithExpiryData: vi.fn((batch) => ({
+    ...batch,
+    expiryStatus: 'warning',
+  })),
 }))
 
 vi.mock('crypto', () => ({
   createHash: vi.fn(() => ({
     update: vi.fn().mockReturnThis(),
-    digest: vi.fn(() => 'mock-hash-12345')
-  }))
+    digest: vi.fn(() => 'mock-hash-12345'),
+  })),
 }))
 
-import { 
-  NotificationEngine, 
-  NotificationChannel, 
-  NotificationType, 
+import {
+  NotificationEngine,
+  NotificationChannel,
+  NotificationType,
   DeliveryStatus,
-  Priority 
+  Priority,
 } from '../services/NotificationEngine.js'
 import { query } from '../db/database.js'
 import { TelegramService } from '../services/TelegramService.js'
@@ -76,11 +83,21 @@ describe('NotificationEngine', () => {
 
   describe('checkExpiringBatches()', () => {
     it('should fetch enabled expiry rules', async () => {
-      query.mockResolvedValueOnce({
-        rows: [
-          { id: 'rule-1', type: 'expiry', warning_days: 7, critical_days: 3, channels: '["app"]', recipient_roles: '["HOTEL_ADMIN"]', enabled: true }
-        ]
-      }).mockResolvedValue({ rows: [] })
+      query
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              id: 'rule-1',
+              type: 'expiry',
+              warning_days: 7,
+              critical_days: 3,
+              channels: '["app"]',
+              recipient_roles: '["HOTEL_ADMIN"]',
+              enabled: true,
+            },
+          ],
+        })
+        .mockResolvedValue({ rows: [] })
 
       await NotificationEngine.checkExpiringBatches()
 
@@ -102,7 +119,11 @@ describe('NotificationEngine', () => {
     it('should return true if notification exists within 24 hours', async () => {
       query.mockResolvedValueOnce({ rows: [{ id: 'existing-notif' }] })
 
-      const result = await NotificationEngine.isAlreadyNotified('batch-1', 'user-1', 'app')
+      const result = await NotificationEngine.isAlreadyNotified(
+        'batch-1',
+        'user-1',
+        'app'
+      )
 
       expect(result).toBe(true)
       expect(query).toHaveBeenCalledWith(
@@ -114,7 +135,11 @@ describe('NotificationEngine', () => {
     it('should return false if no recent notification exists', async () => {
       query.mockResolvedValueOnce({ rows: [] })
 
-      const result = await NotificationEngine.isAlreadyNotified('batch-1', 'user-1', 'app')
+      const result = await NotificationEngine.isAlreadyNotified(
+        'batch-1',
+        'user-1',
+        'app'
+      )
 
       expect(result).toBe(false)
     })
@@ -124,7 +149,7 @@ describe('NotificationEngine', () => {
     it('should generate consistent hash for same inputs', () => {
       const hash1 = NotificationEngine.generateHash('batch-1', 'user-1', 'app')
       const hash2 = NotificationEngine.generateHash('batch-1', 'user-1', 'app')
-      
+
       expect(hash1).toBe(hash2)
     })
   })
@@ -133,13 +158,13 @@ describe('NotificationEngine', () => {
     it('should query users based on rule context', async () => {
       const mockUsers = [
         { id: 'user-1', name: 'Admin', role: 'HOTEL_ADMIN' },
-        { id: 'user-2', name: 'Manager', role: 'DEPARTMENT_MANAGER' }
+        { id: 'user-2', name: 'Manager', role: 'DEPARTMENT_MANAGER' },
       ]
       query.mockResolvedValueOnce({ rows: mockUsers })
 
       const rule = {
         hotel_id: 'hotel-1',
-        department_id: null
+        department_id: null,
       }
       const roles = ['HOTEL_ADMIN', 'DEPARTMENT_MANAGER']
 
@@ -155,8 +180,7 @@ describe('NotificationEngine', () => {
 
   describe('processQueue()', () => {
     it('should fetch pending notifications', async () => {
-      query
-        .mockResolvedValueOnce({ rows: [] }) // No pending notifications
+      query.mockResolvedValueOnce({ rows: [] }) // No pending notifications
 
       await NotificationEngine.processQueue()
 
@@ -181,9 +205,9 @@ describe('NotificationEngine', () => {
         id: 'notif-1',
         batch_id: 'batch-1',
         channels: '["app"]',
-        retry_count: 0
+        retry_count: 0,
       }
-      
+
       query
         .mockResolvedValueOnce({ rows: [] }) // Update to sending
         .mockResolvedValueOnce({ rows: [{ status: 'active' }] }) // Batch check
@@ -202,9 +226,9 @@ describe('NotificationEngine', () => {
         id: 'notif-1',
         batch_id: 'batch-1',
         channels: '["app"]',
-        retry_count: 0
+        retry_count: 0,
       }
-      
+
       query
         .mockResolvedValueOnce({ rows: [] }) // Update to sending
         .mockResolvedValueOnce({ rows: [{ status: 'written_off' }] }) // Batch is written off
@@ -223,21 +247,30 @@ describe('NotificationEngine', () => {
   describe('getNotificationTitle()', () => {
     it('should return correct title for expired', () => {
       const batch = { product_name: 'Milk' }
-      const title = NotificationEngine.getNotificationTitle(NotificationType.EXPIRED, batch)
+      const title = NotificationEngine.getNotificationTitle(
+        NotificationType.EXPIRED,
+        batch
+      )
       expect(title).toContain('просрочен')
       expect(title).toContain('Milk')
     })
 
     it('should return correct title for critical', () => {
       const batch = { product_name: 'Yogurt' }
-      const title = NotificationEngine.getNotificationTitle(NotificationType.EXPIRY_CRITICAL, batch)
+      const title = NotificationEngine.getNotificationTitle(
+        NotificationType.EXPIRY_CRITICAL,
+        batch
+      )
       expect(title).toContain('Критический')
       expect(title).toContain('Yogurt')
     })
 
     it('should return correct title for warning', () => {
       const batch = { product_name: 'Cheese' }
-      const title = NotificationEngine.getNotificationTitle(NotificationType.EXPIRY_WARNING, batch)
+      const title = NotificationEngine.getNotificationTitle(
+        NotificationType.EXPIRY_WARNING,
+        batch
+      )
       expect(title).toContain('истекает')
       expect(title).toContain('Cheese')
     })
@@ -247,24 +280,40 @@ describe('NotificationEngine', () => {
     const batch = { product_name: 'Milk', quantity: 10, unit: 'шт' }
 
     it('should format expired message correctly', () => {
-      const message = NotificationEngine.getNotificationMessage(NotificationType.EXPIRED, batch, -1)
+      const message = NotificationEngine.getNotificationMessage(
+        NotificationType.EXPIRED,
+        batch,
+        -1
+      )
       expect(message).toContain('просрочена')
       expect(message).toContain('Требуется списание')
     })
 
     it('should format critical message correctly', () => {
-      const message = NotificationEngine.getNotificationMessage(NotificationType.EXPIRY_CRITICAL, batch, 2)
+      const message = NotificationEngine.getNotificationMessage(
+        NotificationType.EXPIRY_CRITICAL,
+        batch,
+        2
+      )
       expect(message).toContain('через 2 дн.')
       expect(message).toContain('Срочно')
     })
 
     it('should use "сегодня" for 0 days left', () => {
-      const message = NotificationEngine.getNotificationMessage(NotificationType.EXPIRY_WARNING, batch, 0)
+      const message = NotificationEngine.getNotificationMessage(
+        NotificationType.EXPIRY_WARNING,
+        batch,
+        0
+      )
       expect(message).toContain('сегодня')
     })
 
     it('should use "завтра" for 1 day left', () => {
-      const message = NotificationEngine.getNotificationMessage(NotificationType.EXPIRY_WARNING, batch, 1)
+      const message = NotificationEngine.getNotificationMessage(
+        NotificationType.EXPIRY_WARNING,
+        batch,
+        1
+      )
       expect(message).toContain('завтра')
     })
   })
@@ -272,7 +321,14 @@ describe('NotificationEngine', () => {
   describe('getRules()', () => {
     it('should fetch enabled rules for hotel', async () => {
       const mockRules = [
-        { id: 'rule-1', type: 'expiry', warning_days: 7 }
+        {
+          id: 'rule-1',
+          type: 'expiry',
+          warning_days: 7,
+          isDepartmentRule: true,
+          isHotelRule: false,
+          isSystemRule: false,
+        },
       ]
       query.mockResolvedValueOnce({ rows: mockRules })
 
@@ -293,7 +349,7 @@ describe('NotificationEngine', () => {
       await NotificationEngine.upsertRule({
         hotelId: 'hotel-1',
         type: 'expiry',
-        name: 'Test Rule'
+        name: 'Test Rule',
       })
 
       expect(query).toHaveBeenCalledWith(
@@ -308,11 +364,12 @@ describe('NotificationEngine', () => {
       const notification = {
         id: 'notif-1',
         telegram_chat_id: null,
-        user_telegram_id: null
+        user_telegram_id: null,
       }
 
-      await expect(NotificationEngine.dispatchTelegram(notification))
-        .rejects.toThrow('User has no Telegram chat ID')
+      await expect(
+        NotificationEngine.dispatchTelegram(notification)
+      ).rejects.toThrow('User has no Telegram chat ID')
     })
 
     it('should send message and store message ID', async () => {
@@ -322,7 +379,7 @@ describe('NotificationEngine', () => {
         title: 'Test',
         message: 'Test message',
         type: NotificationType.EXPIRY_WARNING,
-        data: { productName: 'Milk' }
+        data: { productName: 'Milk' },
       }
 
       query.mockResolvedValueOnce({ rows: [] })
@@ -347,7 +404,7 @@ describe('NotificationEngine', () => {
         type: NotificationType.EXPIRY_CRITICAL,
         title: 'Critical',
         message: 'Urgent',
-        data: { productName: 'Milk' }
+        data: { productName: 'Milk' },
       }
 
       const message = NotificationEngine.formatTelegramMessage(notification)
@@ -361,13 +418,13 @@ describe('NotificationEngine', () => {
         type: NotificationType.EXPIRY_WARNING,
         title: 'Warning',
         message: 'Soon',
-        data: { 
-          productName: 'Yogurt', 
-          quantity: 5, 
+        data: {
+          productName: 'Yogurt',
+          quantity: 5,
           unit: 'шт',
           departmentName: 'Kitchen',
-          expiryDate: '2025-01-01'
-        }
+          expiryDate: '2025-01-01',
+        },
       }
 
       const message = NotificationEngine.formatTelegramMessage(notification)
