@@ -1,13 +1,13 @@
 /**
  * FreshTrack SSE Hook
  * React hook for Server-Sent Events with auto-reconnect
- * 
+ *
  * Features:
  * - Automatic exponential backoff reconnection
  * - Event-specific handlers
  * - Connection state management
  * - Clean cleanup on unmount
- * 
+ *
  * @see https://javascript.info/server-sent-events
  * @see https://web.dev/articles/eventsource-basics
  */
@@ -20,7 +20,7 @@ export const SSE_STATE = {
   CONNECTING: 'connecting',
   CONNECTED: 'connected',
   DISCONNECTED: 'disconnected',
-  ERROR: 'error'
+  ERROR: 'error',
 }
 
 // Default event types - must match server/utils/constants.js SSE_EVENTS
@@ -59,19 +59,19 @@ export const SSE_EVENTS = {
   STATS_UPDATE: 'stats-update',
 
   // Generic notifications
-  NOTIFICATION: 'notification'
+  NOTIFICATION: 'notification',
 }
 
 /**
  * SSE Hook for real-time updates
- * 
+ *
  * @param {Object} options
  * @param {boolean} options.enabled - Enable/disable SSE connection
  * @param {Object} options.handlers - Event handlers { [eventName]: (data) => void }
  * @param {Function} options.onConnect - Called when connected
  * @param {Function} options.onDisconnect - Called when disconnected
  * @param {Function} options.onError - Called on error
- * 
+ *
  * @returns {Object} { state, reconnect, disconnect }
  */
 export function useSSE(options = {}) {
@@ -80,7 +80,7 @@ export function useSSE(options = {}) {
     handlers = {},
     onConnect,
     onDisconnect,
-    onError
+    onError,
   } = options
 
   const [state, setState] = useState(SSE_STATE.DISCONNECTED)
@@ -158,7 +158,7 @@ export function useSSE(options = {}) {
       eventSource.onopen = () => {
         if (!mountedRef.current) return
         logInfo('[SSE] Connection opened')
-        reconnectAttemptRef.current = 0
+        // Do NOT reset reconnect attempts here to avoid rapid loops if connection drops immediately
       }
 
       // Handle 'connected' event
@@ -170,6 +170,10 @@ export function useSSE(options = {}) {
           setState(SSE_STATE.CONNECTED)
           setConnectionInfo(data)
           setLastEvent({ event: 'connected', data, time: new Date() })
+
+          // Reset reconnect attempts only after successful handshake
+          reconnectAttemptRef.current = 0
+
           onConnect?.(data)
         } catch (err) {
           logError('[SSE] Parse error:', err)
@@ -182,7 +186,11 @@ export function useSSE(options = {}) {
         try {
           const data = JSON.parse(e.data)
           logInfo('[SSE] Init:', data)
-          setConnectionInfo(prev => ({ ...prev, ...data }))
+          setConnectionInfo((prev) => ({ ...prev, ...data }))
+
+          // Also reset attempts on init as it confirms stable connection
+          reconnectAttemptRef.current = 0
+
           handlersRef.current.onInit?.(data)
         } catch (err) {
           logError('[SSE] Parse error:', err)
@@ -214,10 +222,10 @@ export function useSSE(options = {}) {
         // Dashboard
         SSE_EVENTS.STATS_UPDATE,
         // Generic
-        SSE_EVENTS.NOTIFICATION
+        SSE_EVENTS.NOTIFICATION,
       ]
 
-      eventTypes.forEach(eventType => {
+      eventTypes.forEach((eventType) => {
         eventSource.addEventListener(eventType, (e) => {
           if (!mountedRef.current) return
           try {
@@ -227,10 +235,12 @@ export function useSSE(options = {}) {
 
             // Call specific handler if exists
             // Convert event-name to camelCase: 'branding-update' → 'onBrandingUpdate'
-            const handlerName = 'on' + eventType
-              .split('-')
-              .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-              .join('')
+            const handlerName =
+              'on' +
+              eventType
+                .split('-')
+                .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+                .join('')
 
             handlersRef.current[handlerName]?.(data)
 
@@ -261,7 +271,9 @@ export function useSSE(options = {}) {
         }
 
         const delay = getReconnectDelay()
-        logInfo(`[SSE] Reconnecting in ${delay}ms (attempt ${reconnectAttemptRef.current}/${MAX_RECONNECT_ATTEMPTS})`)
+        logInfo(
+          `[SSE] Reconnecting in ${delay}ms (attempt ${reconnectAttemptRef.current}/${MAX_RECONNECT_ATTEMPTS})`
+        )
 
         reconnectTimeoutRef.current = setTimeout(() => {
           if (mountedRef.current && enabled) {
@@ -271,7 +283,6 @@ export function useSSE(options = {}) {
 
         onDisconnect?.()
       }
-
     } catch (error) {
       logError('[SSE] Failed to create EventSource:', error)
       setState(SSE_STATE.ERROR)
@@ -307,7 +318,7 @@ export function useSSE(options = {}) {
     connectionInfo,
     lastEvent,
     reconnect,
-    disconnect
+    disconnect,
   }
 }
 
