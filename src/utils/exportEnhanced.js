@@ -10,14 +10,17 @@
  * @param {string} filename - имя файла
  * @param {Object} metadata - метаданные {title, subtitle, filters, timestamp, totalRecords, companyName}
  */
-export function exportToExcel(data, columns, filename = 'export', metadata = {}) {
+export function exportToExcel(
+  data,
+  columns,
+  filename = 'export',
+  metadata = {}
+) {
   const {
     title = 'Экспорт',
-    subtitle = '',
     filters = null,
     timestamp = new Date(),
     totalRecords = data.length,
-    companyName = 'FreshTrack'
   } = metadata
 
   const escapeXml = (str) => {
@@ -184,21 +187,25 @@ export function exportToPDF(title, data, columns, metadata = {}) {
     timestamp = new Date(),
     totalRecords = data.length,
     orientation = 'landscape',
-    summary = null
+    summary = null,
   } = metadata
 
   // Проверяем данные
   if (!data || data.length === 0) {
     alert('Нет данных для экспорта')
-    return
+    return { success: false }
   }
 
   // Создание нового окна для печати
   const printWindow = window.open('', '_blank', 'width=1200,height=800')
 
-  if (!printWindow || printWindow.closed || typeof printWindow.closed === 'undefined') {
+  if (
+    !printWindow ||
+    printWindow.closed ||
+    typeof printWindow.closed === 'undefined'
+  ) {
     alert('Пожалуйста, разрешите всплывающие окна для создания PDF')
-    return
+    return { success: false }
   }
 
   // HTML для печати
@@ -495,5 +502,5 @@ function downloadBlob(blob, filename) {
 
 export default {
   exportToExcel,
-  exportToPDF
+  exportToPDF,
 }

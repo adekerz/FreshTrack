@@ -3,6 +3,8 @@
  * Сервис для работы с Web Push уведомлениями в браузере
  */
 
+import { logError, logWarn } from './logger'
+
 // Проверка поддержки уведомлений
 export function isNotificationSupported() {
   return 'Notification' in window
@@ -24,10 +26,10 @@ export async function requestNotificationPermission() {
     const permission = await Notification.requestPermission()
     return {
       success: permission === 'granted',
-      permission
+      permission,
     }
   } catch (error) {
-    console.error('Failed to request notification permission:', error)
+    logError('Failed to request notification permission:', error)
     return { success: false, error: error.message }
   }
 }
@@ -35,12 +37,12 @@ export async function requestNotificationPermission() {
 // Показать уведомление
 export function showNotification(title, options = {}) {
   if (!isNotificationSupported()) {
-    console.warn('Notifications not supported')
+    logWarn('Notifications not supported')
     return null
   }
 
   if (Notification.permission !== 'granted') {
-    console.warn('Notification permission not granted')
+    logWarn('Notification permission not granted')
     return null
   }
 
@@ -52,7 +54,7 @@ export function showNotification(title, options = {}) {
     requireInteraction: false,
     silent: false,
     vibrate: [200, 100, 200],
-    ...options
+    ...options,
   }
 
   try {
@@ -74,14 +76,14 @@ export function showNotification(title, options = {}) {
 
     return notification
   } catch (error) {
-    console.error('Failed to show notification:', error)
+    logError('Failed to show notification:', error)
     return null
   }
 }
 
 // Уведомление о просроченных товарах
 export function notifyExpiredProducts(products) {
-  if (!products || products.length === 0) return
+  if (!products || products.length === 0) return null
 
   const count = products.length
   const title = `❌ Просрочено: ${count} ${getProductWord(count)}`
@@ -96,18 +98,20 @@ export function notifyExpiredProducts(products) {
     tag: 'expired-products',
     icon: '/icons/expired.png',
     url: '/inventory',
-    requireInteraction: true
+    requireInteraction: true,
   })
 }
 
 // Уведомление о товарах с истекающим сроком
 export function notifyExpiringProducts(products, daysLeft) {
-  if (!products || products.length === 0) return
+  if (!products || products.length === 0) return null
 
   const count = products.length
   const emoji = daysLeft === 0 ? '⚠️' : '⏰'
   const timeText =
-    daysLeft === 0 ? 'истекает сегодня' : `истекает через ${daysLeft} ${getDaysWord(daysLeft)}`
+    daysLeft === 0
+      ? 'истекает сегодня'
+      : `истекает через ${daysLeft} ${getDaysWord(daysLeft)}`
 
   const title = `${emoji} ${count} ${getProductWord(count)} ${timeText}`
   const body =
@@ -120,7 +124,7 @@ export function notifyExpiringProducts(products, daysLeft) {
     body,
     tag: `expiring-${daysLeft}-days`,
     icon: daysLeft === 0 ? '/icons/warning.png' : '/icons/clock.png',
-    url: '/inventory'
+    url: '/inventory',
   })
 }
 
@@ -132,7 +136,7 @@ export function notifyProductCollected(product, collector) {
   return showNotification(title, {
     body,
     tag: 'product-collected',
-    autoCloseDelay: 3000
+    autoCloseDelay: 3000,
   })
 }
 
@@ -144,7 +148,7 @@ export function notifyProductAdded(product) {
   return showNotification(title, {
     body,
     tag: 'product-added',
-    autoCloseDelay: 3000
+    autoCloseDelay: 3000,
   })
 }
 
@@ -160,7 +164,7 @@ export function notifyMorningReport(stats) {
     tag: 'morning-report',
     icon: '/icons/report.png',
     url: '/dashboard',
-    requireInteraction: true
+    requireInteraction: true,
   })
 }
 
@@ -203,7 +207,7 @@ export function useNotifications() {
     notifyExpiring: notifyExpiringProducts,
     notifyCollected: notifyProductCollected,
     notifyAdded: notifyProductAdded,
-    notifyMorning: notifyMorningReport
+    notifyMorning: notifyMorningReport,
   }
 }
 
@@ -217,5 +221,5 @@ export default {
   notifyProductCollected,
   notifyProductAdded,
   notifyMorningReport,
-  useNotifications
+  useNotifications,
 }
