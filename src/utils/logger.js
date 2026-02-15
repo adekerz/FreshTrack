@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /**
  * FreshTrack Logger Utility
  * Conditional logging based on environment
@@ -61,5 +62,5 @@ export default {
   info: logInfo,
   warn: logWarn,
   error: logError,
-  api: logApi
+  api: logApi,
 }

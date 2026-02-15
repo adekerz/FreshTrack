@@ -23,7 +23,8 @@
       "Bash(done)",
       "Bash(for f in src/hooks/useAuditLogs.js src/hooks/useCollectionHistory.js src/hooks/useNotificationLogs.js src/lib/queryKeys.js src/lib/queryClient.js)",
       "Bash(grep:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(git commit:*)"
     ]
   }
 }

@@ -10,7 +10,7 @@ import {
   ToggleLeft,
   ToggleRight,
   Building2,
-  UserCog
+  UserCog,
 } from 'lucide-react'
 import { useTranslation } from '../context/LanguageContext'
 import { useAuth } from '../context/AuthContext'
@@ -23,11 +23,15 @@ import { SkeletonTable, Skeleton } from '../components/Skeleton'
 import { useToast } from '../context/ToastContext'
 
 const ROLE_COLORS = {
-  SUPER_ADMIN: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
-  HOTEL_ADMIN: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-  MANAGER: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-  DEPARTMENT_MANAGER: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
-  STAFF: 'bg-muted text-muted-foreground'
+  SUPER_ADMIN:
+    'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
+  HOTEL_ADMIN:
+    'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+  MANAGER:
+    'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+  DEPARTMENT_MANAGER:
+    'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
+  STAFF: 'bg-muted text-muted-foreground',
 }
 
 const ROLE_LABELS = {
@@ -35,7 +39,7 @@ const ROLE_LABELS = {
   HOTEL_ADMIN: 'Hotel Admin',
   MANAGER: 'Manager',
   DEPARTMENT_MANAGER: 'Dept Manager',
-  STAFF: 'Staff'
+  STAFF: 'Staff',
 }
 
 export default function AccountsPage() {
@@ -48,12 +52,12 @@ export default function AccountsPage() {
   const [filters, setFilters] = useState({
     hotelId: '',
     role: '',
-    isActive: ''
+    isActive: '',
   })
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 20,
-    total: 0
+    total: 0,
   })
   const [showFilters, setShowFilters] = useState(false)
   const [hotels, setHotels] = useState([])
@@ -77,14 +81,14 @@ export default function AccountsPage() {
         ...(searchQuery && { search: searchQuery }),
         ...(filters.hotelId && { hotelId: filters.hotelId }),
         ...(filters.role && { role: filters.role }),
-        ...(filters.isActive !== '' && { isActive: filters.isActive })
+        ...(filters.isActive !== '' && { isActive: filters.isActive }),
       })
 
       const data = await apiFetch(`/auth/users?${params}`)
       setUsers(data.users || [])
       setPagination((prev) => ({
         ...prev,
-        total: data.total ?? 0
+        total: data.total ?? 0,
       }))
     } catch {
       setUsers([])
@@ -106,7 +110,9 @@ export default function AccountsPage() {
   const handleToggleStatus = async (userId) => {
     setToggling(userId)
     try {
-      const data = await apiFetch(`/auth/users/${userId}/toggle`, { method: 'PATCH' })
+      const data = await apiFetch(`/auth/users/${userId}/toggle`, {
+        method: 'PATCH',
+      })
       setUsers((prev) =>
         prev.map((u) =>
           u.id === userId ? { ...u, is_active: data.isActive } : u
@@ -119,7 +125,10 @@ export default function AccountsPage() {
         'success'
       )
     } catch (error) {
-      addToast(error.message || t('accounts.toggleError') || 'Failed to toggle status', 'error')
+      addToast(
+        error.message || t('accounts.toggleError') || 'Failed to toggle status',
+        'error'
+      )
     } finally {
       setToggling(null)
     }
@@ -135,7 +144,7 @@ export default function AccountsPage() {
     setFilters({
       hotelId: '',
       role: '',
-      isActive: ''
+      isActive: '',
     })
     setSearchQuery('')
     setPagination((prev) => ({ ...prev, page: 1 }))
@@ -153,7 +162,7 @@ export default function AccountsPage() {
 
       const url = `${API_BASE_URL}/auth/users/export?${params}`
       const res = await fetch(url, {
-        credentials: 'include'
+        credentials: 'include',
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
@@ -168,7 +177,10 @@ export default function AccountsPage() {
       URL.revokeObjectURL(a.href)
       addToast(t('toast.exportSuccess') || 'Export successful', 'success')
     } catch (err) {
-      addToast(err.message || t('toast.exportError') || 'Export failed', 'error')
+      addToast(
+        err.message || t('toast.exportError') || 'Export failed',
+        'error'
+      )
     } finally {
       setExportingPdf(false)
     }
@@ -186,7 +198,7 @@ export default function AccountsPage() {
 
       const url = `${API_BASE_URL}/auth/users/export?${params}`
       const res = await fetch(url, {
-        credentials: 'include'
+        credentials: 'include',
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
@@ -201,7 +213,10 @@ export default function AccountsPage() {
       URL.revokeObjectURL(a.href)
       addToast(t('toast.exportSuccess') || 'Export successful', 'success')
     } catch (err) {
-      addToast(err.message || t('toast.exportError') || 'Export failed', 'error')
+      addToast(
+        err.message || t('toast.exportError') || 'Export failed',
+        'error'
+      )
     } finally {
       setExportingExcel(false)
     }
@@ -213,7 +228,7 @@ export default function AccountsPage() {
   const activeFiltersCount = [
     filters.hotelId,
     filters.role,
-    filters.isActive !== '' && filters.isActive
+    filters.isActive !== '' && filters.isActive,
   ].filter(Boolean).length
 
   const exportData = users.map((user) => ({
@@ -225,7 +240,7 @@ export default function AccountsPage() {
     department: user.department?.name || '',
     status: user.is_active ? 'Active' : 'Inactive',
     lastLogin: user.lastLogin ? formatDate(user.lastLogin, true) : '',
-    createdAt: formatDate(user.createdAt)
+    createdAt: formatDate(user.createdAt),
   }))
 
   const exportColumns = [
@@ -234,10 +249,13 @@ export default function AccountsPage() {
     { key: 'email', header: t('accounts.table.email') || 'Email' },
     { key: 'role', header: t('accounts.table.role') || 'Role' },
     { key: 'hotel', header: t('accounts.table.hotel') || 'Hotel' },
-    { key: 'department', header: t('accounts.table.department') || 'Department' },
+    {
+      key: 'department',
+      header: t('accounts.table.department') || 'Department',
+    },
     { key: 'status', header: t('accounts.table.status') || 'Status' },
     { key: 'lastLogin', header: t('accounts.table.lastLogin') || 'Last Login' },
-    { key: 'createdAt', header: t('accounts.table.createdAt') || 'Created' }
+    { key: 'createdAt', header: t('accounts.table.createdAt') || 'Created' },
   ]
 
   if (loading && users.length === 0) {
@@ -248,7 +266,12 @@ export default function AccountsPage() {
         stickyHeader={true}
         titleIcon={Users}
       >
-        <div className="space-y-4 sm:space-y-6" role="status" aria-live="polite" aria-label={t('common.loading')}>
+        <div
+          className="space-y-4 sm:space-y-6"
+          role="status"
+          aria-live="polite"
+          aria-label={t('common.loading')}
+        >
           <div className="bg-card rounded-xl border border-border p-3 sm:p-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
               <Skeleton className="h-10 flex-1 rounded-lg" />
@@ -279,7 +302,9 @@ export default function AccountsPage() {
             className="p-2 rounded-lg hover:bg-muted text-muted-foreground transition-colors min-h-[48px] min-w-[48px] flex items-center justify-center"
             title={t('common.refresh')}
           >
-            <RefreshCw className={cn('w-4 h-4 sm:w-5 sm:h-5', loading && 'animate-spin')} />
+            <RefreshCw
+              className={cn('w-4 h-4 sm:w-5 sm:h-5', loading && 'animate-spin')}
+            />
           </button>
           <ExportButton
             data={exportData}
@@ -296,355 +321,406 @@ export default function AccountsPage() {
       }
     >
       <div className="space-y-4 sm:space-y-6">
-      {/* Filters Bar */}
-      <div className="bg-card rounded-xl border border-border p-3 sm:p-4">
-        <form onSubmit={handleSearch} className="flex flex-col gap-3 sm:flex-row sm:gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={t('accounts.searchPlaceholder') || 'Search by name, login, email...'}
-              className="w-full pl-9 sm:pl-10 pr-4 py-2 border border-border rounded-lg bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
-              aria-label={t('common.search')}
-            />
-          </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <button
-              type="submit"
-              className="px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent/90 transition-colors text-sm min-h-[44px]"
-            >
-              {t('common.search') || 'Search'}
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowFilters(!showFilters)}
-              className={cn(
-                'flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg border transition-colors text-sm flex-1 sm:flex-none justify-center min-h-[44px]',
-                showFilters || activeFiltersCount > 0
-                  ? 'border-accent bg-accent/10 text-accent'
-                  : 'border-border text-muted-foreground hover:bg-muted'
-              )}
-            >
-              <Filter className="w-4 h-4" />
-              {t('common.filters') || 'Filters'}
-              {activeFiltersCount > 0 && (
-                <span className="ml-1 w-5 h-5 bg-accent text-white text-xs rounded-full flex items-center justify-center">
-                  {activeFiltersCount}
-                </span>
-              )}
-            </button>
-            {hasActiveFilters && (
+        {/* Filters Bar */}
+        <div className="bg-card rounded-xl border border-border p-3 sm:p-4">
+          <form
+            onSubmit={handleSearch}
+            className="flex flex-col gap-3 sm:flex-row sm:gap-4"
+          >
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={
+                  t('accounts.searchPlaceholder') ||
+                  'Search by name, login, email...'
+                }
+                className="w-full pl-9 sm:pl-10 pr-4 py-2 border border-border rounded-lg bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
+                aria-label={t('common.search')}
+              />
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                type="submit"
+                className="px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent/90 transition-colors text-sm min-h-[44px]"
+              >
+                {t('common.search') || 'Search'}
+              </button>
               <button
                 type="button"
-                onClick={resetFilters}
-                className="flex items-center gap-2 px-3 sm:px-4 py-2 text-danger hover:bg-danger/10 rounded-lg text-sm transition-colors min-h-[44px]"
+                onClick={() => setShowFilters(!showFilters)}
+                className={cn(
+                  'flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg border transition-colors text-sm flex-1 sm:flex-none justify-center min-h-[44px]',
+                  showFilters || activeFiltersCount > 0
+                    ? 'border-accent bg-accent/10 text-accent'
+                    : 'border-border text-muted-foreground hover:bg-muted'
+                )}
               >
-                <X className="w-4 h-4" />
-                {t('common.reset') || 'Reset'}
+                <Filter className="w-4 h-4" />
+                {t('common.filters') || 'Filters'}
+                {activeFiltersCount > 0 && (
+                  <span className="ml-1 w-5 h-5 bg-accent text-white text-xs rounded-full flex items-center justify-center">
+                    {activeFiltersCount}
+                  </span>
+                )}
               </button>
-            )}
-          </div>
-        </form>
+              {hasActiveFilters && (
+                <button
+                  type="button"
+                  onClick={resetFilters}
+                  className="flex items-center gap-2 px-3 sm:px-4 py-2 text-danger hover:bg-danger/10 rounded-lg text-sm transition-colors min-h-[44px]"
+                >
+                  <X className="w-4 h-4" />
+                  {t('common.reset') || 'Reset'}
+                </button>
+              )}
+            </div>
+          </form>
 
-        {/* Extended Filters */}
-        {showFilters && (
-          <div className="mt-4 pt-4 border-t border-border grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {isSuperAdmin() && (
+          {/* Extended Filters */}
+          {showFilters && (
+            <div className="mt-4 pt-4 border-t border-border grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {isSuperAdmin() && (
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1">
+                    {t('accounts.filters.hotel') || 'Hotel'}
+                  </label>
+                  <select
+                    value={filters.hotelId}
+                    onChange={(e) =>
+                      setFilters((prev) => ({
+                        ...prev,
+                        hotelId: e.target.value,
+                      }))
+                    }
+                    className="w-full px-3 py-2 border border-border rounded-lg bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-accent/20"
+                  >
+                    <option value="">{t('common.all') || 'All'}</option>
+                    {hotels.map((hotel) => (
+                      <option key={hotel.id} value={hotel.id}>
+                        {hotel.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1">
-                  {t('accounts.filters.hotel') || 'Hotel'}
+                  {t('accounts.filters.role') || 'Role'}
                 </label>
                 <select
-                  value={filters.hotelId}
-                  onChange={(e) => setFilters((prev) => ({ ...prev, hotelId: e.target.value }))}
+                  value={filters.role}
+                  onChange={(e) =>
+                    setFilters((prev) => ({ ...prev, role: e.target.value }))
+                  }
                   className="w-full px-3 py-2 border border-border rounded-lg bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-accent/20"
                 >
                   <option value="">{t('common.all') || 'All'}</option>
-                  {hotels.map((hotel) => (
-                    <option key={hotel.id} value={hotel.id}>
-                      {hotel.name}
-                    </option>
-                  ))}
+                  <option value="SUPER_ADMIN">Super Admin</option>
+                  <option value="HOTEL_ADMIN">Hotel Admin</option>
+                  <option value="MANAGER">Manager</option>
+                  <option value="DEPARTMENT_MANAGER">Department Manager</option>
+                  <option value="STAFF">Staff</option>
                 </select>
               </div>
-            )}
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1">
-                {t('accounts.filters.role') || 'Role'}
-              </label>
-              <select
-                value={filters.role}
-                onChange={(e) => setFilters((prev) => ({ ...prev, role: e.target.value }))}
-                className="w-full px-3 py-2 border border-border rounded-lg bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-accent/20"
-              >
-                <option value="">{t('common.all') || 'All'}</option>
-                <option value="SUPER_ADMIN">Super Admin</option>
-                <option value="HOTEL_ADMIN">Hotel Admin</option>
-                <option value="MANAGER">Manager</option>
-                <option value="DEPARTMENT_MANAGER">Department Manager</option>
-                <option value="STAFF">Staff</option>
-              </select>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  {t('accounts.filters.status') || 'Status'}
+                </label>
+                <select
+                  value={filters.isActive}
+                  onChange={(e) =>
+                    setFilters((prev) => ({
+                      ...prev,
+                      isActive: e.target.value,
+                    }))
+                  }
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-accent/20"
+                >
+                  <option value="">{t('common.all') || 'All'}</option>
+                  <option value="true">
+                    {t('accounts.active') || 'Active'}
+                  </option>
+                  <option value="false">
+                    {t('accounts.inactive') || 'Inactive'}
+                  </option>
+                </select>
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1">
-                {t('accounts.filters.status') || 'Status'}
-              </label>
-              <select
-                value={filters.isActive}
-                onChange={(e) => setFilters((prev) => ({ ...prev, isActive: e.target.value }))}
-                className="w-full px-3 py-2 border border-border rounded-lg bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-accent/20"
-              >
-                <option value="">{t('common.all') || 'All'}</option>
-                <option value="true">{t('accounts.active') || 'Active'}</option>
-                <option value="false">{t('accounts.inactive') || 'Inactive'}</option>
-              </select>
+          )}
+        </div>
+
+        {/* Stats */}
+        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+          <span>
+            {t('accounts.totalRecords', { count: pagination.total }) ||
+              `Total: ${pagination.total}`}
+          </span>
+        </div>
+
+        {/* Users Table */}
+        <div className="bg-card rounded-xl border border-border overflow-hidden">
+          {users.length === 0 ? (
+            <div className="p-8 text-center">
+              <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+              <p className="text-muted-foreground">
+                {t('accounts.noUsers') || 'No users found'}
+              </p>
             </div>
-          </div>
-        )}
-      </div>
-
-      {/* Stats */}
-      <div className="flex items-center gap-4 text-sm text-muted-foreground">
-        <span>{t('accounts.totalRecords', { count: pagination.total }) || `Total: ${pagination.total}`}</span>
-      </div>
-
-      {/* Users Table */}
-      <div className="bg-card rounded-xl border border-border overflow-hidden">
-        {users.length === 0 ? (
-          <div className="p-8 text-center">
-            <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <p className="text-muted-foreground">{t('accounts.noUsers') || 'No users found'}</p>
-          </div>
-        ) : (
-          <>
-            {/* Desktop Table */}
-            <div className="hidden md:block overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-muted">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      {t('accounts.table.name') || 'Name'}
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      {t('accounts.table.login') || 'Login'}
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      {t('accounts.table.email') || 'Email'}
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      {t('accounts.table.role') || 'Role'}
-                    </th>
-                    {isSuperAdmin() && (
+          ) : (
+            <>
+              {/* Desktop Table */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-muted">
+                    <tr>
                       <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                        {t('accounts.table.hotel') || 'Hotel'}
+                        {t('accounts.table.name') || 'Name'}
                       </th>
-                    )}
-                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      {t('accounts.table.status') || 'Status'}
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      {t('accounts.table.lastLogin') || 'Last Login'}
-                    </th>
-                    <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider w-24">
-                      {t('common.actions') || 'Actions'}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {users.map((user) => (
-                    <tr key={user.id} className="hover:bg-muted/50 transition-colors">
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <UserCog className="w-4 h-4 text-muted-foreground" />
-                          <span className="font-medium text-foreground">{user.name}</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-foreground">{user.login}</td>
-                      <td className="px-4 py-3 text-sm text-foreground">{user.email || '—'}</td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={cn(
-                            'inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium',
-                            ROLE_COLORS[user.role] || ROLE_COLORS.STAFF
-                          )}
-                        >
-                          {ROLE_LABELS[user.role] || user.role}
-                        </span>
-                      </td>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                        {t('accounts.table.login') || 'Login'}
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                        {t('accounts.table.email') || 'Email'}
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                        {t('accounts.table.role') || 'Role'}
+                      </th>
                       {isSuperAdmin() && (
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                          {t('accounts.table.hotel') || 'Hotel'}
+                        </th>
+                      )}
+                      <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                        {t('accounts.table.status') || 'Status'}
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                        {t('accounts.table.lastLogin') || 'Last Login'}
+                      </th>
+                      <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider w-24">
+                        {t('common.actions') || 'Actions'}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {users.map((user) => (
+                      <tr
+                        key={user.id}
+                        className="hover:bg-muted/50 transition-colors"
+                      >
                         <td className="px-4 py-3">
-                          <div className="flex items-center gap-1.5">
-                            <Building2 className="w-4 h-4 text-muted-foreground" />
-                            <span className="text-sm text-foreground">
-                              {user.hotel?.name || '—'}
+                          <div className="flex items-center gap-2">
+                            <UserCog className="w-4 h-4 text-muted-foreground" />
+                            <span className="font-medium text-foreground">
+                              {user.name}
                             </span>
                           </div>
                         </td>
-                      )}
-                      <td className="px-4 py-3">
-                        <span
-                          className={cn(
-                            'inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium',
-                            user.is_active
-                              ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                              : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                          )}
-                        >
-                          {user.is_active
-                            ? t('accounts.active') || 'Active'
-                            : t('accounts.inactive') || 'Inactive'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-foreground">
-                        {user.lastLogin ? formatDate(user.lastLogin, true) : '—'}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        {user.id !== currentUser?.id && (
-                          <button
-                            type="button"
-                            onClick={() => handleToggleStatus(user.id)}
-                            disabled={toggling === user.id}
+                        <td className="px-4 py-3 text-sm text-foreground">
+                          {user.login}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-foreground">
+                          {user.email || '—'}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span
                             className={cn(
-                              'p-1.5 rounded-lg transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center mx-auto',
-                              user.is_active
-                                ? 'hover:bg-red-100 text-red-600 dark:hover:bg-red-900/30'
-                                : 'hover:bg-green-100 text-green-600 dark:hover:bg-green-900/30',
-                              toggling === user.id && 'opacity-50 cursor-not-allowed'
+                              'inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium',
+                              ROLE_COLORS[user.role] || ROLE_COLORS.STAFF
                             )}
-                            title={
-                              user.is_active
-                                ? t('accounts.action.deactivate') || 'Deactivate'
-                                : t('accounts.action.activate') || 'Activate'
-                            }
                           >
-                            {toggling === user.id ? (
-                              <RefreshCw className="w-4 h-4 animate-spin" />
-                            ) : user.is_active ? (
-                              <ToggleRight className="w-5 h-5" />
-                            ) : (
-                              <ToggleLeft className="w-5 h-5" />
-                            )}
-                          </button>
+                            {ROLE_LABELS[user.role] || user.role}
+                          </span>
+                        </td>
+                        {isSuperAdmin() && (
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-1.5">
+                              <Building2 className="w-4 h-4 text-muted-foreground" />
+                              <span className="text-sm text-foreground">
+                                {user.hotel?.name || '—'}
+                              </span>
+                            </div>
+                          </td>
                         )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                        <td className="px-4 py-3">
+                          <span
+                            className={cn(
+                              'inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium',
+                              user.is_active
+                                ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                            )}
+                          >
+                            {user.is_active
+                              ? t('accounts.active') || 'Active'
+                              : t('accounts.inactive') || 'Inactive'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-foreground">
+                          {user.lastLogin
+                            ? formatDate(user.lastLogin, true)
+                            : '—'}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          {user.id !== currentUser?.id && (
+                            <button
+                              type="button"
+                              onClick={() => handleToggleStatus(user.id)}
+                              disabled={toggling === user.id}
+                              className={cn(
+                                'p-1.5 rounded-lg transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center mx-auto',
+                                user.is_active
+                                  ? 'hover:bg-red-100 text-red-600 dark:hover:bg-red-900/30'
+                                  : 'hover:bg-green-100 text-green-600 dark:hover:bg-green-900/30',
+                                toggling === user.id &&
+                                  'opacity-50 cursor-not-allowed'
+                              )}
+                              title={
+                                user.is_active
+                                  ? t('accounts.action.deactivate') ||
+                                    'Deactivate'
+                                  : t('accounts.action.activate') || 'Activate'
+                              }
+                            >
+                              {toggling === user.id ? (
+                                <RefreshCw className="w-4 h-4 animate-spin" />
+                              ) : user.is_active ? (
+                                <ToggleRight className="w-5 h-5" />
+                              ) : (
+                                <ToggleLeft className="w-5 h-5" />
+                              )}
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
 
-            {/* Mobile Cards */}
-            <div className="md:hidden divide-y divide-border">
-              {users.map((user) => (
-                <div key={user.id} className="p-4 space-y-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <UserCog className="w-4 h-4 text-muted-foreground" />
-                      <span className="font-medium text-foreground">{user.name}</span>
-                    </div>
-                    <span
-                      className={cn(
-                        'inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium',
-                        user.is_active
-                          ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                          : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                      )}
-                    >
-                      {user.is_active ? t('accounts.active') || 'Active' : t('accounts.inactive') || 'Inactive'}
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap gap-2 text-sm">
-                    <span
-                      className={cn(
-                        'inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium',
-                        ROLE_COLORS[user.role] || ROLE_COLORS.STAFF
-                      )}
-                    >
-                      {ROLE_LABELS[user.role] || user.role}
-                    </span>
-                    {isSuperAdmin() && user.hotel?.name && (
-                      <span className="text-muted-foreground flex items-center gap-1">
-                        <Building2 className="w-3 h-3" />
-                        {user.hotel.name}
-                      </span>
-                    )}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    <span>{user.login}</span>
-                    {user.email && <span className="ml-2">{user.email}</span>}
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">
-                      {user.lastLogin
-                        ? formatDate(user.lastLogin, true)
-                        : t('accounts.neverLoggedIn') || 'Never logged in'}
-                    </span>
-                    {user.id !== currentUser?.id && (
-                      <button
-                        type="button"
-                        onClick={() => handleToggleStatus(user.id)}
-                        disabled={toggling === user.id}
+              {/* Mobile Cards */}
+              <div className="md:hidden divide-y divide-border">
+                {users.map((user) => (
+                  <div key={user.id} className="p-4 space-y-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <UserCog className="w-4 h-4 text-muted-foreground" />
+                        <span className="font-medium text-foreground">
+                          {user.name}
+                        </span>
+                      </div>
+                      <span
                         className={cn(
-                          'px-3 py-1.5 rounded-lg text-sm transition-colors min-h-[44px]',
+                          'inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium',
                           user.is_active
-                            ? 'bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50'
-                            : 'bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/30 dark:hover:bg-green-900/50',
-                          toggling === user.id && 'opacity-50 cursor-not-allowed'
+                            ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                            : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
                         )}
                       >
-                        {toggling === user.id ? (
-                          <RefreshCw className="w-4 h-4 animate-spin" />
-                        ) : user.is_active ? (
-                          t('accounts.action.deactivate') || 'Deactivate'
-                        ) : (
-                          t('accounts.action.activate') || 'Activate'
+                        {user.is_active
+                          ? t('accounts.active') || 'Active'
+                          : t('accounts.inactive') || 'Inactive'}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-2 text-sm">
+                      <span
+                        className={cn(
+                          'inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium',
+                          ROLE_COLORS[user.role] || ROLE_COLORS.STAFF
                         )}
-                      </button>
-                    )}
+                      >
+                        {ROLE_LABELS[user.role] || user.role}
+                      </span>
+                      {isSuperAdmin() && user.hotel?.name && (
+                        <span className="text-muted-foreground flex items-center gap-1">
+                          <Building2 className="w-3 h-3" />
+                          {user.hotel.name}
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      <span>{user.login}</span>
+                      {user.email && <span className="ml-2">{user.email}</span>}
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">
+                        {user.lastLogin
+                          ? formatDate(user.lastLogin, true)
+                          : t('accounts.neverLoggedIn') || 'Never logged in'}
+                      </span>
+                      {user.id !== currentUser?.id && (
+                        <button
+                          type="button"
+                          onClick={() => handleToggleStatus(user.id)}
+                          disabled={toggling === user.id}
+                          className={cn(
+                            'px-3 py-1.5 rounded-lg text-sm transition-colors min-h-[44px]',
+                            user.is_active
+                              ? 'bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50'
+                              : 'bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/30 dark:hover:bg-green-900/50',
+                            toggling === user.id &&
+                              'opacity-50 cursor-not-allowed'
+                          )}
+                        >
+                          {toggling === user.id ? (
+                            <RefreshCw className="w-4 h-4 animate-spin" />
+                          ) : user.is_active ? (
+                            t('accounts.action.deactivate') || 'Deactivate'
+                          ) : (
+                            t('accounts.action.activate') || 'Activate'
+                          )}
+                        </button>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          </>
-        )}
+                ))}
+              </div>
+            </>
+          )}
 
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 py-3 border-t border-border">
-            <div className="text-sm text-muted-foreground">
-              {(pagination.page - 1) * pagination.limit + 1}—{' '}
-              {Math.min(pagination.page * pagination.limit, pagination.total)} {t('common.of') || 'of'}{' '}
-              {pagination.total}
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 py-3 border-t border-border">
+              <div className="text-sm text-muted-foreground">
+                {(pagination.page - 1) * pagination.limit + 1}—{' '}
+                {Math.min(pagination.page * pagination.limit, pagination.total)}{' '}
+                {t('common.of') || 'of'} {pagination.total}
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setPagination((prev) => ({
+                      ...prev,
+                      page: Math.max(1, prev.page - 1),
+                    }))
+                  }
+                  disabled={pagination.page === 1}
+                  className="p-2 rounded-lg hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] min-w-[44px] flex items-center justify-center"
+                  aria-label={t('common.back') || 'Previous'}
+                >
+                  <ChevronLeft className="w-5 h-5 text-foreground" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setPagination((prev) => ({
+                      ...prev,
+                      page: Math.min(totalPages, prev.page + 1),
+                    }))
+                  }
+                  disabled={pagination.page === totalPages}
+                  className="p-2 rounded-lg hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] min-w-[44px] flex items-center justify-center"
+                  aria-label={t('common.next') || 'Next'}
+                >
+                  <ChevronRight className="w-5 h-5 text-foreground" />
+                </button>
+              </div>
             </div>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setPagination((prev) => ({ ...prev, page: Math.max(1, prev.page - 1) }))}
-                disabled={pagination.page === 1}
-                className="p-2 rounded-lg hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] min-w-[44px] flex items-center justify-center"
-                aria-label={t('common.back') || 'Previous'}
-              >
-                <ChevronLeft className="w-5 h-5 text-foreground" />
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  setPagination((prev) => ({
-                    ...prev,
-                    page: Math.min(totalPages, prev.page + 1)
-                  }))
-                }
-                disabled={pagination.page === totalPages}
-                className="p-2 rounded-lg hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] min-w-[44px] flex items-center justify-center"
-                aria-label={t('common.next') || 'Next'}
-              >
-                <ChevronRight className="w-5 h-5 text-foreground" />
-              </button>
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </PageContainer>
   )

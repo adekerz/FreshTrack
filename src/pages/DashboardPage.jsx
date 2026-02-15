@@ -8,7 +8,7 @@ import {
   Calendar,
   ArrowRight,
   Plus,
-  Zap
+  Zap,
 } from 'lucide-react'
 import { useProducts } from '../context/ProductContext'
 import { useAuth } from '../context/AuthContext'
@@ -24,7 +24,14 @@ import { getDepartmentIcon } from '../utils/departmentUtils'
 export default function DashboardPage() {
   const { t } = useTranslation()
   const { user } = useAuth()
-  const { getStats, getAlerts, collectBatch, departments, loading, refresh } = useProducts()
+  const {
+    getStats,
+    getAlerts,
+    collectBatch: _collectBatch,
+    departments,
+    loading,
+    refresh,
+  } = useProducts()
   const { thresholds } = useThresholds()
   const [showAddBatchModal, setShowAddBatchModal] = useState(false)
   const [retryCount, setRetryCount] = useState(0)
@@ -48,7 +55,10 @@ export default function DashboardPage() {
       refresh()
     }, delay)
 
-    return () => clearTimeout(timer)
+    // eslint-disable-next-line consistent-return
+    return () => {
+      clearTimeout(timer)
+    }
   }, [loading, departments.length, retryCount, refresh])
 
   // Get greeting based on time of day
@@ -81,8 +91,15 @@ export default function DashboardPage() {
         stickyHeader={true}
       >
         <div className="flex-1 flex items-center justify-center py-16 sm:py-24">
-          <div className="flex flex-col items-center gap-6" role="status" aria-live="polite">
-            <Loader size="large" aria-label={t('common.loading') || 'Загрузка'} />
+          <div
+            className="flex flex-col items-center gap-6"
+            role="status"
+            aria-live="polite"
+          >
+            <Loader
+              size="large"
+              aria-label={t('common.loading') || 'Загрузка'}
+            />
             <div className="text-center">
               <p className="text-foreground font-medium mb-1">
                 {t('common.loading') || 'Загрузка...'}
@@ -143,29 +160,29 @@ export default function DashboardPage() {
       value: stats.total,
       icon: Package,
       color: 'text-foreground',
-      bgColor: 'bg-muted'
+      bgColor: 'bg-muted',
     },
     {
       title: t('dashboard.goodStatus'),
       value: stats.good,
       icon: Check,
       color: 'text-success',
-      bgColor: 'bg-success/10'
+      bgColor: 'bg-success/10',
     },
     {
       title: t('dashboard.expiringSoon'),
       value: stats.warning + stats.critical,
       icon: Clock,
       color: 'text-warning',
-      bgColor: 'bg-warning/10'
+      bgColor: 'bg-warning/10',
     },
     {
       title: t('dashboard.expired'),
       value: stats.expired,
       icon: AlertTriangle,
       color: 'text-danger',
-      bgColor: 'bg-danger/10'
-    }
+      bgColor: 'bg-danger/10',
+    },
   ]
 
   return (
@@ -202,192 +219,214 @@ export default function DashboardPage() {
       }
     >
       <div className="space-y-6 sm:space-y-8">
-      {/* Statistics - Bento Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-        {statCards.map((card, index) => {
-          const Icon = card.icon
-          // Von Restorff Effect - выделяем критические элементы
-          const isCritical = card.title === t('dashboard.expired') && card.value > 0
-          return (
-            <div
-              key={card.title}
-              className={`bg-card rounded-xl sm:rounded-lg p-4 sm:p-6 border border-border animate-slide-up hover-lift ${isCritical ? 'critical-highlight' : ''}`}
-              style={{ animationDelay: `${index * 0.1}s`, animationFillMode: 'backwards' }}
-            >
-              <div className="flex items-center justify-between mb-2 sm:mb-4">
-                <div
-                  className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full ${card.bgColor} flex items-center justify-center`}
-                >
-                  <Icon className={`w-5 h-5 sm:w-6 sm:h-6 ${card.color}`} />
-                </div>
-              </div>
-              <div className={`text-2xl sm:text-3xl font-light mb-0.5 sm:mb-1 ${card.color}`}>
-                {card.value}
-              </div>
-              <div className="text-xs sm:text-sm text-muted-foreground line-clamp-1">
-                {card.title}
-              </div>
-            </div>
-          )
-        })}
-      </div>
-
-      {/* Отделы - адаптивный Bento Grid */}
-      <div>
-        <div className="flex items-center justify-between mb-4 sm:mb-6">
-          <h2 className="text-lg sm:text-xl font-medium text-foreground">
-            {t('dashboard.departments')}
-          </h2>
-          <Link
-            to="/inventory"
-            className="text-xs sm:text-sm text-muted-foreground hover:text-accent transition-colors flex items-center gap-1"
-          >
-            {t('dashboard.viewAll')}
-            <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4" />
-          </Link>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-          {departments.map((dept, index) => {
-            const Icon = getDepartmentIcon(dept)
+        {/* Statistics - Bento Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+          {statCards.map((card, index) => {
+            const Icon = card.icon
+            // Von Restorff Effect - выделяем критические элементы
+            const isCritical =
+              card.title === t('dashboard.expired') && card.value > 0
             return (
-              <Link
-                key={dept.id}
-                to={`/inventory/${dept.id}`}
-                className="interactive-card bg-card rounded-xl sm:rounded-lg p-4 sm:p-6 border border-border group animate-slide-up focus-ring"
-                style={{ animationDelay: `${(index + 4) * 0.1}s`, animationFillMode: 'backwards' }}
+              <div
+                key={card.title}
+                className={`bg-card rounded-xl sm:rounded-lg p-4 sm:p-6 border border-border animate-slide-up hover-lift ${isCritical ? 'critical-highlight' : ''}`}
+                style={{
+                  animationDelay: `${index * 0.1}s`,
+                  animationFillMode: 'backwards',
+                }}
               >
-                <div className="flex items-center gap-3 sm:gap-4">
+                <div className="flex items-center justify-between mb-2 sm:mb-4">
                   <div
-                    className="w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform"
-                    style={{ backgroundColor: `${dept.color || '#C4A35A'}20` }}
+                    className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full ${card.bgColor} flex items-center justify-center`}
                   >
-                    <Icon
-                      className="w-6 h-6 sm:w-7 sm:h-7"
-                      style={{ color: dept.color || '#C4A35A' }}
-                    />
+                    <Icon className={`w-5 h-5 sm:w-6 sm:h-6 ${card.color}`} />
                   </div>
-                  <div className="min-w-0">
-                    <h3 className="font-medium text-foreground group-hover:text-accent transition-colors truncate">
-                      {dept.name}
-                    </h3>
-                    <p className="text-xs sm:text-sm text-muted-foreground">
-                      {t('dashboard.viewInventory')}
-                    </p>
-                  </div>
-                  <ArrowRight className="w-5 h-5 text-muted-foreground/50 group-hover:text-accent group-hover:translate-x-1 transition-all ml-auto" />
                 </div>
-              </Link>
+                <div
+                  className={`text-2xl sm:text-3xl font-light mb-0.5 sm:mb-1 ${card.color}`}
+                >
+                  {card.value}
+                </div>
+                <div className="text-xs sm:text-sm text-muted-foreground line-clamp-1">
+                  {card.title}
+                </div>
+              </div>
             )
           })}
         </div>
-      </div>
 
-      {/* Требуют внимания - компактный вид на мобильных */}
-      <div>
-        <div className="flex items-center justify-between mb-4 sm:mb-6">
-          <h2 className="text-lg sm:text-xl font-medium text-foreground">
-            {t('dashboard.needsAttention')}
-          </h2>
-          {alerts.length > 0 && (
+        {/* Отделы - адаптивный Bento Grid */}
+        <div>
+          <div className="flex items-center justify-between mb-4 sm:mb-6">
+            <h2 className="text-lg sm:text-xl font-medium text-foreground">
+              {t('dashboard.departments')}
+            </h2>
             <Link
-              to="/notifications"
+              to="/inventory"
               className="text-xs sm:text-sm text-muted-foreground hover:text-accent transition-colors flex items-center gap-1"
             >
               {t('dashboard.viewAll')}
               <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4" />
             </Link>
-          )}
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+            {departments.map((dept, index) => {
+              const Icon = getDepartmentIcon(dept)
+              return (
+                <Link
+                  key={dept.id}
+                  to={`/inventory/${dept.id}`}
+                  className="interactive-card bg-card rounded-xl sm:rounded-lg p-4 sm:p-6 border border-border group animate-slide-up focus-ring"
+                  style={{
+                    animationDelay: `${(index + 4) * 0.1}s`,
+                    animationFillMode: 'backwards',
+                  }}
+                >
+                  <div className="flex items-center gap-3 sm:gap-4">
+                    <div
+                      className="w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform"
+                      style={{
+                        backgroundColor: `${dept.color || '#C4A35A'}20`,
+                      }}
+                    >
+                      <Icon
+                        className="w-6 h-6 sm:w-7 sm:h-7"
+                        style={{ color: dept.color || '#C4A35A' }}
+                      />
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="font-medium text-foreground group-hover:text-accent transition-colors truncate">
+                        {dept.name}
+                      </h3>
+                      <p className="text-xs sm:text-sm text-muted-foreground">
+                        {t('dashboard.viewInventory')}
+                      </p>
+                    </div>
+                    <ArrowRight className="w-5 h-5 text-muted-foreground/50 group-hover:text-accent group-hover:translate-x-1 transition-all ml-auto" />
+                  </div>
+                </Link>
+              )
+            })}
+          </div>
         </div>
 
-        {alerts.length === 0 ? (
-          <div className="bg-success/5 border border-success/20 rounded-xl sm:rounded-lg p-6 sm:p-8 text-center animate-fade-in">
-            <Check className="w-10 h-10 sm:w-12 sm:h-12 text-success mx-auto mb-3 sm:mb-4" />
-            <h3 className="text-base sm:text-lg font-medium text-foreground mb-1 sm:mb-2">
-              {t('dashboard.allGood')}
-            </h3>
-            <p className="text-sm text-muted-foreground">{t('dashboard.noExpiring')}</p>
-          </div>
-        ) : (
-          <div className="space-y-2 sm:space-y-3">
-            {alerts.slice(0, 5).map((alert, index) => (
-              <div
-                key={alert.id}
-                className={`bg-card rounded-xl sm:rounded-lg p-3 sm:p-4 border-l-4 ${
-                  alert.daysLeft < 0
-                    ? 'border-l-danger'
-                    : alert.daysLeft <= thresholds.critical
-                      ? 'border-l-critical'
-                      : 'border-l-warning'
-                } border border-border animate-slide-up`}
-                style={{ animationDelay: `${index * 0.05}s`, animationFillMode: 'backwards' }}
-              >
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-2 flex-wrap">
-                      <h3 className="font-medium text-foreground text-sm sm:text-base truncate">
-                        {alert.productName}
-                      </h3>
-                      {alert.department && (
-                        <span
-                          className="text-xs px-2 py-0.5 rounded flex-shrink-0"
-                          style={{
-                            backgroundColor: `${alert.department.color}20`,
-                            color: alert.department.color
-                          }}
-                        >
-                          {alert.department.name}
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
-                        {formatDate(alert.expiryDate, false)}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Package className="w-3 h-3 sm:w-4 sm:h-4" />
-                        {alert.quantity === null
-                          ? t('product.noQuantity')
-                          : `${alert.quantity} ${t('inventory.units')}`}
-                      </div>
-                    </div>
-
-                    <div
-                      className={`mt-1 sm:mt-2 text-xs sm:text-sm font-medium ${
-                        alert.daysLeft < 0
-                          ? 'text-danger'
-                          : alert.daysLeft <= thresholds.critical
-                            ? 'text-critical'
-                            : 'text-warning'
-                      }`}
-                    >
-                      {alert.daysLeft < 0
-                        ? t('status.expiredDaysAgo', { days: Math.abs(alert.daysLeft) })
-                        : alert.daysLeft === 0
-                          ? t('status.expiresToday')
-                          : t('status.expiresInDays', { days: alert.daysLeft })}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-
-            {alerts.length > 5 && (
+        {/* Требуют внимания - компактный вид на мобильных */}
+        <div>
+          <div className="flex items-center justify-between mb-4 sm:mb-6">
+            <h2 className="text-lg sm:text-xl font-medium text-foreground">
+              {t('dashboard.needsAttention')}
+            </h2>
+            {alerts.length > 0 && (
               <Link
                 to="/notifications"
-                className="block text-center py-3 text-sm text-muted-foreground hover:text-accent transition-colors"
+                className="text-xs sm:text-sm text-muted-foreground hover:text-accent transition-colors flex items-center gap-1"
               >
-                {t('dashboard.showMore', { count: alerts.length - 5 })}
+                {t('dashboard.viewAll')}
+                <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4" />
               </Link>
             )}
           </div>
-        )}
-      </div>
 
-      {/* Add Batch Modal */}
-      {showAddBatchModal && <AddBatchModal onClose={() => setShowAddBatchModal(false)} />}
+          {alerts.length === 0 ? (
+            <div className="bg-success/5 border border-success/20 rounded-xl sm:rounded-lg p-6 sm:p-8 text-center animate-fade-in">
+              <Check className="w-10 h-10 sm:w-12 sm:h-12 text-success mx-auto mb-3 sm:mb-4" />
+              <h3 className="text-base sm:text-lg font-medium text-foreground mb-1 sm:mb-2">
+                {t('dashboard.allGood')}
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                {t('dashboard.noExpiring')}
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2 sm:space-y-3">
+              {alerts.slice(0, 5).map((alert, index) => (
+                <div
+                  key={alert.id}
+                  className={`bg-card rounded-xl sm:rounded-lg p-3 sm:p-4 border-l-4 ${
+                    alert.daysLeft < 0
+                      ? 'border-l-danger'
+                      : alert.daysLeft <= thresholds.critical
+                        ? 'border-l-critical'
+                        : 'border-l-warning'
+                  } border border-border animate-slide-up`}
+                  style={{
+                    animationDelay: `${index * 0.05}s`,
+                    animationFillMode: 'backwards',
+                  }}
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-2 flex-wrap">
+                        <h3 className="font-medium text-foreground text-sm sm:text-base truncate">
+                          {alert.productName}
+                        </h3>
+                        {alert.department && (
+                          <span
+                            className="text-xs px-2 py-0.5 rounded flex-shrink-0"
+                            style={{
+                              backgroundColor: `${alert.department.color}20`,
+                              color: alert.department.color,
+                            }}
+                          >
+                            {alert.department.name}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                          <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
+                          {formatDate(alert.expiryDate, false)}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Package className="w-3 h-3 sm:w-4 sm:h-4" />
+                          {alert.quantity === null
+                            ? t('product.noQuantity')
+                            : `${alert.quantity} ${t('inventory.units')}`}
+                        </div>
+                      </div>
+
+                      <div
+                        className={`mt-1 sm:mt-2 text-xs sm:text-sm font-medium ${
+                          alert.daysLeft < 0
+                            ? 'text-danger'
+                            : alert.daysLeft <= thresholds.critical
+                              ? 'text-critical'
+                              : 'text-warning'
+                        }`}
+                      >
+                        {alert.daysLeft < 0
+                          ? t('status.expiredDaysAgo', {
+                              days: Math.abs(alert.daysLeft),
+                            })
+                          : alert.daysLeft === 0
+                            ? t('status.expiresToday')
+                            : t('status.expiresInDays', {
+                                days: alert.daysLeft,
+                              })}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              {alerts.length > 5 && (
+                <Link
+                  to="/notifications"
+                  className="block text-center py-3 text-sm text-muted-foreground hover:text-accent transition-colors"
+                >
+                  {t('dashboard.showMore', { count: alerts.length - 5 })}
+                </Link>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Add Batch Modal */}
+        {showAddBatchModal && (
+          <AddBatchModal onClose={() => setShowAddBatchModal(false)} />
+        )}
       </div>
     </PageContainer>
   )

@@ -6,7 +6,7 @@ import {
   FileBox,
   ArrowUpDown,
   ArrowLeft,
-  Trash2
+  Trash2,
 } from 'lucide-react'
 import { useProducts } from '../context/ProductContext'
 import { useHotel } from '../context/HotelContext'
@@ -31,18 +31,24 @@ import ExportProgress from '../components/ExportProgress'
 import Tooltip from '../components/Tooltip'
 import { usePullToRefresh } from '../hooks/usePullToRefresh'
 import { useExport } from '../hooks/useExport'
-import { getDepartmentIcon } from '../utils/departmentUtils'
 
 export default function InventoryPage() {
   const { t } = useTranslation()
   const { language } = useLanguage()
   const { departmentId } = useParams()
   const navigate = useNavigate()
-  const { getProductsByDepartment, catalog, refresh, departments, categories, loading } =
-    useProducts()
+  const {
+    getProductsByDepartment,
+    catalog: _catalog,
+    refresh,
+    departments,
+    categories,
+    loading,
+  } = useProducts()
   const { selectedHotelId } = useHotel()
-  const { isRefreshing, pullDistance } = usePullToRefresh(refresh)
-  const { user, isStaff, isSuperAdmin } = useAuth()
+  const { isRefreshing: _isRefreshing, pullDistance } =
+    usePullToRefresh(refresh)
+  const { user: _user, isStaff, isSuperAdmin } = useAuth()
   const { addToast } = useToast()
   const { exportProgress, dismissExportProgress } = useExport()
   const prevHotelIdRef = useRef(selectedHotelId)
@@ -52,7 +58,7 @@ export default function InventoryPage() {
   const userIsSuperAdmin = isSuperAdmin()
 
   // Check if running in development mode
-  const isDevelopment = import.meta.env.MODE === 'development'
+  const _isDevelopment = import.meta.env.MODE === 'development'
 
   // Состояние выбранного отдела (из URL или null для показа селектора)
   const [selectedDeptId, setSelectedDeptId] = useState(departmentId || null)
@@ -105,7 +111,7 @@ export default function InventoryPage() {
 
   // DEPRECATED: React Query автоматически обновляет инвентарь через invalidation
   // Этот callback больше не нужен, но оставлен для обратной совместимости
-  const handleFastApply = useCallback((batches) => {
+  const handleFastApply = useCallback((_batches) => {
     // React Query автоматически обновит данные через фоновую синхронизацию
     // refresh() больше не нужен - данные обновятся через 2 секунды автоматически
   }, [])
@@ -125,7 +131,10 @@ export default function InventoryPage() {
 
   // Сбрасываем выбранный отдел при смене отеля
   useEffect(() => {
-    if (prevHotelIdRef.current !== selectedHotelId && prevHotelIdRef.current !== null) {
+    if (
+      prevHotelIdRef.current !== selectedHotelId &&
+      prevHotelIdRef.current !== null
+    ) {
       // Отель сменился — сбрасываем отдел и возвращаемся к списку
       setSelectedDeptId(null)
       setSelectedCategory('all')
@@ -164,7 +173,10 @@ export default function InventoryPage() {
       refresh()
     }, delay)
 
-    return () => clearTimeout(timer)
+    // eslint-disable-next-line consistent-return
+    return () => {
+      clearTimeout(timer)
+    }
   }, [loading, departments.length, retryCount, refresh])
 
   // Получить название категории в зависимости от языка
@@ -196,7 +208,8 @@ export default function InventoryPage() {
 
     setClearingBatches(true)
     try {
-      const hotelId = selectedHotelId || localStorage.getItem('freshtrack_selected_hotel')
+      const hotelId =
+        selectedHotelId || localStorage.getItem('freshtrack_selected_hotel')
 
       if (!hotelId) {
         addToast('Не указан отель', 'error')
@@ -205,22 +218,26 @@ export default function InventoryPage() {
 
       const params = new URLSearchParams({
         hotel_id: hotelId,
-        department_id: selectedDeptId
+        department_id: selectedDeptId,
       })
 
-      const response = await apiFetch(`/batches/clear-all?${params.toString()}`, {
-        method: 'DELETE'
-      })
+      const response = await apiFetch(
+        `/batches/clear-all?${params.toString()}`,
+        {
+          method: 'DELETE',
+        }
+      )
 
       addToast(
         t('inventory.allBatchesCleared', { count: response.deleted || 0 }) ||
-        `Удалено ${response.deleted || 0} партий`,
+          `Удалено ${response.deleted || 0} партий`,
         'success'
       )
       refresh()
       setShowClearAllConfirm(false)
     } catch (error) {
-      const errorMessage = error.message || error.error || 'Ошибка очистки партий'
+      const errorMessage =
+        error.message || error.error || 'Ошибка очистки партий'
       addToast(errorMessage, 'error')
     } finally {
       setClearingBatches(false)
@@ -240,18 +257,24 @@ export default function InventoryPage() {
       switch (sortBy) {
         case 'name':
           return (a.name || '').localeCompare(b.name || '')
-        case 'quantity':
-          const qtyA = a.batches?.reduce((sum, b) => sum + (b.quantity || 0), 0) || 0
-          const qtyB = b.batches?.reduce((sum, b) => sum + (b.quantity || 0), 0) || 0
+        case 'quantity': {
+          const qtyA =
+            a.batches?.reduce((sum, b) => sum + (b.quantity || 0), 0) || 0
+          const qtyB =
+            b.batches?.reduce((sum, b) => sum + (b.quantity || 0), 0) || 0
           return qtyB - qtyA
+        }
         case 'expiry':
-        default:
+        default: {
           // Сортировка по ближайшему сроку годности
           const getMinExpiry = (product) => {
             if (!product.batches?.length) return Infinity
-            return Math.min(...product.batches.map((b) => b.daysLeft ?? Infinity))
+            return Math.min(
+              ...product.batches.map((b) => b.daysLeft ?? Infinity)
+            )
           }
           return getMinExpiry(a) - getMinExpiry(b)
+        }
       }
     })
   }, [selectedDeptId, selectedCategory, sortBy, getProductsByDepartment])
@@ -259,7 +282,7 @@ export default function InventoryPage() {
   // Подготовка фильтров для экспорта
   const exportFilters = useMemo(() => {
     const filters = {
-      department_id: selectedDeptId
+      department_id: selectedDeptId,
     }
 
     // Добавляем фильтр по категории если выбрана
@@ -277,8 +300,10 @@ export default function InventoryPage() {
   }
 
   // Экран инвентаря отдела
-  const department = departments.find((d) => d.id === selectedDeptId || d.code === selectedDeptId)
-  const DeptIcon = getDepartmentIcon(department)
+  const department = departments.find(
+    (d) => d.id === selectedDeptId || d.code === selectedDeptId
+  )
+
   const products = getFilteredProducts()
   const availableCategories = getAvailableCategories()
 
@@ -294,7 +319,10 @@ export default function InventoryPage() {
           <div className="animate-fade-in">
             <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
               {Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton key={i} className="h-8 w-24 rounded-full flex-shrink-0" />
+                <Skeleton
+                  key={i}
+                  className="h-8 w-24 rounded-full flex-shrink-0"
+                />
               ))}
             </div>
             <SkeletonInventory rows={6} />
@@ -314,8 +342,15 @@ export default function InventoryPage() {
           stickyHeader={true}
         >
           <div className="flex-1 flex items-center justify-center py-16 sm:py-24 animate-fade-in">
-            <div className="flex flex-col items-center gap-6" role="status" aria-live="polite">
-              <Loader size="large" aria-label={t('common.loading') || 'Загрузка'} />
+            <div
+              className="flex flex-col items-center gap-6"
+              role="status"
+              aria-live="polite"
+            >
+              <Loader
+                size="large"
+                aria-label={t('common.loading') || 'Загрузка'}
+              />
               <div className="text-center">
                 <p className="text-foreground font-medium mb-1">
                   {t('common.loading') || 'Загрузка...'}
@@ -351,7 +386,7 @@ export default function InventoryPage() {
             }
             action={{
               label: t('common.goToSettings') || 'Перейти в настройки',
-              onClick: () => navigate('/settings')
+              onClick: () => navigate('/settings'),
             }}
           />
         </PageContainer>
@@ -444,7 +479,9 @@ export default function InventoryPage() {
                 icon={FileBox}
                 iconPosition="left"
               >
-                <span className="hidden sm:inline">{t('inventory.applyTemplate')}</span>
+                <span className="hidden sm:inline">
+                  {t('inventory.applyTemplate')}
+                </span>
               </TouchButton>
               {userIsSuperAdmin && selectedDeptId && (
                 <TouchButton
@@ -457,7 +494,9 @@ export default function InventoryPage() {
                   icon={Trash2}
                   iconPosition="left"
                 >
-                  <span className="hidden sm:inline">{t('inventory.clearAll') || 'Очистить все'}</span>
+                  <span className="hidden sm:inline">
+                    {t('inventory.clearAll') || 'Очистить все'}
+                  </span>
                 </TouchButton>
               )}
               {!userIsStaff && (
@@ -471,7 +510,9 @@ export default function InventoryPage() {
                   icon={Plus}
                   iconPosition="left"
                 >
-                  <span className="hidden sm:inline">{t('inventory.addNewProduct')}</span>
+                  <span className="hidden sm:inline">
+                    {t('inventory.addNewProduct')}
+                  </span>
                 </TouchButton>
               )}
             </div>
@@ -486,10 +527,11 @@ export default function InventoryPage() {
                   variant="ghost"
                   size="small"
                   onClick={() => setSelectedCategory('all')}
-                  className={`px-3 sm:px-4 py-2 rounded-full text-sm whitespace-nowrap flex-shrink-0 min-h-0 h-auto font-medium transition-all duration-200 ${selectedCategory === 'all'
+                  className={`px-3 sm:px-4 py-2 rounded-full text-sm whitespace-nowrap flex-shrink-0 min-h-0 h-auto font-medium transition-all duration-200 ${
+                    selectedCategory === 'all'
                       ? 'bg-accent-button text-white hover:bg-accent-button/90 shadow-sm border-0'
                       : 'bg-card border border-border text-foreground hover:bg-muted/80 hover:border-muted-foreground/30'
-                    }`}
+                  }`}
                 >
                   {t('common.all')}
                 </TouchButton>
@@ -499,10 +541,11 @@ export default function InventoryPage() {
                     variant="ghost"
                     size="small"
                     onClick={() => setSelectedCategory(cat.id)}
-                    className={`px-3 sm:px-4 py-2 rounded-full text-sm whitespace-nowrap flex-shrink-0 min-h-0 h-auto font-medium transition-all duration-200 ${selectedCategory === cat.id
+                    className={`px-3 sm:px-4 py-2 rounded-full text-sm whitespace-nowrap flex-shrink-0 min-h-0 h-auto font-medium transition-all duration-200 ${
+                      selectedCategory === cat.id
                         ? 'bg-accent-button text-white hover:bg-accent-button/90 shadow-sm border-0'
                         : 'bg-card border border-border text-foreground hover:bg-muted/80 hover:border-muted-foreground/30'
-                      }`}
+                    }`}
                   >
                     {getCategoryName(cat)}
                   </TouchButton>
@@ -511,16 +554,25 @@ export default function InventoryPage() {
 
               {/* Сортировка */}
               <div className="flex items-center gap-2 flex-shrink-0">
-                <ArrowUpDown className="w-4 h-4 text-muted-foreground" aria-hidden="true" />
+                <ArrowUpDown
+                  className="w-4 h-4 text-muted-foreground"
+                  aria-hidden="true"
+                />
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
                   aria-label={t('inventory.sortOrder') || 'Сортировка'}
                   className="text-xs sm:text-sm bg-card border border-border rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-accent/20"
                 >
-                  <option value="expiry">{t('inventory.sortByExpiry') || 'По сроку'}</option>
-                  <option value="name">{t('inventory.sortByName') || 'По названию'}</option>
-                  <option value="quantity">{t('inventory.sortByQuantity') || 'По количеству'}</option>
+                  <option value="expiry">
+                    {t('inventory.sortByExpiry') || 'По сроку'}
+                  </option>
+                  <option value="name">
+                    {t('inventory.sortByName') || 'По названию'}
+                  </option>
+                  <option value="quantity">
+                    {t('inventory.sortByQuantity') || 'По количеству'}
+                  </option>
                 </select>
               </div>
             </div>
@@ -530,11 +582,14 @@ export default function InventoryPage() {
               <EmptyState
                 icon={Package}
                 title={t('inventory.noProducts') || 'Нет товаров'}
-                description={t('inventory.addBatchToStart') || 'Добавьте партии товаров чтобы начать работу'}
+                description={
+                  t('inventory.addBatchToStart') ||
+                  'Добавьте партии товаров чтобы начать работу'
+                }
                 action={{
                   label: t('inventory.applyTemplate') || 'Применить шаблон',
                   onClick: () => setShowSelectTemplateModal(true),
-                  icon: FileBox
+                  icon: FileBox,
                 }}
               />
             ) : (
@@ -545,9 +600,12 @@ export default function InventoryPage() {
                 className="px-1 sm:px-0"
               >
                 {products.map((product) => {
-                  const category = categories.find((c) => c.id === product.categoryId)
+                  const category = categories.find(
+                    (c) => c.id === product.categoryId
+                  )
                   const displayCategoryName =
-                    product.categoryName || (category ? getCategoryName(category) : null)
+                    product.categoryName ||
+                    (category ? getCategoryName(category) : null)
                   return (
                     <ProductCard
                       key={product.id}
@@ -608,7 +666,12 @@ export default function InventoryPage() {
                 onClose={() => setShowClearAllConfirm(false)}
                 onConfirm={handleClearAllBatches}
                 title={t('inventory.clearAll') || 'Очистить все партии'}
-                description={t('inventory.confirmClearAllDept', { name: department?.name || '...' }) || `ВНИМАНИЕ! Это удалит ВСЕ активные партии из отдела «${department?.name}». Это действие нельзя отменить.`}
+                description={
+                  t('inventory.confirmClearAllDept', {
+                    name: department?.name || '...',
+                  }) ||
+                  `ВНИМАНИЕ! Это удалит ВСЕ активные партии из отдела «${department?.name}». Это действие нельзя отменить.`
+                }
                 confirmLabel={t('common.confirm') || 'Подтвердить'}
                 cancelLabel={t('common.cancel') || 'Отмена'}
                 variant="danger"
