@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 /**
  * Accessibility utilities for FreshTrack
  * Based on A11Y Project checklist and WCAG 2.1 guidelines

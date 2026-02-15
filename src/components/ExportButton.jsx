@@ -170,7 +170,6 @@ export default function ExportButton({
           {/* Backdrop */}
           <div
             className="fixed inset-0 z-40"
-            // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
             onClick={() => setIsDropdownOpen(false)}
           />
 

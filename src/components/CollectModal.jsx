@@ -72,7 +72,6 @@ export default function CollectModal({ isOpen, onClose, batch, onConfirm }) {
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-black/50 dark:bg-black/60 backdrop-blur-sm transition-opacity"
-        // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
         onClick={onClose}
       />
 

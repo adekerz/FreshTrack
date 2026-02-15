@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 /**
  * Per-route Error Boundary
  * Catches errors within route content without hiding navigation.
