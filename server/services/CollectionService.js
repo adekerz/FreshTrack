@@ -1,10 +1,10 @@
 /**
  * CollectionService - Phase 8: FIFO Collection Logic
- * 
+ *
  * Implements automated batch collection using First-In-First-Out algorithm.
  * Employees only need to specify product and quantity - system automatically
  * picks from oldest expiry dates first.
- * 
+ *
  * Features:
  * - FIFO algorithm (earliest expiry first)
  * - Transaction locking (prevents race conditions)
@@ -19,12 +19,15 @@ import { auditService, AuditAction, AuditEntityType } from './AuditService.js'
 
 // Collection reasons
 export const CollectionReason = {
-  EXPIRED: 'expired',
-  KITCHEN: 'kitchen',
-  DAMAGED: 'damaged',
-  RETURN: 'return',
-  COMPLIMENT: 'compliment',
-  OTHER: 'other'
+  CONSUMPTION: 'consumption', // Потребление (самая частая причина)
+  MINIBAR: 'minibar', // Из минибара
+  SALE: 'sale', // Продажа
+  EXPIRED: 'expired', // Просроченное
+  KITCHEN: 'kitchen', // На кухню
+  DAMAGED: 'damaged', // Повреждённое
+  RETURN: 'return', // Возврат от постояльца
+  COMPLIMENT: 'compliment', // Комплимент
+  OTHER: 'other', // Другое
 }
 
 // Error codes
@@ -33,13 +36,13 @@ export const CollectionError = {
   PRODUCT_NOT_FOUND: 'PRODUCT_NOT_FOUND',
   NO_ACTIVE_BATCHES: 'NO_ACTIVE_BATCHES',
   INVALID_QUANTITY: 'INVALID_QUANTITY',
-  INVALID_DEPARTMENT: 'INVALID_DEPARTMENT'
+  INVALID_DEPARTMENT: 'INVALID_DEPARTMENT',
 }
 
 /**
  * Preview FIFO collection - shows which batches will be affected
  * Use this before actual collection to confirm with user
- * 
+ *
  * @param {Object} params
  * @param {string} params.productId - Product ID to collect
  * @param {number} params.quantity - Quantity to collect
@@ -51,13 +54,13 @@ export async function previewCollection({
   productId,
   quantity,
   hotelId,
-  departmentId
+  departmentId,
 }) {
   if (!quantity || quantity <= 0) {
     return {
       success: false,
       error: CollectionError.INVALID_QUANTITY,
-      message: 'Quantity must be greater than 0'
+      message: 'Quantity must be greater than 0',
     }
   }
 
@@ -91,11 +94,14 @@ export async function previewCollection({
     return {
       success: false,
       error: CollectionError.NO_ACTIVE_BATCHES,
-      message: 'No active batches found for this product'
+      message: 'No active batches found for this product',
     }
   }
 
-  const totalAvailable = batches.reduce((sum, b) => sum + (b.quantity != null ? parseInt(b.quantity) : 1), 0)
+  const totalAvailable = batches.reduce(
+    (sum, b) => sum + (b.quantity != null ? parseInt(b.quantity) : 1),
+    0
+  )
 
   if (totalAvailable < quantity) {
     return {
@@ -103,7 +109,7 @@ export async function previewCollection({
       error: CollectionError.INSUFFICIENT_STOCK,
       message: `Insufficient stock. Available: ${totalAvailable}, Requested: ${quantity}`,
       available: totalAvailable,
-      requested: quantity
+      requested: quantity,
     }
   }
 
@@ -126,7 +132,7 @@ export async function previewCollection({
       remainingQuantity: batchQty - takeFromThisBatch,
       willBeDeleted: batchQty === takeFromThisBatch,
       productName: batch.product_name,
-      categoryName: batch.category_name
+      categoryName: batch.category_name,
     })
 
     remainingToCollect -= takeFromThisBatch
@@ -140,14 +146,14 @@ export async function previewCollection({
     totalRequested: quantity,
     totalAvailable,
     affectedBatches,
-    batchCount: affectedBatches.length
+    batchCount: affectedBatches.length,
   }
 }
 
 /**
  * Execute FIFO collection - actually collects from batches
  * Uses transaction with row locking to prevent race conditions
- * 
+ *
  * @param {Object} params
  * @param {string} params.productId - Product ID to collect
  * @param {number} params.quantity - Quantity to collect
@@ -166,13 +172,13 @@ export async function collect({
   hotelId,
   departmentId,
   reason = CollectionReason.CONSUMPTION,
-  notes = null
+  notes = null,
 }) {
   if (!quantity || quantity <= 0) {
     return {
       success: false,
       error: CollectionError.INVALID_QUANTITY,
-      message: 'Quantity must be greater than 0'
+      message: 'Quantity must be greater than 0',
     }
   }
 
@@ -180,7 +186,7 @@ export async function collect({
     return {
       success: false,
       error: CollectionError.INVALID_DEPARTMENT,
-      message: 'Product ID and Hotel ID are required'
+      message: 'Product ID and Hotel ID are required',
     }
   }
 
@@ -220,11 +226,14 @@ export async function collect({
       return {
         success: false,
         error: CollectionError.NO_ACTIVE_BATCHES,
-        message: 'No active batches found for this product'
+        message: 'No active batches found for this product',
       }
     }
 
-    const totalAvailable = batches.reduce((sum, b) => sum + (b.quantity != null ? parseInt(b.quantity) : 1), 0)
+    const totalAvailable = batches.reduce(
+      (sum, b) => sum + (b.quantity != null ? parseInt(b.quantity) : 1),
+      0
+    )
 
     if (totalAvailable < quantity) {
       await client.query('ROLLBACK')
@@ -233,7 +242,7 @@ export async function collect({
         error: CollectionError.INSUFFICIENT_STOCK,
         message: `Insufficient stock. Available: ${totalAvailable}, Requested: ${quantity}`,
         available: totalAvailable,
-        requested: quantity
+        requested: quantity,
       }
     }
 
@@ -254,29 +263,32 @@ export async function collect({
       const historyId = uuidv4()
       const deptIdToUse = batch.department_id || departmentId
 
-      await client.query(`
+      await client.query(
+        `
         INSERT INTO collection_history (
           id, batch_id, product_id, hotel_id, department_id, user_id,
           quantity_collected, quantity_remaining,
           expiry_date, product_name, category_name, batch_number,
           collection_reason, notes
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
-      `, [
-        historyId,
-        batch.id,
-        productId,
-        hotelId,
-        deptIdToUse, // Use batch's department for correct tracking
-        userId,
-        takeFromThisBatch,
-        quantityRemaining,
-        batch.expiry_date,
-        batch.product_name,
-        batch.category_name,
-        batch.batch_number,
-        reason,
-        notes
-      ])
+      `,
+        [
+          historyId,
+          batch.id,
+          productId,
+          hotelId,
+          deptIdToUse, // Use batch's department for correct tracking
+          userId,
+          takeFromThisBatch,
+          quantityRemaining,
+          batch.expiry_date,
+          batch.product_name,
+          batch.category_name,
+          batch.batch_number,
+          reason,
+          notes,
+        ]
+      )
 
       historyEntries.push({
         historyId,
@@ -284,7 +296,7 @@ export async function collect({
         quantityCollected: takeFromThisBatch,
         quantityRemaining,
         expiryDate: batch.expiry_date,
-        productName: batch.product_name
+        productName: batch.product_name,
       })
 
       // 2b. Update or delete batch
@@ -294,10 +306,10 @@ export async function collect({
         deletedBatchIds.push(batch.id)
       } else {
         // Update remaining quantity
-        await client.query(
-          'UPDATE batches SET quantity = $1 WHERE id = $2',
-          [quantityRemaining, batch.id]
-        )
+        await client.query('UPDATE batches SET quantity = $1 WHERE id = $2', [
+          quantityRemaining,
+          batch.id,
+        ])
       }
 
       remainingToCollect -= takeFromThisBatch
@@ -320,8 +332,8 @@ export async function collect({
           totalCollected: quantity,
           batchesAffected: historyEntries.length,
           batchesDeleted: deletedBatchIds.length,
-          reason
-        }
+          reason,
+        },
       })
     } catch (auditError) {
       logError('CollectionService', auditError)
@@ -335,13 +347,10 @@ export async function collect({
       batchesAffected: historyEntries.length,
       batchesDeleted: deletedBatchIds.length,
       productName: batches[0]?.product_name,
-      categoryName: batches[0]?.category_name
+      categoryName: batches[0]?.category_name,
     }
-
   } catch (error) {
     await client.query('ROLLBACK')
-    console.error('CollectionService.collect ERROR:', error.message)
-    console.error('CollectionService.collect STACK:', error.stack)
     logError('CollectionService', error)
     throw error
   } finally {
@@ -351,13 +360,21 @@ export async function collect({
 
 /**
  * Get collection history with filters
- * 
+ *
  * @param {string} hotelId
  * @param {Object} filters
  * @returns {Array} Collection history entries
  */
 export async function getCollectionHistory(hotelId, filters = {}) {
-  const { departmentId, productId, userId, startDate, endDate, limit = 100, offset = 0 } = filters
+  const {
+    departmentId,
+    productId,
+    userId,
+    startDate,
+    endDate,
+    limit = 100,
+    offset = 0,
+  } = filters
 
   let queryText = `
     SELECT ch.*, u.name as user_name, d.name as department_name
@@ -404,17 +421,21 @@ export async function getCollectionHistory(hotelId, filters = {}) {
 
 /**
  * Get collection statistics
- * 
+ *
  * @param {string} hotelId
  * @param {string} departmentId - Optional
  * @param {string} period - 'day', 'week', 'month', 'year'
  * @returns {Object} Collection statistics
  */
-export async function getCollectionStats(hotelId, departmentId = null, period = 'month') {
+export async function getCollectionStats(
+  hotelId,
+  departmentId = null,
+  period = 'month'
+) {
   let dateFilter = ''
   switch (period) {
     case 'day':
-      dateFilter = "AND ch.collected_at >= CURRENT_DATE"
+      dateFilter = 'AND ch.collected_at >= CURRENT_DATE'
       break
     case 'week':
       dateFilter = "AND ch.collected_at >= CURRENT_DATE - INTERVAL '7 days'"
@@ -437,7 +458,8 @@ export async function getCollectionStats(hotelId, departmentId = null, period = 
   }
 
   // Total stats
-  const totalsResult = await query(`
+  const totalsResult = await query(
+    `
     SELECT 
       COUNT(*) as total_transactions,
       COALESCE(SUM(quantity_collected), 0) as total_quantity,
@@ -445,10 +467,13 @@ export async function getCollectionStats(hotelId, departmentId = null, period = 
       COUNT(DISTINCT user_id) as unique_users
     FROM collection_history ch
     WHERE ${whereClause} ${dateFilter}
-  `, params)
+  `,
+    params
+  )
 
   // Top products
-  const topProductsResult = await query(`
+  const topProductsResult = await query(
+    `
     SELECT 
       product_name,
       category_name,
@@ -459,10 +484,13 @@ export async function getCollectionStats(hotelId, departmentId = null, period = 
     GROUP BY product_name, category_name
     ORDER BY total_collected DESC
     LIMIT 10
-  `, params)
+  `,
+    params
+  )
 
   // By reason
-  const byReasonResult = await query(`
+  const byReasonResult = await query(
+    `
     SELECT 
       collection_reason,
       SUM(quantity_collected) as total_collected,
@@ -471,10 +499,13 @@ export async function getCollectionStats(hotelId, departmentId = null, period = 
     WHERE ${whereClause} ${dateFilter}
     GROUP BY collection_reason
     ORDER BY total_collected DESC
-  `, params)
+  `,
+    params
+  )
 
   // Daily trend
-  const trendResult = await query(`
+  const trendResult = await query(
+    `
     SELECT 
       DATE(collected_at) as date,
       SUM(quantity_collected) as total_collected,
@@ -483,7 +514,9 @@ export async function getCollectionStats(hotelId, departmentId = null, period = 
     WHERE ${whereClause} ${dateFilter}
     GROUP BY DATE(collected_at)
     ORDER BY date ASC
-  `, params)
+  `,
+    params
+  )
 
   const totals = totalsResult.rows[0]
 
@@ -493,11 +526,11 @@ export async function getCollectionStats(hotelId, departmentId = null, period = 
       transactions: parseInt(totals.total_transactions),
       quantity: parseInt(totals.total_quantity),
       uniqueProducts: parseInt(totals.unique_products),
-      uniqueUsers: parseInt(totals.unique_users)
+      uniqueUsers: parseInt(totals.unique_users),
     },
     topProducts: topProductsResult.rows,
     byReason: byReasonResult.rows,
-    dailyTrend: trendResult.rows
+    dailyTrend: trendResult.rows,
   }
 }
 
@@ -507,7 +540,5 @@ export default {
   previewCollection,
   collect,
   getCollectionHistory,
-  getCollectionStats
+  getCollectionStats,
 }
-
-

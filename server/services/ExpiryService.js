@@ -3,7 +3,7 @@
  * ═══════════════════════════════════════════════════════════════
  * Centralized service for expiry status calculations
  * Single Source of Truth for all expiry-related business logic
- * 
+ *
  * Replaces duplicated logic from:
  * - src/utils/dateUtils.js (frontend)
  * - server/services/TelegramService.js
@@ -21,18 +21,18 @@ export const ExpiryStatus = {
   TODAY: 'today',
   CRITICAL: 'critical',
   WARNING: 'warning',
-  GOOD: 'good'
+  GOOD: 'good',
 }
 
 /**
- * Status Colors for UI (просрочка=red, критическое=orange, предупреждение=yellow, норма=green)
+ * Status Colors for UI (просрочка=red, критическое=red, предупреждение=yellow, норма=green)
  */
 export const StatusColor = {
   [ExpiryStatus.EXPIRED]: 'danger',
-  [ExpiryStatus.TODAY]: 'critical',
-  [ExpiryStatus.CRITICAL]: 'critical',
+  [ExpiryStatus.TODAY]: 'danger',
+  [ExpiryStatus.CRITICAL]: 'danger',
   [ExpiryStatus.WARNING]: 'warning',
-  [ExpiryStatus.GOOD]: 'success'
+  [ExpiryStatus.GOOD]: 'success',
 }
 
 /**
@@ -43,15 +43,15 @@ export const StatusCssClass = {
   [ExpiryStatus.TODAY]: 'bg-critical text-white',
   [ExpiryStatus.CRITICAL]: 'bg-critical text-white',
   [ExpiryStatus.WARNING]: 'bg-warning text-foreground',
-  [ExpiryStatus.GOOD]: 'bg-success text-white'
+  [ExpiryStatus.GOOD]: 'bg-success text-white',
 }
 
 /**
  * Default thresholds (days until expiry)
  */
 const DEFAULT_THRESHOLDS = {
-  critical: 3,   // <= 3 days = critical
-  warning: 7     // <= 7 days = warning
+  critical: 3, // <= 3 days = critical
+  warning: 7, // <= 7 days = warning
 }
 
 // Cache for notification rules thresholds
@@ -75,7 +75,8 @@ async function getThresholdsFromRules(hotelId) {
 
   try {
     // Get the first enabled expiry rule for this hotel
-    const result = await query(`
+    const result = await query(
+      `
       SELECT warning_days, critical_days 
       FROM notification_rules 
       WHERE (hotel_id = $1 OR hotel_id IS NULL)
@@ -83,12 +84,14 @@ async function getThresholdsFromRules(hotelId) {
         AND enabled = true
       ORDER BY hotel_id NULLS LAST
       LIMIT 1
-    `, [hotelId])
+    `,
+      [hotelId]
+    )
 
     if (result.rows.length > 0) {
       const thresholds = {
         warning: result.rows[0].warning_days,
-        critical: result.rows[0].critical_days
+        critical: result.rows[0].critical_days,
       }
       thresholdsCache.set(cacheKey, { thresholds, timestamp: Date.now() })
       return thresholds
@@ -141,7 +144,7 @@ export function getExpiryStatus(daysLeft, thresholds = DEFAULT_THRESHOLDS) {
 /**
  * Get enriched expiry data for a batch/product
  * This is the main method that should be used by routes
- * 
+ *
  * @param {string|Date} expiryDate - Expiry date
  * @param {Object} options - { hotelId, departmentId, locale }
  * @returns {Object} - Enriched expiry data
@@ -159,15 +162,17 @@ export async function getEnrichedExpiryData(expiryDate, options = {}) {
     if (rulesThresholds) {
       thresholds = {
         critical: rulesThresholds.critical ?? DEFAULT_THRESHOLDS.critical,
-        warning: rulesThresholds.warning ?? DEFAULT_THRESHOLDS.warning
+        warning: rulesThresholds.warning ?? DEFAULT_THRESHOLDS.warning,
       }
     } else {
       // Fallback to settings
       const settings = await getSettings({ hotelId, departmentId })
       if (settings.expiryThresholds) {
         thresholds = {
-          critical: settings.expiryThresholds.critical ?? DEFAULT_THRESHOLDS.critical,
-          warning: settings.expiryThresholds.warning ?? DEFAULT_THRESHOLDS.warning
+          critical:
+            settings.expiryThresholds.critical ?? DEFAULT_THRESHOLDS.critical,
+          warning:
+            settings.expiryThresholds.warning ?? DEFAULT_THRESHOLDS.warning,
         }
       }
     }
@@ -190,8 +195,13 @@ export async function getEnrichedExpiryData(expiryDate, options = {}) {
     cssClass,
     statusText,
     isExpired: status === ExpiryStatus.EXPIRED,
-    isUrgent: [ExpiryStatus.EXPIRED, ExpiryStatus.TODAY, ExpiryStatus.CRITICAL].includes(status),
-    expiryDate: expiryDate instanceof Date ? expiryDate.toISOString() : expiryDate
+    isUrgent: [
+      ExpiryStatus.EXPIRED,
+      ExpiryStatus.TODAY,
+      ExpiryStatus.CRITICAL,
+    ].includes(status),
+    expiryDate:
+      expiryDate instanceof Date ? expiryDate.toISOString() : expiryDate,
   }
 }
 
@@ -205,32 +215,35 @@ export async function getEnrichedExpiryData(expiryDate, options = {}) {
 function getStatusText(status, daysLeft, locale = 'ru') {
   const texts = {
     ru: {
-      [ExpiryStatus.EXPIRED]: daysLeft === -1
-        ? 'Просрочено вчера'
-        : `Просрочено ${Math.abs(daysLeft)} дн. назад`,
+      [ExpiryStatus.EXPIRED]:
+        daysLeft === -1
+          ? 'Просрочено вчера'
+          : `Просрочено ${Math.abs(daysLeft)} дн. назад`,
       [ExpiryStatus.TODAY]: 'Истекает сегодня!',
       [ExpiryStatus.CRITICAL]: `Критично: ${daysLeft} дн.`,
       [ExpiryStatus.WARNING]: `Внимание: ${daysLeft} дн.`,
-      [ExpiryStatus.GOOD]: `В норме: ${daysLeft} дн.`
+      [ExpiryStatus.GOOD]: `В норме: ${daysLeft} дн.`,
     },
     en: {
-      [ExpiryStatus.EXPIRED]: daysLeft === -1
-        ? 'Expired yesterday'
-        : `Expired ${Math.abs(daysLeft)} days ago`,
+      [ExpiryStatus.EXPIRED]:
+        daysLeft === -1
+          ? 'Expired yesterday'
+          : `Expired ${Math.abs(daysLeft)} days ago`,
       [ExpiryStatus.TODAY]: 'Expires today!',
       [ExpiryStatus.CRITICAL]: `Critical: ${daysLeft} days`,
       [ExpiryStatus.WARNING]: `Warning: ${daysLeft} days`,
-      [ExpiryStatus.GOOD]: `Good: ${daysLeft} days`
+      [ExpiryStatus.GOOD]: `Good: ${daysLeft} days`,
     },
     kk: {
-      [ExpiryStatus.EXPIRED]: daysLeft === -1
-        ? 'Кеше мерзімі өтті'
-        : `${Math.abs(daysLeft)} күн бұрын мерзімі өтті`,
+      [ExpiryStatus.EXPIRED]:
+        daysLeft === -1
+          ? 'Кеше мерзімі өтті'
+          : `${Math.abs(daysLeft)} күн бұрын мерзімі өтті`,
       [ExpiryStatus.TODAY]: 'Бүгін мерзімі аяқталады!',
       [ExpiryStatus.CRITICAL]: `Критикалық: ${daysLeft} күн`,
       [ExpiryStatus.WARNING]: `Назар аударыңыз: ${daysLeft} күн`,
-      [ExpiryStatus.GOOD]: `Қалыпты: ${daysLeft} күн`
-    }
+      [ExpiryStatus.GOOD]: `Қалыпты: ${daysLeft} күн`,
+    },
   }
 
   return texts[locale]?.[status] || texts.en[status]
@@ -250,7 +263,7 @@ export async function enrichBatchWithExpiryData(batch, options = {}) {
     {
       hotelId: options.hotelId || batch.hotel_id,
       departmentId: options.departmentId || batch.department_id,
-      locale: options.locale
+      locale: options.locale,
     }
   )
 
@@ -263,7 +276,7 @@ export async function enrichBatchWithExpiryData(batch, options = {}) {
     statusCssClass: expiryData.cssClass,
     statusText: expiryData.statusText,
     isExpired: expiryData.isExpired,
-    isUrgent: expiryData.isUrgent
+    isUrgent: expiryData.isUrgent,
   }
 }
 
@@ -277,7 +290,7 @@ export async function enrichBatchesWithExpiryData(batches, options = {}) {
   if (!batches || !Array.isArray(batches)) return []
 
   return Promise.all(
-    batches.map(batch => enrichBatchWithExpiryData(batch, options))
+    batches.map((batch) => enrichBatchWithExpiryData(batch, options))
   )
 }
 
@@ -289,7 +302,14 @@ export async function enrichBatchesWithExpiryData(batches, options = {}) {
  */
 export async function calculateBatchStats(batches, options = {}) {
   if (!batches || !Array.isArray(batches)) {
-    return { total: 0, good: 0, warning: 0, critical: 0, expired: 0, healthScore: 100 }
+    return {
+      total: 0,
+      good: 0,
+      warning: 0,
+      critical: 0,
+      expired: 0,
+      healthScore: 100,
+    }
   }
 
   // Get thresholds
@@ -308,11 +328,13 @@ export async function calculateBatchStats(batches, options = {}) {
     good: 0,
     warning: 0,
     critical: 0,
-    expired: 0
+    expired: 0,
   }
 
   for (const batch of batches) {
-    const daysLeft = batch.daysLeft ?? calculateDaysUntilExpiry(batch.expiry_date || batch.expiryDate)
+    const daysLeft =
+      batch.daysLeft ??
+      calculateDaysUntilExpiry(batch.expiry_date || batch.expiryDate)
     const status = getExpiryStatus(daysLeft, thresholds)
 
     switch (status) {
@@ -333,9 +355,8 @@ export async function calculateBatchStats(batches, options = {}) {
   }
 
   // Health score: percentage of good items
-  stats.healthScore = stats.total > 0
-    ? Math.round((stats.good / stats.total) * 100)
-    : 100
+  stats.healthScore =
+    stats.total > 0 ? Math.round((stats.good / stats.total) * 100) : 100
 
   return stats
 }
@@ -383,5 +404,5 @@ export default {
   calculateBatchStats,
   getDefaultThresholds,
   getHotelThresholds,
-  clearThresholdsCache
+  clearThresholdsCache,
 }
