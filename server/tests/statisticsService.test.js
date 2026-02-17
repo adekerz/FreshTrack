@@ -135,7 +135,7 @@ describe('StatisticsService - Phase 3: Centralized Statistics', () => {
       )
     })
 
-    it('should not filter by departmentId when user can access all departments', async () => {
+    it('should filter by departmentId even when user can access all departments', async () => {
       getAllBatches.mockResolvedValue([])
       enrichBatchesWithExpiryData.mockResolvedValue([])
 
@@ -145,7 +145,13 @@ describe('StatisticsService - Phase 3: Centralized Statistics', () => {
         canAccessAllDepartments: true,
       })
 
-      expect(getAllBatches).toHaveBeenCalledWith(mockHotelId, null, null)
+      // departmentId is always applied when provided, regardless of canAccessAllDepartments.
+      // Admins selecting a specific dept should see only that dept's stats.
+      expect(getAllBatches).toHaveBeenCalledWith(
+        mockHotelId,
+        mockDepartmentId,
+        null
+      )
     })
   })
 
