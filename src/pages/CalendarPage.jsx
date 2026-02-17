@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback } from 'react'
 import { ChevronLeft, ChevronRight, Calendar, AlertTriangle, Clock, Package } from 'lucide-react'
 import { useProducts } from '../context/ProductContext'
-import { useAuth } from '../context/AuthContext'
+import { useDepartment } from '../context/DepartmentContext'
 import { useTranslation } from '../context/LanguageContext'
 import {
   format,
@@ -20,17 +20,13 @@ const locales = { ru, en: enUS, kk }
 
 export default function CalendarPage() {
   const { t, language } = useTranslation()
-  const { batches, departments } = useProducts()
-  const { isStaff } = useAuth()
+  const { batches } = useProducts()
+  const { departments, selectedDepartmentId } = useDepartment()
 
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState(new Date())
-  const [filterDepartment, setFilterDepartment] = useState('')
 
   const locale = locales[language] || locales.ru
-
-  // Проверка роли STAFF через helper функцию
-  const userIsStaff = isStaff()
 
   // Группируем партии по датам истечения срока
   const batchesByDate = useMemo(() => {
@@ -40,7 +36,7 @@ export default function CalendarPage() {
       if (!batch.expiryDate) return
       // Поддержка обоих форматов: departmentId (новый) и department (старый)
       const batchDeptId = batch.departmentId || batch.department
-      if (filterDepartment && batchDeptId !== filterDepartment) return
+      if (selectedDepartmentId && batchDeptId !== selectedDepartmentId) return
 
       const dateKey = batch.expiryDate.split('T')[0]
       if (!grouped[dateKey]) {
@@ -50,7 +46,7 @@ export default function CalendarPage() {
     })
 
     return grouped
-  }, [batches, filterDepartment])
+  }, [batches, selectedDepartmentId])
 
   // Дни текущего месяца
   const monthStart = startOfMonth(currentDate)
@@ -158,20 +154,6 @@ export default function CalendarPage() {
       stickyHeader={true}
       actions={
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-          {!userIsStaff && (
-            <select
-              value={filterDepartment}
-              onChange={(e) => setFilterDepartment(e.target.value)}
-              className="px-2 sm:px-3 py-1.5 sm:py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-gold/50 bg-card text-foreground text-xs sm:text-sm flex-1 sm:flex-none min-h-[44px] sm:min-h-0"
-            >
-              <option value="">{t('common.allDepartments') || 'Все отделы'}</option>
-              {departments.map((dept) => (
-                <option key={dept.id} value={dept.id}>
-                  {dept.name}
-                </option>
-              ))}
-            </select>
-          )}
           <button
             onClick={goToToday}
             className="px-3 sm:px-4 py-1.5 sm:py-2 bg-gold text-white rounded-lg hover:bg-gold/90 transition-colors text-xs sm:text-sm min-h-[44px] sm:min-h-0"
@@ -182,250 +164,249 @@ export default function CalendarPage() {
       }
     >
       <div className="space-y-4 sm:space-y-6">
-      {/* Статистика месяца - Bento Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
-        <div className="bg-card rounded-xl p-3 sm:p-4 shadow-card border border-border">
-          <div className="flex items-center gap-2 sm:gap-3">
-            <div className="p-1.5 sm:p-2 bg-danger/10 rounded-lg">
-              <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-danger" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs sm:text-sm text-muted-foreground truncate">
-                {t('calendar.expiredDays') || 'С просрочкой'}
-              </p>
-              <p className="text-lg sm:text-xl font-semibold text-danger">{monthStats.expired}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-card rounded-xl p-3 sm:p-4 shadow-card border border-border">
-          <div className="flex items-center gap-2 sm:gap-3">
-            <div className="p-1.5 sm:p-2 bg-critical/10 rounded-lg">
-              <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-critical" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs sm:text-sm text-muted-foreground truncate">
-                {t('calendar.criticalDays') || 'Критических'}
-              </p>
-              <p className="text-lg sm:text-xl font-semibold text-critical">
-                {monthStats.critical}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-card rounded-xl p-3 sm:p-4 shadow-card border border-border">
-          <div className="flex items-center gap-2 sm:gap-3">
-            <div className="p-1.5 sm:p-2 bg-warning/10 rounded-lg">
-              <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-warning" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs sm:text-sm text-muted-foreground truncate">
-                {t('calendar.warningDays') || 'Внимание'}
-              </p>
-              <p className="text-lg sm:text-xl font-semibold text-warning">
-                {monthStats.warning}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-card rounded-xl p-3 sm:p-4 shadow-card border border-border">
-          <div className="flex items-center gap-2 sm:gap-3">
-            <div className="p-1.5 sm:p-2 bg-success/10 rounded-lg">
-              <Package className="w-4 h-4 sm:w-5 sm:h-5 text-success" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs sm:text-sm text-muted-foreground truncate">
-                {t('calendar.goodDays') || 'В норме'}
-              </p>
-              <p className="text-lg sm:text-xl font-semibold text-success">{monthStats.good}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-        {/* Календарь */}
-        <div className="lg:col-span-2 bg-card rounded-xl shadow-card border border-border p-3 sm:p-6">
-          {/* Навигация месяца */}
-          <div className="flex items-center justify-between mb-4 sm:mb-6">
-            <button
-              onClick={goToPreviousMonth}
-              className="p-1.5 sm:p-2 hover:bg-muted rounded-lg transition-colors"
-            >
-              <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 text-foreground" />
-            </button>
-
-            <h2 className="text-base sm:text-xl font-semibold text-foreground capitalize">
-              {format(currentDate, 'LLLL yyyy', { locale })}
-            </h2>
-
-            <button
-              onClick={goToNextMonth}
-              className="p-1.5 sm:p-2 hover:bg-muted rounded-lg transition-colors"
-            >
-              <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-foreground" />
-            </button>
-          </div>
-
-          {/* Дни недели */}
-          <div className="grid grid-cols-7 gap-0.5 sm:gap-1 mb-1 sm:mb-2">
-            {localizedWeekDays.map((day, index) => (
-              <div
-                key={day}
-                className={`text-center text-xs sm:text-sm font-medium py-1 sm:py-2 ${index >= 5 ? 'text-muted-foreground' : 'text-foreground'}`}
-              >
-                {day}
+        {/* Статистика месяца - Bento Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
+          <div className="bg-card rounded-xl p-3 sm:p-4 shadow-card border border-border">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-1.5 sm:p-2 bg-danger/10 rounded-lg">
+                <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-danger" />
               </div>
-            ))}
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm text-muted-foreground truncate">
+                  {t('calendar.expiredDays') || 'С просрочкой'}
+                </p>
+                <p className="text-lg sm:text-xl font-semibold text-danger">{monthStats.expired}</p>
+              </div>
+            </div>
           </div>
 
-          {/* Дни месяца */}
-          <div className="grid grid-cols-7 gap-0.5 sm:gap-1">
-            {/* Пустые ячейки до первого дня */}
-            {Array.from({ length: startDayOfWeek }).map((_, index) => (
-              <div key={`empty-${index}`} className="aspect-square" />
-            ))}
+          <div className="bg-card rounded-xl p-3 sm:p-4 shadow-card border border-border">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-1.5 sm:p-2 bg-critical/10 rounded-lg">
+                <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-critical" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm text-muted-foreground truncate">
+                  {t('calendar.criticalDays') || 'Критических'}
+                </p>
+                <p className="text-lg sm:text-xl font-semibold text-critical">
+                  {monthStats.critical}
+                </p>
+              </div>
+            </div>
+          </div>
 
-            {/* Дни */}
-            {daysInMonth.map((day) => {
-              const dateKey = format(day, 'yyyy-MM-dd')
-              const dayBatches = batchesByDate[dateKey] || []
-              const status = getDayStatus(day)
-              const isSelected = selectedDate && isSameDay(day, selectedDate)
-              const isTodayDate = isToday(day)
+          <div className="bg-card rounded-xl p-3 sm:p-4 shadow-card border border-border">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-1.5 sm:p-2 bg-warning/10 rounded-lg">
+                <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-warning" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm text-muted-foreground truncate">
+                  {t('calendar.warningDays') || 'Внимание'}
+                </p>
+                <p className="text-lg sm:text-xl font-semibold text-warning">
+                  {monthStats.warning}
+                </p>
+              </div>
+            </div>
+          </div>
 
-              return (
-                <button
-                  key={day.toISOString()}
-                  onClick={() => setSelectedDate(day)}
-                  className={`
+          <div className="bg-card rounded-xl p-3 sm:p-4 shadow-card border border-border">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-1.5 sm:p-2 bg-success/10 rounded-lg">
+                <Package className="w-4 h-4 sm:w-5 sm:h-5 text-success" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm text-muted-foreground truncate">
+                  {t('calendar.goodDays') || 'В норме'}
+                </p>
+                <p className="text-lg sm:text-xl font-semibold text-success">{monthStats.good}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+          {/* Календарь */}
+          <div className="lg:col-span-2 bg-card rounded-xl shadow-card border border-border p-3 sm:p-6">
+            {/* Навигация месяца */}
+            <div className="flex items-center justify-between mb-4 sm:mb-6">
+              <button
+                onClick={goToPreviousMonth}
+                className="p-1.5 sm:p-2 hover:bg-muted rounded-lg transition-colors"
+              >
+                <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 text-foreground" />
+              </button>
+
+              <h2 className="text-base sm:text-xl font-semibold text-foreground capitalize">
+                {format(currentDate, 'LLLL yyyy', { locale })}
+              </h2>
+
+              <button
+                onClick={goToNextMonth}
+                className="p-1.5 sm:p-2 hover:bg-muted rounded-lg transition-colors"
+              >
+                <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-foreground" />
+              </button>
+            </div>
+
+            {/* Дни недели */}
+            <div className="grid grid-cols-7 gap-0.5 sm:gap-1 mb-1 sm:mb-2">
+              {localizedWeekDays.map((day, index) => (
+                <div
+                  key={day}
+                  className={`text-center text-xs sm:text-sm font-medium py-1 sm:py-2 ${index >= 5 ? 'text-muted-foreground' : 'text-foreground'}`}
+                >
+                  {day}
+                </div>
+              ))}
+            </div>
+
+            {/* Дни месяца */}
+            <div className="grid grid-cols-7 gap-0.5 sm:gap-1">
+              {/* Пустые ячейки до первого дня */}
+              {Array.from({ length: startDayOfWeek }).map((_, index) => (
+                <div key={`empty-${index}`} className="aspect-square" />
+              ))}
+
+              {/* Дни */}
+              {daysInMonth.map((day) => {
+                const dateKey = format(day, 'yyyy-MM-dd')
+                const dayBatches = batchesByDate[dateKey] || []
+                const status = getDayStatus(day)
+                const isSelected = selectedDate && isSameDay(day, selectedDate)
+                const isTodayDate = isToday(day)
+
+                return (
+                  <button
+                    key={day.toISOString()}
+                    onClick={() => setSelectedDate(day)}
+                    className={`
                     aspect-square p-0.5 sm:p-1 rounded-lg relative transition-all
                     ${isSelected ? 'ring-2 ring-gold ring-offset-1 sm:ring-offset-2' : ''}
                     ${isTodayDate ? 'bg-gold/20' : 'hover:bg-muted'}
                     ${status ? 'cursor-pointer' : 'cursor-default'}
                   `}
-                >
-                  <span
-                    className={`
+                  >
+                    <span
+                      className={`
                     text-xs sm:text-sm font-medium
                     ${isTodayDate ? 'text-gold font-bold' : 'text-foreground'}
                   `}
-                  >
-                    {format(day, 'd')}
-                  </span>
+                    >
+                      {format(day, 'd')}
+                    </span>
 
-                  {dayBatches.length > 0 && (
-                    <div
-                      className={`
+                    {dayBatches.length > 0 && (
+                      <div
+                        className={`
                       absolute bottom-0.5 sm:bottom-1 left-1/2 -translate-x-1/2
                       text-[10px] sm:text-xs px-1 sm:px-1.5 py-0 sm:py-0.5 rounded-full
                       ${getStatusColor(status)}
                     `}
-                    >
-                      {dayBatches.length}
-                    </div>
-                  )}
-                </button>
-              )
-            })}
-          </div>
-
-          {/* Легенда */}
-          <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-4 sm:mt-6 pt-3 sm:pt-4 border-t border-border">
-            <div className="flex items-center gap-1 sm:gap-2">
-              <div className="w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-danger" />
-              <span className="text-xs sm:text-sm text-muted-foreground">
-                {t('status.expired') || 'Просрочено'}
-              </span>
-            </div>
-            <div className="flex items-center gap-1 sm:gap-2">
-              <div className="w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-critical" />
-              <span className="text-xs sm:text-sm text-muted-foreground">
-                {t('status.critical') || 'Критично'}
-              </span>
-            </div>
-            <div className="flex items-center gap-1 sm:gap-2">
-              <div className="w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-warning" />
-              <span className="text-xs sm:text-sm text-muted-foreground">
-                {t('status.warning') || 'Внимание'}
-              </span>
-            </div>
-            <div className="flex items-center gap-1 sm:gap-2">
-              <div className="w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-success" />
-              <span className="text-xs sm:text-sm text-muted-foreground">
-                {t('status.good') || 'Норма'}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Детали выбранного дня */}
-        <div className="bg-card rounded-xl shadow-card border border-border p-3 sm:p-6">
-          <h3 className="text-base sm:text-lg font-semibold text-foreground mb-3 sm:mb-4 flex items-center gap-2">
-            <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-gold" />
-            {selectedDate
-              ? format(selectedDate, 'd MMMM yyyy', { locale })
-              : t('calendar.selectDate') || 'Выберите дату'}
-          </h3>
-
-          {selectedDate ? (
-            selectedDayBatches.length > 0 ? (
-              <div className="space-y-2 sm:space-y-3 max-h-[300px] sm:max-h-[500px] overflow-y-auto">
-                {selectedDayBatches.map((batch) => {
-                  // Use same logic as getDayStatus for consistency
-                  const batchStatus = batch.expiryStatus || batch.status?.status || batch.status
-                  return (
-                    <div
-                      key={batch.id}
-                      className={`
-                      p-3 sm:p-4 rounded-lg border-l-4
-                      ${
-                        batchStatus === 'expired'
-                          ? 'border-danger bg-danger/5'
-                          : batchStatus === 'critical' || batchStatus === 'today'
-                            ? 'border-critical bg-critical/5'
-                            : batchStatus === 'warning'
-                              ? 'border-warning bg-warning/10'
-                              : 'border-success bg-success/5'
-                      }
-                    `}
-                    >
-                      <h4 className="font-medium text-foreground text-sm sm:text-base">
-                        {batch.productName}
-                      </h4>
-                      <div className="mt-1 sm:mt-2 space-y-0.5 sm:space-y-1 text-xs sm:text-sm text-muted-foreground">
-                        <p>📍 {getDepartmentName(batch.departmentId || batch.department)}</p>
-                        <p>
-                          📦 {t('common.quantity')}: {batch.quantity} {t('common.units')}
-                        </p>
-                        <p>
-                          ⏱️ {t('common.daysLeft')}: {batch.daysLeft} {t('common.days')}
-                        </p>
+                      >
+                        {dayBatches.length}
                       </div>
-                    </div>
-                  )
-                })}
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+
+            {/* Легенда */}
+            <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-4 sm:mt-6 pt-3 sm:pt-4 border-t border-border">
+              <div className="flex items-center gap-1 sm:gap-2">
+                <div className="w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-danger" />
+                <span className="text-xs sm:text-sm text-muted-foreground">
+                  {t('status.expired') || 'Просрочено'}
+                </span>
               </div>
+              <div className="flex items-center gap-1 sm:gap-2">
+                <div className="w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-critical" />
+                <span className="text-xs sm:text-sm text-muted-foreground">
+                  {t('status.critical') || 'Критично'}
+                </span>
+              </div>
+              <div className="flex items-center gap-1 sm:gap-2">
+                <div className="w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-warning" />
+                <span className="text-xs sm:text-sm text-muted-foreground">
+                  {t('status.warning') || 'Внимание'}
+                </span>
+              </div>
+              <div className="flex items-center gap-1 sm:gap-2">
+                <div className="w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-success" />
+                <span className="text-xs sm:text-sm text-muted-foreground">
+                  {t('status.good') || 'Норма'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Детали выбранного дня */}
+          <div className="bg-card rounded-xl shadow-card border border-border p-3 sm:p-6">
+            <h3 className="text-base sm:text-lg font-semibold text-foreground mb-3 sm:mb-4 flex items-center gap-2">
+              <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-gold" />
+              {selectedDate
+                ? format(selectedDate, 'd MMMM yyyy', { locale })
+                : t('calendar.selectDate') || 'Выберите дату'}
+            </h3>
+
+            {selectedDate ? (
+              selectedDayBatches.length > 0 ? (
+                <div className="space-y-2 sm:space-y-3 max-h-[300px] sm:max-h-[500px] overflow-y-auto">
+                  {selectedDayBatches.map((batch) => {
+                    // Use same logic as getDayStatus for consistency
+                    const batchStatus = batch.expiryStatus || batch.status?.status || batch.status
+                    return (
+                      <div
+                        key={batch.id}
+                        className={`
+                      p-3 sm:p-4 rounded-lg border-l-4
+                      ${batchStatus === 'expired'
+                            ? 'border-danger bg-danger/5'
+                            : batchStatus === 'critical' || batchStatus === 'today'
+                              ? 'border-critical bg-critical/5'
+                              : batchStatus === 'warning'
+                                ? 'border-warning bg-warning/10'
+                                : 'border-success bg-success/5'
+                          }
+                    `}
+                      >
+                        <h4 className="font-medium text-foreground text-sm sm:text-base">
+                          {batch.productName}
+                        </h4>
+                        <div className="mt-1 sm:mt-2 space-y-0.5 sm:space-y-1 text-xs sm:text-sm text-muted-foreground">
+                          <p>📍 {getDepartmentName(batch.departmentId || batch.department)}</p>
+                          <p>
+                            📦 {t('common.quantity')}: {batch.quantity} {t('common.units')}
+                          </p>
+                          <p>
+                            ⏱️ {t('common.daysLeft')}: {batch.daysLeft} {t('common.days')}
+                          </p>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-6 sm:py-8 text-muted-foreground">
+                  <Calendar className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-2 sm:mb-3 opacity-30" />
+                  <p className="text-xs sm:text-sm">
+                    {t('calendar.noProducts') || 'Нет товаров с истечением в этот день'}
+                  </p>
+                </div>
+              )
             ) : (
               <div className="text-center py-6 sm:py-8 text-muted-foreground">
                 <Calendar className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-2 sm:mb-3 opacity-30" />
                 <p className="text-xs sm:text-sm">
-                  {t('calendar.noProducts') || 'Нет товаров с истечением в этот день'}
+                  {t('calendar.clickToSelect') || 'Нажмите на дату для просмотра деталей'}
                 </p>
               </div>
-            )
-          ) : (
-            <div className="text-center py-6 sm:py-8 text-muted-foreground">
-              <Calendar className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-2 sm:mb-3 opacity-30" />
-              <p className="text-xs sm:text-sm">
-                {t('calendar.clickToSelect') || 'Нажмите на дату для просмотра деталей'}
-              </p>
-            </div>
-          )}
+            )}
+          </div>
         </div>
-      </div>
       </div>
     </PageContainer>
   )

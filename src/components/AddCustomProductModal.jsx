@@ -2,17 +2,18 @@ import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { useProducts } from '../context/ProductContext'
+import { useDepartment } from '../context/DepartmentContext'
 import { useTranslation, useLanguage } from '../context/LanguageContext'
 import { useToast } from '../context/ToastContext'
 import { useHotel } from '../context/HotelContext'
 import { useAddProduct } from '../hooks/useInventory'
-import { getDepartmentIcon } from '../utils/departmentUtils'
 
 export default function AddCustomProductModal({ onClose, departmentId = null }) {
   const { t } = useTranslation()
   const { language } = useLanguage()
   const { selectedHotelId } = useHotel()
-  const { departments, categories } = useProducts()
+  const { categories } = useProducts()
+  const { departments, getDepartmentIcon } = useDepartment()
   const { addToast } = useToast()
 
   // === REACT QUERY MUTATION ===

@@ -23,7 +23,7 @@ import { createPortal } from 'react-dom'
 import { X, Calendar, Check, ArrowRight, History, Zap, Plus, Minus, MessageSquare } from 'lucide-react'
 import { SectionLoader, ButtonLoader } from './ui'
 import { useTranslation } from '../context/LanguageContext'
-import { useProducts } from '../context/ProductContext'
+import { useDepartment } from '../context/DepartmentContext'
 import { useToast } from '../context/ToastContext'
 import { useAddBatchesBulk } from '../hooks/useInventory'
 import { useHotel } from '../context/HotelContext'
@@ -38,7 +38,7 @@ export default function FastIntakeModal({
   onFastApply: _onFastApply  // (batches) => void - DEPRECATED: React Query handles updates automatically
 }) {
   const { t } = useTranslation()
-  const { departments } = useProducts()
+  const { departments } = useDepartment()
   const { selectedHotelId } = useHotel()
   const { addToast } = useToast()
 
@@ -65,71 +65,44 @@ export default function FastIntakeModal({
 
   const targetDepartment = departmentId || (departments.length > 0 ? departments[0].id : null)
 
-  // === Load template when templateId changes ===
-  // Dependencies: ONLY templateId (not isOpen)
-  // This ensures template reloads when user switches templates
-  useEffect(() => {
-    if (!templateId) return
-    loadTemplate()
-  }, [templateId, loadTemplate])
-
-  // Reset session history when modal closes
-  useEffect(() => {
-    if (!isOpen) {
-      setSessionHistory([])
-      setLastExpiryByProduct({})
-      setGlobalLastExpiry('')
-      setComment('')
-    }
-  }, [isOpen])
-
+  // === Prepare items from template ===
   const prepareItems = useCallback((template) => {
-    const templateItems = typeof template.items === 'string'
-      ? JSON.parse(template.items)
-      : template.items || []
+    if (!template?.items) {
+      setItems([])
+      return
+    }
 
-    const preparedItems = []
+    // Разворачиваем quantity в отдельные строки с группировкой
+    const prepared = []
+    template.items.forEach(item => {
+      const productId = item.productId || item.product_id
+      const productName = item.productName || item.product_name || 'Неизвестный товар'
+      // API возвращает default_quantity, а не quantity
+      const qty = parseInt(item.default_quantity || item.quantity) || 1
 
-    templateItems.forEach((item) => {
-      const shelfLife = item.shelf_life_days || item.defaultShelfLife || 30
-
-      const defaultQty = item.default_quantity !== undefined && item.default_quantity !== null
-        ? item.default_quantity
-        : (item.defaultQuantity !== undefined && item.defaultQuantity !== null
-          ? item.defaultQuantity
-          : 1)
-
-      const qty = parseInt(defaultQty) || 1
-      const productId = item.product_id || item.productId
-      const productName = item.product_name || item.productName || 'Без названия'
-
-      // Дата НЕ подставляется — юзер обязан вводить вручную
-      const baseItem = {
-        ...item,
-        productId,
-        productName,
-        quantity: 1,
-        expiryDate: null,   // null = не введена, заблокирует сохранение
-        shelfLife
-      }
-
-      if (qty > 1) {
-        for (let i = 0; i < qty; i++) {
-          preparedItems.push({
-            ...baseItem,
+      // Создаём qty строк для этого товара
+      for (let i = 0; i < qty; i++) {
+        prepared.push({
+          productId,
+          productName,
+          quantity: 1,  // Каждая строка = 1 единица товара
+          expiryDate: null,
+          _inputExpiry: undefined,
+          _invalidYear: false,
+          // Группировка для визуального отображения (если qty > 1)
+          ...(qty > 1 ? {
             _groupId: productId,
             _groupIndex: i,
             _groupTotal: qty
-          })
-        }
-      } else {
-        preparedItems.push(baseItem)
+          } : {})
+        })
       }
     })
 
-    setItems(preparedItems)
+    setItems(prepared)
   }, [])
 
+  // === Load template when templateId changes ===
   const loadTemplate = useCallback(async () => {
     setLoading(true)
     try {
@@ -155,6 +128,13 @@ export default function FastIntakeModal({
       setLoading(false)
     }
   }, [templateId, onClose, addToast, prepareItems])
+
+  // Dependencies: ONLY templateId (not isOpen)
+  // This ensures template reloads when user switches templates
+  useEffect(() => {
+    if (!templateId) return
+    loadTemplate()
+  }, [templateId, loadTemplate])
 
 
 
@@ -366,48 +346,68 @@ export default function FastIntakeModal({
       return
     }
 
+
+    // Группируем items с одинаковым productId + expiryDate → суммируем quantity
+    // Так один "быстрый ввод" с несколькими строками одного товара/срока → 1 batch в БД
+    const groupedItems = Object.values(
+      items.reduce((acc, item) => {
+        const productId = item.productId || item.product_id
+        const key = `${productId}__${item.expiryDate}`
+        if (!acc[key]) {
+          acc[key] = { productId, quantity: 0, expiryDate: item.expiryDate }
+        }
+        acc[key].quantity += parseInt(item.quantity) || 1
+        return acc
+      }, {})
+    )
+
     // ✨ React Query mutation - автоматические оптимистичные обновления
     applyTemplate(
       {
         templateId: template.id,
-        items: items.map((item) => ({
-          productId: item.productId || item.product_id,
-          quantity: parseInt(item.quantity) || 1,
-          expiryDate: item.expiryDate
-        })),
+        items: groupedItems,
         comment: comment.trim() || null
       },
       {
         // Callbacks выполняются ПОСЛЕ mutation
         onSuccess: (_data) => {
-          // 1. Save last expiry dates for autocomplete
-          if (items.length > 0) {
-            setGlobalLastExpiry(items[0].expiryDate)
-            items.forEach(item => {
-              const productId = item.productId || item.product_id
-              setLastExpiryByProduct(prev => ({ ...prev, [productId]: item.expiryDate }))
+          // 1. Save last expiry dates for autocomplete (используем уже сгруппированные)
+          if (groupedItems.length > 0) {
+            setGlobalLastExpiry(groupedItems[0].expiryDate)
+            groupedItems.forEach(item => {
+              setLastExpiryByProduct(prev => ({ ...prev, [item.productId]: item.expiryDate }))
             })
           }
 
-          // 2. Add to session history
+          // 2. Add to session history - используем groupedItems (уже схлопнуты по productId+expiryDate)
           const savedComment = comment.trim() || null
-          const newHistoryEntries = items.map((item, idx) => ({
+
+          // Для истории нужно productName — берём из исходных items
+          const productNameById = items.reduce((acc, item) => {
+            const productId = item.productId || item.product_id
+            if (!acc[productId]) acc[productId] = item.productName
+            return acc
+          }, {})
+
+          const newHistoryEntries = groupedItems.map((item, idx) => ({
             id: Date.now() + idx,
-            productName: item.productName,
-            quantity: parseInt(item.quantity) || 1,
+            productName: productNameById[item.productId] || item.productId,
+            quantity: item.quantity,
             expiryDate: item.expiryDate,
             comment: savedComment,
             timestamp: new Date()
           }))
+
           setSessionHistory(prev => [...newHistoryEntries, ...prev])
 
           // 2a. Reset comment after successful save
           setComment('')
 
           // 3. Show notification
+          const totalQty = groupedItems.reduce((sum, it) => sum + it.quantity, 0)
           addToast(
-            t('fastIntake.totalAdded', { count: items.length }) ||
-            `Добавлено: ${items.length} позиций`,
+            t('fastIntake.totalAdded', { count: totalQty }) ||
+            `Добавлено: ${totalQty} шт.`,
             'success'
           )
 

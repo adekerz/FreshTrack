@@ -24,7 +24,21 @@
       "Bash(for f in src/hooks/useAuditLogs.js src/hooks/useCollectionHistory.js src/hooks/useNotificationLogs.js src/lib/queryKeys.js src/lib/queryClient.js)",
       "Bash(grep:*)",
       "Bash(cat:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(git -C \"c:\\Users\\esima\\OneDrive\\Рабочий стол\\Projects\\FreshTrack-projectadekerz\" show HEAD:src/utils/departmentUtils.js)",
+      "Bash(node -e \"const l = require(''lucide-react''); console.log([''Utensils'',''Wine'',''Martini'',''ChefHat'',''Warehouse'',''Vault'',''Refrigerator'',''Coffee'',''HandPlatter'',''Package'',''Building2'',''UtensilsCrossed''].filter(k => !!l[k]).join('', ''))\")",
+      "Bash(vault)",
+      "Bash(archive)",
+      "Bash(warehouse)",
+      "Bash(serving)",
+      "Bash(bell)",
+      "Bash(room)",
+      "Bash(lounge)",
+      "Bash(sofa)",
+      "Bash(armchair:*)",
+      "Bash(xargs:*)",
+      "Bash(del \"c:\\Users\\esima\\OneDrive\\Рабочий стол\\Projects\\FreshTrack-projectadekerz\\src\\pages\\AccountsPage.jsx\")",
+      "Bash(npm run:*)"
     ]
   }
 }

@@ -102,15 +102,16 @@ export async function findBatchById(batchId, hotelId) {
   return result.rows[0] || null
 }
 
-export async function findExistingBatchForMerge(productId, expiryDate, departmentId) {
+export async function findExistingBatchForMerge(productId, expiryDate, departmentId, hotelId) {
   const result = await dbQuery(`
     SELECT * FROM batches
     WHERE product_id = $1
       AND expiry_date = $2
       AND department_id = $3
+      AND hotel_id = $4
       AND status = 'active'
     LIMIT 1
-  `, [productId, expiryDate, departmentId])
+  `, [productId, expiryDate, departmentId, hotelId])
   return result.rows[0] || null
 }
 

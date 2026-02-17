@@ -20,7 +20,7 @@ import { createPortal } from 'react-dom'
 import { X, Package } from 'lucide-react'
 import { SectionLoader } from './ui'
 import { useTranslation } from '../context/LanguageContext'
-import { useProducts } from '../context/ProductContext'
+import { useDepartment } from '../context/DepartmentContext'
 import { apiFetch } from '../services/api'
 
 export default function SelectTemplateModal({
@@ -29,7 +29,7 @@ export default function SelectTemplateModal({
   onClose    // () => void
 }) {
   const { t } = useTranslation()
-  const { departments } = useProducts()
+  const { departments } = useDepartment()
   const [templates, setTemplates] = useState([])
   const [loading, setLoading] = useState(true)
 

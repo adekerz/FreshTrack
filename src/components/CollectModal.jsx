@@ -12,7 +12,7 @@ import {
 } from 'lucide-react'
 import { ButtonLoader } from './ui'
 import { useTranslation } from '../context/LanguageContext'
-import { useProducts } from '../context/ProductContext'
+import { useDepartment } from '../context/DepartmentContext'
 import { useToast } from '../context/ToastContext'
 import { logError } from '../utils/logger'
 
@@ -29,7 +29,7 @@ const reasons = [
 export default function CollectModal({ isOpen, onClose, batch, onConfirm }) {
   const { t } = useTranslation()
   const { addToast } = useToast()
-  const { departments } = useProducts()
+  const { departments } = useDepartment()
   const [reason, setReason] = useState('expired')
   const [comment, setComment] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)

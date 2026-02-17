@@ -14,6 +14,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { getBatchStatus } from '../utils/dateUtils'
 import { useAuth } from './AuthContext'
 import { useHotel } from './HotelContext'
+import { useDepartment } from './DepartmentContext'
 import { logDebug, logError } from '../utils/logger'
 import { invalidateInventoryQueries } from '../lib/queryClient'
 import {
@@ -32,20 +33,17 @@ const ProductContext = createContext(null)
 export let departments = []
 export let categories = []
 
-// Default department icon mapping (can be customized per department in DB)
-const DEFAULT_DEPARTMENT_ICONS = {
-  restaurant: 'Utensils',
-  bar: 'Wine',
-  kitchen: 'ChefHat',
-  storage: 'Warehouse',
-  minibar: 'Coffee',
-  cafe: 'Coffee',
-  default: 'Package'
-}
-
 export function ProductProvider({ children }) {
   // Получаем выбранный отель из HotelContext
   const { selectedHotelId, loading: hotelLoading } = useHotel()
+
+  // Получаем данные отделов из DepartmentContext
+  const {
+    departments: departmentsData,
+    selectedDepartmentId,
+    getDepartmentIcon // Используем helper из контекста отделов
+  } = useDepartment()
+
   const { user } = useAuth()
   const queryClient = useQueryClient()
   const prevHotelIdRef = useRef(null)
@@ -55,12 +53,11 @@ export function ProductProvider({ children }) {
   const {
     batches: batchesData,
     stats: statsData,
-    departments: departmentsData,
     categories: categoriesData,
     products: productsData,
     loading: queryLoading,
     error: queryError
-  } = useInventoryData(selectedHotelId)
+  } = useInventoryData(selectedHotelId, selectedDepartmentId)
 
   // === MUTATIONS ===
   const addBatchMutation = useAddBatchMutation(selectedHotelId)
@@ -575,10 +572,7 @@ export function ProductProvider({ children }) {
     categories = categoriesData
   }, [departmentsData, categoriesData])
 
-  const getDepartmentIcon = useCallback((deptId) => {
-    const dept = departmentsData.find((d) => d.id === deptId || d.code === deptId)
-    return dept?.icon || DEFAULT_DEPARTMENT_ICONS[dept?.type] || DEFAULT_DEPARTMENT_ICONS.default
-  }, [departmentsData])
+  // getDepartmentIcon теперь приходит из useDepartment
 
   const mutations = useMemo(() => ({
     addBatch: addBatchMutation,

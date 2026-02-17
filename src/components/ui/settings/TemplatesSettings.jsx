@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from 'react'
 import { useTranslation } from '../../../context/LanguageContext'
-import { useProducts } from '../../../context/ProductContext'
+import { useDepartment } from '../../../context/DepartmentContext'
 import { useToast } from '../../../context/ToastContext'
 import { useHotel } from '../../../context/HotelContext'
 import { apiFetch } from '../../../services/api'
@@ -24,7 +24,7 @@ import SettingsLayout from './SettingsLayout'
 
 export default function TemplatesSettings({ readOnly = false }) {
   const { t } = useTranslation()
-  const { departments } = useProducts()
+  const { departments } = useDepartment()
   const { addToast } = useToast()
   const { selectedHotelId } = useHotel()
 
@@ -345,11 +345,10 @@ export default function TemplatesSettings({ readOnly = false }) {
                             ? removeProductFromTemplate(product.id)
                             : addProductToTemplate(product)
                         }
-                        className={`p-2 rounded-lg text-left text-sm transition-colors flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-accent ${
-                          isSelected
+                        className={`p-2 rounded-lg text-left text-sm transition-colors flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-accent ${isSelected
                             ? 'bg-accent/20 text-accent border border-accent'
                             : 'bg-card border border-border hover:border-foreground'
-                        }`}
+                          }`}
                       >
                         {isSelected && <Check className="w-4 h-4 shrink-0" aria-hidden="true" />}
                         <span className="truncate">{product.name}</span>

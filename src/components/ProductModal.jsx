@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { X, Plus, Check, Calendar, Package, User, Trash2, AlertTriangle, Zap, ChevronDown, ChevronUp } from 'lucide-react'
+import { X, Plus, Check, Calendar, Package, User, Trash2, AlertTriangle, Zap, ChevronDown, ChevronUp, MessageSquare } from 'lucide-react'
 import { TouchButton, Switch } from './ui'
 import Tooltip from './Tooltip'
 import { useProducts, categories } from '../context/ProductContext'
@@ -417,6 +417,13 @@ export default function ProductModal({ product, onClose }) {
                                     <div className="flex items-center gap-1.5 text-sm text-muted-foreground mt-0.5">
                                       <User className="w-3.5 h-3.5 flex-shrink-0" />
                                       {batch.addedBy}
+                                    </div>
+                                  )}
+                                  {/* Комментарий к партии */}
+                                  {batch.comment && (
+                                    <div className="flex items-start gap-1.5 text-sm text-muted-foreground mt-0.5">
+                                      <MessageSquare className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+                                      <span className="break-words">{batch.comment}</span>
                                     </div>
                                   )}
                                 </div>

@@ -10,7 +10,8 @@ import {
   Zap
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import { useProducts, departments } from '../context/ProductContext'
+import { useProducts } from '../context/ProductContext'
+import { useDepartment } from '../context/DepartmentContext'
 import { useAuth } from '../context/AuthContext'
 import { useTranslation } from '../context/LanguageContext'
 import { useThresholds } from '../hooks/useThresholds'
@@ -28,8 +29,8 @@ export default function NotificationsPage() {
     loading,
     refreshProducts,
     refresh,
-    departments: depts
   } = useProducts()
+  const { departments, departments: depts } = useDepartment()
   const { isStaff } = useAuth()
   const [retryCount, setRetryCount] = useState(0)
 
@@ -187,10 +188,10 @@ export default function NotificationsPage() {
             <div
               key={batch.id}
               className={`bg-card rounded-lg p-3 sm:p-4 border-l-4 ${batch.daysLeft < 0
-                  ? 'border-l-danger'
-                  : batch.daysLeft <= thresholds.critical
-                    ? 'border-l-critical'
-                    : 'border-l-warning'
+                ? 'border-l-danger'
+                : batch.daysLeft <= thresholds.critical
+                  ? 'border-l-critical'
+                  : 'border-l-warning'
                 } border border-border`}
             >
               <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
@@ -228,10 +229,10 @@ export default function NotificationsPage() {
                   {/* Статус */}
                   <div
                     className={`mt-2 text-xs sm:text-sm font-medium ${batch.daysLeft < 0
-                        ? 'text-danger'
-                        : batch.daysLeft <= thresholds.critical
-                          ? 'text-critical'
-                          : 'text-warning'
+                      ? 'text-danger'
+                      : batch.daysLeft <= thresholds.critical
+                        ? 'text-critical'
+                        : 'text-warning'
                       }`}
                   >
                     {batch.daysLeft < 0

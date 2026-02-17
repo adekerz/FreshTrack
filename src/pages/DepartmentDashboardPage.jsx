@@ -1,6 +1,7 @@
 import { useParams, Link } from 'react-router-dom'
 import { Package, AlertTriangle, Clock, Check, ArrowLeft, PieChart } from 'lucide-react'
-import { useProducts, departments } from '../context/ProductContext'
+import { useProducts } from '../context/ProductContext'
+import { useDepartment } from '../context/DepartmentContext'
 import { useTranslation } from '../context/LanguageContext'
 import { useThresholds } from '../hooks/useThresholds'
 import PageContainer from '../components/PageContainer'
@@ -9,6 +10,7 @@ export default function DepartmentDashboardPage() {
   const { departmentId } = useParams()
   const { t } = useTranslation()
   const { batches } = useProducts()
+  const { departments } = useDepartment()
   const { thresholds } = useThresholds()
 
   // Найти отдел
@@ -77,204 +79,202 @@ export default function DepartmentDashboardPage() {
         </Link>
       }
     >
-    <div className="space-y-6">
+      <div className="space-y-6">
 
-      {/* Статистические карточки */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="bg-card rounded-xl p-4 shadow-card border border-border">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-charcoal/10 dark:bg-charcoal/20 rounded-lg">
-              <Package className="w-5 h-5 text-foreground" />
+        {/* Статистические карточки */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="bg-card rounded-xl p-4 shadow-card border border-border">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-charcoal/10 dark:bg-charcoal/20 rounded-lg">
+                <Package className="w-5 h-5 text-foreground" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">{t('dashboard.totalBatches')}</p>
+                <p className="text-2xl font-semibold text-foreground">{stats.total}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">{t('dashboard.totalBatches')}</p>
-              <p className="text-2xl font-semibold text-foreground">{stats.total}</p>
+          </div>
+
+          <div className="bg-card rounded-xl p-4 shadow-card border border-border">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-danger/10 rounded-lg">
+                <AlertTriangle className="w-5 h-5 text-danger" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">{t('dashboard.expired')}</p>
+                <p className="text-2xl font-semibold text-danger">{stats.expired}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-card rounded-xl p-4 shadow-card border border-border">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-warning/10 rounded-lg">
+                <Clock className="w-5 h-5 text-warning" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">{t('dashboard.expiringSoon')}</p>
+                <p className="text-2xl font-semibold text-warning">
+                  {stats.critical + stats.warning}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-card rounded-xl p-4 shadow-card border border-border">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-success/10 rounded-lg">
+                <Check className="w-5 h-5 text-success" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">{t('dashboard.goodStatus')}</p>
+                <p className="text-2xl font-semibold text-success">{stats.good}</p>
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="bg-card rounded-xl p-4 shadow-card border border-border">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-danger/10 rounded-lg">
-              <AlertTriangle className="w-5 h-5 text-danger" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">{t('dashboard.expired')}</p>
-              <p className="text-2xl font-semibold text-danger">{stats.expired}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-card rounded-xl p-4 shadow-card border border-border">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-warning/10 rounded-lg">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Ближайшие истекающие */}
+          <div className="bg-card rounded-xl shadow-card border border-border p-6">
+            <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
               <Clock className="w-5 h-5 text-warning" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">{t('dashboard.expiringSoon')}</p>
-              <p className="text-2xl font-semibold text-warning">
-                {stats.critical + stats.warning}
-              </p>
-            </div>
+              {t('department.upcomingExpiry') || 'Скоро истекают'}
+            </h3>
+
+            {upcomingExpiry.length > 0 ? (
+              <div className="space-y-3">
+                {upcomingExpiry.map((batch) => (
+                  <div
+                    key={batch.id}
+                    className={`p-3 rounded-lg border-l-4 ${batch.status === 'critical'
+                        ? 'border-critical bg-critical/5'
+                        : 'border-warning bg-warning/5'
+                      }`}
+                  >
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-medium text-foreground">{batch.productName}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {batch.quantity} {t('common.units')} • {batch.category}
+                        </p>
+                      </div>
+                      <span
+                        className={`text-sm font-medium ${batch.daysLeft <= thresholds.critical ? 'text-critical' : 'text-warning'
+                          }`}
+                      >
+                        {batch.daysLeft === 0
+                          ? t('status.expiresToday')
+                          : `${batch.daysLeft} ${t('common.days')}`}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <Check className="w-12 h-12 mx-auto mb-3 text-success opacity-50" />
+                <p>{t('department.noUpcoming') || 'Нет товаров с близким сроком'}</p>
+              </div>
+            )}
           </div>
-        </div>
 
-        <div className="bg-card rounded-xl p-4 shadow-card border border-border">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-success/10 rounded-lg">
-              <Check className="w-5 h-5 text-success" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">{t('dashboard.goodStatus')}</p>
-              <p className="text-2xl font-semibold text-success">{stats.good}</p>
-            </div>
-          </div>
-        </div>
-      </div>
+          {/* По категориям */}
+          <div className="bg-card rounded-xl shadow-card border border-border p-6">
+            <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+              <PieChart className="w-5 h-5 text-gold" />
+              {t('department.byCategory') || 'По категориям'}
+            </h3>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Ближайшие истекающие */}
-        <div className="bg-card rounded-xl shadow-card border border-border p-6">
-          <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-            <Clock className="w-5 h-5 text-warning" />
-            {t('department.upcomingExpiry') || 'Скоро истекают'}
-          </h3>
-
-          {upcomingExpiry.length > 0 ? (
-            <div className="space-y-3">
-              {upcomingExpiry.map((batch) => (
-                <div
-                  key={batch.id}
-                  className={`p-3 rounded-lg border-l-4 ${
-                    batch.status === 'critical'
-                      ? 'border-critical bg-critical/5'
-                      : 'border-warning bg-warning/5'
-                  }`}
-                >
-                  <div className="flex justify-between items-start">
+            {Object.keys(byCategory).length > 0 ? (
+              <div className="space-y-3">
+                {Object.entries(byCategory).map(([category, data]) => (
+                  <div
+                    key={category}
+                    className="flex items-center justify-between p-3 bg-muted/30 rounded-lg"
+                  >
                     <div>
-                      <p className="font-medium text-foreground">{batch.productName}</p>
+                      <p className="font-medium text-foreground">{category}</p>
                       <p className="text-sm text-muted-foreground">
-                        {batch.quantity} {t('common.units')} • {batch.category}
+                        {data.count} {t('common.items')}
                       </p>
                     </div>
-                    <span
-                      className={`text-sm font-medium ${
-                        batch.daysLeft <= thresholds.critical ? 'text-critical' : 'text-warning'
-                      }`}
-                    >
-                      {batch.daysLeft === 0
-                        ? t('status.expiresToday')
-                        : `${batch.daysLeft} ${t('common.days')}`}
-                    </span>
+                    <div className="flex gap-2">
+                      {data.expired > 0 && (
+                        <span className="px-2 py-1 bg-danger/10 text-danger text-xs rounded-full">
+                          {data.expired} ❌
+                        </span>
+                      )}
+                      {data.warning > 0 && (
+                        <span className="px-2 py-1 bg-warning/10 text-warning text-xs rounded-full">
+                          {data.warning} ⚠️
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              <Check className="w-12 h-12 mx-auto mb-3 text-success opacity-50" />
-              <p>{t('department.noUpcoming') || 'Нет товаров с близким сроком'}</p>
-            </div>
-          )}
-        </div>
-
-        {/* По категориям */}
-        <div className="bg-card rounded-xl shadow-card border border-border p-6">
-          <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-            <PieChart className="w-5 h-5 text-gold" />
-            {t('department.byCategory') || 'По категориям'}
-          </h3>
-
-          {Object.keys(byCategory).length > 0 ? (
-            <div className="space-y-3">
-              {Object.entries(byCategory).map(([category, data]) => (
-                <div
-                  key={category}
-                  className="flex items-center justify-between p-3 bg-muted/30 rounded-lg"
-                >
-                  <div>
-                    <p className="font-medium text-foreground">{category}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {data.count} {t('common.items')}
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    {data.expired > 0 && (
-                      <span className="px-2 py-1 bg-danger/10 text-danger text-xs rounded-full">
-                        {data.expired} ❌
-                      </span>
-                    )}
-                    {data.warning > 0 && (
-                      <span className="px-2 py-1 bg-warning/10 text-warning text-xs rounded-full">
-                        {data.warning} ⚠️
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              <Package className="w-12 h-12 mx-auto mb-3 opacity-30" />
-              <p>{t('department.noItems') || 'Нет товаров'}</p>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Просроченные товары */}
-      {expiredItems.length > 0 && (
-        <div className="bg-card rounded-xl shadow-card border border-border p-6">
-          <h3 className="text-lg font-semibold text-danger mb-4 flex items-center gap-2">
-            <AlertTriangle className="w-5 h-5" />
-            {t('department.expiredItems') || 'Просроченные товары'}
-            <span className="ml-2 px-2 py-0.5 bg-danger/10 text-danger text-sm rounded-full">
-              {expiredItems.length}
-            </span>
-          </h3>
-
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-muted/30">
-                <tr>
-                  <th className="text-left text-xs uppercase text-muted-foreground p-3">
-                    {t('inventory.product')}
-                  </th>
-                  <th className="text-left text-xs uppercase text-muted-foreground p-3">
-                    {t('inventory.category')}
-                  </th>
-                  <th className="text-left text-xs uppercase text-muted-foreground p-3">
-                    {t('inventory.quantity')}
-                  </th>
-                  <th className="text-left text-xs uppercase text-muted-foreground p-3">
-                    {t('inventory.expiryDate')}
-                  </th>
-                  <th className="text-left text-xs uppercase text-muted-foreground p-3">
-                    {t('common.daysLeft')}
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {expiredItems.map((batch) => (
-                  <tr key={batch.id} className="border-t border-border">
-                    <td className="p-3 font-medium text-foreground">{batch.productName}</td>
-                    <td className="p-3 text-muted-foreground">{batch.category}</td>
-                    <td className="p-3">{batch.quantity}</td>
-                    <td className="p-3">{batch.expiryDate}</td>
-                    <td className="p-3">
-                      <span className="text-danger font-medium">
-                        {Math.abs(batch.daysLeft)} {t('collect.overdue')}
-                      </span>
-                    </td>
-                  </tr>
                 ))}
-              </tbody>
-            </table>
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <Package className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                <p>{t('department.noItems') || 'Нет товаров'}</p>
+              </div>
+            )}
           </div>
         </div>
-      )}
-    </div>
+
+        {/* Просроченные товары */}
+        {expiredItems.length > 0 && (
+          <div className="bg-card rounded-xl shadow-card border border-border p-6">
+            <h3 className="text-lg font-semibold text-danger mb-4 flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5" />
+              {t('department.expiredItems') || 'Просроченные товары'}
+              <span className="ml-2 px-2 py-0.5 bg-danger/10 text-danger text-sm rounded-full">
+                {expiredItems.length}
+              </span>
+            </h3>
+
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-muted/30">
+                  <tr>
+                    <th className="text-left text-xs uppercase text-muted-foreground p-3">
+                      {t('inventory.product')}
+                    </th>
+                    <th className="text-left text-xs uppercase text-muted-foreground p-3">
+                      {t('inventory.category')}
+                    </th>
+                    <th className="text-left text-xs uppercase text-muted-foreground p-3">
+                      {t('inventory.quantity')}
+                    </th>
+                    <th className="text-left text-xs uppercase text-muted-foreground p-3">
+                      {t('inventory.expiryDate')}
+                    </th>
+                    <th className="text-left text-xs uppercase text-muted-foreground p-3">
+                      {t('common.daysLeft')}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {expiredItems.map((batch) => (
+                    <tr key={batch.id} className="border-t border-border">
+                      <td className="p-3 font-medium text-foreground">{batch.productName}</td>
+                      <td className="p-3 text-muted-foreground">{batch.category}</td>
+                      <td className="p-3">{batch.quantity}</td>
+                      <td className="p-3">{batch.expiryDate}</td>
+                      <td className="p-3">
+                        <span className="text-danger font-medium">
+                          {Math.abs(batch.daysLeft)} {t('collect.overdue')}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
     </PageContainer>
   )
 }

@@ -6,7 +6,8 @@
 import { useMemo } from 'react'
 import { useTranslation } from '../context/LanguageContext'
 import { useAuth } from '../context/AuthContext'
-import { useProducts, departments } from '../context/ProductContext'
+import { useProducts } from '../context/ProductContext'
+import { useDepartment } from '../context/DepartmentContext'
 import { useThresholds } from '../hooks/useThresholds'
 import {
   TrendingUp,
@@ -23,6 +24,7 @@ export default function AnalyticsPage() {
   const { t } = useTranslation()
   const { user, isHotelAdmin } = useAuth()
   const { getActiveBatches, getStats } = useProducts()
+  const { departments } = useDepartment()
   const { thresholds } = useThresholds()
 
   const stats = getStats()
@@ -168,65 +170,59 @@ export default function AnalyticsPage() {
           {recommendations.map((rec, index) => (
             <div
               key={index}
-              className={`flex items-start gap-4 p-4 rounded-lg ${
-                rec.type === 'danger'
+              className={`flex items-start gap-4 p-4 rounded-lg ${rec.type === 'danger'
                   ? 'bg-red-50 border border-red-100'
                   : rec.type === 'warning'
                     ? 'bg-amber-50 border border-amber-100'
                     : 'bg-green-50 border border-green-100'
-              }`}
+                }`}
             >
               <div
-                className={`p-2 rounded-lg ${
-                  rec.type === 'danger'
+                className={`p-2 rounded-lg ${rec.type === 'danger'
                     ? 'bg-red-100'
                     : rec.type === 'warning'
                       ? 'bg-amber-100'
                       : 'bg-green-100'
-                }`}
+                  }`}
               >
                 <rec.icon
-                  className={`w-5 h-5 ${
-                    rec.type === 'danger'
+                  className={`w-5 h-5 ${rec.type === 'danger'
                       ? 'text-red-600'
                       : rec.type === 'warning'
                         ? 'text-amber-600'
                         : 'text-green-600'
-                  }`}
+                    }`}
                 />
               </div>
               <div className="flex-1">
                 <h3
-                  className={`font-medium ${
-                    rec.type === 'danger'
+                  className={`font-medium ${rec.type === 'danger'
                       ? 'text-red-800'
                       : rec.type === 'warning'
                         ? 'text-amber-800'
                         : 'text-green-800'
-                  }`}
+                    }`}
                 >
                   {rec.title}
                 </h3>
                 <p
-                  className={`text-sm mt-1 ${
-                    rec.type === 'danger'
+                  className={`text-sm mt-1 ${rec.type === 'danger'
                       ? 'text-red-600'
                       : rec.type === 'warning'
                         ? 'text-amber-600'
                         : 'text-green-600'
-                  }`}
+                    }`}
                 >
                   {rec.description}
                 </p>
                 {rec.action && (
                   <p
-                    className={`text-sm mt-2 font-medium ${
-                      rec.type === 'danger'
+                    className={`text-sm mt-2 font-medium ${rec.type === 'danger'
                         ? 'text-red-700'
                         : rec.type === 'warning'
                           ? 'text-amber-700'
                           : 'text-green-700'
-                    }`}
+                      }`}
                   >
                     → {rec.action}
                   </p>
@@ -248,13 +244,12 @@ export default function AnalyticsPage() {
           {weekForecast.map((day, index) => (
             <div
               key={day.date}
-              className={`text-center p-3 rounded-lg ${
-                index === 0
+              className={`text-center p-3 rounded-lg ${index === 0
                   ? 'bg-foreground text-background'
                   : day.count > 0
                     ? 'bg-warning/10 border border-warning/30'
                     : 'bg-muted'
-              }`}
+                }`}
             >
               <p className={`text-xs ${index === 0 ? 'opacity-70' : 'text-muted-foreground'}`}>
                 {day.day}
@@ -264,9 +259,8 @@ export default function AnalyticsPage() {
               </p>
               {day.count > 0 && (
                 <p
-                  className={`text-xs font-medium mt-1 ${
-                    index === 0 ? 'text-warning' : 'text-warning'
-                  }`}
+                  className={`text-xs font-medium mt-1 ${index === 0 ? 'text-warning' : 'text-warning'
+                    }`}
                 >
                   {day.count} {t('analytics.expiring')}
                 </p>
@@ -295,13 +289,12 @@ export default function AnalyticsPage() {
                 </div>
                 <div className="flex items-center gap-3">
                   <span
-                    className={`text-sm font-medium ${
-                      dept.healthScore >= 80
+                    className={`text-sm font-medium ${dept.healthScore >= 80
                         ? 'text-success'
                         : dept.healthScore >= 50
                           ? 'text-warning'
                           : 'text-danger'
-                    }`}
+                      }`}
                   >
                     {dept.healthScore}%
                   </span>
@@ -316,13 +309,12 @@ export default function AnalyticsPage() {
               {/* Health bar */}
               <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                 <div
-                  className={`h-full transition-all ${
-                    dept.healthScore >= 80
+                  className={`h-full transition-all ${dept.healthScore >= 80
                       ? 'bg-success'
                       : dept.healthScore >= 50
                         ? 'bg-warning'
                         : 'bg-danger'
-                  }`}
+                    }`}
                   style={{ width: `${dept.healthScore}%` }}
                 />
               </div>

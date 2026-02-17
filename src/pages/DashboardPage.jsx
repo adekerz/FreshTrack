@@ -9,8 +9,10 @@ import {
   ArrowRight,
   Plus,
   Zap,
+  ChevronRight,
 } from 'lucide-react'
 import { useProducts } from '../context/ProductContext'
+import { useDepartment } from '../context/DepartmentContext'
 import { useAuth } from '../context/AuthContext'
 import { useTranslation } from '../context/LanguageContext'
 import { useThresholds } from '../hooks/useThresholds'
@@ -19,7 +21,6 @@ import { formatDate } from '../utils/dateUtils'
 import { Loader, TouchButton } from '../components/ui'
 import PageContainer from '../components/PageContainer'
 import AddBatchModal from '../components/AddBatchModal'
-import { getDepartmentIcon } from '../utils/departmentUtils'
 
 export default function DashboardPage() {
   const { t } = useTranslation()
@@ -27,41 +28,30 @@ export default function DashboardPage() {
   const {
     getStats,
     getAlerts,
-    collectBatch: _collectBatch,
-    departments,
     loading,
     refresh,
   } = useProducts()
+  const { departments, getDepartmentIcon, selectedDepartmentId, selectDepartment, showDepartmentSelector } = useDepartment()
   const { thresholds } = useThresholds()
   const [showAddBatchModal, setShowAddBatchModal] = useState(false)
   const [retryCount, setRetryCount] = useState(0)
 
   // Автоматический retry когда нет данных (БД ещё загружается)
-  // Делаем retry только если не loading и прошло достаточно времени
   useEffect(() => {
-    // Не делаем retry если уже идёт загрузка или достигнут лимит
     if (loading || retryCount >= 5) return
-
-    // Если данные есть - сбрасываем счётчик
     if (departments.length > 0) {
       if (retryCount > 0) setRetryCount(0)
       return
     }
-
-    // Retry с увеличивающимся интервалом (3s, 6s, 9s...)
     const delay = (retryCount + 1) * 3000
     const timer = setTimeout(() => {
       setRetryCount((prev) => prev + 1)
       refresh()
     }, delay)
-
     // eslint-disable-next-line consistent-return
-    return () => {
-      clearTimeout(timer)
-    }
+    return () => clearTimeout(timer)
   }, [loading, departments.length, retryCount, refresh])
 
-  // Get greeting based on time of day
   const getGreeting = () => {
     const hour = new Date().getHours()
     if (hour < 12) return t('dashboard.goodMorning') || 'Good morning'
@@ -69,7 +59,6 @@ export default function DashboardPage() {
     return t('dashboard.goodEvening') || 'Good evening'
   }
 
-  // Show skeleton while loading (когда есть данные)
   if (loading && departments.length > 0) {
     return (
       <PageContainer
@@ -82,7 +71,6 @@ export default function DashboardPage() {
     )
   }
 
-  // Загрузка БД (нет данных и идёт загрузка)
   if (loading && departments.length === 0) {
     return (
       <PageContainer
@@ -91,15 +79,8 @@ export default function DashboardPage() {
         stickyHeader={true}
       >
         <div className="flex-1 flex items-center justify-center py-16 sm:py-24">
-          <div
-            className="flex flex-col items-center gap-6"
-            role="status"
-            aria-live="polite"
-          >
-            <Loader
-              size="large"
-              aria-label={t('common.loading') || 'Загрузка'}
-            />
+          <div className="flex flex-col items-center gap-6" role="status" aria-live="polite">
+            <Loader size="large" aria-label={t('common.loading') || 'Загрузка'} />
             <div className="text-center">
               <p className="text-foreground font-medium mb-1">
                 {t('common.loading') || 'Загрузка...'}
@@ -116,7 +97,6 @@ export default function DashboardPage() {
     )
   }
 
-  // Если нет отделов после загрузки - показываем empty state
   if (!loading && departments.length === 0) {
     return (
       <PageContainer
@@ -151,7 +131,26 @@ export default function DashboardPage() {
   }
 
   const stats = getStats()
-  const alerts = getAlerts()
+  const allAlerts = getAlerts()
+
+  // Текущий отдел
+  const currentDept = selectedDepartmentId
+    ? departments.find((d) => d.id === selectedDepartmentId)
+    : departments[0]
+
+  // Фильтруем алерты по выбранному отделу
+  const alerts = selectedDepartmentId
+    ? allAlerts.filter((a) => {
+        const deptId = typeof a.department === 'object' ? a.department?.id : a.department
+        return deptId === selectedDepartmentId
+      })
+    : allAlerts
+
+  // Остальные отделы (для быстрого переключения)
+  const otherDepts = departments.filter((d) => d.id !== currentDept?.id)
+
+  const currentIcon = currentDept ? getDepartmentIcon(currentDept) : null
+  const CurrentDeptIcon = currentIcon
 
   // Статистические карточки
   const statCards = [
@@ -219,13 +218,68 @@ export default function DashboardPage() {
       }
     >
       <div className="space-y-6 sm:space-y-8">
-        {/* Statistics - Bento Grid */}
+
+        {/* ── Текущий отдел + быстрое переключение ── */}
+        {currentDept && (
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            {/* Текущий отдел — hero-кнопка */}
+            <Link
+              to={`/inventory/${currentDept.id}`}
+              className="flex items-center gap-3 px-4 py-3 rounded-xl border border-border bg-card hover:bg-muted transition-colors group flex-1 sm:flex-none sm:min-w-[220px]"
+            >
+              {CurrentDeptIcon && (
+                <div
+                  className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform"
+                  style={{ backgroundColor: `${currentDept.color || '#C4A35A'}20` }}
+                >
+                  <CurrentDeptIcon
+                    className="w-5 h-5"
+                    style={{ color: currentDept.color || '#C4A35A' }}
+                  />
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
+                <p className="text-xs text-muted-foreground">
+                  {t('dashboard.currentDepartment') || 'Текущий отдел'}
+                </p>
+                <p className="font-semibold text-foreground truncate group-hover:text-accent transition-colors">
+                  {currentDept.name}
+                </p>
+              </div>
+              <ArrowRight className="w-4 h-4 text-muted-foreground/50 group-hover:text-accent group-hover:translate-x-1 transition-all flex-shrink-0" />
+            </Link>
+
+            {/* Быстрое переключение на другие отделы (только если > 1 отдела) */}
+            {showDepartmentSelector && otherDepts.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {otherDepts.map((dept) => {
+                  const Icon = getDepartmentIcon(dept)
+                  return (
+                    <button
+                      key={dept.id}
+                      type="button"
+                      onClick={() => selectDepartment(dept.id)}
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border bg-card hover:bg-muted text-sm text-muted-foreground hover:text-foreground transition-colors min-h-[44px]"
+                    >
+                      <Icon
+                        className="w-4 h-4 flex-shrink-0"
+                        style={{ color: dept.color || '#6366f1' }}
+                      />
+                      <span className="truncate max-w-[100px]">{dept.name}</span>
+                      <ChevronRight className="w-3.5 h-3.5 opacity-50 flex-shrink-0" />
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Статистика ── */}
         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
           {statCards.map((card, index) => {
             const Icon = card.icon
-            // Von Restorff Effect - выделяем критические элементы
-            const isCritical =
-              card.title === t('dashboard.expired') && card.value > 0
+            const isCritical = card.title === t('dashboard.expired') && card.value > 0
             return (
               <div
                 key={card.title}
@@ -242,9 +296,7 @@ export default function DashboardPage() {
                     <Icon className={`w-5 h-5 sm:w-6 sm:h-6 ${card.color}`} />
                   </div>
                 </div>
-                <div
-                  className={`text-2xl sm:text-3xl font-light mb-0.5 sm:mb-1 ${card.color}`}
-                >
+                <div className={`text-2xl sm:text-3xl font-light mb-0.5 sm:mb-1 ${card.color}`}>
                   {card.value}
                 </div>
                 <div className="text-xs sm:text-sm text-muted-foreground line-clamp-1">
@@ -255,63 +307,7 @@ export default function DashboardPage() {
           })}
         </div>
 
-        {/* Отделы - адаптивный Bento Grid */}
-        <div>
-          <div className="flex items-center justify-between mb-4 sm:mb-6">
-            <h2 className="text-lg sm:text-xl font-medium text-foreground">
-              {t('dashboard.departments')}
-            </h2>
-            <Link
-              to="/inventory"
-              className="text-xs sm:text-sm text-muted-foreground hover:text-accent transition-colors flex items-center gap-1"
-            >
-              {t('dashboard.viewAll')}
-              <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4" />
-            </Link>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-            {departments.map((dept, index) => {
-              const Icon = getDepartmentIcon(dept)
-              return (
-                <Link
-                  key={dept.id}
-                  to={`/inventory/${dept.id}`}
-                  className="interactive-card bg-card rounded-xl sm:rounded-lg p-4 sm:p-6 border border-border group animate-slide-up focus-ring"
-                  style={{
-                    animationDelay: `${(index + 4) * 0.1}s`,
-                    animationFillMode: 'backwards',
-                  }}
-                >
-                  <div className="flex items-center gap-3 sm:gap-4">
-                    <div
-                      className="w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform"
-                      style={{
-                        backgroundColor: `${dept.color || '#C4A35A'}20`,
-                      }}
-                    >
-                      <Icon
-                        className="w-6 h-6 sm:w-7 sm:h-7"
-                        style={{ color: dept.color || '#C4A35A' }}
-                      />
-                    </div>
-                    <div className="min-w-0">
-                      <h3 className="font-medium text-foreground group-hover:text-accent transition-colors truncate">
-                        {dept.name}
-                      </h3>
-                      <p className="text-xs sm:text-sm text-muted-foreground">
-                        {t('dashboard.viewInventory')}
-                      </p>
-                    </div>
-                    <ArrowRight className="w-5 h-5 text-muted-foreground/50 group-hover:text-accent group-hover:translate-x-1 transition-all ml-auto" />
-                  </div>
-                </Link>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* Требуют внимания - компактный вид на мобильных */}
+        {/* ── Требуют внимания ── */}
         <div>
           <div className="flex items-center justify-between mb-4 sm:mb-6">
             <h2 className="text-lg sm:text-xl font-medium text-foreground">
@@ -361,7 +357,7 @@ export default function DashboardPage() {
                         <h3 className="font-medium text-foreground text-sm sm:text-base truncate">
                           {alert.productName}
                         </h3>
-                        {alert.department && (
+                        {alert.department && typeof alert.department === 'object' && (
                           <span
                             className="text-xs px-2 py-0.5 rounded flex-shrink-0"
                             style={{
@@ -373,7 +369,6 @@ export default function DashboardPage() {
                           </span>
                         )}
                       </div>
-
                       <div className="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
                         <div className="flex items-center gap-1">
                           <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -386,7 +381,6 @@ export default function DashboardPage() {
                             : `${alert.quantity} ${t('inventory.units')}`}
                         </div>
                       </div>
-
                       <div
                         className={`mt-1 sm:mt-2 text-xs sm:text-sm font-medium ${
                           alert.daysLeft < 0
@@ -397,14 +391,10 @@ export default function DashboardPage() {
                         }`}
                       >
                         {alert.daysLeft < 0
-                          ? t('status.expiredDaysAgo', {
-                              days: Math.abs(alert.daysLeft),
-                            })
+                          ? t('status.expiredDaysAgo', { days: Math.abs(alert.daysLeft) })
                           : alert.daysLeft === 0
                             ? t('status.expiresToday')
-                            : t('status.expiresInDays', {
-                                days: alert.daysLeft,
-                              })}
+                            : t('status.expiresInDays', { days: alert.daysLeft })}
                       </div>
                     </div>
                   </div>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, Link, useSearchParams } from 'react-router-dom'
 import {
   Leaf,
   ShieldCheck,
@@ -11,7 +11,8 @@ import {
   AlertCircle,
   Shield,
   FileText,
-  Clock
+  Clock,
+  LogIn
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useTranslation } from '../context/LanguageContext'
@@ -24,6 +25,8 @@ import TermsAcceptanceModal from '../components/TermsAcceptanceModal'
 
 export default function LoginPage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const isSessionExpired = searchParams.get('reason') === 'session_expired'
   const { login } = useAuth()
   const { t } = useTranslation()
   const { addToast } = useToast()
@@ -353,6 +356,17 @@ export default function LoginPage() {
             <h2 className="font-serif text-3xl mb-2 text-foreground">{t('auth.welcomeBack')}</h2>
             <p className="text-muted-foreground">{t('auth.signInSubtitle')}</p>
           </div>
+
+          {/* Session expired notice */}
+          {isSessionExpired && (
+            <div className="flex items-start gap-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 rounded-lg p-4 mb-6 animate-fade-in">
+              <LogIn className="w-5 h-5 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium text-sm">{t('auth.sessionExpired')}</p>
+                <p className="text-xs mt-0.5 opacity-80">{t('auth.sessionExpiredDesc')}</p>
+              </div>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-6" data-testid="login-form">
             {/* Server error */}

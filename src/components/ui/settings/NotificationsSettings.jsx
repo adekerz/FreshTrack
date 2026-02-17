@@ -20,8 +20,10 @@ import {
   Trash2,
   ChevronDown,
   ChevronUp,
-  AlertTriangle
+  AlertTriangle,
+  Zap
 } from 'lucide-react'
+import { showNotification, getNotificationPermission, requestNotificationPermission } from '../../../utils/browserAlerts'
 import { Link } from 'react-router-dom'
 import { cn } from '../../../utils/classNames'
 import SettingsLayout, { SettingsSection } from './SettingsLayout'
@@ -200,6 +202,70 @@ export default function NotificationsSettings() {
     window.open(`https://t.me/${BOT_USERNAME}?startgroup=setup`, '_blank')
   }
 
+  // ── Test notification ────────────────────────────────────────────────────────
+  const [testingNotification, setTestingNotification] = useState(false)
+
+  const handleTestNotification = async () => {
+    setTestingNotification(true)
+    try {
+      // Browser notification
+      let browserShown = false
+      let perm = getNotificationPermission()
+      if (perm === 'default') {
+        const res = await requestNotificationPermission()
+        perm = res.permission
+      }
+      if (perm === 'denied') {
+        addToast(
+          t('notifications.browserDenied') || 'Браузер: уведомления заблокированы. Разрешите в настройках сайта.',
+          'warning'
+        )
+      } else if (perm === 'granted') {
+        try {
+          const shown = showNotification(
+            t('notifications.test.title') || 'Тестовое уведомление',
+            {
+              body: t('notifications.test.message') || 'Это тестовое уведомление для проверки работы системы.',
+              tag: 'freshtrack-test-notification'
+            }
+          )
+          browserShown = shown !== null
+        } catch (err) {
+          addToast((t('notifications.browserError') || 'Браузер: ошибка уведомления') + ': ' + (err.message || ''), 'error')
+        }
+      }
+
+      // Email + Telegram (backend)
+      const result = await apiFetch('/notifications/test-telegram', {
+        method: 'POST',
+        body: JSON.stringify({})
+      })
+
+      const channels = []
+      if (browserShown) channels.push('браузер')
+      if (result.emailSent) channels.push('email')
+      if (result.sentTo > 0) channels.push(`Telegram (${result.sentTo})`)
+
+      if (result.success || browserShown) {
+        const msg = channels.length > 0
+          ? (t('notifications.test.sent') || 'Тестовое уведомление отправлено') + ': ' + channels.join(', ')
+          : t('notifications.test.sent') || 'Тестовое уведомление отправлено'
+        addToast(msg, 'success')
+      } else {
+        addToast(
+          result.error || (result.totalChats === 0
+            ? 'Нет привязанных Telegram чатов'
+            : t('notifications.test.error') || 'Ошибка отправки'),
+          'error'
+        )
+      }
+    } catch (error) {
+      addToast(error.message || t('notifications.test.error') || 'Ошибка отправки тестового уведомления', 'error')
+    } finally {
+      setTestingNotification(false)
+    }
+  }
+
   if (loading) {
     return <SettingsLayout loading />
   }
@@ -213,12 +279,25 @@ export default function NotificationsSettings() {
       saveButtonText={hasUnsavedChanges ? '● ' + (t('common.save') || 'Сохранить') : (t('common.save') || 'Сохранить')}
       saveDisabled={!hasUnsavedChanges}
     >
-      {/* Info: одна сводка в день */}
-      <div className="p-4 rounded-lg bg-muted/30 border border-border/40">
-        <p className="text-sm text-muted-foreground whitespace-pre-line">
+      {/* Info + test button row */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-lg bg-muted/30 border border-border/40">
+        <p className="text-sm text-muted-foreground flex-1 whitespace-pre-line">
           FreshTrack отправляет только одну сводку в день.
           Это снижает шум и помогает не пропускать важное.
         </p>
+        <button
+          type="button"
+          onClick={handleTestNotification}
+          disabled={testingNotification}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border bg-background hover:bg-muted text-sm text-foreground disabled:opacity-50 transition-colors shrink-0"
+        >
+          {testingNotification ? (
+            <span className="w-4 h-4 border-2 border-accent/30 border-t-accent rounded-full animate-spin" />
+          ) : (
+            <Zap className="w-4 h-4 text-accent" />
+          )}
+          {t('notifications.test.label') || 'Тест уведомлений'}
+        </button>
       </div>
 
       {/* Предупреждение: почта отдела не привязана */}

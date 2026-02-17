@@ -3,8 +3,9 @@
  */
 
 import { useState } from 'react'
-import { X, UserPlus, Eye, EyeOff } from 'lucide-react'
-import { ButtonLoader, Switch } from '../..'
+import { X, UserPlus } from 'lucide-react'
+import { ButtonLoader } from '../..'
+import PasswordFields from '../../PasswordFields'
 
 export default function CreateUserModal({
   isOpen,
@@ -21,7 +22,6 @@ export default function CreateUserModal({
   t,
   canCreateSuperAdmin = false
 }) {
-  const [showPassword, setShowPassword] = useState(false)
   const [generatePassword, setGeneratePassword] = useState(true)
 
   if (!isOpen) return null
@@ -30,6 +30,11 @@ export default function CreateUserModal({
   const deptName = hotels
     ?.find((h) => h.id === hotelId)
     ?.departments?.find((d) => d.id === departmentId)?.name
+
+  const handleClose = () => {
+    onClose()
+    setGeneratePassword(true)
+  }
 
   return (
     <div className="fixed inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
@@ -42,14 +47,7 @@ export default function CreateUserModal({
               {deptName ? ` → ${deptName}` : ''}
             </p>
           </div>
-          <button
-            onClick={() => {
-              onClose()
-              setGeneratePassword(true)
-              setShowPassword(false)
-            }}
-            className="p-2 hover:bg-muted rounded-lg"
-          >
+          <button onClick={handleClose} className="p-2 hover:bg-muted rounded-lg">
             <X className="w-5 h-5 text-muted-foreground" />
           </button>
         </div>
@@ -61,6 +59,7 @@ export default function CreateUserModal({
         )}
 
         <div className="space-y-4">
+          {/* Login */}
           <div>
             <label className="block text-sm font-medium text-foreground mb-1">Логин *</label>
             <input
@@ -71,84 +70,17 @@ export default function CreateUserModal({
               className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-card"
             />
           </div>
-          <div>
-            <div
-              className="flex items-center gap-2 mb-2 cursor-pointer"
-              onClick={() => {
-                const next = !generatePassword
-                setGeneratePassword(next)
-                if (next) setFormState((u) => ({ ...u, password: '' }))
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault()
-                  const next = !generatePassword
-                  setGeneratePassword(next)
-                  if (next) setFormState((u) => ({ ...u, password: '' }))
-                }
-              }}
-              role="button"
-              tabIndex={0}
-            >
-              <Switch
-                checked={generatePassword}
-                onChange={(v) => {
-                  setGeneratePassword(v)
-                  if (v) setFormState((u) => ({ ...u, password: '' }))
-                }}
-                aria-label="Сгенерировать пароль автоматически"
-              />
-              <span className="text-sm font-medium text-foreground">
-                Сгенерировать пароль автоматически
-              </span>
-            </div>
-            {generatePassword ? (
-              <div className="bg-info/10 border border-info/20 rounded-lg p-3">
-                <p className="text-xs text-info">
-                  <strong>Временный пароль будет сгенерирован и отправлен на email.</strong> Пользователь должен будет сменить его при первом входе.
-                </p>
-              </div>
-            ) : (
-              <>
-                <label className="block text-sm font-medium text-foreground mb-1">Пароль *</label>
-                <div className="relative">
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="••••••••"
-                    value={formState.password}
-                    onChange={(e) => setFormState({ ...formState, password: e.target.value })}
-                    className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-card pr-10"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-                <div className="bg-muted/50 rounded-lg p-3 space-y-1.5 mt-2">
-                  <p className="text-xs font-medium text-foreground mb-1">Требования к паролю:</p>
-                  {[
-                    { key: 'length', label: 'Минимум 8 символов', valid: formState.password.length >= 8 },
-                    { key: 'uppercase', label: 'Заглавная буква (A-Z)', valid: /[A-Z]/.test(formState.password) },
-                    { key: 'lowercase', label: 'Строчная буква (a-z)', valid: /[a-z]/.test(formState.password) },
-                    { key: 'number', label: 'Цифра (0-9)', valid: /\d/.test(formState.password) },
-                    { key: 'special', label: 'Спецсимвол (!@#$%^&*-_=+)', valid: /[!@#$%^&*\-_=+]/.test(formState.password) }
-                  ].map(req => (
-                    <div key={req.key} className="flex items-center gap-2 text-xs">
-                      <span className={req.valid ? 'text-success' : 'text-muted-foreground'}>
-                        {req.valid ? '✓' : '•'}
-                      </span>
-                      <span className={req.valid ? 'text-success' : 'text-muted-foreground'}>
-                        {req.label}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
+
+          {/* Password */}
+          <PasswordFields
+            password={formState.password}
+            onPasswordChange={(val) => setFormState({ ...formState, password: val })}
+            generatePassword={generatePassword}
+            onGenerateChange={setGeneratePassword}
+            t={t}
+          />
+
+          {/* Name */}
           <div>
             <label className="block text-sm font-medium text-foreground mb-1">Имя *</label>
             <input
@@ -159,6 +91,8 @@ export default function CreateUserModal({
               className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-card"
             />
           </div>
+
+          {/* Email */}
           <div>
             <label className="block text-sm font-medium text-foreground mb-1">
               Email {generatePassword && <span className="text-danger">*</span>}
@@ -176,6 +110,8 @@ export default function CreateUserModal({
               </p>
             )}
           </div>
+
+          {/* Role */}
           <div>
             <label className="block text-sm font-medium text-foreground mb-1">Роль</label>
             {!departmentId ? (
@@ -185,12 +121,12 @@ export default function CreateUserModal({
                   onChange={(e) => setFormState({ ...formState, role: e.target.value })}
                   className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-card"
                 >
-                  <option value="HOTEL_ADMIN">{t('users.roles.HOTEL_ADMIN')}</option>
-                  <option value="SUPER_ADMIN">{t('users.roles.SUPER_ADMIN')}</option>
+                  <option value="HOTEL_ADMIN">{t?.('users.roles.HOTEL_ADMIN') || 'Hotel Admin'}</option>
+                  <option value="SUPER_ADMIN">{t?.('users.roles.SUPER_ADMIN') || 'Super Admin'}</option>
                 </select>
               ) : (
                 <div className="w-full px-4 py-2.5 border border-border rounded-lg bg-muted/50 text-foreground">
-                  {t('users.roles.HOTEL_ADMIN')}
+                  {t?.('users.roles.HOTEL_ADMIN') || 'Hotel Admin'}
                 </div>
               )
             ) : (
@@ -199,11 +135,12 @@ export default function CreateUserModal({
                 onChange={(e) => setFormState({ ...formState, role: e.target.value })}
                 className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-card"
               >
-                <option value="STAFF">{t('users.roles.STAFF')}</option>
-                <option value="DEPARTMENT_MANAGER">{t('users.roles.DEPARTMENT_MANAGER')}</option>
+                <option value="STAFF">{t?.('users.roles.STAFF') || 'Staff'}</option>
+                <option value="DEPARTMENT_MANAGER">{t?.('users.roles.DEPARTMENT_MANAGER') || 'Dept Manager'}</option>
               </select>
             )}
           </div>
+
           <button
             onClick={onSubmit}
             disabled={creating}

@@ -93,8 +93,10 @@ export const StatisticsService = {
     }
 
     // Build context-aware filter
-    // departmentId is UUID or null, not an object
-    const deptFilter = canAccessAllDepartments ? null : departmentId
+    // canAccessAllDepartments means the user CAN filter by any dept, but if departmentId
+    // is provided we still apply it (shows data for that specific department)
+    // deptFilter = null means "all departments" (no filter)
+    const deptFilter = departmentId || null
 
     // Fetch data with context isolation
     // getAllBatches(hotelId, departmentId, status)

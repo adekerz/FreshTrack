@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Trophy,
@@ -11,16 +11,18 @@ import {
   Target,
   BarChart3
 } from 'lucide-react'
-import { useProducts, departments } from '../context/ProductContext'
+import { useProducts } from '../context/ProductContext'
+import { useDepartment } from '../context/DepartmentContext'
 import { useTranslation } from '../context/LanguageContext'
 
 export default function DepartmentRankingPage() {
   const { t } = useTranslation()
   const { batches } = useProducts()
+  const { departments } = useDepartment()
   const [sortBy, setSortBy] = useState('efficiency')
 
   // Рассчитать статистику по отделам
-  const departmentStats = departments.map((dept) => {
+  const departmentStats = useMemo(() => departments.map((dept) => {
     const deptBatches = batches.filter((b) => b.department === dept.id)
 
     const total = deptBatches.length
@@ -46,7 +48,7 @@ export default function DepartmentRankingPage() {
       riskScore,
       needsAttention: expired + critical
     }
-  })
+  }), [departments, batches])
 
   // Сортировка
   const sortedDepartments = [...departmentStats].sort((a, b) => {
@@ -71,8 +73,8 @@ export default function DepartmentRankingPage() {
     avgEfficiency:
       departmentStats.length > 0
         ? Math.round(
-            departmentStats.reduce((sum, d) => sum + d.efficiency, 0) / departmentStats.length
-          )
+          departmentStats.reduce((sum, d) => sum + d.efficiency, 0) / departmentStats.length
+        )
         : 0,
     bestDepartment: sortedDepartments[0]?.name || '-'
   }
@@ -225,13 +227,12 @@ export default function DepartmentRankingPage() {
                   <div className="text-right">
                     <div className="flex items-center gap-2">
                       <span
-                        className={`text-lg font-bold ${
-                          dept.efficiency >= 80
+                        className={`text-lg font-bold ${dept.efficiency >= 80
                             ? 'text-success'
                             : dept.efficiency >= 50
                               ? 'text-warning'
                               : 'text-danger'
-                        }`}
+                          }`}
                       >
                         {dept.efficiency}%
                       </span>

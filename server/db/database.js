@@ -323,6 +323,17 @@ export async function logAudit(data) {
   const createdAtUtc = nowIso.replace('T', ' ').replace('Z', '')
   console.log(`[AUDIT INSERT] UTC ISO: ${nowIso} → DB value: ${createdAtUtc}`)
 
+  // Если hotel_id не передан — пытаемся получить его по user_id (обратная совместимость)
+  let resolvedHotelId = hotel_id || null
+  if (!resolvedHotelId && user_id) {
+    try {
+      const userRow = await query('SELECT hotel_id FROM users WHERE id = $1', [user_id])
+      if (userRow.rows.length > 0 && userRow.rows[0].hotel_id) {
+        resolvedHotelId = userRow.rows[0].hotel_id
+      }
+    } catch (_) { /* ignore */ }
+  }
+
   // Check if snapshot columns exist (graceful degradation)
   try {
     await query(`
@@ -333,7 +344,7 @@ export async function logAudit(data) {
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
     `, [
       id,
-      hotel_id || null,
+      resolvedHotelId,
       user_id || null,
       user_name || 'System',
       action,
@@ -352,7 +363,7 @@ export async function logAudit(data) {
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       `, [
         id,
-        hotel_id || null,
+        resolvedHotelId,
         user_id || null,
         user_name || 'System',
         action,
@@ -1331,7 +1342,12 @@ export async function getAuditLogsWithMetadata(hotelId, filters = {}) {
   let paramIndex = 1
 
   if (hotelId != null) {
-    conditions.push(`al.hotel_id = $${paramIndex++}`)
+    if (filters.includeNullHotel) {
+      // SUPER_ADMIN: показываем записи отеля + системные записи без hotel_id
+      conditions.push(`(al.hotel_id = $${paramIndex++} OR al.hotel_id IS NULL)`)
+    } else {
+      conditions.push(`al.hotel_id = $${paramIndex++}`)
+    }
     params.push(hotelId)
   }
   if (filters.userId) {

@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Search, Package, Store, X } from 'lucide-react'
-import { useProducts, departments, categories } from '../context/ProductContext'
+import { useProducts } from '../context/ProductContext'
+import { useDepartment } from '../context/DepartmentContext'
 import { useAuth } from '../context/AuthContext'
 import { useTranslation, useLanguage } from '../context/LanguageContext'
 import { cn } from '../utils/classNames'
@@ -10,7 +11,8 @@ export default function GlobalSearch({ onSearch, autoFocus = false, fullWidth = 
   const navigate = useNavigate()
   const { t } = useTranslation()
   const { language } = useLanguage()
-  const { batches, getProductsByDepartment } = useProducts()
+  const { batches, getProductsByDepartment, categories } = useProducts()
+  const { departments } = useDepartment()
   const { hasAccessToDepartment } = useAuth()
 
   const [isOpen, setIsOpen] = useState(autoFocus)
@@ -72,14 +74,14 @@ export default function GlobalSearch({ onSearch, autoFocus = false, fullWidth = 
     batches.forEach(batch => {
       const deptId = batch.departmentId || batch.department
       if (!deptId || !hasAccessToDepartment(deptId)) return
-      
+
       const productName = (batch.productName || batch.product_name || '').toLowerCase()
       const deptName = getDepartmentName(deptId).toLowerCase()
-      
+
       // Уникальный ключ для товара
       const productKey = `${productName}-${deptId}`
       if (seenProducts.has(productKey)) return
-      
+
       if (productName.includes(searchQuery) || deptName.includes(searchQuery)) {
         seenProducts.add(productKey)
         productResults.push({
@@ -170,7 +172,7 @@ export default function GlobalSearch({ onSearch, autoFocus = false, fullWidth = 
         aria-label={t('search.placeholder')}
         className={cn(
           'flex items-center gap-2 px-4 min-h-[44px] py-2 rounded-lg border transition-all cursor-pointer touch-manipulation',
-          fullWidth 
+          fullWidth
             ? 'bg-card border-border w-full'
             : isOpen
               ? 'bg-card border-accent shadow-md w-80'

@@ -1,15 +1,14 @@
-import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   Package,
   Plus,
   FileBox,
   ArrowUpDown,
-  ArrowLeft,
   Trash2,
 } from 'lucide-react'
 import { useProducts } from '../context/ProductContext'
-import { useHotel } from '../context/HotelContext'
+import { useDepartment } from '../context/DepartmentContext'
 import { useAuth } from '../context/AuthContext'
 import { useTranslation, useLanguage } from '../context/LanguageContext'
 import { useToast } from '../context/ToastContext'
@@ -18,7 +17,6 @@ import ProductModal from '../components/ProductModal'
 import AddCustomProductModal from '../components/AddCustomProductModal'
 import SelectTemplateModal from '../components/SelectTemplateModal'
 import FastIntakeModal from '../components/FastIntakeModal'
-import DepartmentSelector from '../components/DepartmentSelector'
 import ExportButton from '../components/ExportButton'
 import ProductCard from '../components/ProductCard'
 import { SkeletonInventory, Skeleton } from '../components/Skeleton'
@@ -28,7 +26,6 @@ import AnimatedPage from '../components/AnimatedPage'
 import { AnimatedGrid } from '../components/AnimatedList'
 import EmptyState from '../components/EmptyState'
 import ExportProgress from '../components/ExportProgress'
-import Tooltip from '../components/Tooltip'
 import { usePullToRefresh } from '../hooks/usePullToRefresh'
 import { useExport } from '../hooks/useExport'
 
@@ -39,40 +36,33 @@ export default function InventoryPage() {
   const navigate = useNavigate()
   const {
     getProductsByDepartment,
-    catalog: _catalog,
     refresh,
-    departments,
     categories,
     loading,
   } = useProducts()
-  const { selectedHotelId } = useHotel()
+  const {
+    departments,
+    selectedDepartmentId: selectedDeptId,
+    selectedDepartment: department,
+    selectDepartment,
+  } = useDepartment()
   const { isRefreshing: _isRefreshing, pullDistance } =
     usePullToRefresh(refresh)
-  const { user: _user, isStaff, isSuperAdmin } = useAuth()
+  const { isStaff, isSuperAdmin } = useAuth()
   const { addToast } = useToast()
   const { exportProgress, dismissExportProgress } = useExport()
-  const prevHotelIdRef = useRef(selectedHotelId)
 
   // Проверка роли STAFF через helper функцию
   const userIsStaff = isStaff()
   const userIsSuperAdmin = isSuperAdmin()
 
-  // Check if running in development mode
-  const _isDevelopment = import.meta.env.MODE === 'development'
-
-  // Состояние выбранного отдела (из URL или null для показа селектора)
-  const [selectedDeptId, setSelectedDeptId] = useState(departmentId || null)
   const [selectedCategory, setSelectedCategory] = useState('all')
-  const [sortBy, setSortBy] = useState('expiry') // expiry, name, quantity
+  const [sortBy, setSortBy] = useState('expiry')
   const [selectedProduct, setSelectedProduct] = useState(null)
   const [showProductModal, setShowProductModal] = useState(false)
   const [showAddCustomModal, setShowAddCustomModal] = useState(false)
   const [showClearAllConfirm, setShowClearAllConfirm] = useState(false)
   const [clearingBatches, setClearingBatches] = useState(false)
-  // === Template modal state management ===
-  // Two separate modals with clear separation of concerns:
-  // 1. SelectTemplateModal - only selects template (stateless)
-  // 2. FastIntakeModal - fast intake with selected template (stateful)
   const [showSelectTemplateModal, setShowSelectTemplateModal] = useState(false)
   const [showFastIntakeModal, setShowFastIntakeModal] = useState(false)
   const [selectedTemplateId, setSelectedTemplateId] = useState(null)
@@ -86,11 +76,17 @@ export default function InventoryPage() {
     return () => window.removeEventListener('resize', handleResize)
   }, [])
 
+  // Если в URL есть departmentId — устанавливаем глобально
+  useEffect(() => {
+    if (departmentId) {
+      selectDepartment(departmentId)
+    }
+  }, [departmentId, selectDepartment])
+
   // Handle template selection - closes selector, opens fast intake
   const handleTemplateSelect = useCallback((templateId) => {
     setSelectedTemplateId(templateId)
     setShowSelectTemplateModal(false)
-    // Use setTimeout to ensure state updates complete before opening next modal
     setTimeout(() => {
       setShowFastIntakeModal(true)
     }, 0)
@@ -100,7 +96,6 @@ export default function InventoryPage() {
   const handleChangeTemplate = useCallback(() => {
     setShowFastIntakeModal(false)
     setShowSelectTemplateModal(true)
-    // DON'T reset selectedTemplateId here - will be set on new selection
   }, [])
 
   // Handle fast intake close - full reset
@@ -109,74 +104,31 @@ export default function InventoryPage() {
     setSelectedTemplateId(null)
   }, [])
 
-  // DEPRECATED: React Query автоматически обновляет инвентарь через invalidation
-  // Этот callback больше не нужен, но оставлен для обратной совместимости
-  const handleFastApply = useCallback((_batches) => {
-    // React Query автоматически обновит данные через фоновую синхронизацию
-    // refresh() больше не нужен - данные обновятся через 2 секунды автоматически
-  }, [])
-
   // Handle template selector close - full reset
   const handleSelectTemplateClose = useCallback(() => {
     setShowSelectTemplateModal(false)
     setSelectedTemplateId(null)
   }, [])
 
-  // Если в URL есть departmentId, используем его
+  // Переключение отдела из URL или из хедера — сброс категории
   useEffect(() => {
-    if (departmentId) {
-      setSelectedDeptId(departmentId)
-    }
-  }, [departmentId])
-
-  // Сбрасываем выбранный отдел при смене отеля
-  useEffect(() => {
-    if (
-      prevHotelIdRef.current !== selectedHotelId &&
-      prevHotelIdRef.current !== null
-    ) {
-      // Отель сменился — сбрасываем отдел и возвращаемся к списку
-      setSelectedDeptId(null)
-      setSelectedCategory('all')
-    }
-    prevHotelIdRef.current = selectedHotelId
-  }, [selectedHotelId])
-
-  // Выбор отдела
-  const handleSelectDepartment = (deptId) => {
-    setSelectedDeptId(deptId)
-    // Можно добавить навигацию в URL: navigate(`/inventory/${deptId}`)
-  }
-
-  // Вернуться к списку отделов
-  const handleBackToDepartments = () => {
-    setSelectedDeptId(null)
     setSelectedCategory('all')
-  }
+  }, [selectedDeptId])
 
   // Автоматический retry когда нет данных (БД ещё загружается)
-  // Делаем retry только если не loading и прошло достаточно времени
   useEffect(() => {
-    // Не делаем retry если уже идёт загрузка или достигнут лимит
     if (loading || retryCount >= 5) return
-
-    // Если данные есть - сбрасываем счётчик
     if (departments.length > 0) {
       if (retryCount > 0) setRetryCount(0)
       return
     }
-
-    // Retry с увеличивающимся интервалом (3s, 6s, 9s...)
     const delay = (retryCount + 1) * 3000
     const timer = setTimeout(() => {
       setRetryCount((prev) => prev + 1)
       refresh()
     }, delay)
-
     // eslint-disable-next-line consistent-return
-    return () => {
-      clearTimeout(timer)
-    }
+    return () => clearTimeout(timer)
   }, [loading, departments.length, retryCount, refresh])
 
   // Получить название категории в зависимости от языка
@@ -187,12 +139,8 @@ export default function InventoryPage() {
   }
 
   // Получить доступные категории для отдела
-  // Показываем все категории отеля (не только с продуктами) для возможности фильтрации
   const getAvailableCategories = () => {
     if (!selectedDeptId) return []
-
-    // Возвращаем все категории отеля
-    // Backend уже фильтрует categories по hotel_id
     return categories
   }
 
@@ -200,7 +148,6 @@ export default function InventoryPage() {
   const handleClearAllBatches = async () => {
     if (!userIsSuperAdmin) return
 
-    // Обязательно должен быть выбран отдел — очистка только в его пределах
     if (!selectedDeptId) {
       addToast('Выберите отдел для очистки партий', 'error')
       return
@@ -208,8 +155,7 @@ export default function InventoryPage() {
 
     setClearingBatches(true)
     try {
-      const hotelId =
-        selectedHotelId || localStorage.getItem('freshtrack_selected_hotel')
+      const hotelId = localStorage.getItem('freshtrack_selected_hotel')
 
       if (!hotelId) {
         addToast('Не указан отель', 'error')
@@ -230,7 +176,7 @@ export default function InventoryPage() {
 
       addToast(
         t('inventory.allBatchesCleared', { count: response.deleted || 0 }) ||
-          `Удалено ${response.deleted || 0} партий`,
+        `Удалено ${response.deleted || 0} партий`,
         'success'
       )
       refresh()
@@ -298,11 +244,6 @@ export default function InventoryPage() {
     setSelectedProduct(product)
     setShowProductModal(true)
   }
-
-  // Экран инвентаря отдела
-  const department = departments.find(
-    (d) => d.id === selectedDeptId || d.code === selectedDeptId
-  )
 
   const products = getFilteredProducts()
   const availableCategories = getAvailableCategories()
@@ -394,33 +335,8 @@ export default function InventoryPage() {
     )
   }
 
-  // Если отдел не выбран и есть несколько отделов - показываем выбор
-  if (!selectedDeptId && departments.length > 1) {
-    return (
-      <AnimatedPage>
-        <PageContainer
-          title={t('inventory.title')}
-          subtitle={t('inventory.selectDepartment') || 'Выберите отдел'}
-          stickyHeader={true}
-        >
-          <div className="animate-fade-in">
-            <DepartmentSelector
-              departments={departments}
-              selectedDepartment={selectedDeptId}
-              onSelect={handleSelectDepartment}
-              title={t('inventory.selectDepartment') || 'Выберите отдел'}
-            />
-          </div>
-        </PageContainer>
-      </AnimatedPage>
-    )
-  }
-
-  // Если отдел не выбран но есть только один - автовыбор
-  if (!selectedDeptId && departments.length === 1) {
-    setSelectedDeptId(departments[0].id)
-    return null
-  }
+  // Если отдел ещё не выбран (данные грузятся) — ничего не рендерим
+  if (!selectedDeptId) return null
 
   return (
     <AnimatedPage>
@@ -443,25 +359,11 @@ export default function InventoryPage() {
           </div>
         )}
         <PageContainer
-          title={`${t('inventory.title')} — ${department?.name || selectedDeptId}`}
+          title={departments.length > 1 ? t('inventory.title') : `${t('inventory.title')} — ${department?.name || selectedDeptId}`}
           subtitle=""
           stickyHeader={true}
           actions={
             <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
-              {departments.length > 1 && (
-                <Tooltip content={t('common.back') || 'Назад'}>
-                  <span className="inline-flex">
-                    <TouchButton
-                      variant="ghost"
-                      size="icon"
-                      onClick={handleBackToDepartments}
-                      className="rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted"
-                      aria-label={t('common.back') || 'Назад'}
-                      icon={ArrowLeft}
-                    />
-                  </span>
-                </Tooltip>
-              )}
               <ExportButton
                 exportType="inventory"
                 filters={exportFilters}
@@ -518,167 +420,163 @@ export default function InventoryPage() {
             </div>
           }
         >
-          <div className="animate-fade-in">
-            {/* Фильтры категорий и сортировка */}
-            <div className="flex flex-col sm:flex-row gap-3 mb-4 sm:mb-8">
-              {/* Категории */}
-              <div className="flex gap-2 flex-wrap overflow-x-auto pb-2 flex-1">
+
+          {/* Фильтры категорий и сортировка */}
+          <div className="flex flex-col sm:flex-row gap-3 mb-4 sm:mb-8">
+            {/* Категории */}
+            <div className="flex gap-2 flex-wrap overflow-x-auto pb-2 flex-1">
+              <TouchButton
+                variant="ghost"
+                size="small"
+                onClick={() => setSelectedCategory('all')}
+                className={`px-3 sm:px-4 py-2 rounded-full text-sm whitespace-nowrap flex-shrink-0 min-h-0 h-auto font-medium transition-all duration-200 ${selectedCategory === 'all'
+                  ? 'bg-accent-button text-white hover:bg-accent-button/90 shadow-sm border-0'
+                  : 'bg-card border border-border text-foreground hover:bg-muted/80 hover:border-muted-foreground/30'
+                  }`}
+              >
+                {t('common.all')}
+              </TouchButton>
+              {availableCategories.map((cat) => (
                 <TouchButton
+                  key={cat.id}
                   variant="ghost"
                   size="small"
-                  onClick={() => setSelectedCategory('all')}
-                  className={`px-3 sm:px-4 py-2 rounded-full text-sm whitespace-nowrap flex-shrink-0 min-h-0 h-auto font-medium transition-all duration-200 ${
-                    selectedCategory === 'all'
-                      ? 'bg-accent-button text-white hover:bg-accent-button/90 shadow-sm border-0'
-                      : 'bg-card border border-border text-foreground hover:bg-muted/80 hover:border-muted-foreground/30'
-                  }`}
-                >
-                  {t('common.all')}
-                </TouchButton>
-                {availableCategories.map((cat) => (
-                  <TouchButton
-                    key={cat.id}
-                    variant="ghost"
-                    size="small"
-                    onClick={() => setSelectedCategory(cat.id)}
-                    className={`px-3 sm:px-4 py-2 rounded-full text-sm whitespace-nowrap flex-shrink-0 min-h-0 h-auto font-medium transition-all duration-200 ${
-                      selectedCategory === cat.id
-                        ? 'bg-accent-button text-white hover:bg-accent-button/90 shadow-sm border-0'
-                        : 'bg-card border border-border text-foreground hover:bg-muted/80 hover:border-muted-foreground/30'
+                  onClick={() => setSelectedCategory(cat.id)}
+                  className={`px-3 sm:px-4 py-2 rounded-full text-sm whitespace-nowrap flex-shrink-0 min-h-0 h-auto font-medium transition-all duration-200 ${selectedCategory === cat.id
+                    ? 'bg-accent-button text-white hover:bg-accent-button/90 shadow-sm border-0'
+                    : 'bg-card border border-border text-foreground hover:bg-muted/80 hover:border-muted-foreground/30'
                     }`}
-                  >
-                    {getCategoryName(cat)}
-                  </TouchButton>
-                ))}
-              </div>
-
-              {/* Сортировка */}
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <ArrowUpDown
-                  className="w-4 h-4 text-muted-foreground"
-                  aria-hidden="true"
-                />
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  aria-label={t('inventory.sortOrder') || 'Сортировка'}
-                  className="text-xs sm:text-sm bg-card border border-border rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-accent/20"
                 >
-                  <option value="expiry">
-                    {t('inventory.sortByExpiry') || 'По сроку'}
-                  </option>
-                  <option value="name">
-                    {t('inventory.sortByName') || 'По названию'}
-                  </option>
-                  <option value="quantity">
-                    {t('inventory.sortByQuantity') || 'По количеству'}
-                  </option>
-                </select>
-              </div>
+                  {getCategoryName(cat)}
+                </TouchButton>
+              ))}
             </div>
 
-            {/* Сетка товаров */}
-            {products.length === 0 ? (
-              <EmptyState
-                icon={Package}
-                title={t('inventory.noProducts') || 'Нет товаров'}
-                description={
-                  t('inventory.addBatchToStart') ||
-                  'Добавьте партии товаров чтобы начать работу'
-                }
-                action={{
-                  label: t('inventory.applyTemplate') || 'Применить шаблон',
-                  onClick: () => setShowSelectTemplateModal(true),
-                  icon: FileBox,
-                }}
+            {/* Сортировка */}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <ArrowUpDown
+                className="w-4 h-4 text-muted-foreground"
+                aria-hidden="true"
               />
-            ) : (
-              <AnimatedGrid
-                columns="grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
-                gap="gap-2 sm:gap-4"
-                staggerDelay={40}
-                className="px-1 sm:px-0"
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                aria-label={t('inventory.sortOrder') || 'Сортировка'}
+                className="text-xs sm:text-sm bg-card border border-border rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-accent/20"
               >
-                {products.map((product) => {
-                  const category = categories.find(
-                    (c) => c.id === product.categoryId
-                  )
-                  const displayCategoryName =
-                    product.categoryName ||
-                    (category ? getCategoryName(category) : null)
-                  return (
-                    <ProductCard
-                      key={product.id}
-                      product={product}
-                      categoryName={displayCategoryName}
-                      onProductClick={handleProductClick}
-                      compact={isMobile}
-                      t={t}
-                    />
-                  )
-                })}
-              </AnimatedGrid>
-            )}
-
-            {/* Модальные окна */}
-            {showProductModal && selectedProduct && (
-              <ProductModal
-                product={selectedProduct}
-                onClose={() => {
-                  setShowProductModal(false)
-                  setSelectedProduct(null)
-                }}
-              />
-            )}
-
-            {showAddCustomModal && (
-              <AddCustomProductModal
-                departmentId={selectedDeptId}
-                onClose={() => setShowAddCustomModal(false)}
-              />
-            )}
-
-            {/* Template Selection Modal - stateless */}
-            {showSelectTemplateModal && (
-              <SelectTemplateModal
-                isOpen={true}
-                onSelect={handleTemplateSelect}
-                onClose={handleSelectTemplateClose}
-              />
-            )}
-
-            {/* Fast Intake Modal - stateful with selected template */}
-            {showFastIntakeModal && selectedTemplateId && (
-              <FastIntakeModal
-                isOpen={true}
-                templateId={selectedTemplateId}
-                departmentId={selectedDeptId}
-                onChangeTemplate={handleChangeTemplate}
-                onClose={handleFastIntakeClose}
-                onFastApply={handleFastApply}
-              />
-            )}
-
-            {/* Clear All Batches Confirmation Dialog — SUPER ADMIN ONLY, только текущий отдел */}
-            {userIsSuperAdmin && selectedDeptId && (
-              <ConfirmDialog
-                isOpen={showClearAllConfirm}
-                onClose={() => setShowClearAllConfirm(false)}
-                onConfirm={handleClearAllBatches}
-                title={t('inventory.clearAll') || 'Очистить все партии'}
-                description={
-                  t('inventory.confirmClearAllDept', {
-                    name: department?.name || '...',
-                  }) ||
-                  `ВНИМАНИЕ! Это удалит ВСЕ активные партии из отдела «${department?.name}». Это действие нельзя отменить.`
-                }
-                confirmLabel={t('common.confirm') || 'Подтвердить'}
-                cancelLabel={t('common.cancel') || 'Отмена'}
-                variant="danger"
-                loading={clearingBatches}
-              />
-            )}
+                <option value="expiry">
+                  {t('inventory.sortByExpiry') || 'По сроку'}
+                </option>
+                <option value="name">
+                  {t('inventory.sortByName') || 'По названию'}
+                </option>
+                <option value="quantity">
+                  {t('inventory.sortByQuantity') || 'По количеству'}
+                </option>
+              </select>
+            </div>
           </div>
+
+          {/* Сетка товаров */}
+          {products.length === 0 ? (
+            <EmptyState
+              icon={Package}
+              title={t('inventory.noProducts') || 'Нет товаров'}
+              description={
+                t('inventory.addBatchToStart') ||
+                'Добавьте партии товаров чтобы начать работу'
+              }
+              action={{
+                label: t('inventory.applyTemplate') || 'Применить шаблон',
+                onClick: () => setShowSelectTemplateModal(true),
+                icon: FileBox,
+              }}
+            />
+          ) : (
+            <AnimatedGrid
+              columns="grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
+              gap="gap-2 sm:gap-4"
+              staggerDelay={40}
+              className="px-1 sm:px-0"
+            >
+              {products.map((product) => {
+                const category = categories.find(
+                  (c) => c.id === product.categoryId
+                )
+                const displayCategoryName =
+                  product.categoryName ||
+                  (category ? getCategoryName(category) : null)
+                return (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    categoryName={displayCategoryName}
+                    onProductClick={handleProductClick}
+                    compact={isMobile}
+                    t={t}
+                  />
+                )
+              })}
+            </AnimatedGrid>
+          )}
+
+          {/* Модальные окна */}
+          {showProductModal && selectedProduct && (
+            <ProductModal
+              product={selectedProduct}
+              onClose={() => {
+                setShowProductModal(false)
+                setSelectedProduct(null)
+              }}
+            />
+          )}
+
+          {showAddCustomModal && (
+            <AddCustomProductModal
+              departmentId={selectedDeptId}
+              onClose={() => setShowAddCustomModal(false)}
+            />
+          )}
+
+          {/* Template Selection Modal - stateless */}
+          {showSelectTemplateModal && (
+            <SelectTemplateModal
+              isOpen={true}
+              onSelect={handleTemplateSelect}
+              onClose={handleSelectTemplateClose}
+            />
+          )}
+
+          {/* Fast Intake Modal - stateful with selected template */}
+          {showFastIntakeModal && selectedTemplateId && (
+            <FastIntakeModal
+              isOpen={true}
+              templateId={selectedTemplateId}
+              departmentId={selectedDeptId}
+              onChangeTemplate={handleChangeTemplate}
+              onClose={handleFastIntakeClose}
+            />
+          )}
+
+          {/* Clear All Batches Confirmation Dialog — SUPER ADMIN ONLY, только текущий отдел */}
+          {userIsSuperAdmin && selectedDeptId && (
+            <ConfirmDialog
+              isOpen={showClearAllConfirm}
+              onClose={() => setShowClearAllConfirm(false)}
+              onConfirm={handleClearAllBatches}
+              title={t('inventory.clearAll') || 'Очистить все партии'}
+              description={
+                t('inventory.confirmClearAllDept', {
+                  name: department?.name || '...',
+                }) ||
+                `ВНИМАНИЕ! Это удалит ВСЕ активные партии из отдела «${department?.name}». Это действие нельзя отменить.`
+              }
+              confirmLabel={t('common.confirm') || 'Подтвердить'}
+              cancelLabel={t('common.cancel') || 'Отмена'}
+              variant="danger"
+              loading={clearingBatches}
+            />
+          )}
         </PageContainer>
 
         {/* Export Progress Notification */}
@@ -690,6 +588,6 @@ export default function InventoryPage() {
           />
         )}
       </>
-    </AnimatedPage>
+    </AnimatedPage >
   )
 }

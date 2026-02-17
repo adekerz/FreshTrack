@@ -1,4 +1,4 @@
-import { useState, lazy, Suspense } from 'react'
+import { useState, lazy, Suspense, useMemo } from 'react'
 import {
   FileText,
   Search,
@@ -32,7 +32,6 @@ import { useHotel } from '../context/HotelContext'
 import { cn } from '../utils/classNames'
 import { formatDate } from '../utils/dateUtils'
 import { useAuditLogs, useAuditStats, useAuditUsers } from '../hooks/useAuditLogs'
-import { useDepartments } from '../hooks/useInventory'
 import ExportButton from '../components/ExportButton'
 import PageContainer from '../components/PageContainer'
 import AnimatedPage from '../components/AnimatedPage'
@@ -59,7 +58,6 @@ export default function AuditLogsPage() {
     dateFrom: '',
     dateTo: '',
     userId: '',
-    departmentId: '',
     severity: '',
     securityOnly: false
   })
@@ -67,8 +65,8 @@ export default function AuditLogsPage() {
   const [showFilters, setShowFilters] = useState(false)
   const [selectedLog, setSelectedLog] = useState(null)
 
-  // React Query hooks
-  const queryFilters = {
+  // React Query hooks - memoized
+  const queryFilters = useMemo(() => ({
     limit: 20,
     offset: (page - 1) * 20,
     ...(filters.actionType && { action: filters.actionType }),
@@ -76,15 +74,13 @@ export default function AuditLogsPage() {
     ...(filters.dateFrom && { dateFrom: filters.dateFrom }),
     ...(filters.dateTo && { dateTo: filters.dateTo }),
     ...(filters.userId && { userId: filters.userId }),
-    ...(filters.departmentId && { departmentId: filters.departmentId }),
     ...(filters.severity && { severity: filters.severity }),
     ...(filters.securityOnly && { securityOnly: true })
-  }
+  }), [page, filters])
 
   const { data: logsData, isLoading, isFetching, refetch: refetchLogs } = useAuditLogs(selectedHotelId, queryFilters)
   const { data: stats } = useAuditStats(selectedHotelId)
   const { data: users = [] } = useAuditUsers(selectedHotelId, showFilters)
-  const { data: departments = [] } = useDepartments(selectedHotelId)
 
   const logs = logsData?.logs || []
   const loading = isFetching
@@ -97,7 +93,6 @@ export default function AuditLogsPage() {
       dateFrom: '',
       dateTo: '',
       userId: '',
-      departmentId: '',
       severity: '',
       securityOnly: false
     })
@@ -207,19 +202,16 @@ export default function AuditLogsPage() {
     filters.dateFrom,
     filters.dateTo,
     filters.userId,
-    filters.departmentId,
     filters.severity,
     filters.securityOnly
   ].filter(Boolean).length
 
-  // Prepare export filters (rename keys to match backend expectations)
   const exportFilters = {
     ...(filters.actionType && { action: filters.actionType }),
     ...(filters.entityType && { entityType: filters.entityType }),
     ...(filters.dateFrom && { dateFrom: filters.dateFrom }),
     ...(filters.dateTo && { dateTo: filters.dateTo }),
     ...(filters.userId && { userId: filters.userId }),
-    ...(filters.departmentId && { departmentId: filters.departmentId }),
     ...(filters.severity && { severity: filters.severity }),
     ...(filters.securityOnly && { securityOnly: 'true' })
   }
@@ -391,26 +383,6 @@ export default function AuditLogsPage() {
                     {users.map((user) => (
                       <option key={user.id} value={user.id}>
                         {user.name} {user.action_count != null ? `(${user.action_count})` : ''}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label htmlFor="audit-filter-department" className="block text-sm font-medium text-foreground mb-1">
-                    {t('auditLogs.filters.department')}
-                  </label>
-                  <select
-                    id="audit-filter-department"
-                    value={filters.departmentId}
-                    onChange={(e) =>
-                      setFilters((prev) => ({ ...prev, departmentId: e.target.value }))
-                    }
-                    className="w-full px-3 py-2 border border-border rounded-lg bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-accent/20"
-                  >
-                    <option value="">{t('common.all')}</option>
-                    {departments.map((dept) => (
-                      <option key={dept.id} value={dept.id}>
-                        {dept.name}
                       </option>
                     ))}
                   </select>

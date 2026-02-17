@@ -5,7 +5,6 @@
 
 import { Package } from 'lucide-react'
 import { useTranslation, useLanguage } from '../context/LanguageContext'
-import { getDepartmentIcon } from '../utils/departmentUtils'
 
 export default function DepartmentSelector({
   departments,
@@ -13,7 +12,8 @@ export default function DepartmentSelector({
   onSelect,
   title,
   showStats = false,
-  stats = {}
+  stats = {},
+  getDepartmentIcon
 }) {
   const { t } = useTranslation()
   const { language } = useLanguage()
@@ -57,10 +57,9 @@ export default function DepartmentSelector({
                 relative p-6 rounded-xl border-2 transition-all duration-200
                 text-left group hover:shadow-lg
                 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-background
-                ${
-                  isSelected
-                    ? 'border-accent bg-accent/5 shadow-md'
-                    : 'border-border-primary bg-surface-primary hover:border-accent/50'
+                ${isSelected
+                  ? 'border-accent bg-accent/5 shadow-md'
+                  : 'border-border-primary bg-surface-primary hover:border-accent/50'
                 }
               `}
               style={{

@@ -16,7 +16,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { X, Package, Plus, Minus, Calendar, Check, Zap, ArrowRight, History } from 'lucide-react'
 import { SectionLoader, TouchButton } from './ui'
 import { useTranslation } from '../context/LanguageContext'
-import { useProducts } from '../context/ProductContext'
+import { useDepartment } from '../context/DepartmentContext'
 import { useToast } from '../context/ToastContext'
 import { apiFetch } from '../services/api'
 
@@ -35,7 +35,7 @@ export default function DeliveryTemplateModal({
   departmentId
 }) {
   const { t } = useTranslation()
-  const { departments } = useProducts()
+  const { departments } = useDepartment()
   const { addToast } = useToast()
 
   // === Основные состояния ===

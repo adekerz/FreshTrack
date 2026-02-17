@@ -7,6 +7,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { useTranslation, useLanguage } from '../context/LanguageContext'
 import { useAuth } from '../context/AuthContext'
 import { useProducts } from '../context/ProductContext'
+import { useDepartment } from '../context/DepartmentContext'
 import { useThresholds } from '../hooks/useThresholds'
 import { Package, AlertTriangle, CheckCircle, Clock } from 'lucide-react'
 import PageContainer from '../components/PageContainer'
@@ -17,7 +18,8 @@ export default function StatisticsPage() {
   const { t } = useTranslation()
   const { language } = useLanguage()
   const { user, isHotelAdmin } = useAuth()
-  const { getActiveBatches, getStats, departments, categories } = useProducts()
+  const { getActiveBatches, getStats, categories } = useProducts()
+  const { departments } = useDepartment()
   const { thresholds } = useThresholds()
   const [selectedPeriod, setSelectedPeriod] = useState('week')
 
@@ -159,204 +161,202 @@ export default function StatisticsPage() {
 
   return (
     <AnimatedPage>
-    <PageContainer
-      title={t('statistics.title')}
-      subtitle={t('statistics.subtitle')}
-      stickyHeader={true}
-      actions={
-        <div className="flex items-center gap-1 sm:gap-2 bg-card rounded-lg border border-border p-1">
-          {['week', 'month', 'all'].map((period) => (
-            <button
-              key={period}
-              onClick={() => setSelectedPeriod(period)}
-              className={`px-2 sm:px-4 py-1 sm:py-1.5 text-xs sm:text-sm rounded-md transition-colors min-h-[44px] sm:min-h-0 ${
-                selectedPeriod === period
+      <PageContainer
+        title={t('statistics.title')}
+        subtitle={t('statistics.subtitle')}
+        stickyHeader={true}
+        actions={
+          <div className="flex items-center gap-1 sm:gap-2 bg-card rounded-lg border border-border p-1">
+            {['week', 'month', 'all'].map((period) => (
+              <button
+                key={period}
+                onClick={() => setSelectedPeriod(period)}
+                className={`px-2 sm:px-4 py-1 sm:py-1.5 text-xs sm:text-sm rounded-md transition-colors min-h-[44px] sm:min-h-0 ${selectedPeriod === period
                   ? 'bg-foreground text-background'
                   : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              {t(`statistics.period.${period}`)}
-            </button>
-          ))}
-        </div>
-      }
-    >
-      <div className="space-y-4 sm:space-y-6">
-      {/* Карточки статистики - Компактная сетка для мобильных */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
-        {statCards.map((card, index) => (
-          <StatCard
-            key={index}
-            icon={card.icon}
-            title={card.title}
-            value={card.value}
-            color={card.color}
-            bgColor={card.bgColor}
-            trend={card.trend}
-            trendLabel={card.trendLabel}
-            compact={isMobile}
-          />
-        ))}
-      </div>
-
-      {/* Статистика по отделам */}
-      <div className="bg-card rounded-xl border border-border p-4 sm:p-6">
-        <h2 className="text-lg font-medium text-foreground mb-4">{t('statistics.byDepartment')}</h2>
-
-        <div className="space-y-4">
-          {departmentStats.map((dept) => {
-            const total = dept.total || 1
-            const goodPercent = (dept.good / total) * 100
-            const warningPercent = (dept.warning / total) * 100
-            const criticalPercent = (dept.critical / total) * 100
-            const expiredPercent = (dept.expired / total) * 100
-
-            return (
-              <div key={dept.id}>
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2 gap-1">
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="w-3 h-3 rounded-full flex-shrink-0"
-                      style={{ backgroundColor: dept.color }}
-                    />
-                    <span className="text-sm font-medium text-foreground">{dept.name}</span>
-                  </div>
-                  <div className="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm text-muted-foreground ml-5 sm:ml-0">
-                    <span>
-                      {dept.total} {t('statistics.batches')}
-                    </span>
-                    <span>
-                      {dept.totalQuantity} {t('inventory.units')}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Progress bar */}
-                <div className="h-2 bg-muted rounded-full overflow-hidden flex">
-                  <div className="bg-success transition-all" style={{ width: `${goodPercent}%` }} />
-                  <div
-                    className="bg-warning transition-all"
-                    style={{ width: `${warningPercent}%` }}
-                  />
-                  <div
-                    className="bg-critical transition-all"
-                    style={{ width: `${criticalPercent}%` }}
-                  />
-                  <div
-                    className="bg-danger transition-all"
-                    style={{ width: `${expiredPercent}%` }}
-                  />
-                </div>
-
-                {/* Legend - scrollable on mobile */}
-                <div className="flex items-center gap-2 sm:gap-4 mt-2 text-xs text-muted-foreground overflow-x-auto pb-1">
-                  <span className="flex items-center gap-1 whitespace-nowrap">
-                    <div className="w-2 h-2 rounded-full bg-success flex-shrink-0" />
-                    {dept.good} {t('status.good')}
-                  </span>
-                  <span className="flex items-center gap-1 whitespace-nowrap">
-                    <div className="w-2 h-2 rounded-full bg-warning flex-shrink-0" />
-                    {dept.warning} {t('status.warning')}
-                  </span>
-                  <span className="flex items-center gap-1 whitespace-nowrap">
-                    <div className="w-2 h-2 rounded-full bg-critical flex-shrink-0" />
-                    {dept.critical} {t('status.urgent')}
-                  </span>
-                  <span className="flex items-center gap-1 whitespace-nowrap">
-                    <div className="w-2 h-2 rounded-full bg-danger flex-shrink-0" />
-                    {dept.expired} {t('status.expired')}
-                  </span>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      </div>
-
-      {/* Статистика по категориям + Топ товары */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-        {/* По категориям */}
-        <div className="bg-card rounded-xl border border-border p-4 sm:p-6">
-          <h2 className="text-base sm:text-lg font-medium text-foreground mb-3 sm:mb-4">
-            {t('statistics.byCategory')}
-          </h2>
-
-          <div className="space-y-2 sm:space-y-3">
-            {categoryStats.map((cat) => (
-              <div key={cat.id} className="flex items-center justify-between gap-2">
-                <span className="text-xs sm:text-sm text-foreground truncate flex-1">
-                  {cat.name}
-                </span>
-                <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
-                  <span className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap">
-                    {cat.total} {t('statistics.batches')}
-                  </span>
-                  {cat.expired > 0 && (
-                    <span className="text-xs text-danger whitespace-nowrap">
-                      {cat.expired} {t('status.expired')}
-                    </span>
-                  )}
-                </div>
-              </div>
+                  }`}
+              >
+                {t(`statistics.period.${period}`)}
+              </button>
             ))}
-
-            {categoryStats.length === 0 && (
-              <p className="text-xs sm:text-sm text-muted-foreground text-center py-4">
-                {t('statistics.noData')}
-              </p>
-            )}
           </div>
-        </div>
+        }
+      >
+        <div className="space-y-4 sm:space-y-6">
+          {/* Карточки статистики - Компактная сетка для мобильных */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+            {statCards.map((card, index) => (
+              <StatCard
+                key={index}
+                icon={card.icon}
+                title={card.title}
+                value={card.value}
+                color={card.color}
+                bgColor={card.bgColor}
+                trend={card.trend}
+                trendLabel={card.trendLabel}
+                compact={isMobile}
+              />
+            ))}
+          </div>
 
-        {/* Товары, требующие внимания */}
-        <div className="bg-card rounded-xl border border-border p-4 sm:p-6">
-          <h2 className="text-base sm:text-lg font-medium text-foreground mb-3 sm:mb-4">
-            {t('statistics.topAlerts')}
-          </h2>
+          {/* Статистика по отделам */}
+          <div className="bg-card rounded-xl border border-border p-4 sm:p-6">
+            <h2 className="text-lg font-medium text-foreground mb-4">{t('statistics.byDepartment')}</h2>
 
-          <div className="space-y-2 sm:space-y-3">
-            {topAlertProducts.map((batch, index) => {
-              const dept = departments.find((d) => d.id === batch.departmentId)
+            <div className="space-y-4">
+              {departmentStats.map((dept) => {
+                const total = dept.total || 1
+                const goodPercent = (dept.good / total) * 100
+                const warningPercent = (dept.warning / total) * 100
+                const criticalPercent = (dept.critical / total) * 100
+                const expiredPercent = (dept.expired / total) * 100
 
-              return (
-                <div key={batch.id} className="flex items-center gap-2 sm:gap-3">
-                  <span className="w-5 h-5 rounded-full bg-danger/10 text-danger text-xs flex items-center justify-center font-medium flex-shrink-0">
-                    {index + 1}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs sm:text-sm text-foreground truncate">
-                      {batch.productName || batch.name}
-                    </p>
-                    <p className="text-xs text-muted-foreground truncate">{dept?.name}</p>
+                return (
+                  <div key={dept.id}>
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2 gap-1">
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-3 h-3 rounded-full flex-shrink-0"
+                          style={{ backgroundColor: dept.color }}
+                        />
+                        <span className="text-sm font-medium text-foreground">{dept.name}</span>
+                      </div>
+                      <div className="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm text-muted-foreground ml-5 sm:ml-0">
+                        <span>
+                          {dept.total} {t('statistics.batches')}
+                        </span>
+                        <span>
+                          {dept.totalQuantity} {t('inventory.units')}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Progress bar */}
+                    <div className="h-2 bg-muted rounded-full overflow-hidden flex">
+                      <div className="bg-success transition-all" style={{ width: `${goodPercent}%` }} />
+                      <div
+                        className="bg-warning transition-all"
+                        style={{ width: `${warningPercent}%` }}
+                      />
+                      <div
+                        className="bg-critical transition-all"
+                        style={{ width: `${criticalPercent}%` }}
+                      />
+                      <div
+                        className="bg-danger transition-all"
+                        style={{ width: `${expiredPercent}%` }}
+                      />
+                    </div>
+
+                    {/* Legend - scrollable on mobile */}
+                    <div className="flex items-center gap-2 sm:gap-4 mt-2 text-xs text-muted-foreground overflow-x-auto pb-1">
+                      <span className="flex items-center gap-1 whitespace-nowrap">
+                        <div className="w-2 h-2 rounded-full bg-success flex-shrink-0" />
+                        {dept.good} {t('status.good')}
+                      </span>
+                      <span className="flex items-center gap-1 whitespace-nowrap">
+                        <div className="w-2 h-2 rounded-full bg-warning flex-shrink-0" />
+                        {dept.warning} {t('status.warning')}
+                      </span>
+                      <span className="flex items-center gap-1 whitespace-nowrap">
+                        <div className="w-2 h-2 rounded-full bg-critical flex-shrink-0" />
+                        {dept.critical} {t('status.urgent')}
+                      </span>
+                      <span className="flex items-center gap-1 whitespace-nowrap">
+                        <div className="w-2 h-2 rounded-full bg-danger flex-shrink-0" />
+                        {dept.expired} {t('status.expired')}
+                      </span>
+                    </div>
                   </div>
-                  <span
-                    className={`text-xs font-medium whitespace-nowrap flex-shrink-0 ${
-                      batch.daysLeft < 0 ? 'text-danger' : 'text-warning'
-                    }`}
-                  >
-                    {batch.daysLeft < 0
-                      ? t('status.expiredDaysAgo', { days: Math.abs(batch.daysLeft) })
-                      : batch.daysLeft === 0
-                        ? t('status.expiresToday')
-                        : t('status.expiresInDays', { days: batch.daysLeft })}
-                  </span>
-                </div>
-              )
-            })}
+                )
+              })}
+            </div>
+          </div>
 
-            {topAlertProducts.length === 0 && (
-              <div className="text-center py-4">
-                <CheckCircle className="w-6 h-6 sm:w-8 sm:h-8 text-success mx-auto mb-2" />
-                <p className="text-xs sm:text-sm text-muted-foreground">
-                  {t('statistics.allGood')}
-                </p>
+          {/* Статистика по категориям + Топ товары */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+            {/* По категориям */}
+            <div className="bg-card rounded-xl border border-border p-4 sm:p-6">
+              <h2 className="text-base sm:text-lg font-medium text-foreground mb-3 sm:mb-4">
+                {t('statistics.byCategory')}
+              </h2>
+
+              <div className="space-y-2 sm:space-y-3">
+                {categoryStats.map((cat) => (
+                  <div key={cat.id} className="flex items-center justify-between gap-2">
+                    <span className="text-xs sm:text-sm text-foreground truncate flex-1">
+                      {cat.name}
+                    </span>
+                    <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
+                      <span className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap">
+                        {cat.total} {t('statistics.batches')}
+                      </span>
+                      {cat.expired > 0 && (
+                        <span className="text-xs text-danger whitespace-nowrap">
+                          {cat.expired} {t('status.expired')}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+
+                {categoryStats.length === 0 && (
+                  <p className="text-xs sm:text-sm text-muted-foreground text-center py-4">
+                    {t('statistics.noData')}
+                  </p>
+                )}
               </div>
-            )}
+            </div>
+
+            {/* Товары, требующие внимания */}
+            <div className="bg-card rounded-xl border border-border p-4 sm:p-6">
+              <h2 className="text-base sm:text-lg font-medium text-foreground mb-3 sm:mb-4">
+                {t('statistics.topAlerts')}
+              </h2>
+
+              <div className="space-y-2 sm:space-y-3">
+                {topAlertProducts.map((batch, index) => {
+                  const dept = departments.find((d) => d.id === batch.departmentId)
+
+                  return (
+                    <div key={batch.id} className="flex items-center gap-2 sm:gap-3">
+                      <span className="w-5 h-5 rounded-full bg-danger/10 text-danger text-xs flex items-center justify-center font-medium flex-shrink-0">
+                        {index + 1}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs sm:text-sm text-foreground truncate">
+                          {batch.productName || batch.name}
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate">{dept?.name}</p>
+                      </div>
+                      <span
+                        className={`text-xs font-medium whitespace-nowrap flex-shrink-0 ${batch.daysLeft < 0 ? 'text-danger' : 'text-warning'
+                          }`}
+                      >
+                        {batch.daysLeft < 0
+                          ? t('status.expiredDaysAgo', { days: Math.abs(batch.daysLeft) })
+                          : batch.daysLeft === 0
+                            ? t('status.expiresToday')
+                            : t('status.expiresInDays', { days: batch.daysLeft })}
+                      </span>
+                    </div>
+                  )
+                })}
+
+                {topAlertProducts.length === 0 && (
+                  <div className="text-center py-4">
+                    <CheckCircle className="w-6 h-6 sm:w-8 sm:h-8 text-success mx-auto mb-2" />
+                    <p className="text-xs sm:text-sm text-muted-foreground">
+                      {t('statistics.allGood')}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-      </div>
-    </PageContainer>
+      </PageContainer>
     </AnimatedPage>
   )
 }

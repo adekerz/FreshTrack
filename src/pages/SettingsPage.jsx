@@ -10,7 +10,7 @@ import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useTranslation, useLanguage } from '../context/LanguageContext'
 import { useOnboarding } from '../context/OnboardingContext'
-import { departments } from '../context/ProductContext'
+import { useDepartment } from '../context/DepartmentContext'
 import { useToast } from '../context/ToastContext'
 import { apiFetch } from '../services/api'
 import { logError } from '../utils/logger'
@@ -73,6 +73,7 @@ export default function SettingsPage() {
   const { language, changeLanguage } = useLanguage()
   const { startOnboarding, resetOnboarding } = useOnboarding()
   const { addToast } = useToast()
+  const { departments } = useDepartment()
   const [searchParams] = useSearchParams()
   const [activeTab, setActiveTab] = useState('profile')
 

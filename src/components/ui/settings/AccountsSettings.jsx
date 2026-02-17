@@ -12,8 +12,7 @@ import {
   Building2,
   UserCog,
   UserPlus,
-  Trash2,
-  AlertTriangle
+  Trash2
 } from 'lucide-react'
 import { useTranslation } from '../../../context/LanguageContext'
 import { useAuth } from '../../../context/AuthContext'
@@ -22,21 +21,9 @@ import { formatDate } from '../../../utils/dateUtils'
 import { apiFetch, API_BASE_URL } from '../../../services/api'
 import ExportButton from '../../ExportButton'
 import { useToast } from '../../../context/ToastContext'
+import { ConfirmModal } from '..'
 import CreateSuperAdminModal from './CreateSuperAdminModal'
-
-const ROLE_COLORS = {
-  SUPER_ADMIN: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
-  HOTEL_ADMIN: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-  DEPARTMENT_MANAGER: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
-  STAFF: 'bg-muted text-muted-foreground'
-}
-
-const ROLE_LABELS = {
-  SUPER_ADMIN: 'Super Admin',
-  HOTEL_ADMIN: 'Hotel Admin',
-  DEPARTMENT_MANAGER: 'Dept Manager',
-  STAFF: 'Staff'
-}
+import { ROLE_COLORS, ROLE_LABELS } from '../../../constants/roles'
 
 /**
  * AccountsSettings - компонент для вкладки "Аккаунты" в настройках
@@ -796,48 +783,16 @@ export default function AccountsSettings() {
       />
 
       {/* Delete Confirmation Modal */}
-      {deleteConfirm && (
-        <div className="fixed inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-card rounded-xl p-6 max-w-sm w-full mx-4 shadow-xl animate-slide-up">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-14 h-14 rounded-full bg-danger/10 flex items-center justify-center animate-danger-pulse">
-                <AlertTriangle className="w-7 h-7 text-danger animate-danger-shake" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-foreground">
-                  {t('accounts.deleteConfirm.title') || 'Delete user?'}
-                </h3>
-                <p className="text-sm text-muted-foreground">{deleteConfirm.name}</p>
-              </div>
-            </div>
-            <p className="text-sm text-muted-foreground mb-6">
-              {t('accounts.deleteConfirm.message') || 'This action cannot be undone. The user account will be permanently deleted.'}
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setDeleteConfirm(null)}
-                disabled={deleting}
-                className="flex-1 px-4 py-2 border border-border rounded-lg text-foreground hover:bg-muted disabled:opacity-50"
-              >
-                {t('common.cancel') || 'Cancel'}
-              </button>
-              <button
-                onClick={handleDelete}
-                disabled={deleting}
-                className="flex-1 px-4 py-2 bg-danger text-white rounded-lg hover:bg-danger/90 disabled:opacity-50 flex items-center justify-center gap-2"
-                aria-busy={deleting}
-              >
-                {deleting ? (
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Trash2 className="w-4 h-4" />
-                )}
-                {t('common.delete') || 'Delete'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmModal
+        isOpen={!!deleteConfirm}
+        onClose={() => setDeleteConfirm(null)}
+        onConfirm={handleDelete}
+        loading={deleting}
+        title={t('accounts.deleteConfirm.title') || 'Удалить пользователя?'}
+        description={deleteConfirm?.name}
+        confirmLabel={t('common.delete') || 'Удалить'}
+        cancelLabel={t('common.cancel') || 'Отмена'}
+      />
     </div>
   )
 }

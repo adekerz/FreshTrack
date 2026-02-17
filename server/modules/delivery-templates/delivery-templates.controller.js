@@ -182,13 +182,18 @@ router.post('/:id/apply', authMiddleware, hotelIsolation, departmentIsolation, r
         else if (['critical', 'today'].includes(expiryData.status)) status = 'expiring'
       }
 
+      // Каждый вызов apply = новая отдельная партия (batch).
+      // Суммирование внутри одной сессии (одного нажатия «Сохранить») выполняется
+      // на фронтенде до отправки запроса (groupedItems в FastIntakeModal).
+      // Повторные вызовы (разные сессии) создают отдельные партии — это правильно:
+      // пользователь видит «2 партии, 6 шт.» вместо «1 партия, 6 шт.»
       const batch = await createBatch({
         hotel_id: req.hotelId,
         department_id: targetDeptId,
         product_id: item.productId,
         quantity: item.quantity || 1,
         expiry_date: item.expiryDate,
-        added_by: req.user.id,    // исправлено: было created_by — поле в БД: added_by
+        added_by: req.user.id,
         comment: comment || null
       })
 

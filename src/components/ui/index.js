@@ -51,3 +51,5 @@ export {
   ButtonLoader as ButtonSpinner, // Legacy alias
   FullscreenLoader
 } from './GridLoader'
+export { default as ConfirmModal } from './ConfirmModal'
+export { default as PasswordFields } from './PasswordFields'

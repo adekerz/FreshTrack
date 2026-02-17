@@ -37,7 +37,8 @@ router.get('/', authMiddleware, hotelIsolation, requirePermission(PermissionReso
     }
 
     const filters = UnifiedFilterService.parseCommonFilters(req.query)
-    const hotelId = req.user?.role === 'SUPER_ADMIN' && req.query.hotelId ? req.query.hotelId : req.hotelId
+    // req.hotelId уже установлен hotelIsolation middleware (читает hotel_id из query)
+    const hotelId = req.hotelId
 
     const dbFilters = {
       userId: filters.userId,
@@ -49,7 +50,9 @@ router.get('/', authMiddleware, hotelIsolation, requirePermission(PermissionReso
       offset: filters.offset,
       severity: req.query.severity,
       securityOnly: req.query.securityOnly,
-      departmentId: req.query.departmentId
+      departmentId: req.query.departmentId,
+      // SUPER_ADMIN видит системные логи (hotel_id IS NULL) тоже
+      includeNullHotel: req.user?.role === 'SUPER_ADMIN'
     }
 
     const { rows: logs, total } = await getAuditLogsWithMetadata(hotelId, dbFilters)
@@ -343,12 +346,17 @@ router.get('/entity-types', authMiddleware, hotelIsolation, requirePermission(Pe
 router.get('/stats', authMiddleware, hotelIsolation, requirePermission(PermissionResource.AUDIT, PermissionAction.READ), async (req, res) => {
   try {
     const days = Math.min(parseInt(req.query.days, 10) || 7, 90)
-    const hotelId = req.user?.role === 'SUPER_ADMIN' && req.query.hotelId ? req.query.hotelId : req.hotelId
+    // req.hotelId уже установлен hotelIsolation middleware (читает hotel_id из query)
+    const hotelId = req.hotelId
 
     let hotelCondition = ''
     const params = [days]
     if (hotelId != null) {
-      hotelCondition = 'AND al.hotel_id = $2'
+      if (req.user?.role === 'SUPER_ADMIN') {
+        hotelCondition = 'AND (al.hotel_id = $2 OR al.hotel_id IS NULL)'
+      } else {
+        hotelCondition = 'AND al.hotel_id = $2'
+      }
       params.push(hotelId)
     }
 
@@ -382,12 +390,18 @@ router.get('/stats', authMiddleware, hotelIsolation, requirePermission(Permissio
  */
 router.get('/users', authMiddleware, hotelIsolation, requirePermission(PermissionResource.AUDIT, PermissionAction.READ), async (req, res) => {
   try {
-    const hotelId = req.user?.role === 'SUPER_ADMIN' && req.query.hotelId ? req.query.hotelId : req.hotelId
+    // req.hotelId уже установлен hotelIsolation middleware (читает hotel_id из query)
+    const hotelId = req.hotelId
 
     let hotelCondition = ''
     const params = []
     if (hotelId != null) {
-      hotelCondition = 'WHERE u.hotel_id = $1'
+      if (req.user?.role === 'SUPER_ADMIN') {
+        // SUPER_ADMIN: показываем пользователей отеля + пользователей без отеля (SUPER_ADMIN-ы)
+        hotelCondition = 'WHERE (u.hotel_id = $1 OR u.hotel_id IS NULL)'
+      } else {
+        hotelCondition = 'WHERE u.hotel_id = $1'
+      }
       params.push(hotelId)
     }
     params.push(50)

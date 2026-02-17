@@ -13,7 +13,7 @@
 
 export const queryKeys = {
   // === BATCHES (партии) ===
-  
+
   /**
    * Все партии для отеля
    * @param {string} hotelId - ID отеля
@@ -24,41 +24,44 @@ export const queryKeys = {
     // Если есть фильтры, добавляем их как 3-й элемент
     return Object.keys(params).length > 0 ? [...baseKey, params] : baseKey
   },
-  
+
   /**
    * Статистика партий для отеля
    * @param {string} hotelId - ID отеля
    */
-  batchesStats: (hotelId) => ['batches', 'stats', hotelId],
-  
+  batchesStats: (hotelId, departmentId) =>
+    departmentId
+      ? ['batches', 'stats', hotelId, { departmentId }]
+      : ['batches', 'stats', hotelId],
+
   /**
    * Конкретная партия
    * @param {string} batchId - ID партии
    */
   batch: (batchId) => ['batches', 'detail', batchId],
-  
+
   // === DEPARTMENTS (отделы) ===
-  
+
   /**
    * Все отделы отеля
    * @param {string} hotelId - ID отеля
    */
   departments: (hotelId) => ['departments', hotelId],
-  
+
   /**
    * Конкретный отдел
    * @param {string} departmentId - ID отдела
    */
   department: (departmentId) => ['departments', 'detail', departmentId],
-  
+
   // === CATEGORIES (категории) ===
-  
+
   /**
    * Все категории отеля
    * @param {string} hotelId - ID отеля
    */
   categories: (hotelId) => ['categories', hotelId],
-  
+
   /**
    * Категории конкретного отдела
    * @param {string} hotelId - ID отеля
@@ -69,9 +72,9 @@ export const queryKeys = {
     hotelId,
     { departmentId }
   ],
-  
+
   // === PRODUCTS (товары) ===
-  
+
   /**
    * Все товары отеля
    * @param {string} hotelId - ID отеля
@@ -81,7 +84,7 @@ export const queryKeys = {
     const baseKey = ['products', hotelId]
     return Object.keys(params).length > 0 ? [...baseKey, params] : baseKey
   },
-  
+
   /**
    * Товары конкретного отдела
    * @param {string} hotelId - ID отеля
@@ -92,28 +95,28 @@ export const queryKeys = {
     hotelId,
     { departmentId }
   ],
-  
+
   /**
    * Конкретный товар
    * @param {string} productId - ID товара
    */
   product: (productId) => ['products', 'detail', productId],
-  
+
   // === DELIVERY TEMPLATES (шаблоны поставок) ===
-  
+
   /**
    * Все шаблоны поставок
    * @param {string} hotelId - ID отеля (опционально для фильтрации)
    */
-  deliveryTemplates: (hotelId = null) => 
+  deliveryTemplates: (hotelId = null) =>
     hotelId ? ['delivery-templates', hotelId] : ['delivery-templates'],
-  
+
   /**
    * Конкретный шаблон поставки
    * @param {string} templateId - ID шаблона
    */
   deliveryTemplate: (templateId) => ['delivery-templates', 'detail', templateId],
-  
+
   // === AUDIT (аудит) ===
 
   /**
@@ -169,40 +172,40 @@ export const queryKeys = {
     const baseKey = ['notifications', 'logs', hotelId]
     return Object.keys(filters).length > 0 ? [...baseKey, filters] : baseKey
   },
-  
+
   // === SETTINGS (настройки) ===
-  
+
   /**
    * Настройки отеля
    * @param {string} hotelId - ID отеля
    */
   hotelSettings: (hotelId) => ['settings', hotelId],
-  
+
   /**
    * Глобальные настройки системы
    */
   systemSettings: () => ['settings', 'system'],
-  
+
   // === USERS (пользователи) ===
-  
+
   /**
    * Все пользователи отеля
    * @param {string} hotelId - ID отеля
    */
   hotelUsers: (hotelId) => ['users', hotelId],
-  
+
   /**
    * Текущий пользователь
    */
   currentUser: () => ['users', 'me'],
-  
+
   // === HOTELS (отели) - для SUPER_ADMIN ===
-  
+
   /**
    * Все отели в системе
    */
   allHotels: () => ['hotels'],
-  
+
   /**
    * Конкретный отель
    * @param {string} hotelId - ID отеля

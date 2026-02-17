@@ -212,7 +212,7 @@ const CONTEXT_PRODUCTS_LIMIT = 100
  * @param {string} hotelId - ID отеля
  * @returns {Object} - Объединенные данные + loading states
  */
-export function useInventoryData(hotelId) {
+export function useInventoryData(hotelId, departmentId = null) {
   const queries = useQueries({
     queries: [
       {
@@ -231,10 +231,13 @@ export function useInventoryData(hotelId) {
         refetchOnMount: true
       },
       {
-        queryKey: queryKeys.batchesStats(hotelId),
+        queryKey: queryKeys.batchesStats(hotelId, departmentId),
         queryFn: async () => {
-          const query = hotelId ? `?hotel_id=${hotelId}` : ''
-          const response = await apiFetch(`/batches/stats${query}`)
+          const sp = new URLSearchParams()
+          if (hotelId) sp.set('hotel_id', hotelId)
+          if (departmentId) sp.set('departmentId', departmentId)
+
+          const response = await apiFetch(`/batches/stats?${sp.toString()}`)
           return response.stats || response || {
             total: 0,
             expired: 0,
@@ -248,16 +251,6 @@ export function useInventoryData(hotelId) {
         staleTime: STALE_TIMES.batchesStats,
         refetchOnWindowFocus: true,
         refetchOnMount: true
-      },
-      {
-        queryKey: queryKeys.departments(hotelId),
-        queryFn: async () => {
-          const query = hotelId ? `?hotel_id=${hotelId}` : ''
-          const response = await apiFetch(`/departments${query}`).catch(() => ({ departments: [] }))
-          return Array.isArray(response) ? response : response.departments || []
-        },
-        enabled: !!hotelId,
-        staleTime: STALE_TIMES.departments
       },
       {
         queryKey: queryKeys.categories(hotelId),
@@ -286,7 +279,8 @@ export function useInventoryData(hotelId) {
     ]
   })
 
-  const [batchesQuery, statsQuery, departmentsQuery, categoriesQuery, productsQuery] = queries
+  // Removed departments query
+  const [batchesQuery, statsQuery, categoriesQuery, productsQuery] = queries
 
   // Объединенный loading state
   const loading = queries.some(q => q.isLoading)
@@ -302,7 +296,6 @@ export function useInventoryData(hotelId) {
       good: 0,
       needsAttention: 0
     },
-    departments: departmentsQuery.data || [],
     categories: categoriesQuery.data || [],
     products: productsQuery.data || [],
     loading,
@@ -310,7 +303,6 @@ export function useInventoryData(hotelId) {
     // Индивидуальные loading states (для более точного контроля)
     batchesLoading: batchesQuery.isLoading,
     statsLoading: statsQuery.isLoading,
-    departmentsLoading: departmentsQuery.isLoading,
     categoriesLoading: categoriesQuery.isLoading,
     productsLoading: productsQuery.isLoading
   }

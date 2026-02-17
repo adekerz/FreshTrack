@@ -353,6 +353,8 @@
     "passwordMismatch": "Пароли не совпадают",
     "passwordTooShort": "Пароль должен быть не менее 6 символов",
     "invalidCredentials": "Неверные учётные данные",
+    "sessionExpired": "Сессия завершена",
+    "sessionExpiredDesc": "Ваша сессия истекла. Пожалуйста, войдите снова.",
     "rateLimitTitle": "Лимит попыток входа",
     "rateLimitHint": "Разрешено 10 попыток за 15 минут. При превышении — блокировка на 15 минут.",
     "weak": "Слабый",
@@ -514,6 +516,7 @@
     "expiredLabel": "просрочено",
     "expiringLabel": "истекает",
     "viewInventory": "Смотреть инвентарь",
+    "currentDepartment": "Текущий отдел",
     "allGood": "Всё в порядке",
     "noExpiring": "Нет товаров с истекающим сроком годности",
     "showMore": "Показать ещё {{count}}",
@@ -627,7 +630,9 @@
     }
   },
   "departments": {
-    "honor-bar": "Honor Bar"
+    "honor-bar": "Honor Bar",
+    "select": "Выберите отдел",
+    "loading": "Загрузка..."
   },
   "categories": {
     "soft-drinks": "Безалкогольные напитки",
@@ -648,6 +653,7 @@
     "Миксеры": "Миксеры",
     "snacks": "Закуски",
     "Закуски": "Закуски",
+    "qqqq": "Категория",
     "quickColors": "Быстрые цвета",
     "deleteTitle": "Удалить категорию?",
     "deleteWarning": "Это действие нельзя отменить. Товары останутся без категории."

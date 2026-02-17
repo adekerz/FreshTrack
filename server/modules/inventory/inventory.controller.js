@@ -66,7 +66,9 @@ router.get('/batches/stats',
 
       const context = {
         hotelId,
-        departmentId: req.departmentId,
+        departmentId: req.canAccessAllDepartments
+          ? (req.query.departmentId || null)
+          : req.departmentId,
         canAccessAllDepartments: req.canAccessAllDepartments
       }
 

@@ -23,6 +23,7 @@ export function useAuditLogs(hotelId, filters = {}) {
       params.set('limit', String(filters.limit || 20))
       params.set('offset', String(filters.offset || 0))
 
+      if (hotelId) params.set('hotel_id', hotelId)
       if (filters.action) params.set('action', filters.action)
       if (filters.entityType) params.set('entityType', filters.entityType)
       if (filters.dateFrom) params.set('dateFrom', filters.dateFrom)
@@ -53,7 +54,9 @@ export function useAuditStats(hotelId, days = 7) {
   return useQuery({
     queryKey: queryKeys.auditStats(hotelId, days),
     queryFn: async () => {
-      const data = await apiFetch(`/audit-logs/stats?days=${days}`)
+      const params = new URLSearchParams({ days: String(days) })
+      if (hotelId) params.set('hotel_id', hotelId)
+      const data = await apiFetch(`/audit-logs/stats?${params}`)
       return data.stats || []
     },
     enabled: !!hotelId,
@@ -70,7 +73,8 @@ export function useAuditUsers(hotelId, enabled = true) {
   return useQuery({
     queryKey: queryKeys.auditUsers(hotelId),
     queryFn: async () => {
-      const data = await apiFetch('/audit-logs/users')
+      const params = hotelId ? `?hotel_id=${hotelId}` : ''
+      const data = await apiFetch(`/audit-logs/users${params}`)
       return data.users || []
     },
     enabled: !!hotelId && enabled,

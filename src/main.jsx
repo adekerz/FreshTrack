@@ -16,6 +16,7 @@ import { OnboardingProvider } from './context/OnboardingContext'
 import { BrandingProvider } from './context/BrandingContext'
 import { NotificationsProvider } from './context/NotificationsContext'
 import { HotelProvider } from './context/HotelContext'
+import { DepartmentProvider } from './context/DepartmentContext'
 import ToastContainer from './components/Toast'
 import './styles/index.css'
 import './styles/loader.css'
@@ -53,12 +54,14 @@ ReactDOM.createRoot(document.getElementById('root')).render(
                 <HotelProvider>
                   <BrandingProvider>
                     <NotificationsProvider>
-                      <ProductProvider>
-                        <OnboardingProvider>
-                          <App />
-                          <ToastContainer />
-                        </OnboardingProvider>
-                      </ProductProvider>
+                      <DepartmentProvider>
+                        <ProductProvider>
+                          <OnboardingProvider>
+                            <App />
+                            <ToastContainer />
+                          </OnboardingProvider>
+                        </ProductProvider>
+                      </DepartmentProvider>
                     </NotificationsProvider>
                   </BrandingProvider>
                 </HotelProvider>

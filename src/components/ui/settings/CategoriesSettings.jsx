@@ -37,13 +37,6 @@ export default function CategoriesSettings({ readOnly = false }) {
   const [deleteConfirm, setDeleteConfirm] = useState(null)
   const [deleting, setDeleting] = useState(false)
 
-  // Перезагружаем категории при смене отеля
-  useEffect(() => {
-    if (selectedHotelId) {
-      fetchCategories()
-    }
-  }, [selectedHotelId, fetchCategories])
-
   const fetchCategories = useCallback(async () => {
     setLoading(true)
     try {
@@ -63,6 +56,14 @@ export default function CategoriesSettings({ readOnly = false }) {
       setLoading(false)
     }
   }, [selectedHotelId])
+
+  // Перезагружаем категории при смене отеля
+  useEffect(() => {
+    if (selectedHotelId) {
+      fetchCategories()
+    }
+  }, [selectedHotelId, fetchCategories])
+
   const addCategory = async () => {
     if (!newCategory.name.trim()) return
 

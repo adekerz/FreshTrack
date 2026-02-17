@@ -30,6 +30,7 @@ export const GetAuditLogsQuerySchema = z.object({
   severity: z.enum(['critical', 'important', 'normal']).optional(),
   securityOnly: z.enum(['true', 'false']).transform(v => v === 'true').optional(),
   hotelId: z.string().uuid().optional(),
+  hotel_id: z.string().uuid().optional(),
   search: z.string().max(200).optional()
 })
 

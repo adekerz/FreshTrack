@@ -4,7 +4,7 @@
  * Split into AuthContext (state + permissions) and AuthActionsContext (stable actions)
  */
 
-import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { authAPI, API_BASE_URL } from '../services/api'
 import { logInfo, logError, logWarn } from '../utils/logger'
 
@@ -15,11 +15,20 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [authError, setAuthError] = useState(null)
+  const [sessionExpired, setSessionExpired] = useState(false)
+
+  // Track whether user was authenticated (to detect session expiry vs fresh visit)
+  const wasAuthenticatedRef = useRef(false)
 
   // Listen for global auth events (401/403 from api.js)
   useEffect(() => {
     const handleUnauthorized = (event) => {
       logWarn('[Auth] Unauthorized event received', event.detail)
+      // If user was logged in, this is a session expiry
+      if (wasAuthenticatedRef.current) {
+        setSessionExpired(true)
+        wasAuthenticatedRef.current = false
+      }
       // Clear auth state (cookie cleared server-side or expired)
       localStorage.removeItem('freshtrack_user')
       setUser(null)
@@ -48,6 +57,13 @@ export function AuthProvider({ children }) {
       window.removeEventListener('auth:userUpdated', handleUserUpdated)
     }
   }, [])
+
+  // Track authentication state for session expiry detection
+  useEffect(() => {
+    if (user) {
+      wasAuthenticatedRef.current = true
+    }
+  }, [user])
 
   // Clear auth error after a delay
   useEffect(() => {
@@ -148,6 +164,7 @@ export function AuthProvider({ children }) {
       if (response.user && response.token) {
         const userData = response.user
         setUser(userData)
+        setSessionExpired(false)
         localStorage.setItem('freshtrack_user', JSON.stringify(userData))
 
         // Check if user must change password (first login with temporary password)
@@ -359,6 +376,7 @@ export function AuthProvider({ children }) {
     loading,
     isAuthenticated: !!user,
     authError,
+    sessionExpired,
     isAdmin,
     isSuperAdmin,
     isHotelAdmin,
@@ -372,7 +390,7 @@ export function AuthProvider({ children }) {
     getCapabilities,
     hasCapability
   }), [
-    user, loading, authError,
+    user, loading, authError, sessionExpired,
     isAdmin, isSuperAdmin, isHotelAdmin, isDepartmentManager, isStaff,
     hasAccessToDepartment, getAccessibleDepartments,
     hasPermission, canManage, canPerformAction,

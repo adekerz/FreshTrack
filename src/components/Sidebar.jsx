@@ -9,6 +9,8 @@ import { useBranding } from '../context/BrandingContext'
 import { getStaticUrl } from '../services/api'
 import { cn } from '../utils/classNames'
 import { mainNavItems, moreNavItems, filterNavByRole } from '../config/navigation'
+import HotelSelector from './HotelSelector'
+import HeaderDepartmentSelector from './HeaderDepartmentSelector'
 
 export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose, embedded = false }) {
   const location = useLocation()
@@ -102,56 +104,64 @@ export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose, e
           // Мобильная версия (не embedded)
           isMobile && !embedded
             ? cn(
-                'fixed left-0 top-0 bottom-0 z-50 w-72',
-                isOpen ? 'translate-x-0' : '-translate-x-full'
-              )
+              'fixed left-0 top-0 bottom-0 z-50 w-72',
+              isOpen ? 'translate-x-0' : '-translate-x-full'
+            )
             : !embedded && cn(
-                // Десктопная версия
-                isOpen ? 'w-64' : 'w-20'
-              )
+              // Десктопная версия
+              isOpen ? 'w-64' : 'w-20'
+            )
         )}
       >
         {/* Logo */}
         {!embedded && (
-        <div className="p-6 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 border border-accent flex items-center justify-center flex-shrink-0 overflow-hidden">
-              {logoUrl ? (
-                <img
-                  src={getStaticUrl(logoUrl)}
-                  alt={siteName || 'Logo'}
-                  className="w-full h-full object-contain"
-                  onError={(e) => {
-                    e.target.style.display = 'none'
-                    e.target.nextSibling.style.display = 'block'
-                  }}
-                />
-              ) : null}
-              <Leaf className={`w-5 h-5 text-accent ${logoUrl ? 'hidden' : ''}`} />
+          <div className="p-6 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 border border-accent flex items-center justify-center flex-shrink-0 overflow-hidden">
+                {logoUrl ? (
+                  <img
+                    src={getStaticUrl(logoUrl)}
+                    alt={siteName || 'Logo'}
+                    className="w-full h-full object-contain"
+                    onError={(e) => {
+                      e.target.style.display = 'none'
+                      e.target.nextSibling.style.display = 'block'
+                    }}
+                  />
+                ) : null}
+                <Leaf className={`w-5 h-5 text-accent ${logoUrl ? 'hidden' : ''}`} />
+              </div>
+              {(isOpen || isMobile) && (
+                <span className="font-serif text-xl tracking-wide">
+                  {siteName || t('common.appName')}
+                </span>
+              )}
             </div>
-            {(isOpen || isMobile) && (
-              <span className="font-serif text-xl tracking-wide">
-                {siteName || t('common.appName')}
-              </span>
+
+            {/* Кнопка закрытия для мобильной версии (не показываем при embedded) */}
+            {isMobile && !embedded && (
+              <Tooltip content={t('common.close') || 'Закрыть меню'}>
+                <span className="inline-flex">
+                  <TouchButton
+                    variant="ghost"
+                    size="icon"
+                    onClick={onClose}
+                    className="p-2 hover:bg-white/10 rounded text-cream/80 hover:text-cream"
+                    aria-label={t('common.close') || 'Закрыть меню'}
+                    icon={X}
+                  />
+                </span>
+              </Tooltip>
             )}
           </div>
+        )}
 
-          {/* Кнопка закрытия для мобильной версии (не показываем при embedded) */}
-          {isMobile && !embedded && (
-            <Tooltip content={t('common.close') || 'Закрыть меню'}>
-              <span className="inline-flex">
-                <TouchButton
-                  variant="ghost"
-                  size="icon"
-                  onClick={onClose}
-                  className="p-2 hover:bg-white/10 rounded text-cream/80 hover:text-cream"
-                  aria-label={t('common.close') || 'Закрыть меню'}
-                  icon={X}
-                />
-              </span>
-            </Tooltip>
-          )}
-        </div>
+        {/* Селекторы отеля и департамента (только мобильная версия) */}
+        {isMobile && (
+          <div className="px-3 pb-2 space-y-2">
+            <HotelSelector className="w-full max-w-none" />
+            <HeaderDepartmentSelector className="w-full max-w-none" />
+          </div>
         )}
 
         {/* Main Navigation - Grouped */}

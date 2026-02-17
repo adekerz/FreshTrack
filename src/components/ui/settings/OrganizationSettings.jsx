@@ -9,16 +9,14 @@ import { useTranslation } from '../../../context/LanguageContext'
 import { useToast } from '../../../context/ToastContext'
 import { useAuth } from '../../../context/AuthContext'
 import { apiFetch } from '../../../services/api'
-// formatDate removed - unused import
-import { ButtonLoader, SectionLoader } from '..'
+import { ButtonLoader, SectionLoader, ConfirmModal } from '..'
+import { ROLE_COLORS } from '../../../constants/roles'
 import {
   Building2,
   Plus,
   Users,
   UserPlus,
   Ban,
-  AlertTriangle,
-  Trash2,
   RefreshCw
 } from 'lucide-react'
 import SettingsLayout from './SettingsLayout'
@@ -81,7 +79,7 @@ export default function OrganizationSettings() {
 
   // Create department modal
   const [showCreateDept, setShowCreateDept] = useState(null) // hotelId
-  const [newDept, setNewDept] = useState({ name: '', description: '', email: '', telegram_chat_id: '' })
+  const [newDept, setNewDept] = useState({ name: '', type: '', email: '', telegram_chat_id: '' })
   const [creatingDept, setCreatingDept] = useState(false)
 
   // Create user modal
@@ -94,7 +92,6 @@ export default function OrganizationSettings() {
     role: 'STAFF'
   })
   const [creatingUser, setCreatingUser] = useState(false)
-  const [_showPassword, setShowPassword] = useState(false)
   const [userError, setUserError] = useState(null)
   const [generatePassword, setGeneratePassword] = useState(true) // Default: auto-generate password
 
@@ -249,7 +246,7 @@ export default function OrganizationSettings() {
         'success'
       )
       setShowCreateDept(null)
-      setNewDept({ name: '', description: '', email: '', telegram_chat_id: '' })
+      setNewDept({ name: '', type: '', email: '', telegram_chat_id: '' })
       fetchData()
     } catch (error) {
       addToast(error.message || 'Ошибка создания департамента', 'error')
@@ -314,7 +311,7 @@ export default function OrganizationSettings() {
       setShowCreateUser(null)
       setNewUser({ login: '', password: '', name: '', email: '', role: 'STAFF' })
       setGeneratePassword(true) // Reset to default
-      setShowPassword(false)
+
       fetchData()
     } catch (error) {
       setUserError(error.message || 'Ошибка создания пользователя')
@@ -348,15 +345,12 @@ export default function OrganizationSettings() {
   const toggleUserStatus = async (userId, isActive) => {
     setActionLoading(true)
     try {
-      await apiFetch(`/auth/users/${userId}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ is_active: !isActive })
-      })
+      await apiFetch(`/auth/users/${userId}/toggle`, { method: 'PATCH' })
       addToast(isActive ? 'Пользователь заблокирован' : 'Пользователь разблокирован', 'success')
       setBlockConfirm(null)
       fetchData()
     } catch (error) {
-      addToast('Ошибка обновления', 'error')
+      addToast(error.message || 'Ошибка обновления', 'error')
     } finally {
       setActionLoading(false)
     }
@@ -401,19 +395,11 @@ export default function OrganizationSettings() {
     setExpandedDepts((prev) => ({ ...prev, [deptId]: !prev[deptId] }))
   }
 
-  const getRoleBadge = (role) => {
-    const styles = {
-      SUPER_ADMIN: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-      HOTEL_ADMIN: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
-      DEPARTMENT_MANAGER: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-      STAFF: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400'
-    }
-    return (
-      <span className={`px-2 py-0.5 rounded text-xs font-medium ${styles[role] || styles.STAFF}`}>
-        {t(`users.roles.${role}`) || role}
-      </span>
-    )
-  }
+  const getRoleBadge = (role) => (
+    <span className={`px-2 py-0.5 rounded text-xs font-medium ${ROLE_COLORS[role] || ROLE_COLORS.STAFF}`}>
+      {t(`users.roles.${role}`) || role}
+    </span>
+  )
 
   const renderUserRow = (user) => (
     <UserRow
@@ -435,6 +421,68 @@ export default function OrganizationSettings() {
   if (loading) {
     return <SectionLoader />
   }
+
+  // ── Shared modals (rendered once, used in both non-SA and SA returns) ────────
+  const typeLabels = { hotel: 'отель', department: 'департамент', user: 'пользователя' }
+
+  const blockConfirmModal = blockConfirm && (
+    <div className="fixed inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
+      <div className="bg-card rounded-xl p-6 max-w-sm w-full mx-4 shadow-xl animate-slide-up">
+        <div className="flex items-center gap-3 mb-4">
+          <div
+            className={`w-14 h-14 rounded-full flex items-center justify-center animate-danger-pulse ${
+              blockConfirm.isActive ? 'bg-danger/10' : 'bg-success/10'
+            }`}
+          >
+            <Ban
+              className={`w-7 h-7 animate-danger-shake ${
+                blockConfirm.isActive ? 'text-danger' : 'text-success'
+              }`}
+            />
+          </div>
+          <div>
+            <h3 className="font-semibold text-foreground">
+              {blockConfirm.isActive ? 'Заблокировать?' : 'Разблокировать?'}
+            </h3>
+            <p className="text-sm text-muted-foreground">{blockConfirm.userName}</p>
+          </div>
+        </div>
+        <div className="flex gap-3">
+          <button
+            onClick={() => setBlockConfirm(null)}
+            disabled={actionLoading}
+            className="flex-1 px-4 py-2 border border-border rounded-lg text-foreground hover:bg-muted disabled:opacity-50"
+          >
+            Отмена
+          </button>
+          <button
+            onClick={() => toggleUserStatus(blockConfirm.userId, blockConfirm.isActive)}
+            disabled={actionLoading}
+            className={`flex-1 px-4 py-2 rounded-lg text-white disabled:opacity-50 flex items-center justify-center gap-2 ${
+              blockConfirm.isActive ? 'bg-danger hover:bg-danger/90' : 'bg-success hover:bg-success/90'
+            }`}
+            aria-busy={actionLoading}
+          >
+            {actionLoading && <ButtonLoader />}
+            {blockConfirm.isActive ? 'Заблокировать' : 'Разблокировать'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+
+  const deleteConfirmModal = (
+    <ConfirmModal
+      isOpen={!!deleteConfirm}
+      onClose={() => setDeleteConfirm(null)}
+      onConfirm={handleDelete}
+      loading={actionLoading}
+      title={deleteConfirm ? `Удалить ${typeLabels[deleteConfirm.type]}?` : ''}
+      description={deleteConfirm?.name}
+      confirmLabel="Удалить"
+      cancelLabel="Отмена"
+    />
+  )
 
   // For non-SuperAdmin - show only users table
   if (!isSuperAdmin) {
@@ -480,7 +528,7 @@ export default function OrganizationSettings() {
             setUserError(null)
             setNewUser({ login: '', password: '', name: '', email: '', role: 'STAFF' })
             setGeneratePassword(true)
-            setShowPassword(false)
+      
           }}
           onSubmit={createUser}
           formState={newUser}
@@ -494,8 +542,8 @@ export default function OrganizationSettings() {
           t={t}
           canCreateSuperAdmin={currentUser?.capabilities?.canCreateSuperAdmin || false}
         />
-        {renderBlockConfirmModal()}
-        {renderDeleteConfirmModal()}
+        {blockConfirmModal}
+        {deleteConfirmModal}
       </SettingsLayout>
     )
   }
@@ -619,7 +667,7 @@ export default function OrganizationSettings() {
         isOpen={!!showCreateDept}
         onClose={() => {
           setShowCreateDept(null)
-          setNewDept({ name: '', description: '', email: '', telegram_chat_id: '' })
+          setNewDept({ name: '', type: '', email: '', telegram_chat_id: '' })
         }}
         onSubmit={createDepartment}
         formState={newDept}
@@ -633,7 +681,7 @@ export default function OrganizationSettings() {
           setUserError(null)
           setNewUser({ login: '', password: '', name: '', email: '', role: 'STAFF' })
           setGeneratePassword(true)
-          setShowPassword(false)
+    
         }}
         onSubmit={createUser}
         formState={newUser}
@@ -647,103 +695,8 @@ export default function OrganizationSettings() {
         t={t}
         canCreateSuperAdmin={currentUser?.capabilities?.canCreateSuperAdmin || false}
       />
-      {renderBlockConfirmModal()}
-      {renderDeleteConfirmModal()}
+      {blockConfirmModal}
+      {deleteConfirmModal}
     </SettingsLayout>
   )
-
-  // Modal render functions
-  function renderBlockConfirmModal() {
-    if (!blockConfirm) return null
-    return (
-      <div className="fixed inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
-        <div className="bg-card rounded-xl p-6 max-w-sm w-full mx-4 shadow-xl animate-slide-up">
-          <div className="flex items-center gap-3 mb-4">
-            <div
-              className={`w-14 h-14 rounded-full flex items-center justify-center animate-danger-pulse ${blockConfirm.isActive ? 'bg-danger/10' : 'bg-success/10'
-                }`}
-            >
-              <Ban
-                className={`w-7 h-7 animate-danger-shake ${blockConfirm.isActive ? 'text-danger' : 'text-success'
-                  }`}
-              />
-            </div>
-            <div>
-              <h3 className="font-semibold text-foreground">
-                {blockConfirm.isActive ? 'Заблокировать?' : 'Разблокировать?'}
-              </h3>
-              <p className="text-sm text-muted-foreground">{blockConfirm.userName}</p>
-            </div>
-          </div>
-          <div className="flex gap-3">
-            <button
-              onClick={() => setBlockConfirm(null)}
-              disabled={actionLoading}
-              className="flex-1 px-4 py-2 border border-border rounded-lg text-foreground hover:bg-muted disabled:opacity-50"
-            >
-              Отмена
-            </button>
-            <button
-              onClick={() => toggleUserStatus(blockConfirm.userId, blockConfirm.isActive)}
-              disabled={actionLoading}
-              className={`flex-1 px-4 py-2 rounded-lg text-white disabled:opacity-50 flex items-center justify-center gap-2 ${blockConfirm.isActive
-                ? 'bg-danger hover:bg-danger/90'
-                : 'bg-success hover:bg-success/90'
-                }`}
-              aria-busy={actionLoading}
-            >
-              {actionLoading && <ButtonLoader />}
-              {blockConfirm.isActive ? 'Заблокировать' : 'Разблокировать'}
-            </button>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  function renderDeleteConfirmModal() {
-    if (!deleteConfirm) return null
-    const typeLabels = { hotel: 'отель', department: 'департамент', user: 'пользователя' }
-    return (
-      <div className="fixed inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
-        <div className="bg-card rounded-xl p-6 max-w-sm w-full mx-4 shadow-xl animate-slide-up">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-14 h-14 rounded-full bg-danger/10 flex items-center justify-center animate-danger-pulse">
-              <AlertTriangle className="w-7 h-7 text-danger animate-danger-shake" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-foreground">
-                Удалить {typeLabels[deleteConfirm.type]}?
-              </h3>
-              <p className="text-sm text-muted-foreground">{deleteConfirm.name}</p>
-            </div>
-          </div>
-          <p className="text-sm text-muted-foreground mb-6">
-            {deleteConfirm.type === 'hotel' &&
-              'Все департаменты, пользователи и данные будут удалены.'}
-            {deleteConfirm.type === 'department' && 'Все пользователи и данные будут удалены.'}
-            {deleteConfirm.type === 'user' && 'Это действие нельзя отменить.'}
-          </p>
-          <div className="flex gap-3">
-            <button
-              onClick={() => setDeleteConfirm(null)}
-              disabled={actionLoading}
-              className="flex-1 px-4 py-2 border border-border rounded-lg text-foreground hover:bg-muted disabled:opacity-50"
-            >
-              Отмена
-            </button>
-            <button
-              onClick={handleDelete}
-              disabled={actionLoading}
-              className="flex-1 px-4 py-2 bg-danger text-white rounded-lg hover:bg-danger/90 disabled:opacity-50 flex items-center justify-center gap-2"
-              aria-busy={actionLoading}
-            >
-              {actionLoading ? <ButtonLoader /> : <Trash2 className="w-4 h-4" />}
-              Удалить
-            </button>
-          </div>
-        </div>
-      </div>
-    )
-  }
 }

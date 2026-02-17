@@ -41,7 +41,7 @@ function SuspenseFallback() {
 }
 
 function App() {
-  const { user, loading, logout, isAuthenticated } = useAuth()
+  const { user, loading, logout, isAuthenticated, sessionExpired } = useAuth()
 
   // Load hotel session settings (autoLogoutMinutes, rememberDevice)
   const { autoLogoutMinutes } = useSessionSettings(isAuthenticated)
@@ -66,10 +66,13 @@ function App() {
 
   // User not logged in - show auth pages
   if (!user) {
+    const loginRedirect = sessionExpired
+      ? `/login?reason=session_expired`
+      : `/login`
     return (
       <Suspense fallback={<SuspenseFallback />}>
         <Routes>
-          <Route path="/" element={<Navigate to="/login" replace />} />
+          <Route path="/" element={<Navigate to={loginRedirect} replace />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/verify-email" element={<VerifyEmailPage />} />
@@ -77,8 +80,8 @@ function App() {
           {/* Public legal pages */}
           <Route path="/privacy" element={<PrivacyPolicyPage />} />
           <Route path="/terms" element={<TermsOfServicePage />} />
-          {/* 404 — страница не найдена */}
-          <Route path="*" element={<NotFoundPage />} />
+          {/* Any other path redirects to login (not 404) when unauthenticated */}
+          <Route path="*" element={<Navigate to={loginRedirect} replace />} />
         </Routes>
       </Suspense>
     )

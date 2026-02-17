@@ -6,30 +6,26 @@
  */
 
 import { useState, useEffect } from 'react'
-import { Search, X, Moon, Sun, LogOut, Settings, ChevronDown, Zap, Menu, Building2, Users, HelpCircle, Accessibility } from 'lucide-react'
+import { Search, X, Moon, Sun, LogOut, Settings, ChevronDown, Menu, Building2, Users, HelpCircle, Accessibility } from 'lucide-react'
 import Tooltip from './Tooltip'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useTranslation } from '../context/LanguageContext'
 import { useTheme } from '../context/ThemeContext'
-import { useToast } from '../context/ToastContext'
 import GlobalSearch from './GlobalSearch'
 import HotelSelector from './HotelSelector'
+import HeaderDepartmentSelector from './HeaderDepartmentSelector'
 import { TouchButton } from './ui'
 import { cn } from '../utils/classNames'
-import { apiFetch } from '../services/api'
-import { showNotification, getNotificationPermission, requestNotificationPermission } from '../utils/browserAlerts'
 
 export default function Header({ onOpenMobileMenu, isMobileMenuOpen = false, onOpenHelp }) {
   const navigate = useNavigate()
   const { user, logout } = useAuth()
   const { t } = useTranslation()
   const { theme, toggleTheme, highContrast, toggleHighContrast } = useTheme()
-  const { addToast } = useToast()
-  
+
   const [showMobileSearch, setShowMobileSearch] = useState(false)
   const [showUserMenu, setShowUserMenu] = useState(false)
-  const [testingNotification, setTestingNotification] = useState(false)
 
   // Close menus on outside click
   useEffect(() => {
@@ -53,95 +49,12 @@ export default function Header({ onOpenMobileMenu, isMobileMenuOpen = false, onO
     return () => document.removeEventListener('keydown', handleEscape)
   }, [])
 
-  // Test notification handler — Email + Telegram + браузер (только на dev)
-  const handleTestNotification = async () => {
-    setTestingNotification(true)
-    try {
-      // 1. Браузерное уведомление — запросить разрешение если default, потом показать
-      let browserShown = false
-      let perm = getNotificationPermission()
-      if (perm === 'default') {
-        const res = await requestNotificationPermission()
-        perm = res.permission
-      }
-      if (perm === 'denied') {
-        addToast(
-          t('notifications.browserDenied') || 'Браузер: уведомления заблокированы. Разрешите в настройках сайта (иконка замка).',
-          'warning'
-        )
-      } else if (perm === 'granted') {
-        try {
-          const shown = showNotification(
-            t('notifications.test.title') || 'Тестовое уведомление',
-            {
-              body: t('notifications.test.message') || 'Это тестовое уведомление для проверки работы системы.',
-              tag: 'freshtrack-test-notification'
-            }
-          )
-          browserShown = shown !== null
-        } catch (err) {
-          addToast(
-            (t('notifications.browserError') || 'Браузер: ошибка уведомления') + ': ' + (err.message || ''),
-            'error'
-          )
-        }
-      }
-
-      // 2. Email + Telegram (backend)
-      const result = await apiFetch('/notifications/test-telegram', {
-        method: 'POST',
-        body: JSON.stringify({})
-      })
-
-      const channels = []
-      if (browserShown) channels.push('браузер')
-      if (result.emailSent) channels.push('email')
-      if (result.sentTo > 0) channels.push(`Telegram (${result.sentTo})`)
-
-      if (result.success || browserShown) {
-        const msg = channels.length > 0
-          ? (t('notifications.test.sent') || 'Тестовое уведомление отправлено') + ': ' + channels.join(', ')
-          : t('notifications.test.sent') || 'Тестовое уведомление отправлено'
-        addToast(msg, 'success')
-      } else {
-        const errorMessage = result.error || 
-          (result.totalChats === 0 
-            ? 'Нет привязанных Telegram чатов. Добавьте бота в чат и используйте /link MARSHA_CODE'
-            : t('notifications.test.error') || 'Ошибка отправки тестового уведомления')
-        addToast(errorMessage, 'error')
-      }
-    } catch (error) {
-      // Обрабатываем различные типы ошибок
-      let errorMessage = t('notifications.test.error') || 'Ошибка отправки тестового уведомления'
-      
-      if (error.message) {
-        errorMessage = error.message
-      } else if (error.error) {
-        errorMessage = error.error
-      } else if (typeof error === 'string') {
-        errorMessage = error
-      }
-      
-      // Специальные сообщения для известных ошибок
-      if (errorMessage.includes('Unauthorized') || errorMessage.includes('401') || errorMessage.includes('авторизации')) {
-        errorMessage = 'Ошибка авторизации Telegram бота. Проверьте настройки сервера (TELEGRAM_BOT_TOKEN).'
-      } else if (errorMessage.includes('не настроен') || errorMessage.includes('not configured')) {
-        errorMessage = 'Telegram бот не настроен. Обратитесь к администратору.'
-      } else if (errorMessage.includes('привязанных') || errorMessage.includes('чатов')) {
-        errorMessage = 'Нет привязанных Telegram чатов. Добавьте бота @freshtracksystemsbot в чат и используйте /link MARSHA_CODE'
-      }
-      
-      addToast(errorMessage, 'error')
-    } finally {
-      setTestingNotification(false)
-    }
-  }
-
   return (
     <header className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm border-b border-border" role="banner">
       <div className="flex items-center justify-between h-14 sm:h-16 px-3 sm:px-6">
-        {/* Left section - Hamburger (mobile) + Hotel selector; hotel ограничен по ширине на mobile */}
-        <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-shrink">
+
+        {/* Left section - Hamburger (mobile) + selectors */}
+        <div className="flex items-center gap-2 min-w-0 flex-shrink-0">
           {typeof onOpenMobileMenu === 'function' && (
             <Tooltip content={t('nav.openMenu') || 'Открыть меню'}>
               <span className="inline-flex sm:hidden">
@@ -150,7 +63,7 @@ export default function Header({ onOpenMobileMenu, isMobileMenuOpen = false, onO
                   variant="ghost"
                   size="icon"
                   onClick={onOpenMobileMenu}
-                  className="-ml-1 flex-shrink-0 relative z-10 text-muted-foreground hover:text-foreground"
+                  className="-ml-1 flex-shrink-0 text-muted-foreground hover:text-foreground"
                   aria-label={t('nav.openMenu') || 'Открыть меню'}
                   aria-expanded={isMobileMenuOpen}
                   aria-haspopup="true"
@@ -159,7 +72,13 @@ export default function Header({ onOpenMobileMenu, isMobileMenuOpen = false, onO
               </span>
             </Tooltip>
           )}
-          <HotelSelector />
+
+          {/* Selectors hidden on mobile — they are in sidebar */}
+          <div className="hidden sm:flex items-center gap-2">
+            <HotelSelector />
+            <span className="w-px h-5 bg-border flex-shrink-0" aria-hidden="true" />
+            <HeaderDepartmentSelector />
+          </div>
         </div>
 
         {/* Center - Search (desktop) */}
@@ -168,7 +87,7 @@ export default function Header({ onOpenMobileMenu, isMobileMenuOpen = false, onO
         </div>
 
         {/* Right section - Actions */}
-        <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+        <div className="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
           {/* Mobile search toggle */}
           <Tooltip content={t('search.open') || 'Поиск'}>
             <span className="inline-flex sm:hidden">
@@ -211,9 +130,7 @@ export default function Header({ onOpenMobileMenu, isMobileMenuOpen = false, onO
             </span>
           </Tooltip>
 
-          {/* Колокольчик уведомлений убран: по SSE пока приходят в основном события брендинга; алерты по срокам — на странице «Уведомления» в сайдбаре */}
-
-          {/* Центр помощи — горячая клавиша ? */}
+          {/* Help center */}
           {typeof onOpenHelp === 'function' && (
             <Tooltip content={t('nav.helpCenter') || 'Помощь (?)'}>
               <span className="inline-flex">
@@ -229,35 +146,17 @@ export default function Header({ onOpenMobileMenu, isMobileMenuOpen = false, onO
             </Tooltip>
           )}
 
-          {/* Test Notification Button — только на dev */}
-          {import.meta.env.MODE === 'development' && (
-            <Tooltip content={t('notifications.test.label') || 'Тест уведомлений'}>
-              <span className="inline-flex">
-                <TouchButton
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleTestNotification}
-                  disabled={testingNotification}
-                  loading={testingNotification}
-                  className="text-muted-foreground hover:text-foreground"
-                  aria-label={t('notifications.test.label') || 'Тест уведомлений'}
-                  icon={Zap}
-                />
-              </span>
-            </Tooltip>
-          )}
-
-          {/* User menu (видно на всех экранах, включая mobile) */}
+          {/* User menu */}
           <div className="relative" data-user-menu>
             <TouchButton
               variant="ghost"
               onClick={() => setShowUserMenu(!showUserMenu)}
-              className="flex items-center gap-2 p-2 min-h-[44px] rounded-lg hover:bg-muted"
+              className="flex items-center gap-1.5 px-2 py-2 min-h-[44px] rounded-lg hover:bg-muted"
               aria-expanded={showUserMenu}
               data-testid="user-menu-button"
               aria-haspopup="menu"
             >
-              <div className="w-8 h-8 bg-accent/20 rounded-full flex items-center justify-center">
+              <div className="w-8 h-8 bg-accent/20 rounded-full flex items-center justify-center flex-shrink-0">
                 <span className="text-accent font-medium text-sm">
                   {user?.name?.charAt(0) || 'U'}
                 </span>
@@ -266,21 +165,20 @@ export default function Header({ onOpenMobileMenu, isMobileMenuOpen = false, onO
                 {user?.name?.split(' ')[0]}
               </span>
               <ChevronDown className={cn(
-                'w-4 h-4 text-muted-foreground transition-transform',
+                'w-4 h-4 text-muted-foreground transition-transform flex-shrink-0',
                 showUserMenu && 'rotate-180'
               )} />
             </TouchButton>
 
-            {/* Dropdown menu — на mobile почти full-width, touch targets 44px+ */}
+            {/* Dropdown menu */}
             {showUserMenu && (
               <div className="absolute right-0 top-full mt-2 w-[min(18rem,calc(100vw-2rem))] sm:w-72 bg-card rounded-xl shadow-lg border border-border py-2 animate-fade-in z-50 max-h-[min(80vh,400px)] overflow-y-auto">
-                {/* User info with hotel and department */}
+                {/* User info */}
                 <div className="px-4 py-3 border-b border-border">
                   <p className="text-sm font-medium text-foreground truncate">{user?.name}</p>
                   <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
                   <p className="text-xs text-muted-foreground mt-1">{user?.roleLabel || user?.role}</p>
 
-                  {/* Hotel info */}
                   {user?.hotel && (
                     <div className="flex items-center gap-2 mt-2 pt-2 border-t border-border/50">
                       <Building2 className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
@@ -291,7 +189,6 @@ export default function Header({ onOpenMobileMenu, isMobileMenuOpen = false, onO
                     </div>
                   )}
 
-                  {/* Department info */}
                   {user?.department && (
                     <div className="flex items-center gap-2 mt-1.5">
                       <Users className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
@@ -304,10 +201,7 @@ export default function Header({ onOpenMobileMenu, isMobileMenuOpen = false, onO
                 <div className="py-1">
                   <TouchButton
                     variant="ghost"
-                    onClick={() => {
-                      navigate('/settings')
-                      setShowUserMenu(false)
-                    }}
+                    onClick={() => { navigate('/settings'); setShowUserMenu(false) }}
                     className="w-full justify-start gap-3 px-4 py-2 text-sm h-auto min-h-[44px] rounded-none"
                     icon={Settings}
                     iconPosition="left"
@@ -317,10 +211,7 @@ export default function Header({ onOpenMobileMenu, isMobileMenuOpen = false, onO
 
                   <TouchButton
                     variant="ghost"
-                    onClick={() => {
-                      navigate('/faq')
-                      setShowUserMenu(false)
-                    }}
+                    onClick={() => { navigate('/faq'); setShowUserMenu(false) }}
                     className="w-full justify-start gap-3 px-4 py-2 text-sm h-auto min-h-[44px] rounded-none"
                     icon={HelpCircle}
                     iconPosition="left"
@@ -369,10 +260,10 @@ export default function Header({ onOpenMobileMenu, isMobileMenuOpen = false, onO
               </span>
             </Tooltip>
             <div className="flex-1">
-              <GlobalSearch 
-                autoFocus 
-                fullWidth 
-                onSearch={() => setShowMobileSearch(false)} 
+              <GlobalSearch
+                autoFocus
+                fullWidth
+                onSearch={() => setShowMobileSearch(false)}
               />
             </div>
           </div>

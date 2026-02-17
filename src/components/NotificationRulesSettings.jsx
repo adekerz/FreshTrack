@@ -13,6 +13,7 @@ import { TouchButton } from './ui'
 import { useTranslation } from '../context/LanguageContext'
 import { useToast } from '../context/ToastContext'
 import { useProducts } from '../context/ProductContext'
+import { useDepartment } from '../context/DepartmentContext'
 import { logError } from '../utils/logger'
 import { cn } from '../utils/classNames'
 import { apiFetch } from '../services/api'
@@ -22,7 +23,8 @@ import SettingsLayout from './ui/settings/SettingsLayout'
 export default function NotificationRulesSettings() {
   const { t } = useTranslation()
   const { addToast } = useToast()
-  const { departments, categories } = useProducts()
+  const { categories } = useProducts()
+  const { departments } = useDepartment()
 
   const [rules, setRules] = useState([])
   const [loading, setLoading] = useState(true)

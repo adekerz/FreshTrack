@@ -1,18 +1,19 @@
 import { useState, useCallback, useMemo } from 'react'
 import { X, ChevronRight } from 'lucide-react'
 import { useProducts } from '../context/ProductContext'
+import { useDepartment } from '../context/DepartmentContext'
 import { useTranslation, useLanguage } from '../context/LanguageContext'
 import { useToast } from '../context/ToastContext'
 import { useHotel } from '../context/HotelContext'
 import { useAddBatch } from '../hooks/useInventory'
-import { getDepartmentIcon } from '../utils/departmentUtils'
 import { TouchInput, TouchSelect, TouchButton, Switch } from './ui'
 
 export default function AddBatchModal({ onClose, preselectedProduct = null }) {
   const { t } = useTranslation()
   const { language } = useLanguage()
   const { selectedHotelId } = useHotel()
-  const { catalog, departments, categories } = useProducts()
+  const { catalog, categories } = useProducts()
+  const { departments, getDepartmentIcon } = useDepartment()
   const toast = useToast()
 
   // === REACT QUERY MUTATION ===
