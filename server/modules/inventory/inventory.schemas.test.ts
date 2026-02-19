@@ -208,9 +208,9 @@ describe('Inventory Validation Schemas', () => {
       expect(result.data?.expiredOnly).toBe(true)
     })
 
-    it('should reject limit over 200', () => {
+    it('should reject limit over 10000', () => {
       const result = validate(BatchFiltersSchema, {
-        limit: 500
+        limit: 10001
       })
 
       expect(result.isValid).toBe(false)

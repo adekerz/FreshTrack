@@ -1,4 +1,4 @@
-import { useState, lazy, Suspense, useMemo } from 'react'
+import { useState, useEffect, lazy, Suspense, useMemo } from 'react'
 import {
   FileText,
   Search,
@@ -49,9 +49,10 @@ import { useExport } from '../hooks/useExport'
 export default function AuditLogsPage() {
   const { t } = useTranslation()
   const { selectedHotelId } = useHotel()
-  const { newLogs, clearNewLogs } = useAuditSSE(!!selectedHotelId)
+  const { newLogs, clearNewLogs } = useAuditSSE(!!selectedHotelId, selectedHotelId)
   const { exportProgress, dismissExportProgress } = useExport()
   const [searchQuery, setSearchQuery] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [filters, setFilters] = useState({
     actionType: '',
     entityType: '',
@@ -65,10 +66,36 @@ export default function AuditLogsPage() {
   const [showFilters, setShowFilters] = useState(false)
   const [selectedLog, setSelectedLog] = useState(null)
 
+  // Сброс при смене отеля
+  useEffect(() => {
+    setPage(1)
+    setSearchQuery('')
+    setDebouncedSearch('')
+    setFilters({
+      actionType: '',
+      entityType: '',
+      dateFrom: '',
+      dateTo: '',
+      userId: '',
+      severity: '',
+      securityOnly: false
+    })
+  }, [selectedHotelId])
+
+  // Дебаунс поиска (300ms) + сброс страницы
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery)
+      setPage(1)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [searchQuery])
+
   // React Query hooks - memoized
   const queryFilters = useMemo(() => ({
     limit: 20,
     offset: (page - 1) * 20,
+    ...(debouncedSearch && { search: debouncedSearch }),
     ...(filters.actionType && { action: filters.actionType }),
     ...(filters.entityType && { entityType: filters.entityType }),
     ...(filters.dateFrom && { dateFrom: filters.dateFrom }),
@@ -76,7 +103,7 @@ export default function AuditLogsPage() {
     ...(filters.userId && { userId: filters.userId }),
     ...(filters.severity && { severity: filters.severity }),
     ...(filters.securityOnly && { securityOnly: true })
-  }), [page, filters])
+  }), [page, filters, debouncedSearch])
 
   const { data: logsData, isLoading, isFetching, refetch: refetchLogs } = useAuditLogs(selectedHotelId, queryFilters)
   const { data: stats } = useAuditStats(selectedHotelId)
@@ -96,6 +123,8 @@ export default function AuditLogsPage() {
       severity: '',
       securityOnly: false
     })
+    setSearchQuery('')
+    setDebouncedSearch('')
     setPage(1)
   }
 
@@ -184,18 +213,47 @@ export default function AuditLogsPage() {
     return colorMap[normalizedAction] || 'bg-muted text-muted-foreground'
   }
 
-  const filteredLogs = logs.filter((log) => {
-    if (!searchQuery) return true
-    const query = searchQuery.toLowerCase()
-    return (
-      log.human_readable_description?.toLowerCase().includes(query) ||
-      log.human_readable_details?.toLowerCase().includes(query) ||
-      log.user_name?.toLowerCase().includes(query)
-    )
-  })
+  const filteredLogs = logs
+
+  // Строим краткую строку подробностей для таблицы
+  const getDetailsSummary = (log) => {
+    // 1. human_readable_details из metadata (от EnrichmentService)
+    if (log.human_readable_details) return log.human_readable_details
+
+    const action = (log.action || '').toUpperCase()
+    const after = log.snapshot_after
+    const before = log.snapshot_before
+    const name = after?.name || before?.name
+
+    // 2. Для входа/выхода — всегда IP
+    if (['LOGIN', 'LOGOUT', 'LOGIN_FAILED'].includes(action) && log.ip_address) {
+      return `IP: ${log.ip_address}`
+    }
+
+    // 3. key_changes из server-side enrichment (snapshot поля)
+    if (log.key_changes) return log.key_changes
+
+    // 4. Для удаления — что именно удалено
+    if (action === 'DELETE' && name) return `Удалён: "${name}"`
+
+    // 5. Для создания — название объекта
+    if (action === 'CREATE' && name) return `"${name}"`
+
+    // 6. Из поля details (JSON)
+    if (log.details && typeof log.details === 'object') {
+      const LABELS = { method: 'Метод', format: 'Формат', recordCount: 'Записей', reason: 'Причина' }
+      const entries = Object.entries(log.details)
+        .filter(([k]) => !['id', 'hotel_id', 'user_id', 'action'].includes(k))
+        .slice(0, 2)
+        .map(([k, v]) => `${LABELS[k] || k}: ${v}`)
+      if (entries.length > 0) return entries.join(' · ')
+    }
+
+    return '—'
+  }
 
   const totalPages = Math.ceil(paginationTotal / 20)
-  const hasActiveFilters = Object.values(filters).some((v) => v !== '' && v !== false)
+  const hasActiveFilters = searchQuery !== '' || Object.values(filters).some((v) => v !== '' && v !== false)
   const activeFiltersCount = [
     filters.actionType,
     filters.entityType,
@@ -304,8 +362,10 @@ export default function AuditLogsPage() {
           <div className="bg-card rounded-xl border border-border p-3 sm:p-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
               <div className="relative flex-1">
+                <label htmlFor="audit-log-search" className="sr-only">{t('common.search')}</label>
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />
                 <input
+                  id="audit-log-search"
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -353,6 +413,7 @@ export default function AuditLogsPage() {
             {/* Extended Filters */}
             {showFilters && (
               <div className="mt-4 pt-4 border-t border-border grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Row 1 */}
                 <div>
                   <label htmlFor="audit-filter-severity" className="block text-sm font-medium text-foreground mb-1">
                     {t('auditLogs.filters.severity')}
@@ -360,7 +421,7 @@ export default function AuditLogsPage() {
                   <select
                     id="audit-filter-severity"
                     value={filters.severity}
-                    onChange={(e) => setFilters((prev) => ({ ...prev, severity: e.target.value }))}
+                    onChange={(e) => { setFilters((prev) => ({ ...prev, severity: e.target.value })); setPage(1) }}
                     className="w-full px-3 py-2 border border-border rounded-lg bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-accent/20"
                   >
                     <option value="">{t('auditLogs.severityAll')}</option>
@@ -376,7 +437,7 @@ export default function AuditLogsPage() {
                   <select
                     id="audit-filter-user"
                     value={filters.userId}
-                    onChange={(e) => setFilters((prev) => ({ ...prev, userId: e.target.value }))}
+                    onChange={(e) => { setFilters((prev) => ({ ...prev, userId: e.target.value })); setPage(1) }}
                     className="w-full px-3 py-2 border border-border rounded-lg bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-accent/20"
                   >
                     <option value="">{t('common.all')}</option>
@@ -387,19 +448,64 @@ export default function AuditLogsPage() {
                     ))}
                   </select>
                 </div>
-                <div className="flex items-center gap-2">
+                <div>
+                  <label htmlFor="audit-filter-action" className="block text-sm font-medium text-foreground mb-1">
+                    {t('auditLogs.filters.action') || 'Действие'}
+                  </label>
+                  <select
+                    id="audit-filter-action"
+                    value={filters.actionType}
+                    onChange={(e) => { setFilters((prev) => ({ ...prev, actionType: e.target.value })); setPage(1) }}
+                    className="w-full px-3 py-2 border border-border rounded-lg bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-accent/20"
+                  >
+                    <option value="">{t('common.all')}</option>
+                    <option value="login">Вход</option>
+                    <option value="logout">Выход</option>
+                    <option value="create">Создание</option>
+                    <option value="update">Изменение</option>
+                    <option value="delete">Удаление</option>
+                    <option value="export">Экспорт</option>
+                    <option value="write_off">Списание</option>
+                    <option value="collect">Сбор</option>
+                  </select>
+                </div>
+                <div className="flex items-end pb-1">
                   <label htmlFor="audit-filter-security" className="flex items-center gap-2 text-sm text-foreground cursor-pointer min-h-[44px]">
                     <input
                       id="audit-filter-security"
                       type="checkbox"
                       checked={filters.securityOnly}
-                      onChange={(e) =>
-                        setFilters((prev) => ({ ...prev, securityOnly: e.target.checked }))
-                      }
+                      onChange={(e) => { setFilters((prev) => ({ ...prev, securityOnly: e.target.checked })); setPage(1) }}
                       className="rounded border-border text-accent focus:ring-2 focus:ring-accent/20 w-4 h-4"
                     />
                     {t('auditLogs.filters.securityOnly')}
                   </label>
+                </div>
+
+                {/* Row 2 — date range */}
+                <div>
+                  <label htmlFor="audit-filter-date-from" className="block text-sm font-medium text-foreground mb-1">
+                    {t('auditLogs.filters.dateFrom') || 'С даты'}
+                  </label>
+                  <input
+                    id="audit-filter-date-from"
+                    type="date"
+                    value={filters.dateFrom}
+                    onChange={(e) => { setFilters((prev) => ({ ...prev, dateFrom: e.target.value })); setPage(1) }}
+                    className="w-full px-3 py-2 border border-border rounded-lg bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-accent/20"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="audit-filter-date-to" className="block text-sm font-medium text-foreground mb-1">
+                    {t('auditLogs.filters.dateTo') || 'По дату'}
+                  </label>
+                  <input
+                    id="audit-filter-date-to"
+                    type="date"
+                    value={filters.dateTo}
+                    onChange={(e) => { setFilters((prev) => ({ ...prev, dateTo: e.target.value })); setPage(1) }}
+                    className="w-full px-3 py-2 border border-border rounded-lg bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-accent/20"
+                  />
                 </div>
               </div>
             )}
@@ -421,7 +527,7 @@ export default function AuditLogsPage() {
           <div
             className="bg-card rounded-xl border border-border overflow-hidden"
             role="region"
-            aria-label={t('auditLogs.tableTitle') || t('auditLogs.title')}
+            aria-label={t('auditLogs.title')}
           >
             {filteredLogs.length === 0 ? (
               <EmptyState
@@ -489,8 +595,8 @@ export default function AuditLogsPage() {
                               {log.human_readable_description || log.action}
                             </span>
                           </td>
-                          <td className="px-4 py-3 text-sm text-foreground max-w-xs truncate">
-                            {log.human_readable_details || '—'}
+                          <td className="px-4 py-3 text-sm text-muted-foreground max-w-xs truncate" title={getDetailsSummary(log)}>
+                            {getDetailsSummary(log)}
                           </td>
                           <td className="px-4 py-3">
                             {getSeverityBadge(log.severity || 'normal')}

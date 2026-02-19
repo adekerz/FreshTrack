@@ -38,7 +38,11 @@
       "Bash(armchair:*)",
       "Bash(xargs:*)",
       "Bash(del \"c:\\Users\\esima\\OneDrive\\Рабочий стол\\Projects\\FreshTrack-projectadekerz\\src\\pages\\AccountsPage.jsx\")",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(PGPASSWORD=AXhqksMysqzAJqCCOrhgwKtKIntqSrTk psql:*)",
+      "Bash(npx --yes pg-query:*)",
+      "Bash(node -e \"\nconst { Client } = require\\(''pg''\\);\nconst client = new Client\\({ connectionString: ''postgresql://postgres:AXhqksMysqzAJqCCOrhgwKtKIntqSrTk@turntable.proxy.rlwy.net:11180/railway'' }\\);\nclient.connect\\(\\).then\\(\\(\\) => client.query\\(''SELECT status, COUNT\\(*\\) as count FROM batches GROUP BY status ORDER BY count DESC''\\)\\).then\\(r => { console.log\\(JSON.stringify\\(r.rows\\)\\); client.end\\(\\); }\\).catch\\(e => { console.error\\(e.message\\); client.end\\(\\); }\\);\n\")",
+      "Bash(node:*)"
     ]
   }
 }

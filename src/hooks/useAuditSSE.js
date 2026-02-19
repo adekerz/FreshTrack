@@ -9,16 +9,21 @@ import { API_BASE_URL } from '../services/api'
 
 const MAX_NEW_LOGS = 10
 
-export function useAuditSSE(enabled = true) {
+export function useAuditSSE(enabled = true, hotelId = null) {
   const [newLogs, setNewLogs] = useState([])
   const eventSourceRef = useRef(null)
 
   const clearNewLogs = useCallback(() => setNewLogs([]), [])
 
   useEffect(() => {
+    setNewLogs([])
+  }, [hotelId])
+
+  useEffect(() => {
     if (!enabled) return undefined
 
-    const url = `${API_BASE_URL}/audit-logs/stream`
+    const params = hotelId ? `?hotel_id=${hotelId}` : ''
+    const url = `${API_BASE_URL}/audit-logs/stream${params}`
 
     const eventSource = new EventSource(url, { withCredentials: true })
     eventSourceRef.current = eventSource
@@ -42,7 +47,7 @@ export function useAuditSSE(enabled = true) {
       eventSource.close()
       eventSourceRef.current = null
     }
-  }, [enabled])
+  }, [enabled, hotelId])
 
   return { newLogs, clearNewLogs }
 }
