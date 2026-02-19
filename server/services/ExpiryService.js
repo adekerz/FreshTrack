@@ -282,6 +282,7 @@ export async function enrichBatchWithExpiryData(batch, options = {}) {
 
 /**
  * Enrich multiple batches with expiry data
+ * Fetches thresholds ONCE and applies synchronously to all batches (avoids N DB queries).
  * @param {Array} batches - Array of batch objects
  * @param {Object} options - { hotelId, departmentId, locale }
  * @returns {Array} - Batches with enriched expiry data
@@ -289,9 +290,53 @@ export async function enrichBatchWithExpiryData(batch, options = {}) {
 export async function enrichBatchesWithExpiryData(batches, options = {}) {
   if (!batches || !Array.isArray(batches)) return []
 
-  return Promise.all(
-    batches.map((batch) => enrichBatchWithExpiryData(batch, options))
-  )
+  const { hotelId, locale = 'ru' } = options
+
+  // Fetch thresholds once for all batches (not N times)
+  let thresholds = DEFAULT_THRESHOLDS
+  try {
+    const rulesThresholds = await getThresholdsFromRules(hotelId)
+    if (rulesThresholds) {
+      thresholds = {
+        critical: rulesThresholds.critical ?? DEFAULT_THRESHOLDS.critical,
+        warning: rulesThresholds.warning ?? DEFAULT_THRESHOLDS.warning,
+      }
+    } else {
+      const settings = await getSettings({ hotelId })
+      if (settings?.expiryThresholds) {
+        thresholds = {
+          critical:
+            settings.expiryThresholds.critical ?? DEFAULT_THRESHOLDS.critical,
+          warning:
+            settings.expiryThresholds.warning ?? DEFAULT_THRESHOLDS.warning,
+        }
+      }
+    }
+  } catch {
+    // Use defaults
+  }
+
+  // Apply synchronously — no more DB queries per batch
+  return batches.map((batch) => {
+    if (!batch) return null
+    const expiryDate = batch.expiry_date || batch.expiryDate
+    const daysLeft = calculateDaysUntilExpiry(expiryDate)
+    const status = getExpiryStatus(daysLeft, thresholds)
+    return {
+      ...batch,
+      daysLeft,
+      expiryStatus: status,
+      statusColor: StatusColor[status],
+      statusCssClass: StatusCssClass[status],
+      statusText: getStatusText(status, daysLeft, locale),
+      isExpired: status === ExpiryStatus.EXPIRED,
+      isUrgent: [
+        ExpiryStatus.EXPIRED,
+        ExpiryStatus.TODAY,
+        ExpiryStatus.CRITICAL,
+      ].includes(status),
+    }
+  })
 }
 
 /**

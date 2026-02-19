@@ -5,7 +5,13 @@
  * server-side pagination и синхронизацией
  */
 
-import { useQuery, useQueries, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query'
+import {
+  useQuery,
+  useQueries,
+  useMutation,
+  useQueryClient,
+  keepPreviousData,
+} from '@tanstack/react-query'
 import { queryKeys } from '../lib/queryKeys'
 import { STALE_TIMES, invalidateInventoryQueries } from '../lib/queryClient'
 import { apiFetch } from '../services/api'
@@ -41,7 +47,7 @@ function normalizeBatch(b) {
     statusColor: statusInfo.color,
     statusText: statusInfo.statusText,
     isExpired: statusInfo.isExpired,
-    isUrgent: statusInfo.isUrgent
+    isUrgent: statusInfo.isUrgent,
   }
 }
 
@@ -72,10 +78,12 @@ export function useBatches(hotelId, params = { page: 1, limit: 20 }) {
       const qs = buildBatchQuery(hotelId, {
         page: params.page || 1,
         limit: params.limit || 20,
-        ...params
+        ...params,
       })
       const response = await apiFetch(`/batches?${qs}`)
-      const batchesRaw = Array.isArray(response) ? response : response.batches || []
+      const batchesRaw = Array.isArray(response)
+        ? response
+        : response.batches || []
       const enriched = batchesRaw.map(normalizeBatch)
 
       return {
@@ -85,14 +93,14 @@ export function useBatches(hotelId, params = { page: 1, limit: 20 }) {
           page: response.page || params.page || 1,
           limit: response.limit || params.limit || 20,
           totalPages: response.totalPages || 1,
-          hasMore: response.hasMore || false
-        }
+          hasMore: response.hasMore || false,
+        },
       }
     },
     enabled: !!hotelId,
-    refetchOnWindowFocus: true,     // Обновляем при фокусе (важно для инвентаря)
-    refetchOnMount: true,           // Обновляем при монтировании
-    placeholderData: keepPreviousData
+    refetchOnWindowFocus: true, // Обновляем при фокусе (важно для инвентаря)
+    refetchOnMount: true, // Обновляем при монтировании
+    placeholderData: keepPreviousData,
   })
 }
 
@@ -106,19 +114,22 @@ export function useBatchesStats(hotelId) {
     queryFn: async () => {
       const query = hotelId ? `?hotel_id=${hotelId}` : ''
       const response = await apiFetch(`/batches/stats${query}`)
-      return response.stats || response || {
-        total: 0,
-        expired: 0,
-        critical: 0,
-        warning: 0,
-        good: 0,
-        needsAttention: 0
-      }
+      return (
+        response.stats ||
+        response || {
+          total: 0,
+          expired: 0,
+          critical: 0,
+          warning: 0,
+          good: 0,
+          needsAttention: 0,
+        }
+      )
     },
     enabled: !!hotelId,
     refetchOnWindowFocus: true,
     refetchOnMount: true,
-    staleTime: STALE_TIMES.batchesStats
+    staleTime: STALE_TIMES.batchesStats,
   })
 }
 
@@ -131,11 +142,13 @@ export function useDepartments(hotelId) {
     queryKey: queryKeys.departments(hotelId),
     queryFn: async () => {
       const query = hotelId ? `?hotel_id=${hotelId}` : ''
-      const response = await apiFetch(`/departments${query}`).catch(() => ({ departments: [] }))
+      const response = await apiFetch(`/departments${query}`).catch(() => ({
+        departments: [],
+      }))
       return Array.isArray(response) ? response : response.departments || []
     },
     enabled: !!hotelId,
-    staleTime: STALE_TIMES.departments
+    staleTime: STALE_TIMES.departments,
   })
 }
 
@@ -148,11 +161,13 @@ export function useCategories(hotelId) {
     queryKey: queryKeys.categories(hotelId),
     queryFn: async () => {
       const query = hotelId ? `?hotel_id=${hotelId}` : ''
-      const response = await apiFetch(`/categories${query}`).catch(() => ({ categories: [] }))
+      const response = await apiFetch(`/categories${query}`).catch(() => ({
+        categories: [],
+      }))
       return Array.isArray(response) ? response : response.categories || []
     },
     enabled: !!hotelId,
-    staleTime: STALE_TIMES.categories
+    staleTime: STALE_TIMES.categories,
   })
 }
 
@@ -171,9 +186,12 @@ export function useProducts(hotelId, params = { page: 1, limit: 50 }) {
       sp.set('page', String(params.page || 1))
       sp.set('limit', String(params.limit || 50))
       Object.entries(params).forEach(([k, v]) => {
-        if (v != null && v !== '' && k !== 'page' && k !== 'limit') sp.set(k, String(v))
+        if (v != null && v !== '' && k !== 'page' && k !== 'limit')
+          sp.set(k, String(v))
       })
-      const response = await apiFetch(`/products?${sp}`).catch(() => ({ items: [] }))
+      const response = await apiFetch(`/products?${sp}`).catch(() => ({
+        items: [],
+      }))
 
       const items = Array.isArray(response)
         ? response
@@ -186,25 +204,25 @@ export function useProducts(hotelId, params = { page: 1, limit: 50 }) {
           page: response.page || params.page || 1,
           limit: response.limit || params.limit || 50,
           totalPages: response.totalPages || 1,
-          hasMore: response.hasMore || false
-        }
+          hasMore: response.hasMore || false,
+        },
       }
     },
     enabled: !!hotelId,
     staleTime: STALE_TIMES.products,
-    placeholderData: keepPreviousData
+    placeholderData: keepPreviousData,
   })
 }
 
 // === Inventory limits for ProductContext ===
-const CONTEXT_BATCHES_LIMIT = 50
+const CONTEXT_BATCHES_LIMIT = 6000 // 200 rooms × 30 products per room = 6000 max active batches
 const CONTEXT_PRODUCTS_LIMIT = 100
 
 /**
  * Комбинированный hook для загрузки данных инвентаря (для ProductContext)
  * Использует useQueries для параллельной загрузки
  *
- * Batches: limit=50 (для alerts на Dashboard)
+ * Batches: limit=2000 (для полного отображения инвентаря)
  * Products: limit=100 (для каталога / AddBatchModal)
  * Departments, Categories: без лимита (справочники)
  * Stats: отдельный endpoint
@@ -222,13 +240,15 @@ export function useInventoryData(hotelId, departmentId = null) {
             ? `?hotel_id=${hotelId}&limit=${CONTEXT_BATCHES_LIMIT}`
             : `?limit=${CONTEXT_BATCHES_LIMIT}`
           const response = await apiFetch(`/batches${query}`)
-          const batchesRaw = Array.isArray(response) ? response : response.batches || []
+          const batchesRaw = Array.isArray(response)
+            ? response
+            : response.batches || []
           return batchesRaw.map(normalizeBatch)
         },
         enabled: !!hotelId,
         staleTime: STALE_TIMES.batches,
         refetchOnWindowFocus: true,
-        refetchOnMount: true
+        refetchOnMount: true,
       },
       {
         queryKey: queryKeys.batchesStats(hotelId, departmentId),
@@ -238,53 +258,62 @@ export function useInventoryData(hotelId, departmentId = null) {
           if (departmentId) sp.set('departmentId', departmentId)
 
           const response = await apiFetch(`/batches/stats?${sp.toString()}`)
-          return response.stats || response || {
-            total: 0,
-            expired: 0,
-            critical: 0,
-            warning: 0,
-            good: 0,
-            needsAttention: 0
-          }
+          return (
+            response.stats ||
+            response || {
+              total: 0,
+              expired: 0,
+              critical: 0,
+              warning: 0,
+              good: 0,
+              needsAttention: 0,
+            }
+          )
         },
         enabled: !!hotelId,
         staleTime: STALE_TIMES.batchesStats,
         refetchOnWindowFocus: true,
-        refetchOnMount: true
+        refetchOnMount: true,
       },
       {
         queryKey: queryKeys.categories(hotelId),
         queryFn: async () => {
           const query = hotelId ? `?hotel_id=${hotelId}` : ''
-          const response = await apiFetch(`/categories${query}`).catch(() => ({ categories: [] }))
+          const response = await apiFetch(`/categories${query}`).catch(() => ({
+            categories: [],
+          }))
           return Array.isArray(response) ? response : response.categories || []
         },
         enabled: !!hotelId,
-        staleTime: STALE_TIMES.categories
+        staleTime: STALE_TIMES.categories,
       },
       {
-        queryKey: queryKeys.products(hotelId, { limit: CONTEXT_PRODUCTS_LIMIT }),
+        queryKey: queryKeys.products(hotelId, {
+          limit: CONTEXT_PRODUCTS_LIMIT,
+        }),
         queryFn: async () => {
           const query = hotelId
             ? `?hotel_id=${hotelId}&limit=${CONTEXT_PRODUCTS_LIMIT}`
             : `?limit=${CONTEXT_PRODUCTS_LIMIT}`
-          const response = await apiFetch(`/products${query}`).catch(() => ({ items: [] }))
+          const response = await apiFetch(`/products${query}`).catch(() => ({
+            items: [],
+          }))
           return Array.isArray(response)
             ? response
             : response.items || response.products || []
         },
         enabled: !!hotelId,
-        staleTime: STALE_TIMES.products
-      }
-    ]
+        staleTime: STALE_TIMES.products,
+      },
+    ],
   })
 
   // Removed departments query
   const [batchesQuery, statsQuery, categoriesQuery, productsQuery] = queries
 
   // Объединенный loading state
-  const loading = queries.some(q => q.isLoading)
-  const error = queries.find(q => q.error)?.error || null
+  const loading = queries.some((q) => q.isLoading)
+  const error = queries.find((q) => q.error)?.error || null
 
   return {
     batches: batchesQuery.data || [],
@@ -294,7 +323,7 @@ export function useInventoryData(hotelId, departmentId = null) {
       critical: 0,
       warning: 0,
       good: 0,
-      needsAttention: 0
+      needsAttention: 0,
     },
     categories: categoriesQuery.data || [],
     products: productsQuery.data || [],
@@ -304,7 +333,7 @@ export function useInventoryData(hotelId, departmentId = null) {
     batchesLoading: batchesQuery.isLoading,
     statsLoading: statsQuery.isLoading,
     categoriesLoading: categoriesQuery.isLoading,
-    productsLoading: productsQuery.isLoading
+    productsLoading: productsQuery.isLoading,
   }
 }
 
@@ -321,24 +350,35 @@ export function useAddBatch(hotelId) {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async ({ productName, department, category, quantity, expiryDate }) => {
+    mutationFn: async ({
+      productName,
+      department,
+      category,
+      quantity,
+      expiryDate,
+    }) => {
       const response = await apiFetch('/batches', {
         method: 'POST',
         body: JSON.stringify({
           productName,
           department,
           category,
-          quantity: quantity === null || quantity === undefined ? null : parseInt(quantity),
-          expiryDate
-        })
+          quantity:
+            quantity === null || quantity === undefined
+              ? null
+              : parseInt(quantity),
+          expiryDate,
+        }),
       })
       return response.batch || response
     },
 
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['batches', hotelId] })
-      queryClient.invalidateQueries({ queryKey: queryKeys.batchesStats(hotelId) })
-    }
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.batchesStats(hotelId),
+      })
+    },
   })
 }
 
@@ -352,28 +392,31 @@ export function useAddBatchesBulk(hotelId, departmentId) {
 
   return useMutation({
     mutationFn: async ({ templateId, items, comment }) => {
-      const response = await apiFetch(`/delivery-templates/${templateId}/apply`, {
-        method: 'POST',
-        body: JSON.stringify({
-          items: items.map((item) => ({
-            productId: item.productId || item.product_id,
-            quantity: parseInt(item.quantity) || 1,
-            expiryDate: item.expiryDate
-          })),
-          departmentId,
-          comment: comment || null
-        })
-      })
+      const response = await apiFetch(
+        `/delivery-templates/${templateId}/apply`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            items: items.map((item) => ({
+              productId: item.productId || item.product_id,
+              quantity: parseInt(item.quantity) || 1,
+              expiryDate: item.expiryDate,
+            })),
+            departmentId,
+            comment: comment || null,
+          }),
+        }
+      )
       return response
     },
 
-    onSuccess: () => {
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ['batches', hotelId] })
-        queryClient.invalidateQueries({ queryKey: queryKeys.batchesStats(hotelId) })
-        queryClient.invalidateQueries({ queryKey: ['products', hotelId] })
-      }, 2000)
-    }
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['batches', hotelId] })
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.batchesStats(hotelId),
+      })
+      queryClient.invalidateQueries({ queryKey: ['products', hotelId] })
+    },
   })
 }
 
@@ -388,14 +431,16 @@ export function useCollectBatch(hotelId) {
     mutationFn: async ({ batchId, reason = 'manual', comment = '' }) => {
       return await apiFetch(`/batches/${batchId}/collect`, {
         method: 'POST',
-        body: JSON.stringify({ reason, comment })
+        body: JSON.stringify({ reason, comment }),
       })
     },
 
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['batches', hotelId] })
-      queryClient.invalidateQueries({ queryKey: queryKeys.batchesStats(hotelId) })
-    }
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.batchesStats(hotelId),
+      })
+    },
   })
 }
 
@@ -409,7 +454,7 @@ export function useDeleteBatch(hotelId) {
   return useMutation({
     mutationFn: async (batchId) => {
       return await apiFetch(`/batches/${batchId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
       })
     },
 
@@ -420,7 +465,7 @@ export function useDeleteBatch(hotelId) {
         queryClient.invalidateQueries({ queryKey: ['batches'] })
         queryClient.invalidateQueries({ queryKey: ['batches', 'stats'] })
       }
-    }
+    },
   })
 }
 
@@ -438,15 +483,15 @@ export function useAddProduct(hotelId) {
         body: JSON.stringify({
           name: name.trim(),
           categoryId: categoryId || null,
-          departmentId: departmentId || null
-        })
+          departmentId: departmentId || null,
+        }),
       })
       return response.product || response
     },
 
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['products', hotelId] })
-    }
+    },
   })
 }
 
@@ -460,13 +505,13 @@ export function useDeleteProduct(hotelId) {
   return useMutation({
     mutationFn: async (productId) => {
       return await apiFetch(`/products/${productId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
       })
     },
 
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['products', hotelId] })
       queryClient.invalidateQueries({ queryKey: ['batches', hotelId] })
-    }
+    },
   })
 }
