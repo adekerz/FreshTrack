@@ -1,7 +1,18 @@
 import { useState } from 'react'
 import {
-  Clock, User, Monitor, Globe, MapPin, ChevronDown, ChevronUp,
-  Package, Tag, ArrowRight, AlertCircle, AlertTriangle, Info
+  Clock,
+  User,
+  Monitor,
+  Globe,
+  MapPin,
+  ChevronDown,
+  ChevronUp,
+  Package,
+  Tag,
+  ArrowRight,
+  AlertCircle,
+  AlertTriangle,
+  Info,
 } from 'lucide-react'
 import { useTranslation } from '../../context/LanguageContext'
 import { formatDate } from '../../utils/dateUtils'
@@ -71,8 +82,15 @@ const DETAILS_LABELS = {
 }
 
 const SKIP_SNAPSHOT_KEYS = [
-  'id', 'created_at', 'updated_at', 'hotel_id', 'department_id',
-  '_snapshot_type', '_snapshot_time', 'user_id', 'category_id'
+  'id',
+  'created_at',
+  'updated_at',
+  'hotel_id',
+  'department_id',
+  '_snapshot_type',
+  '_snapshot_time',
+  'user_id',
+  'category_id',
 ]
 
 function formatValue(val) {
@@ -83,21 +101,41 @@ function formatValue(val) {
   if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}/.test(val)) {
     try {
       return new Date(val).toLocaleDateString('ru-RU')
-    } catch { return val }
+    } catch {
+      return val
+    }
   }
   return String(val)
 }
 
 function SeverityBadge({ severity }) {
   const configs = {
-    critical: { icon: AlertCircle, className: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400', label: 'Критично' },
-    important: { icon: AlertTriangle, className: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400', label: 'Важно' },
-    normal: { icon: Info, className: 'bg-muted text-muted-foreground', label: 'Обычно' },
+    critical: {
+      icon: AlertCircle,
+      className: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+      label: 'Критично',
+    },
+    important: {
+      icon: AlertTriangle,
+      className:
+        'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
+      label: 'Важно',
+    },
+    normal: {
+      icon: Info,
+      className: 'bg-muted text-muted-foreground',
+      label: 'Обычно',
+    },
   }
   const config = configs[severity] || configs.normal
   const Icon = config.icon
   return (
-    <span className={cn('inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium', config.className)}>
+    <span
+      className={cn(
+        'inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium',
+        config.className
+      )}
+    >
       <Icon className="w-3.5 h-3.5" />
       {config.label}
     </span>
@@ -108,25 +146,32 @@ function SeverityBadge({ severity }) {
 function ChangesSection({ before, after }) {
   if (!before || !after) return null
   const allKeys = [...new Set([...Object.keys(before), ...Object.keys(after)])]
-  const changed = allKeys.filter(k => {
+  const changed = allKeys.filter((k) => {
     if (SKIP_SNAPSHOT_KEYS.includes(k)) return false
     return String(before[k] ?? '') !== String(after[k] ?? '')
   })
-  if (changed.length === 0) return <p className="text-sm text-muted-foreground">Без изменений</p>
+  if (changed.length === 0)
+    return <p className="text-sm text-muted-foreground">Без изменений</p>
 
   return (
     <div className="overflow-x-auto rounded-lg border border-border">
       <table className="w-full text-sm">
         <thead className="bg-muted">
           <tr>
-            <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">Поле</th>
-            <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">Было</th>
+            <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+              Поле
+            </th>
+            <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+              Было
+            </th>
             <th className="px-3 py-2 text-center text-xs font-medium text-muted-foreground w-6"></th>
-            <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">Стало</th>
+            <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+              Стало
+            </th>
           </tr>
         </thead>
         <tbody className="divide-y divide-border">
-          {changed.map(k => (
+          {changed.map((k) => (
             <tr key={k}>
               <td className="px-3 py-2 text-muted-foreground font-medium whitespace-nowrap">
                 {FIELD_LABELS[k] || k}
@@ -151,16 +196,20 @@ function ChangesSection({ before, after }) {
 // Секция: поля снапшота (для CREATE/DELETE)
 function SnapshotFields({ snapshot, skip = [] }) {
   if (!snapshot || typeof snapshot !== 'object') return null
-  const entries = Object.entries(snapshot).filter(([k]) =>
-    !SKIP_SNAPSHOT_KEYS.includes(k) && !skip.includes(k)
+  const entries = Object.entries(snapshot).filter(
+    ([k]) => !SKIP_SNAPSHOT_KEYS.includes(k) && !skip.includes(k)
   )
   if (entries.length === 0) return null
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
       {entries.map(([k, v]) => (
         <div key={k} className="flex flex-col">
-          <span className="text-xs text-muted-foreground">{FIELD_LABELS[k] || k}</span>
-          <span className="text-sm text-foreground font-medium break-all">{formatValue(v)}</span>
+          <span className="text-xs text-muted-foreground">
+            {FIELD_LABELS[k] || k}
+          </span>
+          <span className="text-sm text-foreground font-medium break-all">
+            {formatValue(v)}
+          </span>
         </div>
       ))}
     </div>
@@ -169,17 +218,26 @@ function SnapshotFields({ snapshot, skip = [] }) {
 
 // Секция: поле details JSON как читаемые KV
 function DetailsFields({ details }) {
-  if (!details || typeof details !== 'object' || Object.keys(details).length === 0) return null
-  const entries = Object.entries(details).filter(([k]) =>
-    !['id', 'hotel_id', 'user_id', 'timestamp'].includes(k)
+  if (
+    !details ||
+    typeof details !== 'object' ||
+    Object.keys(details).length === 0
+  )
+    return null
+  const entries = Object.entries(details).filter(
+    ([k]) => !['id', 'hotel_id', 'user_id', 'timestamp'].includes(k)
   )
   if (entries.length === 0) return null
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
       {entries.map(([k, v]) => (
         <div key={k} className="flex flex-col">
-          <span className="text-xs text-muted-foreground">{DETAILS_LABELS[k] || k}</span>
-          <span className="text-sm text-foreground font-medium break-all">{formatValue(v)}</span>
+          <span className="text-xs text-muted-foreground">
+            {DETAILS_LABELS[k] || k}
+          </span>
+          <span className="text-sm text-foreground font-medium break-all">
+            {formatValue(v)}
+          </span>
         </div>
       ))}
     </div>
@@ -193,19 +251,23 @@ export function AuditDetailsModal({ log, onClose }) {
   if (!log) return null
 
   const action = (log.action || '').toUpperCase()
-  const entityTypeLabel = ENTITY_TYPE_LABELS[log.entity_type?.toLowerCase()] || log.entity_type
+  const entityTypeLabel =
+    ENTITY_TYPE_LABELS[log.entity_type?.toLowerCase()] || log.entity_type
   const after = log.snapshot_after
   const before = log.snapshot_before
   const entityName = after?.name || before?.name
 
   // Определяем что показывать в секции "Подробности о действии"
-  const isLogin = ['LOGIN', 'LOGOUT', 'LOGIN_FAILED'].includes(action)
+
   const isUpdate = action === 'UPDATE'
   const isCreate = action === 'CREATE'
   const isDelete = action === 'DELETE'
   const hasChanges = isUpdate && before && after
-  const hasSnapshot = (isCreate && after) || (isDelete && before)
-  const hasDetails = log.details && typeof log.details === 'object' && Object.keys(log.details).length > 0
+
+  const hasDetails =
+    log.details &&
+    typeof log.details === 'object' &&
+    Object.keys(log.details).length > 0
 
   return (
     <Modal
@@ -224,25 +286,28 @@ export function AuditDetailsModal({ log, onClose }) {
       }
     >
       <div className="space-y-5">
-
         {/* Блок 1: Время + Пользователь + Критичность */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="text-xs text-muted-foreground flex items-center gap-1 mb-1">
+            <p className="text-xs text-muted-foreground flex items-center gap-1 mb-1">
               <Clock className="w-3.5 h-3.5" />
               {t('auditLogs.time')}
-            </label>
-            <p className="font-medium text-foreground">{formatDate(log.created_at, true)}</p>
+            </p>
+            <p className="font-medium text-foreground">
+              {formatDate(log.created_at, true)}
+            </p>
           </div>
           <div>
-            <label className="text-xs text-muted-foreground flex items-center gap-1 mb-1">
+            <p className="text-xs text-muted-foreground flex items-center gap-1 mb-1">
               <User className="w-3.5 h-3.5" />
               {t('auditLogs.user')}
-            </label>
+            </p>
             <p className="font-medium text-foreground">
               {log.user_name}
               {log.department_name && (
-                <span className="block text-sm text-muted-foreground font-normal">{log.department_name}</span>
+                <span className="block text-sm text-muted-foreground font-normal">
+                  {log.department_name}
+                </span>
               )}
             </p>
           </div>
@@ -251,12 +316,16 @@ export function AuditDetailsModal({ log, onClose }) {
         {/* Блок 2: Действие + критичность */}
         <div className="p-3 bg-muted/50 rounded-lg flex items-start justify-between gap-3">
           <div>
-            <p className="text-xs text-muted-foreground mb-0.5">{t('auditLogs.action')}</p>
+            <p className="text-xs text-muted-foreground mb-0.5">
+              {t('auditLogs.action')}
+            </p>
             <p className="font-semibold text-foreground text-base">
               {log.human_readable_description || log.action}
             </p>
             {log.human_readable_details && (
-              <p className="text-sm text-muted-foreground mt-0.5">{log.human_readable_details}</p>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                {log.human_readable_details}
+              </p>
             )}
           </div>
           {log.severity && <SeverityBadge severity={log.severity} />}
@@ -265,10 +334,10 @@ export function AuditDetailsModal({ log, onClose }) {
         {/* Блок 3: Объект (entity) */}
         {(log.entity_type || entityName) && (
           <div>
-            <label className="text-xs text-muted-foreground flex items-center gap-1 mb-2">
+            <p className="text-xs text-muted-foreground flex items-center gap-1 mb-2">
               <Package className="w-3.5 h-3.5" />
               Объект
-            </label>
+            </p>
             <div className="flex flex-wrap items-center gap-2">
               {entityTypeLabel && (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-accent/10 text-accent text-xs rounded-full">
@@ -277,11 +346,15 @@ export function AuditDetailsModal({ log, onClose }) {
                 </span>
               )}
               {entityName && (
-                <span className="font-medium text-foreground">"{entityName}"</span>
+                <span className="font-medium text-foreground">
+                  &quot;{entityName}&quot;
+                </span>
               )}
               {log.entity_id && (
                 <span className="text-xs text-muted-foreground font-mono bg-muted px-2 py-0.5 rounded">
-                  {log.entity_id.length > 16 ? `${log.entity_id.slice(0, 8)}…` : log.entity_id}
+                  {log.entity_id.length > 16
+                    ? `${log.entity_id.slice(0, 8)}…`
+                    : log.entity_id}
                 </span>
               )}
             </div>
@@ -293,7 +366,9 @@ export function AuditDetailsModal({ log, onClose }) {
         {/* UPDATE — таблица изменений */}
         {hasChanges && (
           <div>
-            <label className="text-xs text-muted-foreground mb-2 block">Что изменилось</label>
+            <p className="text-xs text-muted-foreground mb-2 block">
+              Что изменилось
+            </p>
             <ChangesSection before={before} after={after} />
           </div>
         )}
@@ -301,7 +376,9 @@ export function AuditDetailsModal({ log, onClose }) {
         {/* CREATE — поля созданного объекта */}
         {isCreate && after && (
           <div>
-            <label className="text-xs text-muted-foreground mb-2 block">Созданный объект</label>
+            <p className="text-xs text-muted-foreground mb-2 block">
+              Созданный объект
+            </p>
             <div className="p-3 bg-muted/50 rounded-lg">
               <SnapshotFields snapshot={after} />
             </div>
@@ -311,7 +388,9 @@ export function AuditDetailsModal({ log, onClose }) {
         {/* DELETE — что было удалено */}
         {isDelete && before && (
           <div>
-            <label className="text-xs text-muted-foreground mb-2 block">Удалённый объект</label>
+            <p className="text-xs text-muted-foreground mb-2 block">
+              Удалённый объект
+            </p>
             <div className="p-3 bg-red-50 dark:bg-red-900/10 rounded-lg border border-red-100 dark:border-red-900/20">
               <SnapshotFields snapshot={before} />
             </div>
@@ -321,7 +400,9 @@ export function AuditDetailsModal({ log, onClose }) {
         {/* Поле details (JSON) — дополнительный контекст */}
         {hasDetails && (
           <div>
-            <label className="text-xs text-muted-foreground mb-2 block">Данные действия</label>
+            <p className="text-xs text-muted-foreground mb-2 block">
+              Данные действия
+            </p>
             <div className="p-3 bg-muted/50 rounded-lg">
               <DetailsFields details={log.details} />
             </div>
@@ -330,28 +411,38 @@ export function AuditDetailsModal({ log, onClose }) {
 
         {/* Блок 5: Технические данные */}
         <div>
-          <label className="text-xs text-muted-foreground mb-2 block">Техническая информация</label>
+          <p className="text-xs text-muted-foreground mb-2 block">
+            Техническая информация
+          </p>
           <div className="space-y-1.5">
             {log.ip_address && (
               <div className="flex items-center gap-2 text-sm">
                 <MapPin className="w-4 h-4 text-muted-foreground shrink-0" />
                 <span className="text-muted-foreground">IP:</span>
-                <span className="font-mono text-foreground">{log.ip_address}</span>
+                <span className="font-mono text-foreground">
+                  {log.ip_address}
+                </span>
               </div>
             )}
             {log.browser_name && (
               <div className="flex items-center gap-2 text-sm">
                 <Monitor className="w-4 h-4 text-muted-foreground shrink-0" />
-                <span className="text-muted-foreground">{t('auditLogs.browser')}:</span>
+                <span className="text-muted-foreground">
+                  {t('auditLogs.browser')}:
+                </span>
                 <span className="text-foreground">{log.browser_name}</span>
-                {log.os_name && <span className="text-muted-foreground">/ {log.os_name}</span>}
+                {log.os_name && (
+                  <span className="text-muted-foreground">/ {log.os_name}</span>
+                )}
               </div>
             )}
             {log.device_type && log.device_type !== 'desktop' && (
               <div className="flex items-center gap-2 text-sm">
                 <Globe className="w-4 h-4 text-muted-foreground shrink-0" />
                 <span className="text-muted-foreground">Устройство:</span>
-                <span className="text-foreground capitalize">{log.device_type}</span>
+                <span className="text-foreground capitalize">
+                  {log.device_type}
+                </span>
               </div>
             )}
             {!log.ip_address && !log.browser_name && (
@@ -368,14 +459,20 @@ export function AuditDetailsModal({ log, onClose }) {
               onClick={() => setShowRaw(!showRaw)}
               className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
-              {showRaw ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              {showRaw ? (
+                <ChevronUp className="w-4 h-4" />
+              ) : (
+                <ChevronDown className="w-4 h-4" />
+              )}
               {t('auditLogs.technicalDataJson')}
             </button>
             {showRaw && (
               <div className="mt-2 space-y-3">
                 {before && (
                   <div>
-                    <p className="text-xs text-muted-foreground mb-1">{t('auditLogs.beforeChange')}</p>
+                    <p className="text-xs text-muted-foreground mb-1">
+                      {t('auditLogs.beforeChange')}
+                    </p>
                     <pre className="p-3 bg-muted rounded-lg text-xs overflow-x-auto max-h-48 overflow-y-auto">
                       {JSON.stringify(before, null, 2)}
                     </pre>
@@ -383,7 +480,9 @@ export function AuditDetailsModal({ log, onClose }) {
                 )}
                 {after && (
                   <div>
-                    <p className="text-xs text-muted-foreground mb-1">{t('auditLogs.afterChange')}</p>
+                    <p className="text-xs text-muted-foreground mb-1">
+                      {t('auditLogs.afterChange')}
+                    </p>
                     <pre className="p-3 bg-muted rounded-lg text-xs overflow-x-auto max-h-48 overflow-y-auto">
                       {JSON.stringify(after, null, 2)}
                     </pre>
@@ -393,7 +492,6 @@ export function AuditDetailsModal({ log, onClose }) {
             )}
           </div>
         )}
-
       </div>
     </Modal>
   )
