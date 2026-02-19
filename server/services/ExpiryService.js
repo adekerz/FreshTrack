@@ -77,8 +77,8 @@ async function getThresholdsFromRules(hotelId) {
     // Get the first enabled expiry rule for this hotel
     const result = await query(
       `
-      SELECT warning_days, critical_days 
-      FROM notification_rules 
+      SELECT warning_days, critical_days, notification_mode, warning_months
+      FROM notification_rules
       WHERE (hotel_id = $1 OR hotel_id IS NULL)
         AND type = 'expiry'
         AND enabled = true
@@ -89,9 +89,15 @@ async function getThresholdsFromRules(hotelId) {
     )
 
     if (result.rows.length > 0) {
+      const row = result.rows[0]
+      // Monthly mode: use warning_months * 30 as effective warning threshold
+      const effectiveWarning =
+        row.notification_mode === 'monthly'
+          ? (row.warning_months || 2) * 30
+          : row.warning_days
       const thresholds = {
-        warning: result.rows[0].warning_days,
-        critical: result.rows[0].critical_days,
+        warning: effectiveWarning,
+        critical: row.critical_days,
       }
       thresholdsCache.set(cacheKey, { thresholds, timestamp: Date.now() })
       return thresholds

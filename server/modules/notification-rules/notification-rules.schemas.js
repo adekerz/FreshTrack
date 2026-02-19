@@ -8,10 +8,19 @@ import { z } from 'zod'
 // Базовые типы
 // ========================================
 
-const NotificationChannelSchema = z.enum(['telegram', 'email', 'push', 'in_app'])
+const NotificationChannelSchema = z.enum([
+  'telegram',
+  'email',
+  'push',
+  'in_app',
+])
 
 const RecipientRoleSchema = z.enum([
-  'SUPER_ADMIN', 'HOTEL_ADMIN', 'MANAGER', 'DEPARTMENT_MANAGER', 'STAFF'
+  'SUPER_ADMIN',
+  'HOTEL_ADMIN',
+  'MANAGER',
+  'DEPARTMENT_MANAGER',
+  'STAFF',
 ])
 
 // ========================================
@@ -24,18 +33,27 @@ const RecipientRoleSchema = z.enum([
 export const CreateNotificationRuleSchema = z.object({
   id: z.string().uuid().optional().nullable(),
   type: z.string().min(1, 'Тип правила обязателен').max(100),
-  name: z.string()
+  name: z
+    .string()
     .min(1, 'Название обязательно')
     .max(200, 'Название слишком длинное')
-    .transform(v => v.trim()),
+    .transform((v) => v.trim()),
   description: z.string().max(500).optional().nullable(),
+  // daily mode: warn when days_left <= warningDays
   warningDays: z.number().int().min(0).max(365).optional().nullable(),
   criticalDays: z.number().int().min(0).max(365).optional().nullable(),
-  channels: z.array(NotificationChannelSchema).min(1, 'Выберите хотя бы один канал'),
-  recipientRoles: z.array(RecipientRoleSchema).min(1, 'Выберите хотя бы одну роль'),
+  // monthly mode: group by expiry month within warningMonths ahead
+  notificationMode: z.enum(['daily', 'monthly']).default('daily'),
+  warningMonths: z.number().int().min(1).max(24).optional().nullable(),
+  channels: z
+    .array(NotificationChannelSchema)
+    .min(1, 'Выберите хотя бы один канал'),
+  recipientRoles: z
+    .array(RecipientRoleSchema)
+    .min(1, 'Выберите хотя бы одну роль'),
   departmentId: z.string().uuid().optional().nullable(),
   enabled: z.boolean().default(true),
-  hotelId: z.string().uuid().optional().nullable()
+  hotelId: z.string().uuid().optional().nullable(),
 })
 
 /**
@@ -44,7 +62,7 @@ export const CreateNotificationRuleSchema = z.object({
 export const UpdateTelegramChatSchema = z.object({
   departmentId: z.string().uuid().optional().nullable(),
   notificationTypes: z.array(z.string().max(50)).optional().nullable(),
-  silentMode: z.boolean().optional().nullable()
+  silentMode: z.boolean().optional().nullable(),
 })
 
 /**
@@ -52,7 +70,7 @@ export const UpdateTelegramChatSchema = z.object({
  */
 export const TestTelegramSchema = z.object({
   chatId: z.string().min(1, 'chatId обязателен'),
-  message: z.string().max(4096).optional().nullable()
+  message: z.string().max(4096).optional().nullable(),
 })
 
 // ========================================
@@ -69,11 +87,11 @@ export function validate(schema, data) {
   const issues = result.error?.issues || result.error?.errors || []
   return {
     isValid: false,
-    errors: issues.map(err => ({
+    errors: issues.map((err) => ({
       field: err.path?.join('.') || '',
       message: err.message,
-      code: err.code
+      code: err.code,
     })),
-    data: null
+    data: null,
   }
 }

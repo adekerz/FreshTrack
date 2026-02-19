@@ -163,12 +163,30 @@ export class NotificationEngine {
             const batchesResult = await query(batchesQuery, batchesParams)
             const batches = batchesResult.rows
 
+            // Get the active notification rule for this scope to use its thresholds
+            const ruleResult = await query(
+              `SELECT warning_days, critical_days, notification_mode, warning_months
+               FROM notification_rules
+               WHERE (hotel_id = $1 OR hotel_id IS NULL)
+                 AND (department_id = $2 OR department_id IS NULL)
+                 AND type = 'expiry' AND enabled = true
+               ORDER BY hotel_id NULLS LAST, department_id NULLS LAST
+               LIMIT 1`,
+              [hotel.id, scope.id || null]
+            )
+            const activeRule = ruleResult.rows[0] || {
+              warning_days: 7,
+              critical_days: 3,
+              notification_mode: 'daily',
+              warning_months: 2,
+            }
+            const isMonthlyMode = activeRule.notification_mode === 'monthly'
+            const warningDays = activeRule.warning_days || 7
+
             // 2. Calculate statistics
-            // Notifications are sent only once per day as an aggregated report
-            // No per-item or real-time alerts by design (anti-spam UX)
             const stats = {
               good: 0,
-              warning: 0, // ≤7 days
+              warning: 0,
               expired: 0,
               total: batches.length,
             }
@@ -177,27 +195,73 @@ export class NotificationEngine {
               const daysLeft = batch.days_left || 0
               if (daysLeft < 0) {
                 stats.expired++
-              } else if (daysLeft <= 7) {
+              } else if (daysLeft <= warningDays) {
                 stats.warning++
               } else {
                 stats.good++
               }
             }
 
-            // 3. Build expiringList (top-10, ≤7 days, not expired)
-            const expiringList = batches
-              .filter((b) => (b.days_left || 0) > 0 && (b.days_left || 0) <= 7)
-              .sort((a, b) => (a.days_left || 0) - (b.days_left || 0))
-              .slice(0, 10)
-              .map((b) => ({
-                product_name: b.product_name,
-                expiry_date: b.expiry_date,
-                quantity: b.quantity,
-                unit: b.unit || 'шт.',
-                days_left: b.days_left || 0,
-              }))
+            // 3a. MONTHLY MODE: group future batches by expiry month
+            let monthlyGroups = []
+            if (isMonthlyMode) {
+              const lookaheadMonths = activeRule.warning_months || 2
+              const cutoff = new Date()
+              cutoff.setMonth(cutoff.getMonth() + lookaheadMonths)
+              cutoff.setDate(1) // start of the month after lookahead
 
-            // 4. Build expiredList (top-10, expired)
+              const groupMap = {}
+              for (const b of batches) {
+                if ((b.days_left || 0) <= 0) continue // skip expired/today
+                const expiryDate = new Date(b.expiry_date)
+                if (expiryDate >= cutoff) continue // too far in future
+                const key = `${expiryDate.getFullYear()}-${String(expiryDate.getMonth() + 1).padStart(2, '0')}`
+                if (!groupMap[key]) groupMap[key] = []
+                groupMap[key].push(b)
+              }
+
+              monthlyGroups = Object.entries(groupMap)
+                .sort(([a], [b]) => a.localeCompare(b))
+                .map(([key]) => {
+                  const [yr, mo] = key.split('-')
+                  const label = new Date(
+                    parseInt(yr),
+                    parseInt(mo) - 1,
+                    1
+                  ).toLocaleDateString('ru-RU', {
+                    year: 'numeric',
+                    month: 'long',
+                  })
+                  const items = groupMap[key]
+                    .sort(
+                      (a, b) =>
+                        new Date(a.expiry_date) - new Date(b.expiry_date)
+                    )
+                    .slice(0, 15)
+                  return { key, label, items, total: groupMap[key].length }
+                })
+            }
+
+            // 3b. DAILY MODE: expiringList within warning threshold
+            const expiringList = isMonthlyMode
+              ? []
+              : batches
+                  .filter(
+                    (b) =>
+                      (b.days_left || 0) > 0 &&
+                      (b.days_left || 0) <= warningDays
+                  )
+                  .sort((a, b) => (a.days_left || 0) - (b.days_left || 0))
+                  .slice(0, 10)
+                  .map((b) => ({
+                    product_name: b.product_name,
+                    expiry_date: b.expiry_date,
+                    quantity: b.quantity,
+                    unit: b.unit || 'шт.',
+                    days_left: b.days_left || 0,
+                  }))
+
+            // 4. Build expiredList (top-10, expired) — both modes
             const expiredList = batches
               .filter((b) => (b.days_left || 0) < 0)
               .sort((a, b) => (a.days_left || 0) - (b.days_left || 0))
@@ -333,21 +397,51 @@ export class NotificationEngine {
               const expiringListText = formatExpiringList()
               const expiredListText = formatExpiredList()
 
+              // Format monthly groups for Telegram
+              const formatMonthlyGroupsText = () => {
+                if (monthlyGroups.length === 0)
+                  return '✅ Нет товаров с истекающим сроком в ближайшие месяцы'
+                return monthlyGroups
+                  .map(({ label, items, total }) => {
+                    const lines = items.map((b) => {
+                      const date = new Date(b.expiry_date).toLocaleDateString(
+                        'ru-RU'
+                      )
+                      return `  • ${b.product_name} — ${b.quantity} ${b.unit || 'шт.'} (${date})`
+                    })
+                    const more =
+                      total > items.length
+                        ? `\n  ... и ещё ${total - items.length} партий`
+                        : ''
+                    return `📅 ${label} (${total} партий):\n${lines.join('\n')}${more}`
+                  })
+                  .join('\n\n')
+              }
+
               // Build message
               const location =
                 scope.type === 'department'
                   ? `🏨 ${hotel.name} → 🏢 ${scope.name}`
                   : `🏨 ${hotel.name}`
 
-              const message = `${location}\n\n${template
-                .replace(/{good}/g, templateData.good)
-                .replace(/{warning}/g, templateData.warning)
-                .replace(/{expired}/g, templateData.expired)
-                .replace(/{total}/g, templateData.total)
-                .replace(/{date}/g, templateData.date)
-                .replace(/{expiringList}/g, expiringListText)
-                .replace(/{expiredList}/g, expiredListText)
-                .replace(/{department}/g, templateData.department)}`
+              let message
+              if (isMonthlyMode) {
+                const monthlyText = formatMonthlyGroupsText()
+                const expiredSection = expiredListText
+                  ? `\n\n${expiredListText}`
+                  : ''
+                message = `${location}\n\n📊 Ежемесячный отчёт FreshTrack\nДата: ${templateData.date}\n\n🔴 Просрочено: ${stats.expired} | 📦 Всего партий: ${stats.total}\n\n${monthlyText}${expiredSection}`
+              } else {
+                message = `${location}\n\n${template
+                  .replace(/{good}/g, templateData.good)
+                  .replace(/{warning}/g, templateData.warning)
+                  .replace(/{expired}/g, templateData.expired)
+                  .replace(/{total}/g, templateData.total)
+                  .replace(/{date}/g, templateData.date)
+                  .replace(/{expiringList}/g, expiringListText)
+                  .replace(/{expiredList}/g, expiredListText)
+                  .replace(/{department}/g, templateData.department)}`
+              }
 
               // Send to all linked chats
               for (const chat of chats) {
@@ -409,11 +503,13 @@ export class NotificationEngine {
                       totalBatches: stats.total,
                       expiringBatches: stats.warning,
                       expiredBatches: stats.expired,
-                      collectionsToday: 0, // Can be added later if needed
+                      collectionsToday: 0,
                       hotel: { id: hotel.id, name: hotel.name },
                       department,
                       expiringList,
                       expiredList,
+                      isMonthlyMode,
+                      monthlyGroups,
                     },
                     to,
                   })
@@ -539,8 +635,9 @@ export class NotificationEngine {
       `
       INSERT INTO notification_rules (
         id, hotel_id, department_id, type, name, description,
-        warning_days, critical_days, channels, recipient_roles, enabled
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10::jsonb, $11)
+        warning_days, critical_days, notification_mode, warning_months,
+        channels, recipient_roles, enabled
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::jsonb, $12::jsonb, $13)
       ON CONFLICT (
         COALESCE(hotel_id, '00000000-0000-0000-0000-000000000000'),
         COALESCE(department_id, '00000000-0000-0000-0000-000000000000'),
@@ -550,6 +647,8 @@ export class NotificationEngine {
         description = EXCLUDED.description,
         warning_days = EXCLUDED.warning_days,
         critical_days = EXCLUDED.critical_days,
+        notification_mode = EXCLUDED.notification_mode,
+        warning_months = EXCLUDED.warning_months,
         channels = EXCLUDED.channels,
         recipient_roles = EXCLUDED.recipient_roles,
         enabled = EXCLUDED.enabled,
@@ -564,6 +663,8 @@ export class NotificationEngine {
         rule.description || null,
         rule.warningDays || 7,
         rule.criticalDays || 3,
+        rule.notificationMode || 'daily',
+        rule.warningMonths || null,
         channelsJson,
         JSON.stringify(
           rule.recipientRoles || ['HOTEL_ADMIN', 'DEPARTMENT_MANAGER']
