@@ -100,13 +100,11 @@ router.post(
     try {
       const validation = validate(CreateDepartmentSchema, req.body)
       if (!validation.isValid) {
-        return res
-          .status(400)
-          .json({
-            success: false,
-            error: 'Validation failed',
-            details: validation.errors,
-          })
+        return res.status(400).json({
+          success: false,
+          error: 'Validation failed',
+          details: validation.errors,
+        })
       }
 
       const { name, description, settings, email } = validation.data
@@ -186,13 +184,11 @@ router.put(
 
       const validation = validate(UpdateDepartmentSchema, req.body)
       if (!validation.isValid) {
-        return res
-          .status(400)
-          .json({
-            success: false,
-            error: 'Validation failed',
-            details: validation.errors,
-          })
+        return res.status(400).json({
+          success: false,
+          error: 'Validation failed',
+          details: validation.errors,
+        })
       }
 
       const { name, description, settings, is_active, email } = validation.data
@@ -455,12 +451,10 @@ router.post(
       }
 
       if (!department.email) {
-        return res
-          .status(400)
-          .json({
-            success: false,
-            error: 'No email configured for this department',
-          })
+        return res.status(400).json({
+          success: false,
+          error: 'No email configured for this department',
+        })
       }
 
       // Токен для ссылок «подтвердить» и «отписаться» (один токен — два endpoint)
@@ -532,10 +526,18 @@ router.get('/:id/confirm', async (req, res) => {
     const { token } = req.query
     if (!token) {
       return res.status(400).send(`
-          <html><body style="font-family: sans-serif; text-align: center; padding: 50px;">
-            <h2>Неверный запрос</h2>
-            <p>Отсутствует токен подтверждения.</p>
-          </body></html>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ошибка - FreshTrack</title>
+</head>
+<body style="font-family: sans-serif; text-align: center; padding: 50px; margin: 0;">
+  <h2>Неверный запрос</h2>
+  <p>Отсутствует токен подтверждения.</p>
+</body>
+</html>
         `)
     }
     const result = await dbQuery(
@@ -548,26 +550,50 @@ router.get('/:id/confirm', async (req, res) => {
     )
     if (result.rows.length === 0) {
       return res.status(400).send(`
-          <html><body style="font-family: sans-serif; text-align: center; padding: 50px;">
-            <h2>Недействительная или устаревшая ссылка</h2>
-            <p>Запросите новое письмо подтверждения в настройках отеля.</p>
-          </body></html>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ошибка подтверждения - FreshTrack</title>
+</head>
+<body style="font-family: sans-serif; text-align: center; padding: 50px; margin: 0;">
+  <h2>Недействительная или устаревшая ссылка</h2>
+  <p>Запросите новое письмо подтверждения в настройках отеля.</p>
+</body>
+</html>
         `)
     }
     res.send(`
-        <html><body style="font-family: sans-serif; text-align: center; padding: 50px;">
-          <h2 style="color: #059669;">✓ Email подтверждён</h2>
-          <p>На этот адрес будут приходить ежедневные отчёты по инвентарю.</p>
-          <p style="color: #666; font-size: 14px; margin-top: 30px;">Можно закрыть эту страницу.</p>
-        </body></html>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Email подтверждён - FreshTrack</title>
+</head>
+<body style="font-family: sans-serif; text-align: center; padding: 50px; margin: 0;">
+  <h2 style="color: #059669;">✓ Email подтверждён</h2>
+  <p>На этот адрес будут приходить ежедневные отчёты по инвентарю.</p>
+  <p style="color: #666; font-size: 14px; margin-top: 30px;">Можно закрыть эту страницу.</p>
+</body>
+</html>
       `)
   } catch (error) {
     logError('Department confirm error', error)
     res.status(500).send(`
-        <html><body style="font-family: sans-serif; text-align: center; padding: 50px;">
-          <h2>Ошибка</h2>
-          <p>Попробуйте позже или запросите новое письмо.</p>
-        </body></html>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ошибка - FreshTrack</title>
+</head>
+<body style="font-family: sans-serif; text-align: center; padding: 50px; margin: 0;">
+  <h2>Ошибка</h2>
+  <p>Попробуйте позже или запросите новое письмо.</p>
+</body>
+</html>
       `)
   }
 })
@@ -583,12 +609,18 @@ router.get('/:id/unsubscribe', async (req, res) => {
 
     if (!token) {
       return res.status(400).send(`
-          <html>
-            <body style="font-family: sans-serif; text-align: center; padding: 50px;">
-              <h2>Invalid Request</h2>
-              <p>Missing unsubscribe token.</p>
-            </body>
-          </html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Error - FreshTrack</title>
+</head>
+<body style="font-family: sans-serif; text-align: center; padding: 50px; margin: 0;">
+  <h2>Invalid Request</h2>
+  <p>Missing unsubscribe token.</p>
+</body>
+</html>
         `)
     }
 
@@ -603,35 +635,53 @@ router.get('/:id/unsubscribe', async (req, res) => {
 
     if (result.rows.length === 0) {
       return res.status(400).send(`
-          <html>
-            <body style="font-family: sans-serif; text-align: center; padding: 50px;">
-              <h2>Invalid or Expired Link</h2>
-              <p>The unsubscribe link is invalid or has expired.</p>
-            </body>
-          </html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Error - FreshTrack</title>
+</head>
+<body style="font-family: sans-serif; text-align: center; padding: 50px; margin: 0;">
+  <h2>Invalid or Expired Link</h2>
+  <p>The unsubscribe link is invalid or has expired.</p>
+</body>
+</html>
         `)
     }
 
     res.send(`
-        <html>
-          <body style="font-family: sans-serif; text-align: center; padding: 50px;">
-            <h2 style="color: #059669;">✓ Unsubscribed</h2>
-            <p>You will no longer receive daily reports at this email address.</p>
-            <p style="color: #666; font-size: 14px; margin-top: 30px;">
-              Contact your hotel administrator to re-enable email notifications.
-            </p>
-          </body>
-        </html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Unsubscribed - FreshTrack</title>
+</head>
+<body style="font-family: sans-serif; text-align: center; padding: 50px; margin: 0;">
+  <h2 style="color: #059669;">✓ Unsubscribed</h2>
+  <p>You will no longer receive daily reports at this email address.</p>
+  <p style="color: #666; font-size: 14px; margin-top: 30px;">
+    Contact your hotel administrator to re-enable email notifications.
+  </p>
+</body>
+</html>
       `)
   } catch (error) {
     logError('Unsubscribe error', error)
     res.status(500).send(`
-        <html>
-          <body style="font-family: sans-serif; text-align: center; padding: 50px;">
-            <h2>Error</h2>
-            <p>An error occurred while processing your request.</p>
-          </body>
-        </html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Error - FreshTrack</title>
+</head>
+<body style="font-family: sans-serif; text-align: center; padding: 50px; margin: 0;">
+  <h2>Error</h2>
+  <p>An error occurred while processing your request.</p>
+</body>
+</html>
       `)
   }
 })
