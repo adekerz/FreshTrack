@@ -833,6 +833,7 @@ export default function FastIntakeModal({
                             <div className="flex items-center gap-0.5 shrink-0">
                               <button
                                 type="button"
+                                onPointerDown={(e) => e.preventDefault()}
                                 onClick={() =>
                                   changeGroupSize(firstInGroupIndex, -1)
                                 }
@@ -847,6 +848,7 @@ export default function FastIntakeModal({
                               </span>
                               <button
                                 type="button"
+                                onPointerDown={(e) => e.preventDefault()}
                                 onClick={() =>
                                   changeGroupSize(firstInGroupIndex, 1)
                                 }
@@ -1018,16 +1020,17 @@ export default function FastIntakeModal({
                             {/* Date suggestion chips — appear on focus if there are recent dates */}
                             {focusedItemIndex === index &&
                               getDateSuggestions(item).length > 0 && (
-                                <div className="mt-1.5 ml-[22px] flex gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [touch-action:pan-x]">
+                                <div className="mt-1.5 ml-[22px] flex gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                                   {getDateSuggestions(item).map((isoDate) => (
                                     <button
                                       key={isoDate}
                                       type="button"
-                                      onClick={(e) => {
+                                      onPointerDown={(e) => {
                                         e.preventDefault()
+                                        e.stopPropagation()
                                         applyDateSuggestion(index, isoDate)
                                       }}
-                                      className="flex-none flex flex-col items-center px-2.5 py-1 rounded-lg border border-amber-200 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 active:scale-95 transition-transform touch-manipulation select-none"
+                                      className="flex-none flex flex-col items-center px-3 py-1.5 rounded-lg border border-amber-200 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 active:scale-95 transition-transform touch-manipulation select-none"
                                     >
                                       <span className="text-xs font-semibold tabular-nums leading-tight">
                                         {formatDateForDisplay(isoDate)}
