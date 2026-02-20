@@ -1,29 +1,41 @@
 /**
  * Departments Validation Schemas
- * 
+ *
  * Zod схемы для валидации запросов управления департаментами.
  */
 
 import { z } from 'zod'
 
+// Valid department classifications
+const DEPARTMENT_TYPES = [
+  'restaurant',
+  'bar',
+  'room_service',
+  'storage',
+  'kitchen',
+  'minibar',
+]
+
 // Создание департамента
 export const CreateDepartmentSchema = z.object({
   name: z.string().min(1, 'Name is required').max(100),
   description: z.string().max(500).optional().nullable(),
+  type: z.enum(DEPARTMENT_TYPES).optional().nullable(),
   hotel_id: z.string().uuid('Invalid hotel ID').optional(),
   settings: z.object({}).passthrough().optional().nullable(),
   email: z.string().max(255).optional().nullable(),
-  telegram_chat_id: z.string().max(255).optional().nullable()
+  telegram_chat_id: z.string().max(255).optional().nullable(),
 })
 
 // Обновление департамента
 export const UpdateDepartmentSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   description: z.string().max(500).optional().nullable(),
+  type: z.enum(DEPARTMENT_TYPES).optional().nullable(),
   settings: z.object({}).passthrough().optional().nullable(),
   is_active: z.boolean().optional(),
   email: z.string().max(255).optional().nullable(),
-  telegram_chat_id: z.string().max(255).optional().nullable()
+  telegram_chat_id: z.string().max(255).optional().nullable(),
 })
 
 /**
@@ -39,8 +51,10 @@ export function validate(schema, data) {
       return { isValid: true, data: result.data }
     }
     // Zod v4 использует error.issues
-    const errors = result.error.issues?.map(e => `${e.path.join('.')}: ${e.message}`) || 
-                   result.error.errors?.map(e => `${e.path.join('.')}: ${e.message}`) || []
+    const errors =
+      result.error.issues?.map((e) => `${e.path.join('.')}: ${e.message}`) ||
+      result.error.errors?.map((e) => `${e.path.join('.')}: ${e.message}`) ||
+      []
     return { isValid: false, errors }
   } catch (error) {
     return { isValid: false, errors: [error.message] }

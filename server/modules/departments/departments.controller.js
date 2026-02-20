@@ -108,7 +108,8 @@ router.post(
         })
       }
 
-      const { name, description, settings, email } = validation.data
+      const { name, description, type, settings, email, telegram_chat_id } =
+        validation.data
 
       // SECURITY: Use req.hotelId from hotelIsolation middleware
       // This ensures non-SUPER_ADMIN can only create in their own hotel
@@ -129,10 +130,15 @@ router.post(
       const department = await createDepartment({
         name,
         description: departmentDescription,
+        type: type || null,
         settings,
         hotel_id,
         code,
         email: email && String(email).trim() ? String(email).trim() : null,
+        telegram_chat_id:
+          telegram_chat_id && String(telegram_chat_id).trim()
+            ? String(telegram_chat_id).trim()
+            : null,
       })
 
       await logAudit({
@@ -192,17 +198,34 @@ router.put(
         })
       }
 
-      const { name, description, settings, is_active, email } = validation.data
+      const {
+        name,
+        description,
+        type,
+        settings,
+        is_active,
+        email,
+        telegram_chat_id,
+      } = validation.data
       const updates = {}
       if (name !== undefined) updates.name = name
       if (description !== undefined) {
         updates.description = description === '' ? null : description
+      }
+      if (type !== undefined) {
+        updates.type = type === '' || type === null ? null : type
       }
       if (settings !== undefined) updates.settings = settings
       if (is_active !== undefined) updates.is_active = is_active
       if (email !== undefined) {
         updates.email =
           email === '' || email === null ? null : String(email).trim()
+      }
+      if (telegram_chat_id !== undefined) {
+        updates.telegram_chat_id =
+          telegram_chat_id === '' || telegram_chat_id === null
+            ? null
+            : String(telegram_chat_id).trim()
       }
 
       const success = await updateDepartment(req.params.id, updates)
