@@ -1,16 +1,16 @@
 /**
  * FastIntakeModal - Stateful fast intake component
- * 
+ *
  * RESPONSIBILITY:
  * - Fast repetitive intake of batches using ONE selected template
  * - MUST own all state needed for fast intake
- * 
+ *
  * STATE IT OWNS:
  * - selectedTemplateId (from prop, but manages template data)
  * - preparedItems (products, quantities, expiry dates)
  * - loading / saving state
  * - sessionHistory
- * 
+ *
  * RULES:
  * - MUST NOT unmount after saving
  * - MUST NOT reset selectedTemplateId after save
@@ -20,7 +20,20 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { X, Calendar, Check, ArrowRight, History, Zap, Plus, Minus, MessageSquare } from 'lucide-react'
+import {
+  X,
+  Calendar,
+  Check,
+  ArrowRight,
+  History,
+  Zap,
+  Plus,
+  Minus,
+  MessageSquare,
+  RotateCcw,
+  ChevronUp,
+  ChevronDown,
+} from 'lucide-react'
 import { SectionLoader, ButtonLoader } from './ui'
 import { useTranslation } from '../context/LanguageContext'
 import { useDepartment } from '../context/DepartmentContext'
@@ -31,11 +44,11 @@ import { apiFetch } from '../services/api'
 
 export default function FastIntakeModal({
   isOpen,
-  templateId,           // Template ID passed from parent
-  onChangeTemplate,     // () => void - opens SelectTemplateModal
-  onClose,             // () => void - full reset
+  templateId, // Template ID passed from parent
+  onChangeTemplate, // () => void - opens SelectTemplateModal
+  onClose, // () => void - full reset
   departmentId,
-  onFastApply: _onFastApply  // (batches) => void - DEPRECATED: React Query handles updates automatically
+  onFastApply: _onFastApply, // (batches) => void - DEPRECATED: React Query handles updates automatically
 }) {
   const { t } = useTranslation()
   const { departments } = useDepartment()
@@ -63,7 +76,22 @@ export default function FastIntakeModal({
   const [comment, setComment] = useState('')
   const scrollContainerRef = useRef(null)
 
-  const targetDepartment = departmentId || (departments.length > 0 ? departments[0].id : null)
+  // Per-product expiry dates from existing inventory batches: { [productId]: ISO[] }
+  // Populated on template load, updated optimistically after save
+  const [datesByProduct, setDatesByProduct] = useState({})
+  // Which item row's date input is currently focused (for showing chips)
+  const [focusedItemIndex, setFocusedItemIndex] = useState(null)
+
+  // Undo state: stores pre-deletion items snapshot + label for the snackbar
+  const [undoState, setUndoState] = useState(null) // { snapshot: items[], label: string }
+  const undoTimerRef = useRef(null)
+  const UNDO_DURATION = 4000
+
+  // Keyboard toolbar: track visual viewport offset so toolbar sits above the keyboard on iOS
+  const [keyboardOffset, setKeyboardOffset] = useState(0)
+
+  const targetDepartment =
+    departmentId || (departments.length > 0 ? departments[0].id : null)
 
   // === Prepare items from template ===
   const prepareItems = useCallback((template) => {
@@ -74,9 +102,10 @@ export default function FastIntakeModal({
 
     // Разворачиваем quantity в отдельные строки с группировкой
     const prepared = []
-    template.items.forEach(item => {
+    template.items.forEach((item) => {
       const productId = item.productId || item.product_id
-      const productName = item.productName || item.product_name || 'Неизвестный товар'
+      const productName =
+        item.productName || item.product_name || 'Неизвестный товар'
       // API возвращает default_quantity, а не quantity
       const qty = parseInt(item.default_quantity || item.quantity) || 1
 
@@ -85,16 +114,18 @@ export default function FastIntakeModal({
         prepared.push({
           productId,
           productName,
-          quantity: 1,  // Каждая строка = 1 единица товара
+          quantity: 1, // Каждая строка = 1 единица товара
           expiryDate: null,
           _inputExpiry: undefined,
           _invalidYear: false,
           // Группировка для визуального отображения (если qty > 1)
-          ...(qty > 1 ? {
-            _groupId: productId,
-            _groupIndex: i,
-            _groupTotal: qty
-          } : {})
+          ...(qty > 1
+            ? {
+                _groupId: productId,
+                _groupIndex: i,
+                _groupTotal: qty,
+              }
+            : {}),
         })
       }
     })
@@ -108,12 +139,13 @@ export default function FastIntakeModal({
     try {
       // Load all templates to find the one we need
       const data = await apiFetch('/delivery-templates')
-      const templates = (data.templates || []).map(t => ({
+      const templates = (data.templates || []).map((t) => ({
         ...t,
-        items: typeof t.items === 'string' ? JSON.parse(t.items) : t.items || []
+        items:
+          typeof t.items === 'string' ? JSON.parse(t.items) : t.items || [],
       }))
 
-      const foundTemplate = templates.find(t => t.id === templateId)
+      const foundTemplate = templates.find((t) => t.id === templateId)
       if (!foundTemplate) {
         addToast('Шаблон не найден', 'error')
         onClose()
@@ -122,12 +154,38 @@ export default function FastIntakeModal({
 
       setTemplate(foundTemplate)
       prepareItems(foundTemplate)
+
+      // Load expiry date history from existing inventory batches (non-blocking)
+      if (targetDepartment) {
+        try {
+          const batchData = await apiFetch(
+            `/batches?departmentId=${targetDepartment}&limit=500&sortBy=createdAt&sortOrder=desc`
+          )
+          const batches = Array.isArray(batchData)
+            ? batchData
+            : batchData.batches || []
+          const map = {}
+          for (const b of batches) {
+            const pid = b.product_id || b.productId
+            const rawDate = b.expiry_date || b.expiryDate
+            if (!pid || !rawDate) continue
+            // Normalize to YYYY-MM-DD regardless of full ISO timestamp or date-only
+            const date = String(rawDate).slice(0, 10)
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) continue
+            if (!map[pid]) map[pid] = []
+            if (!map[pid].includes(date)) map[pid].push(date)
+          }
+          setDatesByProduct(map)
+        } catch {
+          // Suggestions are non-critical, ignore errors silently
+        }
+      }
     } catch (error) {
       addToast('Ошибка загрузки шаблона', 'error')
     } finally {
       setLoading(false)
     }
-  }, [templateId, onClose, addToast, prepareItems])
+  }, [templateId, targetDepartment, onClose, addToast, prepareItems])
 
   // Dependencies: ONLY templateId (not isOpen)
   // This ensures template reloads when user switches templates
@@ -136,7 +194,70 @@ export default function FastIntakeModal({
     loadTemplate()
   }, [templateId, loadTemplate])
 
+  // === Undo last deletion ===
+  const handleUndo = useCallback(() => {
+    if (!undoState) return
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current)
+    setItems(undoState.snapshot)
+    setUndoState(null)
+    undoTimerRef.current = null
+  }, [undoState])
 
+  // Ctrl+Z / Cmd+Z — undo when snackbar is visible
+  useEffect(() => {
+    if (!undoState) return
+    const onKey = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+        e.preventDefault()
+        handleUndo()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [undoState, handleUndo])
+
+  // Clean up timer on unmount
+  useEffect(
+    () => () => {
+      if (undoTimerRef.current) clearTimeout(undoTimerRef.current)
+    },
+    []
+  )
+
+  // Track visual viewport to position keyboard toolbar above the software keyboard (iOS Safari)
+  useEffect(() => {
+    const vv = window.visualViewport
+    if (!vv) return
+    const update = () =>
+      setKeyboardOffset(
+        Math.max(0, window.innerHeight - vv.height - vv.offsetTop)
+      )
+    vv.addEventListener('resize', update)
+    vv.addEventListener('scroll', update)
+    return () => {
+      vv.removeEventListener('resize', update)
+      vv.removeEventListener('scroll', update)
+    }
+  }, [])
+
+  // Focus a specific date input by item index and scroll it into view
+  const moveFocusTo = useCallback(
+    (targetIndex) => {
+      if (targetIndex < 0 || targetIndex >= items.length) return
+      const inputs = scrollContainerRef.current?.querySelectorAll(
+        'input[inputmode="numeric"]'
+      )
+      if (inputs?.[targetIndex]) {
+        inputs[targetIndex].focus()
+        inputs[targetIndex].select()
+        inputs[targetIndex].scrollIntoView({
+          block: 'nearest',
+          behavior: 'smooth',
+        })
+      }
+    },
+    [items.length]
+  )
 
   // === Update item in list ===
   const _updateItem = (index, field, value) => {
@@ -145,9 +266,18 @@ export default function FastIntakeModal({
     setItems(newItems)
   }
 
-  // === Remove item from list (с пересчётом группы) ===
+  // === Remove item from list (с пересчётом группы) + undo support ===
   const removeItem = (index) => {
     const item = items[index]
+    const keyboardWasOpen = focusedItemIndex !== null // keep keyboard if user was typing
+    // Preserve the ORIGINAL snapshot from the first deletion in this undo window.
+    // If snackbar is already visible, keep existing snapshot so undo restores ALL deletions.
+    const baseSnapshot = undoState ? undoState.snapshot : [...items]
+    const newCount = (undoState?.count || 0) + 1
+
+    // Clear and restart the undo timer
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current)
+
     const filtered = items.filter((_, i) => i !== index)
 
     // Если элемент был в группе — пересчитываем _groupIndex/_groupTotal
@@ -156,8 +286,12 @@ export default function FastIntakeModal({
       let groupCounter = 0
       const recalculated = filtered.map((it) => {
         if (it._groupId === groupId) {
-          const newTotal = filtered.filter(x => x._groupId === groupId).length
-          const result = { ...it, _groupIndex: groupCounter, _groupTotal: newTotal }
+          const newTotal = filtered.filter((x) => x._groupId === groupId).length
+          const result = {
+            ...it,
+            _groupIndex: groupCounter,
+            _groupTotal: newTotal,
+          }
           groupCounter++
           // Если осталась 1 в группе — убираем метаданные группы
           if (newTotal === 1) {
@@ -173,6 +307,31 @@ export default function FastIntakeModal({
     } else {
       setItems(filtered)
     }
+
+    // Show undo snackbar (preserve original snapshot for multi-delete)
+    setUndoState({
+      snapshot: baseSnapshot,
+      count: newCount,
+      label: item.productName || 'Товар',
+    })
+    undoTimerRef.current = setTimeout(() => {
+      setUndoState(null)
+      undoTimerRef.current = null
+    }, UNDO_DURATION)
+
+    // If keyboard was open, refocus nearest remaining input so keyboard stays visible
+    if (keyboardWasOpen && items.length > 1) {
+      const targetIndex = Math.min(index, items.length - 2)
+      setTimeout(() => {
+        const inputs = scrollContainerRef.current?.querySelectorAll(
+          'input[inputmode="numeric"]'
+        )
+        if (inputs?.[targetIndex]) {
+          inputs[targetIndex].focus()
+          inputs[targetIndex].select()
+        }
+      }, 30)
+    }
   }
 
   // === Изменить размер группы (+1 или -1) ===
@@ -184,8 +343,11 @@ export default function FastIntakeModal({
     // Уникальный ключ группы — productId товара
     const productId = sourceItem.productId || sourceItem.product_id
     // Все текущие строки этого товара (по productId)
-    const groupIndices = items.reduce((acc, it, i) =>
-      (it.productId || it.product_id) === productId ? [...acc, i] : acc, [])
+    const groupIndices = items.reduce(
+      (acc, it, i) =>
+        (it.productId || it.product_id) === productId ? [...acc, i] : acc,
+      []
+    )
 
     const currentSize = groupIndices.length
     const newSize = Math.max(1, currentSize + delta)
@@ -199,24 +361,30 @@ export default function FastIntakeModal({
       for (let d = 0; d < delta; d++) {
         newItems.splice(lastIdx + 1 + d, 0, {
           ...sourceItem,
-          expiryDate: null,       // новая строка — дату нужно ввести вручную
+          expiryDate: null, // новая строка — дату нужно ввести вручную
           _inputExpiry: undefined,
-          _invalidYear: false
+          _invalidYear: false,
         })
       }
     } else {
       // Удаляем последнюю строку этого товара
       for (let d = 0; d < Math.abs(delta); d++) {
-        const currentGroupIdx = newItems.reduce((acc, it, i) =>
-          (it.productId || it.product_id) === productId ? [...acc, i] : acc, [])
+        const currentGroupIdx = newItems.reduce(
+          (acc, it, i) =>
+            (it.productId || it.product_id) === productId ? [...acc, i] : acc,
+          []
+        )
         const lastIdx = currentGroupIdx[currentGroupIdx.length - 1]
         if (lastIdx >= 0) newItems.splice(lastIdx, 1)
       }
     }
 
     // Пересчитываем _groupIndex и _groupTotal для всех строк этого товара
-    const finalGroup = newItems.reduce((acc, it, i) =>
-      (it.productId || it.product_id) === productId ? [...acc, i] : acc, [])
+    const finalGroup = newItems.reduce(
+      (acc, it, i) =>
+        (it.productId || it.product_id) === productId ? [...acc, i] : acc,
+      []
+    )
     const total = finalGroup.length
 
     let counter = 0
@@ -264,10 +432,12 @@ export default function FastIntakeModal({
         if (day < 1 || day > daysInMonth) return null
 
         const date = new Date(year, month - 1, day)
-        if (!isNaN(date.getTime()) &&
+        if (
+          !isNaN(date.getTime()) &&
           date.getDate() === day &&
           date.getMonth() === month - 1 &&
-          date.getFullYear() === year) {
+          date.getFullYear() === year
+        ) {
           const yearStr = String(year).padStart(4, '0')
           const monthStr = String(month).padStart(2, '0')
           const dayStr = String(day).padStart(2, '0')
@@ -283,7 +453,7 @@ export default function FastIntakeModal({
   const formatDateForDisplay = (isoDate) => {
     if (!isoDate) return ''
     const [year, month, day] = isoDate.split('-')
-    const shortYear = year.slice(2)   // 2026 → 26
+    const shortYear = year.slice(2) // 2026 → 26
     return `${day}.${month}.${shortYear}`
   }
 
@@ -299,6 +469,87 @@ export default function FastIntakeModal({
     }
     return formatted
   }
+
+  // === Date suggestion helpers ===
+
+  // "+21д", "сегодня", "-3д"
+  const getDaysLabel = (isoDate) => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const expiry = new Date(isoDate + 'T00:00:00')
+    const diff = Math.round((expiry - today) / 86400000)
+    if (diff === 0) return 'сегодня'
+    if (diff > 0) return `+${diff}д`
+    return `${diff}д`
+  }
+
+  // Returns up to 4 suggested ISO dates for a given item.
+  // Source: existing inventory batches for this product (loaded on modal open).
+  // When typing, re-sorts by digit-prefix similarity so best match appears first.
+  // Returns [] if no inventory history exists for this product.
+  const getDateSuggestions = useCallback(
+    (item) => {
+      const productId = item.productId || item.product_id
+      const history = datesByProduct[productId] || []
+      if (history.length === 0) return []
+
+      // Exclude the date that's already set on this row
+      const available = history.filter((d) => d !== item.expiryDate)
+      if (available.length === 0) return []
+
+      // When typing: sort by how many leading digits match the input
+      const typedDigits = (item._inputExpiry || '').replace(/\D/g, '')
+      if (typedDigits.length > 0) {
+        const scored = available.map((isoDate) => {
+          const dateDigits = formatDateForDisplay(isoDate).replace(/\D/g, '')
+          let score = 0
+          for (
+            let i = 0;
+            i < typedDigits.length && i < dateDigits.length;
+            i++
+          ) {
+            if (typedDigits[i] === dateDigits[i]) score++
+            else break
+          }
+          return { isoDate, score }
+        })
+        scored.sort((a, b) => b.score - a.score)
+        return scored.map(({ isoDate }) => isoDate).slice(0, 4)
+      }
+
+      return available.slice(0, 4)
+    },
+    [datesByProduct]
+  )
+
+  // Applies a suggested date and advances focus to next item
+  const applyDateSuggestion = useCallback(
+    (index, isoDate) => {
+      const newItems = [...items]
+      const item = newItems[index]
+      const productId = item.productId || item.product_id
+      newItems[index] = {
+        ...item,
+        expiryDate: isoDate,
+        _inputExpiry: undefined,
+        _invalidYear: false,
+      }
+      setItems(newItems)
+      setLastExpiryByProduct((prev) => ({ ...prev, [productId]: isoDate }))
+      setGlobalLastExpiry(isoDate)
+      setFocusedItemIndex(null)
+      setTimeout(() => {
+        const inputs = scrollContainerRef.current?.querySelectorAll(
+          'input[inputmode="numeric"]'
+        )
+        if (inputs?.[index + 1]) {
+          inputs[index + 1].focus()
+          inputs[index + 1].select()
+        }
+      }, 0)
+    },
+    [items]
+  )
 
   // === Save and continue - resets form but keeps modal open ===
   const handleSaveAndContinue = () => {
@@ -346,7 +597,6 @@ export default function FastIntakeModal({
       return
     }
 
-
     // Группируем items с одинаковым productId + expiryDate → суммируем quantity
     // Так один "быстрый ввод" с несколькими строками одного товара/срока → 1 batch в БД
     const groupedItems = Object.values(
@@ -366,16 +616,30 @@ export default function FastIntakeModal({
       {
         templateId: template.id,
         items: groupedItems,
-        comment: comment.trim() || null
+        comment: comment.trim() || null,
       },
       {
         // Callbacks выполняются ПОСЛЕ mutation
         onSuccess: (_data) => {
-          // 1. Save last expiry dates for autocomplete (используем уже сгруппированные)
+          // 1. Save last expiry dates + update suggestion pool (optimistic, avoids reload)
           if (groupedItems.length > 0) {
             setGlobalLastExpiry(groupedItems[0].expiryDate)
-            groupedItems.forEach(item => {
-              setLastExpiryByProduct(prev => ({ ...prev, [item.productId]: item.expiryDate }))
+            groupedItems.forEach((item) => {
+              setLastExpiryByProduct((prev) => ({
+                ...prev,
+                [item.productId]: item.expiryDate,
+              }))
+            })
+            // Prepend newly saved dates to datesByProduct so they appear in next intake
+            setDatesByProduct((prev) => {
+              const next = { ...prev }
+              groupedItems.forEach((item) => {
+                const existing = next[item.productId] || []
+                if (!existing.includes(item.expiryDate)) {
+                  next[item.productId] = [item.expiryDate, ...existing]
+                }
+              })
+              return next
             })
           }
 
@@ -395,19 +659,22 @@ export default function FastIntakeModal({
             quantity: item.quantity,
             expiryDate: item.expiryDate,
             comment: savedComment,
-            timestamp: new Date()
+            timestamp: new Date(),
           }))
 
-          setSessionHistory(prev => [...newHistoryEntries, ...prev])
+          setSessionHistory((prev) => [...newHistoryEntries, ...prev])
 
           // 2a. Reset comment after successful save
           setComment('')
 
           // 3. Show notification
-          const totalQty = groupedItems.reduce((sum, it) => sum + it.quantity, 0)
+          const totalQty = groupedItems.reduce(
+            (sum, it) => sum + it.quantity,
+            0
+          )
           addToast(
             t('fastIntake.totalAdded', { count: totalQty }) ||
-            `Добавлено: ${totalQty} шт.`,
+              `Добавлено: ${totalQty} шт.`,
             'success'
           )
 
@@ -425,9 +692,12 @@ export default function FastIntakeModal({
           // Фоновая синхронизация происходит автоматически через 2 секунды (см. useInventory.js)
         },
         onError: (error) => {
-          const errorMessage = error?.message || t('toast.batchAddError') || 'Ошибка добавления партии'
+          const errorMessage =
+            error?.message ||
+            t('toast.batchAddError') ||
+            'Ошибка добавления партии'
           addToast(errorMessage, 'error')
-        }
+        },
       }
     )
   }
@@ -459,7 +729,9 @@ export default function FastIntakeModal({
                   {t('fastIntake.title') || 'Быстрый ввод'}
                 </h2>
                 {template && (
-                  <p className="text-sm text-gray-500 truncate">{template.name}</p>
+                  <p className="text-sm text-gray-500 truncate">
+                    {template.name}
+                  </p>
                 )}
               </div>
             </div>
@@ -503,22 +775,33 @@ export default function FastIntakeModal({
                   {items.map((item, index) => {
                     const isGrouped = item._groupTotal > 1
                     const isFirstInGroup = isGrouped && item._groupIndex === 0
-                    const isLastInGroup = isGrouped && item._groupIndex === item._groupTotal - 1
+                    const isLastInGroup =
+                      isGrouped && item._groupIndex === item._groupTotal - 1
                     // Показываем контрол кол-ва только у первой строки группы (или у одиночного)
                     const showQtyControl = !isGrouped || isFirstInGroup
                     const currentGroupSize = isGrouped ? item._groupTotal : 1
                     // Индекс первой строки группы для changeGroupSize
                     const firstInGroupIndex = isGrouped
-                      ? items.findIndex(it => it._groupId === item._groupId && it._groupIndex === 0)
+                      ? items.findIndex(
+                          (it) =>
+                            it._groupId === item._groupId &&
+                            it._groupIndex === 0
+                        )
                       : index
 
                     // Вычисляем классы скругления отдельно
                     const roundingClass = isGrouped
-                      ? isFirstInGroup ? 'rounded-t-xl rounded-b-none' : isLastInGroup ? 'rounded-b-xl rounded-t-none' : 'rounded-none'
+                      ? isFirstInGroup
+                        ? 'rounded-t-xl rounded-b-none'
+                        : isLastInGroup
+                          ? 'rounded-b-xl rounded-t-none'
+                          : 'rounded-none'
                       : 'rounded-xl'
                     const borderClass = item._invalidYear
                       ? 'border-red-500/60 bg-red-500/5'
-                      : isGrouped && !isLastInGroup ? 'border-border/50 border-b-0' : 'border-border/50'
+                      : isGrouped && !isLastInGroup
+                        ? 'border-border/50 border-b-0'
+                        : 'border-border/50'
 
                     return (
                       <div
@@ -541,13 +824,15 @@ export default function FastIntakeModal({
                         </div>
 
                         {/* Expiry + remove */}
-                        <div className="flex items-center gap-2 w-full sm:w-auto">
+                        <div className="flex items-start gap-2 w-full sm:w-auto">
                           {/* Quantity control — только у первой строки группы */}
                           {showQtyControl ? (
                             <div className="flex items-center gap-0.5 shrink-0">
                               <button
                                 type="button"
-                                onClick={() => changeGroupSize(firstInGroupIndex, -1)}
+                                onClick={() =>
+                                  changeGroupSize(firstInGroupIndex, -1)
+                                }
                                 disabled={currentGroupSize <= 1}
                                 className="p-1.5 rounded-md bg-muted hover:bg-muted/80 transition-colors touch-manipulation active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
                                 aria-label="Уменьшить количество"
@@ -559,7 +844,9 @@ export default function FastIntakeModal({
                               </span>
                               <button
                                 type="button"
-                                onClick={() => changeGroupSize(firstInGroupIndex, 1)}
+                                onClick={() =>
+                                  changeGroupSize(firstInGroupIndex, 1)
+                                }
                                 className="p-1.5 rounded-md bg-muted hover:bg-muted/80 transition-colors touch-manipulation active:scale-95"
                                 aria-label="Увеличить количество"
                               >
@@ -572,102 +859,189 @@ export default function FastIntakeModal({
                           )}
 
                           {/* Expiry date */}
-                          <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                            <Calendar className={`w-4 h-4 shrink-0 ${item._invalidYear ? 'text-red-500' : 'text-gray-400'}`} />
-                            <input
-                              type="text"
-                              inputMode="numeric"
-                              value={item._inputExpiry !== undefined ? item._inputExpiry : formatDateForDisplay(item.expiryDate)}
-                              onChange={(e) => {
-                                const formatted = autoFormatDateInput(e.target.value)
-                                const newItems = [...items]
-                                newItems[index] = {
-                                  ...newItems[index],
-                                  _inputExpiry: formatted,
-                                  _invalidYear: false
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <Calendar
+                                className={`w-4 h-4 shrink-0 ${item._invalidYear ? 'text-red-500' : 'text-gray-400'}`}
+                              />
+                              <input
+                                type="text"
+                                inputMode="numeric"
+                                value={
+                                  item._inputExpiry !== undefined
+                                    ? item._inputExpiry
+                                    : formatDateForDisplay(item.expiryDate)
                                 }
-                                setItems(newItems)
-                              }}
-                              onBlur={(e) => {
-                                const parsed = parseExpiryInput(e.target.value)
-                                if (parsed) {
+                                onChange={(e) => {
+                                  const formatted = autoFormatDateInput(
+                                    e.target.value
+                                  )
                                   const newItems = [...items]
                                   newItems[index] = {
                                     ...newItems[index],
-                                    expiryDate: parsed,
-                                    _inputExpiry: undefined,
-                                    _invalidYear: false
+                                    _inputExpiry: formatted,
+                                    _invalidYear: false,
                                   }
                                   setItems(newItems)
-                                  setGlobalLastExpiry(parsed)
-                                  const productId = item.productId || item.product_id
-                                  setLastExpiryByProduct(prev => ({ ...prev, [productId]: parsed }))
-                                } else if (e.target.value.trim()) {
-                                  const digits = e.target.value.replace(/\D/g, '')
-                                  if (digits.length >= 6) {
-                                    const _day = parseInt(digits.slice(0, 2), 10)
-                                    const _month = parseInt(digits.slice(2, 4), 10)
-                                    let year = parseInt(digits.slice(4, 6), 10)
-                                    if (year < 100) year += 2000
-
-                                    if (year < 2026 || year > 2099) {
-                                      addToast('Год должен быть от 2026 до 2099', 'error')
-                                      const newItems = [...items]
-                                      newItems[index] = { ...newItems[index], _invalidYear: true }
-                                      setItems(newItems)
-                                      return
-                                    }
-                                  }
-                                  const newItems = [...items]
-                                  newItems[index] = { ...newItems[index], _inputExpiry: undefined, _invalidYear: false }
-                                  setItems(newItems)
-                                }
-                              }}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                  e.preventDefault()
-                                  const parsed = parseExpiryInput(e.target.value)
+                                }}
+                                onBlur={(e) => {
+                                  setFocusedItemIndex(null)
+                                  const parsed = parseExpiryInput(
+                                    e.target.value
+                                  )
                                   if (parsed) {
                                     const newItems = [...items]
                                     newItems[index] = {
                                       ...newItems[index],
                                       expiryDate: parsed,
                                       _inputExpiry: undefined,
-                                      _invalidYear: false
+                                      _invalidYear: false,
                                     }
                                     setItems(newItems)
                                     setGlobalLastExpiry(parsed)
-                                    const productId = item.productId || item.product_id
-                                    setLastExpiryByProduct(prev => ({ ...prev, [productId]: parsed }))
-                                  }
-                                  // Move to next item or save button
-                                  const nextRow = e.target.closest('.rounded-xl')?.nextElementSibling
-                                  if (nextRow) {
-                                    const nextDateInput = nextRow.querySelector('input[type="text"]')
-                                    if (nextDateInput) {
-                                      nextDateInput.focus()
-                                      nextDateInput.select()
+                                    const productId =
+                                      item.productId || item.product_id
+                                    setLastExpiryByProduct((prev) => ({
+                                      ...prev,
+                                      [productId]: parsed,
+                                    }))
+                                  } else if (e.target.value.trim()) {
+                                    const digits = e.target.value.replace(
+                                      /\D/g,
+                                      ''
+                                    )
+                                    if (digits.length >= 6) {
+                                      const _day = parseInt(
+                                        digits.slice(0, 2),
+                                        10
+                                      )
+                                      const _month = parseInt(
+                                        digits.slice(2, 4),
+                                        10
+                                      )
+                                      let year = parseInt(
+                                        digits.slice(4, 6),
+                                        10
+                                      )
+                                      if (year < 100) year += 2000
+
+                                      if (year < 2026 || year > 2099) {
+                                        addToast(
+                                          'Год должен быть от 2026 до 2099',
+                                          'error'
+                                        )
+                                        const newItems = [...items]
+                                        newItems[index] = {
+                                          ...newItems[index],
+                                          _invalidYear: true,
+                                        }
+                                        setItems(newItems)
+                                        return
+                                      }
                                     }
-                                  } else {
-                                    const saveButton = e.target.closest('.space-y-4')?.querySelector('button[aria-label*="Сохранить"]')
-                                    if (saveButton) saveButton.focus()
+                                    const newItems = [...items]
+                                    newItems[index] = {
+                                      ...newItems[index],
+                                      _inputExpiry: undefined,
+                                      _invalidYear: false,
+                                    }
+                                    setItems(newItems)
                                   }
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault()
+                                    const parsed = parseExpiryInput(
+                                      e.target.value
+                                    )
+                                    if (parsed) {
+                                      const newItems = [...items]
+                                      newItems[index] = {
+                                        ...newItems[index],
+                                        expiryDate: parsed,
+                                        _inputExpiry: undefined,
+                                        _invalidYear: false,
+                                      }
+                                      setItems(newItems)
+                                      setGlobalLastExpiry(parsed)
+                                      const productId =
+                                        item.productId || item.product_id
+                                      setLastExpiryByProduct((prev) => ({
+                                        ...prev,
+                                        [productId]: parsed,
+                                      }))
+                                    }
+                                    // Move to next item or save button
+                                    const nextRow =
+                                      e.target.closest(
+                                        '.rounded-xl'
+                                      )?.nextElementSibling
+                                    if (nextRow) {
+                                      const nextDateInput =
+                                        nextRow.querySelector(
+                                          'input[type="text"]'
+                                        )
+                                      if (nextDateInput) {
+                                        nextDateInput.focus()
+                                        nextDateInput.select()
+                                      }
+                                    } else {
+                                      const saveButton = e.target
+                                        .closest('.space-y-4')
+                                        ?.querySelector(
+                                          'button[aria-label*="Сохранить"]'
+                                        )
+                                      if (saveButton) saveButton.focus()
+                                    }
+                                  }
+                                }}
+                                onFocus={(e) => {
+                                  e.target.select()
+                                  setFocusedItemIndex(index)
+                                }}
+                                enterKeyHint={
+                                  index < items.length - 1 ? 'next' : 'done'
                                 }
-                              }}
-                              onFocus={(e) => {
-                                e.target.select()
-                              }}
-                              placeholder={item._invalidYear ? '--.--.--' : 'ДД.ММ.ГГ'}
-                              className={`w-full min-w-0 text-center px-2 py-2 sm:py-1.5 border rounded-lg bg-card text-base sm:text-sm focus:outline-none focus:ring-2 ${item._invalidYear
-                                ? 'border-red-500 focus:ring-red-500/30 focus:border-red-500 text-red-400 placeholder-red-400'
-                                : 'border-border focus:ring-amber-500/30 focus:border-amber-500 text-foreground'
+                                placeholder={
+                                  item._invalidYear ? '--.--.--' : 'ДД.ММ.ГГ'
+                                }
+                                className={`w-full min-w-0 text-center px-2 py-2 sm:py-1.5 border rounded-lg bg-card text-base sm:text-sm focus:outline-none focus:ring-2 ${
+                                  item._invalidYear
+                                    ? 'border-red-500 focus:ring-red-500/30 focus:border-red-500 text-red-400 placeholder-red-400'
+                                    : 'border-border focus:ring-amber-500/30 focus:border-amber-500 text-foreground'
                                 }`}
-                            />
+                              />
+                            </div>
+                            {/* Date suggestion chips — appear on focus if there are recent dates */}
+                            {focusedItemIndex === index &&
+                              getDateSuggestions(item).length > 0 && (
+                                <div className="mt-1.5 ml-[22px] flex gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                                  {getDateSuggestions(item).map((isoDate) => (
+                                    <button
+                                      key={isoDate}
+                                      type="button"
+                                      onPointerDown={(e) => {
+                                        e.preventDefault()
+                                        applyDateSuggestion(index, isoDate)
+                                      }}
+                                      className="flex-none flex flex-col items-center px-2.5 py-1 rounded-lg border border-amber-200 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 active:scale-95 transition-transform touch-manipulation select-none"
+                                    >
+                                      <span className="text-xs font-semibold tabular-nums leading-tight">
+                                        {formatDateForDisplay(isoDate)}
+                                      </span>
+                                      <span className="text-[10px] opacity-60 tabular-nums leading-tight">
+                                        {getDaysLabel(isoDate)}
+                                      </span>
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
                           </div>
 
                           {/* Remove item */}
                           <button
                             type="button"
+                            onPointerDown={(e) => e.preventDefault()}
                             onClick={() => removeItem(index)}
                             className="p-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg shrink-0 transition-colors touch-manipulation active:scale-95"
                             aria-label="Удалить товар"
@@ -686,7 +1060,10 @@ export default function FastIntakeModal({
                   <textarea
                     value={comment}
                     onChange={(e) => setComment(e.target.value)}
-                    placeholder={t('fastIntake.commentPlaceholder') || 'Комментарий к партии (необязательно)'}
+                    placeholder={
+                      t('fastIntake.commentPlaceholder') ||
+                      'Комментарий к партии (необязательно)'
+                    }
                     rows={2}
                     maxLength={1000}
                     className="flex-1 resize-none bg-transparent text-sm text-foreground placeholder-muted-foreground focus:outline-none"
@@ -699,7 +1076,9 @@ export default function FastIntakeModal({
                   disabled={isPending || items.length === 0}
                   className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-amber-500 text-white rounded-xl hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-bold text-lg touch-manipulation active:scale-[0.98]"
                   aria-busy={isPending}
-                  aria-label={t('fastIntake.saveAndNext') || 'Сохранить и далее'}
+                  aria-label={
+                    t('fastIntake.saveAndNext') || 'Сохранить и далее'
+                  }
                 >
                   {isPending ? <ButtonLoader /> : <Check className="w-6 h-6" />}
                   {t('fastIntake.saveAndNext') || 'Сохранить и далее'}
@@ -711,7 +1090,9 @@ export default function FastIntakeModal({
                   <div className="pt-3 border-t border-border">
                     <h4 className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1">
                       <History className="w-3 h-3" />
-                      {t('fastIntake.sessionHistory') || 'Добавлено в этой сессии'} ({sessionHistory.length})
+                      {t('fastIntake.sessionHistory') ||
+                        'Добавлено в этой сессии'}{' '}
+                      ({sessionHistory.length})
                     </h4>
                     <div className="space-y-1 max-h-32 overflow-y-auto">
                       {sessionHistory.slice(0, 10).map((entry) => (
@@ -721,13 +1102,20 @@ export default function FastIntakeModal({
                         >
                           <div className="flex items-center gap-1.5 truncate">
                             <Check className="w-3 h-3 text-green-600 shrink-0" />
-                            <span className="truncate">{entry.productName}</span>
+                            <span className="truncate">
+                              {entry.productName}
+                            </span>
                           </div>
                           <div className="flex items-center gap-2 text-muted-foreground shrink-0">
                             <span>×{entry.quantity}</span>
-                            <span>{formatDateForDisplay(entry.expiryDate)}</span>
+                            <span>
+                              {formatDateForDisplay(entry.expiryDate)}
+                            </span>
                             {entry.comment && (
-                              <span className="text-amber-500 truncate max-w-[80px]" title={entry.comment}>
+                              <span
+                                className="text-amber-500 truncate max-w-[80px]"
+                                title={entry.comment}
+                              >
                                 {entry.comment}
                               </span>
                             )}
@@ -746,8 +1134,7 @@ export default function FastIntakeModal({
             <div className="text-sm text-muted-foreground">
               {sessionHistory.length > 0
                 ? `✓ ${sessionHistory.length} добавлено`
-                : 'Выберите товар'
-              }
+                : 'Выберите товар'}
             </div>
             <button
               onClick={onClose}
@@ -758,6 +1145,73 @@ export default function FastIntakeModal({
           </div>
         </div>
       </div>
+
+      {/* Undo snackbar — same visual style as site toasts */}
+      {undoState && (
+        <div className="fixed bottom-20 sm:bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:min-w-[300px] sm:max-w-[400px] z-[200] animate-toast-in">
+          <div className="relative flex items-center gap-3 p-4 rounded-xl border shadow-lg backdrop-blur-sm bg-warning/10 border-warning/30">
+            <RotateCcw className="w-5 h-5 text-warning shrink-0" />
+            <span className="flex-1 text-sm text-foreground min-w-0 truncate">
+              {undoState.count > 1 ? (
+                `Удалено ${undoState.count} ${undoState.count < 5 ? 'товара' : 'товаров'}`
+              ) : (
+                <>
+                  Удалено:{' '}
+                  <span className="font-semibold">{undoState.label}</span>
+                </>
+              )}
+            </span>
+            <button
+              type="button"
+              onClick={handleUndo}
+              className="shrink-0 text-warning font-semibold text-sm hover:opacity-80 active:scale-95 transition-all touch-manipulation"
+            >
+              Отмена
+            </button>
+            {/* Progress bar — reuses site's animate-toast-progress */}
+            <div className="absolute bottom-0 left-0 right-0 h-1 rounded-b-xl overflow-hidden">
+              <div
+                className="h-full bg-warning animate-toast-progress"
+                style={{ animationDuration: `${UNDO_DURATION}ms` }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Keyboard navigation toolbar — mobile only, floats above the software keyboard */}
+      {focusedItemIndex !== null && items.length > 0 && (
+        <div
+          className="sm:hidden fixed left-0 right-0 z-[150]"
+          style={{ bottom: keyboardOffset }}
+        >
+          <div className="flex items-center justify-between px-3 py-1.5 bg-muted/95 backdrop-blur-sm border-t border-border">
+            <button
+              type="button"
+              onPointerDown={(e) => e.preventDefault()}
+              onClick={() => moveFocusTo(focusedItemIndex - 1)}
+              disabled={focusedItemIndex === 0}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium text-foreground hover:bg-muted disabled:opacity-30 transition-colors touch-manipulation active:scale-95"
+            >
+              <ChevronUp className="w-4 h-4" />
+              Пред
+            </button>
+            <span className="text-xs text-muted-foreground tabular-nums select-none">
+              {focusedItemIndex + 1} / {items.length}
+            </span>
+            <button
+              type="button"
+              onPointerDown={(e) => e.preventDefault()}
+              onClick={() => moveFocusTo(focusedItemIndex + 1)}
+              disabled={focusedItemIndex >= items.length - 1}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium text-foreground hover:bg-muted disabled:opacity-30 transition-colors touch-manipulation active:scale-95"
+            >
+              Далее
+              <ChevronDown className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>,
     document.body
   )
