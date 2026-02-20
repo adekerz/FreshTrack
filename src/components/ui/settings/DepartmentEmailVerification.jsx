@@ -7,19 +7,23 @@ import { useState, useEffect } from 'react'
 import { useTranslation } from '../../../context/LanguageContext'
 import { useToast } from '../../../context/ToastContext'
 import { apiFetch } from '../../../services/api'
-import { Mail, CheckCircle2 } from 'lucide-react'
+import { Mail, CheckCircle2, RefreshCw } from 'lucide-react'
 import { ButtonSpinner } from '..'
 import { cn } from '../../../utils/classNames'
 
-export default function DepartmentEmailVerification({ departmentId, email, onVerified }) {
+export default function DepartmentEmailVerification({
+  departmentId,
+  email,
+  onVerified,
+}) {
   const { t } = useTranslation()
   const { addToast } = useToast()
-  
+
   const [status, setStatus] = useState(null)
   const [loading, setLoading] = useState(false)
   const [sending, setSending] = useState(false)
 
-  // Fetch verification status
+  // Fetch verification status on mount and when email changes
   useEffect(() => {
     if (departmentId && email) {
       fetchStatus()
@@ -28,13 +32,29 @@ export default function DepartmentEmailVerification({ departmentId, email, onVer
     }
   }, [departmentId, email])
 
+  // Auto-refresh status when tab becomes visible (e.g., user returns after clicking email link)
+  useEffect(() => {
+    if (!departmentId || !email) return
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        fetchStatus()
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () =>
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, [departmentId, email])
 
   const fetchStatus = async () => {
     if (!departmentId) return
-    
+
     setLoading(true)
     try {
-      const data = await apiFetch(`/departments/${departmentId}/verification-status`)
+      const data = await apiFetch(
+        `/departments/${departmentId}/verification-status`
+      )
       setStatus(data)
     } catch (error) {
       addToast(error.message || 'Ошибка загрузки статуса', 'error')
@@ -49,14 +69,23 @@ export default function DepartmentEmailVerification({ departmentId, email, onVer
     setSending(true)
     try {
       await apiFetch(`/departments/${departmentId}/send-confirmation`, {
-        method: 'POST'
+        method: 'POST',
       })
 
-      addToast(t('settings.departments.emailConfirmationSent') || 'Письмо отправлено. Email подтверждён.', 'success')
+      addToast(
+        t('settings.departments.emailConfirmationSent') ||
+          'Письмо отправлено. Email подтверждён.',
+        'success'
+      )
       await fetchStatus()
       if (onVerified) onVerified()
     } catch (error) {
-      addToast(error.message || t('settings.departments.emailConfirmationError') || 'Ошибка отправки', 'error')
+      addToast(
+        error.message ||
+          t('settings.departments.emailConfirmationError') ||
+          'Ошибка отправки',
+        'error'
+      )
     } finally {
       setSending(false)
     }
@@ -77,25 +106,42 @@ export default function DepartmentEmailVerification({ departmentId, email, onVer
 
   return (
     <div className="mt-3 p-3 border border-border rounded-lg bg-muted/30 space-y-3">
-      <div className="flex items-center gap-2">
-        <Mail className="w-4 h-4 text-muted-foreground" />
-        <span className="text-sm font-medium text-foreground">
-          {t('settings.departments.emailVerification') || 'Верификация email'}
-        </span>
-        {isVerified && (
-          <CheckCircle2 className="w-4 h-4 text-success" />
-        )}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <Mail className="w-4 h-4 text-muted-foreground" />
+          <span className="text-sm font-medium text-foreground">
+            {t('settings.departments.emailVerification') || 'Верификация email'}
+          </span>
+          {isVerified && <CheckCircle2 className="w-4 h-4 text-success" />}
+        </div>
+        <button
+          onClick={fetchStatus}
+          disabled={loading}
+          className="p-1.5 hover:bg-muted rounded-lg transition-colors disabled:opacity-50"
+          title="Обновить статус"
+        >
+          <RefreshCw
+            className={cn(
+              'w-4 h-4 text-muted-foreground',
+              loading && 'animate-spin'
+            )}
+          />
+        </button>
       </div>
 
       {isVerified ? (
         <div className="flex items-center gap-2 text-sm text-success">
           <CheckCircle2 className="w-4 h-4" />
-          <span>{t('settings.departments.emailVerified') || 'Email подтверждён. Отчёты будут отправляться на этот адрес.'}</span>
+          <span>
+            {t('settings.departments.emailVerified') ||
+              'Email подтверждён. Отчёты будут отправляться на этот адрес.'}
+          </span>
         </div>
       ) : (
         <div className="space-y-3">
           <p className="text-sm text-muted-foreground">
-            {t('settings.departments.emailVerificationHint') || 'Для получения ежедневных отчётов отправьте письмо подтверждения.'}
+            {t('settings.departments.emailVerificationHint') ||
+              'Для получения ежедневных отчётов отправьте письмо подтверждения.'}
           </p>
           <button
             onClick={sendConfirmation}
@@ -114,7 +160,10 @@ export default function DepartmentEmailVerification({ departmentId, email, onVer
             ) : (
               <>
                 <Mail className="w-4 h-4" />
-                <span>{t('settings.departments.sendConfirmation') || 'Отправить письмо подтверждения'}</span>
+                <span>
+                  {t('settings.departments.sendConfirmation') ||
+                    'Отправить письмо подтверждения'}
+                </span>
               </>
             )}
           </button>
