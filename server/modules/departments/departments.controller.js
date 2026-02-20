@@ -1,238 +1,308 @@
 /**
  * Departments Controller
- * 
+ *
  * HTTP handlers для управления департаментами.
  */
 
 import { Router } from 'express'
-import { logError, logInfo, logWarn } from '../../utils/logger.js'
+import { logError, logInfo } from '../../utils/logger.js'
 import { query as dbQuery } from '../../db/postgres.js'
 import {
   getAllDepartments,
   getDepartmentById,
   createDepartment,
   updateDepartment,
-  deleteDepartment
+  deleteDepartment,
 } from './departments.repository.js'
-import {
-  logAudit,
-  getHotelById
-} from '../../db/database.js'
+import { logAudit, getHotelById } from '../../db/database.js'
 import {
   authMiddleware,
   hotelIsolation,
   requirePermission,
   PermissionResource,
-  PermissionAction
+  PermissionAction,
 } from '../../middleware/auth.js'
-import { CreateDepartmentSchema, UpdateDepartmentSchema, validate } from './departments.schemas.js'
+import {
+  CreateDepartmentSchema,
+  UpdateDepartmentSchema,
+  validate,
+} from './departments.schemas.js'
 import { sendVerificationEmail } from '../../services/EmailService.js'
 import { RateLimiterMemory } from 'rate-limiter-flexible'
 import crypto from 'crypto'
 
 const router = Router()
+// eslint-disable-next-line no-undef
+const APP_URL = process.env.APP_URL || 'http://localhost:5173'
 
 /**
  * GET /api/departments
  */
-router.get('/', authMiddleware, hotelIsolation, requirePermission(PermissionResource.DEPARTMENTS, PermissionAction.READ), async (req, res) => {
-  try {
-    // hotelIsolation sets req.hotelId: user's own hotel for non-SUPER_ADMIN,
-    // or requested hotel (or first active) for SUPER_ADMIN
-    const departments = await getAllDepartments(req.hotelId || null)
-    res.json({ success: true, departments })
-  } catch (error) {
-    logError('Get departments error', error)
-    res.status(500).json({ success: false, error: 'Failed to get departments' })
+router.get(
+  '/',
+  authMiddleware,
+  hotelIsolation,
+  requirePermission(PermissionResource.DEPARTMENTS, PermissionAction.READ),
+  async (req, res) => {
+    try {
+      // hotelIsolation sets req.hotelId: user's own hotel for non-SUPER_ADMIN,
+      // or requested hotel (or first active) for SUPER_ADMIN
+      const departments = await getAllDepartments(req.hotelId || null)
+      res.json({ success: true, departments })
+    } catch (error) {
+      logError('Get departments error', error)
+      res
+        .status(500)
+        .json({ success: false, error: 'Failed to get departments' })
+    }
   }
-})
+)
 
 /**
  * GET /api/departments/:id
  */
-router.get('/:id', authMiddleware, hotelIsolation, requirePermission(PermissionResource.DEPARTMENTS, PermissionAction.READ), async (req, res) => {
-  try {
-    const department = await getDepartmentById(req.params.id)
-    if (!department) {
-      return res.status(404).json({ success: false, error: 'Department not found' })
+router.get(
+  '/:id',
+  authMiddleware,
+  hotelIsolation,
+  requirePermission(PermissionResource.DEPARTMENTS, PermissionAction.READ),
+  async (req, res) => {
+    try {
+      const department = await getDepartmentById(req.params.id)
+      if (!department) {
+        return res
+          .status(404)
+          .json({ success: false, error: 'Department not found' })
+      }
+      // hotelIsolation already enforces hotel boundary; double-check department belongs to hotel
+      if (req.hotelId && department.hotel_id !== req.hotelId) {
+        return res.status(403).json({ success: false, error: 'Access denied' })
+      }
+      res.json({ success: true, department })
+    } catch (error) {
+      logError('Get department error', error)
+      res
+        .status(500)
+        .json({ success: false, error: 'Failed to get department' })
     }
-    // hotelIsolation already enforces hotel boundary; double-check department belongs to hotel
-    if (req.hotelId && department.hotel_id !== req.hotelId) {
-      return res.status(403).json({ success: false, error: 'Access denied' })
-    }
-    res.json({ success: true, department })
-  } catch (error) {
-    logError('Get department error', error)
-    res.status(500).json({ success: false, error: 'Failed to get department' })
   }
-})
+)
 
 /**
  * POST /api/departments
  */
-router.post('/', authMiddleware, hotelIsolation, requirePermission(PermissionResource.DEPARTMENTS, PermissionAction.CREATE), async (req, res) => {
-  try {
-    const validation = validate(CreateDepartmentSchema, req.body)
-    if (!validation.isValid) {
-      return res.status(400).json({ success: false, error: 'Validation failed', details: validation.errors })
+router.post(
+  '/',
+  authMiddleware,
+  hotelIsolation,
+  requirePermission(PermissionResource.DEPARTMENTS, PermissionAction.CREATE),
+  async (req, res) => {
+    try {
+      const validation = validate(CreateDepartmentSchema, req.body)
+      if (!validation.isValid) {
+        return res
+          .status(400)
+          .json({
+            success: false,
+            error: 'Validation failed',
+            details: validation.errors,
+          })
+      }
+
+      const { name, description, settings, email } = validation.data
+
+      // SECURITY: Use req.hotelId from hotelIsolation middleware
+      // This ensures non-SUPER_ADMIN can only create in their own hotel
+      const hotel_id = req.hotelId
+
+      if (!hotel_id) {
+        return res
+          .status(400)
+          .json({ success: false, error: 'hotel_id is required' })
+      }
+
+      // Генерируем уникальный код департамента
+      const code = await generateDepartmentCode(hotel_id)
+
+      // Handle empty string as null for description
+      const departmentDescription = description === '' ? null : description
+
+      const department = await createDepartment({
+        name,
+        description: departmentDescription,
+        settings,
+        hotel_id,
+        code,
+        email: email && String(email).trim() ? String(email).trim() : null,
+      })
+
+      await logAudit({
+        hotel_id,
+        user_id: req.user.id,
+        user_name: req.user.name,
+        action: 'create',
+        entity_type: 'department',
+        entity_id: department.id,
+        details: { name, code },
+        ip_address: req.ip,
+      })
+
+      res.status(201).json({ success: true, department })
+    } catch (error) {
+      logError('Create department error', error)
+      res
+        .status(500)
+        .json({ success: false, error: 'Failed to create department' })
     }
-
-    const { name, description, settings, email } = validation.data
-
-    // SECURITY: Use req.hotelId from hotelIsolation middleware
-    // This ensures non-SUPER_ADMIN can only create in their own hotel
-    const hotel_id = req.hotelId
-
-    if (!hotel_id) {
-      return res.status(400).json({ success: false, error: 'hotel_id is required' })
-    }
-
-    // Генерируем уникальный код департамента
-    const code = await generateDepartmentCode(hotel_id)
-
-    // Handle empty string as null for description
-    const departmentDescription = description === '' ? null : description
-
-    const department = await createDepartment({
-      name,
-      description: departmentDescription,
-      settings,
-      hotel_id,
-      code,
-      email: email && String(email).trim() ? String(email).trim() : null
-    })
-
-    await logAudit({
-      hotel_id, user_id: req.user.id, user_name: req.user.name,
-      action: 'create', entity_type: 'department', entity_id: department.id,
-      details: { name, code }, ip_address: req.ip
-    })
-
-    res.status(201).json({ success: true, department })
-  } catch (error) {
-    logError('Departments', error, { action: 'create', name, description: departmentDescription, hotel_id })
-    res.status(500).json({
-      success: false,
-      error: 'Failed to create department',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
-    })
   }
-})
+)
 
 /**
  * PUT /api/departments/:id
  */
-router.put('/:id', authMiddleware, hotelIsolation, requirePermission(PermissionResource.DEPARTMENTS, PermissionAction.UPDATE, {
-  getTargetHotelId: async (req) => {
-    const dept = await getDepartmentById(req.params.id)
-    return dept?.hotel_id
+router.put(
+  '/:id',
+  authMiddleware,
+  hotelIsolation,
+  requirePermission(PermissionResource.DEPARTMENTS, PermissionAction.UPDATE, {
+    getTargetHotelId: async (req) => {
+      const dept = await getDepartmentById(req.params.id)
+      return dept?.hotel_id
+    },
+  }),
+  async (req, res) => {
+    try {
+      const department = await getDepartmentById(req.params.id)
+      if (!department) {
+        return res
+          .status(404)
+          .json({ success: false, error: 'Department not found' })
+      }
+
+      // hotelIsolation enforces boundary; double-check department belongs to isolated hotel
+      if (req.hotelId && department.hotel_id !== req.hotelId) {
+        return res.status(403).json({ success: false, error: 'Access denied' })
+      }
+
+      const validation = validate(UpdateDepartmentSchema, req.body)
+      if (!validation.isValid) {
+        return res
+          .status(400)
+          .json({
+            success: false,
+            error: 'Validation failed',
+            details: validation.errors,
+          })
+      }
+
+      const { name, description, settings, is_active, email } = validation.data
+      const updates = {}
+      if (name !== undefined) updates.name = name
+      if (description !== undefined) {
+        updates.description = description === '' ? null : description
+      }
+      if (settings !== undefined) updates.settings = settings
+      if (is_active !== undefined) updates.is_active = is_active
+      if (email !== undefined) {
+        updates.email =
+          email === '' || email === null ? null : String(email).trim()
+      }
+
+      const success = await updateDepartment(req.params.id, updates)
+      if (success) {
+        await logAudit({
+          hotel_id: department.hotel_id,
+          user_id: req.user.id,
+          user_name: req.user.name,
+          action: 'update',
+          entity_type: 'department',
+          entity_id: req.params.id,
+          details: { name: department.name, updates: Object.keys(updates) },
+          ip_address: req.ip,
+        })
+      }
+      res.json({ success })
+    } catch (error) {
+      logError('Update department error', error)
+      res
+        .status(500)
+        .json({ success: false, error: 'Failed to update department' })
+    }
   }
-}), async (req, res) => {
-  try {
-    const department = await getDepartmentById(req.params.id)
-    if (!department) {
-      return res.status(404).json({ success: false, error: 'Department not found' })
-    }
-
-    // hotelIsolation enforces boundary; double-check department belongs to isolated hotel
-    if (req.hotelId && department.hotel_id !== req.hotelId) {
-      return res.status(403).json({ success: false, error: 'Access denied' })
-    }
-
-    const validation = validate(UpdateDepartmentSchema, req.body)
-    if (!validation.isValid) {
-      return res.status(400).json({ success: false, error: 'Validation failed', details: validation.errors })
-    }
-
-    const { name, description, settings, is_active, email } = validation.data
-    const updates = {}
-    if (name !== undefined) updates.name = name
-    if (description !== undefined) {
-      updates.description = description === '' ? null : description
-    }
-    if (settings !== undefined) updates.settings = settings
-    if (is_active !== undefined) updates.is_active = is_active
-    if (email !== undefined) {
-      updates.email = email === '' || email === null ? null : String(email).trim()
-    }
-
-    const success = await updateDepartment(req.params.id, updates)
-    if (success) {
-      await logAudit({
-        hotel_id: department.hotel_id, user_id: req.user.id, user_name: req.user.name,
-        action: 'update', entity_type: 'department', entity_id: req.params.id,
-        details: { name: department.name, updates: Object.keys(updates) }, ip_address: req.ip
-      })
-    }
-    res.json({ success })
-  } catch (error) {
-    logError('Departments', error, { action: 'update', departmentId: req.params.id, updates: Object.keys(updates || {}) })
-    res.status(500).json({
-      success: false,
-      error: 'Failed to update department',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
-    })
-  }
-})
+)
 
 /**
  * DELETE /api/departments/:id
  */
-router.delete('/:id', authMiddleware, hotelIsolation, requirePermission(PermissionResource.DEPARTMENTS, PermissionAction.DELETE), async (req, res) => {
-  try {
-    const department = await getDepartmentById(req.params.id)
-    if (!department) {
-      return res.status(404).json({ success: false, error: 'Department not found' })
-    }
+router.delete(
+  '/:id',
+  authMiddleware,
+  hotelIsolation,
+  requirePermission(PermissionResource.DEPARTMENTS, PermissionAction.DELETE),
+  async (req, res) => {
+    try {
+      const department = await getDepartmentById(req.params.id)
+      if (!department) {
+        return res
+          .status(404)
+          .json({ success: false, error: 'Department not found' })
+      }
 
-    // hotelIsolation enforces boundary; double-check department belongs to isolated hotel
-    if (req.hotelId && department.hotel_id !== req.hotelId) {
-      return res.status(403).json({ success: false, error: 'Access denied' })
-    }
+      // hotelIsolation enforces boundary; double-check department belongs to isolated hotel
+      if (req.hotelId && department.hotel_id !== req.hotelId) {
+        return res.status(403).json({ success: false, error: 'Access denied' })
+      }
 
-    // Check if department has active batches
-    const activeBatchesResult = await dbQuery(
-      `SELECT COUNT(*) as count FROM batches b
+      // Check if department has active batches
+      const activeBatchesResult = await dbQuery(
+        `SELECT COUNT(*) as count FROM batches b
        JOIN products p ON b.product_id = p.id
        WHERE p.department_id = $1 AND b.status = 'active'`,
-      [req.params.id]
-    )
+        [req.params.id]
+      )
 
-    const activeBatchesCount = parseInt(activeBatchesResult.rows[0].count)
-    if (activeBatchesCount > 0) {
-      return res.status(400).json({
-        success: false,
-        error: 'Cannot delete department with active batches',
-        activeBatches: activeBatchesCount
-      })
-    }
+      const activeBatchesCount = parseInt(activeBatchesResult.rows[0].count)
+      if (activeBatchesCount > 0) {
+        return res.status(400).json({
+          success: false,
+          error: 'Cannot delete department with active batches',
+          activeBatches: activeBatchesCount,
+        })
+      }
 
-    const success = await deleteDepartment(req.params.id)
-    if (success) {
-      await logAudit({
-        hotel_id: department.hotel_id, user_id: req.user.id, user_name: req.user.name,
-        action: 'delete', entity_type: 'department', entity_id: req.params.id,
-        details: { name: department.name, code: department.code }, ip_address: req.ip
-      })
+      const success = await deleteDepartment(req.params.id)
+      if (success) {
+        await logAudit({
+          hotel_id: department.hotel_id,
+          user_id: req.user.id,
+          user_name: req.user.name,
+          action: 'delete',
+          entity_type: 'department',
+          entity_id: req.params.id,
+          details: { name: department.name, code: department.code },
+          ip_address: req.ip,
+        })
+      }
+      res.json({ success })
+    } catch (error) {
+      logError('Delete department error', error)
+      res
+        .status(500)
+        .json({ success: false, error: 'Failed to delete department' })
     }
-    res.json({ success })
-  } catch (error) {
-    logError('Departments', error, { action: 'delete', departmentId: req.params.id })
-    res.status(500).json({
-      success: false,
-      error: 'Failed to delete department',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
-    })
   }
-})
+)
 
 /**
  * Генерирует уникальный код департамента
  */
 async function generateDepartmentCode(hotelId) {
-  const result = await dbQuery(`
+  const result = await dbQuery(
+    `
     SELECT COUNT(*)::int as count FROM departments WHERE hotel_id = $1
-  `, [hotelId])
+  `,
+    [hotelId]
+  )
   const count = result.rows[0]?.count || 0
   return `DEPT-${String(count + 1).padStart(3, '0')}`
 }
@@ -242,17 +312,17 @@ async function generateDepartmentCode(hotelId) {
 // ═══════════════════════════════════════════════════════════════
 
 // Rate limiter for verification code sending (3 per hour per department)
-const sendCodeLimiter = new RateLimiterMemory({
+// Deprecated rate limiters (kept for reference, not used since endpoints are deprecated)
+const _sendCodeLimiter = new RateLimiterMemory({
   points: 3,
   duration: 60 * 60, // 1 hour
-  blockDuration: 60 * 60 // Block for 1 hour if exceeded
+  blockDuration: 60 * 60, // Block for 1 hour if exceeded
 })
 
-// Rate limiter for verification attempts (5 per 15 minutes per department)
-const verifyCodeLimiter = new RateLimiterMemory({
+const _verifyCodeLimiter = new RateLimiterMemory({
   points: 5,
   duration: 15 * 60, // 15 minutes
-  blockDuration: 60 * 60 // Block for 1 hour if exceeded
+  blockDuration: 60 * 60, // Block for 1 hour if exceeded
 })
 
 /**
@@ -261,73 +331,99 @@ const verifyCodeLimiter = new RateLimiterMemory({
  * Code-based verification was removed in migration 043.
  * Use simplified confirmation flow via /send-confirmation endpoint.
  */
-router.post('/:id/send-verification-code', authMiddleware, requirePermission(PermissionResource.DEPARTMENTS, PermissionAction.UPDATE, {
-  getTargetHotelId: async (req) => {
-    const dept = await getDepartmentById(req.params.id)
-    return dept?.hotel_id
+router.post(
+  '/:id/send-verification-code',
+  authMiddleware,
+  requirePermission(PermissionResource.DEPARTMENTS, PermissionAction.UPDATE, {
+    getTargetHotelId: async (req) => {
+      const dept = await getDepartmentById(req.params.id)
+      return dept?.hotel_id
+    },
+  }),
+  async (req, res) => {
+    return res.status(410).json({
+      success: false,
+      error: 'DEPRECATED',
+      message:
+        'This endpoint is deprecated. Use POST /api/departments/:id/send-confirmation instead.',
+      deprecated: true,
+      alternative: '/api/departments/:id/send-confirmation',
+    })
   }
-}), async (req, res) => {
-  return res.status(410).json({
-    success: false,
-    error: 'DEPRECATED',
-    message: 'This endpoint is deprecated. Use POST /api/departments/:id/send-confirmation instead.',
-    deprecated: true,
-    alternative: '/api/departments/:id/send-confirmation'
-  })
-})
+)
 
 /**
  * POST /api/departments/:id/verify-email
  * @deprecated Use simplified confirmation flow via /send-confirmation instead
  * Code-based verification was removed in migration 043.
  */
-router.post('/:id/verify-email', authMiddleware, requirePermission(PermissionResource.DEPARTMENTS, PermissionAction.UPDATE, {
-  getTargetHotelId: async (req) => {
-    const dept = await getDepartmentById(req.params.id)
-    return dept?.hotel_id
+router.post(
+  '/:id/verify-email',
+  authMiddleware,
+  requirePermission(PermissionResource.DEPARTMENTS, PermissionAction.UPDATE, {
+    getTargetHotelId: async (req) => {
+      const dept = await getDepartmentById(req.params.id)
+      return dept?.hotel_id
+    },
+  }),
+  async (req, res) => {
+    return res.status(410).json({
+      success: false,
+      error: 'DEPRECATED',
+      message:
+        'This endpoint is deprecated. Use simplified confirmation flow via /send-confirmation instead.',
+      deprecated: true,
+      alternative: '/api/departments/:id/send-confirmation',
+    })
   }
-}), async (req, res) => {
-  return res.status(410).json({
-    success: false,
-    error: 'DEPRECATED',
-    message: 'This endpoint is deprecated. Use simplified confirmation flow via /send-confirmation instead.',
-    deprecated: true,
-    alternative: '/api/departments/:id/send-confirmation'
-  })
-})
+)
 
 /**
  * GET /api/departments/:id/verification-status
  * Get email verification status for department
  */
-router.get('/:id/verification-status', authMiddleware, requirePermission(PermissionResource.DEPARTMENTS, PermissionAction.READ, {
-  getTargetHotelId: async (req) => {
-    const dept = await getDepartmentById(req.params.id)
-    return dept?.hotel_id
-  }
-}), async (req, res) => {
-  try {
-    const department = await getDepartmentById(req.params.id)
-    if (!department) {
-      return res.status(404).json({ success: false, error: 'Department not found' })
-    }
+router.get(
+  '/:id/verification-status',
+  authMiddleware,
+  requirePermission(PermissionResource.DEPARTMENTS, PermissionAction.READ, {
+    getTargetHotelId: async (req) => {
+      const dept = await getDepartmentById(req.params.id)
+      return dept?.hotel_id
+    },
+  }),
+  async (req, res) => {
+    try {
+      const department = await getDepartmentById(req.params.id)
+      if (!department) {
+        return res
+          .status(404)
+          .json({ success: false, error: 'Department not found' })
+      }
 
-    if (req.user.role !== 'SUPER_ADMIN' && req.user.hotel_id !== department.hotel_id) {
-      return res.status(403).json({ success: false, error: 'Access denied' })
-    }
+      if (
+        req.user.role !== 'SUPER_ADMIN' &&
+        req.user.hotel_id !== department.hotel_id
+      ) {
+        return res.status(403).json({ success: false, error: 'Access denied' })
+      }
 
-    res.json({
-      success: true,
-      verified: department.email_confirmed || false,
-      email: department.email,
-      email_confirmed: department.email_confirmed || false,
-      email_confirmed_at: department.email_confirmed_at ? new Date(department.email_confirmed_at).toISOString() : null
-    })
-  } catch (error) {
-    logError('Get verification status error', error)
-    res.status(500).json({ success: false, error: 'Failed to get verification status' })
+      res.json({
+        success: true,
+        verified: department.email_confirmed || false,
+        email: department.email,
+        email_confirmed: department.email_confirmed || false,
+        email_confirmed_at: department.email_confirmed_at
+          ? new Date(department.email_confirmed_at).toISOString()
+          : null,
+      })
+    } catch (error) {
+      logError('Get verification status error', error)
+      res
+        .status(500)
+        .json({ success: false, error: 'Failed to get verification status' })
+    }
   }
-})
+)
 
 // ═══════════════════════════════════════════════════════════════
 // DEPARTMENT EMAIL CONFIRMATION (Simplified)
@@ -337,7 +433,8 @@ router.get('/:id/verification-status', authMiddleware, requirePermission(Permiss
  * POST /api/departments/:id/send-confirmation
  * Send confirmation email to department (no codes, just confirmation)
  */
-router.post('/:id/send-confirmation',
+router.post(
+  '/:id/send-confirmation',
   authMiddleware,
   hotelIsolation,
   requirePermission(PermissionResource.DEPARTMENTS, PermissionAction.UPDATE),
@@ -347,7 +444,9 @@ router.post('/:id/send-confirmation',
       const department = await getDepartmentById(id)
 
       if (!department) {
-        return res.status(404).json({ success: false, error: 'Department not found' })
+        return res
+          .status(404)
+          .json({ success: false, error: 'Department not found' })
       }
 
       // SECURITY: Ensure department belongs to the isolated hotel
@@ -356,14 +455,18 @@ router.post('/:id/send-confirmation',
       }
 
       if (!department.email) {
-        return res.status(400).json({ success: false, error: 'No email configured for this department' })
+        return res
+          .status(400)
+          .json({
+            success: false,
+            error: 'No email configured for this department',
+          })
       }
 
       // Токен для ссылок «подтвердить» и «отписаться» (один токен — два endpoint)
       const token = crypto.randomBytes(32).toString('hex')
-      const appUrl = process.env.APP_URL || 'http://localhost:5173'
-      const confirmLink = `${appUrl}/api/departments/${id}/confirm?token=${token}`
-      const unsubscribeLink = `${appUrl}/api/departments/${id}/unsubscribe?token=${token}`
+      const confirmLink = `${APP_URL}/api/departments/${id}/confirm?token=${token}`
+      const unsubscribeLink = `${APP_URL}/api/departments/${id}/unsubscribe?token=${token}`
 
       // Сохраняем токен; email_confirmed = TRUE только после перехода по ссылке «Подтвердить»
       await dbQuery(
@@ -375,10 +478,15 @@ router.post('/:id/send-confirmation',
 
       const hotel = await getHotelById(department.hotel_id)
       const hotelName = hotel?.name
-        ? (hotel.marsha_code ? `${hotel.name} / ${hotel.marsha_code}` : hotel.name)
+        ? hotel.marsha_code
+          ? `${hotel.name} / ${hotel.marsha_code}`
+          : hotel.name
         : 'Hotel'
 
-      await sendVerificationEmail({
+      logInfo('DepartmentEmail', `Sending confirmation to ${department.email}`)
+      logInfo('DepartmentEmail', `Confirm: ${confirmLink}`)
+
+      const emailResult = await sendVerificationEmail({
         user: { name: department.name },
         verificationLink: null,
         target: 'DEPARTMENT',
@@ -386,8 +494,14 @@ router.post('/:id/send-confirmation',
         departmentName: department.name,
         hotelName: hotelName,
         confirmLink,
-        unsubscribeLink
+        unsubscribeLink,
       })
+
+      logInfo(
+        'DepartmentEmail',
+        `Email sent to ${department.email}`,
+        emailResult
+      )
 
       await logAudit({
         hotel_id: department.hotel_id,
@@ -397,7 +511,7 @@ router.post('/:id/send-confirmation',
         entity_type: 'department',
         entity_id: id,
         details: { email: department.email },
-        ip_address: req.ip
+        ip_address: req.ip,
       })
 
       res.json({ success: true, message: 'Confirmation email sent' })
@@ -412,66 +526,63 @@ router.post('/:id/send-confirmation',
  * GET /api/departments/:id/confirm?token=...
  * Подтверждение email отдела — переход по ссылке из письма ставит email_confirmed = TRUE
  */
-router.get('/:id/confirm',
-  async (req, res) => {
-    try {
-      const { id } = req.params
-      const { token } = req.query
-      if (!token) {
-        return res.status(400).send(`
+router.get('/:id/confirm', async (req, res) => {
+  try {
+    const { id } = req.params
+    const { token } = req.query
+    if (!token) {
+      return res.status(400).send(`
           <html><body style="font-family: sans-serif; text-align: center; padding: 50px;">
             <h2>Неверный запрос</h2>
             <p>Отсутствует токен подтверждения.</p>
           </body></html>
         `)
-      }
-      const result = await dbQuery(
-        `UPDATE departments
+    }
+    const result = await dbQuery(
+      `UPDATE departments
          SET email_confirmed = TRUE,
              email_confirmed_at = NOW()
          WHERE id = $1 AND email_unsubscribe_token = $2
          RETURNING id, name`,
-        [id, token]
-      )
-      if (result.rows.length === 0) {
-        return res.status(400).send(`
+      [id, token]
+    )
+    if (result.rows.length === 0) {
+      return res.status(400).send(`
           <html><body style="font-family: sans-serif; text-align: center; padding: 50px;">
             <h2>Недействительная или устаревшая ссылка</h2>
             <p>Запросите новое письмо подтверждения в настройках отеля.</p>
           </body></html>
         `)
-      }
-      res.send(`
+    }
+    res.send(`
         <html><body style="font-family: sans-serif; text-align: center; padding: 50px;">
           <h2 style="color: #059669;">✓ Email подтверждён</h2>
           <p>На этот адрес будут приходить ежедневные отчёты по инвентарю.</p>
           <p style="color: #666; font-size: 14px; margin-top: 30px;">Можно закрыть эту страницу.</p>
         </body></html>
       `)
-    } catch (error) {
-      logError('Department confirm error', error)
-      res.status(500).send(`
+  } catch (error) {
+    logError('Department confirm error', error)
+    res.status(500).send(`
         <html><body style="font-family: sans-serif; text-align: center; padding: 50px;">
           <h2>Ошибка</h2>
           <p>Попробуйте позже или запросите новое письмо.</p>
         </body></html>
       `)
-    }
   }
-)
+})
 
 /**
  * GET /api/departments/:id/unsubscribe
  * Unsubscribe from department emails
  */
-router.get('/:id/unsubscribe',
-  async (req, res) => {
-    try {
-      const { id } = req.params
-      const { token } = req.query
+router.get('/:id/unsubscribe', async (req, res) => {
+  try {
+    const { id } = req.params
+    const { token } = req.query
 
-      if (!token) {
-        return res.status(400).send(`
+    if (!token) {
+      return res.status(400).send(`
           <html>
             <body style="font-family: sans-serif; text-align: center; padding: 50px;">
               <h2>Invalid Request</h2>
@@ -479,19 +590,19 @@ router.get('/:id/unsubscribe',
             </body>
           </html>
         `)
-      }
+    }
 
-      const result = await dbQuery(
-        `UPDATE departments
+    const result = await dbQuery(
+      `UPDATE departments
          SET email_confirmed = FALSE,
              email_confirmed_at = NULL
          WHERE id = $1 AND email_unsubscribe_token = $2
          RETURNING id, name`,
-        [id, token]
-      )
+      [id, token]
+    )
 
-      if (result.rows.length === 0) {
-        return res.status(400).send(`
+    if (result.rows.length === 0) {
+      return res.status(400).send(`
           <html>
             <body style="font-family: sans-serif; text-align: center; padding: 50px;">
               <h2>Invalid or Expired Link</h2>
@@ -499,9 +610,9 @@ router.get('/:id/unsubscribe',
             </body>
           </html>
         `)
-      }
+    }
 
-      res.send(`
+    res.send(`
         <html>
           <body style="font-family: sans-serif; text-align: center; padding: 50px;">
             <h2 style="color: #059669;">✓ Unsubscribed</h2>
@@ -512,9 +623,9 @@ router.get('/:id/unsubscribe',
           </body>
         </html>
       `)
-    } catch (error) {
-      logError('Unsubscribe error', error)
-      res.status(500).send(`
+  } catch (error) {
+    logError('Unsubscribe error', error)
+    res.status(500).send(`
         <html>
           <body style="font-family: sans-serif; text-align: center; padding: 50px;">
             <h2>Error</h2>
@@ -522,8 +633,7 @@ router.get('/:id/unsubscribe',
           </body>
         </html>
       `)
-    }
   }
-)
+})
 
 export default router

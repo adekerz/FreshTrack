@@ -43,7 +43,10 @@
       "Bash(npx --yes pg-query:*)",
       "Bash(node -e \"\nconst { Client } = require\\(''pg''\\);\nconst client = new Client\\({ connectionString: ''postgresql://postgres:AXhqksMysqzAJqCCOrhgwKtKIntqSrTk@turntable.proxy.rlwy.net:11180/railway'' }\\);\nclient.connect\\(\\).then\\(\\(\\) => client.query\\(''SELECT status, COUNT\\(*\\) as count FROM batches GROUP BY status ORDER BY count DESC''\\)\\).then\\(r => { console.log\\(JSON.stringify\\(r.rows\\)\\); client.end\\(\\); }\\).catch\\(e => { console.error\\(e.message\\); client.end\\(\\); }\\);\n\")",
       "Bash(node:*)",
-      "Bash(npx eslint:*)"
+      "Bash(npx eslint:*)",
+      "Bash(psql:*)",
+      "Bash(curl:*)",
+      "Bash(python3:*)"
     ]
   }
 }
