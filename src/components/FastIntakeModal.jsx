@@ -90,6 +90,9 @@ export default function FastIntakeModal({
   // Keyboard toolbar: track visual viewport offset so toolbar sits above the keyboard on iOS
   const [keyboardOffset, setKeyboardOffset] = useState(0)
 
+  // Detect iOS for built-in keyboard navigation (hide custom toolbar on iOS)
+  const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent)
+
   const targetDepartment =
     departmentId || (departments.length > 0 ? departments[0].id : null)
 
@@ -1015,12 +1018,12 @@ export default function FastIntakeModal({
                             {/* Date suggestion chips — appear on focus if there are recent dates */}
                             {focusedItemIndex === index &&
                               getDateSuggestions(item).length > 0 && (
-                                <div className="mt-1.5 ml-[22px] flex gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                                <div className="mt-1.5 ml-[22px] flex gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [touch-action:pan-x]">
                                   {getDateSuggestions(item).map((isoDate) => (
                                     <button
                                       key={isoDate}
                                       type="button"
-                                      onPointerDown={(e) => {
+                                      onClick={(e) => {
                                         e.preventDefault()
                                         applyDateSuggestion(index, isoDate)
                                       }}
@@ -1179,8 +1182,8 @@ export default function FastIntakeModal({
         </div>
       )}
 
-      {/* Keyboard navigation toolbar — mobile only, floats above the software keyboard */}
-      {focusedItemIndex !== null && items.length > 0 && (
+      {/* Keyboard navigation toolbar — mobile only (not iOS, which has built-in navigation) */}
+      {!isIOS && focusedItemIndex !== null && items.length > 0 && (
         <div
           className="sm:hidden fixed left-0 right-0 z-[150]"
           style={{ bottom: keyboardOffset }}
