@@ -32,8 +32,9 @@ import { RateLimiterMemory } from 'rate-limiter-flexible'
 import crypto from 'crypto'
 
 const router = Router()
+// Backend public URL for email confirmation links (must point to backend, not frontend)
 // eslint-disable-next-line no-undef
-const APP_URL = process.env.APP_URL || 'http://localhost:5173'
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3001'
 
 /**
  * GET /api/departments
@@ -459,8 +460,8 @@ router.post(
 
       // Токен для ссылок «подтвердить» и «отписаться» (один токен — два endpoint)
       const token = crypto.randomBytes(32).toString('hex')
-      const confirmLink = `${APP_URL}/api/departments/${id}/confirm?token=${token}`
-      const unsubscribeLink = `${APP_URL}/api/departments/${id}/unsubscribe?token=${token}`
+      const confirmLink = `${BACKEND_URL}/api/departments/${id}/confirm?token=${token}`
+      const unsubscribeLink = `${BACKEND_URL}/api/departments/${id}/unsubscribe?token=${token}`
 
       // Сохраняем токен; email_confirmed = TRUE только после перехода по ссылке «Подтвердить»
       await dbQuery(
