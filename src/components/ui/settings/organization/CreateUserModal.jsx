@@ -2,7 +2,6 @@
  * CreateUserModal - Модальное окно создания пользователя
  */
 
-import { useState } from 'react'
 import { X, UserPlus } from 'lucide-react'
 import { ButtonLoader } from '../..'
 import PasswordFields from '../../PasswordFields'
@@ -20,10 +19,10 @@ export default function CreateUserModal({
   creating,
   error,
   t,
-  canCreateSuperAdmin = false
+  canCreateSuperAdmin = false,
+  generatePassword,
+  setGeneratePassword,
 }) {
-  const [generatePassword, setGeneratePassword] = useState(true)
-
   if (!isOpen) return null
 
   const hotelName = hotels?.find((h) => h.id === hotelId)?.name
@@ -31,23 +30,20 @@ export default function CreateUserModal({
     ?.find((h) => h.id === hotelId)
     ?.departments?.find((d) => d.id === departmentId)?.name
 
-  const handleClose = () => {
-    onClose()
-    setGeneratePassword(true)
-  }
-
   return (
     <div className="fixed inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
       <div className="bg-card rounded-xl p-6 w-full max-w-md mx-4 shadow-xl animate-slide-up max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-lg font-semibold text-foreground">Создать пользователя</h3>
+            <h3 className="text-lg font-semibold text-foreground">
+              Создать пользователя
+            </h3>
             <p className="text-xs text-muted-foreground mt-0.5">
               {hotelName}
               {deptName ? ` → ${deptName}` : ''}
             </p>
           </div>
-          <button onClick={handleClose} className="p-2 hover:bg-muted rounded-lg">
+          <button onClick={onClose} className="p-2 hover:bg-muted rounded-lg">
             <X className="w-5 h-5 text-muted-foreground" />
           </button>
         </div>
@@ -61,12 +57,16 @@ export default function CreateUserModal({
         <div className="space-y-4">
           {/* Login */}
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1">Логин *</label>
+            <label className="block text-sm font-medium text-foreground mb-1">
+              Логин *
+            </label>
             <input
               type="text"
               placeholder="username"
               value={formState.login}
-              onChange={(e) => setFormState({ ...formState, login: e.target.value })}
+              onChange={(e) =>
+                setFormState({ ...formState, login: e.target.value })
+              }
               className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-card"
             />
           </div>
@@ -74,7 +74,9 @@ export default function CreateUserModal({
           {/* Password */}
           <PasswordFields
             password={formState.password}
-            onPasswordChange={(val) => setFormState({ ...formState, password: val })}
+            onPasswordChange={(val) =>
+              setFormState({ ...formState, password: val })
+            }
             generatePassword={generatePassword}
             onGenerateChange={setGeneratePassword}
             t={t}
@@ -82,12 +84,16 @@ export default function CreateUserModal({
 
           {/* Name */}
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1">Имя *</label>
+            <label className="block text-sm font-medium text-foreground mb-1">
+              Имя *
+            </label>
             <input
               type="text"
               placeholder="Иван Иванов"
               value={formState.name}
-              onChange={(e) => setFormState({ ...formState, name: e.target.value })}
+              onChange={(e) =>
+                setFormState({ ...formState, name: e.target.value })
+              }
               className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-card"
             />
           </div>
@@ -95,34 +101,51 @@ export default function CreateUserModal({
           {/* Email */}
           <div>
             <label className="block text-sm font-medium text-foreground mb-1">
-              Email {generatePassword && <span className="text-danger">*</span>}
+              Email{' '}
+              {generatePassword ? (
+                <span className="text-danger">*</span>
+              ) : (
+                <span className="text-muted-foreground text-xs">
+                  (необязательно)
+                </span>
+              )}
             </label>
             <input
               type="email"
               placeholder="user@example.com"
               value={formState.email}
-              onChange={(e) => setFormState({ ...formState, email: e.target.value })}
+              onChange={(e) =>
+                setFormState({ ...formState, email: e.target.value })
+              }
               className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-card"
             />
-            {generatePassword && (
-              <p className="text-xs text-muted-foreground mt-1">
-                Обязателен для отправки временного пароля
-              </p>
-            )}
+            <p className="text-xs text-muted-foreground mt-1">
+              {generatePassword
+                ? 'Обязателен — на него отправим временный пароль'
+                : 'Если указан — придёт уведомление с данными для входа'}
+            </p>
           </div>
 
           {/* Role */}
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1">Роль</label>
+            <label className="block text-sm font-medium text-foreground mb-1">
+              Роль
+            </label>
             {!departmentId ? (
               canCreateSuperAdmin ? (
                 <select
                   value={formState.role}
-                  onChange={(e) => setFormState({ ...formState, role: e.target.value })}
+                  onChange={(e) =>
+                    setFormState({ ...formState, role: e.target.value })
+                  }
                   className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-card"
                 >
-                  <option value="HOTEL_ADMIN">{t?.('users.roles.HOTEL_ADMIN') || 'Hotel Admin'}</option>
-                  <option value="SUPER_ADMIN">{t?.('users.roles.SUPER_ADMIN') || 'Super Admin'}</option>
+                  <option value="HOTEL_ADMIN">
+                    {t?.('users.roles.HOTEL_ADMIN') || 'Hotel Admin'}
+                  </option>
+                  <option value="SUPER_ADMIN">
+                    {t?.('users.roles.SUPER_ADMIN') || 'Super Admin'}
+                  </option>
                 </select>
               ) : (
                 <div className="w-full px-4 py-2.5 border border-border rounded-lg bg-muted/50 text-foreground">
@@ -132,11 +155,17 @@ export default function CreateUserModal({
             ) : (
               <select
                 value={formState.role}
-                onChange={(e) => setFormState({ ...formState, role: e.target.value })}
+                onChange={(e) =>
+                  setFormState({ ...formState, role: e.target.value })
+                }
                 className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-card"
               >
-                <option value="STAFF">{t?.('users.roles.STAFF') || 'Staff'}</option>
-                <option value="DEPARTMENT_MANAGER">{t?.('users.roles.DEPARTMENT_MANAGER') || 'Dept Manager'}</option>
+                <option value="STAFF">
+                  {t?.('users.roles.STAFF') || 'Staff'}
+                </option>
+                <option value="DEPARTMENT_MANAGER">
+                  {t?.('users.roles.DEPARTMENT_MANAGER') || 'Dept Manager'}
+                </option>
               </select>
             )}
           </div>

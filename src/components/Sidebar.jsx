@@ -1,18 +1,36 @@
 import { useLocation, useNavigate } from 'react-router-dom'
-import { Leaf, PanelLeftClose, PanelLeftOpen, X, LogOut, Globe } from 'lucide-react'
+import {
+  Leaf,
+  PanelLeftClose,
+  PanelLeftOpen,
+  X,
+  LogOut,
+  Globe,
+} from 'lucide-react'
 import TouchButton from './ui/TouchButton'
 import Tooltip from './Tooltip'
 import { useProducts } from '../context/ProductContext'
 import { useAuth } from '../context/AuthContext'
 import { useTranslation, useLanguage } from '../context/LanguageContext'
 import { useBranding } from '../context/BrandingContext'
+import { useModules } from '../context/ModuleContext'
 import { getStaticUrl } from '../services/api'
 import { cn } from '../utils/classNames'
-import { mainNavItems, moreNavItems, filterNavByRole } from '../config/navigation'
+import {
+  mainNavItems,
+  moreNavItems,
+  filterNavByRole,
+} from '../config/navigation'
 import HotelSelector from './HotelSelector'
 import HeaderDepartmentSelector from './HeaderDepartmentSelector'
 
-export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose, embedded = false }) {
+export default function Sidebar({
+  isOpen,
+  onToggle,
+  isMobile = false,
+  onClose,
+  embedded = false,
+}) {
   const location = useLocation()
   const navigate = useNavigate()
   const { getStats, getUnreadNotificationsCount } = useProducts()
@@ -20,6 +38,7 @@ export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose, e
   const { t } = useTranslation()
   const { language, changeLanguage } = useLanguage()
   const { siteName, logoUrl } = useBranding()
+  const { hasModule } = useModules()
   const stats = getStats()
 
   // Количество непрочитанных уведомлений (или критичных + просроченных)
@@ -33,17 +52,20 @@ export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose, e
   const navOptions = {
     capabilities,
     permissions: user?.permissions || [],
-    hasPermission
+    hasPermission,
+    hasModuleFn: hasModule,
   }
 
-  // Основные пункты навигации из централизованной конфигурации
-  const mainItems = mainNavItems.map((item) => ({
-    path: item.path,
-    icon: item.icon,
-    label: t(item.labelKey) || item.fallbackLabel,
-    badge: item.hasBadge && unreadCount > 0 ? unreadCount : null,
-    onboardingId: item.id
-  }))
+  // Основные пункты навигации из централизованной конфигурации (с учётом модулей)
+  const mainItems = filterNavByRole(mainNavItems, userRole, navOptions).map(
+    (item) => ({
+      path: item.path,
+      icon: item.icon,
+      label: t(item.labelKey) || item.fallbackLabel,
+      badge: item.hasBadge && unreadCount > 0 ? unreadCount : null,
+      onboardingId: item.id,
+    })
+  )
 
   // Дополнительные пункты - фильтруем по роли/permissions из централизованной конфигурации
   // Только отчёты - настройки убраны (доступны через dropdown в Header)
@@ -53,19 +75,19 @@ export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose, e
       path: item.path,
       icon: item.icon,
       label: t(item.labelKey) || item.fallbackLabel,
-      onboardingId: item.id
+      onboardingId: item.id,
     }))
 
   // Группируем для sidebar (без настроек - они в dropdown меню справа)
   const navGroups = [
     {
       label: null,
-      items: mainItems
+      items: mainItems,
     },
     {
       label: t('nav.reports') || 'Отчёты',
-      items: reportItems
-    }
+      items: reportItems,
+    },
   ].filter((group) => group.items.length > 0)
 
   const isActive = (path) => {
@@ -75,7 +97,9 @@ export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose, e
     }
     // For other paths, check exact match or if pathname starts with path + '/'
     // This prevents '/' from matching '/inventory', '/settings', etc.
-    return location.pathname === path || location.pathname.startsWith(path + '/')
+    return (
+      location.pathname === path || location.pathname.startsWith(path + '/')
+    )
   }
 
   // Обработчик клика по пункту меню
@@ -104,13 +128,14 @@ export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose, e
           // Мобильная версия (не embedded)
           isMobile && !embedded
             ? cn(
-              'fixed left-0 top-0 bottom-0 z-50 w-72',
-              isOpen ? 'translate-x-0' : '-translate-x-full'
-            )
-            : !embedded && cn(
-              // Десктопная версия
-              isOpen ? 'w-64' : 'w-20'
-            )
+                'fixed left-0 top-0 bottom-0 z-50 w-72',
+                isOpen ? 'translate-x-0' : '-translate-x-full'
+              )
+            : !embedded &&
+                cn(
+                  // Десктопная версия
+                  isOpen ? 'w-64' : 'w-20'
+                )
         )}
       >
         {/* Logo */}
@@ -129,7 +154,9 @@ export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose, e
                     }}
                   />
                 ) : null}
-                <Leaf className={`w-5 h-5 text-accent ${logoUrl ? 'hidden' : ''}`} />
+                <Leaf
+                  className={`w-5 h-5 text-accent ${logoUrl ? 'hidden' : ''}`}
+                />
               </div>
               {(isOpen || isMobile) && (
                 <span className="font-serif text-xl tracking-wide">
@@ -165,7 +192,12 @@ export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose, e
         )}
 
         {/* Main Navigation - Grouped */}
-        <nav className={cn('flex-1 overflow-y-auto', embedded ? 'px-3 pt-2 pb-4' : 'px-3 py-4')}>
+        <nav
+          className={cn(
+            'flex-1 overflow-y-auto',
+            embedded ? 'px-3 pt-2 pb-4' : 'px-3 py-4'
+          )}
+        >
           {navGroups.map((group, groupIndex) => {
             // Элементы уже отфильтрованы по роли из централизованной конфигурации
             const items = group.items
@@ -202,7 +234,9 @@ export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose, e
                         iconPosition="left"
                       >
                         {(isOpen || isMobile) && (
-                          <span className="flex-1 text-left font-medium">{item.label}</span>
+                          <span className="flex-1 text-left font-medium">
+                            {item.label}
+                          </span>
                         )}
                         {item.badge && (
                           <span
@@ -269,7 +303,9 @@ export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose, e
             {/* Информация о пользователе */}
             <div className="flex items-center gap-3 px-2 py-2">
               <div className="w-10 h-10 bg-accent/20 rounded-full flex items-center justify-center">
-                <span className="text-accent font-medium">{user.name?.charAt(0) || 'U'}</span>
+                <span className="text-accent font-medium">
+                  {user.name?.charAt(0) || 'U'}
+                </span>
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">{user.name}</p>
@@ -296,14 +332,22 @@ export default function Sidebar({ isOpen, onToggle, isMobile = false, onClose, e
         {/* Toggle Button (только для десктопа, не при embedded) */}
         {!isMobile && !embedded && (
           <div className="p-4 border-t border-white/10">
-            <Tooltip content={isOpen ? (t('sidebar.collapse') || 'Свернуть') : (t('sidebar.expand') || 'Развернуть')}>
+            <Tooltip
+              content={
+                isOpen
+                  ? t('sidebar.collapse') || 'Свернуть'
+                  : t('sidebar.expand') || 'Развернуть'
+              }
+            >
               <span className="inline-flex w-full justify-center">
                 <TouchButton
                   variant="ghost"
                   size="icon"
                   onClick={onToggle}
                   className="w-full rounded text-cream/80 hover:text-cream hover:bg-white/5"
-                  aria-label={isOpen ? t('sidebar.collapse') : t('sidebar.expand')}
+                  aria-label={
+                    isOpen ? t('sidebar.collapse') : t('sidebar.expand')
+                  }
                   icon={isOpen ? PanelLeftClose : PanelLeftOpen}
                 />
               </span>

@@ -152,7 +152,9 @@
     "history": "Historial",
     "more": "Más",
     "reports": "Informes",
-    "mobileNav": "Navegación"
+    "mobileNav": "Navegación",
+    "tasks": "Tareas",
+    "logbookScanner": "Logbook Scanner"
   },
   "sidebar": {
     "collapse": "Contraer menú",
@@ -1640,5 +1642,75 @@
     },
     "needMoreHelp": "¿Necesita más ayuda?",
     "contactSupport": "Si no encontró respuesta a su pregunta, contacte a nuestro equipo de soporte."
+  },
+  "tasks": {
+    "title": "Planificador de tareas",
+    "loading": "Cargando planificador...",
+    "searchPlaceholder": "Buscar tareas...",
+    "newBoard": "Nuevo tablero",
+    "addColumn": "Agregar columna",
+    "columnNamePlaceholder": "Nombre de la columna...",
+    "noBoardsTitle": "Sin tableros",
+    "noBoardsDescription": "Crea tu primer tablero para comenzar a organizar las tareas de tu equipo.",
+    "createFirstBoard": "Crear primer tablero",
+    "createTask": "Crear tarea",
+    "createBoard": "Crear tablero",
+    "taskTitle": "Título de la tarea",
+    "taskTitlePlaceholder": "¿Qué hay que hacer?",
+    "description": "Descripción",
+    "descriptionPlaceholder": "Agregar detalles...",
+    "priority": "Prioridad",
+    "dueDate": "Fecha límite",
+    "column": "Columna",
+    "boardName": "Nombre del tablero",
+    "boardNamePlaceholder": "ej: Tareas de cocina",
+    "boardDescription": "Descripción",
+    "boardDescriptionPlaceholder": "¿Para qué es este tablero?",
+    "priorities": {
+      "low": "Baja",
+      "medium": "Media",
+      "high": "Alta",
+      "urgent": "Urgente"
+    },
+    "stats": {
+      "total": "Total",
+      "todo": "Pendiente",
+      "inProgress": "En progreso",
+      "done": "Hecho",
+      "overdue": "Atrasado"
+    },
+    "detail": {
+      "details": "Detalles",
+      "checklist": "Lista de verificación",
+      "comments": "Comentarios",
+      "created": "Creado",
+      "updated": "Actualizado",
+      "assignedTo": "Asignado a",
+      "noAssignee": "Sin asignar",
+      "deleteTask": "Eliminar tarea",
+      "deleteConfirm": "¿Estás seguro de que deseas eliminar esta tarea?",
+      "addChecklistItem": "Agregar elemento...",
+      "checklistProgress": "{{done}} de {{total}} completados",
+      "addComment": "Escribir un comentario...",
+      "noComments": "Sin comentarios aún",
+      "post": "Publicar"
+    },
+    "dropHere": "Soltar tareas aquí",
+    "statusHint": "Al cambiar el estado, la tarjeta se moverá automáticamente a la columna correspondiente",
+    "status": "Estado",
+    "progress": "Progreso",
+    "deleteColumn": "Eliminar columna",
+    "deleteBoardConfirm": "¿Eliminar este tablero? Todas las columnas y tareas serán eliminadas permanentemente.",
+    "boardDeleted": "Tablero eliminado",
+    "deleteColumnConfirm": "¿Eliminar esta columna? Todas las tareas serán eliminadas permanentemente.",
+    "columnDeleted": "Columna eliminada",
+    "statuses": {
+      "todo": "Pendiente",
+      "inProgress": "En progreso",
+      "review": "En revisión",
+      "blocked": "Bloqueado",
+      "completed": "Completado",
+      "cancelled": "Cancelado"
+    }
   }
 }

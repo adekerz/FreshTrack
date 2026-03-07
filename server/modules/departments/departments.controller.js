@@ -108,8 +108,15 @@ router.post(
         })
       }
 
-      const { name, description, type, settings, email, telegram_chat_id } =
-        validation.data
+      const {
+        name,
+        description,
+        type,
+        settings,
+        email,
+        telegram_chat_id,
+        modules,
+      } = validation.data
 
       // SECURITY: Use req.hotelId from hotelIsolation middleware
       // This ensures non-SUPER_ADMIN can only create in their own hotel
@@ -141,6 +148,20 @@ router.post(
             : null,
       })
 
+      // Enable selected modules for the new department
+      if (Array.isArray(modules) && modules.length > 0) {
+        for (const moduleCode of modules) {
+          await dbQuery(
+            `
+            INSERT INTO department_modules (department_id, module_code, enabled_by, is_enabled)
+            VALUES ($1, $2, $3, true)
+            ON CONFLICT (department_id, module_code) DO UPDATE SET is_enabled = true
+          `,
+            [department.id, moduleCode, req.user.id]
+          )
+        }
+      }
+
       await logAudit({
         hotel_id,
         user_id: req.user.id,
@@ -148,7 +169,7 @@ router.post(
         action: 'create',
         entity_type: 'department',
         entity_id: department.id,
-        details: { name, code },
+        details: { name, code, modules: modules ?? [] },
         ip_address: req.ip,
       })
 

@@ -21,7 +21,14 @@ import { validateRequiredEnv } from './utils/validateEnv.js'
 validateRequiredEnv()
 
 // Import rate limiter
-import { rateLimitGeneral, rateLimitAuth, rateLimitHeavy, rateLimitPendingStatus, rateLimitWebhook, rateLimitLogin } from './middleware/rateLimiter.js'
+import {
+  rateLimitGeneral,
+  rateLimitAuth,
+  rateLimitHeavy,
+  rateLimitPendingStatus,
+  rateLimitWebhook,
+  rateLimitLogin,
+} from './middleware/rateLimiter.js'
 
 // Import routes
 import docsRouter from './routes/docs.js'
@@ -50,7 +57,10 @@ import {
   eventsController,
   marshaCodesController,
   gdprController,
-  scheduledExportsController
+  scheduledExportsController,
+  tasksController,
+  modulesController,
+  analyticsRouter,
 } from './modules/index.js'
 import { webhooksRouter } from './modules/webhooks/index.js'
 
@@ -59,6 +69,7 @@ import { startNotificationJobs } from './jobs/notificationJobs.js'
 import { startCleanupJobs } from './jobs/cleanupJobs.js'
 import { startAuditVerificationJob } from './jobs/auditVerificationJob.js'
 import { startDataRetentionJob } from './jobs/dataRetentionJob.js'
+import { startAnalyticsSnapshotJob } from './jobs/analyticsSnapshotJob.js'
 
 // Import scheduled export service
 import ScheduledExportService from './services/ScheduledExportService.js'
@@ -85,7 +96,8 @@ console.log(`[CORS] Mode: ${process.env.NODE_ENV || 'development'}`)
 console.log(`[CORS] Allowed origins:`, allowedOrigins)
 
 // Только превью этого проекта (не любой *.vercel.app — иначе evil-freshtrack.vercel.app мог бы стучаться в API)
-const vercelPreview = /^https:\/\/fresh-track-[a-z0-9-]+-adekerzs-projects\.vercel\.app$/
+const vercelPreview =
+  /^https:\/\/fresh-track-[a-z0-9-]+-adekerzs-projects\.vercel\.app$/
 
 app.use(
   cors({
@@ -110,7 +122,10 @@ app.use(
       // Origin present - check against whitelist
       if (allowedOrigins.includes(origin)) {
         callback(null, true)
-      } else if (process.env.NODE_ENV === 'production' && vercelPreview.test(origin)) {
+      } else if (
+        process.env.NODE_ENV === 'production' &&
+        vercelPreview.test(origin)
+      ) {
         callback(null, true)
       } else {
         console.log('[CORS] Rejected origin:', origin)
@@ -119,8 +134,18 @@ app.use(
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Hotel-Id', 'X-Department-Id'],
-    exposedHeaders: ['X-RateLimit-Limit', 'X-RateLimit-Remaining', 'X-RateLimit-Reset', 'Retry-After']
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-Hotel-Id',
+      'X-Department-Id',
+    ],
+    exposedHeaders: [
+      'X-RateLimit-Limit',
+      'X-RateLimit-Remaining',
+      'X-RateLimit-Reset',
+      'Retry-After',
+    ],
   })
 )
 
@@ -147,30 +172,35 @@ const appUrl = process.env.APP_URL || 'https://freshtrack.systems'
 const connectSrcList = ["'self'", appUrl]
 if (process.env.API_ORIGIN) connectSrcList.push(process.env.API_ORIGIN)
 
-app.use(helmet({
-  contentSecurityPolicy: process.env.NODE_ENV === 'production' ? {
-    directives: {
-      defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"], // Tailwind — inline неизбежен
-      scriptSrc: ["'self'"], // Vite bundles. При inline scripts — перейти на nonce: script-src 'self' 'nonce-<runtime>'
-      imgSrc: ["'self'", "data:", "https:", "blob:"],
-      connectSrc: connectSrcList, // APP_URL + API_ORIGIN (fetch, EventSource /api/events/stream)
-      fontSrc: ["'self'", "data:", "https://fonts.gstatic.com"],
-      objectSrc: ["'none'"],
-      upgradeInsecureRequests: []
-    }
-  } : false,
+app.use(
+  helmet({
+    contentSecurityPolicy:
+      process.env.NODE_ENV === 'production'
+        ? {
+            directives: {
+              defaultSrc: ["'self'"],
+              styleSrc: ["'self'", "'unsafe-inline'"], // Tailwind — inline неизбежен
+              scriptSrc: ["'self'"], // Vite bundles. При inline scripts — перейти на nonce: script-src 'self' 'nonce-<runtime>'
+              imgSrc: ["'self'", 'data:', 'https:', 'blob:'],
+              connectSrc: connectSrcList, // APP_URL + API_ORIGIN (fetch, EventSource /api/events/stream)
+              fontSrc: ["'self'", 'data:', 'https://fonts.gstatic.com'],
+              objectSrc: ["'none'"],
+              upgradeInsecureRequests: [],
+            },
+          }
+        : false,
 
-  hsts: {
-    maxAge: 31536000, // 1 year
-    includeSubDomains: true,
-    preload: true
-  },
+    hsts: {
+      maxAge: 31536000, // 1 year
+      includeSubDomains: true,
+      preload: true,
+    },
 
-  frameguard: { action: 'deny' },
-  noSniff: true,
-  referrerPolicy: { policy: 'strict-origin-when-cross-origin' }
-}))
+    frameguard: { action: 'deny' },
+    noSniff: true,
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+  })
+)
 
 // Request logging (development only)
 import { requestLogger } from './utils/logger.js'
@@ -208,6 +238,7 @@ app.use('/api/export', rateLimitHeavy, exportController)
 app.use('/api/notifications', notificationsModuleRouter)
 app.use('/api/reports', reportsModuleRouter)
 app.use('/api/settings', settingsModuleRouter)
+app.use('/api/analytics', analyticsRouter)
 
 // API Documentation (Swagger UI)
 app.use('/api/docs', docsRouter)
@@ -218,6 +249,12 @@ app.use('/api/events', eventsController)
 app.use('/api/marsha-codes', marshaCodesController)
 app.use('/api/gdpr', gdprController)
 app.use('/api/scheduled-exports', scheduledExportsController)
+
+// Task Planner module
+app.use('/api/tasks', tasksController)
+
+// Module System
+app.use('/api/modules', modulesController)
 
 // Webhooks (with rate limiting - 60 requests per minute)
 app.use('/webhooks', rateLimitWebhook, webhooksRouter)
@@ -231,14 +268,14 @@ app.get('/', async (req, res) => {
       service: 'FreshTrack API',
       version: '2.0.0',
       database: 'connected',
-      timestamp: dbCheck.rows[0]?.time
+      timestamp: dbCheck.rows[0]?.time,
     })
   } catch (error) {
     res.status(503).json({
       status: 'error',
       service: 'FreshTrack API',
       database: 'disconnected',
-      error: error.message
+      error: error.message,
     })
   }
 })
@@ -263,7 +300,7 @@ app.use((err, req, res, next) => {
   res.status(statusCode).json({
     error: statusCode === 500 ? 'Internal server error' : err.message,
     message: process.env.NODE_ENV === 'development' ? err.message : undefined,
-    sentryId: res.sentry
+    sentryId: res.sentry,
   })
 })
 
@@ -285,7 +322,9 @@ async function startServer() {
     const usersResult = await query('SELECT COUNT(*) as count FROM users')
     const productsResult = await query('SELECT COUNT(*) as count FROM products')
 
-    console.log(`📊 Data: ${hotels.length} hotels, ${usersResult.rows[0]?.count || 0} users, ${productsResult.rows[0]?.count || 0} products`)
+    console.log(
+      `📊 Data: ${hotels.length} hotels, ${usersResult.rows[0]?.count || 0} users, ${productsResult.rows[0]?.count || 0} products`
+    )
 
     // Start pool monitoring (logs every 60s)
     startPoolMonitor()
@@ -322,7 +361,7 @@ async function startServer() {
         startNotificationJobs({
           enableExpiryCheck: true,
           enableQueueProcess: true,
-          enableTelegramPolling: process.env.TELEGRAM_POLLING === 'true'
+          enableTelegramPolling: process.env.TELEGRAM_POLLING === 'true',
         })
       } catch (error) {
         console.error('⚠️ Failed to start notification jobs:', error.message)
@@ -339,7 +378,10 @@ async function startServer() {
       try {
         startAuditVerificationJob()
       } catch (error) {
-        console.error('⚠️ Failed to start audit verification job:', error.message)
+        console.error(
+          '⚠️ Failed to start audit verification job:',
+          error.message
+        )
       }
 
       // Start data retention job (GDPR compliance)
@@ -349,11 +391,24 @@ async function startServer() {
         console.error('⚠️ Failed to start data retention job:', error.message)
       }
 
+      // Start analytics snapshot job (daily inventory snapshots for trends)
+      try {
+        startAnalyticsSnapshotJob()
+      } catch (error) {
+        console.error(
+          '⚠️ Failed to start analytics snapshot job:',
+          error.message
+        )
+      }
+
       // Start scheduled export service
       try {
         await ScheduledExportService.initialize()
       } catch (error) {
-        console.error('⚠️ Failed to start scheduled export service:', error.message)
+        console.error(
+          '⚠️ Failed to start scheduled export service:',
+          error.message
+        )
       }
     })
   } catch (error) {

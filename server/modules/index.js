@@ -1,8 +1,8 @@
 /**
  * Server Modules Index
- * 
+ *
  * Barrel export для всех серверных модулей.
- * 
+ *
  * Структура модуля:
  * modules/
  *   feature/
@@ -85,3 +85,12 @@ export { gdprController } from './gdpr/index.js'
 
 // Scheduled Exports module
 export { scheduledExportsController } from './scheduled-exports/index.js'
+
+// Tasks module (Task Planner)
+export { tasksController } from './tasks/index.js'
+
+// Module System (modular architecture)
+export { modulesController } from './module-system/index.js'
+
+// Analytics module
+export { analyticsRouter } from './analytics/index.js'

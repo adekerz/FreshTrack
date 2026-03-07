@@ -17,6 +17,7 @@ import { BrandingProvider } from './context/BrandingContext'
 import { NotificationsProvider } from './context/NotificationsContext'
 import { HotelProvider } from './context/HotelContext'
 import { DepartmentProvider } from './context/DepartmentContext'
+import { ModuleProvider } from './context/ModuleContext'
 import ToastContainer from './components/Toast'
 import './styles/index.css'
 import './styles/loader.css'
@@ -44,7 +45,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         basename={basename}
         future={{
           v7_startTransition: true,
-          v7_relativeSplatPath: true
+          v7_relativeSplatPath: true,
         }}
       >
         <ThemeProvider>
@@ -53,16 +54,18 @@ ReactDOM.createRoot(document.getElementById('root')).render(
               <AuthProvider>
                 <HotelProvider>
                   <BrandingProvider>
-                    <NotificationsProvider>
-                      <DepartmentProvider>
-                        <ProductProvider>
-                          <OnboardingProvider>
-                            <App />
-                            <ToastContainer />
-                          </OnboardingProvider>
-                        </ProductProvider>
-                      </DepartmentProvider>
-                    </NotificationsProvider>
+                    <ModuleProvider>
+                      <NotificationsProvider>
+                        <DepartmentProvider>
+                          <ProductProvider>
+                            <OnboardingProvider>
+                              <App />
+                              <ToastContainer />
+                            </OnboardingProvider>
+                          </ProductProvider>
+                        </DepartmentProvider>
+                      </NotificationsProvider>
+                    </ModuleProvider>
                   </BrandingProvider>
                 </HotelProvider>
               </AuthProvider>

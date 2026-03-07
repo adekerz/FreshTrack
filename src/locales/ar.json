@@ -152,7 +152,9 @@
     "history": "السجل",
     "more": "المزيد",
     "reports": "التقارير",
-    "mobileNav": "التنقل"
+    "mobileNav": "التنقل",
+    "tasks": "المهام",
+    "logbookScanner": "Logbook Scanner"
   },
   "sidebar": {
     "collapse": "طي القائمة",
@@ -1656,5 +1658,75 @@
     },
     "needMoreHelp": "هل تحتاج إلى مزيد من المساعدة؟",
     "contactSupport": "إذا لم تجد إجابة على سؤالك، اتصل بفريق الدعم لدينا."
+  },
+  "tasks": {
+    "title": "مخطط المهام",
+    "loading": "جاري تحميل المخطط...",
+    "searchPlaceholder": "البحث عن المهام...",
+    "newBoard": "لوحة جديدة",
+    "addColumn": "إضافة عمود",
+    "columnNamePlaceholder": "اسم العمود...",
+    "noBoardsTitle": "لا توجد لوحات",
+    "noBoardsDescription": "أنشئ لوحتك الأولى لبدء تنظيم مهام فريقك.",
+    "createFirstBoard": "إنشاء اللوحة الأولى",
+    "createTask": "إنشاء مهمة",
+    "createBoard": "إنشاء لوحة",
+    "taskTitle": "عنوان المهمة",
+    "taskTitlePlaceholder": "ما الذي يجب إنجازه؟",
+    "description": "الوصف",
+    "descriptionPlaceholder": "أضف التفاصيل...",
+    "priority": "الأولوية",
+    "dueDate": "تاريخ الاستحقاق",
+    "column": "العمود",
+    "boardName": "اسم اللوحة",
+    "boardNamePlaceholder": "مثال: مهام المطبخ",
+    "boardDescription": "الوصف",
+    "boardDescriptionPlaceholder": "لماذا هذه اللوحة؟",
+    "priorities": {
+      "low": "منخفضة",
+      "medium": "متوسطة",
+      "high": "عالية",
+      "urgent": "عاجلة"
+    },
+    "stats": {
+      "total": "الإجمالي",
+      "todo": "قيد الانتظار",
+      "inProgress": "قيد التنفيذ",
+      "done": "مكتمل",
+      "overdue": "متأخر"
+    },
+    "detail": {
+      "details": "التفاصيل",
+      "checklist": "قائمة التحقق",
+      "comments": "التعليقات",
+      "created": "تم الإنشاء",
+      "updated": "تم التحديث",
+      "assignedTo": "مُسند إلى",
+      "noAssignee": "غير مُسند",
+      "deleteTask": "حذف المهمة",
+      "deleteConfirm": "هل أنت متأكد أنك تريد حذف هذه المهمة؟",
+      "addChecklistItem": "إضافة عنصر...",
+      "checklistProgress": "{{done}} من {{total}} مكتمل",
+      "addComment": "اكتب تعليقاً...",
+      "noComments": "لا توجد تعليقات بعد",
+      "post": "نشر"
+    },
+    "dropHere": "أسقط المهام هنا",
+    "statusHint": "عند تغيير الحالة، ستنتقل البطاقة تلقائياً إلى العمود المناسب",
+    "status": "الحالة",
+    "progress": "التقدم",
+    "deleteColumn": "حذف العمود",
+    "deleteBoardConfirm": "حذف هذه اللوحة؟ سيتم حذف جميع الأعمدة والمهام نهائياً.",
+    "boardDeleted": "تم حذف اللوحة",
+    "deleteColumnConfirm": "حذف هذا العمود؟ سيتم حذف جميع المهام نهائياً.",
+    "columnDeleted": "تم حذف العمود",
+    "statuses": {
+      "todo": "قيد الانتظار",
+      "inProgress": "قيد التنفيذ",
+      "review": "قيد المراجعة",
+      "blocked": "محظور",
+      "completed": "مكتمل",
+      "cancelled": "ملغى"
+    }
   }
 }

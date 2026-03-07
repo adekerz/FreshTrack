@@ -1,7 +1,7 @@
 /**
  * Email Service for FreshTrack
  * Supports: Resend (recommended), SMTP (Nodemailer), SendGrid
- * 
+ *
  * Configuration via environment variables:
  * - EMAIL_PROVIDER: 'resend' | 'smtp' | 'sendgrid'
  * - RESEND_API_KEY: Resend API key
@@ -51,13 +51,21 @@ export function getResendClient() {
  */
 export function resolveEmailRecipient(target, { user, department }) {
   if (target === 'USER') {
-    if (!user?.email || typeof user.email !== 'string' || !String(user.email).trim()) return null
+    if (
+      !user?.email ||
+      typeof user.email !== 'string' ||
+      !String(user.email).trim()
+    )
+      return null
     return String(user.email).trim()
   }
   if (target === 'DEPARTMENT') {
     const email = department?.email
     if (!email || typeof email !== 'string' || !String(email).trim()) {
-      logWarn('EmailService', `Department ${department?.name ?? 'unknown'} has no email; skipping system email`)
+      logWarn(
+        'EmailService',
+        `Department ${department?.name ?? 'unknown'} has no email; skipping system email`
+      )
       return null
     }
     return String(email).trim()
@@ -87,8 +95,8 @@ async function initTransporter() {
         secure: false,
         auth: {
           user: 'apikey',
-          pass: process.env.SENDGRID_API_KEY
-        }
+          pass: process.env.SENDGRID_API_KEY,
+        },
       })
       console.log('📧 Email provider: SendGrid')
       break
@@ -101,8 +109,8 @@ async function initTransporter() {
         secure: process.env.SMTP_SECURE === 'true',
         auth: {
           user: process.env.SMTP_USER,
-          pass: process.env.SMTP_PASS
-        }
+          pass: process.env.SMTP_PASS,
+        },
       })
       console.log('📧 Email provider: SMTP')
       break
@@ -124,11 +132,14 @@ async function initTransporter() {
  */
 async function sendViaResend(options) {
   if (!resendClient) {
-    throw new Error('Resend client not initialized. Check RESEND_API_KEY environment variable.')
+    throw new Error(
+      'Resend client not initialized. Check RESEND_API_KEY environment variable.'
+    )
   }
 
   const fromAddr =
-    process.env.NODE_ENV === 'development' && process.env.RESEND_USE_DEV_SENDER === 'true'
+    process.env.NODE_ENV === 'development' &&
+    process.env.RESEND_USE_DEV_SENDER === 'true'
       ? 'FreshTrack <onboarding@resend.dev>'
       : options.from || DEFAULT_FROM
 
@@ -137,13 +148,13 @@ async function sendViaResend(options) {
     to: Array.isArray(options.to) ? options.to : [options.to],
     subject: options.subject,
     html: options.html,
-    text: options.text
+    text: options.text,
   }
 
   if (options.attachments && options.attachments.length > 0) {
     payload.attachments = options.attachments.map((a) => ({
       filename: a.filename,
-      content: Buffer.isBuffer(a.content) ? a.content : Buffer.from(a.content)
+      content: Buffer.isBuffer(a.content) ? a.content : Buffer.from(a.content),
     }))
   }
 
@@ -167,9 +178,11 @@ export async function sendEmail(options) {
     if (EMAIL_PROVIDER === 'resend') {
       const result = await sendViaResend({
         ...options,
-        from: sender
+        from: sender,
       })
-      const attachInfo = attachments?.length ? ` (${attachments.length} влож.)` : ''
+      const attachInfo = attachments?.length
+        ? ` (${attachments.length} влож.)`
+        : ''
       console.log(`📧 Email sent via Resend to ${to}: ${subject}${attachInfo}`)
       return result
     }
@@ -181,19 +194,23 @@ export async function sendEmail(options) {
       to,
       subject,
       html,
-      text
+      text,
     }
     if (attachments && attachments.length > 0) {
       mailOptions.attachments = attachments.map((a) => ({
         filename: a.filename,
-        content: Buffer.isBuffer(a.content) ? a.content : Buffer.from(a.content),
-        contentType: a.contentType
+        content: Buffer.isBuffer(a.content)
+          ? a.content
+          : Buffer.from(a.content),
+        contentType: a.contentType,
       }))
     }
 
     const result = await transporter.sendMail(mailOptions)
 
-    const attachInfo = attachments?.length ? ` (${attachments.length} влож.)` : ''
+    const attachInfo = attachments?.length
+      ? ` (${attachments.length} влож.)`
+      : ''
     console.log(`📧 Email sent to ${to}: ${subject}${attachInfo}`)
     return result
   } catch (error) {
@@ -206,6 +223,32 @@ export async function sendEmail(options) {
 // EMAIL TEMPLATES
 // ═══════════════════════════════════════════════════════════════
 
+// Support email for footer
+const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || 'support@freshtrack.systems'
+const PRIVACY_POLICY_URL =
+  process.env.PRIVACY_POLICY_URL || `${APP_URL}/privacy`
+const PREFERENCES_URL =
+  process.env.PREFERENCES_URL || `${APP_URL}/settings?tab=notifications`
+
+/**
+ * Standard email footer
+ */
+function emailFooter() {
+  return `
+    <div class="footer">
+      <p>The FreshTrack Team</p>
+      <p>Questions? Contact us at <a href="mailto:${SUPPORT_EMAIL}" style="color: #888;">${SUPPORT_EMAIL}</a></p>
+      <p>You received this email because you have an account with FreshTrack.</p>
+      <p>
+        <a href="${PRIVACY_POLICY_URL}" style="color: #888;">Privacy Policy</a>
+        &nbsp;&middot;&nbsp;
+        <a href="${PREFERENCES_URL}" style="color: #888;">Manage notification preferences</a>
+      </p>
+      <p style="margin-top: 12px;">© ${new Date().getFullYear()} FreshTrack. All rights reserved.</p>
+    </div>
+  `
+}
+
 /**
  * Base email template wrapper
  */
@@ -214,7 +257,7 @@ function emailTemplate(content, options = {}) {
 
   return `
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -278,9 +321,10 @@ function emailTemplate(content, options = {}) {
       border-radius: 8px;
       font-size: 32px;
       font-weight: bold;
-      letter-spacing: 4px;
+      letter-spacing: 8px;
       text-align: center;
       color: #FF8D6B;
+      font-family: 'Courier New', Courier, monospace;
     }
   </style>
 </head>
@@ -288,15 +332,12 @@ function emailTemplate(content, options = {}) {
   <div class="container">
     <div class="card">
       <div class="logo">
-        <h1>🍊 FreshTrack</h1>
+        <h1>FreshTrack</h1>
       </div>
       <div class="content">
         ${content}
       </div>
-      <div class="footer">
-        <p>© ${new Date().getFullYear()} FreshTrack. Все права защищены.</p>
-        <p>Это автоматическое письмо, не отвечайте на него.</p>
-      </div>
+      ${emailFooter()}
     </div>
   </div>
 </body>
@@ -309,24 +350,34 @@ function emailTemplate(content, options = {}) {
  */
 export async function sendWelcomeEmail(user, hotel = null) {
   const content = `
-    <h2>Добро пожаловать в FreshTrack! 👋</h2>
-    <p>Привет, <strong>${user.name}</strong>!</p>
-    <p>Ваш аккаунт успешно создан.</p>
-    ${hotel ? `
-      <p>Вы подали заявку на присоединение к отелю <strong>${hotel.name}</strong>.</p>
-      <p>Администратор отеля рассмотрит вашу заявку в ближайшее время.</p>
-    ` : `
-      <p>Для начала работы вам нужно присоединиться к отелю или дождаться приглашения от администратора.</p>
-    `}
-    <p style="text-align: center; margin-top: 24px;">
-      <a href="${APP_URL}" class="button">Открыть FreshTrack</a>
-    </p>
+    <h2 style="margin-top: 0;">Welcome to FreshTrack</h2>
+    <p>Hi <strong>${user.name}</strong>,</p>
+    <p>Welcome to FreshTrack. Your account${hotel ? ` for <strong>${hotel.name}</strong>` : ''} has been created and is ready to use.</p>
+    <p>FreshTrack helps hotel teams track product expiration dates, reduce waste, and stay compliant with food safety standards.</p>
+    ${
+      hotel
+        ? `
+      <p>Your join request for <strong>${hotel.name}</strong> has been submitted. A hotel administrator will review it shortly.</p>
+    `
+        : `
+      <p style="text-align: center; margin-top: 24px;">
+        <a href="${APP_URL}" class="button">Open FreshTrack</a>
+      </p>
+      <p>Here is what to do first:</p>
+      <ol style="line-height: 1.8;">
+        <li>Add your storage locations and departments</li>
+        <li>Enter your first inventory items</li>
+        <li>Configure expiration alert thresholds</li>
+      </ol>
+    `
+    }
+    <p>If you have any questions, contact us at <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>.</p>
   `
 
   return sendEmail({
     to: user.email,
-    subject: 'Добро пожаловать в FreshTrack! 🍊',
-    html: emailTemplate(content, { title: 'Добро пожаловать' })
+    subject: 'Welcome to FreshTrack',
+    html: emailTemplate(content, { title: 'Welcome to FreshTrack' }),
   })
 }
 
@@ -334,9 +385,18 @@ export async function sendWelcomeEmail(user, hotel = null) {
  * Send welcome email with temporary password (USER email)
  * Used when admin creates a new user
  */
-export async function sendWelcomeEmailWithPassword({ to, userName, temporaryPassword, hotelName, loginUrl }) {
+export async function sendWelcomeEmailWithPassword({
+  to,
+  userName,
+  temporaryPassword,
+  hotelName,
+  loginUrl,
+}) {
   if (!to || !userName || !temporaryPassword) {
-    logWarn('EmailService', 'Missing required parameters for welcome email with password')
+    logWarn(
+      'EmailService',
+      'Missing required parameters for welcome email with password'
+    )
     return null
   }
 
@@ -344,88 +404,57 @@ export async function sendWelcomeEmailWithPassword({ to, userName, temporaryPass
   const hotelNameFinal = hotelName || 'FreshTrack'
 
   const content = `
-    <h2 style="margin-top: 0;">🎉 Добро пожаловать в FreshTrack!</h2>
-    <p>Здравствуйте, <strong>${userName}</strong>!</p>
-    
-    <p>Для вас создан аккаунт в системе FreshTrack для отеля <strong>${hotelNameFinal}</strong>.</p>
-    
-    <div style="background: white; border: 2px solid #FF8D6B; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center;">
-      <p style="margin: 0 0 10px 0; font-weight: 600;">Ваш временный пароль:</p>
-      <div style="font-size: 24px; font-weight: bold; color: #FF8D6B; font-family: monospace; letter-spacing: 2px; word-break: break-all;">
-        ${temporaryPassword}
-      </div>
-    </div>
-    
-    <div style="background: #FEF3C7; border-left: 4px solid #F59E0B; padding: 15px; margin: 20px 0;">
-      <p style="margin: 0;"><strong>⚠️ Важно!</strong> Это временный пароль. При первом входе система попросит вас изменить его на постоянный.</p>
-    </div>
-    
+    <h2 style="margin-top: 0;">You have been invited to FreshTrack</h2>
+    <p>Hi <strong>${userName}</strong>,</p>
+    <p>An administrator has invited you to join FreshTrack for <strong>${hotelNameFinal}</strong>.</p>
+    <p>FreshTrack is an inventory management system that helps hotel teams track product expiration dates and maintain food safety compliance.</p>
+    <p>A temporary password has been created for your account. For security, you must change it upon first login.</p>
+
+    <p><strong>Your sign-in details:</strong></p>
+    <table style="margin: 0 0 16px 0;">
+      <tr><td style="padding: 4px 16px 4px 0; color: #666;">Email</td><td><strong>${to}</strong></td></tr>
+      <tr><td style="padding: 4px 16px 4px 0; color: #666;">Temporary password</td><td><strong style="font-family: 'Courier New', monospace;">${temporaryPassword}</strong></td></tr>
+    </table>
+
     <p style="text-align: center; margin-top: 24px;">
-      <a href="${loginUrlFinal}" class="button">Войти в систему</a>
+      <a href="${loginUrlFinal}" class="button">Sign In to FreshTrack</a>
     </p>
-    
-    <h3 style="margin-top: 30px;">📋 Инструкция:</h3>
-    <ol style="line-height: 1.8;">
-      <li>Перейдите по ссылке выше или откройте <a href="${loginUrlFinal}">${loginUrlFinal}</a></li>
-      <li>Введите ваш email: <strong>${to}</strong></li>
-      <li>Введите временный пароль (скопируйте из письма)</li>
-      <li>Придумайте новый надежный пароль</li>
-      <li>Начните работу с системой!</li>
-    </ol>
-    
-    <div style="background: #FEF3C7; border-left: 4px solid #F59E0B; padding: 15px; margin: 20px 0;">
-      <p style="margin: 0 0 10px 0;"><strong>🔒 Требования к паролю:</strong></p>
-      <ul style="margin: 0; padding-left: 20px; line-height: 1.8;">
-        <li>Минимум 8 символов</li>
-        <li>Хотя бы одна заглавная буква (A-Z)</li>
-        <li>Хотя бы одна строчная буква (a-z)</li>
-        <li>Хотя бы одна цифра (0-9)</li>
-        <li>Хотя бы один спецсимвол (!@#$%^&*-_=+)</li>
-      </ul>
-    </div>
-    
-    <p>Если у вас возникли вопросы, свяжитесь с администратором вашего отеля.</p>
-    
-    <p>С уважением,<br><strong>Команда FreshTrack</strong></p>
+
+    <p style="color: #888; font-size: 14px; margin-top: 20px;">For security, do not share these credentials with anyone. This temporary password will expire. If it expires, contact your administrator.</p>
   `
 
   const text = `
-Добро пожаловать в FreshTrack!
+You have been invited to FreshTrack
 
-Здравствуйте, ${userName}!
+Hi ${userName},
 
-Для вас создан аккаунт в системе FreshTrack для отеля ${hotelNameFinal}.
+An administrator has invited you to join FreshTrack for ${hotelNameFinal}.
 
-Ваш временный пароль: ${temporaryPassword}
+Your sign-in details:
+  Email: ${to}
+  Temporary password: ${temporaryPassword}
 
-⚠️ ВАЖНО! Это временный пароль. При первом входе система попросит вас изменить его.
+Sign in at: ${loginUrlFinal}
 
-Инструкция:
-1. Откройте: ${loginUrlFinal}
-2. Введите ваш email: ${to}
-3. Введите временный пароль
-4. Придумайте новый надежный пароль
-
-Требования к паролю:
-- Минимум 8 символов
-- Заглавные и строчные буквы
-- Цифры
-- Спецсимволы (!@#$%^&*-_=+)
-
-С уважением,
-Команда FreshTrack
+You must change your password upon first login. Do not share these credentials with anyone.
   `
 
   try {
     return await sendEmail({
       to,
       from: EMAIL_FROM.noreply,
-      subject: `Добро пожаловать в FreshTrack - ${hotelNameFinal}`,
-      html: emailTemplate(content, { title: 'Добро пожаловать' }),
-      text
+      subject: `You have been invited to FreshTrack`,
+      html: emailTemplate(content, {
+        title: 'You have been invited to FreshTrack',
+      }),
+      text,
     })
   } catch (error) {
-    logError('EmailService', `Failed to send welcome email with password to ${to}`, error)
+    logError(
+      'EmailService',
+      `Failed to send welcome email with password to ${to}`,
+      error
+    )
     throw error
   }
 }
@@ -434,21 +463,21 @@ export async function sendWelcomeEmailWithPassword({ to, userName, temporaryPass
  * Join request approved email
  */
 export async function sendJoinApprovedEmail(user, hotel, department = null) {
+  const roleName = department ? department.name : 'staff member'
   const content = `
-    <h2>Заявка одобрена! ✅</h2>
-    <p>Привет, <strong>${user.name}</strong>!</p>
-    <p>Ваша заявка на присоединение к отелю <strong>${hotel.name}</strong> была одобрена.</p>
-    ${department ? `<p>Вы добавлены в департамент: <strong>${department.name}</strong></p>` : ''}
-    <p>Теперь вы можете начать работу в системе.</p>
+    <h2 style="margin-top: 0;">Your request to join ${hotel.name} has been approved</h2>
+    <p>Hi <strong>${user.name}</strong>,</p>
+    <p>Your request to join <strong>${hotel.name}</strong> on FreshTrack has been approved. You have been granted <strong>${roleName}</strong> access.</p>
+    <p>You can now sign in and begin using FreshTrack.</p>
     <p style="text-align: center; margin-top: 24px;">
-      <a href="${APP_URL}" class="button">Начать работу</a>
+      <a href="${APP_URL}" class="button">Sign In to FreshTrack</a>
     </p>
   `
 
   return sendEmail({
     to: user.email,
-    subject: 'Заявка одобрена — добро пожаловать в команду! ✅',
-    html: emailTemplate(content, { title: 'Заявка одобрена' })
+    subject: `Your request to join ${hotel.name} has been approved`,
+    html: emailTemplate(content, { title: 'Request approved' }),
   })
 }
 
@@ -457,17 +486,17 @@ export async function sendJoinApprovedEmail(user, hotel, department = null) {
  */
 export async function sendJoinRejectedEmail(user, hotel, reason = null) {
   const content = `
-    <h2>Заявка отклонена</h2>
-    <p>Привет, <strong>${user.name}</strong>.</p>
-    <p>К сожалению, ваша заявка на присоединение к отелю <strong>${hotel.name}</strong> была отклонена.</p>
-    ${reason ? `<p><strong>Причина:</strong> ${reason}</p>` : ''}
-    <p>Если у вас есть вопросы, обратитесь к администратору отеля.</p>
+    <h2 style="margin-top: 0;">Update on your FreshTrack access request</h2>
+    <p>Hi <strong>${user.name}</strong>,</p>
+    <p>Thank you for your interest in joining <strong>${hotel.name}</strong> on FreshTrack. After review, your access request was not approved at this time.</p>
+    ${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ''}
+    <p>If you believe this decision was made in error or you have questions, please contact the property administrator.</p>
   `
 
   return sendEmail({
     to: user.email,
-    subject: 'Заявка на присоединение отклонена',
-    html: emailTemplate(content, { title: 'Заявка отклонена' })
+    subject: `Update on your FreshTrack access request`,
+    html: emailTemplate(content, { title: 'Access request update' }),
   })
 }
 
@@ -478,23 +507,24 @@ export async function sendPasswordResetEmail(user, resetToken) {
   const resetUrl = `${APP_URL}/reset-password?token=${resetToken}`
 
   const content = `
-    <h2>Сброс пароля 🔐</h2>
-    <p>Привет, <strong>${user.name}</strong>!</p>
-    <p>Вы запросили сброс пароля для вашего аккаунта FreshTrack.</p>
+    <h2 style="margin-top: 0;">Reset your FreshTrack password</h2>
+    <p>Hi <strong>${user.name}</strong>,</p>
+    <p>We received a request to reset the password for your FreshTrack account associated with <strong>${user.email}</strong>.</p>
+    <p>Click the button below to set a new password. This link will expire in <strong>1 hour</strong> and can only be used once.</p>
     <p style="text-align: center; margin: 24px 0;">
-      <a href="${resetUrl}" class="button">Сбросить пароль</a>
+      <a href="${resetUrl}" class="button">Reset Password</a>
     </p>
-    <p>Или скопируйте эту ссылку в браузер:</p>
-    <p style="word-break: break-all; color: #666; font-size: 14px;">${resetUrl}</p>
-    <p><strong>Ссылка действительна 1 час.</strong></p>
-    <p style="color: #888; font-size: 14px;">Если вы не запрашивали сброс пароля, просто проигнорируйте это письмо.</p>
+    <p style="font-size: 14px; color: #666;">If you cannot click the button, copy and paste this URL into your browser:</p>
+    <p style="word-break: break-all; color: #666; font-size: 13px;">${resetUrl}</p>
+    <p style="color: #888; font-size: 14px; margin-top: 20px;">If you did not request a password reset, you can safely ignore this email. Your password will not be changed.</p>
+    <p style="color: #888; font-size: 14px;">If you are concerned about your account security, contact our support team at <a href="mailto:${SUPPORT_EMAIL}" style="color: #888;">${SUPPORT_EMAIL}</a>.</p>
   `
 
   return sendEmail({
     to: user.email,
-    from: EMAIL_FROM.noreply, // no-reply для auth писем
-    subject: 'Сброс пароля FreshTrack 🔐',
-    html: emailTemplate(content, { title: 'Сброс пароля' })
+    from: EMAIL_FROM.noreply,
+    subject: 'Reset your FreshTrack password',
+    html: emailTemplate(content, { title: 'Reset your password' }),
   })
 }
 
@@ -502,58 +532,72 @@ export async function sendPasswordResetEmail(user, resetToken) {
  * Email verification — только коды (OTP), без ссылок
  * @param {Object} params - verificationCode обязателен для USER
  */
-export async function sendVerificationEmail({ user, verificationLink, verificationCode, target = 'USER', email = null, departmentName, hotelName, confirmLink, unsubscribeLink }) {
-  const recipientEmail = email || (user?.email)
+export async function sendVerificationEmail({
+  user,
+  verificationCode,
+  target = 'USER',
+  email = null,
+  departmentName,
+  hotelName,
+  confirmLink,
+  unsubscribeLink,
+}) {
+  const recipientEmail = email || user?.email
   if (!recipientEmail) {
     throw new Error('Email address is required for verification')
   }
 
   let content
   if (target === 'DEPARTMENT') {
-    const deptName = departmentName || user?.name || 'отдела'
-    const hName = hotelName || 'Hotel'
+    const deptName = departmentName || user?.name || 'your department'
+    const hName = hotelName || 'your hotel'
     const confirm = confirmLink || ''
     const unsubLink = unsubscribeLink || ''
 
     content = `
-      <h2>Подтверждение email для ежедневных отчётов 📧</h2>
-      <p>Отель <strong>${hName}</strong>, отдел <strong>${deptName}</strong>.</p>
-      <p>На этот адрес будут приходить ежедневные отчёты по инвентарю. Нажмите кнопку ниже, чтобы подтвердить:</p>
-      
-      ${confirm ? `<p style="margin: 24px 0;"><a href="${confirm}" style="display: inline-block; padding: 12px 24px; background: #FF8D6B; color: #fff; text-decoration: none; border-radius: 8px; font-weight: bold;">Подтвердить email</a></p>` : ''}
-      
-      <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;">
-      
-      <p style="color: #666; font-size: 14px;">
-        Если письмо пришло по ошибке, <a href="${unsubLink}" style="color: #888;">отписаться от рассылки</a>.
+      <h2 style="margin-top: 0;">Verify email for ${deptName} reports</h2>
+      <p>Hello,</p>
+      <p>A FreshTrack administrator has configured <strong>${deptName}</strong> at <strong>${hName}</strong> to send daily inventory reports to this email address.</p>
+      <p>To confirm that you want to receive these reports, click the button below:</p>
+
+      ${confirm ? `<p style="text-align: center; margin: 24px 0;"><a href="${confirm}" class="button">Verify Email Address</a></p>` : ''}
+
+      <p style="font-size: 14px; color: #666; margin-top: 20px;">Once verified, you will receive automated daily reports containing inventory status and expiration alerts for <strong>${deptName}</strong>.</p>
+
+      <hr style="margin: 24px 0; border: none; border-top: 1px solid #ddd;">
+
+      <p style="color: #888; font-size: 13px;">
+        If you did not expect this email, no action is required. You will not receive any further messages.
+        ${unsubLink ? `<br><a href="${unsubLink}" style="color: #888;">Unsubscribe</a>` : ''}
       </p>
     `
   } else {
-    // USER — только код (OTP)
+    // USER — OTP code only
     if (!verificationCode) {
       throw new Error('Verification code is required for USER target')
     }
     content = `
-      <h2>Подтверждение email 📧</h2>
-      <p>Привет, <strong>${user?.name || 'пользователь'}</strong>!</p>
-      <p>Для подтверждения вашего email адреса введите код:</p>
-      <h1 style="font-size: 48px; letter-spacing: 8px; text-align: center; color: #FF8D6B; margin: 24px 0;">${verificationCode}</h1>
-      <p style="text-align: center; margin-top: 16px; color: #888;">
-        Код действителен 15 минут
-      </p>
-      <p style="text-align: center; margin-top: 16px; color: #dc2626; font-size: 14px;">
-        ⚠️ Если вы не запрашивали этот код, проигнорируйте письмо
-      </p>
+      <h2 style="margin-top: 0;">Your FreshTrack verification code</h2>
+      <p>Hi <strong>${user?.name || 'there'}</strong>,</p>
+      <p>Your verification code is:</p>
+      <div class="code">${verificationCode}</div>
+      <p style="text-align: center; margin-top: 16px; color: #888;">This code expires in <strong>10 minutes</strong>.</p>
+      <p style="text-align: center; margin-top: 12px; color: #888; font-size: 14px;">For your security, never share this code with anyone. The FreshTrack team will never ask you for this code.</p>
+      <p style="text-align: center; margin-top: 12px; color: #888; font-size: 14px;">If you did not request this code, you can safely ignore this email.</p>
     `
   }
 
   return sendEmail({
     to: recipientEmail,
-    from: EMAIL_FROM.noreply, // no-reply для auth писем
-    subject: target === 'DEPARTMENT'
-      ? 'Daily Reports Enabled — FreshTrack'
-      : 'Подтверждение email — FreshTrack',
-    html: emailTemplate(content, { title: target === 'DEPARTMENT' ? 'Daily Reports Enabled' : 'Подтверждение email' })
+    from: EMAIL_FROM.noreply,
+    subject:
+      target === 'DEPARTMENT'
+        ? `Verify email for ${departmentName || 'department'} reports`
+        : 'Your FreshTrack verification code',
+    html: emailTemplate(content, {
+      title:
+        target === 'DEPARTMENT' ? 'Verify email address' : 'Verification code',
+    }),
   })
 }
 
@@ -562,23 +606,19 @@ export async function sendVerificationEmail({ user, verificationLink, verificati
  */
 export async function sendNewJoinRequestEmail(admin, user, hotel) {
   const content = `
-    <h2>Новая заявка на присоединение 📋</h2>
-    <p>Привет, <strong>${admin.name}</strong>!</p>
-    <p>Новый пользователь хочет присоединиться к вашему отелю:</p>
-    <ul>
-      <li><strong>Имя:</strong> ${user.name}</li>
-      <li><strong>Email:</strong> ${user.email}</li>
-      <li><strong>Отель:</strong> ${hotel.name}</li>
-    </ul>
+    <h2 style="margin-top: 0;">New access request for ${hotel.name}</h2>
+    <p>Hi <strong>${admin.name}</strong>,</p>
+    <p><strong>${user.name}</strong> (<a href="mailto:${user.email}">${user.email}</a>) has requested to join <strong>${hotel.name}</strong> on FreshTrack.</p>
+    <p>You can approve or decline this request from your dashboard:</p>
     <p style="text-align: center; margin-top: 24px;">
-      <a href="${APP_URL}/settings?tab=users" class="button">Рассмотреть заявку</a>
+      <a href="${APP_URL}/settings?tab=users" class="button">Review Request</a>
     </p>
   `
 
   return sendEmail({
     to: admin.email,
-    subject: `Новая заявка: ${user.name} хочет присоединиться`,
-    html: emailTemplate(content, { title: 'Новая заявка' })
+    subject: `New access request for ${hotel.name}`,
+    html: emailTemplate(content, { title: 'New access request' }),
   })
 }
 
@@ -587,50 +627,48 @@ export async function sendNewJoinRequestEmail(admin, user, hotel) {
  */
 export async function sendExpiryReportEmail(admin, report) {
   const { critical, warning, today, hotel } = report
+  const reportDate = new Date().toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  })
+  const expiredCount = critical || 0
+  const warningCount = warning || 0
+  const todayCount = today || 0
+  const totalAlertCount = expiredCount + warningCount + todayCount
 
   const content = `
-    <h2>Ежедневный отчёт о сроках годности 📊</h2>
-    <p>Привет, <strong>${admin.name}</strong>!</p>
-    <p>Отчёт для отеля <strong>${hotel.name}</strong> на ${new Date().toLocaleDateString('ru-RU')}:</p>
-    
+    <h2 style="margin-top: 0;">Expiry report for ${hotel.name} — ${reportDate}</h2>
+    <p>Hi <strong>${admin.name}</strong>,</p>
+    <p>Here is the daily expiration report for <strong>${hotel.name}</strong> as of ${reportDate}.</p>
+
     <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
       <tr style="background: #FEE2E2;">
-        <td style="padding: 12px; border-radius: 8px 0 0 8px;">
-          <strong style="color: #DC2626;">🔴 Просрочено</strong>
-        </td>
-        <td style="padding: 12px; text-align: right; border-radius: 0 8px 8px 0;">
-          <strong style="font-size: 24px; color: #DC2626;">${critical}</strong>
-        </td>
+        <td style="padding: 12px; border-radius: 8px 0 0 8px; color: #DC2626;"><strong>Expired — Immediate action required</strong></td>
+        <td style="padding: 12px; text-align: right; border-radius: 0 8px 8px 0;"><strong style="font-size: 24px; color: #DC2626;">${expiredCount}</strong></td>
       </tr>
       <tr><td colspan="2" style="height: 8px;"></td></tr>
       <tr style="background: #FEF3C7;">
-        <td style="padding: 12px; border-radius: 8px 0 0 8px;">
-          <strong style="color: #D97706;">🟡 Истекает сегодня</strong>
-        </td>
-        <td style="padding: 12px; text-align: right; border-radius: 0 8px 8px 0;">
-          <strong style="font-size: 24px; color: #D97706;">${today}</strong>
-        </td>
+        <td style="padding: 12px; border-radius: 8px 0 0 8px; color: #D97706;"><strong>Expiring today</strong></td>
+        <td style="padding: 12px; text-align: right; border-radius: 0 8px 8px 0;"><strong style="font-size: 24px; color: #D97706;">${todayCount}</strong></td>
       </tr>
       <tr><td colspan="2" style="height: 8px;"></td></tr>
       <tr style="background: #FEF9C3;">
-        <td style="padding: 12px; border-radius: 8px 0 0 8px;">
-          <strong style="color: #CA8A04;">⚠️ Скоро истечёт</strong>
-        </td>
-        <td style="padding: 12px; text-align: right; border-radius: 0 8px 8px 0;">
-          <strong style="font-size: 24px; color: #CA8A04;">${warning}</strong>
-        </td>
+        <td style="padding: 12px; border-radius: 8px 0 0 8px; color: #CA8A04;"><strong>Expiring soon</strong></td>
+        <td style="padding: 12px; text-align: right; border-radius: 0 8px 8px 0;"><strong style="font-size: 24px; color: #CA8A04;">${warningCount}</strong></td>
       </tr>
     </table>
-    
+
     <p style="text-align: center; margin-top: 24px;">
-      <a href="${APP_URL}/inventory" class="button">Открыть инвентарь</a>
+      <a href="${APP_URL}/inventory" class="button">View Full Report</a>
     </p>
+    <p style="text-align: center; color: #888; font-size: 13px; margin-top: 12px;">This is an automated daily report. To adjust report settings, visit your <a href="${PREFERENCES_URL}" style="color: #888;">notification preferences</a>.</p>
   `
 
   return sendEmail({
     to: admin.email,
-    subject: `📊 Отчёт: ${critical} просрочено, ${today} истекает сегодня`,
-    html: emailTemplate(content, { title: 'Отчёт о сроках' })
+    subject: `Expiry report for ${hotel.name} — ${totalAlertCount} items need attention`,
+    html: emailTemplate(content, { title: 'Expiry report' }),
   })
 }
 
@@ -753,16 +791,13 @@ function systemEmailLayout(content, options = {}) {
   <div class="container">
     <div class="card">
       <div class="header">
-        <h1>🍊 FreshTrack</h1>
+        <h1>FreshTrack</h1>
         <p>System Notification</p>
       </div>
       <div class="content">
         ${content}
       </div>
-      <div class="footer">
-        <p>© ${new Date().getFullYear()} FreshTrack. Все права защищены.</p>
-        <p>Это автоматическое системное письмо, не отвечайте на него.</p>
-      </div>
+      ${emailFooter()}
     </div>
   </div>
 </body>
@@ -777,12 +812,15 @@ function systemEmailLayout(content, options = {}) {
  */
 async function getUnifiedTemplates(hotelId) {
   try {
-    const templatesResult = await query(`
+    const templatesResult = await query(
+      `
       SELECT value FROM settings 
       WHERE key IN ('notify.templates', 'telegram_message_templates') AND hotel_id = $1
       ORDER BY CASE WHEN key = 'notify.templates' THEN 1 ELSE 2 END
       LIMIT 1
-    `, [hotelId])
+    `,
+      [hotelId]
+    )
 
     if (templatesResult.rows.length > 0) {
       try {
@@ -796,7 +834,8 @@ async function getUnifiedTemplates(hotelId) {
   }
 
   return {
-    dailyReport: '📊 Ежедневный отчёт FreshTrack\n{department}\n\nДата: {date}\n\n✅ В норме: {good}\n⚠️ Скоро истекает: {warning}\n🔴 Просрочено: {expired}\n📦 Всего партий: {total}\n\n{expiringList}\n\n{expiredList}'
+    dailyReport:
+      '📊 Ежедневный отчёт FreshTrack\n{department}\n\nДата: {date}\n\n✅ В норме: {good}\n⚠️ Скоро истекает: {warning}\n🔴 Просрочено: {expired}\n📦 Всего партий: {total}\n\n{expiringList}\n\n{expiredList}',
   }
 }
 
@@ -821,53 +860,56 @@ function textToHtml(text) {
  */
 export async function sendAccountDeletedEmail(user, hotelName = null) {
   if (!user?.email) {
-    logWarn('EmailService', 'Cannot send account deleted email - no email address')
+    logWarn(
+      'EmailService',
+      'Cannot send account deleted email - no email address'
+    )
     return null
   }
 
   const content = `
-    <h2 style="margin-top: 0;">🔴 Ваш аккаунт удален</h2>
-    <p>Здравствуйте, <strong>${user.name}</strong>!</p>
-    
-    <p>Ваш аккаунт в системе FreshTrack был удален администратором.</p>
-    
-    ${hotelName ? `<p><strong>Отель:</strong> ${hotelName}</p>` : ''}
-    
-    <div style="background: #FEE2E2; border-left: 4px solid #DC2626; padding: 15px; margin: 20px 0;">
-      <p style="margin: 0;"><strong>⚠️ Внимание!</strong> Это действие необратимо. Все ваши данные и доступ к системе были удалены.</p>
-    </div>
-    
-    <p>Если вы считаете, что это ошибка, пожалуйста, свяжитесь с администратором вашего отеля.</p>
-    
-    <p>С уважением,<br><strong>Команда FreshTrack</strong></p>
+    <h2 style="margin-top: 0;">Your FreshTrack account has been deleted</h2>
+    <p>Hi <strong>${user.name}</strong>,</p>
+    <p>Your FreshTrack account (<strong>${user.email}</strong>${hotelName ? ` for ${hotelName}` : ''}) has been deleted by your administrator.</p>
+    <p><strong>What this means:</strong></p>
+    <ul style="line-height: 1.8;">
+      <li>Your access to FreshTrack has been permanently revoked</li>
+      <li>Your personal account data has been removed</li>
+      <li>Hotel inventory data managed by your organization is unaffected</li>
+    </ul>
+    <p>If you believe this was done in error, contact your property administrator.</p>
+    <p style="color: #888; font-size: 14px;">If you have questions about data handling, review our <a href="${PRIVACY_POLICY_URL}" style="color: #888;">Privacy Policy</a> or contact us at <a href="mailto:${SUPPORT_EMAIL}" style="color: #888;">${SUPPORT_EMAIL}</a>.</p>
   `
 
   const text = `
-Ваш аккаунт удален
+Your FreshTrack account has been deleted
 
-Здравствуйте, ${user.name}!
+Hi ${user.name},
 
-Ваш аккаунт в системе FreshTrack был удален администратором.
-${hotelName ? `Отель: ${hotelName}` : ''}
+Your FreshTrack account (${user.email}${hotelName ? ` for ${hotelName}` : ''}) has been deleted by your administrator.
 
-⚠️ ВНИМАНИЕ! Это действие необратимо. Все ваши данные и доступ к системе были удалены.
+What this means:
+- Your access to FreshTrack has been permanently revoked
+- Your personal account data has been removed
+- Hotel inventory data managed by your organization is unaffected
 
-Если вы считаете, что это ошибка, пожалуйста, свяжитесь с администратором вашего отеля.
-
-С уважением,
-Команда FreshTrack
+If you believe this was done in error, contact your property administrator.
   `
 
   try {
     return await sendEmail({
       to: user.email,
       from: EMAIL_FROM.noreply,
-      subject: 'Ваш аккаунт FreshTrack удален',
-      html: emailTemplate(content, { title: 'Аккаунт удален' }),
-      text
+      subject: 'Your FreshTrack account has been deleted',
+      html: emailTemplate(content, { title: 'Account deleted' }),
+      text,
     })
   } catch (error) {
-    logError('EmailService', `Failed to send account deleted email to ${user.email}`, error)
+    logError(
+      'EmailService',
+      `Failed to send account deleted email to ${user.email}`,
+      error
+    )
     throw error
   }
 }
@@ -879,61 +921,55 @@ ${hotelName ? `Отель: ${hotelName}` : ''}
  */
 export async function sendAccountDeactivatedEmail(user, hotelName = null) {
   if (!user?.email) {
-    logWarn('EmailService', 'Cannot send account deactivated email - no email address')
+    logWarn(
+      'EmailService',
+      'Cannot send account deactivated email - no email address'
+    )
     return null
   }
 
   const content = `
-    <h2 style="margin-top: 0;">⚠️ Ваш аккаунт деактивирован</h2>
-    <p>Здравствуйте, <strong>${user.name}</strong>!</p>
-    
-    <p>Ваш аккаунт в системе FreshTrack был деактивирован администратором.</p>
-    
-    ${hotelName ? `<p><strong>Отель:</strong> ${hotelName}</p>` : ''}
-    
-    <div style="background: #FEF3C7; border-left: 4px solid #F59E0B; padding: 15px; margin: 20px 0;">
-      <p style="margin: 0;"><strong>ℹ️ Что это значит?</strong></p>
-      <ul style="margin: 10px 0 0 0; padding-left: 20px; line-height: 1.8;">
-        <li>Вы не можете войти в систему</li>
-        <li>Ваши данные сохранены</li>
-        <li>Администратор может восстановить доступ</li>
-      </ul>
-    </div>
-    
-    <p>Для восстановления доступа обратитесь к администратору вашего отеля.</p>
-    
-    <p>С уважением,<br><strong>Команда FreshTrack</strong></p>
+    <h2 style="margin-top: 0;">Your FreshTrack account has been deactivated</h2>
+    <p>Hi <strong>${user.name}</strong>,</p>
+    <p>Your FreshTrack account (<strong>${user.email}</strong>${hotelName ? ` for ${hotelName}` : ''}) has been deactivated by your administrator.</p>
+    <p><strong>While your account is deactivated:</strong></p>
+    <ul style="line-height: 1.8;">
+      <li>You cannot sign in to FreshTrack</li>
+      <li>You will not receive notifications or reports</li>
+      <li>Your account data is preserved</li>
+    </ul>
+    <p>Your administrator can reactivate your account at any time. If you have questions, contact your property administrator.</p>
   `
 
   const text = `
-Ваш аккаунт деактивирован
+Your FreshTrack account has been deactivated
 
-Здравствуйте, ${user.name}!
+Hi ${user.name},
 
-Ваш аккаунт в системе FreshTrack был деактивирован администратором.
-${hotelName ? `Отель: ${hotelName}` : ''}
+Your FreshTrack account (${user.email}${hotelName ? ` for ${hotelName}` : ''}) has been deactivated by your administrator.
 
-ℹ️ Что это значит?
-- Вы не можете войти в систему
-- Ваши данные сохранены
-- Администратор может восстановить доступ
+While your account is deactivated:
+- You cannot sign in to FreshTrack
+- You will not receive notifications or reports
+- Your account data is preserved
 
-Для восстановления доступа обратитесь к администратору вашего отеля.
-
-С уважением,
-Команда FreshTrack
+Your administrator can reactivate your account at any time.
   `
 
   try {
     return await sendEmail({
       to: user.email,
       from: EMAIL_FROM.noreply,
-      subject: 'Ваш аккаунт FreshTrack деактивирован',
-      html: emailTemplate(content, { title: 'Аккаунт деактивирован' }),
-      text
+      subject: 'Your FreshTrack account has been deactivated',
+      html: emailTemplate(content, { title: 'Account deactivated' }),
+      text,
     })
   } catch (error) {
-    logError('EmailService', `Failed to send account deactivated email to ${user.email}`, error)
+    logError(
+      'EmailService',
+      `Failed to send account deactivated email to ${user.email}`,
+      error
+    )
     throw error
   }
 }
@@ -951,30 +987,35 @@ async function dailyReportTemplate(stats, hotelId = null) {
     hotel = null,
     department = null,
     expiringList = [],
-    expiredList = []
+    expiredList = [],
   } = stats
 
   // Get unified template from settings
   const templates = hotelId ? await getUnifiedTemplates(hotelId) : {}
-  const templateText = templates.dailyReport ||
+  const templateText =
+    templates.dailyReport ||
     '📊 Ежедневный отчёт FreshTrack\n{department}\n\nДата: {date}\n\n✅ В норме: {good}\n⚠️ Скоро истекает: {warning}\n🔴 Просрочено: {expired}\n📦 Всего партий: {total}\n\n{expiringList}\n\n{expiredList}'
 
   // Format aggregated lists
   const formatExpiringList = () => {
     if (!expiringList || expiringList.length === 0) return ''
-    const items = expiringList.map(b => {
-      const date = new Date(b.expiry_date).toLocaleDateString('ru-RU')
-      return `  • ${b.product_name} — ${b.quantity} ${b.unit || 'шт.'} (истекает ${date}, осталось ${b.days_left} дн.)`
-    }).join('\n')
+    const items = expiringList
+      .map((b) => {
+        const date = new Date(b.expiry_date).toLocaleDateString('ru-RU')
+        return `  • ${b.product_name} — ${b.quantity} ${b.unit || 'шт.'} (истекает ${date}, осталось ${b.days_left} дн.)`
+      })
+      .join('\n')
     return `⚠️ Истекают в ближайшее время:\n${items}`
   }
 
   const formatExpiredList = () => {
     if (!expiredList || expiredList.length === 0) return ''
-    const items = expiredList.map(b => {
-      const date = new Date(b.expiry_date).toLocaleDateString('ru-RU')
-      return `  • ${b.product_name} — ${b.quantity} ${b.unit || 'шт.'} (просрочено с ${date}, ${b.days_overdue} дн. назад)`
-    }).join('\n')
+    const items = expiredList
+      .map((b) => {
+        const date = new Date(b.expiry_date).toLocaleDateString('ru-RU')
+        return `  • ${b.product_name} — ${b.quantity} ${b.unit || 'шт.'} (просрочено с ${date}, ${b.days_overdue} дн. назад)`
+      })
+      .join('\n')
     return `🔴 Просрочено:\n${items}`
   }
 
@@ -984,7 +1025,7 @@ async function dailyReportTemplate(stats, hotelId = null) {
     weekday: 'long',
     year: 'numeric',
     month: 'long',
-    day: 'numeric'
+    day: 'numeric',
   })
   const expiringListText = formatExpiringList()
   const expiredListText = formatExpiredList()
@@ -1004,10 +1045,10 @@ async function dailyReportTemplate(stats, hotelId = null) {
   const templateHtml = textToHtml(formattedTemplate)
 
   const content = `
-    <h2 style="margin-top: 0;">📊 Ежедневный отчёт по инвентарю</h2>
-    <p>Отчёт за ${new Date().toLocaleDateString('ru-RU', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
-    ${hotel ? `<p><strong>Отель:</strong> ${hotel.name}</p>` : ''}
-    ${department?.name ? `<p><strong>Отдел:</strong> ${department.name}</p>` : ''}
+    <h2 style="margin-top: 0;">Daily Inventory Report</h2>
+    <p>Report for ${new Date().toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+    ${hotel ? `<p><strong>Hotel:</strong> ${hotel.name}</p>` : ''}
+    ${department?.name ? `<p><strong>Department:</strong> ${department.name}</p>` : ''}
     
     <div style="background: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0;">
       ${templateHtml}
@@ -1015,14 +1056,15 @@ async function dailyReportTemplate(stats, hotelId = null) {
     
     <table class="table" style="margin-top: 20px;">
       <tr>
-        <td><strong>Списаний за сутки</strong></td>
+        <td><strong>Collections today</strong></td>
         <td style="text-align: right; font-size: 24px; font-weight: bold; color: #059669;">${collectionsToday}</td>
       </tr>
     </table>
-    
+
     <p style="text-align: center; margin-top: 24px;">
-      <a href="${APP_URL}/inventory" class="button">Открыть инвентарь</a>
+      <a href="${APP_URL}/inventory" class="button">View Dashboard</a>
     </p>
+    <p style="text-align: center; color: #888; font-size: 13px; margin-top: 12px;">This is an automated daily report. To change report settings, visit your <a href="${PREFERENCES_URL}" style="color: #888;">notification preferences</a>.</p>
   `
 
   return systemEmailLayout(content, { title: 'Ежедневный отчёт' })
@@ -1037,7 +1079,10 @@ async function dailyReportTemplate(stats, hotelId = null) {
  */
 export async function sendDailyReportEmail({ stats, to }) {
   if (!to || (Array.isArray(to) && to.length === 0)) {
-    logWarn('EmailService', 'No recipient (department.email) for daily report; skipping')
+    logWarn(
+      'EmailService',
+      'No recipient (department.email) for daily report; skipping'
+    )
     return null
   }
 
@@ -1046,33 +1091,43 @@ export async function sendDailyReportEmail({ stats, to }) {
 
   // Generate text version from template
   const templates = hotelId ? await getUnifiedTemplates(hotelId) : {}
-  const templateText = templates.dailyReport ||
+  const templateText =
+    templates.dailyReport ||
     '📊 Ежедневный отчёт FreshTrack\n{department}\n\nДата: {date}\n\n✅ В норме: {good}\n⚠️ Скоро истекает: {warning}\n🔴 Просрочено: {expired}\n📦 Всего партий: {total}\n\n{expiringList}\n\n{expiredList}'
 
-  const good = Math.max(0, (stats.totalBatches || 0) - (stats.expiringBatches || 0) - (stats.expiredBatches || 0))
+  const good = Math.max(
+    0,
+    (stats.totalBatches || 0) -
+      (stats.expiringBatches || 0) -
+      (stats.expiredBatches || 0)
+  )
   const currentDate = new Date().toLocaleDateString('ru-RU', {
     weekday: 'long',
     year: 'numeric',
     month: 'long',
-    day: 'numeric'
+    day: 'numeric',
   })
 
   // Format lists for text version
   const formatExpiringList = () => {
     if (!stats.expiringList || stats.expiringList.length === 0) return ''
-    const items = stats.expiringList.map(b => {
-      const date = new Date(b.expiry_date).toLocaleDateString('ru-RU')
-      return `  • ${b.product_name} — ${b.quantity} ${b.unit || 'шт.'} (истекает ${date}, осталось ${b.days_left} дн.)`
-    }).join('\n')
+    const items = stats.expiringList
+      .map((b) => {
+        const date = new Date(b.expiry_date).toLocaleDateString('ru-RU')
+        return `  • ${b.product_name} — ${b.quantity} ${b.unit || 'шт.'} (истекает ${date}, осталось ${b.days_left} дн.)`
+      })
+      .join('\n')
     return `⚠️ Истекают в ближайшее время:\n${items}`
   }
 
   const formatExpiredList = () => {
     if (!stats.expiredList || stats.expiredList.length === 0) return ''
-    const items = stats.expiredList.map(b => {
-      const date = new Date(b.expiry_date).toLocaleDateString('ru-RU')
-      return `  • ${b.product_name} — ${b.quantity} ${b.unit || 'шт.'} (просрочено с ${date}, ${b.days_overdue} дн. назад)`
-    }).join('\n')
+    const items = stats.expiredList
+      .map((b) => {
+        const date = new Date(b.expiry_date).toLocaleDateString('ru-RU')
+        return `  • ${b.product_name} — ${b.quantity} ${b.unit || 'шт.'} (просрочено с ${date}, ${b.days_overdue} дн. назад)`
+      })
+      .join('\n')
     return `🔴 Просрочено:\n${items}`
   }
 
@@ -1096,9 +1151,9 @@ export async function sendDailyReportEmail({ stats, to }) {
     return await sendEmail({
       to,
       from: EMAIL_FROM.noreply,
-      subject: `FreshTrack: Ежедневный отчёт по инвентарю - ${new Date().toLocaleDateString('ru-RU')}`,
+      subject: `Daily inventory report — ${stats.hotel?.name || 'FreshTrack'} — ${new Date().toLocaleDateString('en-GB')}`,
       html,
-      text: textReport
+      text: textReport,
     })
   } catch (error) {
     logError('EmailService', `Failed to send daily report email`, error)
@@ -1121,5 +1176,5 @@ export default {
   sendExpiryReportEmail,
   sendDailyReportEmail,
   sendAccountDeletedEmail,
-  sendAccountDeactivatedEmail
+  sendAccountDeactivatedEmail,
 }

@@ -152,7 +152,9 @@
     "history": "Storico",
     "more": "Altro",
     "reports": "Report",
-    "mobileNav": "Navigazione"
+    "mobileNav": "Navigazione",
+    "tasks": "Attività",
+    "logbookScanner": "Logbook Scanner"
   },
   "sidebar": {
     "collapse": "Comprimi menu",
@@ -1636,5 +1638,75 @@
     },
     "needMoreHelp": "Hai bisogno di ulteriore aiuto?",
     "contactSupport": "Se non hai trovato risposta alla tua domanda, contatta il nostro team di supporto."
+  },
+  "tasks": {
+    "title": "Pianificatore attività",
+    "loading": "Caricamento pianificatore...",
+    "searchPlaceholder": "Cerca attività...",
+    "newBoard": "Nuova bacheca",
+    "addColumn": "Aggiungi colonna",
+    "columnNamePlaceholder": "Nome della colonna...",
+    "noBoardsTitle": "Nessuna bacheca",
+    "noBoardsDescription": "Crea la tua prima bacheca per iniziare a organizzare le attività del tuo team.",
+    "createFirstBoard": "Crea la prima bacheca",
+    "createTask": "Crea attività",
+    "createBoard": "Crea bacheca",
+    "taskTitle": "Titolo attività",
+    "taskTitlePlaceholder": "Cosa bisogna fare?",
+    "description": "Descrizione",
+    "descriptionPlaceholder": "Aggiungi dettagli...",
+    "priority": "Priorità",
+    "dueDate": "Scadenza",
+    "column": "Colonna",
+    "boardName": "Nome della bacheca",
+    "boardNamePlaceholder": "es: Attività cucina",
+    "boardDescription": "Descrizione",
+    "boardDescriptionPlaceholder": "A cosa serve questa bacheca?",
+    "priorities": {
+      "low": "Bassa",
+      "medium": "Media",
+      "high": "Alta",
+      "urgent": "Urgente"
+    },
+    "stats": {
+      "total": "Totale",
+      "todo": "Da fare",
+      "inProgress": "In corso",
+      "done": "Completato",
+      "overdue": "In ritardo"
+    },
+    "detail": {
+      "details": "Dettagli",
+      "checklist": "Lista di controllo",
+      "comments": "Commenti",
+      "created": "Creato il",
+      "updated": "Aggiornato il",
+      "assignedTo": "Assegnato a",
+      "noAssignee": "Non assegnato",
+      "deleteTask": "Elimina attività",
+      "deleteConfirm": "Sei sicuro di voler eliminare questa attività?",
+      "addChecklistItem": "Aggiungi elemento...",
+      "checklistProgress": "{{done}} di {{total}} completati",
+      "addComment": "Scrivi un commento...",
+      "noComments": "Nessun commento ancora",
+      "post": "Invia"
+    },
+    "dropHere": "Rilascia le attività qui",
+    "statusHint": "Cambiando lo stato, la scheda si sposterà automaticamente nella colonna corrispondente",
+    "status": "Stato",
+    "progress": "Progresso",
+    "deleteColumn": "Elimina colonna",
+    "deleteBoardConfirm": "Eliminare questa bacheca? Tutte le colonne e le attività saranno rimosse definitivamente.",
+    "boardDeleted": "Bacheca eliminata",
+    "deleteColumnConfirm": "Eliminare questa colonna? Tutte le attività saranno rimosse definitivamente.",
+    "columnDeleted": "Colonna eliminata",
+    "statuses": {
+      "todo": "Da fare",
+      "inProgress": "In corso",
+      "review": "In revisione",
+      "blocked": "Bloccato",
+      "completed": "Completato",
+      "cancelled": "Annullato"
+    }
   }
 }

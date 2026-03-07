@@ -11,14 +11,7 @@ import { useAuth } from '../../../context/AuthContext'
 import { apiFetch } from '../../../services/api'
 import { ButtonLoader, SectionLoader, ConfirmModal } from '..'
 import { ROLE_COLORS } from '../../../constants/roles'
-import {
-  Building2,
-  Plus,
-  Users,
-  UserPlus,
-  Ban,
-  RefreshCw
-} from 'lucide-react'
+import { Building2, Plus, Users, UserPlus, Ban, RefreshCw } from 'lucide-react'
 import SettingsLayout from './SettingsLayout'
 import {
   UserRow,
@@ -26,7 +19,7 @@ import {
   DepartmentsList,
   CreateHotelModal,
   CreateDepartmentModal,
-  CreateUserModal
+  CreateUserModal,
 } from './organization'
 
 /** Конвертация названия страны → ISO код для detect-timezone */
@@ -34,14 +27,43 @@ function getCountryCodeFromName(countryName) {
   if (!countryName || typeof countryName !== 'string') return null
   const name = countryName.trim()
   const map = {
-    Kazakhstan: 'KZ', 'United Kingdom': 'GB', France: 'FR', Germany: 'DE',
-    Spain: 'ES', Italy: 'IT', Netherlands: 'NL', Belgium: 'BE', Austria: 'AT',
-    Switzerland: 'CH', Portugal: 'PT', 'Czech Republic': 'CZ', Poland: 'PL',
-    Greece: 'GR', Turkey: 'TR', Sweden: 'SE', Denmark: 'DK', Norway: 'NO',
-    Finland: 'FI', UAE: 'AE', 'Saudi Arabia': 'SA', Qatar: 'QA', Kuwait: 'KW',
-    Bahrain: 'BH', Oman: 'OM', Jordan: 'JO', Israel: 'IL', Egypt: 'EG',
-    'South Africa': 'ZA', Morocco: 'MA', Kenya: 'KE', Nigeria: 'NG', Ghana: 'GH',
-    Australia: 'AU', 'New Zealand': 'NZ', USA: 'US', 'United States': 'US'
+    Kazakhstan: 'KZ',
+    'United Kingdom': 'GB',
+    France: 'FR',
+    Germany: 'DE',
+    Spain: 'ES',
+    Italy: 'IT',
+    Netherlands: 'NL',
+    Belgium: 'BE',
+    Austria: 'AT',
+    Switzerland: 'CH',
+    Portugal: 'PT',
+    'Czech Republic': 'CZ',
+    Poland: 'PL',
+    Greece: 'GR',
+    Turkey: 'TR',
+    Sweden: 'SE',
+    Denmark: 'DK',
+    Norway: 'NO',
+    Finland: 'FI',
+    UAE: 'AE',
+    'Saudi Arabia': 'SA',
+    Qatar: 'QA',
+    Kuwait: 'KW',
+    Bahrain: 'BH',
+    Oman: 'OM',
+    Jordan: 'JO',
+    Israel: 'IL',
+    Egypt: 'EG',
+    'South Africa': 'ZA',
+    Morocco: 'MA',
+    Kenya: 'KE',
+    Nigeria: 'NG',
+    Ghana: 'GH',
+    Australia: 'AU',
+    'New Zealand': 'NZ',
+    USA: 'US',
+    'United States': 'US',
   }
   return map[name] || null
 }
@@ -72,14 +94,20 @@ export default function OrganizationSettings() {
     longitude: null,
     timezone_auto_detected: false,
     marsha_code: '',
-    marsha_code_id: null
+    marsha_code_id: null,
   })
   const [_timezoneDetected, setTimezoneDetected] = useState(false)
   const [_creatingHotel, setCreatingHotel] = useState(false)
 
   // Create department modal
   const [showCreateDept, setShowCreateDept] = useState(null) // hotelId
-  const [newDept, setNewDept] = useState({ name: '', type: '', email: '', telegram_chat_id: '' })
+  const [newDept, setNewDept] = useState({
+    name: '',
+    type: '',
+    email: '',
+    telegram_chat_id: '',
+    modules: [],
+  })
   const [creatingDept, setCreatingDept] = useState(false)
 
   // Create user modal
@@ -89,7 +117,7 @@ export default function OrganizationSettings() {
     password: '',
     name: '',
     email: '',
-    role: 'STAFF'
+    role: 'STAFF',
   })
   const [creatingUser, setCreatingUser] = useState(false)
   const [userError, setUserError] = useState(null)
@@ -106,18 +134,21 @@ export default function OrganizationSettings() {
       if (isSuperAdmin) {
         // Fetch all hotels with departments and users
         const hotelsData = await apiFetch('/hotels')
-        const usersData = await apiFetch('/auth/users?all=true')
+        const usersData = await apiFetch('/auth/users?all=true') // SUPER_ADMIN видит всех без фильтра
         const users = usersData.users || usersData || []
         setAllUsers(users)
 
         const hotelsWithData = await Promise.all(
           (hotelsData.hotels || []).map(async (hotel) => {
             try {
-              const deptData = await apiFetch(`/departments?hotel_id=${hotel.id}`)
+              // hotel_id конкретного отеля передаётся через X-Hotel-Id header
+              const deptData = await apiFetch(`/departments`, {
+                headers: { 'X-Hotel-Id': hotel.id },
+              })
               const hotelUsers = users.filter((u) => u.hotel_id === hotel.id)
               const departments = (deptData.departments || []).map((dept) => ({
                 ...dept,
-                users: users.filter((u) => u.department_id === dept.id)
+                users: users.filter((u) => u.department_id === dept.id),
               }))
               return { ...hotel, departments, users: hotelUsers }
             } catch {
@@ -167,8 +198,8 @@ export default function OrganizationSettings() {
           method: 'POST',
           body: JSON.stringify({
             city: newHotel.city.trim(),
-            countryCode: getCountryCodeFromName(newHotel.country)
-          })
+            countryCode: getCountryCodeFromName(newHotel.country),
+          }),
         })
         if (data.success && data.timezone) {
           timezoneToUse = data.timezone
@@ -194,16 +225,18 @@ export default function OrganizationSettings() {
         longitude: lngToUse,
         timezone_auto_detected: autoDetected,
         marsha_code: newHotel.marsha_code || null,
-        marsha_code_id: newHotel.marsha_code_id || null
+        marsha_code_id: newHotel.marsha_code_id || null,
       }
 
       const result = await apiFetch('/hotels', {
         method: 'POST',
-        body: JSON.stringify(hotelData)
+        body: JSON.stringify(hotelData),
       })
 
       // Показываем MARSHA код если он был выбран
-      const codeInfo = result.hotel.marsha_code ? ` Код: ${result.hotel.marsha_code}` : ''
+      const codeInfo = result.hotel.marsha_code
+        ? ` Код: ${result.hotel.marsha_code}`
+        : ''
       addToast(`Отель "${result.hotel.name}" создан.${codeInfo}`, 'success')
       setShowCreateHotel(false)
       setNewHotel({
@@ -217,7 +250,7 @@ export default function OrganizationSettings() {
         longitude: null,
         timezone_auto_detected: false,
         marsha_code: '',
-        marsha_code_id: null
+        marsha_code_id: null,
       })
       setTimezoneDetected(false)
       fetchData()
@@ -239,14 +272,20 @@ export default function OrganizationSettings() {
       const result = await apiFetch('/departments', {
         method: 'POST',
         headers: { 'X-Hotel-Id': showCreateDept },
-        body: JSON.stringify(newDept)
+        body: JSON.stringify(newDept),
       })
       addToast(
         `Департамент "${result.department.name}" создан. Код: ${result.department.code}`,
         'success'
       )
       setShowCreateDept(null)
-      setNewDept({ name: '', type: '', email: '', telegram_chat_id: '' })
+      setNewDept({
+        name: '',
+        type: '',
+        email: '',
+        telegram_chat_id: '',
+        modules: [],
+      })
       fetchData()
     } catch (error) {
       addToast(error.message || 'Ошибка создания департамента', 'error')
@@ -281,7 +320,9 @@ export default function OrganizationSettings() {
       // На уровне департамента - выбранная роль (STAFF или DEPARTMENT_MANAGER)
       const effectiveRole = showCreateUser?.departmentId
         ? newUser.role
-        : (newUser.role === 'SUPER_ADMIN' ? 'SUPER_ADMIN' : 'HOTEL_ADMIN')
+        : newUser.role === 'SUPER_ADMIN'
+          ? 'SUPER_ADMIN'
+          : 'HOTEL_ADMIN'
 
       const requestBody = {
         login: newUser.login,
@@ -289,7 +330,7 @@ export default function OrganizationSettings() {
         email: newUser.email,
         role: effectiveRole,
         hotel_id: showCreateUser?.hotelId,
-        department_id: showCreateUser?.departmentId
+        department_id: showCreateUser?.departmentId,
       }
 
       // Only include password if manually set (not auto-generated)
@@ -299,17 +340,31 @@ export default function OrganizationSettings() {
 
       await apiFetch('/auth/users', {
         method: 'POST',
-        body: JSON.stringify(requestBody)
+        body: JSON.stringify(requestBody),
       })
 
       if (generatePassword && newUser.email) {
-        addToast(`Пользователь создан. Временный пароль отправлен на ${newUser.email}`, 'success')
+        addToast(
+          `Пользователь создан. Временный пароль отправлен на ${newUser.email}`,
+          'success'
+        )
+      } else if (!generatePassword && newUser.email) {
+        addToast(
+          `Пользователь создан. Уведомление с данными для входа отправлено на ${newUser.email}`,
+          'success'
+        )
       } else {
         addToast('Пользователь создан', 'success')
       }
 
       setShowCreateUser(null)
-      setNewUser({ login: '', password: '', name: '', email: '', role: 'STAFF' })
+      setNewUser({
+        login: '',
+        password: '',
+        name: '',
+        email: '',
+        role: 'STAFF',
+      })
       setGeneratePassword(true) // Reset to default
 
       fetchData()
@@ -329,7 +384,7 @@ export default function OrganizationSettings() {
 
     try {
       const result = await apiFetch(`/auth/users/${userId}/resend-password`, {
-        method: 'POST'
+        method: 'POST',
       })
 
       if (result.success || !result.error) {
@@ -346,7 +401,10 @@ export default function OrganizationSettings() {
     setActionLoading(true)
     try {
       await apiFetch(`/auth/users/${userId}/toggle`, { method: 'PATCH' })
-      addToast(isActive ? 'Пользователь заблокирован' : 'Пользователь разблокирован', 'success')
+      addToast(
+        isActive ? 'Пользователь заблокирован' : 'Пользователь разблокирован',
+        'success'
+      )
       setBlockConfirm(null)
       fetchData()
     } catch (error) {
@@ -366,7 +424,7 @@ export default function OrganizationSettings() {
       } else if (deleteConfirm.type === 'department') {
         await apiFetch(`/departments/${deleteConfirm.id}`, {
           method: 'DELETE',
-          headers: { 'X-Hotel-Id': deleteConfirm.hotelId }
+          headers: { 'X-Hotel-Id': deleteConfirm.hotelId },
         })
         addToast('Департамент удалён', 'success')
       } else if (deleteConfirm.type === 'user') {
@@ -396,7 +454,9 @@ export default function OrganizationSettings() {
   }
 
   const getRoleBadge = (role) => (
-    <span className={`px-2 py-0.5 rounded text-xs font-medium ${ROLE_COLORS[role] || ROLE_COLORS.STAFF}`}>
+    <span
+      className={`px-2 py-0.5 rounded text-xs font-medium ${ROLE_COLORS[role] || ROLE_COLORS.STAFF}`}
+    >
       {t(`users.roles.${role}`) || role}
     </span>
   )
@@ -423,7 +483,11 @@ export default function OrganizationSettings() {
   }
 
   // ── Shared modals (rendered once, used in both non-SA and SA returns) ────────
-  const typeLabels = { hotel: 'отель', department: 'департамент', user: 'пользователя' }
+  const typeLabels = {
+    hotel: 'отель',
+    department: 'департамент',
+    user: 'пользователя',
+  }
 
   const blockConfirmModal = blockConfirm && (
     <div className="fixed inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
@@ -444,7 +508,9 @@ export default function OrganizationSettings() {
             <h3 className="font-semibold text-foreground">
               {blockConfirm.isActive ? 'Заблокировать?' : 'Разблокировать?'}
             </h3>
-            <p className="text-sm text-muted-foreground">{blockConfirm.userName}</p>
+            <p className="text-sm text-muted-foreground">
+              {blockConfirm.userName}
+            </p>
           </div>
         </div>
         <div className="flex gap-3">
@@ -456,10 +522,14 @@ export default function OrganizationSettings() {
             Отмена
           </button>
           <button
-            onClick={() => toggleUserStatus(blockConfirm.userId, blockConfirm.isActive)}
+            onClick={() =>
+              toggleUserStatus(blockConfirm.userId, blockConfirm.isActive)
+            }
             disabled={actionLoading}
             className={`flex-1 px-4 py-2 rounded-lg text-white disabled:opacity-50 flex items-center justify-center gap-2 ${
-              blockConfirm.isActive ? 'bg-danger hover:bg-danger/90' : 'bg-success hover:bg-success/90'
+              blockConfirm.isActive
+                ? 'bg-danger hover:bg-danger/90'
+                : 'bg-success hover:bg-success/90'
             }`}
             aria-busy={actionLoading}
           >
@@ -499,10 +569,14 @@ export default function OrganizationSettings() {
               className="p-2 rounded-lg hover:bg-muted text-muted-foreground transition-colors"
               title={t('common.refresh')}
             >
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              <RefreshCw
+                className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`}
+              />
             </button>
             <button
-              onClick={() => setShowCreateUser({ hotelId: currentUser?.hotel_id })}
+              onClick={() =>
+                setShowCreateUser({ hotelId: currentUser?.hotel_id })
+              }
               className="flex items-center gap-2 px-4 py-2 bg-accent-button text-white rounded-lg hover:bg-accent-button/90 transition-colors"
             >
               <UserPlus className="w-4 h-4" />
@@ -511,10 +585,11 @@ export default function OrganizationSettings() {
           </div>
         }
       >
-
         <div className="space-y-2">
           {allUsers.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">Пользователи не найдены</div>
+            <div className="text-center py-12 text-muted-foreground">
+              Пользователи не найдены
+            </div>
           ) : (
             allUsers.map((user) => renderUserRow(user))
           )}
@@ -526,9 +601,14 @@ export default function OrganizationSettings() {
           onClose={() => {
             setShowCreateUser(null)
             setUserError(null)
-            setNewUser({ login: '', password: '', name: '', email: '', role: 'STAFF' })
+            setNewUser({
+              login: '',
+              password: '',
+              name: '',
+              email: '',
+              role: 'STAFF',
+            })
             setGeneratePassword(true)
-      
           }}
           onSubmit={createUser}
           formState={newUser}
@@ -540,7 +620,11 @@ export default function OrganizationSettings() {
           creating={creatingUser}
           error={userError}
           t={t}
-          canCreateSuperAdmin={currentUser?.capabilities?.canCreateSuperAdmin || false}
+          canCreateSuperAdmin={
+            currentUser?.capabilities?.canCreateSuperAdmin || false
+          }
+          generatePassword={generatePassword}
+          setGeneratePassword={setGeneratePassword}
         />
         {blockConfirmModal}
         {deleteConfirmModal}
@@ -574,7 +658,6 @@ export default function OrganizationSettings() {
         </div>
       }
     >
-
       {/* Hotels list */}
       <div className="space-y-4">
         {hotels.length === 0 ? (
@@ -590,7 +673,9 @@ export default function OrganizationSettings() {
               hotel={hotel}
               isExpanded={expandedHotels[hotel.id]}
               onToggle={() => toggleHotel(hotel.id)}
-              onDelete={(id, name) => setDeleteConfirm({ type: 'hotel', id, name })}
+              onDelete={(id, name) =>
+                setDeleteConfirm({ type: 'hotel', id, name })
+              }
               onCopyCode={copyCode}
             >
               <div className="p-4 bg-muted/10">
@@ -629,7 +714,12 @@ export default function OrganizationSettings() {
                   setShowCreateUser({ hotelId, departmentId })
                 }
                 onDeleteDepartment={(deptId, deptName, hotelId) =>
-                  setDeleteConfirm({ type: 'department', id: deptId, name: deptName, hotelId })
+                  setDeleteConfirm({
+                    type: 'department',
+                    id: deptId,
+                    name: deptName,
+                    hotelId,
+                  })
                 }
                 renderUserRow={renderUserRow}
               />
@@ -654,7 +744,7 @@ export default function OrganizationSettings() {
             longitude: null,
             timezone_auto_detected: false,
             marsha_code: '',
-            marsha_code_id: null
+            marsha_code_id: null,
           })
           setTimezoneDetected(false)
         }}
@@ -667,7 +757,13 @@ export default function OrganizationSettings() {
         isOpen={!!showCreateDept}
         onClose={() => {
           setShowCreateDept(null)
-          setNewDept({ name: '', type: '', email: '', telegram_chat_id: '' })
+          setNewDept({
+            name: '',
+            type: '',
+            email: '',
+            telegram_chat_id: '',
+            modules: [],
+          })
         }}
         onSubmit={createDepartment}
         formState={newDept}
@@ -679,21 +775,32 @@ export default function OrganizationSettings() {
         onClose={() => {
           setShowCreateUser(null)
           setUserError(null)
-          setNewUser({ login: '', password: '', name: '', email: '', role: 'STAFF' })
+          setNewUser({
+            login: '',
+            password: '',
+            name: '',
+            email: '',
+            role: 'STAFF',
+          })
           setGeneratePassword(true)
-    
         }}
         onSubmit={createUser}
         formState={newUser}
         setFormState={setNewUser}
         hotels={hotels}
-        departments={hotels.find((h) => h.id === showCreateUser?.hotelId)?.departments}
+        departments={
+          hotels.find((h) => h.id === showCreateUser?.hotelId)?.departments
+        }
         hotelId={showCreateUser?.hotelId}
         departmentId={showCreateUser?.departmentId}
         creating={creatingUser}
         error={userError}
         t={t}
-        canCreateSuperAdmin={currentUser?.capabilities?.canCreateSuperAdmin || false}
+        canCreateSuperAdmin={
+          currentUser?.capabilities?.canCreateSuperAdmin || false
+        }
+        generatePassword={generatePassword}
+        setGeneratePassword={setGeneratePassword}
       />
       {blockConfirmModal}
       {deleteConfirmModal}

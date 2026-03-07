@@ -9,7 +9,7 @@ module.exports = {
     'plugin:jsx-a11y/recommended',
     'prettier',
   ],
-  ignorePatterns: ['dist', '.eslintrc.cjs', 'node_modules'],
+  ignorePatterns: ['dist', '.eslintrc.cjs', 'node_modules', 'server'],
   parserOptions: { ecmaVersion: 'latest', sourceType: 'module' },
   settings: { react: { version: '18.2' } },
   plugins: ['react-refresh', 'jsx-a11y'],

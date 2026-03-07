@@ -13,74 +13,17 @@ import {
   AlertCircle,
   AlertTriangle,
   Info,
+  Copy,
+  Check,
+  Shield,
+  Database,
 } from 'lucide-react'
 import { useTranslation } from '../../context/LanguageContext'
 import { formatDate } from '../../utils/dateUtils'
 import Modal from '../ui/Modal'
 import { cn } from '../../utils/classNames'
 
-// Словари
-const ENTITY_TYPE_LABELS = {
-  product: 'Продукт',
-  batch: 'Партия',
-  user: 'Пользователь',
-  category: 'Категория',
-  department: 'Отдел',
-  hotel: 'Отель',
-  settings: 'Настройки',
-  write_off: 'Списание',
-  collection: 'Сбор',
-  marsha_code: 'MARSHA код',
-  notification_rule: 'Правило уведомлений',
-  template: 'Шаблон',
-  delivery_template: 'Шаблон доставки',
-  join_request: 'Заявка на вступление',
-  session: 'Сессия',
-  account: 'Аккаунт',
-}
-
-const FIELD_LABELS = {
-  name: 'Название',
-  quantity: 'Количество',
-  unit: 'Единица',
-  expiry_date: 'Срок годности',
-  category_name: 'Категория',
-  status: 'Статус',
-  email: 'Email',
-  role: 'Роль',
-  is_active: 'Активен',
-  price: 'Цена',
-  description: 'Описание',
-  min_quantity: 'Мин. количество',
-  notification_threshold: 'Порог уведомлений',
-  login: 'Логин',
-  department_name: 'Отдел',
-  hotel_name: 'Отель',
-  reason: 'Причина',
-  batch_name: 'Партия',
-  product_name: 'Продукт',
-  category_id: 'ID категории',
-  is_enabled: 'Включено',
-  schedule: 'Расписание',
-}
-
-const DETAILS_LABELS = {
-  method: 'Метод',
-  format: 'Формат',
-  recordCount: 'Кол-во записей',
-  reason: 'Причина',
-  exportType: 'Тип экспорта',
-  action: 'Действие',
-  setting: 'Настройка',
-  value: 'Значение',
-  key: 'Ключ',
-  count: 'Количество',
-  total: 'Всего',
-  batchCount: 'Партий',
-  productCount: 'Продуктов',
-  department: 'Отдел',
-}
-
+// Ключи полей, которые скрываем из snapshot-ов (технические поля)
 const SKIP_SNAPSHOT_KEYS = [
   'id',
   'created_at',
@@ -93,11 +36,131 @@ const SKIP_SNAPSHOT_KEYS = [
   'category_id',
 ]
 
+/**
+ * Маппинг ключей entity_type → i18n ключ из auditLogs.entities
+ * snake_case → camelCase для i18n
+ */
+const ENTITY_TYPE_I18N_MAP = {
+  product: 'product',
+  batch: 'batch',
+  user: 'user',
+  category: 'category',
+  department: 'department',
+  hotel: 'hotel',
+  settings: 'settings',
+  write_off: 'writeOff',
+  collection: 'collection',
+  marsha_code: 'marshaCode',
+  notification_rule: 'notificationRule',
+  template: 'template',
+  delivery_template: 'deliveryTemplate',
+  join_request: 'joinRequest',
+  session: 'session',
+  account: 'account',
+  task_board: 'taskBoard',
+  data_export: 'dataExport',
+  login_branding: 'loginBranding',
+  branding_settings: 'brandingSettings',
+  general_settings: 'generalSettings',
+  telegram_settings: 'telegramSettings',
+  notifications_settings: 'notificationsSettings',
+}
+
+/**
+ * Маппинг action → i18n ключ из auditLogs.actions
+ */
+const ACTION_I18N_MAP = {
+  login: 'login',
+  logout: 'logout',
+  create: 'create',
+  update: 'update',
+  delete: 'delete',
+  collect: 'collect',
+  settings_update: 'settingsChange',
+  settingschange: 'settingsChange',
+  password_change: 'passwordChanged',
+  email_changed: 'emailChanged',
+  email_verified: 'verifyEmail',
+  role_changed: 'roleChanged',
+  mfa_enabled: 'mfaEnabled',
+  mfa_disabled: 'mfaDisabled',
+  mfa_setup: 'mfaEnabled',
+  export: 'export',
+  import: 'import',
+  write_off: 'writeOff',
+  clear_cache: 'clearCache',
+  user_activated: 'userActivated',
+  user_deactivated: 'userDeactivated',
+  toggle: 'settingsChange',
+  assign_marsha: 'assignMarsha',
+  release_marsha: 'releaseMarsha',
+  approve_join: 'approve',
+  reject_join: 'reject',
+  gdpr_export: 'export',
+  gdpr_delete: 'delete',
+  apply_template: 'applyTemplate',
+  resend_password: 'passwordChanged',
+  password_reset: 'passwordChanged',
+}
+
+/**
+ * Маппинг ключей полей snapshot → i18n ключ из auditLogs.detailLabels
+ * или fallback на человекочитаемое название
+ */
+const FIELD_I18N_MAP = {
+  name: 'name',
+  quantity: 'quantity',
+  role: 'role',
+  login: 'login',
+  reason: 'reason',
+  method: 'method',
+  format: 'format',
+  code: 'code',
+  exportType: 'exportType',
+  sendTime: 'sendTime',
+  version: 'version',
+}
+
+/**
+ * Маппинг ключей, которые не имеют i18n, но имеют fallback
+ */
+const FIELD_FALLBACK = {
+  unit: 'Unit',
+  expiry_date: 'Expiry',
+  category_name: 'Category',
+  status: 'Status',
+  email: 'Email',
+  is_active: 'Active',
+  price: 'Price',
+  description: 'Description',
+  min_quantity: 'Min Qty',
+  notification_threshold: 'Threshold',
+  department_name: 'Department',
+  hotel_name: 'Hotel',
+  batch_name: 'Batch',
+  product_name: 'Product',
+  is_enabled: 'Enabled',
+  schedule: 'Schedule',
+  count: 'Count',
+  total: 'Total',
+  batchCount: 'Batches',
+  productCount: 'Products',
+  department: 'Department',
+  action: 'Action',
+  setting: 'Setting',
+  value: 'Value',
+  key: 'Key',
+  recordCount: 'Records',
+}
+
+/**
+ * Форматирование значения для отображения
+ */
 function formatValue(val) {
   if (val === null || val === undefined) return '—'
-  if (typeof val === 'boolean') return val ? 'Да' : 'Нет'
+  if (typeof val === 'boolean') return val ? '✓' : '✗'
   if (typeof val === 'object') return JSON.stringify(val)
-  // Format dates
+  // Форматирование дат
   if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}/.test(val)) {
     try {
       return new Date(val).toLocaleDateString('ru-RU')
@@ -108,23 +171,72 @@ function formatValue(val) {
   return String(val)
 }
 
-function SeverityBadge({ severity }) {
+/**
+ * Получение человекочитаемой метки поля через i18n
+ */
+function getFieldLabel(key, t) {
+  // Проверяем i18n маппинг
+  const i18nKey = FIELD_I18N_MAP[key]
+  if (i18nKey) {
+    const translated = t(`auditLogs.detailLabels.${i18nKey}`)
+    if (translated && !translated.startsWith('auditLogs.detailLabels.'))
+      return translated
+  }
+  // Fallback на статический маппинг
+  if (FIELD_FALLBACK[key]) return FIELD_FALLBACK[key]
+  // Последний fallback — сам ключ
+  return key
+}
+
+/**
+ * Получение i18n-метки для entity_type
+ */
+function getEntityLabel(entityType, t) {
+  if (!entityType) return ''
+  const key = ENTITY_TYPE_I18N_MAP[entityType.toLowerCase()]
+  if (key) {
+    const translated = t(`auditLogs.entities.${key}`)
+    if (translated && !translated.startsWith('auditLogs.entities.'))
+      return translated
+  }
+  return entityType
+}
+
+/**
+ * Получение i18n-метки для action
+ */
+function getActionLabel(action, t) {
+  if (!action) return ''
+  const normalized = action.toLowerCase().replace(/-/g, '_')
+  const key = ACTION_I18N_MAP[normalized]
+  if (key) {
+    const translated = t(`auditLogs.actions.${key}`)
+    if (translated && !translated.startsWith('auditLogs.actions.'))
+      return translated
+  }
+  return action
+}
+
+/**
+ * Бейдж критичности
+ */
+function SeverityBadge({ severity, t }) {
   const configs = {
     critical: {
       icon: AlertCircle,
       className: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-      label: 'Критично',
+      labelKey: 'auditLogs.severityCritical',
     },
     important: {
       icon: AlertTriangle,
       className:
         'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
-      label: 'Важно',
+      labelKey: 'auditLogs.severityImportant',
     },
     normal: {
       icon: Info,
       className: 'bg-muted text-muted-foreground',
-      label: 'Обычно',
+      labelKey: 'auditLogs.severityNormal',
     },
   }
   const config = configs[severity] || configs.normal
@@ -132,18 +244,60 @@ function SeverityBadge({ severity }) {
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium',
+        'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium',
         config.className
       )}
     >
       <Icon className="w-3.5 h-3.5" />
-      {config.label}
+      {t(config.labelKey)}
     </span>
   )
 }
 
-// Секция: что именно изменилось (для UPDATE)
-function ChangesSection({ before, after }) {
+/**
+ * Иконка + цвет для типа действия
+ */
+function getActionStyle(action) {
+  const normalized = (action || '').toLowerCase().replace(/-/g, '_')
+  const styles = {
+    login: { color: 'text-blue-500 dark:text-blue-400', bg: 'bg-blue-500/10' },
+    logout: {
+      color: 'text-slate-500 dark:text-slate-400',
+      bg: 'bg-slate-500/10',
+    },
+    create: {
+      color: 'text-green-500 dark:text-green-400',
+      bg: 'bg-green-500/10',
+    },
+    update: {
+      color: 'text-amber-500 dark:text-amber-400',
+      bg: 'bg-amber-500/10',
+    },
+    delete: { color: 'text-red-500 dark:text-red-400', bg: 'bg-red-500/10' },
+    collect: {
+      color: 'text-violet-500 dark:text-violet-400',
+      bg: 'bg-violet-500/10',
+    },
+    export: { color: 'text-cyan-500 dark:text-cyan-400', bg: 'bg-cyan-500/10' },
+    import: { color: 'text-cyan-500 dark:text-cyan-400', bg: 'bg-cyan-500/10' },
+    write_off: {
+      color: 'text-orange-500 dark:text-orange-400',
+      bg: 'bg-orange-500/10',
+    },
+    password_change: {
+      color: 'text-yellow-500 dark:text-yellow-400',
+      bg: 'bg-yellow-500/10',
+    },
+  }
+  return (
+    styles[normalized] || { color: 'text-muted-foreground', bg: 'bg-muted' }
+  )
+}
+
+/**
+ * Секция: таблица изменений (для UPDATE)
+ */
+function ChangesSection({ before, after, t }) {
   if (!before || !after) return null
   const allKeys = [...new Set([...Object.keys(before), ...Object.keys(after)])]
   const changed = allKeys.filter((k) => {
@@ -151,38 +305,42 @@ function ChangesSection({ before, after }) {
     return String(before[k] ?? '') !== String(after[k] ?? '')
   })
   if (changed.length === 0)
-    return <p className="text-sm text-muted-foreground">Без изменений</p>
+    return (
+      <p className="text-sm text-muted-foreground italic">
+        {t('auditLogs.detailModal.noChanges')}
+      </p>
+    )
 
   return (
     <div className="overflow-x-auto rounded-lg border border-border">
       <table className="w-full text-sm">
-        <thead className="bg-muted">
+        <thead className="bg-muted/70">
           <tr>
             <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">
-              Поле
+              {t('auditLogs.detailModal.field')}
             </th>
             <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">
-              Было
+              {t('auditLogs.detailModal.was')}
             </th>
             <th className="px-3 py-2 text-center text-xs font-medium text-muted-foreground w-6"></th>
             <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">
-              Стало
+              {t('auditLogs.detailModal.became')}
             </th>
           </tr>
         </thead>
         <tbody className="divide-y divide-border">
           {changed.map((k) => (
-            <tr key={k}>
+            <tr key={k} className="hover:bg-muted/30 transition-colors">
               <td className="px-3 py-2 text-muted-foreground font-medium whitespace-nowrap">
-                {FIELD_LABELS[k] || k}
+                {getFieldLabel(k, t)}
               </td>
-              <td className="px-3 py-2 text-foreground line-through opacity-60 break-all">
+              <td className="px-3 py-2 text-red-400/80 line-through break-all">
                 {formatValue(before[k])}
               </td>
               <td className="px-3 py-2 text-center">
                 <ArrowRight className="w-3.5 h-3.5 text-muted-foreground mx-auto" />
               </td>
-              <td className="px-3 py-2 text-foreground font-medium break-all">
+              <td className="px-3 py-2 text-green-500 dark:text-green-400 font-medium break-all">
                 {formatValue(after[k])}
               </td>
             </tr>
@@ -193,19 +351,21 @@ function ChangesSection({ before, after }) {
   )
 }
 
-// Секция: поля снапшота (для CREATE/DELETE)
-function SnapshotFields({ snapshot, skip = [] }) {
+/**
+ * Секция: поля снапшота (для CREATE/DELETE)
+ */
+function SnapshotFields({ snapshot, skip = [], t }) {
   if (!snapshot || typeof snapshot !== 'object') return null
   const entries = Object.entries(snapshot).filter(
     ([k]) => !SKIP_SNAPSHOT_KEYS.includes(k) && !skip.includes(k)
   )
   if (entries.length === 0) return null
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
       {entries.map(([k, v]) => (
-        <div key={k} className="flex flex-col">
-          <span className="text-xs text-muted-foreground">
-            {FIELD_LABELS[k] || k}
+        <div key={k} className="flex flex-col gap-0.5">
+          <span className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
+            {getFieldLabel(k, t)}
           </span>
           <span className="text-sm text-foreground font-medium break-all">
             {formatValue(v)}
@@ -216,8 +376,10 @@ function SnapshotFields({ snapshot, skip = [] }) {
   )
 }
 
-// Секция: поле details JSON как читаемые KV
-function DetailsFields({ details }) {
+/**
+ * Секция: поле details JSON как читаемые KV
+ */
+function DetailsFields({ details, t }) {
   if (
     !details ||
     typeof details !== 'object' ||
@@ -229,11 +391,11 @@ function DetailsFields({ details }) {
   )
   if (entries.length === 0) return null
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
       {entries.map(([k, v]) => (
-        <div key={k} className="flex flex-col">
-          <span className="text-xs text-muted-foreground">
-            {DETAILS_LABELS[k] || k}
+        <div key={k} className="flex flex-col gap-0.5">
+          <span className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
+            {getFieldLabel(k, t)}
           </span>
           <span className="text-sm text-foreground font-medium break-all">
             {formatValue(v)}
@@ -244,6 +406,65 @@ function DetailsFields({ details }) {
   )
 }
 
+/**
+ * Компонент для копирования Entity ID
+ */
+function CopyableId({ value }) {
+  const [copied, setCopied] = useState(false)
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(value)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      // Fallback — молча игнорируем
+    }
+  }
+
+  if (!value) return null
+
+  return (
+    <button
+      type="button"
+      onClick={handleCopy}
+      className="inline-flex items-center gap-1 text-xs text-muted-foreground font-mono bg-muted hover:bg-muted/80 px-2 py-1 rounded transition-colors cursor-pointer"
+      title={value}
+    >
+      {value.length > 16 ? `${value.slice(0, 8)}…` : value}
+      {copied ? (
+        <Check className="w-3 h-3 text-green-500" />
+      ) : (
+        <Copy className="w-3 h-3" />
+      )}
+    </button>
+  )
+}
+
+/**
+ * Визуальный разделитель между секциями
+ */
+function Divider() {
+  return <div className="border-t border-border/50" />
+}
+
+/**
+ * Заголовок секции
+ */
+function SectionTitle({ icon: Icon, children }) {
+  return (
+    <div className="flex items-center gap-2 mb-3">
+      {Icon && <Icon className="w-4 h-4 text-muted-foreground" />}
+      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+        {children}
+      </span>
+    </div>
+  )
+}
+
+/**
+ * Основная модалка деталей аудит-лога
+ */
 export function AuditDetailsModal({ log, onClose }) {
   const { t } = useTranslation()
   const [showRaw, setShowRaw] = useState(false)
@@ -251,13 +472,12 @@ export function AuditDetailsModal({ log, onClose }) {
   if (!log) return null
 
   const action = (log.action || '').toUpperCase()
-  const entityTypeLabel =
-    ENTITY_TYPE_LABELS[log.entity_type?.toLowerCase()] || log.entity_type
+  const actionLabel = getActionLabel(log.action, t)
+  const entityTypeLabel = getEntityLabel(log.entity_type, t)
   const after = log.snapshot_after
   const before = log.snapshot_before
   const entityName = after?.name || before?.name
-
-  // Определяем что показывать в секции "Подробности о действии"
+  const actionStyle = getActionStyle(log.action)
 
   const isUpdate = action === 'UPDATE'
   const isCreate = action === 'CREATE'
@@ -269,6 +489,20 @@ export function AuditDetailsModal({ log, onClose }) {
     typeof log.details === 'object' &&
     Object.keys(log.details).length > 0
 
+  // Формируем читаемое описание действия
+  // Для LOGIN/LOGOUT entity_type лишний — показываем только действие
+  const isAuthAction = ['LOGIN', 'LOGOUT', 'LOGIN_FAILED'].includes(action)
+  const descriptionText = isAuthAction
+    ? actionLabel
+    : `${actionLabel}${entityTypeLabel ? ` · ${entityTypeLabel}` : ''}`
+
+  // Подробности действия из human_readable_details
+  // Если это IP, не дублируем (он будет в техническом блоке)
+  const humanDetails = log.human_readable_details
+  const isIpOnlyDetail =
+    humanDetails && /^IP:\s*[\d.:]+$/.test(humanDetails.trim())
+  const showHumanDetails = humanDetails && !isIpOnlyDetail
+
   return (
     <Modal
       isOpen={!!log}
@@ -279,218 +513,257 @@ export function AuditDetailsModal({ log, onClose }) {
         <button
           type="button"
           onClick={onClose}
-          className="px-4 py-2 bg-muted text-foreground rounded-lg hover:bg-muted/80 transition-colors min-h-[48px] flex items-center justify-center"
+          className="px-5 py-2.5 bg-muted text-foreground rounded-lg hover:bg-muted/80 transition-colors min-h-[48px] flex items-center justify-center font-medium"
         >
           {t('common.close')}
         </button>
       }
     >
-      <div className="space-y-5">
-        {/* Блок 1: Время + Пользователь + Критичность */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <p className="text-xs text-muted-foreground flex items-center gap-1 mb-1">
-              <Clock className="w-3.5 h-3.5" />
-              {t('auditLogs.time')}
-            </p>
-            <p className="font-medium text-foreground">
-              {formatDate(log.created_at, true)}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground flex items-center gap-1 mb-1">
-              <User className="w-3.5 h-3.5" />
-              {t('auditLogs.user')}
-            </p>
-            <p className="font-medium text-foreground">
-              {log.user_name}
-              {log.department_name && (
-                <span className="block text-sm text-muted-foreground font-normal">
-                  {log.department_name}
-                </span>
+      <div className="space-y-4">
+        {/* Блок 1: Карточка действия — главный акцент */}
+        <div
+          className={cn(
+            'p-4 rounded-xl border border-border/50',
+            actionStyle.bg
+          )}
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1 min-w-0">
+              <p
+                className={cn(
+                  'text-lg font-bold leading-tight',
+                  actionStyle.color
+                )}
+              >
+                {descriptionText}
+              </p>
+              {entityName && (
+                <p className="text-sm text-foreground/80 mt-1 font-medium">
+                  &quot;{entityName}&quot;
+                </p>
               )}
-            </p>
+              {showHumanDetails && (
+                <p className="text-sm text-muted-foreground mt-1.5">
+                  {humanDetails}
+                </p>
+              )}
+            </div>
+            {log.severity && <SeverityBadge severity={log.severity} t={t} />}
           </div>
         </div>
 
-        {/* Блок 2: Действие + критичность */}
-        <div className="p-3 bg-muted/50 rounded-lg flex items-start justify-between gap-3">
-          <div>
-            <p className="text-xs text-muted-foreground mb-0.5">
-              {t('auditLogs.action')}
-            </p>
-            <p className="font-semibold text-foreground text-base">
-              {log.human_readable_description || log.action}
-            </p>
-            {log.human_readable_details && (
-              <p className="text-sm text-muted-foreground mt-0.5">
-                {log.human_readable_details}
+        {/* Блок 2: Время + Пользователь — компактная строка */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="flex items-start gap-3">
+            <div className="p-2 bg-muted rounded-lg shrink-0">
+              <Clock className="w-4 h-4 text-muted-foreground" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground mb-0.5">
+                {t('auditLogs.time')}
               </p>
-            )}
+              <p className="font-medium text-foreground text-sm">
+                {formatDate(log.created_at, true)}
+              </p>
+            </div>
           </div>
-          {log.severity && <SeverityBadge severity={log.severity} />}
+          <div className="flex items-start gap-3">
+            <div className="p-2 bg-muted rounded-lg shrink-0">
+              <User className="w-4 h-4 text-muted-foreground" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground mb-0.5">
+                {t('auditLogs.user')}
+              </p>
+              <p className="font-medium text-foreground text-sm">
+                {log.user_name}
+              </p>
+              {log.department_name && (
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {log.department_name}
+                </p>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Блок 3: Объект (entity) */}
         {(log.entity_type || entityName) && (
-          <div>
-            <p className="text-xs text-muted-foreground flex items-center gap-1 mb-2">
-              <Package className="w-3.5 h-3.5" />
-              Объект
-            </p>
-            <div className="flex flex-wrap items-center gap-2">
-              {entityTypeLabel && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-accent/10 text-accent text-xs rounded-full">
-                  <Tag className="w-3 h-3" />
-                  {entityTypeLabel}
-                </span>
-              )}
-              {entityName && (
-                <span className="font-medium text-foreground">
-                  &quot;{entityName}&quot;
-                </span>
-              )}
-              {log.entity_id && (
-                <span className="text-xs text-muted-foreground font-mono bg-muted px-2 py-0.5 rounded">
-                  {log.entity_id.length > 16
-                    ? `${log.entity_id.slice(0, 8)}…`
-                    : log.entity_id}
-                </span>
-              )}
+          <>
+            <Divider />
+            <div>
+              <SectionTitle icon={Package}>
+                {t('auditLogs.entity')}
+              </SectionTitle>
+              <div className="flex flex-wrap items-center gap-2">
+                {entityTypeLabel && (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-accent/10 text-accent text-xs rounded-full font-medium">
+                    <Tag className="w-3 h-3" />
+                    {entityTypeLabel}
+                  </span>
+                )}
+                {entityName && (
+                  <span className="font-medium text-foreground text-sm">
+                    &quot;{entityName}&quot;
+                  </span>
+                )}
+                <CopyableId value={log.entity_id} />
+              </div>
             </div>
-          </div>
+          </>
         )}
 
         {/* Блок 4: Подробности о действии */}
 
         {/* UPDATE — таблица изменений */}
         {hasChanges && (
-          <div>
-            <p className="text-xs text-muted-foreground mb-2 block">
-              Что изменилось
-            </p>
-            <ChangesSection before={before} after={after} />
-          </div>
+          <>
+            <Divider />
+            <div>
+              <SectionTitle icon={ArrowRight}>
+                {t('auditLogs.detailModal.whatChanged')}
+              </SectionTitle>
+              <ChangesSection before={before} after={after} t={t} />
+            </div>
+          </>
         )}
 
         {/* CREATE — поля созданного объекта */}
         {isCreate && after && (
-          <div>
-            <p className="text-xs text-muted-foreground mb-2 block">
-              Созданный объект
-            </p>
-            <div className="p-3 bg-muted/50 rounded-lg">
-              <SnapshotFields snapshot={after} />
+          <>
+            <Divider />
+            <div>
+              <SectionTitle icon={Database}>
+                {t('auditLogs.detailModal.createdObject')}
+              </SectionTitle>
+              <div className="p-3 bg-green-500/5 border border-green-500/10 rounded-lg">
+                <SnapshotFields snapshot={after} t={t} />
+              </div>
             </div>
-          </div>
+          </>
         )}
 
         {/* DELETE — что было удалено */}
         {isDelete && before && (
-          <div>
-            <p className="text-xs text-muted-foreground mb-2 block">
-              Удалённый объект
-            </p>
-            <div className="p-3 bg-red-50 dark:bg-red-900/10 rounded-lg border border-red-100 dark:border-red-900/20">
-              <SnapshotFields snapshot={before} />
+          <>
+            <Divider />
+            <div>
+              <SectionTitle icon={Database}>
+                {t('auditLogs.detailModal.deletedObject')}
+              </SectionTitle>
+              <div className="p-3 bg-red-500/5 border border-red-500/10 rounded-lg">
+                <SnapshotFields snapshot={before} t={t} />
+              </div>
             </div>
-          </div>
+          </>
         )}
 
         {/* Поле details (JSON) — дополнительный контекст */}
         {hasDetails && (
-          <div>
-            <p className="text-xs text-muted-foreground mb-2 block">
-              Данные действия
-            </p>
-            <div className="p-3 bg-muted/50 rounded-lg">
-              <DetailsFields details={log.details} />
+          <>
+            <Divider />
+            <div>
+              <SectionTitle icon={Info}>
+                {t('auditLogs.detailModal.actionData')}
+              </SectionTitle>
+              <div className="p-3 bg-muted/40 border border-border/50 rounded-lg">
+                <DetailsFields details={log.details} t={t} />
+              </div>
             </div>
-          </div>
+          </>
         )}
 
-        {/* Блок 5: Технические данные */}
-        <div>
-          <p className="text-xs text-muted-foreground mb-2 block">
-            Техническая информация
-          </p>
-          <div className="space-y-1.5">
-            {log.ip_address && (
-              <div className="flex items-center gap-2 text-sm">
-                <MapPin className="w-4 h-4 text-muted-foreground shrink-0" />
-                <span className="text-muted-foreground">IP:</span>
-                <span className="font-mono text-foreground">
-                  {log.ip_address}
-                </span>
-              </div>
-            )}
-            {log.browser_name && (
-              <div className="flex items-center gap-2 text-sm">
-                <Monitor className="w-4 h-4 text-muted-foreground shrink-0" />
-                <span className="text-muted-foreground">
-                  {t('auditLogs.browser')}:
-                </span>
-                <span className="text-foreground">{log.browser_name}</span>
-                {log.os_name && (
-                  <span className="text-muted-foreground">/ {log.os_name}</span>
+        {/* Блок 5: Техническая информация */}
+        {(log.ip_address || log.browser_name) && (
+          <>
+            <Divider />
+            <div>
+              <SectionTitle icon={Shield}>
+                {t('auditLogs.detailModal.technicalInfo')}
+              </SectionTitle>
+              <div className="space-y-2">
+                {log.ip_address && (
+                  <div className="flex items-center gap-2.5 text-sm">
+                    <MapPin className="w-4 h-4 text-muted-foreground shrink-0" />
+                    <span className="text-muted-foreground">IP:</span>
+                    <span className="font-mono text-foreground bg-muted px-2 py-0.5 rounded text-xs">
+                      {log.ip_address}
+                    </span>
+                  </div>
+                )}
+                {log.browser_name && (
+                  <div className="flex items-center gap-2.5 text-sm">
+                    <Monitor className="w-4 h-4 text-muted-foreground shrink-0" />
+                    <span className="text-muted-foreground">
+                      {t('auditLogs.browser')}:
+                    </span>
+                    <span className="text-foreground">{log.browser_name}</span>
+                    {log.os_name && (
+                      <span className="text-muted-foreground">
+                        / {log.os_name}
+                      </span>
+                    )}
+                  </div>
+                )}
+                {log.device_type && log.device_type !== 'desktop' && (
+                  <div className="flex items-center gap-2.5 text-sm">
+                    <Globe className="w-4 h-4 text-muted-foreground shrink-0" />
+                    <span className="text-muted-foreground">
+                      {t('auditLogs.detailModal.device')}:
+                    </span>
+                    <span className="text-foreground capitalize">
+                      {log.device_type}
+                    </span>
+                  </div>
                 )}
               </div>
-            )}
-            {log.device_type && log.device_type !== 'desktop' && (
-              <div className="flex items-center gap-2 text-sm">
-                <Globe className="w-4 h-4 text-muted-foreground shrink-0" />
-                <span className="text-muted-foreground">Устройство:</span>
-                <span className="text-foreground capitalize">
-                  {log.device_type}
-                </span>
-              </div>
-            )}
-            {!log.ip_address && !log.browser_name && (
-              <p className="text-sm text-muted-foreground">Нет данных</p>
-            )}
-          </div>
-        </div>
+            </div>
+          </>
+        )}
 
         {/* Блок 6: Raw JSON (сворачивается) */}
         {(before || after) && (
-          <div>
-            <button
-              type="button"
-              onClick={() => setShowRaw(!showRaw)}
-              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              {showRaw ? (
-                <ChevronUp className="w-4 h-4" />
-              ) : (
-                <ChevronDown className="w-4 h-4" />
+          <>
+            <Divider />
+            <div>
+              <button
+                type="button"
+                onClick={() => setShowRaw(!showRaw)}
+                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors py-1"
+              >
+                {showRaw ? (
+                  <ChevronUp className="w-4 h-4" />
+                ) : (
+                  <ChevronDown className="w-4 h-4" />
+                )}
+                {t('auditLogs.technicalDataJson')}
+              </button>
+              {showRaw && (
+                <div className="mt-3 space-y-3">
+                  {before && (
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1.5 font-medium">
+                        {t('auditLogs.beforeChange')}
+                      </p>
+                      <pre className="p-3 bg-muted/60 border border-border/50 rounded-lg text-xs overflow-x-auto max-h-48 overflow-y-auto font-mono leading-relaxed">
+                        {JSON.stringify(before, null, 2)}
+                      </pre>
+                    </div>
+                  )}
+                  {after && (
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1.5 font-medium">
+                        {t('auditLogs.afterChange')}
+                      </p>
+                      <pre className="p-3 bg-muted/60 border border-border/50 rounded-lg text-xs overflow-x-auto max-h-48 overflow-y-auto font-mono leading-relaxed">
+                        {JSON.stringify(after, null, 2)}
+                      </pre>
+                    </div>
+                  )}
+                </div>
               )}
-              {t('auditLogs.technicalDataJson')}
-            </button>
-            {showRaw && (
-              <div className="mt-2 space-y-3">
-                {before && (
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1">
-                      {t('auditLogs.beforeChange')}
-                    </p>
-                    <pre className="p-3 bg-muted rounded-lg text-xs overflow-x-auto max-h-48 overflow-y-auto">
-                      {JSON.stringify(before, null, 2)}
-                    </pre>
-                  </div>
-                )}
-                {after && (
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1">
-                      {t('auditLogs.afterChange')}
-                    </p>
-                    <pre className="p-3 bg-muted rounded-lg text-xs overflow-x-auto max-h-48 overflow-y-auto">
-                      {JSON.stringify(after, null, 2)}
-                    </pre>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+            </div>
+          </>
         )}
       </div>
     </Modal>

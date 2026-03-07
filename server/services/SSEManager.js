@@ -1,13 +1,13 @@
 /**
  * FreshTrack SSE Manager
  * Server-Sent Events for real-time updates
- * 
+ *
  * Features:
  * - Hotel-isolated broadcasts (multi-tenant)
  * - User-specific messages
  * - Automatic heartbeat (30s)
  * - Connection cleanup
- * 
+ *
  * @see https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events
  */
 
@@ -18,14 +18,14 @@ class SSEManager {
   constructor() {
     // Map<hotelId, Map<userId, { res, connectedAt, lastHeartbeat }>>
     this.clients = new Map()
-    
+
     // Heartbeat interval (30 seconds)
     this.heartbeatInterval = 30000
     this.heartbeatTimer = null
-    
+
     // Start heartbeat
     this.startHeartbeat()
-    
+
     logInfo('SSE', 'SSEManager initialized')
   }
 
@@ -36,11 +36,11 @@ class SSEManager {
   formatMessage(event, data, id = null) {
     const messageId = id || Date.now()
     const jsonData = typeof data === 'string' ? data : JSON.stringify(data)
-    
+
     let message = `id: ${messageId}\n`
     message += `event: ${event}\n`
     message += `data: ${jsonData}\n\n`
-    
+
     return message
   }
 
@@ -50,16 +50,17 @@ class SSEManager {
    * @param {string} userId - User ID
    * @param {string} userName - User name for logging
    * @param {string} userRole - User role for filtering broadcasts
+   * @param {string|null} departmentId - User's department ID for department-level broadcasts
    * @param {Response} res - Express response object
    */
-  addClient(hotelId, userId, userName, userRole, res) {
+  addClient(hotelId, userId, userName, userRole, departmentId, res) {
     // Create hotel map if doesn't exist
     if (!this.clients.has(hotelId)) {
       this.clients.set(hotelId, new Map())
     }
 
     const hotelClients = this.clients.get(hotelId)
-    
+
     // Close existing connection for this user if any
     if (hotelClients.has(userId)) {
       const existing = hotelClients.get(userId)
@@ -70,13 +71,14 @@ class SSEManager {
       }
     }
 
-    // Store new connection with role
+    // Store new connection with role and department
     hotelClients.set(userId, {
       res,
       userName,
       userRole,
+      departmentId: departmentId || null,
       connectedAt: new Date(),
-      lastHeartbeat: new Date()
+      lastHeartbeat: new Date(),
     })
 
     // Send connected event
@@ -84,9 +86,9 @@ class SSEManager {
       userId,
       hotelId,
       timestamp: new Date().toISOString(),
-      message: 'SSE connection established'
+      message: 'SSE connection established',
     })
-    
+
     try {
       res.write(connectMsg)
     } catch (e) {
@@ -94,8 +96,11 @@ class SSEManager {
     }
 
     const totalClients = this.getTotalClients()
-    logInfo('SSE', `Client connected: ${userName} (hotel: ${hotelId.slice(0, 8)}...) | Total: ${totalClients}`)
-    
+    logInfo(
+      'SSE',
+      `Client connected: ${userName} (hotel: ${hotelId.slice(0, 8)}...) | Total: ${totalClients}`
+    )
+
     return true
   }
 
@@ -111,16 +116,19 @@ class SSEManager {
     const client = hotelClients.get(userId)
     if (client) {
       hotelClients.delete(userId)
-      
+
       // Clean up empty hotel maps
       if (hotelClients.size === 0) {
         this.clients.delete(hotelId)
       }
-      
-      logInfo('SSE', `Client disconnected: ${client.userName} | Total: ${this.getTotalClients()}`)
+
+      logInfo(
+        'SSE',
+        `Client disconnected: ${client.userName} | Total: ${this.getTotalClients()}`
+      )
       return true
     }
-    
+
     return false
   }
 
@@ -133,13 +141,16 @@ class SSEManager {
   broadcast(hotelId, event, data) {
     const hotelClients = this.clients.get(hotelId)
     if (!hotelClients || hotelClients.size === 0) {
-      logWarn('SSE', `No clients for hotel ${hotelId?.slice(0, 8)}... to broadcast ${event}`)
+      logWarn(
+        'SSE',
+        `No clients for hotel ${hotelId?.slice(0, 8)}... to broadcast ${event}`
+      )
       return 0
     }
 
     const message = this.formatMessage(event, {
       ...data,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     })
 
     let sent = 0
@@ -159,7 +170,10 @@ class SSEManager {
       this.removeClient(hotelId, userId)
     }
 
-    logInfo('SSE', `Broadcast [${event}] to ${sent}/${hotelClients.size} clients in hotel ${hotelId?.slice(0, 8)}...`)
+    logInfo(
+      'SSE',
+      `Broadcast [${event}] to ${sent}/${hotelClients.size} clients in hotel ${hotelId?.slice(0, 8)}...`
+    )
     return sent
   }
 
@@ -177,7 +191,7 @@ class SSEManager {
 
     const message = this.formatMessage(event, {
       ...data,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     })
 
     let sent = 0
@@ -188,7 +202,7 @@ class SSEManager {
       if (!HOTEL_WIDE_ROLES.includes(client.userRole)) {
         continue
       }
-      
+
       try {
         client.res.write(message)
         sent++
@@ -203,7 +217,52 @@ class SSEManager {
     }
 
     if (sent > 0) {
-      logInfo('SSE', `Broadcast [${event}] to ${sent} admins in hotel ${hotelId?.slice(0, 8)}...`)
+      logInfo(
+        'SSE',
+        `Broadcast [${event}] to ${sent} admins in hotel ${hotelId?.slice(0, 8)}...`
+      )
+    }
+    return sent
+  }
+
+  /**
+   * Broadcast to all clients in a specific department within a hotel
+   * @param {string} hotelId - Target hotel ID
+   * @param {string} departmentId - Target department ID
+   * @param {string} event - Event name
+   * @param {object} data - Event data
+   */
+  broadcastToDepartment(hotelId, departmentId, event, data) {
+    const hotelClients = this.clients.get(hotelId)
+    if (!hotelClients || hotelClients.size === 0) return 0
+
+    const message = this.formatMessage(event, {
+      ...data,
+      timestamp: new Date().toISOString(),
+    })
+
+    let sent = 0
+    const failed = []
+
+    for (const [userId, client] of hotelClients) {
+      if (String(client.departmentId) !== String(departmentId)) continue
+      try {
+        client.res.write(message)
+        sent++
+      } catch (e) {
+        failed.push(userId)
+      }
+    }
+
+    for (const userId of failed) {
+      this.removeClient(hotelId, userId)
+    }
+
+    if (sent > 0) {
+      logInfo(
+        'SSE',
+        `Broadcast [${event}] to ${sent} clients in dept ${departmentId?.slice(0, 8)}...`
+      )
     }
     return sent
   }
@@ -215,11 +274,11 @@ class SSEManager {
    */
   broadcastAll(event, data) {
     let totalSent = 0
-    
+
     for (const [hotelId] of this.clients) {
       totalSent += this.broadcast(hotelId, event, data)
     }
-    
+
     logInfo('SSE', `Broadcast ALL [${event}] to ${totalSent} total clients`)
     return totalSent
   }
@@ -240,7 +299,7 @@ class SSEManager {
 
     const message = this.formatMessage(event, {
       ...data,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     })
 
     try {
@@ -265,8 +324,11 @@ class SSEManager {
     this.heartbeatTimer = setInterval(() => {
       this.sendHeartbeat()
     }, this.heartbeatInterval)
-    
-    logInfo('SSE', `Heartbeat started (every ${this.heartbeatInterval / 1000}s)`)
+
+    logInfo(
+      'SSE',
+      `Heartbeat started (every ${this.heartbeatInterval / 1000}s)`
+    )
   }
 
   /**
@@ -314,12 +376,12 @@ class SSEManager {
   getClientsByHotel(hotelId) {
     const hotelClients = this.clients.get(hotelId)
     if (!hotelClients) return []
-    
+
     return Array.from(hotelClients.entries()).map(([userId, client]) => ({
       userId,
       userName: client.userName,
       connectedAt: client.connectedAt,
-      lastHeartbeat: client.lastHeartbeat
+      lastHeartbeat: client.lastHeartbeat,
     }))
   }
 
@@ -329,7 +391,7 @@ class SSEManager {
   getStats() {
     const stats = {
       totalClients: 0,
-      hotels: {}
+      hotels: {},
     }
 
     for (const [hotelId, hotelClients] of this.clients) {

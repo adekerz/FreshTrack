@@ -1,9 +1,9 @@
 /**
  * Централизованная конфигурация навигации
  * Используется в Sidebar.jsx
- * 
+ *
  * При изменении доступов - меняй ТОЛЬКО этот файл!
- * 
+ *
  * MIGRATION: Постепенно переходим от roles к requiredPermission/requiredCapability
  */
 
@@ -12,10 +12,12 @@ import {
   Package,
   Bell,
   Calendar,
-  BarChart3,
+  TrendingUp,
   ClipboardList,
+  LayoutGrid,
   FileText,
-  Settings
+  Settings,
+  ScanLine,
 } from 'lucide-react'
 
 /**
@@ -39,7 +41,7 @@ export const mainNavItems = [
     icon: LayoutDashboard,
     labelKey: 'nav.dashboard',
     fallbackLabel: 'Главная',
-    roles: NAV_ROLES.ALL
+    roles: NAV_ROLES.ALL,
   },
   {
     id: 'inventory',
@@ -48,7 +50,8 @@ export const mainNavItems = [
     labelKey: 'nav.inventory',
     fallbackLabel: 'Инвентарь',
     roles: NAV_ROLES.ALL,
-    requiredPermission: 'products:read'
+    requiredPermission: 'products:read',
+    requiredModule: 'inventory',
   },
   {
     id: 'notifications',
@@ -57,7 +60,8 @@ export const mainNavItems = [
     labelKey: 'nav.notifications',
     fallbackLabel: 'Уведомления',
     roles: NAV_ROLES.ALL,
-    hasBadge: true // Показывает счётчик непрочитанных
+    requiredModule: 'inventory',
+    hasBadge: true, // Показывает счётчик непрочитанных
   },
   {
     id: 'calendar',
@@ -65,8 +69,18 @@ export const mainNavItems = [
     icon: Calendar,
     labelKey: 'nav.calendar',
     fallbackLabel: 'Календарь',
-    roles: NAV_ROLES.ALL
-  }
+    roles: NAV_ROLES.ALL,
+  },
+  {
+    id: 'tasks',
+    path: '/tasks',
+    icon: LayoutGrid,
+    labelKey: 'nav.tasks',
+    fallbackLabel: 'Задачи',
+    roles: NAV_ROLES.ALL,
+    requiredPermission: 'tasks:read',
+    requiredModule: 'task_planner',
+  },
 ]
 
 /**
@@ -74,14 +88,14 @@ export const mainNavItems = [
  */
 export const moreNavItems = [
   {
-    id: 'statistics',
-    path: '/statistics',
-    icon: BarChart3,
-    labelKey: 'nav.statistics',
-    fallbackLabel: 'Статистика',
+    id: 'analytics',
+    path: '/analytics',
+    icon: TrendingUp,
+    labelKey: 'nav.analytics',
+    fallbackLabel: 'Аналитика',
     roles: NAV_ROLES.MANAGERS_AND_UP,
-    requiredCapability: 'canViewInventory', // New: use capabilities
-    group: 'reports'
+    requiredModule: 'analytics',
+    group: 'reports',
   },
   {
     id: 'collection-history',
@@ -91,7 +105,8 @@ export const moreNavItems = [
     fallbackLabel: 'История сборов',
     roles: NAV_ROLES.MANAGERS_AND_UP,
     requiredPermission: 'collections:read',
-    group: 'reports'
+    requiredModule: 'inventory',
+    group: 'reports',
   },
   {
     id: 'audit-logs',
@@ -101,7 +116,17 @@ export const moreNavItems = [
     fallbackLabel: 'Журнал действий',
     roles: NAV_ROLES.ADMINS_ONLY,
     requiredCapability: 'canViewAuditLogs', // New: use capabilities
-    group: 'reports'
+    group: 'reports',
+  },
+  {
+    id: 'logbook-scanner',
+    path: '/logbook-scanner',
+    icon: ScanLine,
+    labelKey: 'nav.logbookScanner',
+    fallbackLabel: 'Logbook Scanner',
+    roles: NAV_ROLES.ALL,
+    requiredModule: 'logbook_scanner',
+    group: 'reports',
   },
   {
     id: 'settings',
@@ -110,8 +135,8 @@ export const moreNavItems = [
     labelKey: 'nav.settings',
     fallbackLabel: 'Настройки',
     roles: NAV_ROLES.ALL,
-    group: 'system'
-  }
+    group: 'system',
+  },
 ]
 
 /**
@@ -119,15 +144,29 @@ export const moreNavItems = [
  * Supports: requiredCapability, requiredPermission, roles (legacy)
  * @param {Object} item - пункт навигации
  * @param {string} userRole - роль пользователя (SUPER_ADMIN, HOTEL_ADMIN, etc.)
- * @param {Object} options - { capabilities, permissions, hasPermission }
+ * @param {Object} options - { capabilities, permissions, hasPermission, hasModuleFn }
  * @returns {boolean}
  */
 export function hasNavAccess(item, userRole, options = {}) {
   if (!userRole) return false
 
-  const { capabilities = {}, permissions = [], hasPermission } = options
+  const {
+    capabilities = {},
+    permissions = [],
+    hasPermission,
+    hasModuleFn,
+  } = options
   const normalizedRole = userRole.toUpperCase()
-  const isAdmin = normalizedRole === 'SUPER_ADMIN' || normalizedRole === 'HOTEL_ADMIN'
+  const isAdmin =
+    normalizedRole === 'SUPER_ADMIN' || normalizedRole === 'HOTEL_ADMIN'
+
+  // Priority 0: Check module access if specified
+  if (item.requiredModule && hasModuleFn) {
+    // Admins bypass module checks (handled inside hasModuleFn)
+    if (!hasModuleFn(item.requiredModule)) {
+      return false
+    }
+  }
 
   // Priority 1: Check capability if specified
   if (item.requiredCapability) {
@@ -145,7 +184,9 @@ export function hasNavAccess(item, userRole, options = {}) {
       return hasPermission(item.requiredPermission)
     }
     // Fallback to array check
-    return permissions.includes(item.requiredPermission) || permissions.includes('*')
+    return (
+      permissions.includes(item.requiredPermission) || permissions.includes('*')
+    )
   }
 
   // Priority 3: Legacy role-based check (deprecated - use capabilities instead)
@@ -157,9 +198,9 @@ export function hasNavAccess(item, userRole, options = {}) {
  * Фильтрует пункты навигации по роли/permissions пользователя
  * @param {Array} items - массив пунктов навигации
  * @param {string} userRole - роль пользователя
- * @param {Object} options - { capabilities, permissions, hasPermission }
+ * @param {Object} options - { capabilities, permissions, hasPermission, hasModuleFn }
  * @returns {Array}
  */
 export function filterNavByRole(items, userRole, options = {}) {
-  return items.filter(item => hasNavAccess(item, userRole, options))
+  return items.filter((item) => hasNavAccess(item, userRole, options))
 }

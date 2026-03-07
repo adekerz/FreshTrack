@@ -152,7 +152,9 @@
     "history": "Historique",
     "more": "Plus",
     "reports": "Rapports",
-    "mobileNav": "Navigation"
+    "mobileNav": "Navigation",
+    "tasks": "Tâches",
+    "logbookScanner": "Logbook Scanner"
   },
   "sidebar": {
     "collapse": "Réduire le menu",
@@ -1640,5 +1642,75 @@
     },
     "needMoreHelp": "Besoin d'aide supplémentaire?",
     "contactSupport": "Si vous n'avez pas trouvé de réponse à votre question, contactez notre équipe de support."
+  },
+  "tasks": {
+    "title": "Planificateur de tâches",
+    "loading": "Chargement du planificateur...",
+    "searchPlaceholder": "Rechercher des tâches...",
+    "newBoard": "Nouveau tableau",
+    "addColumn": "Ajouter une colonne",
+    "columnNamePlaceholder": "Nom de la colonne...",
+    "noBoardsTitle": "Aucun tableau",
+    "noBoardsDescription": "Créez votre premier tableau pour commencer à organiser les tâches de votre équipe.",
+    "createFirstBoard": "Créer le premier tableau",
+    "createTask": "Créer une tâche",
+    "createBoard": "Créer un tableau",
+    "taskTitle": "Titre de la tâche",
+    "taskTitlePlaceholder": "Que faut-il faire ?",
+    "description": "Description",
+    "descriptionPlaceholder": "Ajouter des détails...",
+    "priority": "Priorité",
+    "dueDate": "Date limite",
+    "column": "Colonne",
+    "boardName": "Nom du tableau",
+    "boardNamePlaceholder": "ex: Tâches cuisine",
+    "boardDescription": "Description",
+    "boardDescriptionPlaceholder": "À quoi sert ce tableau ?",
+    "priorities": {
+      "low": "Basse",
+      "medium": "Moyenne",
+      "high": "Haute",
+      "urgent": "Urgente"
+    },
+    "stats": {
+      "total": "Total",
+      "todo": "À faire",
+      "inProgress": "En cours",
+      "done": "Terminé",
+      "overdue": "En retard"
+    },
+    "detail": {
+      "details": "Détails",
+      "checklist": "Liste de contrôle",
+      "comments": "Commentaires",
+      "created": "Créé le",
+      "updated": "Mis à jour le",
+      "assignedTo": "Assigné à",
+      "noAssignee": "Non assigné",
+      "deleteTask": "Supprimer la tâche",
+      "deleteConfirm": "Êtes-vous sûr de vouloir supprimer cette tâche ?",
+      "addChecklistItem": "Ajouter un élément...",
+      "checklistProgress": "{{done}} sur {{total}} terminés",
+      "addComment": "Écrire un commentaire...",
+      "noComments": "Aucun commentaire",
+      "post": "Publier"
+    },
+    "dropHere": "Déposez les tâches ici",
+    "statusHint": "Changer le statut déplacera automatiquement la carte dans la colonne correspondante",
+    "status": "Statut",
+    "progress": "Progression",
+    "deleteColumn": "Supprimer la colonne",
+    "deleteBoardConfirm": "Supprimer ce tableau ? Toutes les colonnes et tâches seront définitivement supprimées.",
+    "boardDeleted": "Tableau supprimé",
+    "deleteColumnConfirm": "Supprimer cette colonne ? Toutes les tâches seront définitivement supprimées.",
+    "columnDeleted": "Colonne supprimée",
+    "statuses": {
+      "todo": "À faire",
+      "inProgress": "En cours",
+      "review": "En révision",
+      "blocked": "Bloqué",
+      "completed": "Terminé",
+      "cancelled": "Annulé"
+    }
   }
 }

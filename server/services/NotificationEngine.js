@@ -181,7 +181,9 @@ export class NotificationEngine {
               warning_months: 2,
             }
             const isMonthlyMode = activeRule.notification_mode === 'monthly'
-            const warningDays = activeRule.warning_days || 7
+            const warningDays = isMonthlyMode
+              ? (activeRule.warning_months || 2) * 30
+              : activeRule.warning_days || 7
 
             // 2. Calculate statistics
             const stats = {

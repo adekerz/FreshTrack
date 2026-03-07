@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Menu Knowledge Guide — Ritz-Carlton IRD</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --gold: #b8962e;
+    --gold-light: #d4af5a;
+    --cream: #fdf8f0;
+    --dark: #1a1208;
+    --charcoal: #2e2416;
+    --medium: #5c4a2a;
+    --light-text: #8a7040;
+    --divider: #e8d9b0;
+    --red-flag: #8b1a1a;
+    --green: #1a5c2a;
+    --blue: #1a2e5c;
+    --section-bg: #faf4e8;
+    --card-bg: #ffffff;
+    --memory: #2a0a4a;
+    --memory-bg: #f8f0ff;
+    --memory-border: #c8a0f0;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Crimson Pro', Georgia, serif;
+    background: var(--cream);
+    color: var(--dark);
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  nav {
+    position: sticky; top: 0; z-index: 100;
+    background: var(--dark);
+    display: flex; gap: 0; overflow-x: auto; scrollbar-width: none;
+    border-bottom: 2px solid var(--gold);
+  }
+  nav::-webkit-scrollbar { display: none; }
+  nav a {
+    color: var(--gold-light); text-decoration: none;
+    padding: 10px 16px; white-space: nowrap;
+    font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase;
+    font-family: 'Crimson Pro', serif; font-weight: 600;
+    transition: background 0.2s, color 0.2s;
+  }
+  nav a:hover { background: var(--gold); color: var(--dark); }
+
+  header {
+    background: var(--dark); color: var(--cream);
+    text-align: center; padding: 40px 20px 30px;
+    position: relative; overflow: hidden;
+  }
+  header::before {
+    content: ''; position: absolute; inset: 0;
+    background: radial-gradient(ellipse at center, rgba(184,150,46,0.15) 0%, transparent 70%);
+  }
+  header .ornament { color: var(--gold); font-size: 28px; letter-spacing: 8px; display: block; margin-bottom: 8px; }
+  header h1 { font-family: 'Playfair Display', serif; font-size: 2.4rem; color: var(--gold-light); font-weight: 400; letter-spacing: 0.04em; margin-bottom: 4px; }
+  header p { color: #c4a86a; font-style: italic; font-size: 1rem; }
+
+  .wrapper { max-width: 1100px; margin: 0 auto; padding: 24px 16px; }
+
+  .section-title {
+    font-family: 'Playfair Display', serif; font-size: 1.6rem;
+    color: var(--charcoal); border-bottom: 2px solid var(--gold);
+    padding-bottom: 6px; margin: 36px 0 20px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .section-title .emoji { font-size: 1.3rem; }
+  .subsection {
+    font-family: 'Playfair Display', serif; font-size: 1.1rem;
+    color: var(--medium); margin: 24px 0 12px;
+    font-style: italic; letter-spacing: 0.03em;
+  }
+
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
+  .card-grid.two { grid-template-columns: repeat(auto-fill, minmax(480px, 1fr)); }
+
+  .dish-card {
+    background: var(--card-bg); border: 1px solid var(--divider);
+    border-radius: 4px; padding: 16px 18px;
+    border-left: 4px solid var(--gold); position: relative;
+  }
+  .dish-card .dish-name {
+    font-family: 'Playfair Display', serif; font-size: 1.05rem;
+    color: var(--charcoal); margin-bottom: 8px; font-weight: 700;
+  }
+  .dish-card .tag-row { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0; }
+  .tag {
+    display: inline-block; padding: 1px 8px; border-radius: 20px;
+    font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;
+    font-family: 'Crimson Pro', serif;
+  }
+  .tag.allergy { background: #fff0f0; color: var(--red-flag); border: 1px solid #ffcfcf; }
+  .tag.wine { background: #f0f4ff; color: var(--blue); border: 1px solid #c8d4f0; }
+  .tag.time { background: #f5faf0; color: var(--green); border: 1px solid #bce0bd; }
+  .tag.method { background: #fffbf0; color: #7a5c00; border: 1px solid #f0d870; }
+  .tag.custom { background: #faf0ff; color: #5c1a8c; border: 1px solid #d4a8f0; }
+  .tag.veg { background: #f0faf4; color: #1a7a3c; border: 1px solid #8dd4a8; }
+
+  .dish-card p { font-size: 0.9rem; color: var(--medium); line-height: 1.5; margin-top: 4px; }
+  .dish-card .ingredients { font-size: 0.88rem; color: #7a6030; margin-top: 6px; }
+  .dish-card .flex-note { font-size: 0.88rem; color: #3a6030; font-style: italic; margin-top: 4px; }
+
+  /* ── MEMORY BOX ── */
+  .memory {
+    background: var(--memory-bg);
+    border: 1px solid var(--memory-border);
+    border-left: 4px solid #9040d0;
+    border-radius: 4px;
+    padding: 12px 16px;
+    margin: 10px 0 0;
+    font-size: 0.88rem;
+    color: var(--memory);
+    line-height: 1.55;
+  }
+  .memory::before { content: '🧠 '; font-size: 1rem; }
+  .memory strong { color: #6020a0; }
+
+  /* ── COMPARE TABLE ── */
+  .compare-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 0.9rem; background: var(--card-bg); border: 1px solid var(--divider); }
+  .compare-table th { background: var(--dark); color: var(--gold-light); padding: 10px 14px; font-family: 'Playfair Display', serif; font-weight: 400; font-size: 0.95rem; text-align: left; letter-spacing: 0.04em; }
+  .compare-table th:first-child { background: #2a1e0e; color: var(--gold); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; width: 130px; }
+  .compare-table td { padding: 9px 14px; border-bottom: 1px solid var(--divider); vertical-align: top; color: var(--charcoal); line-height: 1.4; }
+  .compare-table tr:nth-child(even) td { background: var(--section-bg); }
+  .compare-table td:first-child { font-weight: 600; color: var(--medium); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.04em; }
+  .compare-table .highlight { color: var(--red-flag); font-weight: 600; }
+
+  /* ── WINE TABLE ── */
+  .wine-table { width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 0.88rem; }
+  .wine-table th { background: #1a2040; color: #c8d4f0; padding: 8px 12px; text-align: left; font-size: 0.8rem; letter-spacing: 0.06em; text-transform: uppercase; }
+  .wine-table td { padding: 7px 12px; border-bottom: 1px solid #e0eaff; vertical-align: top; }
+  .wine-table tr:nth-child(even) td { background: #f4f7ff; }
+
+  /* ── ALERT ── */
+  .alert { padding: 12px 16px; border-radius: 4px; margin: 12px 0; font-size: 0.9rem; line-height: 1.5; display: flex; gap: 10px; align-items: flex-start; }
+  .alert.warning { background: #fff8e0; border-left: 4px solid #d4a000; color: #5c3c00; }
+  .alert.info { background: #e8f4ff; border-left: 4px solid var(--blue); color: #0a1e40; }
+  .alert.success { background: #e8f8ee; border-left: 4px solid var(--green); color: #0a2a14; }
+  .alert.danger { background: #fff0f0; border-left: 4px solid var(--red-flag); color: #4a0a0a; }
+  .alert-icon { font-size: 1.1rem; flex-shrink: 0; }
+
+  /* ── PREP GRID ── */
+  .prep-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin: 8px 0; }
+  .prep-card { background: var(--card-bg); border: 1px solid var(--divider); border-radius: 4px; padding: 10px 12px; text-align: center; font-size: 0.88rem; }
+  .prep-card .prep-name { font-weight: 700; color: var(--charcoal); font-size: 0.95rem; margin-bottom: 2px; }
+  .prep-card .prep-temp { color: var(--gold); font-size: 1.1rem; font-weight: 700; font-family: 'Playfair Display', serif; }
+  .prep-card .prep-desc { color: var(--medium); font-size: 0.8rem; margin-top: 2px; }
+
+  /* ── QUICK REF ── */
+  .quick-ref { background: var(--dark); color: var(--cream); border-radius: 4px; padding: 18px 20px; margin: 12px 0; }
+  .quick-ref h4 { color: var(--gold-light); font-family: 'Playfair Display', serif; font-size: 1rem; margin-bottom: 8px; font-weight: 400; letter-spacing: 0.04em; }
+  .quick-ref p, .quick-ref li { font-size: 0.88rem; line-height: 1.6; color: #d4c4a0; }
+  .quick-ref ul { padding-left: 16px; }
+  .quick-ref li { margin-bottom: 3px; }
+
+  footer { text-align: center; padding: 30px; color: var(--light-text); font-size: 0.8rem; letter-spacing: 0.06em; border-top: 1px solid var(--divider); margin-top: 40px; }
+
+  @media(max-width: 600px) {
+    .card-grid, .card-grid.two { grid-template-columns: 1fr; }
+    header h1 { font-size: 1.7rem; }
+    .compare-table { font-size: 0.82rem; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="#memory-tips">🧠 Как учить</a>
+  <a href="#compare">⚖️ Сравнения</a>
+  <a href="#soups">🍜 Супы</a>
+  <a href="#salads">🥗 Салаты</a>
+  <a href="#starters">🍤 Закуски</a>
+  <a href="#pasta">🍝 Паста</a>
+  <a href="#pizza">🍕 Пицца</a>
+  <a href="#sandwiches">🥪 Сэндвичи</a>
+  <a href="#burgers">🍔 Бургеры</a>
+  <a href="#mains">🥩 Основные</a>
+  <a href="#sides">🥔 Гарниры</a>
+  <a href="#desserts">🍮 Десерты</a>
+  <a href="#wines">🍷 Вина</a>
+  <a href="#preps">🔥 Прожарки</a>
+  <a href="#flex">🎯 Гибкость</a>
+</nav>
+
+<header>
+  <span class="ornament">✦ ✦ ✦</span>
+  <h1>Menu Knowledge Guide</h1>
+  <p>In-Room Dining · A La Carte 2025 · Ritz-Carlton</p>
+</header>
+
+<div class="wrapper">
+
+<!-- ════════════ HOW TO MEMORIZE ════════════ -->
+<section id="memory-tips">
+  <h2 class="section-title"><span class="emoji">🧠</span> Как учить меню: система запоминания</h2>
+
+  <div class="card-grid two">
+
+    <div class="dish-card" style="border-left-color:#9040d0;">
+      <div class="dish-name">Принцип якоря — «Что делает блюдо особенным?»</div>
+      <p>Для каждого блюда найди <strong>одну якорную деталь</strong>, которую ты не забудешь. Всё остальное держится вокруг неё. Например: Рибай = «глаз» (это слово само рисует картинку). Тендерлойн = «мышца не работает = нет жира = не пересушить». Казеречче = «caserecce от слова casa — домашняя паста из Сицилии».</p>
+      <div class="memory">Не учи список ингредиентов. Учи <strong>историю</strong> блюда + <strong>одну ключевую особенность</strong>.</div>
+    </div>
+
+    <div class="dish-card" style="border-left-color:#9040d0;">
+      <div class="dish-name">Метод «Что скажу гостю?»</div>
+      <p>Прочитай описание блюда и сразу проговори вслух: <em>«Гость спрашивает — в чём разница между форелью и лососем? Я отвечу...»</em> Это переводит пассивное чтение в активное воспроизведение. Твой мозг запоминает не то, что читал, а то, что говорил вслух.</p>
+      <div class="memory">После каждой секции закрой шпаргалку и объясни блюдо воображаемому гостю — вслух, как будто уже идёшь к нему в номер.</div>
+    </div>
+
+    <div class="dish-card" style="border-left-color:#9040d0;">
+      <div class="dish-name">Группировка по цвету соуса / типу белка</div>
+      <p>Запоминай блюда кластерами: <strong>«все сливочные»</strong> (Порчини, Альфредо, Цыплёнок), <strong>«все томатные»</strong> (Болоньезе, Аррабиата, Дьявола, Маргарита), <strong>«все с демигласом»</strong> (Тендерлойн, Рибай, Тальятеле с рагу, Щёчки). Если ты знаешь, что соус один и тот же — запомнить разницу гораздо легче.</p>
+      <div class="memory">Нарисуй на бумаге 4 кружка: Томат / Сливки / Демиглас / Масло-Лимон — и впиши туда блюда. Это займёт 5 минут и даст структуру на всё меню.</div>
+    </div>
+
+    <div class="dish-card" style="border-left-color:#9040d0;">
+      <div class="dish-name">Аллергены — правило «ГЛЯРС»</div>
+      <p>Самые частые аллергены в меню: <strong>Г</strong>лютен, <strong>Л</strong>актоза, <strong>Я</strong>йцо, <strong>Р</strong>ыба, <strong>С</strong>оя. Запомни аббревиатуру ГЛЯРС. Для каждого блюда спроси себя: «Есть ли тут кто-то из ГЛЯРС?» Цезарь — вся пятёрка плюс горчица и рак. Крем-брюле — только ЛЯ (лактоза + яйцо). Минестроне — бобы + сельдерей (нет ни одного из ГЛЯРС).</p>
+      <div class="memory"><strong>Цезарь — чемпион по аллергенам</strong>: Глютен, Лактоза, Яйцо, Рыба (анчоусы!), Горчица, Диоксид, Рак (креветки). Гость с аллергией на рыбу — Цезарь уже нельзя, даже без креветок.</div>
+    </div>
+
+    <div class="dish-card" style="border-left-color:#9040d0;">
+      <div class="dish-name">Вина — три правила вместо таблицы</div>
+      <p><strong>Правило 1:</strong> Красное мясо = красное вино. Белая рыба и морепродукты = белое. <strong>Правило 2:</strong> Острые блюда (Буффало, Крылья) = Riesling — кислотность гасит остроту. <strong>Правило 3:</strong> Трюфель и сыр = богатый Chardonnay (Tartufо, Четыре сыра, Альфредо). Если помнишь эти три правила, ты уже покрываешь 80% вопросов по вину.</p>
+      <div class="memory">Запомни 3 «якорных» вина: <strong>Hans Greyl SB</strong> = универсальный белый (к рыбе, салатам, курице), <strong>Querciabella Rosso</strong> = топовый красный (к стейкам), <strong>Tunella Pinot Grigio</strong> = элегантный белый (к форели, Альфредо, пиццам без мяса).</div>
+    </div>
+
+    <div class="dish-card" style="border-left-color:#9040d0;">
+      <div class="dish-name">Время приготовления — запомни исключения</div>
+      <p>Большинство блюд — 15–20 минут. Исключения нужно знать наизусть, потому что гостя надо предупредить сразу. <strong>Цыплёнок на гриле — 30–35 минут</strong>, это единственный аутсайдер. Стейки — 25–35 минут (зависит от прожарки). Супы и десерты — 5–15 минут. Крем-брюле — 5 минут (уже готово, только прожигается).</p>
+      <div class="memory">Если гость заказал Цыплёнка — скажи <em>сразу же</em>, до того как он закончит говорить. Это профессионализм. «Отличный выбор — обратите внимание, цыплёнок готовится 30–35 минут».</div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ════════════ COMPARE ════════════ -->
+<section id="compare">
+  <h2 class="section-title"><span class="emoji">⚖️</span> Ключевые сравнения блюд</h2>
+
+  <p class="subsection">Рыба: Форель vs Лосось</p>
+  <table class="compare-table">
+    <tr><th></th><th>🟠 Филе Форели (Казахстан)</th><th>🩷 Лосось на пару / на гриле</th></tr>
+    <tr><td>Рыба</td><td>Форель — лососёвое семейство, <strong>местная казахстанская</strong></td><td>Лосось — атлантический, насыщенный вкус</td></tr>
+    <tr><td>Жирность</td><td>Умеренная, нежнее</td><td>Выше, более насыщенный</td></tr>
+    <tr><td>Способ</td><td><span class="highlight">Только на гриле</span></td><td><span class="highlight">На пару ИЛИ на гриле — гость выбирает</span></td></tr>
+    <tr><td>Гарнир</td><td>Спаржа на гриле</td><td>Овощи (пар или гриль)</td></tr>
+    <tr><td>Соус</td><td colspan="2">Lemon Butter — <strong>идентичный</strong>: рыбный бульон, сливки, масло, лимон, чеснок, шалот</td></tr>
+    <tr><td>Аллергены</td><td colspan="2">Лактоза + Рыба (одинаково)</td></tr>
+    <tr><td>Время</td><td colspan="2">20–25 мин (одинаково)</td></tr>
+    <tr><td>Вино GLS</td><td>Tunella Pinot Grigio</td><td>Hans Greyl Sauvignon Blanc</td></tr>
+    <tr><td>Зачем брать</td><td>Местный продукт, поддержать Казахстан, нежнее</td><td>Flexible — сам выбираешь пар или гриль</td></tr>
+  </table>
+  <div class="memory">Форель = <strong>фиксированный гриль + местная</strong>. Лосось = <strong>гибкий способ готовки</strong>. Соус один и тот же — это ловушка на экзамене, предупреждают именно об этом.</div>
+
+  <p class="subsection">Мясо: Тендерлойн vs Рибай</p>
+  <table class="compare-table">
+    <tr><th></th><th>🥩 Говяжья вырезка (Тендерлойн) — 180г</th><th>🥩 Стейк Рибай — 300г</th></tr>
+    <tr><td>Откуда</td><td>Тонкая часть, вырезка. Мышца почти не работает</td><td>Толстый край, 6–12 ребро туши</td></tr>
+    <tr><td>Жир</td><td><span class="highlight">Почти нет жира — очень постное</span></td><td><strong>Высокая мраморность</strong>, зерновой откорм</td></tr>
+    <tr><td>Нежность</td><td>Самое нежное мясо на туше</td><td>Нежное за счёт жира и мраморности</td></tr>
+    <tr><td>Вкус</td><td>Деликатный, чистый мясной</td><td>Насыщенный, яркий, выраженный умами</td></tr>
+    <tr><td>Рек. прожарка</td><td><span class="highlight">Rare / Medium Rare — нельзя пересушить!</span></td><td>Medium Rare / Medium</td></tr>
+    <tr><td>Порция</td><td>180г (меньше)</td><td>300г (сытнее)</td></tr>
+    <tr><td>Соус</td><td colspan="2">Peppercorn — <strong>идентичный</strong>: сливки, чёрный перец, шалот, демиглас</td></tr>
+    <tr><td>Вино GLS</td><td>Tunella Pinot Nero, Friuli</td><td>Arba Saperavi / Laqyl Arba Saperavi</td></tr>
+    <tr><td>Зачем брать</td><td>Нежнее, деликатнее — для тех, кто ценит текстуру</td><td>Вкуснее, сочнее, насыщеннее — для любителей стейков</td></tr>
+  </table>
+  <div class="memory">Тендерлойн = <strong>«нет жира = легко пересушить = только Rare/MR»</strong>. Рибай = <strong>«рибай — ribeye — rib + eye = ребро + глаз (центр вырезки)»</strong>. Два разных слова на слуху — два разных ключа в памяти.</div>
+
+  <p class="subsection">Говяжьи блюда: от быстрого к медленному</p>
+  <table class="compare-table">
+    <tr><th></th><th>Говяжьи Щёчки</th><th>Глазированные Рёбрышки</th><th>Тальятеле с Рагу</th></tr>
+    <tr><td>Часть туши</td><td>Лицевая мышца — жёсткая, требует долгой готовки</td><td>Говяжье ребро на кости (220г)</td><td>Говяжьи щёчки (в составе пасты)</td></tr>
+    <tr><td>Метод</td><td>Сувид + <strong>3 ч в печи при 150°С</strong></td><td>Сувид, маринад 12 ч, соус Бурбон</td><td>Щёчки томятся 5 ч при 150°С</td></tr>
+    <tr><td>Результат</td><td>Тающее сладковатое мясо</td><td>Карамелизированные, с кости</td><td>Мясо разбирается в соус</td></tr>
+    <tr><td>Подача</td><td>Картофельное пюре, демиглас, шимеджи</td><td>Пюре, соус бурбон, квашеная капуста</td><td>Домашняя тальятеле + зелёный соус + трюфель</td></tr>
+    <tr><td>Аллергены</td><td>Сельдерей, Лактоза, Алкоголь</td><td>Алкоголь, Горчица, Соя, Лактоза</td><td>Диоксид, Лактоза, Глютен, Яйцо</td></tr>
+  </table>
+  <div class="memory">Щёчки и рагу — <strong>одна и та же часть туши</strong> (говяжьи щёчки), но разные блюда. На экзамене могут спросить: «В чём разница между Щёчками и Тальятеле с рагу?» Ответ: одно — основное блюдо с пюре, другое — паста с той же говядиной + трюфельное масло + зелёный соус.</div>
+
+  <p class="subsection">Пицца: чем отличаются похожие позиции</p>
+  <table class="compare-table">
+    <tr><th>Пицца</th><th>Ключевая начинка</th><th>База</th><th>Главная особенность</th></tr>
+    <tr><td>Маргарита</td><td>Томат Мутти, Моцарелла, Базилик</td><td>Томатная</td><td>Классика. Флаг Италии: красный+белый+зелёный. 1889 год, королева Маргарита.</td></tr>
+    <tr><td>С Бурратой</td><td>Как Маргарита + Буррата</td><td>Томатная</td><td><span class="highlight">Буррата распределена равномерно — предупреждать гостя!</span> Внутри — страчателла (сливки + рваная моцарелла).</td></tr>
+    <tr><td>Дьявола</td><td>Томат, Говяжья салями, Перец Чили, Моцарелла</td><td>Томатная</td><td>Острая. Говяжья салями (не свинина). Другое название — «пепперони».</td></tr>
+    <tr><td>Тартуфо</td><td>Тартуфата, Маскарпоне, Творожный сыр, Шампиньоны, Моцарелла</td><td><span class="highlight">Белая (без томата!)</span></td><td>Сливочно-трюфельная. Рецепт шефа Рикардо, вдохновлён Пьемонтом.</td></tr>
+    <tr><td>Четыре сыра</td><td>Томат + Моцарелла + Пармезан + Голубой + Скаморца</td><td>Томатная</td><td>4 разных характера сыра: молочный / ореховый / острый / сливочный.</td></tr>
+  </table>
+  <div class="memory"><strong>Тартуфо — единственная без томата.</strong> Если гость хочет что-то «нежирное» или «без кислоты» — Тартуфо и Четыре сыра (томата меньше). Если хочет «что-то особенное» — Буррата (но предупредить про равномерное распределение!).</div>
+
+  <p class="subsection">Паста: соусы и белки</p>
+  <table class="compare-table">
+    <tr><th>Паста</th><th>Тип соуса</th><th>Белок</th><th>Острота</th><th>Особенность</th></tr>
+    <tr><td>Аррабиата</td><td>Томат (веганский)</td><td>Нет</td><td>🌶️ Острая</td><td>«Сердитая» по-итальянски. Самая простая.</td></tr>
+    <tr><td>Болоньезе</td><td>Томат + мясо</td><td>Говядина (фарш)</td><td>Нет</td><td>Из Болоньи, XVIII в. Исторически — тальятелле.</td></tr>
+    <tr><td>Порчини</td><td>Белое сливочное</td><td>Нет (вег)</td><td>Нет</td><td>Гриб порчини — аромат каштана и фундука.</td></tr>
+    <tr><td>Альфредо</td><td>Сливочный с грибами</td><td>Курица ИЛИ Креветки</td><td>Нет</td><td>Рим, нач. XX в. Альфредо ди Лелио. Белок на выбор.</td></tr>
+    <tr><td>Тальятеле с рагу</td><td>Демиглас + щёчки + зелёный соус + трюфель</td><td>Говядина (щёчки)</td><td>Нет</td><td>Домашняя паста (желток+мука). Щёчки 5ч при 150°С.</td></tr>
+    <tr><td>Казеречче Ромеско</td><td>Испанский ромеско (перцы+миндаль)</td><td>Тигровые креветки</td><td>Умеренная</td><td>Из Сицилии (casa = дом). Соус из Каталонии.</td></tr>
+  </table>
+  <div class="memory"><strong>Ключ для паст:</strong> Аррабиата = вег+острая. Болоньезе = мясная+томат. Порчини = вег+сливки. Альфредо = сливки+выбор белка. Тальятеле = домашняя+трюфель. Казеречче = морепродукт+испанский соус. Запомни эти 6 «меток» — и структура пасты у тебя готова.</div>
+
+  <div class="alert success">
+    <span class="alert-icon">✅</span>
+    <div><strong>Гибкость пасты (4 из 6):</strong> Тальятелле / Пенне / Спагетти. Пенне и Спагетти — доступны <strong>без глютена</strong>. Тальятеле с рагу и Казеречче — паста фиксирована. Всегда готовится al dente («на зубок»).</div>
+  </div>
+</section>
+
+<!-- ════════════ SOUPS ════════════ -->
+<section id="soups">
+  <h2 class="section-title"><span class="emoji">🍜</span> Супы</h2>
+  <div class="card-grid">
+
+    <div class="dish-card">
+      <div class="dish-name">Борщ</div>
+      <p>Свекольный суп с говядиной. Подаётся со сметаной. Традиционное восточнославянское блюдо. 10–15 мин.</p>
+      <div class="ingredients">Говядина, свёкла, картофель, капуста, морковь, укроп, уксус, томатная паста → сметана</div>
+      <div class="tag-row"><span class="tag allergy">Лактоза</span></div>
+      <div class="flex-note">✓ Предлагать хлеб</div>
+      <div class="memory">Единственный мясной суп. Красный цвет = свёкла.</div>
+    </div>
+
+    <div class="dish-card">
+      <div class="dish-name">Минестроне</div>
+      <p>«Большой суп» — итальянский с перловкой и овощами. «Суп долгожителей». 10–15 мин.</p>
+      <div class="ingredients">Перловка, цуккини, базилик, помидоры, морковь, белая фасоль, сельдерей</div>
+      <div class="tag-row"><span class="tag allergy">Бобы</span><span class="tag allergy">Сельдерей</span><span class="tag veg">Веган</span></div>
+      <div class="flex-note">✓ Предлагать хлеб · Без кондиментов</div>
+      <div class="memory">Единственный веганский суп. Minestrone = «большой» по-итальянски.</div>
+    </div>
+
+    <div class="dish-card">
+      <div class="dish-name">Куриный суп Лапша</div>
+      <p>Классический куриный суп с яичной лапшой и овощами. 10–15 мин.</p>
+      <div class="ingredients">Куриный бульон, лук, морковь, картофель, яичная лапша, курица → декор: петрушка</div>
+      <div class="tag-row"><span class="tag allergy">Глютен</span><span class="tag allergy">Яйцо</span></div>
+      <div class="flex-note">✓ Предлагать хлеб · Без кондиментов</div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ════════════ SALADS ════════════ -->
+<section id="salads">
+  <h2 class="section-title"><span class="emoji">🥗</span> Салаты</h2>
+  <div class="card-grid">
+
+    <div class="dish-card">
+      <div class="dish-name">Греческий салат с Киноа</div>
+      <p>Традиционный «деревенский» греческий салат (хориатики) + киноа. Только оливковое масло — без горчицы, без яиц. 10–15 мин.</p>
+      <div class="ingredients">Огурец, томаты, красный лук, Фета, маслины, орегано, болгарский перец кр+зел, киноа</div>
+      <div class="tag-row"><span class="tag allergy">Лактоза</span><span class="tag veg">Вегетарианский</span></div>
+      <p style="margin-top:6px;"><strong>Вино:</strong> Hans Greyl SB / Tunella SB</p>
+      <div class="memory">Маслины = зрелые чёрные оливки. Фета = овечье молоко, выдержка 3+ мес. Киноа = ореховый вкус, горные склоны.</div>
+    </div>
+
+    <div class="dish-card">
+      <div class="dish-name">Минеральный салат</div>
+      <p>Витаминный салат из сырых овощей с заправкой из мяты и лайма. Халлуми — опция за доплату. 10–15 мин.</p>
+      <div class="ingredients">Свёкла, белая + краснокочанная капуста, корень сельдерея, шпинат, морковь, ромэн, фисташки, цуккини → мятная заправка на лайме</div>
+      <div class="tag-row"><span class="tag allergy">Сельдерей</span><span class="tag allergy">Орехи</span><span class="tag custom">+Халлуми (Лактоза)</span><span class="tag veg">Веган (без халлуми)</span></div>
+      <p style="margin-top:6px;"><strong>Вино:</strong> Arba Sary Rkatseteli / Sepp Moser Grüner Veltliner</p>
+      <div class="memory">Халлуми = кипрский сыр с высокой температурой плавления → можно жарить. Минеральный = полный витаминов и минералов.</div>
+    </div>
+
+    <div class="dish-card">
+      <div class="dish-name">Классический Салат Цезарь</div>
+      <p>Назван в честь <strong>Цезаря Кардини</strong> (итало-американский повар, Тихуана, Мексика, 1920–40е). Не в честь Юлия Цезаря! Опционально: курица, тигровые креветки, халлуми. 10–15 мин.</p>
+      <div class="ingredients">Ромэн, крутоны, пармезан → заправка: желток, горчица, чеснок, <strong>анчоусы</strong>, вустер, табаско</div>
+      <div class="tag-row">
+        <span class="tag allergy">Глютен</span><span class="tag allergy">Лактоза</span><span class="tag allergy">Яйцо</span>
+        <span class="tag allergy">Рыба</span><span class="tag allergy">Горчица</span><span class="tag allergy">Диоксид</span><span class="tag allergy">Рак</span>
+      </div>
+      <p style="margin-top:6px;"><strong>Вино:</strong> Voche Blanco Chardonnay / L'Altro Chardonnay</p>
+      <div class="memory"><strong>Анчоусы в заправке = аллерген Рыба</strong> — даже если гость не заказывает добавки. Это самый важный факт про Цезарь на ассессменте.</div>
+    </div>
+
+    <div class="dish-card">
+      <div class="dish-name">Кейл Салат</div>
+      <p>Азиатский хрустящий салат. Капуста кале = горьковатый вкус, напоминает шпинат. Шиитаке — только шляпки (ножки жёсткие). Мирин = японское сладкое вино. 10–15 мин.</p>
+      <div class="ingredients">Кале, брокколи (маринад: мисо+уксус), шиитаке (маринад: кунжут+мёд+мисо+соевый), кешью, вяленые томаты, семена тыквы, эдамаме → куркумная паста + соево-имбирная заправка</div>
+      <div class="tag-row">
+        <span class="tag allergy">Соя</span><span class="tag allergy">Лактоза</span><span class="tag allergy">Семена</span>
+        <span class="tag allergy">Орехи</span><span class="tag allergy">Горчица</span><span class="tag veg">Вегетарианский</span>
+      </div>
+      <p style="margin-top:6px;"><strong>Вино:</strong> Hans Greyl SB / Markus Molitor Riesling</p>
+      <div class="memory">Кейл = самый «азиатский» салат в меню. Много аллергенов из-за соуса (соя, мёд, кунжут). Эдамаме = незрелые соевые бобы.</div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ════════════ STARTERS ════════════ -->
+<section id="starters">
+  <h2 class="section-title"><span class="emoji">🍤</span> Закуски</h2>
+  <div class="card-grid">
+
+    <div class="dish-card">
+      <div class="dish-name">Куриные Крылья — Буффало 🌶️</div>
+      <p><strong>Острые.</strong> 6 штук в порции. Маринуются в молоке 12 часов. Панировка + жарка. Соус: Шрирача + сливочное масло. 15–20 мин.</p>
+      <div class="tag-row"><span class="tag allergy">Глютен</span><span class="tag allergy">Яйцо</span><span class="tag allergy">Лактоза</span></div>
+      <div class="memory">Шрирача = тайский город Сирача + перец чили. Буффало vs Барбекю: <strong>только соус разный</strong>, всё остальное идентично.</div>
+    </div>
+
+    <div class="dish-card">
+      <div class="dish-name">Куриные Крылья — Барбекю 🍯</div>
+      <p><strong>Сладкие.</strong> Тот же рецепт крыльев — другой соус: Барбекю + кленовый сироп. Украшение: кунжут. 15–20 мин.</p>
+      <div class="tag-row"><span class="tag allergy">Глютен</span><span class="tag allergy">Яйцо</span><span class="tag allergy">Лактоза</span><span class="tag allergy">Семена</span></div>
+      <div class="memory">Барбекю = сладкий, Буффало = острый. Семена кунжута добавляют аллерген «Семена» — у Буффало его нет.</div>
+    </div>
+
+    <div class="dish-card">
+      <div class="dish-name">Котлеты из Креветок</div>
+      <p>Азиатские котлеты из мякоти креветок с листьями шисо (японская мята/перилла). Йогуртовый соус: чили-лайм с кинзой. 15–20 мин.</p>
+      <div class="ingredients">1.2 кг мякоти креветок, кориандр, шисо, имбирь, куркума, зелёный чили, кукурузный крахмал → йогуртовый соус (греческий йогурт, тайский сладкий чили, лайм, кинза)</div>
+      <div class="tag-row"><span class="tag allergy">Яйцо</span><span class="tag allergy">Лактоза</span><span class="tag allergy">Цитрус</span><span class="tag allergy">Мёд</span></div>
+    </div>
+
+    <div class="dish-card">
+      <div class="dish-name">Фиш энд Чипс</div>
+      <p><strong>Дикий Средиземноморский Сибас</strong> (170г) в кляре темпура. Британское неофициальное нац. блюдо. Изначально завезено евреями-сефардами. Традиционно с тёмным пивом — у нас с газированной водой. 15–20 мин.</p>
+      <div class="ingredients">Сибас в кляре (мука темпура, яйцо, газировка, специи) + картофель каджун + соус тартар + соус из зелёного горошка</div>
+      <div class="tag-row"><span class="tag allergy">Яйцо</span><span class="tag allergy">Горчица</span><span class="tag allergy">Рыба</span><span class="tag allergy">Глютен</span><span class="tag allergy">Лактоза</span><span class="tag allergy">Бобы</span></div>
+      <p style="margin-top:6px;"><strong>Вино:</strong> Hans Greyl SB</p>
+      <div class="memory">Дикий Сибас = ловится в море, не ферма → дороже. Каджун = луизианская приправа (французские переселенцы). Тартар назван в честь татаро-монголов.</div>
+    </div>
+
+    <div class="dish-card">
+      <div class="dish-name">Креветки Динамит</div>
+      <p>Тигровые креветки во фритюре (мука темпура). Соус «Динамит»: шрирача + сладкий чили + мёд + майонез. 15–20 мин.</p>
+      <div class="tag-row"><span class="tag allergy">Глютен</span><span class="tag allergy">Рак</span><span class="tag allergy">Лактоза</span><span class="tag allergy">Семена</span><span class="tag allergy">Яйцо</span><span class="tag allergy">Орехи</span></div>
+      <div class="memory">Темпура = японская панировочная мука для фритюра. Тигровые креветки — самые крупные, с тёмными полосами на панцире.</div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ════════════ PASTA ════════════ -->
+<section id="pasta">
+  <h2 class="section-title"><span class="emoji">🍝</span> Паста</h2>
+  <div class="alert success">
+    <span class="alert-icon">✅</span>
+    <div><strong>Выбор пасты (4 из 6):</strong> Тальятелле / Пенне без глютена / Спагетти без глютена. Степень готовки: al dente. Тальятеле с рагу и Казеречче — паста фиксирована.</div>
+  </div>
+  <div class="card-grid">
+
+    <div class="dish-card">
+      <div class="dish-name">Аррабиата</div>
+      <p>«Сердитая» по-итальянски. Острый томатный соус. Самая простая и быстрая (10–15 мин). Подаётся с пармезаном.</p>
+      <div class="ingredients">Чеснок, перец чили, оливковое масло, томат Мутти → пармезан при подаче</div>
+      <div class="tag-row"><span class="tag allergy">Лактоза</span><span class="tag allergy">Глютен</span><span class="tag allergy">Яйцо</span><span class="tag veg">Вегетарианская</span><span class="tag method">🌶️ Острая</span></div>
+      <p style="margin-top:6px;"><strong>Вино:</strong> Talo Primitivo·Merlot / P.F. Bobal, Manchuela</p>
+    </div>
+
+    <div class="dish-card">
+      <div class="dish-name">Болоньезе</div>
+      <p>Мясной соус из Болоньи, конец XVIII в. Исторически подаётся с тальятелле. Томат Пилати Мутти — паста из помидоров с базиликом. 15–20 мин.</p>
+      <div class="ingredients">Фарш, томат Пилати Мутти, морковь, сельдерей, красное вино, лук, чеснок, базилик</div>
+      <div class="tag-row"><span class="tag allergy">Диоксид</span><span class="tag allergy">Глютен</span><span class="tag allergy">Сельдерей</span><span class="tag allergy">Яйцо</span></div>
+      <p style="margin-top:6px;"><strong>Вино:</strong> Centine Rosso Sangiovese·CS·Merlot / Isole E Olena</p>
+    </div>
+
+    <div class="dish-card">
+      <div class="dish-name">Порчини</div>
+      <p>Белое грибное рагу — нежное, сливочное, без мяса. Гриб порчини = аромат каштана и фундука, ~25 диких видов. 15–20 мин.</p>
+      <div class="ingredients">Шампиньоны, белое вино, шалот, чеснок, овощной бульон, сливки, тимьян</div>
+      <div class="tag-row"><span class="tag allergy">Диоксид</span><span class="tag allergy">Глютен</span><span class="tag allergy">Лактоза</span><span class="tag allergy">Яйцо</span><span class="tag veg">Вегетарианская</span></div>
+      <p style="margin-top:6px;"><strong>Вино:</strong> Calaluna Sardegna / Montes Alpha Chardonnay</p>
+      <div class="memory">Порчини ≠ Альфредо. Оба сливочных — но Порчини без белка и без чьего-либо имени в названии. Альфредо = имя повара + белок на выбор.</div>
+    </div>
+
+    <div class="dish-card">
+      <div class="dish-name">Альфредо</div>
+      <p>Рим, нач. XX в., Альфредо ди Лелио. Сливочно-грибной соус с пармезаном. Белок на выбор гостя. 15–20 мин.</p>
+      <div class="ingredients">Сливки, шампиньоны, пармезан, белое вино, сливочное масло, тимьян → + курица ИЛИ тигровые креветки</div>
+      <div class="tag-row"><span class="tag allergy">Алкоголь</span><span class="tag allergy">Лактоза</span><span class="tag custom">Курица или Креветки</span></div>
+      <p style="margin-top:6px;"><strong>Вино:</strong> Tunella Pinot Grigio / L'Altro Chardonnay</p>
+    </div>
+
+    <div class="dish-card">
+      <div class="dish-name">Тальятеле с рагу из Говядины</div>
+      <p>Домашняя тальятеле (ручная, желток+мука) с говяжьими щёчками (5 часов при 150°С) и трюфельным маслом. Зелёный соус с каперсами и дижонской горчицей. 10–15 мин.</p>
+      <div class="ingredients">Домашняя тальятеле, говяжьи щёчки, красное вино, демиглас → зелёный соус (каперсы, мята, петрушка, дижонская горчица) + трюфельное масло</div>
+      <div class="tag-row"><span class="tag allergy">Диоксид</span><span class="tag allergy">Лактоза</span><span class="tag allergy">Глютен</span><span class="tag allergy">Яйцо</span><span class="tag method">Паста фиксирована</span></div>
+      <p style="margin-top:6px;"><strong>Вино:</strong> Fleurie Game, Beaujolais / El Rapolao Mencia, Bierzo</p>
+    </div>
+
+    <div class="dish-card">
+      <div class="dish-name">Казеречче Ромеско с Креветками</div>
+      <p>Caserecce = «домашняя» (от casa — дом), родом из Сицилии. Соус Ромеско = традиционный каталонский испанский соус с перцами и миндалём. 15–20 мин.</p>
+      <div class="ingredients">Казеречче, ромеско (красные перцы, миндаль, паприка, помидоры, хересный уксус), зелёный горошек, вяленые томаты, лимонная рикотта, тигровые креветки, пармезан</div>
+      <div class="tag-row"><span class="tag allergy">Орехи</span><span class="tag allergy">Глютен</span><span class="tag allergy">Ракообразные</span><span class="tag allergy">Лактоза</span><span class="tag allergy">Диоксид</span><span class="tag method">Паста фиксирована</span></div>
+      <p style="margin-top:6px;"><strong>Вино:</strong> Hans Greyl SB / Saint Martin Chablis, Burgundy</p>
+      <div class="memory">Казеречче = итальянская паста + испанский соус = самое «интернациональное» блюдо в разделе пасты.</div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ════════════ PIZZA ════════════ -->
+<section id="pizza">
+  <h2 class="section-title"><span class="emoji">🍕</span> Пицца</h2>
+  <div class="quick-ref">
+    <h4>Общее для всех пицц:</h4>
+    <ul>
+      <li>Тесто: Мука 00, мёд, сахар, оливковое масло, живые дрожжи · Время: 15–20 мин</li>
+      <li>Посуда: круглая тарелка для пиццы + шейринг тарелка · Кондименты: оливковое масло + Табаско</li>
+      <li>Аллергены всегда: Лактоза + Глютен</li>
+    </ul>
+  </div>
+  <div class="card-grid">
+
+    <div class="dish-card">
+      <div class="dish-name">Маргарита</div>
+      <p>Создана 11 июня 1889 пиццамэном Раффаэле Эспозито для королевы Маргариты Савойской. Цвета флага Италии.</p>
+      <div class="ingredients">Томат Мутти, Моцарелла, Базилик, Оливковое масло, Чеснок</div>
+      <p style="margin-top:6px;"><strong>Вино:</strong> Centine Rosso / Isole E Olena</p>
+    </div>
+
+    <div class="dish-card">
+      <div class="dish-name">Пицца с Бурратой ⚠️</div>
+      <p>База как Маргарита + Буррата. Буррата = шар моцареллы, внутри страчателла (сливки + рваная моцарелла). <span class="highlight">Буррата распределена равномерно — не целиком! Всегда предупреждать гостя до заказа.</span></p>
+      <p style="margin-top:6px;"><strong>Вино:</strong> Centine Rosso / Isole E Olena</p>
+      <div class="memory">Это единственная пицца с особым предупреждением для гостя. Не забыть = профессионализм.</div>
+    </div>
+
+    <div class="dish-card">
+      <div class="dish-name">Дьявола 🌶️</div>
+      <p>«Пепперони» — пикантная. <strong>Говяжья салями</strong> (не свинина — халяльная опция). Острая за счёт свежего перца чили.</p>
+      <div class="ingredients">Томат Пилати, Говяжья Салями, Перец Чили, Моцарелла → базилик</div>
+      <p style="margin-top:6px;"><strong>Вино:</strong> Fleurie Game / El Rapolao Mencia</p>
+    </div>
+
+    <div class="dish-card">
+      <div class="dish-name">Тартуфо 🍄</div>
+      <p>Единственная пицца <strong>без томатного соуса</strong>. Сливочно-трюфельная. Рецепт шефа Рикардо, вдохновлён Пьемонтом. Тартуфата = тапенада из грибов+оливок+трюфеля.</p>
+      <div class="ingredients">Тартуфата, Маскарпоне, Творожный сыр, Шампиньоны, Моцарелла</div>
+      <p style="margin-top:6px;"><strong>Вино:</strong> Tunella Pinot Grigio / L'Altro Chardonnay</p>
+      <div class="memory">Маскарпоне = сливочный итальянский сыр из Ломбардии, хранится 3 дня. Тартуфо ≠ Трюфель напрямую, но тартуфата содержит трюфель.</div>
+    </div>
+
+    <div class="dish-card">
+      <div class="dish-name">Четыре Сыра</div>
+      <p>Четыре разных характера сыра на одной пицце. От нейтрального к острому: Моцарелла (3–5ч) → Скаморца (5 дней, сливочная) → Пармезан (12–36 мес, ореховый) → Голубой (острый, грибной).</p>
+      <div class="ingredients">Томат Мутти + Моцарелла + Пармезан + Голубой сыр + Скаморца</div>
+      <p style="margin-top:6px;"><strong>Вино:</strong> Hans Greyl SB / L'Altro Chardonnay</p>
+      <div class="memory">Запомни порядок по выдержке: Моцарелла (часы) → Скаморца (дни) → Голубой (месяцы) → Пармезан (годы).</div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ════════════ SANDWICHES ════════════ -->
+<section id="sandwiches">
+  <h2 class="section-title"><span class="emoji">🥪</span> Сэндвичи</h2>
+  <p style="color:var(--medium);margin-bottom:12px;font-size:0.9rem;">Все сэндвичи подаются с картофелем фри + кетчуп/майонез/горчица. 15–20 мин.</p>
+  <div class="card-grid">
+
+    <div class="dish-card">
+      <div class="dish-name">Классический Клаб Сэндвич</div>
+      <p>Белый хлеб, куриная грудка, яйцо, помидор, майонез. Бекон на выбор: говяжий или свиной.</p>
+      <div class="tag-row"><span class="tag allergy">Лактоза</span><span class="tag allergy">Глютен</span><span class="tag allergy">Яйцо</span><span class="tag custom">Бекон на выбор</span></div>
+    </div>
+
+    <div class="dish-card">
+      <div class="dish-name">Рубен Сэндвич</div>
+      <p>Пастрами готовится <strong>12 дней</strong> (4 этапа). Метод сувид 5ч при 75°С. Изобретён Рубеном Кулаковским (Омаха, Небраска).</p>
+      <div class="ingredients">Бездрожжевой ржаной хлеб, пастрами из говяжьей грудинки, квашеная капуста, маринованные огурцы, сыр Качковалло, соус Рубен</div>
+      <div class="tag-row"><span class="tag allergy">Лактоза</span><span class="tag allergy">Глютен</span></div>
+      <div class="memory">Качковалло = итальянский сыр, похож на Проволоне. Пастрами = говядина, маринованная и копчёная. 12 дней — самый долгий «ингредиент» в меню.</div>
+    </div>
+
+    <div class="dish-card">
+      <div class="dish-name">Веган Сэндвич</div>
+      <p>Овощи гриль с соусом Мухаммара — ближневосточный соус из болгарского перца и грецких орехов (Турция, Ливан, Палестина).</p>
+      <div class="ingredients">Бездрожжевой хлеб, баклажан, кабачок, цуккини, болгарский перец, вешенки → Мухаммара (перец, грецкий орех, гранатовый сироп) + баклажановый релиш</div>
+      <div class="tag-row"><span class="tag allergy">Глютен</span><span class="tag allergy">Орехи</span><span class="tag veg">Веган</span></div>
+      <div class="memory">Единственный веганский сэндвич. Мухаммара = ближневосточный соус (не европейский). Вешенки по вкусу напоминают куриное мясо.</div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ════════════ BURGERS ════════════ -->
+<section id="burgers">
+  <h2 class="section-title"><span class="emoji">🍔</span> Бургеры</h2>
+  <p style="color:var(--medium);margin-bottom:12px;font-size:0.9rem;">Все бургеры: картофельная булочка (с пюре), маринованные огурцы, луковые кольца (молоко 12ч), картофель фри. 15–20 мин.</p>
+  <div class="card-grid">
+
+    <div class="dish-card">
+      <div class="dish-name">Классический Говяжий / Куриный Бургер</div>
+      <p>Выбор котлеты: говяжья или куриная. Выбор бекона: говяжий или свиной. Два вида домашнего кетчупа: обычный и острый.</p>
+      <div class="ingredients">Картофельная булочка, Качковалло + Чеддар, луковый релиш, маринованные огурцы</div>
+      <div class="tag-row"><span class="tag allergy">Лактоза</span><span class="tag allergy">Глютен</span><span class="tag allergy">Яйцо</span><span class="tag custom">Котлета на выбор</span><span class="tag custom">Бекон на выбор</span></div>
+    </div>
+
+    <div class="dish-card">
+      <div class="dish-name">Шиитаке Бургер (Вегетарианский)</div>
+      <p>Котлета из шиитаке+нут+тахини+рис. Баклажановый релиш, вешенки, майонез с вялеными помидорами.</p>
+      <div class="ingredients">Котлета: шиитаке, нут, тахини (кунжутная паста), соевый соус, финики, рис басмати</div>
+      <div class="tag-row"><span class="tag allergy">Бобы</span><span class="tag allergy">Семена</span><span class="tag allergy">Соя</span><span class="tag allergy">Лактоза</span><span class="tag allergy">Глютен</span><span class="tag allergy">Яйцо</span><span class="tag veg">Вегетарианский</span></div>
+    </div>
+
+    <div class="dish-card">
+      <div class="dish-name">Вагю Бургер ⭐</div>
+      <p>Японская порода Вагю — исключительная мраморность, жир плавится при низкой температуре, сливочный вкус. <strong>Рек. Medium Rare.</strong> Дорогой из-за: особый рацион, нет стресса, медленный рост, ограниченное производство.</p>
+      <div class="tag-row"><span class="tag allergy">Лактоза</span><span class="tag allergy">Глютен</span><span class="tag allergy">Яйцо</span><span class="tag method">⭐ Wagyu · Рек. MR</span></div>
+      <div class="memory">Вагю vs Классический = только котлета разная. Всё остальное — та же сборка. Продажный акцент: «уникальная порода, которую нет смысла пережаривать».</div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ════════════ MAINS ════════════ -->
+<section id="mains">
+  <h2 class="section-title"><span class="emoji">🥩</span> Основные блюда</h2>
+  <div class="card-grid">
+
+    <div class="dish-card">
+      <div class="dish-name">Говяжья вырезка (Тендерлойн) — 180г</div>
+      <p>Самое нежное мясо туши — мышца почти не работает, нет жира. <span class="highlight">Обязательно рекомендовать Rare или Medium Rare — нельзя пересушить!</span> 25–35 мин.</p>
+      <div class="ingredients">Говяжья вырезка 180г + зелёный салат (помидор, огурец) + Peppercorn соус (сливки, чёрный перец, шалот, демиглас)</div>
+      <div class="tag-row"><span class="tag allergy">Лактоза</span><span class="tag method">⚠️ Спрашивать прожарку!</span></div>
+      <p style="margin-top:6px;"><strong>Вино:</strong> Tunella Pinot Nero, Friuli / Hochheimer Stein Pinot Noir, Germany</p>
+      <div class="memory">Демиглас = основной соус французской кухни (говяжьи кости + овощи + красное вино). Появляется в нескольких блюдах: Стейки, Щёчки, Тальятеле.</div>
+    </div>
+
+    <div class="dish-card">
+      <div class="dish-name">Стейк Рибай — 300г</div>
+      <p>«Ribeye» = rib (ребро) + eye (глаз — центр вырезки). Мраморная говядина зернового откорма, 6–12 ребро. Чем выше мраморность — тем сочнее. 25–35 мин.</p>
+      <div class="ingredients">Рибай 300г + зелёный салат + Peppercorn соус (идентичен Тендерлойну)</div>
+      <div class="tag-row"><span class="tag allergy">Лактоза</span><span class="tag method">⚠️ Спрашивать прожарку!</span></div>
+      <p style="margin-top:6px;"><strong>Вино:</strong> Arba Saperavi / Vina Tondonia Tempranillo·Grenache, Rioja</p>
+    </div>
+
+    <div class="dish-card">
+      <div class="dish-name">Говяжьи Щёчки — 200г</div>
+      <p>Лицевая мышца — жёсткая, нужна долгая готовка. Результат: сладковатое тающее мясо. <strong>Сувид + 3 часа в печи при 150°С.</strong> 20–25 мин (уже приготовлено заранее).</p>
+      <div class="ingredients">Говяжьи щёчки 200г, шимеджи, картофельное пюре, демиглас (хересное вино), жареная морковь, микрозелень</div>
+      <div class="tag-row"><span class="tag allergy">Сельдерей</span><span class="tag allergy">Лактоза</span><span class="tag allergy">Алкоголь</span></div>
+      <p style="margin-top:6px;"><strong>Вино:</strong> Talo Primitivo·Merlot / Michele Chiarlo Barolo, Piedmont</p>
+      <div class="memory">Шимеджи = деликатесные японские устричные грибы. Хересное вино в демигласе = даёт глубину соуса. Barolo = «король итальянских вин».</div>
+    </div>
+
+    <div class="dish-card">
+      <div class="dish-name">Глазированные Рёбрышки — 220г</div>
+      <p>Говяжье ребро на кости. Маринад 12 часов, метод сувид. Соус Бурбон (бурбон = американское виски из кукурузы ≥51%). 20–25 мин.</p>
+      <div class="ingredients">Говяжье ребро, маринад (специи+яблочный сок), соус Бурбон → картофельное пюре + квашеная капуста + маринованные огурцы + луковые чипсы</div>
+      <div class="tag-row"><span class="tag allergy">Алкоголь</span><span class="tag allergy">Горчица</span><span class="tag allergy">Соя</span><span class="tag allergy">Лактоза</span></div>
+      <p style="margin-top:6px;"><strong>Вино:</strong> Arba Saperavi / Three Finger Jack Zinfandel, California</p>
+    </div>
+
+    <div class="dish-card">
+      <div class="dish-name">Цыплёнок на Гриле ⏰</div>
+      <p>Бройлер (270–380г). Засолка 2.5ч → маринад → сувид → гриль. <span class="highlight">30–35 МИНУТ — предупреждать сразу при заказе!</span></p>
+      <div class="ingredients">Цыплёнок, засолка (соль+сахар+мёд+специи), маринад (оливковое масло+розмарин+чеснок) → грибной соус (шампиньоны, сливки, говяжий и куриный бульон) + овощи гриль (спаржа, цуккини, перец)</div>
+      <div class="tag-row"><span class="tag allergy">Сельдерей</span><span class="tag allergy">Лактоза</span><span class="tag allergy">Диоксид</span><span class="tag method">⏰ Самый долгий!</span></div>
+      <p style="margin-top:6px;"><strong>Вино:</strong> Voche Blanco Chardonnay / Napa Valley Chardonnay, California</p>
+    </div>
+
+    <div class="dish-card">
+      <div class="dish-name">Жареный Палтус с Шафрановым Пюре</div>
+      <p>Палтус = семейство камбаловых, белое жирное мясо, <strong>очень мало костей</strong>. Шафран = самая дорогая пряность в мире (из рылец цветка). Соус чимичурри = аргентинский (к говядине на гриле, асадо). 20–25 мин.</p>
+      <div class="ingredients">Палтус + цветная капуста+шафран+сливки (пюре) + соус чимичурри (красный перец, петрушка, халапеньо, кинза)</div>
+      <div class="tag-row"><span class="tag allergy">Рыба</span><span class="tag allergy">Лактоза</span></div>
+      <p style="margin-top:6px;"><strong>Вино:</strong> Hans Greyl SB / Joseph Drouhin Chablis, Burgundy</p>
+      <div class="memory">Цветная капуста идёт в пюре (не как гарнир!). Шафран окрашивает пюре в золотой цвет. Чимичурри — аргентинский, но подаётся к рыбе: интересный контраст.</div>
+    </div>
+
+    <div class="dish-card">
+      <div class="dish-name">Филе Форели (Казахстан)</div>
+      <p>Местная казахстанская форель, семейство лососёвых. <strong>Только на гриле.</strong> Подаётся со спаржей на гриле. 20–25 мин.</p>
+      <div class="ingredients">Филе форели + спаржа на гриле + Lemon Butter соус + зелёное растительное масло (масло с петрушкой)</div>
+      <div class="tag-row"><span class="tag allergy">Лактоза</span><span class="tag allergy">Рыба</span></div>
+      <p style="margin-top:6px;"><strong>Вино:</strong> Tunella Pinot Grigio / Sepp Moser Grüner Veltliner, Kremstal</p>
+      <div class="memory">Зелёное растительное масло = кусочек масла с петрушкой кладут на горячую рыбу — он тает. Это элегантная деталь подачи, которую стоит упомянуть гостю.</div>
+    </div>
+
+    <div class="dish-card">
+      <div class="dish-name">Лосось на Пару / на Гриле</div>
+      <p>Гость сам выбирает способ приготовления. Атлантический лосось. 20–25 мин.</p>
+      <div class="ingredients">Филе лосося + овощи (пар или гриль) + Lemon Butter соус (идентичен форели)</div>
+      <div class="tag-row"><span class="tag allergy">Лактоза</span><span class="tag allergy">Рыба</span><span class="tag custom">Пар ИЛИ Гриль</span></div>
+      <p style="margin-top:6px;"><strong>Вино:</strong> Hans Greyl SB / Craggy Range Chardonnay, Hawke's Bay NZ</p>
+    </div>
+
+    <div class="dish-card">
+      <div class="dish-name">Стейк из Цветной Капусты</div>
+      <p>Веганский «стейк» с восточными специями. Маринад: корица, тмин, карри, кардамон. Кунжутно-куркумный соус (тахини + финики). 20–25 мин.</p>
+      <div class="ingredients">Цветная капуста, маринад (виноградное масло+специи) → соус (тахини, лимон, финики, карри) + томатный салат (черри, оливковая крошка, апельсиновый сок) → миндаль+кунжут</div>
+      <div class="tag-row"><span class="tag allergy">Семена</span><span class="tag allergy">Орехи</span><span class="tag veg">Веган</span></div>
+      <p style="margin-top:6px;"><strong>Вино:</strong> Hans Greyl SB / Gunderloch Riesling, Rheinhessen</p>
+    </div>
+
+    <div class="dish-card">
+      <div class="dish-name">Тушёная Баранья Корейка</div>
+      <p>Баранина с полентой (итальянская кукурузная каша, традиционное северное итальянское блюдо). Маринованный лук с редисом и бадьяном. 15–20 мин.</p>
+      <div class="ingredients">Баранина (яблочный сок+паприка+кумин+соевый+горчица), соус → полента (кукурузная крупа, сливки, пармезан) + маринованный лук с редисом</div>
+      <div class="tag-row"><span class="tag allergy">Диоксид</span><span class="tag allergy">Лактоза</span><span class="tag allergy">Горчица</span><span class="tag allergy">Анчоусы</span></div>
+      <p style="margin-top:6px;"><strong>Вино:</strong> Arba Sary Rkatseteli / Peter Lehmann Riesling, Barossa, Australia</p>
+      <div class="memory">Анчоусы в составе Вустерского соуса! Гость с аллергией на рыбу — важно предупредить. Полента = итальянский аналог каши, как гарнир.</div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ════════════ SIDES ════════════ -->
+<section id="sides">
+  <h2 class="section-title"><span class="emoji">🥔</span> Гарниры — все 10–15 мин</h2>
+  <div class="card-grid">
+    <div class="dish-card">
+      <div class="dish-name">Картофельное Пюре</div>
+      <p>Картофель <strong>запекается</strong> (не варится!), молоко, сливочное масло.</p>
+      <div class="tag-row"><span class="tag allergy">Лактоза</span></div>
+      <div class="memory">«Запекается, не варится» — неожиданный факт, который удивит и гостя, и экзаменатора.</div>
+    </div>
+    <div class="dish-card">
+      <div class="dish-name">Картофель Фри</div>
+      <p>С пармезаном и трюфельным маслом. Трюфель = гриб, растущий под землёй, с земляным/ореховым ароматом.</p>
+      <div class="tag-row"><span class="tag allergy">Лактоза</span></div>
+    </div>
+    <div class="dish-card">
+      <div class="dish-name">Овощи на Гриле</div>
+      <p>Баклажан, цуккини, болгарский перец, кабачок, шампиньоны. Единственный полностью веганский гарнир без аллергенов.</p>
+      <div class="tag-row"><span class="tag veg">Веган</span></div>
+    </div>
+    <div class="dish-card">
+      <div class="dish-name">Луковые Кольца</div>
+      <p>Вымачиваются в молоке <strong>12 часов</strong>, затем высушиваются и панируются.</p>
+      <div class="tag-row"><span class="tag allergy">Лактоза</span><span class="tag allergy">Яйцо</span><span class="tag allergy">Глютен</span></div>
+    </div>
+    <div class="dish-card">
+      <div class="dish-name">Жареные Шампиньоны</div>
+      <p>Маринад: майонез, кинза, шрирача, паприка. Зелёная сальса с анчоусами и каперсами.</p>
+      <div class="tag-row"><span class="tag allergy">Анчоусы</span><span class="tag allergy">Лактоза</span><span class="tag allergy">Цитрус</span></div>
+      <div class="memory">Анчоусы в сальсе! Гость просит «без рыбы» — Жареные Шампиньоны тоже нельзя.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════ DESSERTS ════════════ -->
+<section id="desserts">
+  <h2 class="section-title"><span class="emoji">🍮</span> Десерты — все 7 000 ₸ · 5–15 мин</h2>
+  <div class="card-grid">
+
+    <div class="dish-card">
+      <div class="dish-name">Шоколадный Торт Ritz-Carlton ⭐</div>
+      <p>Визитная карточка бренда. Выбран из <strong>23 предложений</strong> шеф-поваром Зиннгребе. Победитель — молодой японский кондитер из RC Toronto. Три правила рецепта: шоколад Valrhona + Grand Marnier (у нас Куантро) + можно транспортировать. 10 мин.</p>
+      <div class="ingredients">Тёмный шоколад Valrhona, апельсиновое конфи, Куантро, шоколадный крем</div>
+      <div class="tag-row"><span class="tag allergy">Алкоголь</span><span class="tag allergy">Цитрус</span></div>
+      <div class="memory">Куантро = Grand Marnier = апельсиновый ликёр. Цезарь Ритц и Луи Лапостоль (изобретатель Grand Marnier) были друзьями — отсюда связь бренда с ликёром.</div>
+    </div>
+
+    <div class="dish-card">
+      <div class="dish-name">Классический Чизкейк</div>
+      <p>Родина — Древняя Греция, мировая популярность — США. Крем-чиз появился в 1872 г. Агар-агар = растительный желатин из красных водорослей. Подаётся с голубичным пюре. 10–15 мин.</p>
+      <div class="ingredients">Крем-чиз, яйца, сметана, агар-агар, ваниль (стручки), бисквитная корочка → голубичное пюре</div>
+      <div class="tag-row"><span class="tag allergy">Лактоза</span><span class="tag allergy">Яйцо</span><span class="tag allergy">Глютен</span></div>
+    </div>
+
+    <div class="dish-card">
+      <div class="dish-name">Крем-Брюле</div>
+      <p>«Обожжённые сливки», XVII в. <strong>Только желтки</strong> — поэтому нет яичного запаха. Карамельная корочка делается горелкой перед подачей. Подаётся при комнатной температуре. Самый быстрый десерт — 5 минут.</p>
+      <div class="ingredients">Сливки, молоко, желтки, сахар, стручковая ваниль → карамелизированный сахар</div>
+      <div class="tag-row"><span class="tag allergy">Яйцо</span><span class="tag allergy">Лактоза</span></div>
+      <div class="memory">«Только желтки» = нет белков = нет яичного запаха. Это и есть секрет гладкости текстуры.</div>
+    </div>
+
+    <div class="dish-card">
+      <div class="dish-name">Tres Leche</div>
+      <p>«Три молока» — бисквит, пропитанный тремя видами молока: сгущённым, топлёным и сливками. Сублимированная малина = быстрая заморозка + вакуум = убирают влагу. 10–15 мин.</p>
+      <div class="ingredients">Яйцо, мука, манная крупа, молоко, жирные сливки, сгущённое молоко, ванильный экстракт → клубника, фисташки, взбитые сливки, сублимированная малина</div>
+      <div class="tag-row"><span class="tag allergy">Яйцо</span><span class="tag allergy">Лактоза</span><span class="tag allergy">Глютен</span></div>
+    </div>
+
+    <div class="dish-card">
+      <div class="dish-name">Финиковый Пудинг</div>
+      <p>Sticky date pudding — британский. Влажный бисквит с финиками, тоффи-соус + карамель + орехи пекан. Подаётся с ванильным мороженым. 10–15 мин.</p>
+      <div class="ingredients">Финики, пекан, сода, кофейная и ванильная эссенция, специи (гвоздика, мускатный, корица, имбирь) → соус тоффи + карамельный соус + ванильное мороженое</div>
+      <div class="tag-row"><span class="tag allergy">Орехи</span><span class="tag allergy">Лактоза</span><span class="tag allergy">Яйцо</span><span class="tag allergy">Глютен</span></div>
+      <div class="memory">Единственный десерт с ванильным мороженым. Тоффи = варёная смесь сахара и масла = ирис.</div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ════════════ WINE ════════════ -->
+<section id="wines">
+  <h2 class="section-title"><span class="emoji">🍷</span> Вина — логика подбора</h2>
+
+  <div class="alert info">
+    <span class="alert-icon">🍷</span>
+    <div><strong>3 правила, покрывающие 80% вопросов:</strong> (1) Красное мясо = красное вино. (2) Рыба и морепродукты = белое. (3) Острые блюда = Riesling (кислота гасит остроту). Chardonnay = универсальный белый к сливочным блюдам.</div>
+  </div>
+
+  <table class="wine-table">
+    <tr><th>Вино</th><th>Регион</th><th>Тип</th><th>К чему подходит</th></tr>
+    <tr><td><strong>Hans Greyl Sauvignon Blanc</strong></td><td>Malborough, NZ</td><td>Белое, свежее</td><td>Греч. салат, Кейл, Крылья Буффало, Казеречче, Лосось, Палтус, Цветная капуста — <strong>самый универсальный белый</strong></td></tr>
+    <tr><td>Tunella Pinot Grigio</td><td>Friuli, Italy</td><td>Белое, лёгкое</td><td>Форель, Альфредо, Пицца Маргарита, Тартуфо</td></tr>
+    <tr><td>Voche Blanco Viura·Chardonnay</td><td>Rioja, Spain</td><td>Белое</td><td>Цезарь, Котлеты из креветок, Цыплёнок</td></tr>
+    <tr><td>Marcus Molitor Riesling</td><td>Mosel, Germany</td><td>Белое, кислотное</td><td><strong>Крылья Буффало (острые!)</strong>, Форель</td></tr>
+    <tr><td>Arba Saperavi</td><td>Almaty, Kazakhstan</td><td>Красное, местное</td><td>Рибай, Рёбрышки</td></tr>
+    <tr><td>Talo Primitivo·Merlot</td><td>Puglia, Italy</td><td>Красное</td><td>Крылья BBQ, Аррабиата, Дьявола, Говяжьи щёчки</td></tr>
+    <tr><td>Centine Rosso Sangiovese·CS·Merlot</td><td>Tuscany, Italy</td><td>Красное</td><td>Болоньезе, Маргарита, Пицца с Бурратой</td></tr>
+    <tr><td>Fleurie Game Gamay</td><td>Beaujolais, France</td><td>Красное, лёгкое</td><td>Тальятеле с рагу, Дьявола</td></tr>
+    <tr><td>Querciabella Mongrana Rosso</td><td>Maremma Tuscany</td><td>Красное, насыщенное</td><td>Рибай, Говяжьи щёчки, Пицца Дьявола</td></tr>
+    <tr><td>Tunella Pinot Nero</td><td>Friuli, Italy</td><td>Красное, деликатное</td><td>Тендерлойн (вырезка) — тонкое вино к нежному мясу</td></tr>
+    <tr><td>Edda Chardonnay</td><td>Puglia, Italy</td><td>Белое, богатое</td><td>Тартуфо, Четыре сыра — насыщенный к сырным пиццам</td></tr>
+    <tr><td>Vina Tondonia Tempranillo·Grenache</td><td>Rioja, Spain</td><td>Красное, выдержанное</td><td>Стейк Рибай (BTL)</td></tr>
+  </table>
+
+  <div class="memory">Запомни 3 «якоря»: <strong>Hans Greyl</strong> = go-to белый к рыбе и салатам. <strong>Querciabella Rosso</strong> = go-to красный к стейкам. <strong>Riesling</strong> = к острому. Остальные вина — детали поверх этой структуры.</div>
+</section>
+
+<!-- ════════════ PREPS ════════════ -->
+<section id="preps">
+  <h2 class="section-title"><span class="emoji">🔥</span> Прожарки стейков</h2>
+
+  <div class="prep-grid">
+    <div class="prep-card"><div class="prep-name">Blue (Raw)</div><div class="prep-temp">&lt; 40°С</div><div class="prep-desc">Снаружи румяный, внутри холодный, сырой. Для любителей сырого.</div></div>
+    <div class="prep-card"><div class="prep-name">Rare</div><div class="prep-temp">45°С</div><div class="prep-desc">Тёплый, мягкий, очень сочный. Яркий мясной вкус.</div></div>
+    <div class="prep-card"><div class="prep-name">Medium Rare ⭐</div><div class="prep-temp">50°С</div><div class="prep-desc">Розово-красный, насыщен соком. Рекомендуется для обоих стейков и Вагю.</div></div>
+    <div class="prep-card"><div class="prep-name">Medium</div><div class="prep-temp">60°С</div><div class="prep-desc">Розовый без красного. Немного меньше сока.</div></div>
+    <div class="prep-card"><div class="prep-name">Medium Well</div><div class="prep-temp">65°С</div><div class="prep-desc">Серо-коричневый, чуть розовый. Прозрачный сок. Для тех, кто не любит «сырое».</div></div>
+    <div class="prep-card"><div class="prep-name">Well Done</div><div class="prep-temp">&gt; 70°С</div><div class="prep-desc">Коричневый насквозь. Сок отсутствует. Полностью готово.</div></div>
+  </div>
+
+  <div class="memory" style="margin-top:16px;">Запомни последовательность через температуры: <strong>40 → 45 → 50 → 60 → 65 → 70</strong>. Шаг примерно 5–10°С. Самое важное: Medium Rare = 50°С = «розово-красный + максимальный сок».</div>
+
+  <p class="subsection">Специальные методы готовки</p>
+  <div class="card-grid">
+    <div class="dish-card">
+      <div class="dish-name">Сувид (Sous-Vide)</div>
+      <p>Готовка в вакуумном пакете в водяной бане при точной температуре. Результат: идеально равномерная готовность, максимальная сочность. Применяется к: говяжьим щёчкам, цыплёнку, рёбрышкам, пастрами (Рубен).</p>
+      <div class="memory">Sous-vide по-французски = «под вакуумом». Всё, что готовится долго и должно быть мягким — скорее всего, сувид.</div>
+    </div>
+    <div class="dish-card">
+      <div class="dish-name">Маринады — время имеет значение</div>
+      <p>Крылья → молоко 12ч. Луковые кольца → молоко 12ч. Цыплёнок → засолка 2.5ч. Рёбрышки → маринад 12ч. Пастрами (Рубен) → 12 дней! Вагю → рекомендуется MR.</p>
+      <div class="memory">«Молочный маринад» = крылья и луковые кольца. «12 дней» = только пастрами. Это уникальные факты, которые стоит упоминать гостям.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════ FLEX ════════════ -->
+<section id="flex">
+  <h2 class="section-title"><span class="emoji">🎯</span> Гибкость меню — что можно и что нельзя</h2>
+
+  <div class="card-grid two">
+    <div class="quick-ref">
+      <h4>✅ Что гость МОЖЕТ выбрать сам:</h4>
+      <ul>
+        <li>Паста (4 из 6): Тальятелле / Пенне / Спагетти</li>
+        <li>Пенне и Спагетти → доступны <strong>без глютена</strong></li>
+        <li>Альфредо: курица ИЛИ креветки на выбор</li>
+        <li>Цезарь: +курица / +креветки / +халлуми (или без)</li>
+        <li>Минеральный салат: +халлуми или без</li>
+        <li>Лосось: на пару ИЛИ на гриле</li>
+        <li>Крылья: Буффало (острые) ИЛИ Барбекю (сладкие)</li>
+        <li>Клаб сэндвич / Бургер: говяжий или свиной бекон</li>
+        <li>Классический бургер: говяжья или куриная котлета</li>
+        <li>Стейки: прожарка на выбор — <strong>обязательно спросить!</strong></li>
+      </ul>
+    </div>
+    <div class="quick-ref">
+      <h4>⚠️ Что ВАЖНО сообщить гостю заранее:</h4>
+      <ul>
+        <li><strong>Цыплёнок:</strong> 30–35 минут — говорить сразу при заказе</li>
+        <li><strong>Пицца с Бурратой:</strong> буррата равномерно, не целиком</li>
+        <li><strong>Стейки:</strong> всегда уточнять прожарку перед отправкой заказа</li>
+        <li><strong>Цезарь:</strong> анчоусы в заправке = аллерген Рыба (даже без добавок)</li>
+        <li><strong>Баранина:</strong> анчоусы в вустерском соусе = аллерген Рыба</li>
+        <li><strong>Шампиньоны гриль:</strong> анчоусы в сальсе = аллерген Рыба</li>
+        <li><strong>Тартуфо:</strong> без томатного соуса (белая сливочная база)</li>
+        <li><strong>Тальятеле с рагу / Казеречче:</strong> паста не меняется</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+</div><!-- /wrapper -->
+
+<footer>
+  ✦ In-Room Dining · A La Carte 2025 · Ritz-Carlton ✦ &nbsp;|&nbsp; Шпаргалка для ассессмента
+</footer>
+
+</body>
+</html>

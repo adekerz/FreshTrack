@@ -8,7 +8,7 @@ import { useTranslation } from '../../../context/LanguageContext'
 import { useToast } from '../../../context/ToastContext'
 import { logError } from '../../../utils/logger'
 import { useHotel } from '../../../context/HotelContext'
-import { apiFetch } from '../../../services/api'
+import { apiFetch, API_BASE_URL } from '../../../services/api'
 import {
   Bell,
   MessageSquare,
@@ -21,9 +21,17 @@ import {
   ChevronDown,
   ChevronUp,
   AlertTriangle,
-  Zap
+  Zap,
+  Eye,
+  X,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react'
-import { showNotification, getNotificationPermission, requestNotificationPermission } from '../../../utils/browserAlerts'
+import {
+  showNotification,
+  getNotificationPermission,
+  requestNotificationPermission,
+} from '../../../utils/browserAlerts'
 import { Link } from 'react-router-dom'
 import { cn } from '../../../utils/classNames'
 import SettingsLayout, { SettingsSection } from './SettingsLayout'
@@ -42,15 +50,16 @@ export default function NotificationsSettings() {
     // Каналы доставки
     channels: {
       telegram: { enabled: false },
-      email: { enabled: false }
+      email: { enabled: false },
     },
     // Единые шаблоны сообщений
     templates: {
-      dailyReport: '📊 Ежедневный отчёт FreshTrack\n{department}\n\nДата: {date}\n\n✅ В норме: {good}\n⚠️ Скоро истекает: {warning}\n🔴 Просрочено: {expired}\n📦 Всего партий: {total}\n\n{expiringList}\n\n{expiredList}'
+      dailyReport:
+        '📊 Ежедневный отчёт FreshTrack\n{department}\n\nДата: {date}\n\n✅ В норме: {good}\n⚠️ Скоро истекает: {warning}\n🔴 Просрочено: {expired}\n📦 Всего партий: {total}\n\n{expiringList}\n\n{expiredList}',
     },
     // Расписание
     sendTime: '09:00',
-    timezone: 'Asia/Almaty'
+    timezone: 'Asia/Almaty',
   })
 
   const [linkedChats, setLinkedChats] = useState([])
@@ -58,7 +67,7 @@ export default function NotificationsSettings() {
   const [loading, setLoading] = useState(true)
   const [expandedChannels, setExpandedChannels] = useState({
     telegram: false,
-    email: false
+    email: false,
   })
 
   // Track unsaved changes
@@ -75,8 +84,8 @@ export default function NotificationsSettings() {
 
   const loadDepartments = async () => {
     try {
-      const hotelQuery = selectedHotelId ? `?hotel_id=${selectedHotelId}` : ''
-      const data = await apiFetch(`/departments${hotelQuery}`)
+      // hotel_id передаётся через X-Hotel-Id header (apiFetch)
+      const data = await apiFetch(`/departments`)
       setDepartments(data.departments || [])
     } catch {
       setDepartments([])
@@ -102,34 +111,45 @@ export default function NotificationsSettings() {
         setSettings((prev) => ({
           ...prev,
           channels: data.channels || prev.channels,
-          templates: { dailyReport: data.templates?.dailyReport ?? prev.templates.dailyReport },
+          templates: {
+            dailyReport:
+              data.templates?.dailyReport ?? prev.templates.dailyReport,
+          },
           sendTime: data.sendTime || prev.sendTime,
-          timezone: data.timezone || prev.timezone
+          timezone: data.timezone || prev.timezone,
         }))
       }
     } catch (error) {
       // Если endpoint не найден, загружаем из старых endpoints для обратной совместимости
       try {
         const [telegramData] = await Promise.all([
-          apiFetch('/settings/telegram').catch(() => null)
+          apiFetch('/settings/telegram').catch(() => null),
         ])
 
         if (telegramData) {
           setSettings((prev) => ({
             ...prev,
             templates: {
-              dailyReport: telegramData.messageTemplates?.dailyReport ?? prev.templates.dailyReport
+              dailyReport:
+                telegramData.messageTemplates?.dailyReport ??
+                prev.templates.dailyReport,
             },
             sendTime: telegramData.sendTime || prev.sendTime,
             channels: {
               ...prev.channels,
-              telegram: { enabled: true }
-            }
+              telegram: { enabled: true },
+            },
           }))
         }
       } catch (fallbackError) {
-        logError('Failed to load notification settings from fallback', fallbackError)
-        addToast(fallbackError.message || 'Failed to load notification settings', 'error')
+        logError(
+          'Failed to load notification settings from fallback',
+          fallbackError
+        )
+        addToast(
+          fallbackError.message || 'Failed to load notification settings',
+          'error'
+        )
       }
     } finally {
       setLoading(false)
@@ -153,12 +173,15 @@ export default function NotificationsSettings() {
         channels: settings.channels,
         templates: { dailyReport: settings.templates.dailyReport },
         sendTime: settings.sendTime,
-        timezone: settings.timezone
-      })
+        timezone: settings.timezone,
+      }),
     })
 
     setInitialSettings(settings)
-    return { message: t('settings.notifications.saved') || 'Настройки уведомлений сохранены' }
+    return {
+      message:
+        t('settings.notifications.saved') || 'Настройки уведомлений сохранены',
+    }
   }
 
   const updateChannel = (channel, enabled) => {
@@ -166,8 +189,8 @@ export default function NotificationsSettings() {
       ...prev,
       channels: {
         ...prev.channels,
-        [channel]: { enabled }
-      }
+        [channel]: { enabled },
+      },
     }))
   }
 
@@ -175,21 +198,21 @@ export default function NotificationsSettings() {
     if (key !== 'dailyReport') return
     setSettings((prev) => ({
       ...prev,
-      templates: { ...prev.templates, dailyReport: value }
+      templates: { ...prev.templates, dailyReport: value },
     }))
   }
 
   const toggleChannelExpanded = (channel) => {
     setExpandedChannels((prev) => ({
       ...prev,
-      [channel]: !prev[channel]
+      [channel]: !prev[channel],
     }))
   }
 
   const unlinkChat = async (chatId) => {
     try {
       await apiFetch(`/settings/telegram/chats/${chatId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
       })
       addToast(t('telegram.chatUnlinked') || 'Чат отвязан', 'success')
       loadLinkedChats()
@@ -200,6 +223,57 @@ export default function NotificationsSettings() {
 
   const openAddBotLink = () => {
     window.open(`https://t.me/${BOT_USERNAME}?startgroup=setup`, '_blank')
+  }
+
+  // ── Email preview ────────────────────────────────────────────────────────────
+  const EMAIL_PREVIEW_TYPES = [
+    { key: 'welcome', label: 'Welcome' },
+    { key: 'invite', label: 'Invite (with password)' },
+    { key: 'verification', label: 'Verification code' },
+    { key: 'dept-verification', label: 'Dept email verify' },
+    { key: 'password-reset', label: 'Password reset' },
+    { key: 'expiry-report', label: 'Expiry report' },
+    { key: 'join-request', label: 'Join request (admin)' },
+    { key: 'join-approved', label: 'Join approved' },
+    { key: 'account-deleted', label: 'Account deleted' },
+  ]
+  const [emailPreviewOpen, setEmailPreviewOpen] = useState(false)
+  const [emailPreviewIdx, setEmailPreviewIdx] = useState(0)
+  const [emailPreviewHtml, setEmailPreviewHtml] = useState('')
+  const [emailPreviewLoad, setEmailPreviewLoad] = useState(false)
+
+  const loadEmailPreview = async (idx) => {
+    setEmailPreviewLoad(true)
+    setEmailPreviewHtml('')
+    try {
+      const type = EMAIL_PREVIEW_TYPES[idx].key
+      const res = await fetch(
+        `${API_BASE_URL}/notifications/email-preview?type=${type}`,
+        { credentials: 'include' }
+      )
+      const html = await res.text()
+      setEmailPreviewHtml(html)
+    } catch {
+      setEmailPreviewHtml(
+        '<p style="padding:24px;color:red">Failed to load preview</p>'
+      )
+    } finally {
+      setEmailPreviewLoad(false)
+    }
+  }
+
+  const openEmailPreview = () => {
+    setEmailPreviewIdx(0)
+    setEmailPreviewOpen(true)
+    loadEmailPreview(0)
+  }
+
+  const goPreview = (dir) => {
+    const next =
+      (emailPreviewIdx + dir + EMAIL_PREVIEW_TYPES.length) %
+      EMAIL_PREVIEW_TYPES.length
+    setEmailPreviewIdx(next)
+    loadEmailPreview(next)
   }
 
   // ── Test notification ────────────────────────────────────────────────────────
@@ -217,7 +291,8 @@ export default function NotificationsSettings() {
       }
       if (perm === 'denied') {
         addToast(
-          t('notifications.browserDenied') || 'Браузер: уведомления заблокированы. Разрешите в настройках сайта.',
+          t('notifications.browserDenied') ||
+            'Браузер: уведомления заблокированы. Разрешите в настройках сайта.',
           'warning'
         )
       } else if (perm === 'granted') {
@@ -225,20 +300,27 @@ export default function NotificationsSettings() {
           const shown = showNotification(
             t('notifications.test.title') || 'Тестовое уведомление',
             {
-              body: t('notifications.test.message') || 'Это тестовое уведомление для проверки работы системы.',
-              tag: 'freshtrack-test-notification'
+              body:
+                t('notifications.test.message') ||
+                'Это тестовое уведомление для проверки работы системы.',
+              tag: 'freshtrack-test-notification',
             }
           )
           browserShown = shown !== null
         } catch (err) {
-          addToast((t('notifications.browserError') || 'Браузер: ошибка уведомления') + ': ' + (err.message || ''), 'error')
+          addToast(
+            (t('notifications.browserError') || 'Браузер: ошибка уведомления') +
+              ': ' +
+              (err.message || ''),
+            'error'
+          )
         }
       }
 
       // Email + Telegram (backend)
       const result = await apiFetch('/notifications/test-telegram', {
         method: 'POST',
-        body: JSON.stringify({})
+        body: JSON.stringify({}),
       })
 
       const channels = []
@@ -247,20 +329,30 @@ export default function NotificationsSettings() {
       if (result.sentTo > 0) channels.push(`Telegram (${result.sentTo})`)
 
       if (result.success || browserShown) {
-        const msg = channels.length > 0
-          ? (t('notifications.test.sent') || 'Тестовое уведомление отправлено') + ': ' + channels.join(', ')
-          : t('notifications.test.sent') || 'Тестовое уведомление отправлено'
+        const msg =
+          channels.length > 0
+            ? (t('notifications.test.sent') ||
+                'Тестовое уведомление отправлено') +
+              ': ' +
+              channels.join(', ')
+            : t('notifications.test.sent') || 'Тестовое уведомление отправлено'
         addToast(msg, 'success')
       } else {
         addToast(
-          result.error || (result.totalChats === 0
-            ? 'Нет привязанных Telegram чатов'
-            : t('notifications.test.error') || 'Ошибка отправки'),
+          result.error ||
+            (result.totalChats === 0
+              ? 'Нет привязанных Telegram чатов'
+              : t('notifications.test.error') || 'Ошибка отправки'),
           'error'
         )
       }
     } catch (error) {
-      addToast(error.message || t('notifications.test.error') || 'Ошибка отправки тестового уведомления', 'error')
+      addToast(
+        error.message ||
+          t('notifications.test.error') ||
+          'Ошибка отправки тестового уведомления',
+        'error'
+      )
     } finally {
       setTestingNotification(false)
     }
@@ -276,29 +368,135 @@ export default function NotificationsSettings() {
       description="Ежедневные сводки и критические уведомления без лишнего шума"
       icon={Bell}
       onSave={saveSettings}
-      saveButtonText={hasUnsavedChanges ? '● ' + (t('common.save') || 'Сохранить') : (t('common.save') || 'Сохранить')}
+      saveButtonText={
+        hasUnsavedChanges
+          ? '● ' + (t('common.save') || 'Сохранить')
+          : t('common.save') || 'Сохранить'
+      }
       saveDisabled={!hasUnsavedChanges}
     >
       {/* Info + test button row */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-lg bg-muted/30 border border-border/40">
         <p className="text-sm text-muted-foreground flex-1 whitespace-pre-line">
-          FreshTrack отправляет только одну сводку в день.
-          Это снижает шум и помогает не пропускать важное.
+          FreshTrack отправляет только одну сводку в день. Это снижает шум и
+          помогает не пропускать важное.
         </p>
-        <button
-          type="button"
-          onClick={handleTestNotification}
-          disabled={testingNotification}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border bg-background hover:bg-muted text-sm text-foreground disabled:opacity-50 transition-colors shrink-0"
-        >
-          {testingNotification ? (
-            <span className="w-4 h-4 border-2 border-accent/30 border-t-accent rounded-full animate-spin" />
-          ) : (
-            <Zap className="w-4 h-4 text-accent" />
-          )}
-          {t('notifications.test.label') || 'Тест уведомлений'}
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={openEmailPreview}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border bg-background hover:bg-muted text-sm text-foreground transition-colors"
+          >
+            <Eye className="w-4 h-4 text-muted-foreground" />
+            Email-шаблоны
+          </button>
+          <button
+            type="button"
+            onClick={handleTestNotification}
+            disabled={testingNotification}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border bg-background hover:bg-muted text-sm text-foreground disabled:opacity-50 transition-colors"
+          >
+            {testingNotification ? (
+              <span className="w-4 h-4 border-2 border-accent/30 border-t-accent rounded-full animate-spin" />
+            ) : (
+              <Zap className="w-4 h-4 text-accent" />
+            )}
+            {t('notifications.test.label') || 'Тест уведомлений'}
+          </button>
+        </div>
       </div>
+
+      {/* Email preview modal */}
+      {emailPreviewOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div
+            className="bg-background border border-border rounded-xl shadow-2xl w-full max-w-3xl flex flex-col"
+            style={{ height: '85vh' }}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
+              <div className="flex items-center gap-3">
+                <Mail className="w-4 h-4 text-accent" />
+                <span className="font-medium text-sm text-foreground">
+                  Email-шаблоны
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {emailPreviewIdx + 1} / {EMAIL_PREVIEW_TYPES.length}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEmailPreviewOpen(false)}
+                className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Tab strip */}
+            <div className="flex items-center gap-1 px-3 py-2 border-b border-border overflow-x-auto shrink-0 scrollbar-hide">
+              {EMAIL_PREVIEW_TYPES.map((tpl, i) => (
+                <button
+                  key={tpl.key}
+                  type="button"
+                  onClick={() => {
+                    setEmailPreviewIdx(i)
+                    loadEmailPreview(i)
+                  }}
+                  className={cn(
+                    'px-3 py-1 rounded-md text-xs font-medium whitespace-nowrap transition-colors',
+                    i === emailPreviewIdx
+                      ? 'bg-accent text-white'
+                      : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                  )}
+                >
+                  {tpl.label}
+                </button>
+              ))}
+            </div>
+
+            {/* iframe */}
+            <div className="relative flex-1 overflow-hidden">
+              {emailPreviewLoad && (
+                <div className="absolute inset-0 flex items-center justify-center bg-background/80 z-10">
+                  <span className="w-6 h-6 border-2 border-accent/30 border-t-accent rounded-full animate-spin" />
+                </div>
+              )}
+              {emailPreviewHtml && (
+                <iframe
+                  srcDoc={emailPreviewHtml}
+                  title="Email preview"
+                  className="w-full h-full border-0"
+                  sandbox="allow-scripts"
+                />
+              )}
+            </div>
+
+            {/* Footer nav */}
+            <div className="flex items-center justify-between px-4 py-2 border-t border-border shrink-0">
+              <button
+                type="button"
+                onClick={() => goPreview(-1)}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                Назад
+              </button>
+              <span className="text-xs text-muted-foreground font-medium">
+                {EMAIL_PREVIEW_TYPES[emailPreviewIdx].label}
+              </span>
+              <button
+                type="button"
+                onClick={() => goPreview(1)}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              >
+                Вперёд
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Предупреждение: почта отдела не привязана */}
       {(() => {
@@ -313,22 +511,28 @@ export default function NotificationsSettings() {
               <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
               <div className="text-sm">
                 <p className="font-medium text-amber-800 dark:text-amber-200 mb-1">
-                  {t('settings.notifications.departmentEmailNotLinked') || 'Почта отдела не привязана'}
+                  {t('settings.notifications.departmentEmailNotLinked') ||
+                    'Почта отдела не привязана'}
                 </p>
                 <p className="text-amber-700 dark:text-amber-300 mb-2">
-                  {t('settings.notifications.departmentEmailNotLinkedDetail', { names }) ||
+                  {t('settings.notifications.departmentEmailNotLinkedDetail', {
+                    names,
+                  }) ||
                     `У отделов «${names}» не указана почта. Ежедневные отчёты на email туда не отправляются.`}
                 </p>
                 <p className="text-amber-600 dark:text-amber-400">
-                  {t('settings.notifications.departmentEmailHint') || 'Как привязать:'}{' '}
+                  {t('settings.notifications.departmentEmailHint') ||
+                    'Как привязать:'}{' '}
                   <Link
                     to="/settings?tab=directories"
                     className="font-medium underline hover:no-underline"
                   >
-                    {t('settings.notifications.gotoDirectories') || 'Настройки → Справочники → Отделы'}
+                    {t('settings.notifications.gotoDirectories') ||
+                      'Настройки → Справочники → Отделы'}
                   </Link>
                   {' → '}
-                  {t('settings.notifications.departmentEmailField') || 'поле «Почта отдела»'}
+                  {t('settings.notifications.departmentEmailField') ||
+                    'поле «Почта отдела»'}
                 </p>
               </div>
             </div>
@@ -337,8 +541,9 @@ export default function NotificationsSettings() {
       })()}
 
       {/* Каналы доставки */}
-      <SettingsSection title={t('settings.notifications.channels') || 'Каналы доставки'}>
-
+      <SettingsSection
+        title={t('settings.notifications.channels') || 'Каналы доставки'}
+      >
         {/* Telegram */}
         <div className="p-4 border border-border rounded-lg bg-card">
           <div className="flex items-center justify-between">
@@ -346,13 +551,17 @@ export default function NotificationsSettings() {
               <div
                 className={cn(
                   'w-10 h-10 rounded-lg flex items-center justify-center',
-                  settings.channels.telegram.enabled ? 'bg-[#0088cc]/10' : 'bg-muted'
+                  settings.channels.telegram.enabled
+                    ? 'bg-[#0088cc]/10'
+                    : 'bg-muted'
                 )}
               >
                 <MessageSquare
                   className={cn(
                     'w-5 h-5',
-                    settings.channels.telegram.enabled ? 'text-[#0088cc]' : 'text-muted-foreground'
+                    settings.channels.telegram.enabled
+                      ? 'text-[#0088cc]'
+                      : 'text-muted-foreground'
                   )}
                 />
               </div>
@@ -370,7 +579,9 @@ export default function NotificationsSettings() {
                 type="button"
                 onClick={() => toggleChannelExpanded('telegram')}
                 className="p-2 text-muted-foreground hover:text-foreground"
-                aria-label={expandedChannels.telegram ? 'Свернуть' : 'Развернуть'}
+                aria-label={
+                  expandedChannels.telegram ? 'Свернуть' : 'Развернуть'
+                }
               >
                 {expandedChannels.telegram ? (
                   <ChevronUp className="w-4 h-4" />
@@ -396,7 +607,8 @@ export default function NotificationsSettings() {
                       {t('telegram.addBot') || 'Добавить бота в чат'}
                     </h4>
                     <p className="text-sm text-muted-foreground mb-3">
-                      {t('telegram.addBotDescription') || 'Добавьте бота в групповой чат Telegram для получения уведомлений.'}
+                      {t('telegram.addBotDescription') ||
+                        'Добавьте бота в групповой чат Telegram для получения уведомлений.'}
                     </p>
                     <button
                       type="button"
@@ -412,7 +624,8 @@ export default function NotificationsSettings() {
                     <div>
                       <h4 className="font-medium text-foreground mb-2 flex items-center gap-2">
                         <Users className="w-4 h-4" />
-                        {t('telegram.linkedChats') || 'Привязанные чаты'} ({linkedChats.length})
+                        {t('telegram.linkedChats') || 'Привязанные чаты'} (
+                        {linkedChats.length})
                       </h4>
                       <div className="space-y-2">
                         {linkedChats.map((chat) => (
@@ -424,7 +637,11 @@ export default function NotificationsSettings() {
                               {chat.chat_photo_url ? (
                                 <img
                                   src={chat.chat_photo_url}
-                                  alt={chat.chat_title || t('notifications.chat') || 'Chat'}
+                                  alt={
+                                    chat.chat_title ||
+                                    t('notifications.chat') ||
+                                    'Chat'
+                                  }
                                   className="w-8 h-8 rounded-full flex-shrink-0"
                                 />
                               ) : (
@@ -440,7 +657,12 @@ export default function NotificationsSettings() {
                                   {chat.hotel_name && (
                                     <>
                                       🏨 {chat.hotel_name}
-                                      {chat.department_name && <span> → 🏢 {chat.department_name}</span>}
+                                      {chat.department_name && (
+                                        <span>
+                                          {' '}
+                                          → 🏢 {chat.department_name}
+                                        </span>
+                                      )}
                                     </>
                                   )}
                                 </div>
@@ -486,7 +708,9 @@ export default function NotificationsSettings() {
                 <Mail
                   className={cn(
                     'w-5 h-5',
-                    settings.channels.email.enabled ? 'text-accent' : 'text-muted-foreground'
+                    settings.channels.email.enabled
+                      ? 'text-accent'
+                      : 'text-muted-foreground'
                   )}
                 />
               </div>
@@ -531,9 +755,13 @@ export default function NotificationsSettings() {
                       return (
                         <p className="text-sm text-muted-foreground">
                           Ни у одного отдела не указан email. Настройте адреса в{' '}
-                          <Link to="/settings?tab=directories" className="text-accent hover:underline">
+                          <Link
+                            to="/settings?tab=directories"
+                            className="text-accent hover:underline"
+                          >
                             Справочниках
-                          </Link>.
+                          </Link>
+                          .
                         </p>
                       )
                     }
@@ -552,15 +780,21 @@ export default function NotificationsSettings() {
                     ))
                   })()}
                   <p className="text-sm text-muted-foreground">
-                    Уведомления отправляются на email отделов. Изменить адреса можно в{' '}
-                    <Link to="/settings?tab=directories" className="text-accent hover:underline">
+                    Уведомления отправляются на email отделов. Изменить адреса
+                    можно в{' '}
+                    <Link
+                      to="/settings?tab=directories"
+                      className="text-accent hover:underline"
+                    >
                       Справочниках
-                    </Link>.
+                    </Link>
+                    .
                   </p>
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  Включите канал, чтобы получать ежедневные сводки на почту отделов.
+                  Включите канал, чтобы получать ежедневные сводки на почту
+                  отделов.
                 </p>
               )}
             </div>
@@ -578,7 +812,16 @@ export default function NotificationsSettings() {
           label={t('telegram.dailyReport') || 'Ежедневный отчёт'}
           value={settings.templates.dailyReport}
           onChange={(value) => updateTemplate('dailyReport', value)}
-          availableVars={['good', 'warning', 'expired', 'total', 'date', 'expiringList', 'expiredList', 'department']}
+          availableVars={[
+            'good',
+            'warning',
+            'expired',
+            'total',
+            'date',
+            'expiringList',
+            'expiredList',
+            'department',
+          ]}
           rows={8}
         />
       </SettingsSection>
@@ -593,12 +836,15 @@ export default function NotificationsSettings() {
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-foreground mb-2">
-              {t('settings.notifications.sendTime') || 'Время отправки ежедневных отчётов'}
+              {t('settings.notifications.sendTime') ||
+                'Время отправки ежедневных отчётов'}
             </label>
             <input
               type="time"
               value={settings.sendTime}
-              onChange={(e) => setSettings((prev) => ({ ...prev, sendTime: e.target.value }))}
+              onChange={(e) =>
+                setSettings((prev) => ({ ...prev, sendTime: e.target.value }))
+              }
               className="px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-accent/20"
             />
             <p className="mt-2 text-sm text-muted-foreground">

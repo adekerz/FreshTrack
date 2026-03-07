@@ -23,7 +23,7 @@ export function useAuditLogs(hotelId, filters = {}) {
       params.set('limit', String(filters.limit || 20))
       params.set('offset', String(filters.offset || 0))
 
-      if (hotelId) params.set('hotel_id', hotelId)
+      // hotel_id передаётся через X-Hotel-Id header (apiFetch)
       if (filters.action) params.set('action', filters.action)
       if (filters.entityType) params.set('entityType', filters.entityType)
       if (filters.dateFrom) params.set('dateFrom', filters.dateFrom)
@@ -36,12 +36,17 @@ export function useAuditLogs(hotelId, filters = {}) {
       const data = await apiFetch(`/audit-logs?${params}`)
       return {
         logs: data.logs || [],
-        pagination: data.pagination || { page: 1, limit: 20, total: 0, pages: 1 }
+        pagination: data.pagination || {
+          page: 1,
+          limit: 20,
+          total: 0,
+          pages: 1,
+        },
       }
     },
     enabled: !!hotelId,
     staleTime: STALE_TIMES.audit,
-    placeholderData: keepPreviousData
+    placeholderData: keepPreviousData,
   })
 }
 
@@ -54,13 +59,13 @@ export function useAuditStats(hotelId, days = 7) {
   return useQuery({
     queryKey: queryKeys.auditStats(hotelId, days),
     queryFn: async () => {
+      // hotel_id передаётся через X-Hotel-Id header (apiFetch)
       const params = new URLSearchParams({ days: String(days) })
-      if (hotelId) params.set('hotel_id', hotelId)
       const data = await apiFetch(`/audit-logs/stats?${params}`)
       return data.stats || []
     },
     enabled: !!hotelId,
-    staleTime: STALE_TIMES.audit
+    staleTime: STALE_TIMES.audit,
   })
 }
 
@@ -73,11 +78,11 @@ export function useAuditUsers(hotelId, enabled = true) {
   return useQuery({
     queryKey: queryKeys.auditUsers(hotelId),
     queryFn: async () => {
-      const params = hotelId ? `?hotel_id=${hotelId}` : ''
-      const data = await apiFetch(`/audit-logs/users${params}`)
+      // hotel_id передаётся через X-Hotel-Id header (apiFetch)
+      const data = await apiFetch(`/audit-logs/users`)
       return data.users || []
     },
     enabled: !!hotelId && enabled,
-    staleTime: STALE_TIMES.audit
+    staleTime: STALE_TIMES.audit,
   })
 }

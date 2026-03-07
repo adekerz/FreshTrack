@@ -1,6 +1,6 @@
 /**
  * Auth Module - Service
- * 
+ *
  * Бизнес-логика авторизации.
  * Сервис содержит всю логику, не зависящую от HTTP.
  */
@@ -15,13 +15,9 @@ import {
   getAllUsers,
   updateLastLogin,
   updateUserStatus,
-  createJoinRequest
+  createJoinRequest,
 } from './auth.repository.js'
-import {
-  logAudit,
-  getHotelById,
-  query as dbQuery
-} from '../../db/database.js'
+import { logAudit, getHotelById, query as dbQuery } from '../../db/database.js'
 import { MFAService } from '../../services/MFAService.js'
 import { query as dbQueryPostgres } from '../../db/postgres.js'
 import MarshaCodeService from '../../services/MarshaCodeService.js'
@@ -70,14 +66,13 @@ class ServiceResult {
  * Auth Service - все операции авторизации
  */
 export class AuthService {
-
   /**
    * Получить permissions пользователя как массив строк
    */
   static async getUserPermissionsArray(user) {
     try {
       const permissions = await PermissionService.getUserPermissions(user)
-      return permissions.map(p => `${p.resource}:${p.action}`)
+      return permissions.map((p) => `${p.resource}:${p.action}`)
     } catch (error) {
       logError('AuthService', error)
       // Fallback based on role
@@ -96,7 +91,11 @@ export class AuthService {
       try {
         hotel = await getHotelById(user.hotel_id)
       } catch (error) {
-        logError('AuthService.formatUserResponse', `Failed to get hotel ${user.hotel_id}`, error)
+        logError(
+          'AuthService.formatUserResponse',
+          `Failed to get hotel ${user.hotel_id}`,
+          error
+        )
         // Continue without hotel info
       }
     }
@@ -112,11 +111,15 @@ export class AuthService {
         if (deptResult.rows.length > 0) {
           department = {
             id: deptResult.rows[0].id,
-            name: deptResult.rows[0].name
+            name: deptResult.rows[0].name,
           }
         }
       } catch (error) {
-        logError('AuthService.formatUserResponse', `Failed to get department ${user.department_id}`, error)
+        logError(
+          'AuthService.formatUserResponse',
+          `Failed to get department ${user.department_id}`,
+          error
+        )
         // Continue without department info
       }
     }
@@ -126,7 +129,7 @@ export class AuthService {
       SUPER_ADMIN: 'Супер Админ',
       HOTEL_ADMIN: 'Администратор отеля',
       DEPARTMENT_MANAGER: 'Менеджер отдела',
-      STAFF: 'Сотрудник'
+      STAFF: 'Сотрудник',
     }
 
     const role = user.role?.toUpperCase() || 'STAFF'
@@ -143,18 +146,19 @@ export class AuthService {
       status: user.status || 'active',
       hotel_id: user.hotel_id,
       department_id: user.department_id,
-      hotel: hotel ? {
-        id: hotel.id,
-        name: hotel.name,
-        marsha_code: hotel.marsha_code || null
-      } : null,
+      hotel: hotel
+        ? {
+            id: hotel.id,
+            name: hotel.name,
+            marsha_code: hotel.marsha_code || null,
+          }
+        : null,
       department: department,
       telegram_chat_id: user.telegram_chat_id,
       is_active: user.is_active !== false,
-      is_active: user.is_active !== false,
       mustChangePassword: user.must_change_password || false,
       mfa_enabled: user.mfa_enabled || false,
-      last_login: user.last_login
+      last_login: user.last_login,
     }
 
     if (includePermissions) {
@@ -173,31 +177,61 @@ export class AuthService {
         canCreateSuperAdmin: role === 'SUPER_ADMIN' && user.is_owner === true,
 
         // Resource capabilities
-        canViewAuditLogs: hasAll || isAdmin || permissions.includes('audit:read'),
-        canManageUsers: hasAll || isAdmin || permissions.includes('users:create') || permissions.includes('users:manage'),
-        canManageSettings: hasAll || isAdmin || permissions.includes('settings:manage'),
-        canManageHotels: hasAll || role === 'SUPER_ADMIN' || permissions.includes('hotels:manage'),
-        canManageDepartments: hasAll || isAdmin || permissions.includes('departments:manage'),
+        canViewAuditLogs:
+          hasAll || isAdmin || permissions.includes('audit:read'),
+        canManageUsers:
+          hasAll ||
+          isAdmin ||
+          permissions.includes('users:create') ||
+          permissions.includes('users:manage'),
+        canManageSettings:
+          hasAll || isAdmin || permissions.includes('settings:manage'),
+        canManageHotels:
+          hasAll ||
+          role === 'SUPER_ADMIN' ||
+          permissions.includes('hotels:manage'),
+        canManageDepartments:
+          hasAll || isAdmin || permissions.includes('departments:manage'),
         canExport: hasAll || isAdmin || permissions.includes('export:create'),
         canImport: hasAll || isAdmin || permissions.includes('import:create'),
 
         // Inventory capabilities
-        canViewInventory: hasAll || permissions.includes('inventory:read') || permissions.includes('products:read'),
-        canEditInventory: hasAll || isAdmin || permissions.includes('inventory:update') || permissions.includes('products:update'),
-        canDeleteInventory: hasAll || isAdmin || permissions.includes('inventory:delete') || permissions.includes('products:delete'),
+        canViewInventory:
+          hasAll ||
+          permissions.includes('inventory:read') ||
+          permissions.includes('products:read'),
+        canEditInventory:
+          hasAll ||
+          isAdmin ||
+          permissions.includes('inventory:update') ||
+          permissions.includes('products:update'),
+        canDeleteInventory:
+          hasAll ||
+          isAdmin ||
+          permissions.includes('inventory:delete') ||
+          permissions.includes('products:delete'),
 
         // Batch capabilities
         canCreateBatches: hasAll || permissions.includes('batches:create'),
-        canCollectBatches: hasAll || permissions.includes('batches:collect') || permissions.includes('collections:create'),
-        canWriteOff: hasAll || isAdmin || permissions.includes('writeoffs:create'),
+        canCollectBatches:
+          hasAll ||
+          permissions.includes('batches:collect') ||
+          permissions.includes('collections:create'),
+        canWriteOff:
+          hasAll || isAdmin || permissions.includes('writeoffs:create'),
 
         // Notification capabilities
-        canManageNotifications: hasAll || isAdmin || permissions.includes('notifications:manage'),
-        canViewSystemNotifications: hasAll || isAdmin || permissions.includes('notifications:admin'),
+        canManageNotifications:
+          hasAll || isAdmin || permissions.includes('notifications:manage'),
+        canViewSystemNotifications:
+          hasAll || isAdmin || permissions.includes('notifications:admin'),
 
         // Access scope
-        canAccessAllDepartments: isAdmin || permissions.includes('departments:*') || permissions.includes('*'),
-        canAccessAllHotels: role === 'SUPER_ADMIN'
+        canAccessAllDepartments:
+          isAdmin ||
+          permissions.includes('departments:*') ||
+          permissions.includes('*'),
+        canAccessAllHotels: role === 'SUPER_ADMIN',
       }
     }
 
@@ -210,7 +244,9 @@ export class AuthService {
   static async login(email, password, ipAddress) {
     try {
       // Найти пользователя
-      logDebug('AuthService', 'Login attempt', { login: email ? '(present)' : '(empty)' })
+      logDebug('AuthService', 'Login attempt', {
+        login: email ? '(present)' : '(empty)',
+      })
       const user = await getUserByLoginOrEmail(email)
       logDebug('AuthService', 'User lookup', { found: !!user })
       if (!user) {
@@ -219,7 +255,9 @@ export class AuthService {
 
       // Проверить блокировку
       if (user.is_active === false) {
-        return ServiceResult.forbidden('Account is blocked. Contact administrator.')
+        return ServiceResult.forbidden(
+          'Account is blocked. Contact administrator.'
+        )
       }
 
       // Проверить пароль
@@ -235,7 +273,8 @@ export class AuthService {
 
       // MFA отключена на dev (DISABLE_MFA_IN_DEV=true) — пропускаем проверку
       const mfaDisabledInDev =
-        process.env.NODE_ENV === 'development' && process.env.DISABLE_MFA_IN_DEV === 'true'
+        process.env.NODE_ENV === 'development' &&
+        process.env.DISABLE_MFA_IN_DEV === 'true'
 
       // Если MFA включен → возвращаем partial token (кроме dev с отключённой MFA)
       if (user.mfa_enabled && !mfaDisabledInDev) {
@@ -248,18 +287,20 @@ export class AuthService {
         return ServiceResult.ok({
           requiresMFA: true,
           partialToken,
-          message: 'Enter verification code'
+          message: 'Enter verification code',
         })
       }
 
       // Check terms acceptance (skip if terms acceptance is disabled in dev)
       const CURRENT_TERMS_VERSION = '1.0'
       const termsCheckDisabledInDev =
-        process.env.NODE_ENV === 'development' && process.env.DISABLE_TERMS_CHECK_IN_DEV === 'true'
+        process.env.NODE_ENV === 'development' &&
+        process.env.DISABLE_TERMS_CHECK_IN_DEV === 'true'
 
       if (!termsCheckDisabledInDev) {
         // User must accept current version of terms
-        const needsTermsAcceptance = !user.terms_accepted || user.terms_version !== CURRENT_TERMS_VERSION
+        const needsTermsAcceptance =
+          !user.terms_accepted || user.terms_version !== CURRENT_TERMS_VERSION
 
         if (needsTermsAcceptance) {
           const partialToken = jwt.sign(
@@ -272,7 +313,8 @@ export class AuthService {
             requiresTermsAcceptance: true,
             partialToken,
             currentTermsVersion: CURRENT_TERMS_VERSION,
-            message: 'Please review and accept Terms of Service and Privacy Policy'
+            message:
+              'Please review and accept Terms of Service and Privacy Policy',
           })
         }
       }
@@ -285,11 +327,14 @@ export class AuthService {
       let rememberDevice = true // default: persist cookie
       if (user.hotel_id) {
         try {
-          const settingResult = await dbQuery(`
+          const settingResult = await dbQuery(
+            `
             SELECT value FROM settings
             WHERE key = 'rememberDevice' AND scope = 'hotel' AND hotel_id = $1
             LIMIT 1
-          `, [user.hotel_id])
+          `,
+            [user.hotel_id]
+          )
           if (settingResult.rows.length > 0) {
             const val = settingResult.rows[0].value
             // JSONB may return boolean directly or JSON-parsed boolean
@@ -311,7 +356,7 @@ export class AuthService {
         entity_type: 'user',
         entity_id: user.id,
         details: { method: 'password' },
-        ip_address: ipAddress
+        ip_address: ipAddress,
       })
 
       // Форматировать ответ (mustChangePassword уже включен в formatUserResponse)
@@ -320,7 +365,7 @@ export class AuthService {
       return ServiceResult.ok({
         user: userData,
         token,
-        rememberDevice
+        rememberDevice,
       })
     } catch (error) {
       logError('AuthService.login', error)
@@ -336,13 +381,17 @@ export class AuthService {
       // Проверить уникальность login/email
       const existingUser = await getUserByLoginOrEmail(data.login)
       if (existingUser) {
-        return ServiceResult.error('Пользователь с таким логином уже существует')
+        return ServiceResult.error(
+          'Пользователь с таким логином уже существует'
+        )
       }
 
       if (data.email) {
         const existingEmail = await getUserByLoginOrEmail(data.email)
         if (existingEmail) {
-          return ServiceResult.error('Пользователь с таким email уже существует')
+          return ServiceResult.error(
+            'Пользователь с таким email уже существует'
+          )
         }
       }
 
@@ -352,21 +401,34 @@ export class AuthService {
         const codeUpper = data.hotelCode.toUpperCase().trim()
 
         // Ищем по marsha_code отеля
-        const hotelByCode = await dbQuery(`
+        const hotelByCode = await dbQuery(
+          `
           SELECT id FROM hotels 
           WHERE UPPER(marsha_code) = $1 AND is_active = true
-        `, [codeUpper])
+        `,
+          [codeUpper]
+        )
 
         if (hotelByCode.rows.length > 0) {
           hotelId = hotelByCode.rows[0].id
-          logDebug('AuthService', 'Hotel found by marsha_code', { code: codeUpper, hotelId })
+          logDebug('AuthService', 'Hotel found by marsha_code', {
+            code: codeUpper,
+            hotelId,
+          })
         } else {
-          const hotel = await MarshaCodeService.getHotelByMarshaCode(data.hotelCode)
+          const hotel = await MarshaCodeService.getHotelByMarshaCode(
+            data.hotelCode
+          )
           if (hotel) {
             hotelId = hotel.id
-            logDebug('AuthService', 'Hotel found via MarshaCodeService', { code: codeUpper, hotelId })
+            logDebug('AuthService', 'Hotel found via MarshaCodeService', {
+              code: codeUpper,
+              hotelId,
+            })
           } else {
-            logDebug('AuthService', 'Hotel not found by code', { code: codeUpper })
+            logDebug('AuthService', 'Hotel not found by code', {
+              code: codeUpper,
+            })
           }
         }
       }
@@ -379,7 +441,7 @@ export class AuthService {
         name: data.name,
         role: 'STAFF', // Новые пользователи получают минимальную роль
         hotel_id: hotelId,
-        status: hotelId ? 'pending' : 'active' // Если привязан к отелю - требуется одобрение
+        status: hotelId ? 'pending' : 'active', // Если привязан к отелю - требуется одобрение
       })
 
       // Единый поток OTP: письмо с кодом отправляет контроллер (EmailVerificationService.sendOTP)
@@ -390,10 +452,16 @@ export class AuthService {
       if (hotelId) {
         if (needsEmailVerification) {
           // Email not verified yet - don't create join request
-          logInfo('AuthService', `User ${data.login} registered but email not verified - join request pending`)
+          logInfo(
+            'AuthService',
+            `User ${data.login} registered but email not verified - join request pending`
+          )
         } else {
           await createJoinRequest(newUser.id, hotelId)
-          logInfo('AuthService', 'Join request created', { userId: newUser.id, hotelId })
+          logInfo('AuthService', 'Join request created', {
+            userId: newUser.id,
+            hotelId,
+          })
         }
       }
 
@@ -406,7 +474,7 @@ export class AuthService {
       return ServiceResult.created({
         user: userData,
         token,
-        needsEmailVerification
+        needsEmailVerification,
       })
     } catch (error) {
       logError('AuthService.register', error)
@@ -421,7 +489,12 @@ export class AuthService {
    * Change password (for first-time login or password reset)
    * Resets must_change_password flag when password is changed
    */
-  static async changePassword(userId, currentPassword, newPassword, ipAddress = null) {
+  static async changePassword(
+    userId,
+    currentPassword,
+    newPassword,
+    ipAddress = null
+  ) {
     try {
       const user = await getUserById(userId)
       if (!user) {
@@ -435,7 +508,8 @@ export class AuthService {
       }
 
       // Validate new password
-      const { validatePassword } = await import('../../utils/passwordGenerator.js')
+      const { validatePassword } =
+        await import('../../utils/passwordGenerator.js')
       const validation = validatePassword(newPassword)
       if (!validation.isValid) {
         return ServiceResult.error('Пароль не соответствует требованиям', 400)
@@ -444,7 +518,7 @@ export class AuthService {
       // Обновить пароль и сбросить must_change_password
       await dbUpdateUser(userId, {
         password: newPassword,
-        must_change_password: false
+        must_change_password: false,
       })
 
       // Логирование
@@ -456,7 +530,7 @@ export class AuthService {
         entity_type: 'user',
         entity_id: userId,
         details: { method: 'self' },
-        ip_address: ipAddress
+        ip_address: ipAddress,
       })
 
       return ServiceResult.ok({ message: 'Пароль успешно изменён' })
@@ -478,7 +552,7 @@ export class AuthService {
         action: 'logout',
         entity_type: 'user',
         entity_id: user.id,
-        ip_address: ipAddress
+        ip_address: ipAddress,
       })
 
       return ServiceResult.ok({ message: 'Logged out successfully' })
@@ -520,7 +594,9 @@ export class AuthService {
 
       // Check email uniqueness only if email is provided and not empty
       if (data.email && data.email.trim()) {
-        const existingEmail = await getUserByLoginOrEmail(data.email.trim().toLowerCase())
+        const existingEmail = await getUserByLoginOrEmail(
+          data.email.trim().toLowerCase()
+        )
         if (existingEmail) {
           return ServiceResult.error('User with this email already exists')
         }
@@ -533,8 +609,14 @@ export class AuthService {
       }
 
       // SECURITY: Non-SUPER_ADMIN can only create users in their own hotel
-      if (creator.role !== 'SUPER_ADMIN' && hotelId && hotelId !== creator.hotel_id) {
-        return ServiceResult.forbidden('You can only create users in your own hotel')
+      if (
+        creator.role !== 'SUPER_ADMIN' &&
+        hotelId &&
+        hotelId !== creator.hotel_id
+      ) {
+        return ServiceResult.forbidden(
+          'You can only create users in your own hotel'
+        )
       }
 
       // Определить department_id (поддержка camelCase и snake_case)
@@ -548,14 +630,20 @@ export class AuthService {
       if (!password) {
         // Email is required if generating password (to send it)
         if (!data.email || !data.email.trim()) {
-          return ServiceResult.error('Email is required when password is auto-generated')
+          return ServiceResult.error(
+            'Email is required when password is auto-generated'
+          )
         }
 
-        const { generateTemporaryPassword } = await import('../../utils/passwordGenerator.js')
+        const { generateTemporaryPassword } =
+          await import('../../utils/passwordGenerator.js')
         temporaryPassword = generateTemporaryPassword(12)
         password = temporaryPassword
         mustChangePassword = true
-        logInfo('AuthService', `Generated temporary password for user ${data.email}`)
+        logInfo(
+          'AuthService',
+          `Generated temporary password for user ${data.email}`
+        )
       }
 
       // Создать пользователя
@@ -567,7 +655,7 @@ export class AuthService {
         role: data.role,
         hotel_id: hotelId,
         department_id: departmentId,
-        must_change_password: mustChangePassword
+        must_change_password: mustChangePassword,
       })
 
       // Ensure newUser has all required fields for formatUserResponse
@@ -578,13 +666,17 @@ export class AuthService {
         newUser.is_active = true
       }
 
-      // Send welcome email with temporary password if generated
+      // Отправить письмо с временным паролем если сгенерирован
       if (temporaryPassword && data.email) {
         try {
-          const { sendWelcomeEmailWithPassword } = await import('../../services/EmailService.js')
+          const { sendWelcomeEmailWithPassword } =
+            await import('../../services/EmailService.js')
 
-          // Get hotel name using dbQuery (already imported at top of file)
-          const hotelResult = await dbQuery('SELECT name FROM hotels WHERE id = $1', [hotelId])
+          // Получаем название отеля
+          const hotelResult = await dbQuery(
+            'SELECT name FROM hotels WHERE id = $1',
+            [hotelId]
+          )
           const hotelName = hotelResult.rows[0]?.name || 'FreshTrack'
 
           const loginUrl = process.env.APP_URL || 'http://localhost:5173/login'
@@ -594,13 +686,62 @@ export class AuthService {
             userName: data.name,
             temporaryPassword,
             hotelName,
-            loginUrl
+            loginUrl,
           })
 
-          logInfo('AuthService', `Welcome email with password sent to ${data.email}`)
+          logInfo(
+            'AuthService',
+            `Welcome email with password sent to ${data.email}`
+          )
         } catch (emailError) {
-          logError('AuthService', `Failed to send welcome email to ${data.email}`, emailError)
-          // Don't fail user creation if email fails - admin can resend password
+          logError(
+            'AuthService',
+            `Failed to send welcome email to ${data.email}`,
+            emailError
+          )
+          // Не прерываем создание пользователя если письмо не отправилось
+        }
+      }
+
+      // Отправить уведомление о создании аккаунта если пароль задан администратором вручную
+      if (
+        !temporaryPassword &&
+        data.password &&
+        data.email &&
+        data.email.trim()
+      ) {
+        try {
+          const { sendAccountCreatedWithPasswordEmail } =
+            await import('../../services/EmailService.js')
+
+          const hotelResult = await dbQuery(
+            'SELECT name FROM hotels WHERE id = $1',
+            [hotelId]
+          )
+          const hotelName = hotelResult.rows[0]?.name || 'FreshTrack'
+
+          const loginUrl = process.env.APP_URL || 'http://localhost:5173/login'
+
+          await sendAccountCreatedWithPasswordEmail({
+            to: data.email,
+            userName: data.name,
+            login: data.login,
+            password: data.password,
+            hotelName,
+            loginUrl,
+          })
+
+          logInfo(
+            'AuthService',
+            `Account created notification sent to ${data.email}`
+          )
+        } catch (emailError) {
+          logError(
+            'AuthService',
+            `Failed to send account created email to ${data.email}`,
+            emailError
+          )
+          // Не прерываем создание пользователя если письмо не отправилось
         }
       }
 
@@ -616,19 +757,25 @@ export class AuthService {
           login: newUser.login,
           role: newUser.role,
           created_by: creator.login,
-          temporaryPasswordSent: !!temporaryPassword
+          temporaryPasswordSent: !!temporaryPassword,
         },
-        ip_address: ipAddress
+        ip_address: ipAddress,
       })
 
       try {
         const userData = await this.formatUserResponse(newUser, false)
         return ServiceResult.created({
           user: userData,
-          message: temporaryPassword ? `User created. Temporary password sent to ${data.email}` : 'User created'
+          message: temporaryPassword
+            ? `User created. Temporary password sent to ${data.email}`
+            : 'User created',
         })
       } catch (formatError) {
-        logError('AuthService.createUser', `Failed to format user response: ${formatError.message}`, formatError)
+        logError(
+          'AuthService.createUser',
+          `Failed to format user response: ${formatError.message}`,
+          formatError
+        )
         // Return basic user data if formatting fails
         return ServiceResult.created({
           user: {
@@ -639,14 +786,20 @@ export class AuthService {
             role: newUser.role,
             hotel_id: newUser.hotel_id,
             department_id: newUser.department_id,
-            mustChangePassword: newUser.must_change_password || false
+            mustChangePassword: newUser.must_change_password || false,
           },
-          message: temporaryPassword ? `User created. Temporary password sent to ${data.email}` : 'User created'
+          message: temporaryPassword
+            ? `User created. Temporary password sent to ${data.email}`
+            : 'User created',
         })
       }
     } catch (error) {
       logError('AuthService.createUser', error)
-      logError('AuthService.createUser', `Error details: ${error.message}`, error.stack)
+      logError(
+        'AuthService.createUser',
+        `Error details: ${error.message}`,
+        error.stack
+      )
       return ServiceResult.error(`Failed to create user: ${error.message}`, 500)
     }
   }
@@ -665,18 +818,28 @@ export class AuthService {
       if (user.is_owner) {
         // Другие пользователи не могут редактировать владельца
         if (user.id !== editor.id) {
-          return ServiceResult.forbidden('Основной владелец (Owner) не может быть изменен другими администраторами')
+          return ServiceResult.forbidden(
+            'Основной владелец (Owner) не может быть изменен другими администраторами'
+          )
         }
 
         // Владелец не может понизить свою роль
         if (data.role && data.role !== 'SUPER_ADMIN') {
-          return ServiceResult.forbidden('Основной владелец (Owner) всегда должен иметь роль SUPER_ADMIN')
+          return ServiceResult.forbidden(
+            'Основной владелец (Owner) всегда должен иметь роль SUPER_ADMIN'
+          )
         }
       }
 
       // SECURITY: Non-SUPER_ADMIN can only edit users in their own hotel
-      if (editor.role !== 'SUPER_ADMIN' && user.hotel_id && editor.hotel_id !== user.hotel_id) {
-        return ServiceResult.forbidden('You can only edit users in your own hotel')
+      if (
+        editor.role !== 'SUPER_ADMIN' &&
+        user.hotel_id &&
+        editor.hotel_id !== user.hotel_id
+      ) {
+        return ServiceResult.forbidden(
+          'You can only edit users in your own hotel'
+        )
       }
 
       // Обновить
@@ -700,10 +863,10 @@ export class AuthService {
         entity_type: 'user',
         entity_id: userId,
         details: {
-          changes: Object.keys(data).filter(k => data[k] !== undefined),
-          updated_by: editor.login || 'Unknown'
+          changes: Object.keys(data).filter((k) => data[k] !== undefined),
+          updated_by: editor.login || 'Unknown',
         },
-        ip_address: ipAddress
+        ip_address: ipAddress,
       })
 
       const userData = await this.formatUserResponse(updatedUser, false)
@@ -731,12 +894,20 @@ export class AuthService {
 
       // Защита Owner-аккаунта: никто не может удалить владельца
       if (user.is_owner) {
-        return ServiceResult.forbidden('Основной владелец (Owner) не может быть удален')
+        return ServiceResult.forbidden(
+          'Основной владелец (Owner) не может быть удален'
+        )
       }
 
       // SECURITY: Non-SUPER_ADMIN can only delete users in their own hotel
-      if (deleter.role !== 'SUPER_ADMIN' && user.hotel_id && deleter.hotel_id !== user.hotel_id) {
-        return ServiceResult.forbidden('You can only delete users in your own hotel')
+      if (
+        deleter.role !== 'SUPER_ADMIN' &&
+        user.hotel_id &&
+        deleter.hotel_id !== user.hotel_id
+      ) {
+        return ServiceResult.forbidden(
+          'You can only delete users in your own hotel'
+        )
       }
 
       // Get user email and hotel info BEFORE deletion
@@ -746,7 +917,10 @@ export class AuthService {
 
       if (user.hotel_id) {
         try {
-          const hotelResult = await dbQuery('SELECT name FROM hotels WHERE id = $1', [user.hotel_id])
+          const hotelResult = await dbQuery(
+            'SELECT name FROM hotels WHERE id = $1',
+            [user.hotel_id]
+          )
           hotelName = hotelResult.rows[0]?.name || null
         } catch (err) {
           logError('AuthService.deleteUser', 'Failed to get hotel name', err)
@@ -765,19 +939,27 @@ export class AuthService {
         entity_id: userId,
         details: {
           deleted_login: user.login,
-          deleted_by: deleter.login
+          deleted_by: deleter.login,
         },
-        ip_address: ipAddress
+        ip_address: ipAddress,
       })
 
       // Send email notification AFTER successful deletion
       if (userEmail) {
         try {
-          const { sendAccountDeletedEmail } = await import('../../services/EmailService.js')
-          await sendAccountDeletedEmail({ name: userName, email: userEmail }, hotelName)
+          const { sendAccountDeletedEmail } =
+            await import('../../services/EmailService.js')
+          await sendAccountDeletedEmail(
+            { name: userName, email: userEmail },
+            hotelName
+          )
           logInfo('AuthService', `Account deletion email sent to ${userEmail}`)
         } catch (emailError) {
-          logError('AuthService.deleteUser', `Failed to send deletion email to ${userEmail}`, emailError)
+          logError(
+            'AuthService.deleteUser',
+            `Failed to send deletion email to ${userEmail}`,
+            emailError
+          )
           // Don't fail the deletion if email fails
         }
       }
@@ -806,12 +988,20 @@ export class AuthService {
 
       // Защита Owner-аккаунта: никто не может заблокировать владельца
       if (user.is_owner) {
-        return ServiceResult.forbidden('Основной владелец (Owner) не может быть заблокирован')
+        return ServiceResult.forbidden(
+          'Основной владелец (Owner) не может быть заблокирован'
+        )
       }
 
       // SECURITY: Non-SUPER_ADMIN can only toggle users in their own hotel
-      if (editor.role !== 'SUPER_ADMIN' && user.hotel_id && editor.hotel_id !== user.hotel_id) {
-        return ServiceResult.forbidden('You can only manage users in your own hotel')
+      if (
+        editor.role !== 'SUPER_ADMIN' &&
+        user.hotel_id &&
+        editor.hotel_id !== user.hotel_id
+      ) {
+        return ServiceResult.forbidden(
+          'You can only manage users in your own hotel'
+        )
       }
 
       // Переключаем статус
@@ -828,30 +1018,48 @@ export class AuthService {
         entity_id: userId,
         details: {
           target_login: user.login,
-          action_by: editor.login
+          action_by: editor.login,
         },
-        ip_address: ipAddress
+        ip_address: ipAddress,
       })
 
       // Send email notification only when DEACTIVATING (newStatus = false)
       if (!newStatus && user.email) {
         try {
-          const { sendAccountDeactivatedEmail } = await import('../../services/EmailService.js')
+          const { sendAccountDeactivatedEmail } =
+            await import('../../services/EmailService.js')
           let hotelName = null
 
           if (user.hotel_id) {
             try {
-              const hotelResult = await dbQuery('SELECT name FROM hotels WHERE id = $1', [user.hotel_id])
+              const hotelResult = await dbQuery(
+                'SELECT name FROM hotels WHERE id = $1',
+                [user.hotel_id]
+              )
               hotelName = hotelResult.rows[0]?.name || null
             } catch (err) {
-              logError('AuthService.toggleUserStatus', 'Failed to get hotel name', err)
+              logError(
+                'AuthService.toggleUserStatus',
+                'Failed to get hotel name',
+                err
+              )
             }
           }
 
-          await sendAccountDeactivatedEmail({ name: user.name, email: user.email }, hotelName)
-          logInfo('AuthService', `Account deactivation email sent to ${user.email}`)
+          await sendAccountDeactivatedEmail(
+            { name: user.name, email: user.email },
+            hotelName
+          )
+          logInfo(
+            'AuthService',
+            `Account deactivation email sent to ${user.email}`
+          )
         } catch (emailError) {
-          logError('AuthService.toggleUserStatus', `Failed to send deactivation email to ${user.email}`, emailError)
+          logError(
+            'AuthService.toggleUserStatus',
+            `Failed to send deactivation email to ${user.email}`,
+            emailError
+          )
           // Don't fail the status change if email fails
         }
       }
@@ -859,7 +1067,7 @@ export class AuthService {
       return ServiceResult.ok({
         message: newStatus ? 'User unblocked' : 'User blocked',
         is_active: newStatus,
-        isActive: newStatus
+        isActive: newStatus,
       })
     } catch (error) {
       logError('AuthService.toggleUserStatus', error)
@@ -880,7 +1088,7 @@ export class AuthService {
         departmentId,
         hotelId: filterHotelId,
         page = 1,
-        limit = 50
+        limit = 50,
       } = queryParams
 
       const isSuperAdmin = requestingUser.role?.toUpperCase() === 'SUPER_ADMIN'
@@ -910,7 +1118,9 @@ export class AuthService {
       // Поиск по name, login, email
       if (search && search.trim()) {
         const searchTerm = `%${search.trim().toLowerCase()}%`
-        conditions.push(`(LOWER(u.name) LIKE $${paramIndex} OR LOWER(u.login) LIKE $${paramIndex} OR LOWER(u.email) LIKE $${paramIndex})`)
+        conditions.push(
+          `(LOWER(u.name) LIKE $${paramIndex} OR LOWER(u.login) LIKE $${paramIndex} OR LOWER(u.email) LIKE $${paramIndex})`
+        )
         params.push(searchTerm)
         paramIndex++
       }
@@ -937,7 +1147,8 @@ export class AuthService {
         paramIndex++
       }
 
-      const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
+      const whereClause =
+        conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
 
       // Получаем общее количество
       const countQuery = `SELECT COUNT(*) as total FROM users u ${whereClause}`
@@ -972,21 +1183,25 @@ export class AuthService {
         role: u.role,
         hotel_id: u.hotel_id,
         department_id: u.department_id,
-        hotel: u.hotel_id ? {
-          id: u.hotel_id,
-          name: u.hotel_name,
-          marsha_code: u.hotel_marsha_code
-        } : null,
-        department: u.department_id ? {
-          id: u.department_id,
-          name: u.department_name
-        } : null,
+        hotel: u.hotel_id
+          ? {
+              id: u.hotel_id,
+              name: u.hotel_name,
+              marsha_code: u.hotel_marsha_code,
+            }
+          : null,
+        department: u.department_id
+          ? {
+              id: u.department_id,
+              name: u.department_name,
+            }
+          : null,
         telegram_chat_id: u.telegram_chat_id,
         is_active: u.is_active !== false,
         status: u.status || 'active',
         mustChangePassword: u.must_change_password || false,
         lastLogin: u.last_login,
-        createdAt: u.created_at
+        createdAt: u.created_at,
       }))
 
       return ServiceResult.ok({
@@ -994,10 +1209,14 @@ export class AuthService {
         total,
         page: parseInt(page, 10),
         limit: parseInt(limit, 10),
-        totalPages: Math.ceil(total / limit)
+        totalPages: Math.ceil(total / limit),
       })
     } catch (error) {
-      logError('AuthService.getUsers', `Failed to get users: ${error.message}`, error)
+      logError(
+        'AuthService.getUsers',
+        `Failed to get users: ${error.message}`,
+        error
+      )
       return ServiceResult.error(`Failed to get users: ${error.message}`, 500)
     }
   }

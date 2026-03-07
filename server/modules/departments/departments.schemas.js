@@ -25,6 +25,7 @@ export const CreateDepartmentSchema = z.object({
   settings: z.object({}).passthrough().optional().nullable(),
   email: z.string().max(255).optional().nullable(),
   telegram_chat_id: z.string().max(255).optional().nullable(),
+  modules: z.array(z.string()).optional().default([]),
 })
 
 // Обновление департамента

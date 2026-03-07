@@ -22,7 +22,7 @@ const defaultColors = [
   '#6BFFB8',
   '#B86BFF',
   '#FF6BB8',
-  '#6BB8FF'
+  '#6BB8FF',
 ]
 
 export default function CategoriesSettings({ readOnly = false }) {
@@ -40,8 +40,8 @@ export default function CategoriesSettings({ readOnly = false }) {
   const fetchCategories = useCallback(async () => {
     setLoading(true)
     try {
-      const hotelQuery = selectedHotelId ? `?hotel_id=${selectedHotelId}` : ''
-      const data = await apiFetch(`/categories${hotelQuery}`)
+      // hotel_id передаётся через X-Hotel-Id header (apiFetch)
+      const data = await apiFetch(`/categories`)
       setCategories(data.categories || data || [])
     } catch (error) {
       // Fallback to default categories if API fails
@@ -50,7 +50,7 @@ export default function CategoriesSettings({ readOnly = false }) {
         { id: 2, name: 'Spirits', color: '#8B4513' },
         { id: 3, name: 'Beverages', color: '#4169E1' },
         { id: 4, name: 'Mixers', color: '#32CD32' },
-        { id: 5, name: 'snacks', color: '#FF8C00' }
+        { id: 5, name: 'snacks', color: '#FF8C00' },
       ])
     } finally {
       setLoading(false)
@@ -71,13 +71,13 @@ export default function CategoriesSettings({ readOnly = false }) {
     try {
       await apiFetch('/categories', {
         method: 'POST',
-        body: JSON.stringify(newCategory)
+        body: JSON.stringify(newCategory),
       })
       // Сразу показываем успех и сбрасываем форму
       addToast(t('toast.categoryAdded'), 'success')
       setNewCategory({
         name: '',
-        color: defaultColors[Math.floor(Math.random() * defaultColors.length)]
+        color: defaultColors[Math.floor(Math.random() * defaultColors.length)],
       })
       // Обновляем данные в фоне (без await)
       fetchCategories()
@@ -101,7 +101,7 @@ export default function CategoriesSettings({ readOnly = false }) {
     setDeleting(true)
     try {
       await apiFetch(`/categories/${deleteConfirm.id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
       })
       // Сразу показываем успех и закрываем модалку
       addToast(t('toast.categoryDeleted'), 'success')
@@ -127,7 +127,8 @@ export default function CategoriesSettings({ readOnly = false }) {
           {t('settings.categories.title') || 'Категории'}
         </h2>
         <p className="text-sm text-muted-foreground mt-1">
-          {t('categorySettings.description') || 'Управление категориями товаров'}
+          {t('categorySettings.description') ||
+            'Управление категориями товаров'}
           {selectedHotel && (
             <span className="ml-2 px-2 py-0.5 bg-accent/10 text-accent rounded-md text-xs font-medium">
               {selectedHotel.name}
@@ -145,7 +146,9 @@ export default function CategoriesSettings({ readOnly = false }) {
                 type="text"
                 placeholder={t('categorySettings.name') || 'Название категории'}
                 value={newCategory.name}
-                onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
+                onChange={(e) =>
+                  setNewCategory({ ...newCategory, name: e.target.value })
+                }
                 className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-card"
                 onKeyPress={(e) => e.key === 'Enter' && addCategory()}
               />
@@ -156,7 +159,9 @@ export default function CategoriesSettings({ readOnly = false }) {
                 <input
                   type="color"
                   value={newCategory.color}
-                  onChange={(e) => setNewCategory({ ...newCategory, color: e.target.value })}
+                  onChange={(e) =>
+                    setNewCategory({ ...newCategory, color: e.target.value })
+                  }
                   className="w-12 h-10 rounded-lg border border-border cursor-pointer"
                   title={t('categorySettings.selectColor') || 'Выберите цвет'}
                 />
@@ -183,10 +188,11 @@ export default function CategoriesSettings({ readOnly = false }) {
               <button
                 key={color}
                 onClick={() => setNewCategory({ ...newCategory, color })}
-                className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 ${newCategory.color === color
-                  ? 'border-charcoal ring-2 ring-offset-2 ring-charcoal'
-                  : 'border-transparent'
-                  }`}
+                className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 ${
+                  newCategory.color === color
+                    ? 'border-charcoal ring-2 ring-offset-2 ring-charcoal'
+                    : 'border-transparent'
+                }`}
                 style={{ backgroundColor: color }}
                 title={color}
               />
@@ -247,7 +253,9 @@ export default function CategoriesSettings({ readOnly = false }) {
                 <h3 className="font-semibold text-foreground">
                   {t('categories.deleteTitle') || 'Удалить категорию?'}
                 </h3>
-                <p className="text-sm text-muted-foreground">{deleteConfirm.name}</p>
+                <p className="text-sm text-muted-foreground">
+                  {deleteConfirm.name}
+                </p>
               </div>
             </div>
             <p className="text-sm text-muted-foreground mb-6">

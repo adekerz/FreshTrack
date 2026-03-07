@@ -46,7 +46,19 @@
       "Bash(npx eslint:*)",
       "Bash(psql:*)",
       "Bash(curl:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Skill(hookify:configure)",
+      "Skill(hookify:configure:*)",
+      "Bash(__NEW_LINE_b3aac8be4768fba6__ node:*)",
+      "Skill(hookify:list)",
+      "Skill(hookify:list:*)",
+      "Bash(wc:*)",
+      "Bash(printf:*)",
+      "Bash(python:*)",
+      "Bash(for f in ar es fr it kk de)",
+      "Bash(do grep -l \"statusHint\" \"c:/Users/esima/OneDrive/Рабочий стол/Projects/FreshTrack-projectadekerz/src/locales/$f.json\")",
+      "Bash(npx --yes node -e \"import\\(''lucide-react''\\).then\\(r => console.log\\(''GroupIcon'' in r, ''Tag'' in r\\)\\)\")",
+      "Read(//c/Users/esima/OneDrive/Рабочий стол/Projects/FreshTrack-projectadekerz/**)"
     ]
   }
 }

@@ -6,7 +6,8 @@
 import { logError, logWarn } from '../utils/logger'
 
 // Базовый URL API - использует переменную окружения или localhost для разработки
-export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
+export const API_BASE_URL =
+  import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 
 // Базовый URL сервера (без /api) - для статических файлов
 export const SERVER_BASE_URL = API_BASE_URL.replace(/\/api$/, '')
@@ -18,7 +19,11 @@ export const SERVER_BASE_URL = API_BASE_URL.replace(/\/api$/, '')
  */
 export function getStaticUrl(path) {
   if (!path) return null
-  if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:')) {
+  if (
+    path.startsWith('http://') ||
+    path.startsWith('https://') ||
+    path.startsWith('data:')
+  ) {
     return path // уже полный URL
   }
 
@@ -39,55 +44,80 @@ export function getStaticUrl(path) {
 async function handleResponse(response, endpoint = '') {
   // Глобальная обработка ошибок аутентификации и доступа
   // Исключаем auth endpoints (login/register/password) и Telegram test из глобальной обработки 401
-  const isAuthEndpoint = endpoint.includes('/auth/login') || endpoint.includes('/auth/register')
+  const isAuthEndpoint =
+    endpoint.includes('/auth/login') || endpoint.includes('/auth/register')
   const isPasswordChangeEndpoint = endpoint.includes('/auth/password')
-  const isTelegramTestEndpoint = endpoint.includes('/notifications/test-telegram')
+  const isTelegramTestEndpoint = endpoint.includes(
+    '/notifications/test-telegram'
+  )
 
-  if (response.status === 401 && !isAuthEndpoint && !isPasswordChangeEndpoint && !isTelegramTestEndpoint) {
+  if (
+    response.status === 401 &&
+    !isAuthEndpoint &&
+    !isPasswordChangeEndpoint &&
+    !isTelegramTestEndpoint
+  ) {
     // Токен истёк или невалиден — очищаем user data
     localStorage.removeItem('freshtrack_user')
 
     // Dispatch custom event для обработки в AuthContext
-    window.dispatchEvent(new CustomEvent('auth:unauthorized', {
-      detail: { status: 401, message: 'Session expired' }
-    }))
+    window.dispatchEvent(
+      new CustomEvent('auth:unauthorized', {
+        detail: { status: 401, message: 'Session expired' },
+      })
+    )
 
     throw new Error('Сессия истекла. Пожалуйста, войдите снова.')
   }
 
   if (response.status === 403) {
     // Dispatch custom event для глобального обработчика
-    window.dispatchEvent(new CustomEvent('auth:forbidden', {
-      detail: {
-        status: 403,
-        url: response.url,
-        message: 'Access denied'
-      }
-    }))
+    window.dispatchEvent(
+      new CustomEvent('auth:forbidden', {
+        detail: {
+          status: 403,
+          url: response.url,
+          message: 'Access denied',
+        },
+      })
+    )
 
-    const error = await response.json().catch(() => ({ error: 'Доступ запрещён' }))
-    throw new Error(error.error || 'У вас нет прав для выполнения этого действия')
+    const error = await response
+      .json()
+      .catch(() => ({ error: 'Доступ запрещён' }))
+    throw new Error(
+      error.error || 'У вас нет прав для выполнения этого действия'
+    )
   }
 
   if (response.status === 404) {
-    const error = await response.json().catch(() => ({ error: 'Ресурс не найден' }))
+    const error = await response
+      .json()
+      .catch(() => ({ error: 'Ресурс не найден' }))
     throw new Error(error.error || 'Запрашиваемый ресурс не найден')
   }
 
   if (response.status === 429) {
     const error = await response.json().catch(() => ({}))
     const retryAfter = error.retryAfter || 60
-    const err = new Error(error.message || 'Слишком много запросов. Попробуйте позже.')
+    const err = new Error(
+      error.message || 'Слишком много запросов. Попробуйте позже.'
+    )
     err.retryAfter = retryAfter
     err.status = 429
     throw err
   }
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Unknown error' }))
-    const errorObj = new Error(error.error || `HTTP error! status: ${response.status}`)
+    const error = await response
+      .json()
+      .catch(() => ({ error: 'Unknown error' }))
+    const errorObj = new Error(
+      error.error || `HTTP error! status: ${response.status}`
+    )
     // Preserve additional error data for handling
-    if (error.activeBatches !== undefined) errorObj.activeBatches = error.activeBatches
+    if (error.activeBatches !== undefined)
+      errorObj.activeBatches = error.activeBatches
     if (error.details) errorObj.details = error.details
     errorObj.status = response.status
     throw errorObj
@@ -102,13 +132,13 @@ const RETRY_CONFIG = {
   maxRetries: 3,
   retryDelay: 1000, // 1 second base delay
   retryableStatuses: [502, 503, 504], // Gateway errors
-  retryableMethods: ['GET', 'HEAD', 'OPTIONS'] // Only safe methods
+  retryableMethods: ['GET', 'HEAD', 'OPTIONS'], // Only safe methods
 }
 
 /**
  * Sleep helper for retry delay
  */
-const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms))
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
 /**
  * Базовый fetch с обработкой ошибок и retry механизмом для 5xx ошибок
@@ -119,17 +149,16 @@ const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms))
 export async function apiFetch(endpoint, options = {}) {
   let url = `${API_BASE_URL}${endpoint}`
 
-  // Добавляем hotel_id для SUPER_ADMIN (из localStorage)
-  // Проверяем что hotel_id ещё не в URL чтобы избежать дублирования
-  const selectedHotelId = localStorage.getItem('freshtrack_selected_hotel')
-  if (selectedHotelId && !url.includes('hotel_id=')) {
-    const separator = url.includes('?') ? '&' : '?'
-    url = `${url}${separator}hotel_id=${encodeURIComponent(selectedHotelId)}`
-  }
-
   // Базовые заголовки
   const defaultHeaders = {
-    'Content-Type': 'application/json'
+    'Content-Type': 'application/json',
+  }
+
+  // Передаём активный отель через X-Hotel-Id header (для SUPER_ADMIN)
+  // hotelIsolation middleware читает header с приоритетом перед query params
+  const selectedHotelId = localStorage.getItem('freshtrack_selected_hotel')
+  if (selectedHotelId) {
+    defaultHeaders['X-Hotel-Id'] = selectedHotelId
   }
 
   // Правильно мержим headers: default + пользовательские
@@ -138,8 +167,8 @@ export async function apiFetch(endpoint, options = {}) {
     credentials: 'include',
     headers: {
       ...defaultHeaders,
-      ...(options.headers || {})
-    }
+      ...(options.headers || {}),
+    },
   }
 
   const method = (mergedOptions.method || 'GET').toUpperCase()
@@ -153,11 +182,15 @@ export async function apiFetch(endpoint, options = {}) {
       const response = await fetch(url, mergedOptions)
 
       // Check if should retry on server errors (only for safe methods)
-      if (isRetryable &&
+      if (
+        isRetryable &&
         RETRY_CONFIG.retryableStatuses.includes(response.status) &&
-        attempt < maxAttempts) {
+        attempt < maxAttempts
+      ) {
         const delay = RETRY_CONFIG.retryDelay * Math.pow(2, attempt - 1) // Exponential backoff
-        logWarn(`[API] Retry ${attempt}/${RETRY_CONFIG.maxRetries} for ${endpoint} after ${delay}ms (status: ${response.status})`)
+        logWarn(
+          `[API] Retry ${attempt}/${RETRY_CONFIG.maxRetries} for ${endpoint} after ${delay}ms (status: ${response.status})`
+        )
         await sleep(delay)
         continue
       }
@@ -169,7 +202,9 @@ export async function apiFetch(endpoint, options = {}) {
       // Retry on network errors for safe methods
       if (isRetryable && attempt < maxAttempts && error.name !== 'AbortError') {
         const delay = RETRY_CONFIG.retryDelay * Math.pow(2, attempt - 1)
-        logWarn(`[API] Retry ${attempt}/${RETRY_CONFIG.maxRetries} for ${endpoint} after ${delay}ms (error: ${error.message})`)
+        logWarn(
+          `[API] Retry ${attempt}/${RETRY_CONFIG.maxRetries} for ${endpoint} after ${delay}ms (error: ${error.message})`
+        )
         await sleep(delay)
         continue
       }
@@ -207,7 +242,7 @@ export async function getProductById(id) {
 export async function addProduct(product) {
   return apiFetch('/products', {
     method: 'POST',
-    body: JSON.stringify(product)
+    body: JSON.stringify(product),
   })
 }
 
@@ -217,7 +252,7 @@ export async function addProduct(product) {
 export async function updateProduct(id, updates) {
   return apiFetch(`/products/${id}`, {
     method: 'PUT',
-    body: JSON.stringify(updates)
+    body: JSON.stringify(updates),
   })
 }
 
@@ -227,7 +262,7 @@ export async function updateProduct(id, updates) {
 export async function updateCategory(id, updates) {
   return apiFetch(`/categories/${id}`, {
     method: 'PUT',
-    body: JSON.stringify(updates)
+    body: JSON.stringify(updates),
   })
 }
 
@@ -236,7 +271,7 @@ export async function updateCategory(id, updates) {
  */
 export async function deleteProduct(id) {
   return apiFetch(`/products/${id}`, {
-    method: 'DELETE'
+    method: 'DELETE',
   })
 }
 
@@ -264,7 +299,7 @@ export async function getExpiringSoonProducts(days = 3) {
 export async function login(email, password) {
   return apiFetch('/auth/login', {
     method: 'POST',
-    body: JSON.stringify({ email, password })
+    body: JSON.stringify({ email, password }),
   })
 }
 
@@ -274,7 +309,7 @@ export async function login(email, password) {
 export async function register(userData) {
   return apiFetch('/auth/register', {
     method: 'POST',
-    body: JSON.stringify(userData)
+    body: JSON.stringify(userData),
   })
 }
 
@@ -290,7 +325,7 @@ export async function getCurrentUser() {
  */
 export async function logout() {
   // Cookie is cleared server-side via POST /api/auth/logout
-  await apiFetch('/auth/logout', { method: 'POST' }).catch(() => { })
+  await apiFetch('/auth/logout', { method: 'POST' }).catch(() => {})
 }
 
 // ============================================
@@ -305,7 +340,7 @@ export async function sendTestTelegramNotification(hotelId) {
   const body = hotelId ? { hotel_id: hotelId } : {}
   return apiFetch('/notifications/test-telegram', {
     method: 'POST',
-    body: JSON.stringify(body)
+    body: JSON.stringify(body),
   })
 }
 
@@ -361,7 +396,7 @@ export const authAPI = {
   login,
   register,
   getCurrentUser,
-  logout
+  logout,
 }
 
 export const productsAPI = {
@@ -371,7 +406,7 @@ export const productsAPI = {
   updateProduct,
   deleteProduct,
   getExpiredProducts,
-  getExpiringSoonProducts
+  getExpiringSoonProducts,
 }
 
 export const notificationsAPI = {
@@ -379,7 +414,7 @@ export const notificationsAPI = {
   sendDailyNotification,
   getNotificationSummary,
   getNotificationLogs,
-  getSchedulerStatus
+  getSchedulerStatus,
 }
 
 export default {
@@ -406,5 +441,5 @@ export default {
   getSchedulerStatus,
 
   // Health
-  checkApiHealth
+  checkApiHealth,
 }

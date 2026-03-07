@@ -60,6 +60,10 @@ export const SSE_EVENTS = {
 
   // Generic notifications
   NOTIFICATION: 'notification',
+
+  // Module system
+  MODULE_DISABLED: 'module-disabled',
+  MODULE_ENABLED: 'module-enabled',
 }
 
 /**
@@ -231,6 +235,9 @@ export function useSSE(options = {}) {
         SSE_EVENTS.STATS_UPDATE,
         // Generic
         SSE_EVENTS.NOTIFICATION,
+        // Modules
+        SSE_EVENTS.MODULE_DISABLED,
+        SSE_EVENTS.MODULE_ENABLED,
       ]
 
       eventTypes.forEach((eventType) => {

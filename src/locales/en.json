@@ -178,7 +178,9 @@
     "mobileNav": "Mobile navigation",
     "reports": "Reports",
     "faq": "Help",
-    "helpCenter": "Help (?)"
+    "helpCenter": "Help (?)",
+    "tasks": "Tasks",
+    "logbookScanner": "Logbook Scanner"
   },
   "faq": {
     "title": "Help & FAQ",
@@ -896,30 +898,33 @@
   "onboarding": {
     "skip": "Skip tour",
     "getStarted": "Get Started",
-    "restartTour": "Restart tour",
     "welcome": {
       "title": "Welcome to FreshTrack!",
-      "description": "Let us show you around. This quick tour will help you understand the main features of our inventory management system."
+      "description": "Let's take a quick tour of the interface. This will only take a minute."
     },
     "dashboard": {
-      "title": "Your Dashboard",
-      "description": "This is your command center. View key statistics, quick actions, and important alerts at a glance."
-    },
-    "addBatch": {
-      "title": "Add New Batches",
-      "description": "Click here to add new product batches to your inventory. Track expiration dates and quantities easily."
+      "title": "Dashboard",
+      "description": "Here you can see your inventory overview: active batches, expiring products, and urgent notifications."
     },
     "inventory": {
-      "title": "Inventory Management",
-      "description": "Browse and manage all your products. Filter by status, search, and keep everything organized."
+      "title": "Inventory",
+      "description": "View all products in your department, add new batches, and manage expiration dates."
+    },
+    "addBatch": {
+      "title": "Add Batch",
+      "description": "Quickly add new product batches — select a product, set expiry date and quantity."
     },
     "notifications": {
-      "title": "Stay Informed",
-      "description": "Get alerts about expiring products and important updates. Never miss a critical deadline."
+      "title": "Notifications",
+      "description": "The system automatically tracks expiring products and sends you notifications about critical batches."
+    },
+    "calendar": {
+      "title": "Calendar",
+      "description": "Visually plan expiration dates — click on any day to see which products expire."
     },
     "complete": {
-      "title": "You're All Set!",
-      "description": "You now know the basics of FreshTrack. Start managing your inventory with confidence!"
+      "title": "You're all set!",
+      "description": "You're ready to use FreshTrack. If you have any questions, click the \"?\" icon to open the Help Center."
     }
   },
   "settings": {
@@ -927,9 +932,44 @@
     "subtitle": "System management and configuration",
     "saved": "Settings saved",
     "saveError": "Save error",
-    "profile": "Profile",
-    "departments": "Departments",
-    "categories": "Categories",
+    "profile": {
+      "title": "User Profile",
+      "name": "Name",
+      "email": "Email",
+      "emailPlaceholder": "example@email.com",
+      "emailHint": "Add email to receive notifications",
+      "noEmail": "Email not specified",
+      "login": "Login",
+      "role": "Role",
+      "departments": "Departments",
+      "saved": "Profile updated",
+      "saveError": "Save error"
+    },
+    "departments": {
+      "add": "Add Department",
+      "emailVerification": "Email Verification",
+      "emailVerified": "Email verified. Reports will be sent to this address.",
+      "emailVerificationHint": "Send a confirmation email to receive daily reports.",
+      "sendConfirmation": "Send confirmation email",
+      "emailConfirmationSent": "Email sent. Email verified.",
+      "emailConfirmationError": "Send error",
+      "newDepartment": "New Department",
+      "namePlaceholder": "Department name",
+      "description": "Description",
+      "descriptionPlaceholder": "Description (e.g.: Minibar, Other)",
+      "emailPlaceholder": "Department email (e.g. kitchen@hotel.com) — for reports and alerts",
+      "added": "Department added",
+      "updated": "Department updated",
+      "deleted": "Department deleted",
+      "deleteConfirmTitle": "Delete department?",
+      "deleteConfirmText": "All users in this department will be unlinked. This action cannot be undone.",
+      "cannotDelete": "Cannot delete department",
+      "hasActiveBatches": "Department has {{count}} active batches. Please collect or delete all batches before deleting the department.",
+      "clearBatchesFirst": "Clear all batches first"
+    },
+    "categories": {
+      "title": "Product Categories"
+    },
     "export": "Export",
     "branding": "Branding",
     "brandingDescription": "Customize logo and system colors",
@@ -956,19 +996,6 @@
       "marshaCodes": "MARSHA Codes",
       "system": "System"
     },
-    "profile": {
-      "title": "User Profile",
-      "name": "Name",
-      "email": "Email",
-      "emailPlaceholder": "example@email.com",
-      "emailHint": "Add email to receive notifications",
-      "noEmail": "Email not specified",
-      "login": "Login",
-      "role": "Role",
-      "departments": "Departments",
-      "saved": "Profile updated",
-      "saveError": "Save error"
-    },
     "language": {
       "title": "Interface Language"
     },
@@ -983,31 +1010,6 @@
       "description": "Manage categories and departments",
       "categories": "Categories",
       "departments": "Departments"
-    },
-    "categories": {
-      "title": "Product Categories"
-    },
-    "departments": {
-      "add": "Add Department",
-      "emailVerification": "Email Verification",
-      "emailVerified": "Email verified. Reports will be sent to this address.",
-      "emailVerificationHint": "Send a confirmation email to receive daily reports.",
-      "sendConfirmation": "Send confirmation email",
-      "emailConfirmationSent": "Email sent. Email verified.",
-      "emailConfirmationError": "Send error",
-      "newDepartment": "New Department",
-      "namePlaceholder": "Department name",
-      "description": "Description",
-      "descriptionPlaceholder": "Description (e.g.: Minibar, Other)",
-      "emailPlaceholder": "Department email (e.g. kitchen@hotel.com) — for reports and alerts",
-      "added": "Department added",
-      "updated": "Department updated",
-      "deleted": "Department deleted",
-      "deleteConfirmTitle": "Delete department?",
-      "deleteConfirmText": "All users in this department will be unlinked. This action cannot be undone.",
-      "cannotDelete": "Cannot delete department",
-      "hasActiveBatches": "Department has {{count}} active batches. Please collect or delete all batches before deleting the department.",
-      "clearBatchesFirst": "Clear all batches first"
     },
     "templates": {
       "title": "Delivery Templates"
@@ -1325,23 +1327,53 @@
       "create": "Create",
       "update": "Update",
       "delete": "Delete",
-      "collect": "Collect Item",
+      "collect": "Collect",
       "settingsChange": "Settings Change",
       "import": "Import Data",
       "export": "Export Data",
-      "password_changed": "Password changed",
-      "email_changed": "Email changed",
-      "role_changed": "Role changed",
-      "mfa_enabled": "MFA enabled",
-      "mfa_disabled": "MFA disabled"
+      "passwordChanged": "Password Changed",
+      "emailChanged": "Email Changed",
+      "roleChanged": "Role Changed",
+      "mfaEnabled": "MFA Enabled",
+      "mfaDisabled": "MFA Disabled",
+      "applyTemplate": "Apply Template",
+      "block": "Block",
+      "unblock": "Unblock",
+      "approve": "Approve",
+      "reject": "Reject",
+      "userActivated": "Activated",
+      "userDeactivated": "Deactivated",
+      "termsAccepted": "Terms Accepted",
+      "verifyEmail": "Email Verified",
+      "sendConfirmation": "Send Confirmation",
+      "testNotification": "Test Notification",
+      "writeOff": "Write-off",
+      "clearCache": "Clear Cache",
+      "assignMarsha": "Assign MARSHA",
+      "releaseMarsha": "Release MARSHA"
     },
     "entities": {
       "product": "Product",
       "batch": "Batch",
       "user": "User",
       "category": "Category",
+      "department": "Department",
+      "hotel": "Hotel",
       "settings": "Settings",
-      "template": "Template"
+      "template": "Template",
+      "deliveryTemplate": "Delivery Template",
+      "notificationRule": "Notification Rule",
+      "dataExport": "Data Export",
+      "marshaCode": "MARSHA Code",
+      "joinRequest": "Join Request",
+      "loginBranding": "Login Branding",
+      "brandingSettings": "Branding Settings",
+      "generalSettings": "General Settings",
+      "telegramSettings": "Telegram Settings",
+      "notificationsSettings": "Notification Settings",
+      "session": "Session",
+      "account": "Account",
+      "taskBoard": "Task Board"
     },
     "filters": {
       "allActions": "All Actions",
@@ -1354,7 +1386,8 @@
       "severity": "Severity",
       "user": "User",
       "department": "Department",
-      "securityOnly": "Security only"
+      "securityOnly": "Security only",
+      "action": "Action"
     },
     "severityAll": "All",
     "severityCritical": "Critical",
@@ -1380,7 +1413,54 @@
     "newRecords": "{{count}} new records",
     "refreshList": "Refresh",
     "exportPdf": "Export PDF",
-    "exportExcel": "Export Excel"
+    "exportExcel": "Export Excel",
+    "detailLabels": {
+      "method": "Method",
+      "format": "Format",
+      "records": "records",
+      "reason": "Reason",
+      "name": "Name",
+      "quantity": "Quantity",
+      "role": "Role",
+      "login": "Login",
+      "code": "Code",
+      "rows": "Rows",
+      "exportType": "Export Type",
+      "deleted": "Deleted",
+      "batchesCreated": "Batches created",
+      "collected": "Collected",
+      "reasonExpired": "Expired",
+      "reasonDamaged": "Damaged",
+      "reasonReturn": "Return",
+      "reasonCompliment": "Compliment",
+      "reasonOther": "Other",
+      "exportAuditLogs": "Audit Logs",
+      "exportInventory": "Inventory",
+      "exportBatches": "Batches",
+      "exportCollections": "Collections",
+      "exportCategories": "Categories",
+      "exportUsers": "Users",
+      "exportMarsha": "MARSHA Codes",
+      "updatedParams": "Updated {{count}} parameters",
+      "sendTime": "Send time",
+      "version": "Version",
+      "selfChange": "Self-changed",
+      "merge": "Merge",
+      "clearedBatches": "Batches cleared",
+      "typeExpiry": "Type: Expiry"
+    },
+    "detailModal": {
+      "field": "Field",
+      "was": "Before",
+      "became": "After",
+      "noChanges": "No changes",
+      "whatChanged": "What changed",
+      "createdObject": "Created object",
+      "deletedObject": "Deleted object",
+      "actionData": "Action data",
+      "technicalInfo": "Technical information",
+      "device": "Device"
+    }
   },
   "accounts": {
     "title": "User Accounts",
@@ -1809,16 +1889,8 @@
     "noLinkedChats": "No linked chats",
     "chatLinked": "Chat linked",
     "chatUnlinked": "Chat unlinked",
-    "sendTime": "Notification send time",
-    "sendTimeLabel": "Daily reports will be sent at:",
-    "timezone": "Timezone",
-    "sendTest": "Send test notification now",
     "refreshStatus": "Refresh status",
-    "status": "Status",
-    "scheduledTime": "Scheduled time",
-    "currentTime": "Current time (Astana)",
     "nextRun": "Next execution",
-    "cronExpression": "Cron expression",
     "testing": "Sending..."
   },
   "fifoCollect": {
@@ -1905,36 +1977,74 @@
     "needMoreHelp": "Need more help?",
     "contactSupport": "If you didn't find an answer to your question, contact our support team."
   },
-  "onboarding": {
-    "skip": "Skip tour",
-    "getStarted": "Get Started",
-    "welcome": {
-      "title": "Welcome to FreshTrack!",
-      "description": "Let's take a quick tour of the interface. This will only take a minute."
+  "tasks": {
+    "title": "Task Planner",
+    "loading": "Loading Task Planner...",
+    "searchPlaceholder": "Search tasks...",
+    "newBoard": "New Board",
+    "addColumn": "Add Column",
+    "columnNamePlaceholder": "Column name...",
+    "noBoardsTitle": "No boards yet",
+    "noBoardsDescription": "Create your first board to start organizing tasks for your team.",
+    "createFirstBoard": "Create First Board",
+    "createTask": "Create Task",
+    "createBoard": "Create Board",
+    "taskTitle": "Task Title",
+    "taskTitlePlaceholder": "What needs to be done?",
+    "description": "Description",
+    "descriptionPlaceholder": "Add details...",
+    "priority": "Priority",
+    "dueDate": "Due Date",
+    "column": "Column",
+    "boardName": "Board Name",
+    "boardNamePlaceholder": "e.g. Kitchen Tasks",
+    "boardDescription": "Description",
+    "boardDescriptionPlaceholder": "What is this board for?",
+    "priorities": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High",
+      "urgent": "Urgent"
     },
-    "dashboard": {
-      "title": "Dashboard",
-      "description": "Here you can see your inventory overview: active batches, expiring products, and urgent notifications."
+    "stats": {
+      "total": "Total",
+      "todo": "To Do",
+      "inProgress": "In Progress",
+      "done": "Done",
+      "overdue": "Overdue"
     },
-    "inventory": {
-      "title": "Inventory",
-      "description": "View all products in your department, add new batches, and manage expiration dates."
+    "detail": {
+      "details": "Details",
+      "checklist": "Checklist",
+      "comments": "Comments",
+      "created": "Created",
+      "updated": "Updated",
+      "assignedTo": "Assigned to",
+      "noAssignee": "No assignee",
+      "deleteTask": "Delete Task",
+      "deleteConfirm": "Are you sure you want to delete this task?",
+      "addChecklistItem": "Add item...",
+      "checklistProgress": "{{done}} of {{total}} completed",
+      "addComment": "Write a comment...",
+      "noComments": "No comments yet",
+      "post": "Post"
     },
-    "addBatch": {
-      "title": "Add Batch",
-      "description": "Quickly add new product batches — select a product, set expiry date and quantity."
-    },
-    "notifications": {
-      "title": "Notifications",
-      "description": "The system automatically tracks expiring products and sends you notifications about critical batches."
-    },
-    "calendar": {
-      "title": "Calendar",
-      "description": "Visually plan expiration dates — click on any day to see which products expire."
-    },
-    "complete": {
-      "title": "You're all set!",
-      "description": "You're ready to use FreshTrack. If you have any questions, click the \"?\" icon to open the Help Center."
+    "dropHere": "Drop tasks here",
+    "statusHint": "Changing status will automatically move the card to the matching column",
+    "status": "Status",
+    "progress": "Progress",
+    "deleteColumn": "Delete column",
+    "deleteBoardConfirm": "Delete this board? All columns and tasks will be permanently removed.",
+    "boardDeleted": "Board deleted",
+    "deleteColumnConfirm": "Delete this column? All tasks inside will be permanently removed.",
+    "columnDeleted": "Column deleted",
+    "statuses": {
+      "todo": "To Do",
+      "inProgress": "In Progress",
+      "review": "Review",
+      "blocked": "Blocked",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
     }
   }
 }

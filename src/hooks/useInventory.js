@@ -56,9 +56,10 @@ function normalizeBatch(b) {
  */
 function buildBatchQuery(hotelId, params) {
   const sp = new URLSearchParams()
-  if (hotelId) sp.set('hotel_id', hotelId)
+  // hotel_id передаётся через X-Hotel-Id header (apiFetch)
   Object.entries(params).forEach(([k, v]) => {
-    if (v != null && v !== '' && v !== undefined) sp.set(k, String(v))
+    if (v != null && v !== '' && v !== undefined && k !== 'hotel_id')
+      sp.set(k, String(v))
   })
   return sp.toString()
 }
@@ -112,8 +113,8 @@ export function useBatchesStats(hotelId) {
   return useQuery({
     queryKey: queryKeys.batchesStats(hotelId),
     queryFn: async () => {
-      const query = hotelId ? `?hotel_id=${hotelId}` : ''
-      const response = await apiFetch(`/batches/stats${query}`)
+      // hotel_id передаётся через X-Hotel-Id header (apiFetch)
+      const response = await apiFetch(`/batches/stats`)
       return (
         response.stats ||
         response || {
@@ -141,8 +142,8 @@ export function useDepartments(hotelId) {
   return useQuery({
     queryKey: queryKeys.departments(hotelId),
     queryFn: async () => {
-      const query = hotelId ? `?hotel_id=${hotelId}` : ''
-      const response = await apiFetch(`/departments${query}`).catch(() => ({
+      // hotel_id передаётся через X-Hotel-Id header (apiFetch)
+      const response = await apiFetch(`/departments`).catch(() => ({
         departments: [],
       }))
       return Array.isArray(response) ? response : response.departments || []
@@ -160,8 +161,8 @@ export function useCategories(hotelId) {
   return useQuery({
     queryKey: queryKeys.categories(hotelId),
     queryFn: async () => {
-      const query = hotelId ? `?hotel_id=${hotelId}` : ''
-      const response = await apiFetch(`/categories${query}`).catch(() => ({
+      // hotel_id передаётся через X-Hotel-Id header (apiFetch)
+      const response = await apiFetch(`/categories`).catch(() => ({
         categories: [],
       }))
       return Array.isArray(response) ? response : response.categories || []
@@ -182,7 +183,7 @@ export function useProducts(hotelId, params = { page: 1, limit: 50 }) {
     queryKey: queryKeys.products(hotelId, params),
     queryFn: async () => {
       const sp = new URLSearchParams()
-      if (hotelId) sp.set('hotel_id', hotelId)
+      // hotel_id передаётся через X-Hotel-Id header (apiFetch)
       sp.set('page', String(params.page || 1))
       sp.set('limit', String(params.limit || 50))
       Object.entries(params).forEach(([k, v]) => {
@@ -236,9 +237,7 @@ export function useInventoryData(hotelId, departmentId = null) {
       {
         queryKey: queryKeys.batches(hotelId, { limit: CONTEXT_BATCHES_LIMIT }),
         queryFn: async () => {
-          const query = hotelId
-            ? `?hotel_id=${hotelId}&limit=${CONTEXT_BATCHES_LIMIT}`
-            : `?limit=${CONTEXT_BATCHES_LIMIT}`
+          const query = `?limit=${CONTEXT_BATCHES_LIMIT}`
           const response = await apiFetch(`/batches${query}`)
           const batchesRaw = Array.isArray(response)
             ? response
@@ -253,8 +252,8 @@ export function useInventoryData(hotelId, departmentId = null) {
       {
         queryKey: queryKeys.batchesStats(hotelId, departmentId),
         queryFn: async () => {
+          // hotel_id передаётся через X-Hotel-Id header (apiFetch)
           const sp = new URLSearchParams()
-          if (hotelId) sp.set('hotel_id', hotelId)
           if (departmentId) sp.set('departmentId', departmentId)
 
           const response = await apiFetch(`/batches/stats?${sp.toString()}`)
@@ -278,8 +277,8 @@ export function useInventoryData(hotelId, departmentId = null) {
       {
         queryKey: queryKeys.categories(hotelId),
         queryFn: async () => {
-          const query = hotelId ? `?hotel_id=${hotelId}` : ''
-          const response = await apiFetch(`/categories${query}`).catch(() => ({
+          // hotel_id передаётся через X-Hotel-Id header (apiFetch)
+          const response = await apiFetch(`/categories`).catch(() => ({
             categories: [],
           }))
           return Array.isArray(response) ? response : response.categories || []
@@ -292,9 +291,7 @@ export function useInventoryData(hotelId, departmentId = null) {
           limit: CONTEXT_PRODUCTS_LIMIT,
         }),
         queryFn: async () => {
-          const query = hotelId
-            ? `?hotel_id=${hotelId}&limit=${CONTEXT_PRODUCTS_LIMIT}`
-            : `?limit=${CONTEXT_PRODUCTS_LIMIT}`
+          const query = `?limit=${CONTEXT_PRODUCTS_LIMIT}`
           const response = await apiFetch(`/products${query}`).catch(() => ({
             items: [],
           }))

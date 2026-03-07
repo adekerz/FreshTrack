@@ -34,7 +34,8 @@ import {
   Crown,
   Wrench,
   UserPlus,
-  Lock
+  Lock,
+  Blocks,
 } from 'lucide-react'
 import NotificationRulesSettings from '../components/NotificationRulesSettings'
 import GeneralSettings from '../components/ui/settings/GeneralSettings'
@@ -48,6 +49,7 @@ import JoinRequestsSettings from '../components/ui/settings/JoinRequestsSettings
 import CacheManagement from '../components/ui/settings/CacheManagement'
 import AccountsSettings from '../components/ui/settings/AccountsSettings'
 import MarshaCodesSettings from '../components/ui/settings/MarshaCodesSettings'
+import ModulesSettings from '../components/ui/settings/ModulesSettings'
 import { ScheduledExportsManager } from '../components/ScheduledExports/ScheduledExportsManager'
 import { ChangePasswordModal } from '../components/ui/ChangePasswordModal'
 import { ChangeEmailModal } from '../components/ui/ChangeEmailModal'
@@ -55,9 +57,24 @@ import PageContainer from '../components/PageContainer'
 import AnimatedPage from '../components/AnimatedPage'
 
 const SETTINGS_TAB_IDS = new Set([
-  'profile', 'language', 'general', 'users', 'join-requests', 'directories',
-  'templates', 'rules', 'notifications', 'branding', 'cache', 'import-export', 'scheduled-exports', 'system',
-  'accounts', 'marsha-codes', 'organization'
+  'profile',
+  'language',
+  'general',
+  'users',
+  'join-requests',
+  'directories',
+  'templates',
+  'rules',
+  'notifications',
+  'branding',
+  'cache',
+  'import-export',
+  'scheduled-exports',
+  'system',
+  'accounts',
+  'marsha-codes',
+  'organization',
+  'modules',
 ])
 
 export default function SettingsPage() {
@@ -68,7 +85,7 @@ export default function SettingsPage() {
     isSuperAdmin,
     isDepartmentManager,
     isStaff: isStaffRole,
-    updateUser
+    updateUser,
   } = useAuth()
   const { language, changeLanguage } = useLanguage()
   const { startOnboarding, resetOnboarding } = useOnboarding()
@@ -85,7 +102,7 @@ export default function SettingsPage() {
   // Состояние для профиля
   const [profileData, setProfileData] = useState({
     name: user?.name || '',
-    email: user?.email || ''
+    email: user?.email || '',
   })
   const [savingProfile, setSavingProfile] = useState(false)
   const [profileMessage, setProfileMessage] = useState(null)
@@ -97,7 +114,7 @@ export default function SettingsPage() {
     if (user) {
       setProfileData({
         name: user.name || '',
-        email: user.email || ''
+        email: user.email || '',
       })
     }
   }, [user])
@@ -127,24 +144,44 @@ export default function SettingsPage() {
   // Табы для DEPARTMENT_MANAGER (управление своим департаментом)
   const departmentManagerTabs = [
     { id: 'profile', icon: User, label: t('settings.tabs.profile') },
-    { id: 'templates', icon: FileBox, label: t('settings.tabs.templates') || 'Шаблоны' },
-    { id: 'categories', icon: Tags, label: t('settings.tabs.categories') || 'Категории' },
-    { id: 'notifications', icon: Bell, label: t('settings.tabs.notifications') },
-    { id: 'language', icon: Languages, label: t('settings.tabs.language') }
+    {
+      id: 'templates',
+      icon: FileBox,
+      label: t('settings.tabs.templates') || 'Шаблоны',
+    },
+    {
+      id: 'categories',
+      icon: Tags,
+      label: t('settings.tabs.categories') || 'Категории',
+    },
+    {
+      id: 'notifications',
+      icon: Bell,
+      label: t('settings.tabs.notifications'),
+    },
+    { id: 'language', icon: Languages, label: t('settings.tabs.language') },
   ]
 
   // Табы для обычных пользователей (MANAGER)
   const managerTabs = [
     { id: 'profile', icon: User, label: t('settings.tabs.profile') },
-    { id: 'notifications', icon: Bell, label: t('settings.tabs.notifications') },
-    { id: 'language', icon: Languages, label: t('settings.tabs.language') }
+    {
+      id: 'notifications',
+      icon: Bell,
+      label: t('settings.tabs.notifications'),
+    },
+    { id: 'language', icon: Languages, label: t('settings.tabs.language') },
   ]
 
   // Табы для STAFF (без уведомлений, с шаблонами)
   const staffTabs = [
     { id: 'profile', icon: User, label: t('settings.tabs.profile') },
-    { id: 'templates', icon: FileBox, label: t('settings.tabs.templates') || 'Шаблоны' },
-    { id: 'language', icon: Languages, label: t('settings.tabs.language') }
+    {
+      id: 'templates',
+      icon: FileBox,
+      label: t('settings.tabs.templates') || 'Шаблоны',
+    },
+    { id: 'language', icon: Languages, label: t('settings.tabs.language') },
   ]
 
   // Выбор табов для не-админов
@@ -157,42 +194,81 @@ export default function SettingsPage() {
   // Базовые табы для админа (личные настройки)
   const personalTabs = [
     { id: 'profile', icon: User, label: t('settings.tabs.profile') },
-    { id: 'language', icon: Languages, label: t('settings.tabs.language') }
+    { id: 'language', icon: Languages, label: t('settings.tabs.language') },
   ]
 
   // Табы управления системой (HOTEL_ADMIN и SUPER_ADMIN)
   // Для SUPER_ADMIN убираем "Пользователи" - есть "Организация"
   const managementTabs = [
-    { id: 'general', icon: Settings, label: t('settings.tabs.general') || 'Общие' },
+    {
+      id: 'general',
+      icon: Settings,
+      label: t('settings.tabs.general') || 'Общие',
+    },
     // "Пользователи" только для HOTEL_ADMIN - SUPER_ADMIN управляет через "Организация"
     ...(userIsSuperAdmin
       ? []
-      : [{ id: 'users', icon: Users, label: t('settings.tabs.users') || 'Пользователи' }]),
-    { id: 'accounts', icon: Users, label: t('settings.tabs.accounts') || 'Аккаунты' },
-    { id: 'join-requests', icon: UserPlus, label: t('settings.tabs.joinRequests') || 'Заявки' },
-    { id: 'directories', icon: Tags, label: t('settings.tabs.directories') || 'Справочники' },
-    { id: 'templates', icon: FileBox, label: t('settings.tabs.templates') || 'Шаблоны' },
+      : [
+          {
+            id: 'users',
+            icon: Users,
+            label: t('settings.tabs.users') || 'Пользователи',
+          },
+        ]),
+    {
+      id: 'accounts',
+      icon: Users,
+      label: t('settings.tabs.accounts') || 'Аккаунты',
+    },
+    {
+      id: 'join-requests',
+      icon: UserPlus,
+      label: t('settings.tabs.joinRequests') || 'Заявки',
+    },
+    {
+      id: 'directories',
+      icon: Tags,
+      label: t('settings.tabs.directories') || 'Справочники',
+    },
+    {
+      id: 'templates',
+      icon: FileBox,
+      label: t('settings.tabs.templates') || 'Шаблоны',
+    },
     { id: 'rules', icon: Bell, label: t('settings.tabs.rules') || 'Правила' },
-    { id: 'notifications', icon: Bell, label: t('settings.tabs.notifications') || 'Уведомления' },
-    { id: 'branding', icon: Palette, label: t('settings.tabs.branding') || 'Брендинг' },
+    {
+      id: 'notifications',
+      icon: Bell,
+      label: t('settings.tabs.notifications') || 'Уведомления',
+    },
+    {
+      id: 'branding',
+      icon: Palette,
+      label: t('settings.tabs.branding') || 'Брендинг',
+    },
     { id: 'cache', icon: Database, label: t('settings.tabs.cache') || 'Кэш' },
     {
       id: 'import-export',
       icon: RefreshCw,
-      label: t('settings.tabs.importExport') || 'Импорт/Экспорт'
+      label: t('settings.tabs.importExport') || 'Импорт/Экспорт',
     },
     {
       id: 'scheduled-exports',
       icon: CalendarClock,
-      label: t('settings.tabs.scheduledExports') || 'Запланированные экспорты'
-    }
+      label: t('settings.tabs.scheduledExports') || 'Запланированные экспорты',
+    },
+    { id: 'modules', icon: Blocks, label: 'Модули' },
   ]
 
   // Табы только для SUPER_ADMIN (уникальные возможности)
   const superAdminTabs = [
     { id: 'organization', icon: Building2, label: 'Организация' },
-    { id: 'marsha-codes', icon: Database, label: t('settings.tabs.marshaCodes') || 'Марша коды' },
-    { id: 'system', icon: Shield, label: t('settings.tabs.system') }
+    {
+      id: 'marsha-codes',
+      icon: Database,
+      label: t('settings.tabs.marshaCodes') || 'Марша коды',
+    },
+    { id: 'system', icon: Shield, label: t('settings.tabs.system') },
   ]
 
   // Сохранение настроек
@@ -203,8 +279,14 @@ export default function SettingsPage() {
 
     try {
       // Валидация email
-      if (profileData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profileData.email)) {
-        setProfileMessage({ type: 'error', text: 'Неверный формат email адреса' })
+      if (
+        profileData.email &&
+        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profileData.email)
+      ) {
+        setProfileMessage({
+          type: 'error',
+          text: 'Неверный формат email адреса',
+        })
         setSavingProfile(false)
         return
       }
@@ -213,12 +295,15 @@ export default function SettingsPage() {
         method: 'PUT',
         body: JSON.stringify({
           name: profileData.name,
-          email: profileData.email || null
-        })
+          email: profileData.email || null,
+        }),
       })
 
       if (result.success) {
-        setProfileMessage({ type: 'success', text: t('settings.profile.saved') || 'Профиль обновлен' })
+        setProfileMessage({
+          type: 'success',
+          text: t('settings.profile.saved') || 'Профиль обновлен',
+        })
         addToast(t('settings.profile.saved') || 'Профиль обновлен', 'success')
 
         // Обновляем данные пользователя в контексте
@@ -228,12 +313,22 @@ export default function SettingsPage() {
 
         setTimeout(() => setProfileMessage(null), 3000)
       } else {
-        setProfileMessage({ type: 'error', text: result.error || t('settings.profile.saveError') || 'Ошибка сохранения' })
+        setProfileMessage({
+          type: 'error',
+          text:
+            result.error ||
+            t('settings.profile.saveError') ||
+            'Ошибка сохранения',
+        })
       }
     } catch (error) {
       setProfileMessage({
         type: 'error',
-        text: error.error || error.message || t('settings.profile.saveError') || 'Ошибка сохранения'
+        text:
+          error.error ||
+          error.message ||
+          t('settings.profile.saveError') ||
+          'Ошибка сохранения',
       })
     } finally {
       setSavingProfile(false)
@@ -251,10 +346,11 @@ export default function SettingsPage() {
 
         {profileMessage && (
           <div
-            className={`flex items-center gap-2 p-3 rounded-lg mb-4 ${profileMessage.type === 'success'
-              ? 'bg-success/10 text-success border border-success/20'
-              : 'bg-danger/10 text-danger border border-danger/20'
-              }`}
+            className={`flex items-center gap-2 p-3 rounded-lg mb-4 ${
+              profileMessage.type === 'success'
+                ? 'bg-success/10 text-success border border-success/20'
+                : 'bg-danger/10 text-danger border border-danger/20'
+            }`}
           >
             {profileMessage.type === 'success' ? (
               <Check className="w-5 h-5" />
@@ -272,9 +368,14 @@ export default function SettingsPage() {
               {profileData.name?.[0] || user?.name?.[0] || 'U'}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-medium text-foreground text-sm sm:text-base truncate">{profileData.name || user?.name}</p>
+              <p className="font-medium text-foreground text-sm sm:text-base truncate">
+                {profileData.name || user?.name}
+              </p>
               <p className="text-xs sm:text-sm text-muted-foreground truncate">
-                {profileData.email || user?.email || t('settings.profile.noEmail') || 'Email не указан'}
+                {profileData.email ||
+                  user?.email ||
+                  t('settings.profile.noEmail') ||
+                  'Email не указан'}
               </p>
             </div>
           </div>
@@ -282,19 +383,27 @@ export default function SettingsPage() {
           {/* Информация - компактные inputs на мобильных */}
           <div className="grid sm:grid-cols-2 gap-3 sm:gap-4 pt-4">
             <div>
-              <label htmlFor="settings-profile-name" className="block text-xs sm:text-sm text-muted-foreground mb-1.5">
+              <label
+                htmlFor="settings-profile-name"
+                className="block text-xs sm:text-sm text-muted-foreground mb-1.5"
+              >
                 {t('settings.profile.name') || 'Имя'}
               </label>
               <input
                 id="settings-profile-name"
                 type="text"
                 value={profileData.name}
-                onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
+                onChange={(e) =>
+                  setProfileData({ ...profileData, name: e.target.value })
+                }
                 className="w-full px-3 py-2 text-sm sm:text-base border border-border rounded-lg bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
               />
             </div>
             <div>
-              <label htmlFor="settings-profile-email" className="block text-xs sm:text-sm text-muted-foreground mb-1.5">
+              <label
+                htmlFor="settings-profile-email"
+                className="block text-xs sm:text-sm text-muted-foreground mb-1.5"
+              >
                 {t('settings.profile.email') || 'Email'}
               </label>
               <div className="flex gap-2">
@@ -303,7 +412,10 @@ export default function SettingsPage() {
                   type="email"
                   value={profileData.email || user?.email || ''}
                   disabled
-                  placeholder={t('settings.profile.emailPlaceholder') || 'example@email.com'}
+                  placeholder={
+                    t('settings.profile.emailPlaceholder') ||
+                    'example@email.com'
+                  }
                   className="flex-1 px-3 py-2 text-sm sm:text-base border border-border rounded-lg bg-muted text-muted-foreground"
                 />
                 {user?.email && (
@@ -315,18 +427,24 @@ export default function SettingsPage() {
                     aria-label={t('auth.changeEmail') || 'Изменить email'}
                   >
                     <Mail className="w-4 h-4" aria-hidden="true" />
-                    <span className="hidden sm:inline text-sm">{t('auth.changeEmail') || 'Изменить'}</span>
+                    <span className="hidden sm:inline text-sm">
+                      {t('auth.changeEmail') || 'Изменить'}
+                    </span>
                   </button>
                 )}
               </div>
               {!user?.email && (
                 <p className="text-xs text-muted-foreground mt-1">
-                  {t('settings.profile.emailHint') || 'Добавьте email для получения уведомлений'}
+                  {t('settings.profile.emailHint') ||
+                    'Добавьте email для получения уведомлений'}
                 </p>
               )}
             </div>
             <div>
-              <label htmlFor="settings-profile-login" className="block text-xs sm:text-sm text-muted-foreground mb-1.5">
+              <label
+                htmlFor="settings-profile-login"
+                className="block text-xs sm:text-sm text-muted-foreground mb-1.5"
+              >
                 {t('settings.profile.login')}
               </label>
               <input
@@ -338,13 +456,20 @@ export default function SettingsPage() {
               />
             </div>
             <div>
-              <label htmlFor="settings-profile-role" className="block text-xs sm:text-sm text-muted-foreground mb-1.5">
+              <label
+                htmlFor="settings-profile-role"
+                className="block text-xs sm:text-sm text-muted-foreground mb-1.5"
+              >
                 {t('settings.profile.role')}
               </label>
               <input
                 id="settings-profile-role"
                 type="text"
-                value={user?.roleLabel || t(`settings.profile.role${user?.role}`) || user?.role}
+                value={
+                  user?.roleLabel ||
+                  t(`settings.profile.role${user?.role}`) ||
+                  user?.role
+                }
                 disabled
                 className="w-full px-3 py-2 text-sm sm:text-base border border-border rounded-lg bg-muted text-muted-foreground"
               />
@@ -383,7 +508,11 @@ export default function SettingsPage() {
 
             <button
               onClick={handleSaveProfile}
-              disabled={savingProfile || (profileData.name === user?.name && profileData.email === (user?.email || ''))}
+              disabled={
+                savingProfile ||
+                (profileData.name === user?.name &&
+                  profileData.email === (user?.email || ''))
+              }
               className="w-full sm:w-auto sm:ml-auto flex items-center justify-center gap-2 px-6 py-2.5 bg-foreground text-background rounded-lg hover:bg-foreground/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
             >
               {savingProfile ? (
@@ -413,7 +542,8 @@ export default function SettingsPage() {
           {t('settings.notifications.title')}
         </h3>
         <p className="text-muted-foreground">
-          {t('settings.notifications.userNote') || 'Настройки уведомлений (дни предупреждения, критические дни, время отправки) управляются администратором в разделе "Правила уведомлений".'}
+          {t('settings.notifications.userNote') ||
+            'Настройки уведомлений (дни предупреждения, критические дни, время отправки) управляются администратором в разделе "Правила уведомлений".'}
         </p>
       </div>
     </div>
@@ -434,21 +564,25 @@ export default function SettingsPage() {
               key={lang.code}
               type="button"
               onClick={() => changeLanguage(lang.code)}
-              className={`flex items-center gap-2 sm:gap-3 p-3 sm:p-4 rounded-lg border transition-all focus:outline-none focus:ring-2 focus:ring-accent/20 min-h-[44px] ${language === lang.code
-                ? 'border-accent bg-accent/5'
-                : 'border-border hover:border-muted-foreground'
-                }`}
+              className={`flex items-center gap-2 sm:gap-3 p-3 sm:p-4 rounded-lg border transition-all focus:outline-none focus:ring-2 focus:ring-accent/20 min-h-[44px] ${
+                language === lang.code
+                  ? 'border-accent bg-accent/5'
+                  : 'border-border hover:border-muted-foreground'
+              }`}
               aria-label={lang.name}
               aria-pressed={language === lang.code}
             >
               <span className="text-2xl">{lang.flag}</span>
               <span
-                className={`text-sm font-medium ${language === lang.code ? 'text-accent' : 'text-foreground'
-                  }`}
+                className={`text-sm font-medium ${
+                  language === lang.code ? 'text-accent' : 'text-foreground'
+                }`}
               >
                 {lang.name}
               </span>
-              {language === lang.code && <Check className="w-4 h-4 text-accent ml-auto" />}
+              {language === lang.code && (
+                <Check className="w-4 h-4 text-accent ml-auto" />
+              )}
             </button>
           ))}
         </div>
@@ -468,7 +602,10 @@ export default function SettingsPage() {
           onClick={() => {
             resetOnboarding()
             startOnboarding()
-            addToast(t('settings.onboarding.restarted') || 'Tour restarted', 'success')
+            addToast(
+              t('settings.onboarding.restarted') || 'Tour restarted',
+              'success'
+            )
           }}
           className="flex items-center gap-2 px-4 py-2.5 bg-accent/10 text-accent border border-accent/20 rounded-lg hover:bg-accent/20 transition-colors text-sm font-medium focus:outline-none focus:ring-2 focus:ring-accent/20 min-h-[44px]"
           aria-label={t('settings.onboarding.restart') || 'Restart Tour'}
@@ -494,7 +631,7 @@ export default function SettingsPage() {
         success: false,
         status: 'unhealthy',
         database: 'disconnected',
-        error: error.message
+        error: error.message,
       })
     } finally {
       setSystemLoading(false)
@@ -533,16 +670,23 @@ export default function SettingsPage() {
                 className="p-2 hover:bg-muted-foreground/10 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-accent/20 min-h-[44px] min-w-[44px] flex items-center justify-center"
                 aria-label={t('common.refresh') || 'Обновить статус'}
               >
-                <RefreshCw className={`w-4 h-4 ${systemLoading ? 'animate-spin' : ''}`} aria-hidden="true" />
+                <RefreshCw
+                  className={`w-4 h-4 ${systemLoading ? 'animate-spin' : ''}`}
+                  aria-hidden="true"
+                />
               </button>
             </div>
 
             {systemLoading ? (
-              <div className="text-sm text-muted-foreground">{t('common.loading')}...</div>
+              <div className="text-sm text-muted-foreground">
+                {t('common.loading')}...
+              </div>
             ) : systemHealth ? (
               <div className="space-y-2 text-sm">
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">{t('settings.system.status')}</span>
+                  <span className="text-muted-foreground">
+                    {t('settings.system.status')}
+                  </span>
                   <span
                     className={`font-medium ${systemHealth.success ? 'text-success' : 'text-destructive'}`}
                   >
@@ -552,7 +696,9 @@ export default function SettingsPage() {
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">{t('settings.system.database')}</span>
+                  <span className="text-muted-foreground">
+                    {t('settings.system.database')}
+                  </span>
                   <span
                     className={`font-medium ${systemHealth.database === 'connected' ? 'text-success' : 'text-destructive'}`}
                   >
@@ -563,7 +709,9 @@ export default function SettingsPage() {
                 </div>
                 {systemHealth.server_time && (
                   <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">{t('settings.system.serverTime')}</span>
+                    <span className="text-muted-foreground">
+                      {t('settings.system.serverTime')}
+                    </span>
                     <span className="text-foreground font-mono text-xs">
                       {new Date(systemHealth.server_time).toLocaleString()}
                     </span>
@@ -571,7 +719,10 @@ export default function SettingsPage() {
                 )}
               </div>
             ) : (
-              <button onClick={checkSystemHealth} className="text-sm text-primary hover:underline">
+              <button
+                onClick={checkSystemHealth}
+                className="text-sm text-primary hover:underline"
+              >
                 {t('settings.system.checkHealth')}
               </button>
             )}
@@ -579,7 +730,9 @@ export default function SettingsPage() {
 
           {/* Версия */}
           <div className="flex items-center justify-between py-3 border-t border-border">
-            <span className="text-sm text-muted-foreground">{t('settings.system.version')}</span>
+            <span className="text-sm text-muted-foreground">
+              {t('settings.system.version')}
+            </span>
             <span className="text-sm text-foreground font-mono">
               {systemHealth?.version || '2.0.0'}
             </span>
@@ -591,7 +744,9 @@ export default function SettingsPage() {
               {t('settings.system.environment')}
             </span>
             <span className="text-sm text-foreground font-mono">
-              {import.meta.env.MODE === 'production' ? 'Production' : 'Development'}
+              {import.meta.env.MODE === 'production'
+                ? 'Production'
+                : 'Development'}
             </span>
           </div>
         </div>
@@ -619,7 +774,10 @@ export default function SettingsPage() {
                       <User className="w-3.5 h-3.5" />
                       Личные
                     </div>
-                    <div className="flex lg:flex-col gap-1 overflow-x-auto lg:overflow-visible" role="tablist">
+                    <div
+                      className="flex lg:flex-col gap-1 overflow-x-auto lg:overflow-visible"
+                      role="tablist"
+                    >
                       {personalTabs.map((tab) => (
                         <button
                           key={tab.id}
@@ -628,13 +786,19 @@ export default function SettingsPage() {
                           aria-label={tab.label}
                           aria-selected={activeTab === tab.id}
                           role="tab"
-                          className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm transition-colors flex-shrink-0 lg:w-full min-w-0 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:ring-offset-2 focus:ring-offset-background ${activeTab === tab.id
-                            ? 'bg-foreground text-background'
-                            : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                            }`}
+                          className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm transition-colors flex-shrink-0 lg:w-full min-w-0 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:ring-offset-2 focus:ring-offset-background ${
+                            activeTab === tab.id
+                              ? 'bg-foreground text-background'
+                              : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                          }`}
                         >
-                          <tab.icon className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
-                          <span className="hidden sm:inline min-w-0 truncate">{tab.label}</span>
+                          <tab.icon
+                            className="w-4 h-4 flex-shrink-0"
+                            aria-hidden="true"
+                          />
+                          <span className="hidden sm:inline min-w-0 truncate">
+                            {tab.label}
+                          </span>
                         </button>
                       ))}
                     </div>
@@ -646,7 +810,10 @@ export default function SettingsPage() {
                       <Wrench className="w-3.5 h-3.5" />
                       Управление
                     </div>
-                    <div className="flex lg:flex-col gap-1 overflow-x-auto lg:overflow-visible" role="tablist">
+                    <div
+                      className="flex lg:flex-col gap-1 overflow-x-auto lg:overflow-visible"
+                      role="tablist"
+                    >
                       {managementTabs.map((tab) => {
                         const TabIcon = tab.icon ?? CalendarClock
                         return (
@@ -657,13 +824,19 @@ export default function SettingsPage() {
                             aria-label={tab.label}
                             aria-selected={activeTab === tab.id}
                             role="tab"
-                            className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm transition-colors flex-shrink-0 lg:w-full min-w-0 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:ring-offset-2 focus:ring-offset-background ${activeTab === tab.id
-                              ? 'bg-foreground text-background'
-                              : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                              }`}
+                            className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm transition-colors flex-shrink-0 lg:w-full min-w-0 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:ring-offset-2 focus:ring-offset-background ${
+                              activeTab === tab.id
+                                ? 'bg-foreground text-background'
+                                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                            }`}
                           >
-                            <TabIcon className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
-                            <span className="hidden sm:inline min-w-0 truncate">{tab.label}</span>
+                            <TabIcon
+                              className="w-4 h-4 flex-shrink-0"
+                              aria-hidden="true"
+                            />
+                            <span className="hidden sm:inline min-w-0 truncate">
+                              {tab.label}
+                            </span>
                           </button>
                         )
                       })}
@@ -677,7 +850,10 @@ export default function SettingsPage() {
                         <Crown className="w-3.5 h-3.5" />
                         Супер-Админ
                       </div>
-                      <div className="flex lg:flex-col gap-1 overflow-x-auto lg:overflow-visible" role="tablist">
+                      <div
+                        className="flex lg:flex-col gap-1 overflow-x-auto lg:overflow-visible"
+                        role="tablist"
+                      >
                         {superAdminTabs.map((tab) => (
                           <button
                             key={tab.id}
@@ -686,13 +862,19 @@ export default function SettingsPage() {
                             aria-label={tab.label}
                             aria-selected={activeTab === tab.id}
                             role="tab"
-                            className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm transition-colors flex-shrink-0 lg:w-full min-w-0 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-background ${activeTab === tab.id
-                              ? 'bg-amber-500 text-white'
-                              : 'text-amber-800 dark:text-amber-200 hover:bg-amber-500/20'
-                              }`}
+                            className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm transition-colors flex-shrink-0 lg:w-full min-w-0 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-background ${
+                              activeTab === tab.id
+                                ? 'bg-amber-500 text-white'
+                                : 'text-amber-800 dark:text-amber-200 hover:bg-amber-500/20'
+                            }`}
                           >
-                            <tab.icon className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
-                            <span className="hidden sm:inline min-w-0 truncate">{tab.label}</span>
+                            <tab.icon
+                              className="w-4 h-4 flex-shrink-0"
+                              aria-hidden="true"
+                            />
+                            <span className="hidden sm:inline min-w-0 truncate">
+                              {tab.label}
+                            </span>
                           </button>
                         ))}
                       </div>
@@ -701,7 +883,10 @@ export default function SettingsPage() {
                 </>
               ) : (
                 /* Обычный пользователь */
-                <div className="bg-card rounded-xl border border-border p-1.5 sm:p-2 flex lg:flex-col gap-1 overflow-x-auto lg:overflow-visible" role="tablist">
+                <div
+                  className="bg-card rounded-xl border border-border p-1.5 sm:p-2 flex lg:flex-col gap-1 overflow-x-auto lg:overflow-visible"
+                  role="tablist"
+                >
                   {userTabs.map((tab) => (
                     <button
                       key={tab.id}
@@ -710,13 +895,19 @@ export default function SettingsPage() {
                       aria-label={tab.label}
                       aria-selected={activeTab === tab.id}
                       role="tab"
-                      className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-lg text-xs sm:text-sm transition-colors flex-shrink-0 lg:w-full min-w-0 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:ring-offset-2 focus:ring-offset-background ${activeTab === tab.id
-                        ? 'bg-foreground text-background'
-                        : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                        }`}
+                      className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-lg text-xs sm:text-sm transition-colors flex-shrink-0 lg:w-full min-w-0 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:ring-offset-2 focus:ring-offset-background ${
+                        activeTab === tab.id
+                          ? 'bg-foreground text-background'
+                          : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                      }`}
                     >
-                      <tab.icon className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" aria-hidden="true" />
-                      <span className="hidden sm:inline min-w-0 truncate">{tab.label}</span>
+                      <tab.icon
+                        className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0"
+                        aria-hidden="true"
+                      />
+                      <span className="hidden sm:inline min-w-0 truncate">
+                        {tab.label}
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -726,30 +917,53 @@ export default function SettingsPage() {
             {/* Контент */}
             <div className="flex-1 bg-card rounded-xl border border-border p-4 sm:p-6">
               {activeTab === 'profile' && renderProfile()}
-              {activeTab === 'notifications' && !userIsAdmin && renderNotifications()}
+              {activeTab === 'notifications' &&
+                !userIsAdmin &&
+                renderNotifications()}
               {activeTab === 'language' && renderLanguage()}
               {activeTab === 'general' && userIsAdmin && <GeneralSettings />}
               {activeTab === 'users' && userIsAdmin && <OrganizationSettings />}
               {activeTab === 'accounts' && userIsAdmin && <AccountsSettings />}
-              {activeTab === 'join-requests' && userIsAdmin && <JoinRequestsSettings />}
-              {activeTab === 'organization' && userIsSuperAdmin && <OrganizationSettings />}
-              {activeTab === 'marsha-codes' && userIsSuperAdmin && <MarshaCodesSettings />}
-              {activeTab === 'directories' && userIsAdmin && <DirectoriesSettings />}
-              {activeTab === 'directories' && userIsDepartmentManager && !userIsAdmin && (
-                <DirectoriesSettings readOnly />
+              {activeTab === 'join-requests' && userIsAdmin && (
+                <JoinRequestsSettings />
               )}
+              {activeTab === 'organization' && userIsSuperAdmin && (
+                <OrganizationSettings />
+              )}
+              {activeTab === 'marsha-codes' && userIsSuperAdmin && (
+                <MarshaCodesSettings />
+              )}
+              {activeTab === 'directories' && userIsAdmin && (
+                <DirectoriesSettings />
+              )}
+              {activeTab === 'directories' &&
+                userIsDepartmentManager &&
+                !userIsAdmin && <DirectoriesSettings readOnly />}
               {/* Шаблоны: админы и DEPARTMENT_MANAGER - полный доступ, STAFF - только чтение */}
-              {activeTab === 'templates' && userIsAdmin && <TemplatesSettings />}
-              {activeTab === 'templates' && userIsDepartmentManager && !userIsAdmin && (
+              {activeTab === 'templates' && userIsAdmin && (
                 <TemplatesSettings />
               )}
-              {activeTab === 'templates' && userIsStaff && <TemplatesSettings readOnly />}
-              {activeTab === 'rules' && userIsAdmin && <NotificationRulesSettings />}
-              {activeTab === 'notifications' && userIsAdmin && <NotificationsSettings />}
+              {activeTab === 'templates' &&
+                userIsDepartmentManager &&
+                !userIsAdmin && <TemplatesSettings />}
+              {activeTab === 'templates' && userIsStaff && (
+                <TemplatesSettings readOnly />
+              )}
+              {activeTab === 'rules' && userIsAdmin && (
+                <NotificationRulesSettings />
+              )}
+              {activeTab === 'notifications' && userIsAdmin && (
+                <NotificationsSettings />
+              )}
               {activeTab === 'branding' && userIsAdmin && <BrandingSettings />}
               {activeTab === 'cache' && userIsAdmin && <CacheManagement />}
-              {activeTab === 'import-export' && userIsAdmin && <ImportExportSettings />}
-              {activeTab === 'scheduled-exports' && userIsAdmin && <ScheduledExportsManager />}
+              {activeTab === 'import-export' && userIsAdmin && (
+                <ImportExportSettings />
+              )}
+              {activeTab === 'scheduled-exports' && userIsAdmin && (
+                <ScheduledExportsManager />
+              )}
+              {activeTab === 'modules' && userIsAdmin && <ModulesSettings />}
               {activeTab === 'system' && userIsSuperAdmin && renderSystem()}
 
               {/* Кнопка сохранения удалена - настройки уведомлений теперь управляются через правила уведомлений */}
@@ -773,7 +987,7 @@ export default function SettingsPage() {
                   updateUser(response.user)
                   setProfileData({
                     name: response.user.name || '',
-                    email: response.user.email || ''
+                    email: response.user.email || '',
                   })
                 }
               } catch (error) {

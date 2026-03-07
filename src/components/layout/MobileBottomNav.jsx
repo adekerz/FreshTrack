@@ -1,23 +1,36 @@
-import { Home, Package, Bell, Settings, BarChart3 } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
 import { useTranslation } from '../../context/LanguageContext'
+import { useAuth } from '../../context/AuthContext'
+import { useModules } from '../../context/ModuleContext'
+import { mainNavItems, filterNavByRole } from '../../config/navigation'
 import { cn } from '../../utils/classNames'
 
 /**
  * Bottom navigation bar for mobile (iOS/Android style).
  * Only visible on screens < lg.
+ * Uses centralized navigation config with module access filtering.
  */
 export default function MobileBottomNav() {
   const location = useLocation()
   const { t } = useTranslation()
+  const { user, hasPermission, getCapabilities } = useAuth()
+  const { hasModule } = useModules()
 
-  const navItems = [
-    { path: '/', icon: Home, labelKey: 'nav.dashboard', fallback: 'Главная' },
-    { path: '/inventory', icon: Package, labelKey: 'nav.inventory', fallback: 'Инвентарь' },
-    { path: '/notifications', icon: Bell, labelKey: 'nav.notifications', fallback: 'Уведомления' },
-    { path: '/statistics', icon: BarChart3, labelKey: 'nav.statistics', fallback: 'Статистика' },
-    { path: '/settings', icon: Settings, labelKey: 'nav.settings', fallback: 'Настройки' },
-  ]
+  const navOptions = {
+    capabilities: getCapabilities(),
+    permissions: user?.permissions || [],
+    hasPermission,
+    hasModuleFn: hasModule,
+  }
+
+  const navItems = filterNavByRole(mainNavItems, user?.role, navOptions).map(
+    (item) => ({
+      path: item.path,
+      icon: item.icon,
+      labelKey: item.labelKey,
+      fallback: item.fallbackLabel,
+    })
+  )
 
   return (
     <nav
@@ -59,11 +72,19 @@ export default function MobileBottomNav() {
               aria-label={label}
             >
               <Icon
-                className={cn('w-6 h-6 transition-transform', isActive && 'scale-110')}
+                className={cn(
+                  'w-6 h-6 transition-transform',
+                  isActive && 'scale-110'
+                )}
                 strokeWidth={isActive ? 2.5 : 2}
                 aria-hidden="true"
               />
-              <span className={cn('text-[10px] mt-1 font-medium line-clamp-1', isActive && 'font-semibold')}>
+              <span
+                className={cn(
+                  'text-[10px] mt-1 font-medium line-clamp-1',
+                  isActive && 'font-semibold'
+                )}
+              >
                 {label}
               </span>
             </Link>

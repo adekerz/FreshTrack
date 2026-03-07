@@ -152,7 +152,9 @@
     "history": "Verlauf",
     "more": "Mehr",
     "reports": "Berichte",
-    "mobileNav": "Navigation"
+    "mobileNav": "Navigation",
+    "tasks": "Aufgaben",
+    "logbookScanner": "Logbook Scanner"
   },
   "sidebar": {
     "collapse": "Menü einklappen",
@@ -1613,5 +1615,75 @@
     },
     "needMoreHelp": "Benötigen Sie weitere Hilfe?",
     "contactSupport": "Wenn Sie keine Antwort auf Ihre Frage gefunden haben, wenden Sie sich an unser Support-Team."
+  },
+  "tasks": {
+    "title": "Aufgabenplaner",
+    "loading": "Aufgabenplaner wird geladen...",
+    "searchPlaceholder": "Aufgaben suchen...",
+    "newBoard": "Neues Board",
+    "addColumn": "Spalte hinzufügen",
+    "columnNamePlaceholder": "Spaltenname...",
+    "noBoardsTitle": "Keine Boards",
+    "noBoardsDescription": "Erstellen Sie Ihr erstes Board, um Aufgaben Ihres Teams zu organisieren.",
+    "createFirstBoard": "Erstes Board erstellen",
+    "createTask": "Aufgabe erstellen",
+    "createBoard": "Board erstellen",
+    "taskTitle": "Aufgabentitel",
+    "taskTitlePlaceholder": "Was muss erledigt werden?",
+    "description": "Beschreibung",
+    "descriptionPlaceholder": "Details hinzufügen...",
+    "priority": "Priorität",
+    "dueDate": "Fälligkeitsdatum",
+    "column": "Spalte",
+    "boardName": "Board-Name",
+    "boardNamePlaceholder": "z.B. Küchenaufgaben",
+    "boardDescription": "Beschreibung",
+    "boardDescriptionPlaceholder": "Wofür ist dieses Board?",
+    "priorities": {
+      "low": "Niedrig",
+      "medium": "Mittel",
+      "high": "Hoch",
+      "urgent": "Dringend"
+    },
+    "stats": {
+      "total": "Gesamt",
+      "todo": "Zu erledigen",
+      "inProgress": "In Bearbeitung",
+      "done": "Erledigt",
+      "overdue": "Überfällig"
+    },
+    "detail": {
+      "details": "Details",
+      "checklist": "Checkliste",
+      "comments": "Kommentare",
+      "created": "Erstellt am",
+      "updated": "Aktualisiert am",
+      "assignedTo": "Zugewiesen an",
+      "noAssignee": "Nicht zugewiesen",
+      "deleteTask": "Aufgabe löschen",
+      "deleteConfirm": "Sind Sie sicher, dass Sie diese Aufgabe löschen möchten?",
+      "addChecklistItem": "Element hinzufügen...",
+      "checklistProgress": "{{done}} von {{total}} erledigt",
+      "addComment": "Kommentar schreiben...",
+      "noComments": "Noch keine Kommentare",
+      "post": "Senden"
+    },
+    "dropHere": "Aufgaben hier ablegen",
+    "statusHint": "Beim Ändern des Status wird die Karte automatisch in die passende Spalte verschoben",
+    "status": "Status",
+    "progress": "Fortschritt",
+    "deleteColumn": "Spalte löschen",
+    "deleteBoardConfirm": "Dieses Board löschen? Alle Spalten und Aufgaben werden dauerhaft entfernt.",
+    "boardDeleted": "Board gelöscht",
+    "deleteColumnConfirm": "Diese Spalte löschen? Alle Aufgaben darin werden dauerhaft entfernt.",
+    "columnDeleted": "Spalte gelöscht",
+    "statuses": {
+      "todo": "Zu erledigen",
+      "inProgress": "In Bearbeitung",
+      "review": "Prüfung",
+      "blocked": "Blockiert",
+      "completed": "Erledigt",
+      "cancelled": "Abgebrochen"
+    }
   }
 }

@@ -7,7 +7,7 @@ import {
   Calendar,
   Package,
   History,
-  Zap
+  Zap,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useProducts } from '../context/ProductContext'
@@ -23,13 +23,8 @@ import FIFOCollectModal from '../components/FIFOCollectModal'
 export default function NotificationsPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const {
-    getActiveBatches,
-    findProduct,
-    loading,
-    refreshProducts,
-    refresh,
-  } = useProducts()
+  const { getActiveBatches, findProduct, loading, refreshProducts, refresh } =
+    useProducts()
   const { departments, departments: depts } = useDepartment()
   const { isStaff } = useAuth()
   const [retryCount, setRetryCount] = useState(0)
@@ -42,18 +37,14 @@ export default function NotificationsPage() {
   const [selectedProduct, setSelectedProduct] = useState(null)
 
   // Автоматический retry когда нет данных
-  // Делаем retry только если не loading и прошло достаточно времени
   useEffect(() => {
-    // Не делаем retry если уже идёт загрузка или достигнут лимит
     if (loading || retryCount >= 5) return undefined
 
-    // Если данные есть - сбрасываем счётчик
     if (depts.length > 0) {
       if (retryCount > 0) setRetryCount(0)
       return undefined
     }
 
-    // Retry с увеличивающимся интервалом (3s, 6s, 9s...)
     const delay = (retryCount + 1) * 3000
     const timer = setTimeout(() => {
       setRetryCount((prev) => prev + 1)
@@ -66,15 +57,13 @@ export default function NotificationsPage() {
   // Получить все активные партии с информацией
   const getBatchesWithInfo = () => {
     return getActiveBatches().map((batch) => {
-      // Используем данные с бэкенда, fallback на каталог если нет
       const product = findProduct(batch.productId)
       const department = departments.find((d) => d.id === batch.departmentId)
       return {
         ...batch,
-        // Backend - single source of truth
         productName: batch.productName || product?.name || 'Unknown',
         departmentName: batch.departmentName || department?.name || 'Unknown',
-        departmentColor: department?.color || '#666'
+        departmentColor: department?.color || '#666',
       }
     })
   }
@@ -84,7 +73,7 @@ export default function NotificationsPage() {
   // Получаем пороги из правил уведомлений
   const { thresholds } = useThresholds()
 
-  // Группировка по статусу на основе порогов из правил
+  // Группировка по статусу
   const expiredBatches = allBatches.filter((b) => b.daysLeft < 0)
   const criticalBatches = allBatches.filter(
     (b) => b.daysLeft >= 0 && b.daysLeft <= thresholds.critical
@@ -93,7 +82,7 @@ export default function NotificationsPage() {
     (b) => b.daysLeft > thresholds.critical && b.daysLeft <= thresholds.warning
   )
 
-  // Показываем скелетон при загрузке (когда есть данные)
+  // Показываем скелетон при загрузке
   if (loading && depts.length > 0) {
     return (
       <PageContainer
@@ -113,7 +102,6 @@ export default function NotificationsPage() {
     )
   }
 
-  // Загрузка БД (нет данных и идёт загрузка) — скелетон вместо спиннера (снижает perceived loading)
   if (loading && depts.length === 0) {
     return (
       <PageContainer
@@ -122,7 +110,12 @@ export default function NotificationsPage() {
         stickyHeader={true}
         titleIcon={Bell}
       >
-        <div className="animate-fade-in" role="status" aria-live="polite" aria-label={t('common.loading') || 'Загрузка'}>
+        <div
+          className="animate-fade-in"
+          role="status"
+          aria-live="polite"
+          aria-label={t('common.loading') || 'Загрузка'}
+        >
           <div className="flex items-center gap-3 mb-6">
             <Skeleton className="w-10 h-10 rounded-full" />
             <Skeleton className="h-7 w-48" />
@@ -138,7 +131,6 @@ export default function NotificationsPage() {
     )
   }
 
-  // Если нет отделов после загрузки - показываем empty state
   if (!loading && depts.length === 0) {
     return (
       <PageContainer
@@ -168,7 +160,13 @@ export default function NotificationsPage() {
   }
 
   // Компонент секции
-  const BatchSection = ({ title, icon: Icon, batches, colorClass, bgClass }) => {
+  const BatchSection = ({
+    title,
+    icon: Icon,
+    batches,
+    colorClass,
+    bgClass,
+  }) => {
     if (batches.length === 0) return null
 
     return (
@@ -187,32 +185,30 @@ export default function NotificationsPage() {
           {batches.map((batch) => (
             <div
               key={batch.id}
-              className={`bg-card rounded-lg p-3 sm:p-4 border-l-4 ${batch.daysLeft < 0
-                ? 'border-l-danger'
-                : batch.daysLeft <= thresholds.critical
-                  ? 'border-l-critical'
-                  : 'border-l-warning'
-                } border border-border`}
+              className={`bg-card rounded-lg p-3 sm:p-4 border-l-4 ${
+                batch.daysLeft < 0
+                  ? 'border-l-danger'
+                  : batch.daysLeft <= thresholds.critical
+                    ? 'border-l-critical'
+                    : 'border-l-warning'
+              } border border-border`}
             >
               <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                 <div className="flex-1 min-w-0">
-                  {/* Название товара */}
                   <h3 className="font-medium text-foreground mb-1 text-sm sm:text-base truncate">
                     {batch.productName}
                   </h3>
 
-                  {/* Отдел */}
                   <div
                     className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded mb-2"
                     style={{
                       backgroundColor: `${batch.departmentColor}20`,
-                      color: batch.departmentColor
+                      color: batch.departmentColor,
                     }}
                   >
                     {batch.departmentName}
                   </div>
 
-                  {/* Даты и количество - горизонтально на мобильных */}
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs sm:text-sm text-muted-foreground">
                     <div className="flex items-center gap-1">
                       <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -226,31 +222,31 @@ export default function NotificationsPage() {
                     </div>
                   </div>
 
-                  {/* Статус */}
                   <div
-                    className={`mt-2 text-xs sm:text-sm font-medium ${batch.daysLeft < 0
-                      ? 'text-danger'
-                      : batch.daysLeft <= thresholds.critical
-                        ? 'text-critical'
-                        : 'text-warning'
-                      }`}
+                    className={`mt-2 text-xs sm:text-sm font-medium ${
+                      batch.daysLeft < 0
+                        ? 'text-danger'
+                        : batch.daysLeft <= thresholds.critical
+                          ? 'text-critical'
+                          : 'text-warning'
+                    }`}
                   >
                     {batch.daysLeft < 0
-                      ? t('status.expiredDaysAgo', { days: Math.abs(batch.daysLeft) })
+                      ? t('status.expiredDaysAgo', {
+                          days: Math.abs(batch.daysLeft),
+                        })
                       : batch.daysLeft === 0
                         ? t('status.expiresToday')
                         : t('status.expiresInDays', { days: batch.daysLeft })}
                   </div>
                 </div>
 
-                {/* Кнопка FIFO сбора */}
                 <button
                   onClick={() => {
-                    // Используем данные батча напрямую (single source of truth)
                     setSelectedProduct({
                       id: batch.productId,
                       name: batch.productName,
-                      totalQuantity: batch.quantity
+                      totalQuantity: batch.quantity,
                     })
                     setFifoModalOpen(true)
                   }}
@@ -258,8 +254,12 @@ export default function NotificationsPage() {
                   title={t('fifoCollect.title')}
                 >
                   <Zap className="w-4 h-4" />
-                  <span className="hidden sm:inline">{t('fifoCollect.title')}</span>
-                  <span className="sm:hidden">{t('fifoCollect.short') || 'FIFO'}</span>
+                  <span className="hidden sm:inline">
+                    {t('fifoCollect.title')}
+                  </span>
+                  <span className="sm:hidden">
+                    {t('fifoCollect.short') || 'FIFO'}
+                  </span>
                 </button>
               </div>
             </div>
@@ -269,9 +269,10 @@ export default function NotificationsPage() {
     )
   }
 
-  // Пустое состояние
   const hasAnyAlerts =
-    expiredBatches.length > 0 || criticalBatches.length > 0 || warningBatches.length > 0
+    expiredBatches.length > 0 ||
+    criticalBatches.length > 0 ||
+    warningBatches.length > 0
 
   return (
     <PageContainer
@@ -286,13 +287,14 @@ export default function NotificationsPage() {
             className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm border border-border text-muted-foreground rounded-lg hover:bg-muted hover:text-foreground transition-colors w-full sm:w-auto min-h-[44px] sm:min-h-[40px]"
           >
             <History className="w-4 h-4" />
-            <span className="line-clamp-1">{t('notificationHistory.title')}</span>
+            <span className="line-clamp-1">
+              {t('notificationHistory.title')}
+            </span>
           </button>
         ) : null
       }
     >
       {!hasAnyAlerts ? (
-        // Пустое состояние
         <div className="text-center py-12 sm:py-16 animate-fade-in">
           <div className="w-16 h-16 sm:w-20 sm:h-20 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
             <Bell className="w-8 h-8 sm:w-10 sm:h-10 text-success" />
@@ -300,11 +302,12 @@ export default function NotificationsPage() {
           <h2 className="text-xl sm:text-2xl font-light text-foreground mb-2">
             {t('notifications.allGood')}
           </h2>
-          <p className="text-muted-foreground text-sm">{t('notifications.noAlerts')}</p>
+          <p className="text-muted-foreground text-sm">
+            {t('notifications.noAlerts')}
+          </p>
         </div>
       ) : (
         <>
-          {/* Просрочено */}
           <BatchSection
             title={t('notifications.expired')}
             icon={AlertCircle}
@@ -312,8 +315,6 @@ export default function NotificationsPage() {
             colorClass="text-danger"
             bgClass="bg-danger/10"
           />
-
-          {/* Срочно (до N дней) - динамический порог */}
           <BatchSection
             title={t('notifications.critical', { days: thresholds.critical })}
             icon={AlertTriangle}
@@ -321,8 +322,6 @@ export default function NotificationsPage() {
             colorClass="text-danger"
             bgClass="bg-danger/10"
           />
-
-          {/* Внимание (до N дней) - динамический порог */}
           <BatchSection
             title={t('notifications.warning', { days: thresholds.warning })}
             icon={Clock}
@@ -333,7 +332,6 @@ export default function NotificationsPage() {
         </>
       )}
 
-      {/* FIFO модал сбора */}
       <FIFOCollectModal
         isOpen={fifoModalOpen}
         onClose={() => {

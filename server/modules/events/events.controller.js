@@ -27,7 +27,12 @@ const router = express.Router()
  */
 router.get('/stream', authMiddleware, hotelIsolation, (req, res) => {
   try {
-    const { id: userId, name: userName, role } = req.user
+    const {
+      id: userId,
+      name: userName,
+      role,
+      department_id: departmentId,
+    } = req.user
     const hotelId = req.hotelId
 
     // SUPER_ADMIN without hotel gets global broadcast channel
@@ -42,8 +47,15 @@ router.get('/stream', authMiddleware, hotelIsolation, (req, res) => {
       'Access-Control-Allow-Credentials': 'true', // Explicitly set for SSE
     })
 
-    // Register client with role for filtered broadcasts
-    sseManager.addClient(effectiveHotelId, userId, userName, role, res)
+    // Register client with role and department for filtered broadcasts
+    sseManager.addClient(
+      effectiveHotelId,
+      userId,
+      userName,
+      role,
+      departmentId || null,
+      res
+    )
 
     // Send initial state info
     const initMsg = sseManager.formatMessage('init', {

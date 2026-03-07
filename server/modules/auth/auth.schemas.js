@@ -1,6 +1,6 @@
 /**
  * Auth Module - Zod Validation Schemas
- * 
+ *
  * Строгие схемы валидации для auth эндпоинтов.
  * Используется Zod для типобезопасности и автоматической валидации.
  */
@@ -11,19 +11,22 @@ import { z } from 'zod'
 // Базовые схемы (переиспользуемые)
 // ========================================
 
-export const loginSchema = z.string()
+export const loginSchema = z
+  .string()
   .min(3, 'Логин должен быть минимум 3 символа')
   .max(50, 'Логин должен быть максимум 50 символов')
   .regex(/^[a-zA-Z0-9_]+$/, 'Логин может содержать только буквы, цифры и _')
-  .transform(val => val.trim().toLowerCase())
+  .transform((val) => val.trim().toLowerCase())
 
-export const emailSchema = z.string()
+export const emailSchema = z
+  .string()
   .email('Неверный формат email')
   .max(100, 'Email слишком длинный')
-  .transform(val => val.trim().toLowerCase())
+  .transform((val) => val.trim().toLowerCase())
 
 // NIST 800-63B / Marriott audit: min 8, хотя бы одна заглавная, одна цифра
-export const passwordSchema = z.string()
+export const passwordSchema = z
+  .string()
   .min(8, 'Минимум 8 символов')
   .max(100, 'Пароль слишком длинный')
   .regex(/[A-Z]/, 'Нужна хотя бы одна заглавная буква')
@@ -31,9 +34,10 @@ export const passwordSchema = z.string()
   .regex(/[0-9]/, 'Нужна хотя бы одна цифра')
   .regex(/[!@#$%^&*-_=+]/, 'Нужен хотя бы один спецсимвол (!@#$%^&*-_=+)')
 
-export const nameSchema = z.string()
+export const nameSchema = z
+  .string()
   .max(100, 'Имя должно быть максимум 100 символов')
-  .transform(val => val.trim())
+  .transform((val) => val.trim())
   .optional()
   .nullable()
 
@@ -45,7 +49,7 @@ export const UserRole = z.enum([
   'SUPER_ADMIN',
   'HOTEL_ADMIN',
   'DEPARTMENT_MANAGER',
-  'STAFF'
+  'STAFF',
 ])
 
 // Какие роли может создавать каждая роль
@@ -53,7 +57,7 @@ export const ROLE_HIERARCHY = {
   SUPER_ADMIN: ['SUPER_ADMIN', 'HOTEL_ADMIN', 'DEPARTMENT_MANAGER', 'STAFF'],
   HOTEL_ADMIN: ['HOTEL_ADMIN', 'DEPARTMENT_MANAGER', 'STAFF'],
   DEPARTMENT_MANAGER: ['STAFF'],
-  STAFF: []
+  STAFF: [],
 }
 
 // ========================================
@@ -63,13 +67,15 @@ export const ROLE_HIERARCHY = {
 /**
  * POST /api/auth/login
  */
-export const LoginRequestSchema = z.object({
-  email: z.string().min(1, 'Email или логин обязателен'),
-  password: z.string().min(1, 'Пароль обязателен')
-}).transform(data => ({
-  email: data.email.trim().toLowerCase(),
-  password: data.password
-}))
+export const LoginRequestSchema = z
+  .object({
+    email: z.string().min(1, 'Email или логин обязателен'),
+    password: z.string().min(1, 'Пароль обязателен'),
+  })
+  .transform((data) => ({
+    email: data.email.trim().toLowerCase(),
+    password: data.password,
+  }))
 
 /**
  * POST /api/auth/register
@@ -81,70 +87,93 @@ export const RegisterRequestSchema = z.object({
   name: nameSchema,
   hotelId: z.string().uuid().optional().nullable(),
   hotelCode: z.string().min(3).max(10).optional().nullable(),
-  departmentId: z.string().uuid().optional().nullable()
+  departmentId: z.string().uuid().optional().nullable(),
 })
 
 /**
  * POST /api/users (создание пользователя админом)
  * Поддерживает snake_case и camelCase для ID полей
  */
-export const CreateUserRequestSchema = z.object({
-  login: loginSchema,
-  email: emailSchema.optional().nullable(), // Optional - but required if password is auto-generated
-  password: passwordSchema.optional(), // Optional - if not provided, temporary password will be generated
-  name: nameSchema,
-  role: UserRole,
-  // Поддержка обоих форматов: camelCase и snake_case
-  hotelId: z.string().uuid().optional().nullable(),
-  hotel_id: z.string().uuid().optional().nullable(),
-  departmentId: z.string().uuid().optional().nullable(),
-  department_id: z.string().uuid().optional().nullable(),
-  isActive: z.boolean().default(true)
-}).transform(data => ({
-  ...data,
-  hotelId: data.hotelId || data.hotel_id,
-  departmentId: data.departmentId || data.department_id
-}))
+export const CreateUserRequestSchema = z
+  .object({
+    login: loginSchema,
+    email: emailSchema.optional().nullable(), // Optional - but required if password is auto-generated
+    password: passwordSchema.optional(), // Optional - if not provided, temporary password will be generated
+    name: nameSchema,
+    role: UserRole,
+    // Поддержка обоих форматов: camelCase и snake_case
+    hotelId: z.string().uuid().optional().nullable(),
+    hotel_id: z.string().uuid().optional().nullable(),
+    departmentId: z.string().uuid().optional().nullable(),
+    department_id: z.string().uuid().optional().nullable(),
+    isActive: z.boolean().default(true),
+  })
+  .transform((data) => ({
+    ...data,
+    hotelId: data.hotelId || data.hotel_id,
+    departmentId: data.departmentId || data.department_id,
+  }))
 
 /**
  * PUT /api/users/:id (обновление пользователя)
  */
-export const UpdateUserRequestSchema = z.object({
-  login: loginSchema.optional(),
-  email: emailSchema.optional(),
-  password: passwordSchema.optional(),
-  name: nameSchema,
-  role: UserRole.optional(),
-  hotelId: z.string().uuid().optional().nullable(),
-  departmentId: z.string().uuid().optional().nullable(),
-  isActive: z.boolean().optional()
-}).refine(data => Object.keys(data).length > 0, {
-  message: 'Необходимо указать хотя бы одно поле для обновления'
-})
+export const UpdateUserRequestSchema = z
+  .object({
+    login: loginSchema.optional(),
+    email: emailSchema.optional(),
+    password: passwordSchema.optional(),
+    name: nameSchema,
+    role: UserRole.optional(),
+    hotelId: z.string().uuid().optional().nullable(),
+    departmentId: z.string().uuid().optional().nullable(),
+    isActive: z.boolean().optional(),
+  })
+  .refine((data) => Object.keys(data).length > 0, {
+    message: 'Необходимо указать хотя бы одно поле для обновления',
+  })
 
 /**
  * Схема смены пароля
  */
-export const ChangePasswordSchema = z.object({
-  currentPassword: z.string().min(1, 'Текущий пароль обязателен'),
-  newPassword: passwordSchema
-}).refine(data => data.currentPassword !== data.newPassword, {
-  message: 'Новый пароль должен отличаться от текущего',
-  path: ['newPassword']
-})
+export const ChangePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, 'Текущий пароль обязателен'),
+    newPassword: passwordSchema,
+  })
+  .refine((data) => data.currentPassword !== data.newPassword, {
+    message: 'Новый пароль должен отличаться от текущего',
+    path: ['newPassword'],
+  })
 
 /**
  * Query параметры для GET /api/users
+ * Поддерживает snake_case (hotel_id) и camelCase (hotelId) для совместимости с apiFetch
  */
-export const GetUsersQuerySchema = z.object({
-  hotelId: z.string().uuid().optional(),
-  departmentId: z.string().uuid().optional(),
-  role: UserRole.optional(),
-  isActive: z.enum(['true', 'false']).transform(v => v === 'true').optional(),
-  search: z.string().max(100).optional(),
-  page: z.coerce.number().int().positive().default(1),
-  limit: z.coerce.number().int().min(1).max(100).default(50)
-})
+export const GetUsersQuerySchema = z
+  .object({
+    hotelId: z.string().uuid().optional(),
+    hotel_id: z.string().uuid().optional(),
+    departmentId: z.string().uuid().optional(),
+    department_id: z.string().uuid().optional(),
+    role: UserRole.optional(),
+    isActive: z
+      .enum(['true', 'false'])
+      .transform((v) => v === 'true')
+      .optional(),
+    is_active: z
+      .enum(['true', 'false'])
+      .transform((v) => v === 'true')
+      .optional(),
+    search: z.string().max(100).optional(),
+    page: z.coerce.number().int().positive().default(1),
+    limit: z.coerce.number().int().min(1).max(100).default(50),
+  })
+  .transform((data) => ({
+    ...data,
+    hotelId: data.hotelId || data.hotel_id,
+    departmentId: data.departmentId || data.department_id,
+    isActive: data.isActive ?? data.is_active,
+  }))
 
 // ========================================
 // Вспомогательные функции
@@ -163,7 +192,7 @@ export function validate(schema, data) {
     return {
       isValid: true,
       errors: [],
-      data: result.data
+      data: result.data,
     }
   }
 
@@ -171,12 +200,12 @@ export function validate(schema, data) {
   const issues = result.error?.issues || result.error?.errors || []
   return {
     isValid: false,
-    errors: issues.map(err => ({
+    errors: issues.map((err) => ({
       field: err.path?.join('.') || '',
       message: err.message,
-      code: err.code
+      code: err.code,
     })),
-    data: null
+    data: null,
   }
 }
 
@@ -224,19 +253,31 @@ export function canEditUser(editor, targetUser) {
   }
 
   // HOTEL_ADMIN может редактировать пользователей своего отеля
-  if (editor.role === 'HOTEL_ADMIN' && editorHotelId && editorHotelId === targetHotelId) {
+  if (
+    editor.role === 'HOTEL_ADMIN' &&
+    editorHotelId &&
+    editorHotelId === targetHotelId
+  ) {
     return canAssignRole(editor.role, targetUser.role)
   }
 
   // MANAGER может редактировать STAFF своего отеля
-  if (editor.role === 'MANAGER' && editorHotelId && editorHotelId === targetHotelId) {
+  if (
+    editor.role === 'MANAGER' &&
+    editorHotelId &&
+    editorHotelId === targetHotelId
+  ) {
     return ['DEPARTMENT_MANAGER', 'STAFF'].includes(targetUser.role)
   }
 
   // DEPARTMENT_MANAGER может редактировать STAFF своего отдела
-  if (editor.role === 'DEPARTMENT_MANAGER' &&
-    editorHotelId && editorHotelId === targetHotelId &&
-    editorDeptId && editorDeptId === targetDeptId) {
+  if (
+    editor.role === 'DEPARTMENT_MANAGER' &&
+    editorHotelId &&
+    editorHotelId === targetHotelId &&
+    editorDeptId &&
+    editorDeptId === targetDeptId
+  ) {
     return targetUser.role === 'STAFF'
   }
 
@@ -249,7 +290,11 @@ export function canEditUser(editor, targetUser) {
 
 export const validateLogin = (data) => validate(LoginRequestSchema, data)
 export const validateRegister = (data) => validate(RegisterRequestSchema, data)
-export const validateCreateUser = (data) => validate(CreateUserRequestSchema, data)
-export const validateUpdateUser = (data) => validate(UpdateUserRequestSchema, data)
-export const validateChangePassword = (data) => validate(ChangePasswordSchema, data)
-export const validateGetUsersQuery = (data) => validate(GetUsersQuerySchema, data)
+export const validateCreateUser = (data) =>
+  validate(CreateUserRequestSchema, data)
+export const validateUpdateUser = (data) =>
+  validate(UpdateUserRequestSchema, data)
+export const validateChangePassword = (data) =>
+  validate(ChangePasswordSchema, data)
+export const validateGetUsersQuery = (data) =>
+  validate(GetUsersQuerySchema, data)
