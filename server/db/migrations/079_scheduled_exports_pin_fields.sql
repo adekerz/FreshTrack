@@ -1,0 +1,3 @@
+ALTER TABLE scheduled_exports
+  ADD COLUMN IF NOT EXISTS download_pin TEXT,
+  ADD COLUMN IF NOT EXISTS link_expiry_hours INTEGER NOT NULL DEFAULT 72;
