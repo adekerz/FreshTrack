@@ -96,4 +96,4 @@ export { modulesController } from './module-system/index.js'
 export { analyticsRouter } from './analytics/index.js'
 
 // Downloads module
-export { downloadsController } from './downloads/downloads.controller.js'
+export { downloadsController } from './downloads/index.js'

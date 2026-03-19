@@ -69,7 +69,7 @@ router.get('/:token', async (req, res) => {
 // POST /:token/verify — verify PIN and issue a short-lived download ticket
 router.post('/:token/verify', async (req, res) => {
   try {
-    const ip = req.ip || req.connection.remoteAddress
+    const ip = req.ip || 'unknown'
     const { token } = req.params
 
     // Rate limit
@@ -144,7 +144,16 @@ router.post('/:token/verify', async (req, res) => {
       if (!login)
         return res
           .status(400)
-          .json({ success: false, error: 'Login is required' })
+          .json({
+            success: false,
+            error: 'Login is required',
+            errors: [
+              {
+                field: 'login',
+                message: 'Login is required when not authenticated',
+              },
+            ],
+          })
       const userResult = await query(
         'SELECT id, login, role, hotel_id, department_id FROM users WHERE (login = $1 OR email = $1) AND is_active = true',
         [login]
@@ -263,7 +272,7 @@ router.get('/:token/file', async (req, res) => {
     res.setHeader('Content-Type', file.content_type)
     res.setHeader(
       'Content-Disposition',
-      `attachment; filename="${encodeURIComponent(file.file_name)}"`
+      `attachment; filename="export"; filename*=UTF-8''${encodeURIComponent(file.file_name)}`
     )
     res.setHeader('Content-Length', file.file_size)
     return res.send(file.file_data)
