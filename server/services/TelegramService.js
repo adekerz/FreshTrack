@@ -107,7 +107,13 @@ export class TelegramService {
       const data = await response.json()
 
       if (!data.ok) {
-        throw new Error(data.description || `Telegram API error: ${method}`)
+        const apiError = new Error(
+          data.description || `Telegram API error: ${method}`
+        )
+        if (data.parameters?.migrate_to_chat_id) {
+          apiError.migrateToChatId = data.parameters.migrate_to_chat_id
+        }
+        throw apiError
       }
 
       return data.result
@@ -155,7 +161,50 @@ export class TelegramService {
       payload.reply_markup = JSON.stringify(options.replyMarkup)
     }
 
-    return this.apiCall('sendMessage', payload)
+    try {
+      return await this.apiCall('sendMessage', payload)
+    } catch (error) {
+      if (error.migrateToChatId) {
+        const newChatId = error.migrateToChatId.toString()
+        const oldChatId = chatId.toString()
+        logInfo(
+          'TelegramService',
+          `Group migrated! Updating DB: ${oldChatId} -> ${newChatId}`
+        )
+        try {
+          await query(
+            'UPDATE telegram_chats SET chat_id = $1 WHERE chat_id = $2',
+            [newChatId, oldChatId]
+          )
+          await query(
+            'UPDATE departments SET telegram_chat_id = $1 WHERE telegram_chat_id = $2',
+            [newChatId, oldChatId]
+          )
+          await query(
+            'UPDATE hotels SET telegram_chat_id = $1 WHERE telegram_chat_id = $2',
+            [newChatId, oldChatId]
+          )
+          await query(
+            'UPDATE users SET telegram_chat_id = $1 WHERE telegram_chat_id = $2',
+            [newChatId, oldChatId]
+          )
+          // Also update scheduled exports overrides
+          await query(
+            'UPDATE scheduled_exports SET telegram_chat_id_override = $1 WHERE telegram_chat_id_override = $2',
+            [newChatId, oldChatId]
+          )
+
+          payload.chat_id = newChatId
+          return await this.apiCall('sendMessage', payload)
+        } catch (dbErr) {
+          logError(
+            'TelegramService',
+            `Failed to update migrated chat in DB: ${dbErr.message}`
+          )
+        }
+      }
+      throw error
+    }
   }
 
   /**
