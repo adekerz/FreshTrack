@@ -291,34 +291,43 @@ export default function AboutPage() {
             </div>
             <div className="bg-card rounded-lg p-6 border border-border">
               <p className="text-foreground leading-relaxed mb-4">
-                FreshTrack is a commercial B2B SaaS product for the hospitality
-                industry. It is actively sold and deployed at hotel properties.
-                This is not a personal project — it is a production business
-                software tool.
+                {t('about.businessText')}
               </p>
               <div className="grid gap-2 text-sm text-muted-foreground">
                 <p className="m-0">
-                  <strong className="text-foreground">Industry:</strong>{' '}
-                  Hospitality / HoReCa
+                  <strong className="text-foreground">
+                    {t('about.businessIndustryLabel')}:
+                  </strong>{' '}
+                  {t('about.businessIndustryValue')}
                 </p>
                 <p className="m-0">
-                  <strong className="text-foreground">Product type:</strong> B2B
-                  SaaS
+                  <strong className="text-foreground">
+                    {t('about.businessProductTypeLabel')}:
+                  </strong>{' '}
+                  {t('about.businessProductTypeValue')}
                 </p>
                 <p className="m-0">
-                  <strong className="text-foreground">Business model:</strong>{' '}
-                  Subscription / License
+                  <strong className="text-foreground">
+                    {t('about.businessModelLabel')}:
+                  </strong>{' '}
+                  {t('about.businessModelValue')}
                 </p>
                 <p className="m-0">
-                  <strong className="text-foreground">Geography:</strong>{' '}
-                  Kazakhstan, CIS, international
+                  <strong className="text-foreground">
+                    {t('about.businessGeographyLabel')}:
+                  </strong>{' '}
+                  {t('about.businessGeographyValue')}
                 </p>
                 <p className="m-0">
-                  <strong className="text-foreground">Website:</strong>{' '}
+                  <strong className="text-foreground">
+                    {t('about.businessWebsiteLabel')}:
+                  </strong>{' '}
                   freshtrack.systems
                 </p>
                 <p className="m-0">
-                  <strong className="text-foreground">Support:</strong>{' '}
+                  <strong className="text-foreground">
+                    {t('about.businessSupportLabel')}:
+                  </strong>{' '}
                   support@freshtrack.systems
                 </p>
               </div>
