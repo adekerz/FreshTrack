@@ -43,6 +43,7 @@ const AccessibilityStatementPage = lazy(
 )
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'))
 const DownloadPage = lazy(() => import('./pages/DownloadPage'))
+const AboutPage = lazy(() => import('./pages/AboutPage'))
 
 // Suspense fallback — используем единый PageLoader
 function SuspenseFallback() {
@@ -96,6 +97,7 @@ function App() {
           {/* Public legal pages */}
           <Route path="/privacy" element={<PrivacyPolicyPage />} />
           <Route path="/terms" element={<TermsOfServicePage />} />
+          <Route path="/about" element={<AboutPage />} />
           <Route
             path="/download/bundle/:bundleToken"
             element={<DownloadPage />}
@@ -117,6 +119,7 @@ function App() {
           {/* Public legal pages */}
           <Route path="/privacy" element={<PrivacyPolicyPage />} />
           <Route path="/terms" element={<TermsOfServicePage />} />
+          <Route path="/about" element={<AboutPage />} />
           <Route
             path="/download/bundle/:bundleToken"
             element={<DownloadPage />}
@@ -141,6 +144,7 @@ function App() {
           {/* Public legal pages */}
           <Route path="/privacy" element={<PrivacyPolicyPage />} />
           <Route path="/terms" element={<TermsOfServicePage />} />
+          <Route path="/about" element={<AboutPage />} />
           <Route
             path="/download/bundle/:bundleToken"
             element={<DownloadPage />}
@@ -165,6 +169,7 @@ function App() {
           {/* Public legal pages */}
           <Route path="/privacy" element={<PrivacyPolicyPage />} />
           <Route path="/terms" element={<TermsOfServicePage />} />
+          <Route path="/about" element={<AboutPage />} />
           <Route
             path="/download/bundle/:bundleToken"
             element={<DownloadPage />}
@@ -330,6 +335,14 @@ function App() {
                 element={
                   <RouteErrorBoundary>
                     <TermsOfServicePage />
+                  </RouteErrorBoundary>
+                }
+              />
+              <Route
+                path="/about"
+                element={
+                  <RouteErrorBoundary>
+                    <AboutPage />
                   </RouteErrorBoundary>
                 }
               />

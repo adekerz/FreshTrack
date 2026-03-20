@@ -12,7 +12,7 @@ import {
   Shield,
   FileText,
   Clock,
-  LogIn
+  LogIn,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useTranslation } from '../context/LanguageContext'
@@ -61,8 +61,10 @@ export default function LoginPage() {
 
   // Branding values with fallback to locale
   const brandingTitle = loginBranding?.title || t('auth.precisionTitle')
-  const brandingHighlight = loginBranding?.highlight || t('auth.precisionHighlight')
-  const brandingDescription = loginBranding?.description || t('auth.precisionDescription')
+  const brandingHighlight =
+    loginBranding?.highlight || t('auth.precisionHighlight')
+  const brandingDescription =
+    loginBranding?.description || t('auth.precisionDescription')
   const brandingFeature1 = loginBranding?.feature1 || t('auth.secure')
   const brandingFeature2 = loginBranding?.feature2 || t('auth.smartAlerts')
   const brandingFeature3 = loginBranding?.feature3 || t('auth.analytics')
@@ -106,7 +108,7 @@ export default function LoginPage() {
       if (result.mustChangePassword) {
         // Redirect to change password page for first login
         navigate('/change-password', {
-          state: { firstLogin: true, email: result.email || identifier }
+          state: { firstLogin: true, email: result.email || identifier },
         })
       } else {
         addToast(t('toast.loginSuccess'), 'success')
@@ -114,7 +116,9 @@ export default function LoginPage() {
       }
     } else {
       setError(result.error || t('auth.invalidCredentials'))
-      setRateLimitInfo(result.rateLimited ? { retryAfter: result.retryAfter } : null)
+      setRateLimitInfo(
+        result.rateLimited ? { retryAfter: result.retryAfter } : null
+      )
       addToast(t('toast.loginError'), 'error')
     }
 
@@ -123,8 +127,13 @@ export default function LoginPage() {
 
   const handleMFAVerify = async (codeOverride) => {
     const codeToVerify = codeOverride ?? mfaCode
-    if (!codeToVerify || (useBackup ? codeToVerify.length < 8 : codeToVerify.length !== 6)) {
-      setError(useBackup ? 'Backup code must be 8 characters' : 'Code must be 6 digits')
+    if (
+      !codeToVerify ||
+      (useBackup ? codeToVerify.length < 8 : codeToVerify.length !== 6)
+    ) {
+      setError(
+        useBackup ? 'Backup code must be 8 characters' : 'Code must be 6 digits'
+      )
       return
     }
 
@@ -136,13 +145,13 @@ export default function LoginPage() {
         method: 'POST',
         credentials: 'include',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           partialToken,
           code: codeToVerify,
-          useBackup
-        })
+          useBackup,
+        }),
       })
 
       const data = await response.json()
@@ -200,8 +209,10 @@ export default function LoginPage() {
   }
 
   // Inline validation
-  const identifierError = touched.identifier && !identifier ? t('validation.required') : ''
-  const passwordError = touched.password && !password ? t('validation.required') : ''
+  const identifierError =
+    touched.identifier && !identifier ? t('validation.required') : ''
+  const passwordError =
+    touched.password && !password ? t('validation.required') : ''
 
   // MFA verification step
   if (mfaStep) {
@@ -209,8 +220,12 @@ export default function LoginPage() {
       <div className="min-h-screen flex items-center justify-center bg-background px-4">
         <div className="w-full max-w-md">
           <div className="mb-8 text-center">
-            <h2 className="font-serif text-3xl mb-2 text-foreground">Two-Factor Authentication</h2>
-            <p className="text-muted-foreground">Enter code from your authenticator app:</p>
+            <h2 className="font-serif text-3xl mb-2 text-foreground">
+              Two-Factor Authentication
+            </h2>
+            <p className="text-muted-foreground">
+              Enter code from your authenticator app:
+            </p>
           </div>
 
           {error && (
@@ -247,10 +262,11 @@ export default function LoginPage() {
                 onClick={() => setUseBackup(!useBackup)}
                 className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
               >
-                {useBackup ? 'Use authenticator code' : 'Use backup code instead'}
+                {useBackup
+                  ? 'Use authenticator code'
+                  : 'Use backup code instead'}
               </button>
             </div>
-
 
             <TouchButton
               onClick={handleMFAVerify}
@@ -296,9 +312,13 @@ export default function LoginPage() {
               <div className="w-10 h-10 border border-accent flex items-center justify-center">
                 <Leaf className="w-5 h-5 text-accent" />
               </div>
-              <span className="font-serif text-2xl tracking-wide">{brandingSiteName}</span>
+              <span className="font-serif text-2xl tracking-wide">
+                {brandingSiteName}
+              </span>
             </div>
-            <p className="text-muted-foreground text-sm">{t('common.tagline')}</p>
+            <p className="text-muted-foreground text-sm">
+              {t('common.tagline')}
+            </p>
           </div>
 
           <div className="max-w-md">
@@ -317,7 +337,9 @@ export default function LoginPage() {
                   <br />
                   <span className="text-accent">{brandingHighlight}</span>
                 </h1>
-                <p className="text-muted-foreground leading-relaxed">{brandingDescription}</p>
+                <p className="text-muted-foreground leading-relaxed">
+                  {brandingDescription}
+                </p>
               </>
             )}
           </div>
@@ -353,7 +375,9 @@ export default function LoginPage() {
           </div>
 
           <div className="mb-10">
-            <h2 className="font-serif text-3xl mb-2 text-foreground">{t('auth.welcomeBack')}</h2>
+            <h2 className="font-serif text-3xl mb-2 text-foreground">
+              {t('auth.welcomeBack')}
+            </h2>
             <p className="text-muted-foreground">{t('auth.signInSubtitle')}</p>
           </div>
 
@@ -362,17 +386,28 @@ export default function LoginPage() {
             <div className="flex items-start gap-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 rounded-lg p-4 mb-6 animate-fade-in">
               <LogIn className="w-5 h-5 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="font-medium text-sm">{t('auth.sessionExpired')}</p>
-                <p className="text-xs mt-0.5 opacity-80">{t('auth.sessionExpiredDesc')}</p>
+                <p className="font-medium text-sm">
+                  {t('auth.sessionExpired')}
+                </p>
+                <p className="text-xs mt-0.5 opacity-80">
+                  {t('auth.sessionExpiredDesc')}
+                </p>
               </div>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-6" data-testid="login-form">
+          <form
+            onSubmit={handleSubmit}
+            className="space-y-6"
+            data-testid="login-form"
+          >
             {/* Server error */}
             {error && (
               <div className="space-y-2 animate-fade-in">
-                <div className="flex items-start gap-3 text-danger text-sm bg-danger/10 p-4 rounded-lg" data-testid="login-error">
+                <div
+                  className="flex items-start gap-3 text-danger text-sm bg-danger/10 p-4 rounded-lg"
+                  data-testid="login-error"
+                >
                   <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
                   <span>{error}</span>
                 </div>
@@ -384,7 +419,8 @@ export default function LoginPage() {
                         {t('auth.rateLimitTitle') || 'Лимит попыток входа'}
                       </p>
                       <p>
-                        {t('auth.rateLimitHint') || 'Разрешено 10 попыток за 15 минут. При превышении — блокировка на 15 минут.'}
+                        {t('auth.rateLimitHint') ||
+                          'Разрешено 10 попыток за 15 минут. При превышении — блокировка на 15 минут.'}
                       </p>
                     </div>
                   </div>
@@ -392,7 +428,10 @@ export default function LoginPage() {
               </div>
             )}
 
-            <div className="animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+            <div
+              className="animate-fade-in-up"
+              style={{ animationDelay: '100ms' }}
+            >
               <Input
                 type="text"
                 label={t('auth.loginOrEmail')}
@@ -407,7 +446,10 @@ export default function LoginPage() {
               />
             </div>
 
-            <div className="animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+            <div
+              className="animate-fade-in-up"
+              style={{ animationDelay: '200ms' }}
+            >
               <Input
                 type="password"
                 label={t('auth.password')}
@@ -421,7 +463,10 @@ export default function LoginPage() {
               />
             </div>
 
-            <div className="animate-fade-in-up pt-2" style={{ animationDelay: '300ms' }}>
+            <div
+              className="animate-fade-in-up pt-2"
+              style={{ animationDelay: '300ms' }}
+            >
               <TouchButton
                 type="submit"
                 variant="primary"
@@ -440,7 +485,9 @@ export default function LoginPage() {
               className="animate-fade-in-up text-center pt-2"
               style={{ animationDelay: '400ms' }}
             >
-              <span className="text-muted-foreground text-sm">{t('auth.noAccount')} </span>
+              <span className="text-muted-foreground text-sm">
+                {t('auth.noAccount')}{' '}
+              </span>
               <Link
                 to="/register"
                 className="text-foreground text-sm font-medium hover:text-accent transition-colors underline-offset-4 hover:underline"
@@ -451,7 +498,9 @@ export default function LoginPage() {
           </form>
 
           <div className="mt-12 pt-6 border-t border-border">
-            <p className="text-xs text-muted-foreground text-center">{t('auth.demoCredentials')}</p>
+            <p className="text-xs text-muted-foreground text-center">
+              {t('auth.demoCredentials')}
+            </p>
           </div>
 
           {/* Footer links */}
@@ -470,6 +519,13 @@ export default function LoginPage() {
             >
               <FileText className="w-3 h-3" />
               <span>Условия использования</span>
+            </Link>
+            <span className="text-border">|</span>
+            <Link
+              to="/about"
+              className="flex items-center gap-1 hover:text-foreground transition-colors"
+            >
+              <span>О сервисе</span>
             </Link>
           </div>
         </div>

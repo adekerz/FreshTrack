@@ -27,7 +27,7 @@ server/.env.*
 server/test/
 server/tests/
 e2e/
-reports/
+/reports/
 coverage/
 .nyc_output/
 
