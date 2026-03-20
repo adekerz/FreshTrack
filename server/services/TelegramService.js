@@ -172,10 +172,22 @@ export class TelegramService {
           `Group migrated! Updating DB: ${oldChatId} -> ${newChatId}`
         )
         try {
-          await query(
-            'UPDATE telegram_chats SET chat_id = $1 WHERE chat_id = $2',
-            [newChatId, oldChatId]
+          // Check if new chat_id already exists (supergroup record may have been created already)
+          const existing = await query(
+            'SELECT chat_id FROM telegram_chats WHERE chat_id = $1',
+            [newChatId]
           )
+          if (existing.rows.length > 0) {
+            // New chat already exists — just delete the old stale record
+            await query('DELETE FROM telegram_chats WHERE chat_id = $1', [
+              oldChatId,
+            ])
+          } else {
+            await query(
+              'UPDATE telegram_chats SET chat_id = $1 WHERE chat_id = $2',
+              [newChatId, oldChatId]
+            )
+          }
           await query(
             'UPDATE departments SET telegram_chat_id = $1 WHERE telegram_chat_id = $2',
             [newChatId, oldChatId]
