@@ -150,9 +150,6 @@ export async function updateDepartment(id, updates) {
 }
 
 export async function deleteDepartment(id) {
-  const result = await query(
-    'UPDATE departments SET is_active = FALSE WHERE id = $1',
-    [id]
-  )
+  const result = await query('DELETE FROM departments WHERE id = $1', [id])
   return result.rowCount > 0
 }

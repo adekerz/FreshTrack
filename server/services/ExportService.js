@@ -1,7 +1,7 @@
 /**
  * FreshTrack Export Service
  * Unified data export functionality for CSV, Excel (XLSX), and JSON formats
- * 
+ *
  * Phase 4+6: Provides consistent export interface across all data types
  * - Supports CSV, Excel (XLSX), and JSON formats
  * - Uses snapshots for deleted entity data (e.g., collection history)
@@ -21,7 +21,7 @@ export const ExportFormat = {
   CSV: 'csv',
   XLSX: 'xlsx',
   EXCEL: 'xlsx', // Alias for compatibility
-  JSON: 'json'
+  JSON: 'json',
 }
 
 /**
@@ -29,8 +29,9 @@ export const ExportFormat = {
  */
 export const MimeTypes = {
   [ExportFormat.CSV]: 'text/csv; charset=utf-8',
-  [ExportFormat.XLSX]: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  [ExportFormat.JSON]: 'application/json; charset=utf-8'
+  [ExportFormat.XLSX]:
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  [ExportFormat.JSON]: 'application/json; charset=utf-8',
 }
 
 /**
@@ -41,11 +42,9 @@ const EntityColumns = {
     { key: 'name', header: 'Название' },
     { key: 'barcode', header: 'Штрих-код' },
     { key: 'category_name', header: 'Категория' },
-    { key: 'department_name', header: 'Отдел' },
-    { key: 'total_quantity', header: 'Количество' },
     { key: 'unit', header: 'Ед.изм.' },
-    { key: 'min_quantity', header: 'Мин. остаток' },
-    { key: 'created_at', header: 'Дата создания' }
+    { key: 'default_shelf_life', header: 'Срок хранения (дней)' },
+    { key: 'created_at', header: 'Дата создания' },
   ],
   inventory: [
     { key: 'name', header: 'Товар' },
@@ -53,7 +52,7 @@ const EntityColumns = {
     { key: 'total_quantity', header: 'Количество' },
     { key: 'unit', header: 'Ед.изм.' },
     { key: 'nearest_expiry', header: 'Срок годности' },
-    { key: 'batch_count', header: 'Партий' }
+    { key: 'batch_count', header: 'Партий' },
   ],
   batches: [
     { key: 'product_name', header: 'Продукт' },
@@ -63,19 +62,19 @@ const EntityColumns = {
     { key: 'status', header: 'Статус' },
     { key: 'days_until_expiry', header: 'Дней до истечения' },
     { key: 'department_name', header: 'Отдел' },
-    { key: 'created_at', header: 'Дата добавления' }
+    { key: 'created_at', header: 'Дата добавления' },
   ],
   categories: [
     { key: 'name', header: 'Название' },
     { key: 'description', header: 'Описание' },
-    { key: 'created_at', header: 'Дата создания' }
+    { key: 'created_at', header: 'Дата создания' },
   ],
   departments: [
     { key: 'name', header: 'Название' },
     { key: 'description', header: 'Описание' },
     { key: 'email', header: 'Email' },
     { key: 'telegram_chat_id', header: 'Telegram Chat ID' },
-    { key: 'created_at', header: 'Дата создания' }
+    { key: 'created_at', header: 'Дата создания' },
   ],
   auditLogs: [
     { key: 'created_at', header: 'Дата/Время' },
@@ -84,7 +83,7 @@ const EntityColumns = {
     { key: 'entity_type', header: 'Тип объекта' },
     { key: 'entity_id', header: 'ID объекта' },
     { key: 'details', header: 'Детали' },
-    { key: 'ip_address', header: 'IP адрес' }
+    { key: 'ip_address', header: 'IP адрес' },
   ],
   users: [
     { key: 'name', header: 'Имя' },
@@ -95,7 +94,7 @@ const EntityColumns = {
     { key: 'department_name', header: 'Отдел' },
     { key: 'is_active', header: 'Активен' },
     { key: 'lastLogin', header: 'Последний вход' },
-    { key: 'createdAt', header: 'Дата регистрации' }
+    { key: 'createdAt', header: 'Дата регистрации' },
   ],
   marshaCodes: [
     { key: 'code', header: 'Код' },
@@ -106,7 +105,7 @@ const EntityColumns = {
     { key: 'brand', header: 'Бренд' },
     { key: 'isAssigned', header: 'Назначен' },
     { key: 'assignedHotelName', header: 'Назначен отелю' },
-    { key: 'assignedAt', header: 'Дата назначения' }
+    { key: 'assignedAt', header: 'Дата назначения' },
   ],
   // Collections = collection history (API: ch.*, scheduled: quantity/reason)
   collections: [
@@ -118,7 +117,7 @@ const EntityColumns = {
     { key: 'expiry_date', header: 'Срок годности' },
     { key: 'batch_number', header: 'Номер партии' },
     { key: 'collected_by_name', header: 'Пользователь' },
-    { key: 'department_name', header: 'Отдел' }
+    { key: 'department_name', header: 'Отдел' },
   ],
   collectionHistory: [
     { key: 'created_at', header: 'Дата/Время' },
@@ -130,8 +129,8 @@ const EntityColumns = {
     { key: 'batch_number', header: 'Номер партии' },
     { key: 'user_name', header: 'Пользователь' },
     { key: 'department_name', header: 'Отдел' },
-    { key: 'notes', header: 'Примечания' }
-  ]
+    { key: 'notes', header: 'Примечания' },
+  ],
 }
 
 /**
@@ -147,7 +146,7 @@ const ReasonLabels = {
   CONSUMPTION: 'Расход',
   TRANSFER: 'Перемещение',
   SAMPLE: 'Образец',
-  ADJUSTMENT: 'Корректировка'
+  ADJUSTMENT: 'Корректировка',
 }
 
 /**
@@ -158,7 +157,7 @@ const StatusLabels = {
   today: 'Сегодня',
   critical: 'Критично',
   warning: 'Внимание',
-  good: 'В норме'
+  good: 'В норме',
 }
 
 /**
@@ -171,7 +170,7 @@ const ActionLabels = {
   collect: 'Списание',
   fifo_collect: 'FIFO списание',
   login: 'Вход',
-  logout: 'Выход'
+  logout: 'Выход',
 }
 
 /**
@@ -180,7 +179,7 @@ const ActionLabels = {
 export class ExportService {
   // Maximum rows for export (protection against full DB dump)
   static MAX_EXPORT_ROWS = parseInt(process.env.MAX_EXPORT_ROWS) || 10000
-  
+
   /**
    * Format cell value for export
    * @param {any} value - Raw value
@@ -191,7 +190,7 @@ export class ExportService {
     if (value === null || value === undefined) {
       return ''
     }
-    
+
     // Date formatting
     if (key.includes('_at') || key === 'expiry_date') {
       const date = new Date(value)
@@ -201,17 +200,20 @@ export class ExportService {
           : date.toLocaleString('ru-RU')
       }
     }
-    
+
     // Boolean formatting
     if (typeof value === 'boolean') {
       return value ? 'Да' : 'Нет'
     }
-    
+
     // Reason labels
-    if ((key === 'reason' || key === 'collection_reason') && ReasonLabels[value]) {
+    if (
+      (key === 'reason' || key === 'collection_reason') &&
+      ReasonLabels[value]
+    ) {
       return ReasonLabels[value]
     }
-    
+
     // Status labels
     if ((key === 'status' || key === 'expiryStatus') && StatusLabels[value]) {
       return StatusLabels[value]
@@ -221,15 +223,15 @@ export class ExportService {
     if (key === 'action' && ActionLabels[value]) {
       return ActionLabels[value]
     }
-    
+
     // JSON objects
     if (typeof value === 'object') {
       return JSON.stringify(value)
     }
-    
+
     return String(value)
   }
-  
+
   /**
    * Export data to CSV format
    * @param {Array} data - Array of objects to export
@@ -241,42 +243,42 @@ export class ExportService {
     let {
       columns = EntityColumns[entityType] || [],
       includeHeaders = true,
-      delimiter = ','
+      delimiter = ',',
     } = options
 
     // Auto-detect columns from first data object if no columns provided
     if ((!columns || columns.length === 0) && data && data.length > 0) {
       const firstItem = data[0]
-      columns = Object.keys(firstItem).map(key => ({
+      columns = Object.keys(firstItem).map((key) => ({
         key,
-        header: key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' ')
+        header: key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' '),
       }))
     }
 
     if (!data || data.length === 0) {
-      return includeHeaders ? columns.map(c => c.header).join(delimiter) : ''
+      return includeHeaders ? columns.map((c) => c.header).join(delimiter) : ''
     }
-    
+
     const rows = []
-    
+
     // Add header row
     if (includeHeaders) {
-      rows.push(columns.map(c => `"${c.header}"`).join(delimiter))
+      rows.push(columns.map((c) => `"${c.header}"`).join(delimiter))
     }
-    
+
     // Add data rows
     for (const item of data) {
-      const row = columns.map(col => {
+      const row = columns.map((col) => {
         const value = this.formatValue(item[col.key], col.key)
         // Escape quotes and wrap in quotes for CSV safety
         return `"${String(value).replace(/"/g, '""')}"`
       })
       rows.push(row.join(delimiter))
     }
-    
+
     return rows.join('\n')
   }
-  
+
   /**
    * Export data to JSON format
    * @param {Array} data - Array of objects to export
@@ -286,17 +288,19 @@ export class ExportService {
    */
   static toJSON(data, entityType, options = {}) {
     const { pretty = true, includeMetadata = true } = options
-    
-    const output = includeMetadata ? {
-      exportedAt: new Date().toISOString(),
-      entityType,
-      totalRecords: data?.length || 0,
-      data: data || []
-    } : data || []
-    
+
+    const output = includeMetadata
+      ? {
+          exportedAt: new Date().toISOString(),
+          entityType,
+          totalRecords: data?.length || 0,
+          data: data || [],
+        }
+      : data || []
+
     return pretty ? JSON.stringify(output, null, 2) : JSON.stringify(output)
   }
-  
+
   /**
    * Report titles for header block
    */
@@ -308,7 +312,7 @@ export class ExportService {
     departments: 'Отделы',
     auditLogs: 'Журнал действий',
     collections: 'История сборов',
-    collectionHistory: 'История сборов'
+    collectionHistory: 'История сборов',
   }
 
   /**
@@ -319,18 +323,16 @@ export class ExportService {
    * @returns {Promise<Buffer>} - Excel file buffer
    */
   static async toXLSX(data, entityType, options = {}) {
-    let {
-      columns = EntityColumns[entityType] || [],
-      sheetName = entityType
-    } = options
+    let { columns = EntityColumns[entityType] || [], sheetName = entityType } =
+      options
 
     // Auto-detect columns from first data object if no columns provided
     if ((!columns || columns.length === 0) && data && data.length > 0) {
       const firstItem = data[0]
-      columns = Object.keys(firstItem).map(key => ({
+      columns = Object.keys(firstItem).map((key) => ({
         key,
         header: key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' '),
-        width: 20
+        width: 20,
       }))
     }
 
@@ -340,7 +342,7 @@ export class ExportService {
 
     const worksheet = workbook.addWorksheet(sheetName, {
       pageSetup: { fitToPage: true, fitToWidth: 1 },
-      views: [{ state: 'frozen', ySplit: 4 }]
+      views: [{ state: 'frozen', ySplit: 4 }],
     })
 
     // Цвета брендинга FreshTrack
@@ -356,7 +358,7 @@ export class ExportService {
       statusWarning: 'FFFEF3CD',
       statusWarningFg: 'FF5C4813',
       statusGood: 'FF4A7C59',
-      statusGoodFg: 'FFFFFFFF'
+      statusGoodFg: 'FFFFFFFF',
     }
 
     const reportTitle = this.ReportTitles[entityType] || entityType
@@ -371,11 +373,11 @@ export class ExportService {
     titleCell.fill = {
       type: 'pattern',
       pattern: 'solid',
-      fgColor: { argb: colors.titleBg }
+      fgColor: { argb: colors.titleBg },
     }
     titleCell.alignment = { vertical: 'middle' }
     titleCell.border = {
-      bottom: { style: 'medium', color: { argb: colors.titleBorder } }
+      bottom: { style: 'medium', color: { argb: colors.titleBorder } },
     }
     worksheet.getRow(1).height = 28
 
@@ -399,21 +401,29 @@ export class ExportService {
       cell.fill = {
         type: 'pattern',
         pattern: 'solid',
-        fgColor: { argb: colors.headerBg }
+        fgColor: { argb: colors.headerBg },
       }
-      cell.alignment = { horizontal: 'left', vertical: 'middle', wrapText: true }
+      cell.alignment = {
+        horizontal: 'left',
+        vertical: 'middle',
+        wrapText: true,
+      }
       cell.border = {
         top: { style: 'thin', color: { argb: colors.headerBg } },
         bottom: { style: 'thin', color: { argb: colors.titleBorder } },
         left: { style: 'thin', color: { argb: colors.rowBorder } },
-        right: { style: 'thin', color: { argb: colors.rowBorder } }
+        right: { style: 'thin', color: { argb: colors.rowBorder } },
       }
     }
     worksheet.getRow(headerRow).height = 24
 
     // Ширины колонок
     columns.forEach((col, idx) => {
-      const w = col.width || (col.key && (col.key.includes('name') || col.key.includes('details')) ? 25 : 15)
+      const w =
+        col.width ||
+        (col.key && (col.key.includes('name') || col.key.includes('details'))
+          ? 25
+          : 15)
       worksheet.getColumn(idx + 1).width = Math.min(w, 50)
     })
 
@@ -421,17 +431,33 @@ export class ExportService {
     const getStatusStyle = (item, col) => {
       const status = item.expiryStatus || item.status
       const val = (item[col.key] || '').toString().toLowerCase()
-      if (status === 'expired' || val.includes('просроч') || val.includes('истек')) {
+      if (
+        status === 'expired' ||
+        val.includes('просроч') ||
+        val.includes('истек')
+      ) {
         return { fill: colors.statusExpired, font: colors.headerFg, bold: true }
       }
       if (status === 'critical' || val.includes('критич')) {
-        return { fill: colors.statusCritical, font: colors.headerFg, bold: true }
+        return {
+          fill: colors.statusCritical,
+          font: colors.headerFg,
+          bold: true,
+        }
       }
       if (status === 'warning' || val.includes('внимани')) {
-        return { fill: colors.statusWarning, font: colors.statusWarningFg, bold: true }
+        return {
+          fill: colors.statusWarning,
+          font: colors.statusWarningFg,
+          bold: true,
+        }
       }
       if (status === 'good' || val.includes('норм') || val.includes('хорош')) {
-        return { fill: colors.statusGood, font: colors.statusGoodFg, bold: true }
+        return {
+          fill: colors.statusGood,
+          font: colors.statusGoodFg,
+          bold: true,
+        }
       }
       return null
     }
@@ -453,20 +479,26 @@ export class ExportService {
         const val = this.formatValue(item[col.key], col.key)
         cell.value = val
 
-        const statusStyle = isStatusCol(col.key) ? getStatusStyle(item, col) : null
+        const statusStyle = isStatusCol(col.key)
+          ? getStatusStyle(item, col)
+          : null
         cell.fill = {
           type: 'pattern',
           pattern: 'solid',
-          fgColor: { argb: statusStyle ? statusStyle.fill : rowFill }
+          fgColor: { argb: statusStyle ? statusStyle.fill : rowFill },
         }
         cell.font = statusStyle
-          ? { bold: statusStyle.bold, size: 10, color: { argb: statusStyle.font } }
+          ? {
+              bold: statusStyle.bold,
+              size: 10,
+              color: { argb: statusStyle.font },
+            }
           : { size: 10, color: { argb: 'FF1A1A1A' } }
         cell.alignment = { vertical: 'middle' }
         cell.border = {
           bottom: { style: 'thin', color: { argb: colors.rowBorder } },
           left: { style: 'thin', color: { argb: colors.rowBorder } },
-          right: { style: 'thin', color: { argb: colors.rowBorder } }
+          right: { style: 'thin', color: { argb: colors.rowBorder } },
         }
       }
       worksheet.getRow(rowNum).height = 20
@@ -476,13 +508,13 @@ export class ExportService {
     if (dataRows.length > 0) {
       worksheet.autoFilter = {
         from: { row: headerRow, column: 1 },
-        to: { row: headerRow + dataRows.length, column: columns.length }
+        to: { row: headerRow + dataRows.length, column: columns.length },
       }
     }
 
     return await workbook.xlsx.writeBuffer()
   }
-  
+
   /**
    * Export data to XLSX-compatible format (returns array for xlsx library)
    * @deprecated Use toXLSX() for real Excel file generation
@@ -492,23 +524,23 @@ export class ExportService {
    * @returns {Object} - { headers: [], rows: [], sheetName }
    */
   static toXLSXData(data, entityType, options = {}) {
-    const { 
+    const {
       columns = EntityColumns[entityType] || [],
-      sheetName = entityType
+      sheetName = entityType,
     } = options
-    
-    const headers = columns.map(c => c.header)
-    const rows = (data || []).map(item => 
-      columns.map(col => this.formatValue(item[col.key], col.key))
+
+    const headers = columns.map((c) => c.header)
+    const rows = (data || []).map((item) =>
+      columns.map((col) => this.formatValue(item[col.key], col.key))
     )
-    
+
     return {
       headers,
       rows,
-      sheetName
+      sheetName,
     }
   }
-  
+
   /**
    * Create export response with proper headers
    * @param {Object} res - Express response object
@@ -522,24 +554,27 @@ export class ExportService {
     if (data.length > this.MAX_EXPORT_ROWS) {
       const error = new Error(
         `Export too large (${data.length} rows). ` +
-        `Maximum: ${this.MAX_EXPORT_ROWS} rows. ` +
-        `Please apply filters to reduce the dataset.`
+          `Maximum: ${this.MAX_EXPORT_ROWS} rows. ` +
+          `Please apply filters to reduce the dataset.`
       )
       error.statusCode = 400
       error.details = {
         totalRows: data.length,
         maxRows: this.MAX_EXPORT_ROWS,
         suggestion: 'Apply date filters or contact support for bulk export.',
-        entityType
+        entityType,
       }
       throw error
     }
     const filename = options.filename || `${entityType}_export_${Date.now()}`
-    const normalizedFormat = format?.toLowerCase() === 'excel' ? ExportFormat.XLSX : format?.toLowerCase()
-    
+    const normalizedFormat =
+      format?.toLowerCase() === 'excel'
+        ? ExportFormat.XLSX
+        : format?.toLowerCase()
+
     // Generate export ID for tracking
     const exportId = uuidv4()
-    
+
     // Audit logging для экспорта
     if (options.user) {
       try {
@@ -557,7 +592,7 @@ export class ExportService {
             rowCount: data.length,
             filename,
             columns: data.length > 0 ? Object.keys(data[0]) : [],
-            filters: options.filters || {}
+            filters: options.filters || {},
           },
           snapshot_after: {
             exportId,
@@ -566,46 +601,58 @@ export class ExportService {
             rowCount: data.length,
             timestamp: new Date().toISOString(),
             userAgent: options.userAgent,
-            ipAddress: options.ipAddress
+            ipAddress: options.ipAddress,
           },
-          ip_address: options.ipAddress
+          ip_address: options.ipAddress,
         })
       } catch (auditError) {
         logError('ExportService', 'Failed to log export audit', auditError)
         // Don't fail export if audit logging fails
       }
     }
-    
+
     // Set export ID in response header для tracking
     res.setHeader('X-Export-ID', exportId)
-    
+
     try {
       switch (normalizedFormat) {
         case ExportFormat.CSV:
           res.setHeader('Content-Type', MimeTypes[ExportFormat.CSV])
-          res.setHeader('Content-Disposition', `attachment; filename="${filename}.csv"`)
+          res.setHeader(
+            'Content-Disposition',
+            `attachment; filename="${filename}.csv"`
+          )
           // BOM + разделитель ";" для корректного открытия в Excel (RU)
-          res.send('\ufeff' + this.toCSV(data, entityType, { ...options, delimiter: ';' }))
+          res.send(
+            '\ufeff' +
+              this.toCSV(data, entityType, { ...options, delimiter: ';' })
+          )
           break
-          
+
         case ExportFormat.JSON:
           res.setHeader('Content-Type', MimeTypes[ExportFormat.JSON])
-          res.setHeader('Content-Disposition', `attachment; filename="${filename}.json"`)
+          res.setHeader(
+            'Content-Disposition',
+            `attachment; filename="${filename}.json"`
+          )
           res.send(this.toJSON(data, entityType, options))
           break
-          
+
         case ExportFormat.XLSX:
           const buffer = await this.toXLSX(data, entityType, options)
           res.setHeader('Content-Type', MimeTypes[ExportFormat.XLSX])
-          res.setHeader('Content-Disposition', `attachment; filename="${filename}.xlsx"`)
+          res.setHeader(
+            'Content-Disposition',
+            `attachment; filename="${filename}.xlsx"`
+          )
           res.send(buffer)
           break
-          
+
         default:
-          res.status(400).json({ 
-            success: false, 
+          res.status(400).json({
+            success: false,
             error: 'UNSUPPORTED_FORMAT',
-            message: `Unsupported export format: ${format}. Use: csv, xlsx, json`
+            message: `Unsupported export format: ${format}. Use: csv, xlsx, json`,
           })
       }
     } catch (error) {
@@ -613,21 +660,24 @@ export class ExportService {
       res.status(500).json({
         success: false,
         error: 'EXPORT_FAILED',
-        message: 'Failed to generate export file'
+        message: 'Failed to generate export file',
       })
     }
   }
-  
+
   /**
    * Get MIME type for format
    * @param {string} format - Export format
    * @returns {string} - MIME type
    */
   static getMimeType(format) {
-    const normalizedFormat = format?.toLowerCase() === 'excel' ? ExportFormat.XLSX : format?.toLowerCase()
+    const normalizedFormat =
+      format?.toLowerCase() === 'excel'
+        ? ExportFormat.XLSX
+        : format?.toLowerCase()
     return MimeTypes[normalizedFormat] || 'application/octet-stream'
   }
-  
+
   /**
    * Get available columns for entity type
    * @param {string} entityType - Type of entity
@@ -636,7 +686,7 @@ export class ExportService {
   static getColumnsForEntity(entityType) {
     return EntityColumns[entityType] || []
   }
-  
+
   /**
    * Build export summary for reporting
    * @param {Array} data - Exported data
@@ -649,11 +699,9 @@ export class ExportService {
       totalRecords: data?.length || 0,
       exportedAt: new Date().toISOString(),
       availableFormats: Object.values(ExportFormat),
-      columns: this.getColumnsForEntity(entityType).map(c => c.key)
+      columns: this.getColumnsForEntity(entityType).map((c) => c.key),
     }
   }
 }
 
 export default ExportService
-
-

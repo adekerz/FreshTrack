@@ -27,7 +27,7 @@ const EXPORT_TYPES = {
     filename: 'batches',
     title: 'Все партии',
     subtitle: 'Полная история партий',
-    columnsKey: 'inventory'
+    columnsKey: 'batches'
   },
   collections: {
     endpoint: '/export/collections',
@@ -37,7 +37,7 @@ const EXPORT_TYPES = {
     columnsKey: 'collections'
   },
   audit: {
-    endpoint: '/export/audit',
+    endpoint: '/export/audit-logs',
     filename: 'audit_logs',
     title: 'Журнал действий',
     subtitle: 'Лог всех действий в системе',
@@ -48,21 +48,85 @@ const EXPORT_TYPES = {
     filename: 'products',
     title: 'Продукты',
     subtitle: 'Справочник продуктов',
-    columnsKey: 'inventory'
+    columnsKey: 'products'
   },
   categories: {
     endpoint: '/export/categories',
     filename: 'categories',
     title: 'Категории',
     subtitle: 'Справочник категорий',
-    columnsKey: 'inventory'
+    columnsKey: 'categories'
   },
   departments: {
     endpoint: '/export/departments',
     filename: 'departments',
     title: 'Отделы',
     subtitle: 'Справочник отделов',
-    columnsKey: 'inventory'
+    columnsKey: 'departments'
+  },
+  'health-summary': {
+    endpoint: '/reports/health-summary',
+    filename: 'health-summary',
+    title: 'Здоровье инвентаря',
+    subtitle: 'Сводка по статусам партий по отделам',
+    columnsKey: 'healthSummary',
+    jsonEndpoint: true
+  },
+  'expiry-forecast': {
+    endpoint: '/reports/expiry-forecast',
+    filename: 'expiry-forecast',
+    title: 'Прогноз истечения',
+    subtitle: 'Товары с истекающим сроком годности',
+    columnsKey: 'expiryForecast',
+    jsonEndpoint: true
+  },
+  'collection-activity': {
+    endpoint: '/reports/collection-activity',
+    filename: 'collection-activity',
+    title: 'Активность сборов',
+    subtitle: 'Детальный журнал сборов с причинами',
+    columnsKey: 'collectionActivity',
+    jsonEndpoint: true
+  },
+  'product-turnover': {
+    endpoint: '/reports/product-turnover',
+    filename: 'product-turnover',
+    title: 'Оборот продуктов',
+    subtitle: 'Скорость потребления vs. списание',
+    columnsKey: 'productTurnover',
+    jsonEndpoint: true
+  },
+  'department-scorecard': {
+    endpoint: '/reports/department-scorecard',
+    filename: 'department-scorecard',
+    title: 'Рейтинг отделов',
+    subtitle: 'Сравнение отделов по качеству управления',
+    columnsKey: 'departmentScorecard',
+    jsonEndpoint: true
+  },
+  'collection-reasons': {
+    endpoint: '/reports/collection-reasons',
+    filename: 'collection-reasons',
+    title: 'Причины сборов',
+    subtitle: 'Распределение сборов по причинам',
+    columnsKey: 'collectionReasons',
+    jsonEndpoint: true
+  },
+  'batch-age-distribution': {
+    endpoint: '/reports/batch-age-distribution',
+    filename: 'batch-age-distribution',
+    title: 'Распределение по возрасту',
+    subtitle: 'Партии сгруппированы по остатку срока',
+    columnsKey: 'batchAgeDistribution',
+    jsonEndpoint: true
+  },
+  'weekly-summary': {
+    endpoint: '/reports/weekly-summary',
+    filename: 'weekly-summary',
+    title: 'Еженедельный отчёт',
+    subtitle: 'KPI за неделю с динамикой',
+    columnsKey: 'weeklySummary',
+    jsonEndpoint: true
   }
 }
 
@@ -78,7 +142,7 @@ function formatDataForExport(data, type, t) {
   const formatDate = (dateString) => {
     if (!dateString) return '-'
     try {
-      return new Date(dateString).toLocaleDateString('ru-RU')
+      return new Date(dateString).toLocaleDateString()
     } catch {
       return dateString
     }
@@ -89,7 +153,7 @@ function formatDataForExport(data, type, t) {
     if (!dateString) return '-'
     try {
       const date = new Date(dateString)
-      return `${date.toLocaleDateString('ru-RU')} ${date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}`
+      return `${date.toLocaleDateString()} ${date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}`
     } catch {
       return dateString
     }
@@ -191,10 +255,45 @@ export function useExport() {
     })
 
     try {
-      // PDF бэкенд не отдаёт — запрашиваем JSON и генерируем PDF на клиенте
-      const requestFormat = format === 'pdf' ? 'json' : format
+      // JSON-only endpoints (analytics reports) — fetch JSON, generate Excel/PDF client-side
+      if (exportConfig.jsonEndpoint || format === 'pdf') {
+        const url = new URL(`${API_BASE_URL}${exportConfig.endpoint}`)
+        if (options.filters) {
+          Object.entries(options.filters).forEach(([key, value]) => {
+            if (value !== null && value !== undefined && value !== '') {
+              url.searchParams.append(key, value)
+            }
+          })
+        }
+        const response = await fetch(url.toString(), { method: 'GET', credentials: 'include' })
+        if (!response.ok) {
+          const error = await response.json().catch(() => ({ message: 'Export failed' }))
+          throw new Error(error.message || error.error || 'Export failed')
+        }
+        const body = await response.json()
+        const data = body.data ?? body
+        if (!Array.isArray(data) || data.length === 0) {
+          addToast(t('export.noData') || 'Нет данных для экспорта', 'warning')
+          setExportProgress({ status: null, filename: null })
+          return
+        }
+        const formattedData = formatDataForExport(data, type, t)
+        const columns = EXPORT_COLUMNS[exportConfig.columnsKey]?.(t) || []
+        if (format === 'pdf') {
+          exportToPDF(exportConfig.title, formattedData, columns, {
+            subtitle: exportConfig.subtitle,
+            companyName: 'FreshTrack'
+          })
+        } else {
+          exportToExcel(formattedData, columns, `${exportConfig.filename}_${new Date().toISOString().split('T')[0]}`, exportConfig.title)
+        }
+        setExportProgress({ status: 'success', filename })
+        return
+      }
+
+      // Binary endpoints (standard exports) — download file directly
       const url = new URL(`${API_BASE_URL}${exportConfig.endpoint}`)
-      url.searchParams.append('format', requestFormat)
+      url.searchParams.append('format', format)
 
       if (options.filters) {
         Object.entries(options.filters).forEach(([key, value]) => {
@@ -212,24 +311,6 @@ export function useExport() {
       if (!response.ok) {
         const error = await response.json().catch(() => ({ message: 'Export failed' }))
         throw new Error(error.message || error.error || 'Export failed')
-      }
-
-      if (format === 'pdf') {
-        const body = await response.json()
-        const data = body.data ?? body
-        if (!Array.isArray(data) || data.length === 0) {
-          addToast(t('export.noData') || 'Нет данных для экспорта', 'warning')
-          setExportProgress({ status: null, filename: null })
-          return
-        }
-        const formattedData = formatDataForExport(data, type, t)
-        const columns = EXPORT_COLUMNS[exportConfig.columnsKey]?.(t) || []
-        exportToPDF(exportConfig.title, formattedData, columns, {
-          subtitle: exportConfig.subtitle,
-          companyName: 'FreshTrack'
-        })
-        setExportProgress({ status: 'success', filename })
-        return
       }
 
       const blob = await response.blob()

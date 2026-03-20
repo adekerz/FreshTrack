@@ -392,6 +392,14 @@ export function useDeleteTask() {
 
 // === ASSIGNMENTS ===
 
+export function useHotelUsers() {
+  return useQuery({
+    queryKey: ['hotel-users'],
+    queryFn: () => apiFetch('/auth/users').then((r) => r.users ?? r),
+    staleTime: 5 * 60 * 1000,
+  })
+}
+
 export function useAssignTask() {
   const queryClient = useQueryClient()
 

@@ -58,6 +58,7 @@ import {
   marshaCodesController,
   gdprController,
   scheduledExportsController,
+  downloadsController,
   tasksController,
   modulesController,
   analyticsRouter,
@@ -249,6 +250,23 @@ app.use('/api/events', eventsController)
 app.use('/api/marsha-codes', marshaCodesController)
 app.use('/api/gdpr', gdprController)
 app.use('/api/scheduled-exports', scheduledExportsController)
+app.use('/api/downloads', downloadsController)
+
+// Cleanup expired export files every hour
+setInterval(async () => {
+  try {
+    const result = await query(
+      'DELETE FROM export_files WHERE expires_at < NOW()'
+    )
+    if (result.rowCount > 0) {
+      console.log(
+        `[ExportCleanup] Deleted ${result.rowCount} expired export files`
+      )
+    }
+  } catch (err) {
+    console.error('[ExportCleanup] Error:', err.message)
+  }
+}, 3600000)
 
 // Task Planner module
 app.use('/api/tasks', tasksController)

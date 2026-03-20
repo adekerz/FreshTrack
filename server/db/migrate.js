@@ -27,10 +27,12 @@ function parseArgs() {
   const args = process.argv.slice(2)
   return {
     rollback: args.includes('--rollback') || args.includes('-r'),
-    steps: parseInt(args.find(a => a.startsWith('--steps='))?.split('=')[1] || '1'),
-    target: args.find(a => a.startsWith('--target='))?.split('=')[1],
+    steps: parseInt(
+      args.find((a) => a.startsWith('--steps='))?.split('=')[1] || '1'
+    ),
+    target: args.find((a) => a.startsWith('--target='))?.split('=')[1],
     status: args.includes('--status') || args.includes('-s'),
-    help: args.includes('--help') || args.includes('-h')
+    help: args.includes('--help') || args.includes('-h'),
   }
 }
 
@@ -85,11 +87,14 @@ async function getMigrationStatus(client) {
     'SELECT name, applied_at, checksum FROM _migrations ORDER BY id'
   )
   const appliedMigrations = new Map(
-    appliedResult.rows.map(r => [r.name, { applied_at: r.applied_at, checksum: r.checksum }])
+    appliedResult.rows.map((r) => [
+      r.name,
+      { applied_at: r.applied_at, checksum: r.checksum },
+    ])
   )
 
   const files = readdirSync(migrationsDir)
-    .filter(f => f.endsWith('.sql') && !f.endsWith('.down.sql'))
+    .filter((f) => f.endsWith('.sql') && !f.endsWith('.down.sql'))
     .sort()
 
   return { appliedMigrations, files }
@@ -99,7 +104,9 @@ async function getMigrationStatus(client) {
  * Detect if database was initialized by legacy initDatabase() but _migrations is empty
  */
 async function detectLegacyDatabase(client, files) {
-  const migrationCount = await client.query('SELECT COUNT(*) as count FROM _migrations')
+  const migrationCount = await client.query(
+    'SELECT COUNT(*) as count FROM _migrations'
+  )
   if (parseInt(migrationCount.rows[0].count) > 0) return false
 
   // Check if core tables exist (created by legacy migrations)
@@ -116,7 +123,9 @@ async function detectLegacyDatabase(client, files) {
  * Backfill _migrations table for legacy databases
  */
 async function backfillLegacyMigrations(client, files) {
-  console.log('   Detected legacy database. Marking existing migrations as applied...')
+  console.log(
+    '   Detected legacy database. Marking existing migrations as applied...'
+  )
 
   for (const file of files) {
     const filePath = join(migrationsDir, file)
@@ -145,7 +154,9 @@ async function showStatus() {
 
     const { appliedMigrations, files } = await getMigrationStatus(client)
 
-    console.log('Migration                                    Status      Checksum   Applied At')
+    console.log(
+      'Migration                                    Status      Checksum   Applied At'
+    )
     console.log('-'.repeat(90))
 
     for (const file of files) {
@@ -164,18 +175,21 @@ async function showStatus() {
         checksumStatus = 'N/A'
       }
 
-      console.log(`${file.padEnd(44)} ${status.padEnd(12)} ${checksumStatus.padEnd(10)} ${date}`)
+      console.log(
+        `${file.padEnd(44)} ${status.padEnd(12)} ${checksumStatus.padEnd(10)} ${date}`
+      )
     }
 
     // Check for orphaned migrations (in DB but file deleted)
-    const orphaned = [...appliedMigrations.keys()].filter(name => !files.includes(name))
+    const orphaned = [...appliedMigrations.keys()].filter(
+      (name) => !files.includes(name)
+    )
     if (orphaned.length > 0) {
       console.log('\nWARNING: Orphaned migrations (in DB but file missing):')
-      orphaned.forEach(name => console.log(`   - ${name}`))
+      orphaned.forEach((name) => console.log(`   - ${name}`))
     }
 
     console.log()
-
   } finally {
     client.release()
   }
@@ -218,26 +232,49 @@ async function runMigrations({ fatal = true } = {}) {
       const sql = readFileSync(join(migrationsDir, file), 'utf8')
       const checksum = computeChecksum(sql)
 
-      await client.query('BEGIN')
+      // CREATE INDEX CONCURRENTLY не может выполняться внутри транзакции
+      const requiresNoTransaction = /CREATE\s+INDEX\s+CONCURRENTLY/i.test(sql)
+
       try {
-        await client.query(sql)
-        await client.query(
-          'INSERT INTO _migrations (name, checksum) VALUES ($1, $2)',
-          [file, checksum]
-        )
-        await client.query('COMMIT')
+        if (requiresNoTransaction) {
+          // Выполняем без транзакции, каждый стейтмент отдельно
+          const statements = sql
+            .split(';')
+            .map((s) => s.trim())
+            .filter((s) => s.length > 0)
+          for (const stmt of statements) {
+            await client.query(stmt)
+          }
+          // Запись в _migrations — отдельная атомарная операция
+          await client.query(
+            'INSERT INTO _migrations (name, checksum) VALUES ($1, $2)',
+            [file, checksum]
+          )
+        } else {
+          await client.query('BEGIN')
+          await client.query(sql)
+          await client.query(
+            'INSERT INTO _migrations (name, checksum) VALUES ($1, $2)',
+            [file, checksum]
+          )
+          await client.query('COMMIT')
+        }
         console.log(`   Applied ${file}`)
         result.applied++
       } catch (err) {
-        await client.query('ROLLBACK')
+        if (!requiresNoTransaction) {
+          await client.query('ROLLBACK')
+        }
         const errorMsg = err.message
 
         if (fatal) {
           console.error(`   Failed to apply ${file}: ${errorMsg}`)
           throw err
         } else {
-          // Non-fatal mode: log warning and continue
-          console.warn(`   WARNING: Failed to apply ${file}: ${errorMsg} (non-fatal, continuing)`)
+          // Non-fatal mode: логируем и продолжаем
+          console.warn(
+            `   WARNING: Failed to apply ${file}: ${errorMsg} (non-fatal, continuing)`
+          )
           result.failed.push({ file, error: errorMsg })
         }
       }
@@ -254,7 +291,6 @@ async function runMigrations({ fatal = true } = {}) {
     }
 
     return result
-
   } finally {
     client.release()
   }
@@ -299,7 +335,9 @@ async function rollbackMigrations(steps, target) {
       }
 
       if (migrationsToRollback.length === 0) {
-        console.log(`Target migration "${target}" is the current state or not found.`)
+        console.log(
+          `Target migration "${target}" is the current state or not found.`
+        )
         return
       }
     } else {
@@ -324,7 +362,9 @@ async function rollbackMigrations(steps, target) {
       await client.query('BEGIN')
       try {
         await client.query(sql)
-        await client.query('DELETE FROM _migrations WHERE id = $1', [migration.id])
+        await client.query('DELETE FROM _migrations WHERE id = $1', [
+          migration.id,
+        ])
         await client.query('COMMIT')
         console.log(`   Rolled back ${migration.name}`)
       } catch (err) {
@@ -335,7 +375,6 @@ async function rollbackMigrations(steps, target) {
     }
 
     console.log('\n   Rollback completed!')
-
   } finally {
     client.release()
   }
@@ -364,15 +403,15 @@ async function main() {
 }
 
 // Only run CLI when executed directly (not when imported)
-const isDirectRun = process.argv[1] && (
-  process.argv[1].endsWith('migrate.js') ||
-  process.argv[1].endsWith('migrate')
-)
+const isDirectRun =
+  process.argv[1] &&
+  (process.argv[1].endsWith('migrate.js') ||
+    process.argv[1].endsWith('migrate'))
 
 if (isDirectRun) {
   main()
     .then(() => process.exit(0))
-    .catch(err => {
+    .catch((err) => {
       console.error('Migration failed:', err)
       process.exit(1)
     })

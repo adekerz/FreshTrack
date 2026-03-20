@@ -76,6 +76,95 @@ export const EXPORT_TYPES = {
     subtitle: 'Лог всех действий в системе',
     columnsKey: 'auditLogs',
     labelKey: 'export.audit'
+  },
+
+  // ── Analytics Reports ──────────────────────────────────────────────
+  'health-summary': {
+    id: 'health-summary',
+    endpoint: '/reports/health-summary',
+    filename: 'health_summary',
+    title: 'Здоровье инвентаря',
+    subtitle: 'Сводка по статусам партий по отделам',
+    columnsKey: 'healthSummary',
+    labelKey: 'export.healthSummary',
+    isReport: true
+  },
+
+  'expiry-forecast': {
+    id: 'expiry-forecast',
+    endpoint: '/reports/expiry-forecast',
+    filename: 'expiry_forecast',
+    title: 'Прогноз истечения',
+    subtitle: 'Товары с истекающим сроком годности',
+    columnsKey: 'expiryForecast',
+    labelKey: 'export.expiryForecast',
+    isReport: true
+  },
+
+  'collection-activity': {
+    id: 'collection-activity',
+    endpoint: '/reports/collection-activity',
+    filename: 'collection_activity',
+    title: 'Активность сборов',
+    subtitle: 'Детальный журнал сборов с причинами',
+    columnsKey: 'collectionActivity',
+    labelKey: 'export.collectionActivity',
+    isReport: true
+  },
+
+  'product-turnover': {
+    id: 'product-turnover',
+    endpoint: '/reports/product-turnover',
+    filename: 'product_turnover',
+    title: 'Оборот продуктов',
+    subtitle: 'Скорость потребления vs. списание',
+    columnsKey: 'productTurnover',
+    labelKey: 'export.productTurnover',
+    isReport: true
+  },
+
+  'department-scorecard': {
+    id: 'department-scorecard',
+    endpoint: '/reports/department-scorecard',
+    filename: 'department_scorecard',
+    title: 'Рейтинг отделов',
+    subtitle: 'Сравнение отделов по качеству управления',
+    columnsKey: 'departmentScorecard',
+    labelKey: 'export.departmentScorecard',
+    isReport: true
+  },
+
+  'collection-reasons': {
+    id: 'collection-reasons',
+    endpoint: '/reports/collection-reasons',
+    filename: 'collection_reasons',
+    title: 'Причины сборов',
+    subtitle: 'Распределение сборов по причинам',
+    columnsKey: 'collectionReasons',
+    labelKey: 'export.collectionReasons',
+    isReport: true
+  },
+
+  'batch-age-distribution': {
+    id: 'batch-age-distribution',
+    endpoint: '/reports/batch-age-distribution',
+    filename: 'batch_age_distribution',
+    title: 'Распределение по возрасту',
+    subtitle: 'Партии сгруппированы по остатку срока',
+    columnsKey: 'batchAgeDistribution',
+    labelKey: 'export.batchAgeDistribution',
+    isReport: true
+  },
+
+  'weekly-summary': {
+    id: 'weekly-summary',
+    endpoint: '/reports/weekly-summary',
+    filename: 'weekly_summary',
+    title: 'Еженедельный отчёт',
+    subtitle: 'KPI за неделю с динамикой',
+    columnsKey: 'weeklySummary',
+    labelKey: 'export.weeklySummary',
+    isReport: true
   }
 }
 

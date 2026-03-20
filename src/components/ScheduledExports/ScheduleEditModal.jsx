@@ -10,7 +10,32 @@ import { logError } from '../../utils/logger'
 import { apiFetch } from '../../services/api'
 import Modal from '../ui/Modal'
 import { TouchButton, Switch } from '../ui'
-import { MessageSquare } from 'lucide-react'
+import { EXPORT_TYPES } from '../../config/exportConfig'
+import { Package, FileSpreadsheet, FolderTree, Tags, History, FileText, MessageSquare, HeartPulse, CalendarClock, ClipboardList, TrendingUp, BarChart3, PieChart, Layers, LayoutDashboard } from 'lucide-react'
+
+const EXPORT_ICONS = {
+  products: Package,
+  batches: FileSpreadsheet,
+  inventory: Package,
+  collections: History,
+  categories: Tags,
+  departments: FolderTree,
+  audit: FileText,
+  'health-summary': HeartPulse,
+  'expiry-forecast': CalendarClock,
+  'collection-activity': ClipboardList,
+  'product-turnover': TrendingUp,
+  'department-scorecard': BarChart3,
+  'collection-reasons': PieChart,
+  'batch-age-distribution': Layers,
+  'weekly-summary': LayoutDashboard
+}
+
+const SCHEDULABLE_TYPES = [
+  'products', 'batches', 'inventory', 'collections', 'categories', 'departments', 'audit',
+  'health-summary', 'expiry-forecast', 'collection-activity', 'product-turnover',
+  'department-scorecard', 'collection-reasons', 'batch-age-distribution', 'weekly-summary'
+]
 
 const dayKeys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat']
 
@@ -40,9 +65,12 @@ export function ScheduleEditModal({ schedule, onClose, onSuccess }) {
     export_types: parseJSON(schedule.export_types),
     export_formats: parseJSON(schedule.export_formats),
     delivery_method: schedule.delivery_method || 'email',
+    recipient_type: schedule.recipient_type || 'department',
     email_override: schedule.email_override || '',
     telegram_chat_id_override: schedule.telegram_chat_id_override || '',
-    is_active: schedule.is_active ?? true
+    is_active: schedule.is_active ?? true,
+    download_pin: '',
+    link_expiry_hours: schedule.link_expiry_hours || 72
   })
 
   useEffect(() => {
@@ -119,7 +147,12 @@ export function ScheduleEditModal({ schedule, onClose, onSuccess }) {
       return
     }
 
-    // Проверка email для email/both доставки
+    // PIN validation (only if non-empty)
+    if (formData.download_pin && formData.download_pin.length < 4) {
+      addToast(t('scheduledExports.pinRequired') || 'PIN must be at least 4 characters', 'error')
+      return
+    }
+
     if ((formData.delivery_method === 'email' || formData.delivery_method === 'both')) {
       if (!formData.email_override && !selectedDepartment?.email) {
         addToast(t('scheduledExports.emailRequired') || 'Укажите email для отправки или настройте email отдела', 'error')
@@ -127,7 +160,6 @@ export function ScheduleEditModal({ schedule, onClose, onSuccess }) {
       }
     }
 
-    // Проверка Telegram для telegram/both доставки
     if ((formData.delivery_method === 'telegram' || formData.delivery_method === 'both')) {
       if (!effectiveTelegramChatId) {
         addToast(
@@ -152,7 +184,9 @@ export function ScheduleEditModal({ schedule, onClose, onSuccess }) {
           ...formData,
           telegram_chat_id_override: telegramOverride || null,
           day_of_week: formData.schedule_type === 'weekly' ? parseInt(formData.day_of_week) : undefined,
-          day_of_month: formData.schedule_type === 'monthly' ? parseInt(formData.day_of_month) : undefined
+          day_of_month: formData.schedule_type === 'monthly' ? parseInt(formData.day_of_month) : undefined,
+          ...(formData.download_pin ? { download_pin: formData.download_pin } : {}),
+          link_expiry_hours: formData.link_expiry_hours
         })
       })
       addToast(t('scheduledExports.updateSuccess'), 'success')
@@ -183,16 +217,22 @@ export function ScheduleEditModal({ schedule, onClose, onSuccess }) {
     }))
   }
 
-  const exportTypeOptions = [
-    { value: 'inventory', labelKey: 'reportInventory' },
-    { value: 'collections', labelKey: 'reportCollections' },
-    { value: 'writeOffs', labelKey: 'reportWriteOffs' },
-    { value: 'audit', labelKey: 'reportAudit' }
-  ]
+  // Dynamic from centralized config (same as ScheduleCreateModal)
+  const exportTypeOptions = SCHEDULABLE_TYPES.map(typeId => {
+    const config = EXPORT_TYPES[typeId]
+    if (!config) return null
+    return {
+      value: typeId,
+      label: config.title,
+      subtitle: config.subtitle,
+      icon: EXPORT_ICONS[typeId]
+    }
+  }).filter(Boolean)
+
   const formatOptions = [
-    { value: 'excel', labelKey: 'formatExcel' },
-    { value: 'csv', labelKey: 'formatCsv' },
-    { value: 'pdf', labelKey: 'formatPdf' }
+    { value: 'excel', labelKey: 'formatExcel', disabled: false },
+    { value: 'csv', labelKey: 'formatCsv', disabled: false },
+    { value: 'pdf', labelKey: 'formatPdf', disabled: false }
   ]
 
   return (
@@ -323,21 +363,34 @@ export function ScheduleEditModal({ schedule, onClose, onSuccess }) {
           <label className="block text-sm font-medium text-foreground mb-2">
             {t('scheduledExports.reportTypes')} <span className="text-danger">*</span>
           </label>
-          <div className="flex flex-wrap gap-x-6 gap-y-2">
-            {exportTypeOptions.map((opt) => (
-              <label
-                key={opt.value}
-                className="inline-flex items-center gap-2 cursor-pointer min-h-[48px] text-sm text-foreground"
-              >
-                <input
-                  type="checkbox"
-                  checked={formData.export_types.includes(opt.value)}
-                  onChange={() => handleExportTypeChange(opt.value)}
-                  className="w-5 h-5 rounded border-border text-accent focus:ring-accent"
-                />
-                <span>{t(`scheduledExports.${opt.labelKey}`)}</span>
-              </label>
-            ))}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {exportTypeOptions.map((opt) => {
+              const Icon = opt.icon
+              const isChecked = formData.export_types.includes(opt.value)
+              return (
+                <label
+                  key={opt.value}
+                  className={`flex items-start gap-3 p-3 border-2 rounded-lg cursor-pointer transition-all min-h-[48px] ${isChecked
+                    ? 'border-accent bg-accent/10'
+                    : 'border-border hover:border-accent/50'
+                    }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={isChecked}
+                    onChange={() => handleExportTypeChange(opt.value)}
+                    className="mt-1 w-5 h-5 rounded border-border text-accent"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      {Icon && <Icon className="w-4 h-4 text-foreground" />}
+                      <span className="font-medium text-foreground">{opt.label}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">{opt.subtitle}</p>
+                  </div>
+                </label>
+              )
+            })}
           </div>
         </div>
 
@@ -349,15 +402,19 @@ export function ScheduleEditModal({ schedule, onClose, onSuccess }) {
             {formatOptions.map((opt) => (
               <label
                 key={opt.value}
-                className="inline-flex items-center gap-2 cursor-pointer min-h-[48px] text-sm text-foreground"
+                className={`inline-flex items-center gap-2 min-h-[48px] text-sm ${opt.disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
               >
                 <input
                   type="checkbox"
                   checked={formData.export_formats.includes(opt.value)}
-                  onChange={() => handleFormatChange(opt.value)}
+                  onChange={() => !opt.disabled && handleFormatChange(opt.value)}
+                  disabled={opt.disabled}
                   className="w-5 h-5 rounded border-border text-accent focus:ring-accent"
                 />
-                <span>{t(`scheduledExports.${opt.labelKey}`)}</span>
+                <span className="text-foreground">{t(`scheduledExports.${opt.labelKey}`)}</span>
+                {opt.hint && (
+                  <span className="text-xs text-muted-foreground">({opt.hint})</span>
+                )}
               </label>
             ))}
           </div>
@@ -371,12 +428,13 @@ export function ScheduleEditModal({ schedule, onClose, onSuccess }) {
             value={formData.delivery_method}
             onChange={(e) => setFormData({ ...formData, delivery_method: e.target.value })}
             required
-            className="w-full px-3 py-2.5 border border-border rounded-lg bg-background text-foreground min-h-[48px] focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
+            className="w-full px-3 py-2.5 border border-border rounded-lg bg-background text-foreground min-h-[48px] focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent disabled:opacity-60"
           >
             <option value="email">{t('scheduledExports.deliveryEmail')}</option>
             <option value="telegram">{t('scheduledExports.deliveryTelegram')}</option>
             <option value="both">{t('scheduledExports.deliveryBoth')}</option>
           </select>
+
           {selectedDepartment && (
             <div className="mt-3 p-3 bg-muted/30 rounded-lg border border-border">
               <p className="text-xs font-medium text-foreground mb-2">
@@ -510,6 +568,41 @@ export function ScheduleEditModal({ schedule, onClose, onSuccess }) {
             )}
           </div>
         )}
+
+          {/* PIN and link expiry */}
+          <div className="mt-4 p-3 bg-muted/30 rounded-lg border border-border">
+            <p className="text-xs font-medium text-foreground mb-3">
+              {t('scheduledExports.securitySettings') || '🔐 Безопасность скачивания'}
+            </p>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">
+                  {t('scheduledExports.pinLabel') || 'PIN для скачивания'}
+                </label>
+                <input
+                  type="text"
+                  value={formData.download_pin}
+                  onChange={(e) => setFormData({ ...formData, download_pin: e.target.value })}
+                  placeholder={t('scheduledExports.pinKeepCurrent') || 'Оставьте пустым, чтобы сохранить текущий'}
+                  minLength={4}
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">
+                  {t('scheduledExports.linkExpiryLabel') || 'Срок действия ссылки (часы)'}
+                </label>
+                <input
+                  type="number"
+                  value={formData.link_expiry_hours}
+                  onChange={(e) => setFormData({ ...formData, link_expiry_hours: parseInt(e.target.value) || 72 })}
+                  min={1}
+                  max={720}
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
+                />
+              </div>
+            </div>
+          </div>
       </form>
     </Modal>
   )

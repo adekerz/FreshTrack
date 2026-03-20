@@ -831,6 +831,8 @@
   },
   "export": {
     "title": "Esporta dati",
+    "reportsTitle": "Rapporti analitici",
+    "reportsDescription": "Rapporti su analisi e metriche di performance",
     "button": "Esporta",
     "selectFormat": "Seleziona formato",
     "inventory": "Inventario",
@@ -1708,5 +1710,136 @@
       "completed": "Completato",
       "cancelled": "Annullato"
     }
+  },
+  "analyticsReports": {
+    "tabs": {
+      "health": "Salute",
+      "expiry": "Previsione",
+      "collections": "Raccolte",
+      "departments": "Classifica",
+      "turnover": "Rotazione",
+      "reasons": "Motivi",
+      "batchAge": "Età Lotti",
+      "weekly": "Settimana"
+    },
+    "apply": "Applica",
+    "retry": "Riprova",
+    "noData": "Nessun dato",
+    "records": "record",
+    "unspecified": "Non specificato",
+    "status": {
+      "good": "Buono",
+      "warning": "Attenzione",
+      "critical": "Critico",
+      "today": "Oggi",
+      "expired": "Scaduto"
+    },
+    "health": {
+      "description": "Stato attuale dell'inventario per reparto",
+      "noData": "Nessun dato inventario",
+      "colDept": "Reparto",
+      "colTotal": "Totale",
+      "colGood": "Buono",
+      "colWarning": "Attenzione",
+      "colCritical": "Critico",
+      "colExpired": "Scaduto",
+      "colScore": "Health Score"
+    },
+    "expiry": {
+      "description": "Articoli in scadenza nei prossimi",
+      "noData": "Nessun articolo in scadenza",
+      "colProduct": "Prodotto",
+      "colDept": "Reparto",
+      "colCategory": "Categoria",
+      "colExpiryDate": "Data scadenza",
+      "colDaysLeft": "Giorni",
+      "colQty": "Qtà",
+      "colStatus": "Stato"
+    },
+    "collections": {
+      "noData": "Nessun dato raccolta per il periodo",
+      "colDate": "Data",
+      "colProduct": "Prodotto",
+      "colDept": "Reparto",
+      "colCollectedBy": "Raccolto da",
+      "colQty": "Qtà",
+      "colReason": "Motivo",
+      "colExpiry": "Data scad."
+    },
+    "departments": {
+      "description": "Classifica reparti per qualità di gestione",
+      "noData": "Nessun dato reparti",
+      "batches": "lotti",
+      "expiredLabel": "scaduto",
+      "avgDays": "Med.",
+      "daysUnit": "g.",
+      "collectionsLabel": "raccolte"
+    },
+    "turnover": {
+      "noData": "Nessun dato prodotto",
+      "colProduct": "Prodotto",
+      "colCategory": "Categoria",
+      "colBatches": "Lotti",
+      "colStock": "Stock",
+      "colCollected": "Raccolto",
+      "colExpired": "Scaduto",
+      "colConsumption": "Consumo %",
+      "colTurnover": "Rotazione"
+    },
+    "reasons": {
+      "noData": "Nessun dato motivi",
+      "byQuantity": "Per quantità",
+      "colReason": "Motivo",
+      "colTransactions": "Trans.",
+      "colQty": "Qtà",
+      "colShare": "Quota"
+    },
+    "batchAge": {
+      "description": "Distribuzione lotti attivi per vita utile restante",
+      "noData": "Nessun lotto attivo",
+      "byBatchCount": "Per numero di lotti",
+      "batchesUnit": "lotti",
+      "unitsLabel": "unità totali"
+    },
+    "weekly": {
+      "description": "Riepilogo KPI chiave degli ultimi 7 giorni",
+      "noData": "Nessun dato questa settimana",
+      "totalBatches": "Lotti totali",
+      "good": "Buono",
+      "expired": "Scaduto",
+      "healthScore": "Health Score",
+      "weeklyCollections": "Raccolte settimanali",
+      "collectedQty": "Unità raccolte",
+      "healthChanged": "Health Score variato di",
+      "compared": "rispetto alla settimana scorsa",
+      "prev": "Prec.",
+      "was": "era",
+      "became": "ora"
+    }
+  },
+  "scheduledExports": {
+    "pinLabel": "PIN di download",
+    "pinPlaceholder": "Inserisci il PIN",
+    "pinRequired": "PIN obbligatorio",
+    "pinKeepCurrent": "Mantieni PIN attuale",
+    "linkExpiryLabel": "Scadenza del link",
+    "securitySettings": "Impostazioni di sicurezza"
+  },
+  "download": {
+    "title": "Scarica report",
+    "enterPin": "Inserisci il PIN",
+    "enterLogin": "Inserisci le credenziali",
+    "downloadBtn": "Scarica",
+    "expired": "Link scaduto",
+    "revoked": "Link revocato",
+    "invalidPin": "PIN non valido",
+    "tooManyAttempts": "Troppi tentativi",
+    "fileSize": "Dimensione file",
+    "expiresAt": "Scade il",
+    "downloading": "Download in corso...",
+    "pinRequired": "PIN obbligatorio",
+    "fetchError": "Errore di download",
+    "filesReady": "file pronti per il download",
+    "selectAll": "Seleziona tutto"
   }
 }

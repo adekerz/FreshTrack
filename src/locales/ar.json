@@ -851,6 +851,8 @@
   },
   "export": {
     "title": "تصدير البيانات",
+    "reportsTitle": "تقارير تحليلية",
+    "reportsDescription": "تقارير حول التحليلات ومؤشرات الأداء",
     "button": "تصدير",
     "selectFormat": "اختر التنسيق",
     "inventory": "المخزون",
@@ -1728,5 +1730,136 @@
       "completed": "مكتمل",
       "cancelled": "ملغى"
     }
+  },
+  "analyticsReports": {
+    "tabs": {
+      "health": "الصحة",
+      "expiry": "توقع الانتهاء",
+      "collections": "التحصيلات",
+      "departments": "ترتيب الأقسام",
+      "turnover": "دوران",
+      "reasons": "الأسباب",
+      "batchAge": "عمر الدفعات",
+      "weekly": "أسبوعي"
+    },
+    "apply": "تطبيق",
+    "retry": "إعادة المحاولة",
+    "noData": "لا توجد بيانات",
+    "records": "سجلات",
+    "unspecified": "غير محدد",
+    "status": {
+      "good": "جيد",
+      "warning": "تحذير",
+      "critical": "حرج",
+      "today": "اليوم",
+      "expired": "منتهي الصلاحية"
+    },
+    "health": {
+      "description": "الحالة الحالية للمخزون لكل قسم",
+      "noData": "لا توجد بيانات مخزون",
+      "colDept": "القسم",
+      "colTotal": "الإجمالي",
+      "colGood": "جيد",
+      "colWarning": "تحذير",
+      "colCritical": "حرج",
+      "colExpired": "منتهي",
+      "colScore": "Health Score"
+    },
+    "expiry": {
+      "description": "المنتجات منتهية الصلاحية خلال الأيام القادمة",
+      "noData": "لا توجد منتجات منتهية قريباً",
+      "colProduct": "المنتج",
+      "colDept": "القسم",
+      "colCategory": "الفئة",
+      "colExpiryDate": "تاريخ الانتهاء",
+      "colDaysLeft": "أيام",
+      "colQty": "الكمية",
+      "colStatus": "الحالة"
+    },
+    "collections": {
+      "noData": "لا توجد بيانات للفترة المحددة",
+      "colDate": "التاريخ",
+      "colProduct": "المنتج",
+      "colDept": "القسم",
+      "colCollectedBy": "جُمع بواسطة",
+      "colQty": "الكمية",
+      "colReason": "السبب",
+      "colExpiry": "تاريخ الانتهاء"
+    },
+    "departments": {
+      "description": "ترتيب الأقسام حسب جودة الإدارة",
+      "noData": "لا توجد بيانات أقسام",
+      "batches": "دفعات",
+      "expiredLabel": "منتهي",
+      "avgDays": "متوسط",
+      "daysUnit": "ي.",
+      "collectionsLabel": "تحصيلات"
+    },
+    "turnover": {
+      "noData": "لا توجد بيانات منتجات",
+      "colProduct": "المنتج",
+      "colCategory": "الفئة",
+      "colBatches": "الدفعات",
+      "colStock": "المخزون",
+      "colCollected": "المجموع",
+      "colExpired": "المنتهي",
+      "colConsumption": "الاستهلاك %",
+      "colTurnover": "دوران"
+    },
+    "reasons": {
+      "noData": "لا توجد بيانات أسباب",
+      "byQuantity": "حسب الكمية",
+      "colReason": "السبب",
+      "colTransactions": "المعاملات",
+      "colQty": "الكمية",
+      "colShare": "الحصة"
+    },
+    "batchAge": {
+      "description": "توزيع الدفعات النشطة حسب العمر المتبقي",
+      "noData": "لا توجد دفعات نشطة",
+      "byBatchCount": "حسب عدد الدفعات",
+      "batchesUnit": "دفعات",
+      "unitsLabel": "وحدات إجمالاً"
+    },
+    "weekly": {
+      "description": "ملخص مؤشرات الأداء الرئيسية للأيام السبعة الماضية",
+      "noData": "لا توجد بيانات لهذا الأسبوع",
+      "totalBatches": "إجمالي الدفعات",
+      "good": "جيد",
+      "expired": "منتهي",
+      "healthScore": "Health Score",
+      "weeklyCollections": "تحصيلات الأسبوع",
+      "collectedQty": "الوحدات المجموعة",
+      "healthChanged": "تغير Health Score بمقدار",
+      "compared": "مقارنة بالأسبوع الماضي",
+      "prev": "سابق.",
+      "was": "كان",
+      "became": "الآن"
+    }
+  },
+  "scheduledExports": {
+    "pinLabel": "رمز PIN للتنزيل",
+    "pinPlaceholder": "أدخل رمز PIN",
+    "pinRequired": "رمز PIN مطلوب",
+    "pinKeepCurrent": "الاحتفاظ برمز PIN الحالي",
+    "linkExpiryLabel": "انتهاء صلاحية الرابط",
+    "securitySettings": "إعدادات الأمان"
+  },
+  "download": {
+    "title": "تنزيل التقرير",
+    "enterPin": "أدخل رمز PIN",
+    "enterLogin": "أدخل بيانات تسجيل الدخول",
+    "downloadBtn": "تنزيل",
+    "expired": "انتهت صلاحية الرابط",
+    "revoked": "تم إلغاء الرابط",
+    "invalidPin": "رمز PIN غير صحيح",
+    "tooManyAttempts": "محاولات كثيرة جداً",
+    "fileSize": "حجم الملف",
+    "expiresAt": "ينتهي في",
+    "downloading": "جارٍ التنزيل...",
+    "pinRequired": "رمز PIN مطلوب",
+    "fetchError": "خطأ في التنزيل",
+    "filesReady": "ملفات جاهزة للتنزيل",
+    "selectAll": "تحديد الكل"
   }
 }

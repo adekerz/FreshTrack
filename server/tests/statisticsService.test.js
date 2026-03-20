@@ -191,7 +191,7 @@ describe('StatisticsService - Phase 3: Centralized Statistics', () => {
         hotelId: mockHotelId,
       })
 
-      expect(result.byStatus).toHaveLength(5) // EXPIRED, TODAY, CRITICAL, WARNING, GOOD
+      expect(result.byStatus).toHaveLength(6) // EXPIRED, TODAY, CRITICAL, ATTENTION, WARNING, GOOD
 
       // Verify colors come from backend StatusColor map
       const goodStatus = result.byStatus.find(

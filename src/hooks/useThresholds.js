@@ -9,6 +9,7 @@ import { apiFetch } from '../services/api'
 // Default thresholds (fallback)
 const DEFAULT_THRESHOLDS = {
     warning: 7,
+    attention: 5,
     critical: 3
 }
 
@@ -53,6 +54,7 @@ export function useThresholds() {
         if (daysLeft < 0) return 'expired'
         if (daysLeft === 0) return 'today'
         if (daysLeft <= thresholds.critical) return 'critical'
+        if (thresholds.attention && daysLeft <= thresholds.attention) return 'attention'
         if (daysLeft <= thresholds.warning) return 'warning'
         return 'good'
     }, [thresholds])
@@ -65,6 +67,8 @@ export function useThresholds() {
             case 'today':
             case 'critical':
                 return 'danger'
+            case 'attention':
+                return 'orange'
             case 'warning':
                 return 'warning'
             default:

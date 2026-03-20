@@ -1,0 +1,59 @@
+# Dependencies
+node_modules/
+server/node_modules/
+
+# Frontend source (not needed in backend image)
+src/
+public/
+dist/
+index.html
+vite.config.js
+tailwind.config.js
+postcss.config.js
+jsconfig.json
+tsconfig*.json
+playwright.config.js
+
+# Env files (injected at runtime via Railway/docker-compose)
+.env
+.env.*
+server/.env
+server/.env.*
+!server/.env.example
+
+# Dev/test files
+**/*.test.js
+**/*.spec.js
+server/test/
+server/tests/
+e2e/
+reports/
+coverage/
+.nyc_output/
+
+# Logs
+*.log
+logs/
+
+# Git
+.git/
+.gitignore
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# Docs
+README*.md
+docs/
+123/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Misc
+nixpacks.toml
+vercel.json
+lighthouse-budget.json

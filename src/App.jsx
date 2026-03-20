@@ -42,6 +42,7 @@ const AccessibilityStatementPage = lazy(
   () => import('./pages/AccessibilityStatementPage')
 )
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'))
+const DownloadPage = lazy(() => import('./pages/DownloadPage'))
 
 // Suspense fallback — используем единый PageLoader
 function SuspenseFallback() {
@@ -95,6 +96,7 @@ function App() {
           {/* Public legal pages */}
           <Route path="/privacy" element={<PrivacyPolicyPage />} />
           <Route path="/terms" element={<TermsOfServicePage />} />
+          <Route path="/download/bundle/:bundleToken" element={<DownloadPage />} />
           {/* Any other path redirects to login (not 404) when unauthenticated */}
           <Route path="*" element={<Navigate to={loginRedirect} replace />} />
         </Routes>
@@ -112,6 +114,7 @@ function App() {
           {/* Public legal pages */}
           <Route path="/privacy" element={<PrivacyPolicyPage />} />
           <Route path="/terms" element={<TermsOfServicePage />} />
+          <Route path="/download/bundle/:bundleToken" element={<DownloadPage />} />
           {/* 404 — страница не найдена */}
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
@@ -132,6 +135,7 @@ function App() {
           {/* Public legal pages */}
           <Route path="/privacy" element={<PrivacyPolicyPage />} />
           <Route path="/terms" element={<TermsOfServicePage />} />
+          <Route path="/download/bundle/:bundleToken" element={<DownloadPage />} />
           {/* 404 — страница не найдена */}
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
@@ -152,6 +156,7 @@ function App() {
           {/* Public legal pages */}
           <Route path="/privacy" element={<PrivacyPolicyPage />} />
           <Route path="/terms" element={<TermsOfServicePage />} />
+          <Route path="/download/bundle/:bundleToken" element={<DownloadPage />} />
           {/* 404 — страница не найдена */}
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
@@ -373,6 +378,7 @@ function App() {
                 }
               />
 
+              <Route path="/download/bundle/:bundleToken" element={<DownloadPage />} />
               {/* 404 — страница не найдена */}
               <Route path="*" element={<NotFoundPage />} />
             </Routes>

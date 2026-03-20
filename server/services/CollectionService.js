@@ -250,6 +250,8 @@ export async function collect({
     let remainingToCollect = quantity
     const historyEntries = []
     const deletedBatchIds = []
+    // One session_id groups all history rows from this single collect call
+    const sessionId = uuidv4()
 
     for (const batch of batches) {
       if (remainingToCollect <= 0) break
@@ -269,8 +271,8 @@ export async function collect({
           id, batch_id, product_id, hotel_id, department_id, user_id,
           quantity_collected, quantity_remaining,
           expiry_date, product_name, category_name, batch_number,
-          collection_reason, notes
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+          collection_reason, notes, session_id
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
       `,
         [
           historyId,
@@ -287,6 +289,7 @@ export async function collect({
           batch.batch_number,
           reason,
           notes,
+          sessionId,
         ]
       )
 
@@ -376,43 +379,76 @@ export async function getCollectionHistory(hotelId, filters = {}) {
     offset = 0,
   } = filters
 
-  let queryText = `
-    SELECT ch.*, u.name as user_name, d.name as department_name
-    FROM collection_history ch
-    LEFT JOIN users u ON ch.user_id = u.id
-    LEFT JOIN departments d ON ch.department_id = d.id
-    WHERE ch.hotel_id = $1
-  `
+  // Build WHERE clause for the inner filter
+  const whereConditions = ['ch.hotel_id = $1']
   const params = [hotelId]
   let paramIndex = 2
 
   if (departmentId) {
-    queryText += ` AND ch.department_id = $${paramIndex++}`
+    whereConditions.push(`ch.department_id = $${paramIndex++}`)
     params.push(departmentId)
   }
 
   if (productId) {
-    queryText += ` AND ch.product_id = $${paramIndex++}`
+    whereConditions.push(`ch.product_id = $${paramIndex++}`)
     params.push(productId)
   }
 
   if (userId) {
-    queryText += ` AND ch.user_id = $${paramIndex++}`
+    whereConditions.push(`ch.user_id = $${paramIndex++}`)
     params.push(userId)
   }
 
   if (startDate) {
-    queryText += ` AND ch.collected_at >= $${paramIndex++}`
+    whereConditions.push(`ch.collected_at >= $${paramIndex++}`)
     params.push(startDate)
   }
 
   if (endDate) {
-    queryText += ` AND ch.collected_at <= $${paramIndex++}`
+    whereConditions.push(`ch.collected_at <= $${paramIndex++}`)
     params.push(endDate)
   }
 
-  queryText += ` ORDER BY ch.collected_at DESC`
-  queryText += ` LIMIT $${paramIndex++} OFFSET $${paramIndex++}`
+  const whereClause = whereConditions.join(' AND ')
+
+  // Group rows by session_id so that one FIFO collect shows as one entry.
+  // Rows without session_id (old data) are each treated as their own group via COALESCE.
+  const queryText = `
+    SELECT
+      COALESCE(ch.session_id::text, ch.id::text) AS group_key,
+      ch.session_id,
+      MIN(ch.id::text)::uuid AS id,
+      ch.product_id,
+      ch.hotel_id,
+      ch.department_id,
+      ch.user_id,
+      ch.product_name,
+      ch.category_name,
+      ch.collection_reason,
+      MAX(ch.notes) AS notes,
+      MIN(ch.collected_at) AS collected_at,
+      SUM(ch.quantity_collected) AS quantity_collected,
+      MIN(ch.expiry_date) AS expiry_date,
+      COUNT(*) AS batch_count,
+      MAX(u.name) AS user_name,
+      MAX(d.name) AS department_name
+    FROM collection_history ch
+    LEFT JOIN users u ON ch.user_id = u.id
+    LEFT JOIN departments d ON ch.department_id = d.id
+    WHERE ${whereClause}
+    GROUP BY
+      COALESCE(ch.session_id::text, ch.id::text),
+      ch.session_id,
+      ch.product_id,
+      ch.hotel_id,
+      ch.department_id,
+      ch.user_id,
+      ch.product_name,
+      ch.category_name,
+      ch.collection_reason
+    ORDER BY MIN(ch.collected_at) DESC
+    LIMIT $${paramIndex++} OFFSET $${paramIndex++}
+  `
   params.push(limit, offset)
 
   const result = await query(queryText, params)

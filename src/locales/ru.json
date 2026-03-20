@@ -1192,6 +1192,8 @@
   },
   "export": {
     "title": "Экспорт данных",
+    "reportsTitle": "Аналитические отчёты",
+    "reportsDescription": "Отчёты по аналитике и показателям работы",
     "button": "Экспорт",
     "description": "Экспортируйте данные в Excel для анализа и отчётности",
     "allDataExcel": "Все данные (Excel)",
@@ -1232,7 +1234,36 @@
       "action": "Действие",
       "entityType": "Тип объекта",
       "details": "Детали",
-      "ip": "IP-адрес"
+      "ip": "IP-адрес",
+      "name": "Название",
+      "description": "Описание",
+      "email": "Email",
+      "telegramChatId": "Telegram Chat ID",
+      "createdAt": "Дата создания",
+      "barcode": "Штрих-код",
+      "defaultShelfLife": "Срок хранения (дней)",
+      "batchNumber": "Номер партии"
+    },
+    "analyticsColumns": {
+      "totalBatches": "Всего партий",
+      "healthScore": "Health Score",
+      "batchNumber": "Партия №",
+      "currentStock": "Остаток",
+      "totalCollected": "Собрано",
+      "consumptionRate": "Доля потребления %",
+      "turnoverRatio": "Коэффициент оборота",
+      "expiryRate": "Доля истечений %",
+      "avgDaysToExpiry": "Ср. дней до истечения",
+      "collectionsThisMonth": "Сборов за месяц",
+      "transactions": "Транзакций",
+      "totalQuantity": "Всего кол-во",
+      "percentage": "Доля %",
+      "ageRange": "Диапазон",
+      "batchCount": "Партий",
+      "prevHealthScore": "Health Score (пред.)",
+      "change": "Изменение",
+      "weeklyCollections": "Сборов за неделю",
+      "collectedQty": "Собрано ед."
     }
   },
   "import": {
@@ -1244,7 +1275,8 @@
     "processing": "Обработка...",
     "imported": "Импортировано",
     "error": "Ошибка импорта",
-    "success": "Импорт успешно завершён"
+    "success": "Импорт успешно завершён",
+    "moreErrors": "...и ещё {{count}} ошибок"
   },
   "scheduledExports": {
     "title": "Запланированные экспорты",
@@ -1327,7 +1359,15 @@
     "telegramRequired": "У отдела не настроен Telegram. Укажите Chat ID для отправки.",
     "statusSuccess": "Успешно",
     "statusFailed": "Ошибка",
-    "statusPartial": "Частично"
+    "statusPartial": "Частично",
+    "recipientType": "Куда отправлять",
+    "recipientDepartment": "В отдел",
+    "pinLabel": "PIN для скачивания",
+    "pinPlaceholder": "Минимум 4 символа",
+    "pinRequired": "PIN должен быть не менее 4 символов",
+    "pinKeepCurrent": "Оставьте пустым, чтобы сохранить текущий",
+    "linkExpiryLabel": "Срок действия ссылки (часы)",
+    "securitySettings": "🔐 Безопасность скачивания"
   },
   "departmentRanking": {
     "title": "Рейтинг отделов",
@@ -1762,9 +1802,9 @@
     "newRule": "Новое правило",
     "name": "Название",
     "daysBefore": "За сколько дней",
-    "warning": "Предупреждение",
+    "warning": "Скоро истекает",
     "critical": "Критично",
-    "warningDays": "Предупреждение за дней",
+    "warningDays": "Скоро истекает за дней",
     "criticalDays": "Критичный за дней",
     "department": "Отдел",
     "allDepartments": "Все отделы",
@@ -2153,5 +2193,136 @@
       "completed": "Завершено",
       "cancelled": "Отменено"
     }
+  },
+  "analyticsReports": {
+    "tabs": {
+      "health": "Здоровье",
+      "expiry": "Прогноз истечения",
+      "collections": "Сборы",
+      "departments": "Рейтинг отделов",
+      "turnover": "Оборот",
+      "reasons": "Причины",
+      "batchAge": "Возраст партий",
+      "weekly": "Неделя"
+    },
+    "apply": "Применить",
+    "retry": "Повторить",
+    "noData": "Нет данных",
+    "records": "записей",
+    "unspecified": "Не указано",
+    "status": {
+      "good": "Хорошо",
+      "warning": "Внимание",
+      "critical": "Критично",
+      "today": "Сегодня",
+      "expired": "Просрочено"
+    },
+    "health": {
+      "description": "Текущее состояние инвентаря по каждому отделу",
+      "noData": "Нет данных об инвентаре",
+      "colDept": "Отдел",
+      "colTotal": "Всего",
+      "colGood": "Хорошие",
+      "colWarning": "Внимание",
+      "colCritical": "Критично",
+      "colExpired": "Просрочено",
+      "colScore": "Health Score"
+    },
+    "expiry": {
+      "description": "Товары с истекающим сроком в ближайшие",
+      "noData": "Нет товаров с истекающим сроком",
+      "colProduct": "Продукт",
+      "colDept": "Отдел",
+      "colCategory": "Категория",
+      "colExpiryDate": "Дата истечения",
+      "colDaysLeft": "Дней",
+      "colQty": "Кол-во",
+      "colStatus": "Статус"
+    },
+    "collections": {
+      "noData": "Нет данных о сборах за выбранный период",
+      "colDate": "Дата",
+      "colProduct": "Продукт",
+      "colDept": "Отдел",
+      "colCollectedBy": "Кто собрал",
+      "colQty": "Кол-во",
+      "colReason": "Причина",
+      "colExpiry": "Срок годности"
+    },
+    "departments": {
+      "description": "Рейтинг отделов по качеству управления инвентарём",
+      "noData": "Нет данных по отделам",
+      "batches": "партий",
+      "expiredLabel": "просрочено",
+      "avgDays": "Ср.",
+      "daysUnit": "дн.",
+      "collectionsLabel": "сборов"
+    },
+    "turnover": {
+      "noData": "Нет данных о продуктах",
+      "colProduct": "Продукт",
+      "colCategory": "Категория",
+      "colBatches": "Партий",
+      "colStock": "Остаток",
+      "colCollected": "Собрано",
+      "colExpired": "Просрочено",
+      "colConsumption": "Доля потребл. %",
+      "colTurnover": "Оборот"
+    },
+    "reasons": {
+      "noData": "Нет данных о причинах",
+      "byQuantity": "По количеству",
+      "colReason": "Причина",
+      "colTransactions": "Транз.",
+      "colQty": "Кол-во",
+      "colShare": "Доля"
+    },
+    "ageRanges": {
+      "expired": "Просрочено",
+      "0_2days": "0-2 дня",
+      "3_7days": "3-7 дней",
+      "8_30days": "8-30 дней",
+      "31_90days": "31-90 дней",
+      "90plus": "90+ дней"
+    },
+    "batchAge": {
+      "description": "Распределение активных партий по остатку срока годности",
+      "noData": "Нет активных партий",
+      "byBatchCount": "По количеству партий",
+      "batchesUnit": "партий",
+      "unitsLabel": "ед. общего количества"
+    },
+    "weekly": {
+      "description": "Сводка ключевых KPI за последние 7 дней",
+      "noData": "Нет данных за неделю",
+      "totalBatches": "Всего партий",
+      "good": "Хорошие",
+      "expired": "Просрочено",
+      "healthScore": "Health Score",
+      "weeklyCollections": "Сборов за неделю",
+      "collectedQty": "Собрано единиц",
+      "healthChanged": "Health Score изменился на",
+      "compared": "по сравнению с прошлой неделей",
+      "prev": "Пред.",
+      "was": "было",
+      "became": "стало"
+    }
+  },
+  "download": {
+    "title": "Скачивание отчёта",
+    "enterPin": "Введите PIN",
+    "enterLogin": "Введите логин",
+    "downloadBtn": "Скачать",
+    "expired": "Ссылка истекла",
+    "revoked": "Ссылка отозвана",
+    "invalidPin": "Неверный PIN или недостаточно прав",
+    "tooManyAttempts": "Слишком много попыток. Попробуйте позже.",
+    "fileSize": "Размер",
+    "expiresAt": "Действительна до",
+    "downloading": "Скачивание...",
+    "pinRequired": "Для скачивания требуется PIN",
+    "fetchError": "Не удалось загрузить информацию о файле",
+    "filesReady": "файлов готово к скачиванию",
+    "selectAll": "Выбрать все"
   }
 }

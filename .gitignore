@@ -1,66 +1,108 @@
+# ═══════════════════════════════════════════════════════════════
+# ENV & Secrets
+# ═══════════════════════════════════════════════════════════════
+.env
+.env.local
+.env.production
+.env.*.local
+server/.env
+server/.env.local
+server/.env.production
+!.env.example
+!server/.env.example
+
+# ═══════════════════════════════════════════════════════════════
 # Dependencies
-node_modules
-.pnp
-.pnp.js
+# ═══════════════════════════════════════════════════════════════
+node_modules/
 
-# Build
-dist
-dist-ssr
-build
-*.local
+# ═══════════════════════════════════════════════════════════════
+# Build output
+# ═══════════════════════════════════════════════════════════════
+dist/
+build/
+dist-ssr/
+server/dist/
 
-# Editor
-.vscode/*
+# ═══════════════════════════════════════════════════════════════
+# Logs & Cache
+# ═══════════════════════════════════════════════════════════════
+*.log
+.cache/
+.vite/
+coverage/
+.nyc_output/
+.lighthouseci/
+
+# ═══════════════════════════════════════════════════════════════
+# IDE & OS
+# ═══════════════════════════════════════════════════════════════
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
 !.vscode/extensions.json
-.idea
+
+# ═══════════════════════════════════════════════════════════════
+# AI / Agent instructions
+# ═══════════════════════════════════════════════════════════════
+.cursor/
+.cursorrules
+.aider*
+.claude/
+.claude_context
+.agent/
+CLAUDE.md
+AGENTS.md
+COPILOT_INSTRUCTIONS.md
+.github/copilot-instructions.md
+claude_instructions*
+agent_context*
+*.prompt.md
+
+# ═══════════════════════════════════════════════════════════════
+# Testing artifacts
+# ═══════════════════════════════════════════════════════════════
+test-results/
+playwright-report/
+
+# ═══════════════════════════════════════════════════════════════
+# Temporary & junk files
+# ═══════════════════════════════════════════════════════════════
+*.tmp
+*.bak
 *.swp
 *.swo
 *~
+nul
+lint_log.txt
+lint_full.log
+lint_mfa.log
 
-# OS
-.DS_Store
-Thumbs.db
-
-# Logs
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
-
-# Environment - NEVER commit secrets!
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-**/.env
-**/.env.local
-
+# ═══════════════════════════════════════════════════════════════
 # Database files
+# ═══════════════════════════════════════════════════════════════
 *.db
 *.db-journal
 *.db-wal
 *.db-shm
-server/db/*.db
-server/db/*.db-journal
 
-# Testing
-coverage
-.nyc_output
-
-# Misc
+# ═══════════════════════════════════════════════════════════════
+# Security
+# ═══════════════════════════════════════════════════════════════
 *.pem
-.cache
 
-# Server specific
-server/.env
-server/*.db
-nul
+# ═══════════════════════════════════════════════════════════════
+# Reports (generated, not source)
+# ═══════════════════════════════════════════════════════════════
+reports/
 
-.claude
-.agent
+# ═══════════════════════════════════════════════════════════════
+# Uploads (user-generated content)
+# ═══════════════════════════════════════════════════════════════
+uploads/
 
-
+# ═══════════════════════════════════════════════════════════════
+# Superpowers docs (AI-generated plans/specs)
+# ═══════════════════════════════════════════════════════════════
+docs/superpowers/

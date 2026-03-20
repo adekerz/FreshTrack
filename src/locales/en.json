@@ -1140,6 +1140,8 @@
   },
   "export": {
     "title": "Export Data",
+    "reportsTitle": "Analytics Reports",
+    "reportsDescription": "Reports on analytics and performance metrics",
     "button": "Export",
     "description": "Export data to Excel for analysis and reporting",
     "allDataExcel": "All data (Excel)",
@@ -1175,7 +1177,41 @@
       "type": "Type",
       "message": "Message",
       "reason": "Reason",
-      "collectedBy": "Collected By"
+      "collectedBy": "Collected By",
+      "user": "User",
+      "action": "Action",
+      "entityType": "Entity Type",
+      "details": "Details",
+      "ip": "IP Address",
+      "name": "Name",
+      "description": "Description",
+      "email": "Email",
+      "telegramChatId": "Telegram Chat ID",
+      "createdAt": "Created At",
+      "barcode": "Barcode",
+      "defaultShelfLife": "Shelf Life (days)",
+      "batchNumber": "Batch Number"
+    },
+    "analyticsColumns": {
+      "totalBatches": "Total Batches",
+      "healthScore": "Health Score",
+      "batchNumber": "Batch #",
+      "currentStock": "Stock",
+      "totalCollected": "Collected",
+      "consumptionRate": "Consumption %",
+      "turnoverRatio": "Turnover Ratio",
+      "expiryRate": "Expiry Rate %",
+      "avgDaysToExpiry": "Avg. Days to Expiry",
+      "collectionsThisMonth": "Collections/Month",
+      "transactions": "Transactions",
+      "totalQuantity": "Total Qty",
+      "percentage": "Share %",
+      "ageRange": "Range",
+      "batchCount": "Batches",
+      "prevHealthScore": "Health Score (prev.)",
+      "change": "Change",
+      "weeklyCollections": "Weekly Collections",
+      "collectedQty": "Units Collected"
     }
   },
   "import": {
@@ -1187,7 +1223,8 @@
     "processing": "Processing...",
     "imported": "Imported",
     "error": "Import error",
-    "success": "Import completed successfully"
+    "success": "Import completed successfully",
+    "moreErrors": "...and {{count}} more errors"
   },
   "scheduledExports": {
     "title": "Scheduled Exports",
@@ -1265,7 +1302,15 @@
     "reportAudit": "Audit log",
     "formatExcel": "Excel (XLSX)",
     "formatCsv": "CSV",
-    "formatPdf": "PDF"
+    "formatPdf": "PDF",
+    "recipientType": "Send to",
+    "recipientDepartment": "Department",
+    "pinLabel": "Download PIN",
+    "pinPlaceholder": "At least 4 characters",
+    "pinRequired": "PIN must be at least 4 characters",
+    "pinKeepCurrent": "Leave empty to keep current",
+    "linkExpiryLabel": "Link expiry (hours)",
+    "securitySettings": "🔐 Download Security"
   },
   "departmentRanking": {
     "title": "Department Ranking",
@@ -2046,5 +2091,136 @@
       "completed": "Completed",
       "cancelled": "Cancelled"
     }
+  },
+  "analyticsReports": {
+    "tabs": {
+      "health": "Health",
+      "expiry": "Expiry Forecast",
+      "collections": "Collections",
+      "departments": "Dept. Ranking",
+      "turnover": "Turnover",
+      "reasons": "Reasons",
+      "batchAge": "Batch Age",
+      "weekly": "Weekly"
+    },
+    "apply": "Apply",
+    "retry": "Retry",
+    "noData": "No data",
+    "records": "records",
+    "unspecified": "Not specified",
+    "status": {
+      "good": "Good",
+      "warning": "Warning",
+      "critical": "Critical",
+      "today": "Today",
+      "expired": "Expired"
+    },
+    "health": {
+      "description": "Current inventory health per department",
+      "noData": "No inventory data",
+      "colDept": "Department",
+      "colTotal": "Total",
+      "colGood": "Good",
+      "colWarning": "Warning",
+      "colCritical": "Critical",
+      "colExpired": "Expired",
+      "colScore": "Health Score"
+    },
+    "expiry": {
+      "description": "Items expiring in the next",
+      "noData": "No items expiring soon",
+      "colProduct": "Product",
+      "colDept": "Department",
+      "colCategory": "Category",
+      "colExpiryDate": "Expiry Date",
+      "colDaysLeft": "Days",
+      "colQty": "Qty",
+      "colStatus": "Status"
+    },
+    "collections": {
+      "noData": "No collection data for selected period",
+      "colDate": "Date",
+      "colProduct": "Product",
+      "colDept": "Department",
+      "colCollectedBy": "Collected By",
+      "colQty": "Qty",
+      "colReason": "Reason",
+      "colExpiry": "Expiry Date"
+    },
+    "departments": {
+      "description": "Department ranking by inventory management quality",
+      "noData": "No department data",
+      "batches": "batches",
+      "expiredLabel": "expired",
+      "avgDays": "Avg.",
+      "daysUnit": "d.",
+      "collectionsLabel": "collections"
+    },
+    "turnover": {
+      "noData": "No product data",
+      "colProduct": "Product",
+      "colCategory": "Category",
+      "colBatches": "Batches",
+      "colStock": "Stock",
+      "colCollected": "Collected",
+      "colExpired": "Expired",
+      "colConsumption": "Consumption %",
+      "colTurnover": "Turnover"
+    },
+    "reasons": {
+      "noData": "No reasons data",
+      "byQuantity": "By quantity",
+      "colReason": "Reason",
+      "colTransactions": "Trans.",
+      "colQty": "Qty",
+      "colShare": "Share"
+    },
+    "ageRanges": {
+      "expired": "Expired",
+      "0_2days": "0-2 days",
+      "3_7days": "3-7 days",
+      "8_30days": "8-30 days",
+      "31_90days": "31-90 days",
+      "90plus": "90+ days"
+    },
+    "batchAge": {
+      "description": "Active batches distribution by remaining shelf life",
+      "noData": "No active batches",
+      "byBatchCount": "By batch count",
+      "batchesUnit": "batches",
+      "unitsLabel": "units total"
+    },
+    "weekly": {
+      "description": "Key KPI summary for the last 7 days",
+      "noData": "No data for this week",
+      "totalBatches": "Total Batches",
+      "good": "Good",
+      "expired": "Expired",
+      "healthScore": "Health Score",
+      "weeklyCollections": "Weekly Collections",
+      "collectedQty": "Units Collected",
+      "healthChanged": "Health Score changed by",
+      "compared": "compared to last week",
+      "prev": "Prev.",
+      "was": "was",
+      "became": "now"
+    }
+  },
+  "download": {
+    "title": "Download Report",
+    "enterPin": "Enter PIN",
+    "enterLogin": "Enter login",
+    "downloadBtn": "Download",
+    "expired": "Link expired",
+    "revoked": "Link revoked",
+    "invalidPin": "Invalid PIN or insufficient permissions",
+    "tooManyAttempts": "Too many attempts. Try again later.",
+    "fileSize": "Size",
+    "expiresAt": "Valid until",
+    "downloading": "Downloading...",
+    "pinRequired": "PIN required to download",
+    "fetchError": "Failed to load file information",
+    "filesReady": "files ready to download",
+    "selectAll": "Select all"
   }
 }

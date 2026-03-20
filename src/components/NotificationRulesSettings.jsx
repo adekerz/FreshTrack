@@ -9,7 +9,6 @@ import {
   X,
   AlertTriangle,
   CalendarDays,
-  CalendarRange,
   Building2,
   Send,
   Mail,
@@ -54,12 +53,9 @@ const CHANNEL_META = {
 const DEFAULT_RULE = {
   name: '',
   departmentId: '',
-  category: '',
-  notificationMode: 'daily',
   warningDays: 7,
+  attentionDays: 5,
   criticalDays: 3,
-  warningMonths: 2,
-  notificationType: 'all',
   channels: ['in_app', 'telegram', 'email'],
 }
 
@@ -131,8 +127,7 @@ export default function NotificationRulesSettings() {
   }
 
   const addRule = async () => {
-    if (!newRule.name) return
-    if (newRule.notificationMode === 'daily' && !newRule.warningDays) return
+    if (!newRule.name || !newRule.warningDays) return
     setSaving(true)
     try {
       await apiFetch('/notification-rules/rules', {
@@ -141,17 +136,11 @@ export default function NotificationRulesSettings() {
           name: newRule.name,
           departmentId: newRule.departmentId || null,
           type: 'expiry',
-          notificationMode: newRule.notificationMode,
-          warningDays:
-            newRule.notificationMode === 'monthly' ? null : newRule.warningDays,
-          criticalDays:
-            newRule.notificationMode === 'monthly'
-              ? null
-              : newRule.criticalDays,
-          warningMonths:
-            newRule.notificationMode === 'monthly'
-              ? newRule.warningMonths
-              : null,
+          notificationMode: 'daily',
+          warningDays: newRule.warningDays,
+          attentionDays: newRule.attentionDays,
+          criticalDays: newRule.criticalDays,
+          warningMonths: null,
           channels: newRule.channels,
           recipientRoles: ['HOTEL_ADMIN', 'STAFF'],
           enabled: true,
@@ -174,8 +163,6 @@ export default function NotificationRulesSettings() {
     const d = departments.find((x) => x.id === id)
     return d ? d.name : id
   }
-
-  const isMonthly = newRule.notificationMode === 'monthly'
 
   const headerActions = (
     <TouchButton
@@ -217,196 +204,97 @@ export default function NotificationRulesSettings() {
             </div>
 
             <div className="p-5 space-y-5">
-              {/* ── Шаг 1: Режим ── */}
+              {/* ── Шаг 1: Пороги ── */}
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-                  1. Как уведомлять?
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {/* По дням */}
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setNewRule({ ...newRule, notificationMode: 'daily' })
-                    }
-                    className={cn(
-                      'text-left p-4 rounded-xl border-2 transition-all',
-                      newRule.notificationMode === 'daily'
-                        ? 'border-accent bg-accent/5'
-                        : 'border-border bg-muted/30 hover:border-accent/50'
-                    )}
-                  >
-                    <div className="flex items-center gap-2 mb-1">
-                      <CalendarDays
-                        className={cn(
-                          'w-4 h-4',
-                          newRule.notificationMode === 'daily'
-                            ? 'text-accent'
-                            : 'text-muted-foreground'
-                        )}
-                      />
-                      <span className="font-medium text-foreground text-sm">
-                        По дням
-                      </span>
-                      {newRule.notificationMode === 'daily' && (
-                        <span className="ml-auto w-2 h-2 rounded-full bg-accent" />
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                      Каждый день — список товаров у которых срок истекает в
-                      ближайшие N дней
-                    </p>
-                  </button>
-
-                  {/* По месяцам */}
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setNewRule({ ...newRule, notificationMode: 'monthly' })
-                    }
-                    className={cn(
-                      'text-left p-4 rounded-xl border-2 transition-all',
-                      newRule.notificationMode === 'monthly'
-                        ? 'border-accent bg-accent/5'
-                        : 'border-border bg-muted/30 hover:border-accent/50'
-                    )}
-                  >
-                    <div className="flex items-center gap-2 mb-1">
-                      <CalendarRange
-                        className={cn(
-                          'w-4 h-4',
-                          newRule.notificationMode === 'monthly'
-                            ? 'text-accent'
-                            : 'text-muted-foreground'
-                        )}
-                      />
-                      <span className="font-medium text-foreground text-sm">
-                        По месяцам
-                      </span>
-                      {newRule.notificationMode === 'monthly' && (
-                        <span className="ml-auto w-2 h-2 rounded-full bg-accent" />
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                      Дайджест сгруппированный по месяцу — удобно для
-                      планирования сбора
-                    </p>
-                  </button>
-                </div>
-              </div>
-
-              {/* ── Шаг 2: Порог ── */}
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-                  2.{' '}
-                  {isMonthly
-                    ? 'Сколько месяцев вперёд показывать?'
-                    : 'За сколько дней предупреждать?'}
+                  1. Пороги уведомлений (дни до истечения)
                 </p>
 
-                {isMonthly ? (
-                  <div className="flex items-center gap-3 p-4 rounded-xl bg-muted/40 border border-border">
-                    <CalendarRange className="w-8 h-8 text-accent shrink-0" />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-foreground">
-                        Горизонт планирования
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        В отчёт попадут товары со сроком истечения в ближайшие
-                      </p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {/* Скоро истекает (жёлтое) */}
+                  <div className="flex items-center gap-3 p-4 rounded-xl bg-warning/5 border border-warning/20">
+                    <div className="w-8 h-8 rounded-lg bg-warning/10 flex items-center justify-center shrink-0">
+                      <span className="text-warning text-sm font-bold">!</span>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground">Скоро истекает</p>
+                      <p className="text-xs text-muted-foreground">жёлтое</p>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
                       <input
                         type="number"
                         min={1}
-                        max={24}
-                        defaultValue={newRule.warningMonths}
+                        max={365}
+                        defaultValue={newRule.warningDays}
                         onChange={(e) =>
                           debouncedUpdateNewRule({
-                            warningMonths: parseInt(e.target.value, 10) || 2,
+                            warningDays: parseInt(e.target.value, 10) || 7,
                           })
                         }
-                        className="w-16 text-center px-2 py-2 border border-border rounded-lg bg-card text-foreground text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-accent"
+                        className="w-14 text-center px-2 py-1.5 border border-border rounded-lg bg-card text-foreground text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-accent"
                       />
-                      <span className="text-sm text-muted-foreground">
-                        мес.
-                      </span>
+                      <span className="text-xs text-muted-foreground">дн.</span>
                     </div>
                   </div>
-                ) : (
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="flex items-center gap-3 p-4 rounded-xl bg-warning/5 border border-warning/20">
-                      <div className="w-8 h-8 rounded-lg bg-warning/10 flex items-center justify-center shrink-0">
-                        <span className="text-warning text-sm font-bold">
-                          !
-                        </span>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs text-muted-foreground">
-                          Предупреждение
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          за дней до истечения
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-1 shrink-0">
-                        <input
-                          type="number"
-                          min={1}
-                          max={365}
-                          defaultValue={newRule.warningDays}
-                          onChange={(e) =>
-                            debouncedUpdateNewRule({
-                              warningDays: parseInt(e.target.value, 10) || 7,
-                            })
-                          }
-                          className="w-14 text-center px-2 py-1.5 border border-border rounded-lg bg-card text-foreground text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-accent"
-                        />
-                        <span className="text-xs text-muted-foreground">
-                          дн.
-                        </span>
-                      </div>
+
+                  {/* Внимание (оранжевое) */}
+                  <div className="flex items-center gap-3 p-4 rounded-xl bg-orange-500/5 border border-orange-500/20">
+                    <div className="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center shrink-0">
+                      <span className="text-orange-500 text-sm font-bold">!!</span>
                     </div>
-                    <div className="flex items-center gap-3 p-4 rounded-xl bg-danger/5 border border-danger/20">
-                      <div className="w-8 h-8 rounded-lg bg-danger/10 flex items-center justify-center shrink-0">
-                        <span className="text-danger text-sm font-bold">
-                          !!
-                        </span>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs text-muted-foreground">
-                          Критично
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          за дней до истечения
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-1 shrink-0">
-                        <input
-                          type="number"
-                          min={1}
-                          max={365}
-                          defaultValue={newRule.criticalDays}
-                          onChange={(e) =>
-                            debouncedUpdateNewRule({
-                              criticalDays: parseInt(e.target.value, 10) || 3,
-                            })
-                          }
-                          className="w-14 text-center px-2 py-1.5 border border-border rounded-lg bg-card text-foreground text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-accent"
-                        />
-                        <span className="text-xs text-muted-foreground">
-                          дн.
-                        </span>
-                      </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground">Внимание</p>
+                      <p className="text-xs text-muted-foreground">оранжевое</p>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <input
+                        type="number"
+                        min={1}
+                        max={365}
+                        defaultValue={newRule.attentionDays}
+                        onChange={(e) =>
+                          debouncedUpdateNewRule({
+                            attentionDays: parseInt(e.target.value, 10) || 5,
+                          })
+                        }
+                        className="w-14 text-center px-2 py-1.5 border border-border rounded-lg bg-card text-foreground text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-accent"
+                      />
+                      <span className="text-xs text-muted-foreground">дн.</span>
                     </div>
                   </div>
-                )}
+
+                  {/* Критично (красное) */}
+                  <div className="flex items-center gap-3 p-4 rounded-xl bg-danger/5 border border-danger/20">
+                    <div className="w-8 h-8 rounded-lg bg-danger/10 flex items-center justify-center shrink-0">
+                      <span className="text-danger text-sm font-bold">!!!</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground">Критично</p>
+                      <p className="text-xs text-muted-foreground">красное</p>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <input
+                        type="number"
+                        min={1}
+                        max={365}
+                        defaultValue={newRule.criticalDays}
+                        onChange={(e) =>
+                          debouncedUpdateNewRule({
+                            criticalDays: parseInt(e.target.value, 10) || 3,
+                          })
+                        }
+                        className="w-14 text-center px-2 py-1.5 border border-border rounded-lg bg-card text-foreground text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-accent"
+                      />
+                      <span className="text-xs text-muted-foreground">дн.</span>
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              {/* ── Шаг 3: Куда отправлять ── */}
+              {/* ── Шаг 2: Куда отправлять ── */}
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-                  3. Куда отправлять?
+                  2. Куда отправлять?
                 </p>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {Object.entries(CHANNEL_META).map(([key, meta]) => {
@@ -443,10 +331,10 @@ export default function NotificationRulesSettings() {
                 </div>
               </div>
 
-              {/* ── Шаг 4: Детали ── */}
+              {/* ── Шаг 3: Детали ── */}
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-                  4. Название и отдел
+                  3. Название и отдел
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
@@ -463,11 +351,7 @@ export default function NotificationRulesSettings() {
                       onChange={(e) =>
                         setNewRule({ ...newRule, name: e.target.value })
                       }
-                      placeholder={
-                        isMonthly
-                          ? 'Напр.: Молочка — дайджест'
-                          : 'Напр.: Молочка — 7 дней'
-                      }
+                      placeholder="Напр.: Молочка — 7 дней"
                       className="w-full px-3 py-2 border border-border rounded-lg bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                     />
                   </div>
@@ -537,8 +421,6 @@ export default function NotificationRulesSettings() {
           ) : (
             rules.map((rule) => {
               const active = rule.isActive ?? rule.enabled
-              const mode =
-                rule.notification_mode ?? rule.notificationMode ?? 'daily'
               const channels = Array.isArray(rule.channels) ? rule.channels : []
 
               return (
@@ -551,18 +433,9 @@ export default function NotificationRulesSettings() {
                       : 'bg-muted/20 border-border/50 opacity-60'
                   )}
                 >
-                  {/* Иконка режима */}
-                  <div
-                    className={cn(
-                      'w-9 h-9 rounded-lg flex items-center justify-center shrink-0 mt-0.5',
-                      mode === 'monthly' ? 'bg-accent/10' : 'bg-warning/10'
-                    )}
-                  >
-                    {mode === 'monthly' ? (
-                      <CalendarRange className="w-4 h-4 text-accent" />
-                    ) : (
-                      <CalendarDays className="w-4 h-4 text-warning" />
-                    )}
+                  {/* Иконка */}
+                  <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 mt-0.5 bg-accent/10">
+                    <CalendarDays className="w-4 h-4 text-accent" />
                   </div>
 
                   {/* Основная информация */}
@@ -578,31 +451,19 @@ export default function NotificationRulesSettings() {
                       )}
                     </div>
 
-                    {/* Режим + порог */}
+                    {/* Пороги */}
                     <div className="mt-1 flex items-center gap-1.5 flex-wrap">
-                      {mode === 'monthly' ? (
-                        <span className="text-xs text-muted-foreground">
-                          Дайджест по месяцам •{' '}
-                          <span className="text-foreground font-medium">
-                            горизонт{' '}
-                            {rule.warning_months ?? rule.warningMonths ?? 2}{' '}
-                            мес.
-                          </span>
-                        </span>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">
-                          По дням •{' '}
-                          <span className="text-warning font-medium">
-                            предупреждение{' '}
-                            {rule.warning_days ?? rule.warningDays ?? 7} дн.
-                          </span>{' '}
-                          •{' '}
-                          <span className="text-danger font-medium">
-                            критично{' '}
-                            {rule.critical_days ?? rule.criticalDays ?? 3} дн.
-                          </span>
-                        </span>
-                      )}
+                      <span className="text-xs text-warning font-medium">
+                        {rule.warning_days ?? rule.warningDays ?? 7}д
+                      </span>
+                      <span className="text-xs text-muted-foreground">•</span>
+                      <span className="text-xs text-orange-500 font-medium">
+                        {rule.attention_days ?? rule.attentionDays ?? 5}д
+                      </span>
+                      <span className="text-xs text-muted-foreground">•</span>
+                      <span className="text-xs text-danger font-medium">
+                        {rule.critical_days ?? rule.criticalDays ?? 3}д
+                      </span>
                     </div>
 
                     {/* Отдел + каналы */}

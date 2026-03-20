@@ -151,16 +151,35 @@ const FIELD_FALLBACK = {
   value: 'Value',
   key: 'Key',
   recordCount: 'Records',
+  channels: 'Каналы',
+  timezone: 'Часовой пояс',
+  templatesUpdated: 'Шаблоны обновлены',
+  columns: 'Колонки',
+  filters: 'Фильтры',
+  filename: 'Имя файла',
+  rowCount: 'Кол-во строк',
+  entityType: 'Тип данных',
+  created_by: 'Создал',
+  temporaryPasswordSent: 'Временный пароль',
+  enabled: 'Включено',
+  updated: 'Обновлено',
 }
 
 /**
- * Форматирование значения для отображения
+ * Форматирование простого значения для отображения (строка)
  */
 function formatValue(val) {
   if (val === null || val === undefined) return '—'
   if (typeof val === 'boolean') return val ? '✓' : '✗'
+  if (Array.isArray(val)) {
+    if (val.length === 0) return '—'
+    if (val.every((v) => typeof v !== 'object')) {
+      if (val.length <= 5) return val.join(', ')
+      return `${val.slice(0, 3).join(', ')} (+${val.length - 3})`
+    }
+    return JSON.stringify(val)
+  }
   if (typeof val === 'object') return JSON.stringify(val)
-  // Форматирование дат
   if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}/.test(val)) {
     try {
       return new Date(val).toLocaleDateString('ru-RU')
@@ -169,6 +188,119 @@ function formatValue(val) {
     }
   }
   return String(val)
+}
+
+/**
+ * Компонент для раскрываемого списка (массивы > 4 элементов)
+ */
+function ExpandableList({ items }) {
+  const [expanded, setExpanded] = useState(false)
+  const shown = expanded ? items : items.slice(0, 3)
+  const remaining = items.length - 3
+  return (
+    <div className="flex flex-wrap gap-1 items-center">
+      {shown.map((v, i) => (
+        <span
+          key={i}
+          className="px-1.5 py-0.5 bg-muted border border-border/50 rounded text-xs font-mono"
+        >
+          {String(v)}
+        </span>
+      ))}
+      {!expanded && remaining > 0 && (
+        <button
+          type="button"
+          onClick={() => setExpanded(true)}
+          className="px-1.5 py-0.5 bg-accent/10 text-accent rounded text-xs font-medium hover:bg-accent/20 transition-colors"
+        >
+          +{remaining}
+        </button>
+      )}
+      {expanded && items.length > 4 && (
+        <button
+          type="button"
+          onClick={() => setExpanded(false)}
+          className="px-1.5 py-0.5 text-muted-foreground rounded text-xs hover:text-foreground transition-colors"
+        >
+          ↑
+        </button>
+      )}
+    </div>
+  )
+}
+
+/**
+ * Компонент для вложенных объектов
+ */
+function NestedObject({ obj, t, depth = 0 }) {
+  if (!obj || typeof obj !== 'object') return <span>{formatValue(obj)}</span>
+  if (Array.isArray(obj)) return <ExpandableList items={obj} />
+  const entries = Object.entries(obj)
+  if (entries.length === 0) return <span>—</span>
+  return (
+    <div
+      className={cn(
+        'space-y-1.5',
+        depth > 0 && 'pl-3 border-l-2 border-border/40'
+      )}
+    >
+      {entries.map(([k, v]) => (
+        <div key={k} className="flex flex-col gap-0.5">
+          <span className="text-xs text-muted-foreground font-medium">
+            {t ? getFieldLabel(k, t) : k}
+          </span>
+          {v !== null && typeof v === 'object' ? (
+            <NestedObject obj={v} t={t} depth={depth + 1} />
+          ) : (
+            <span className="text-sm text-foreground font-medium">
+              {formatValue(v)}
+            </span>
+          )}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+/**
+ * Рич-компонент для отображения значения (массивы как теги, объекты рекурсивно)
+ */
+function DetailValue({ value, t }) {
+  if (value === null || value === undefined) return <span>—</span>
+  if (typeof value === 'boolean')
+    return <span>{value ? '✓' : '✗'}</span>
+  if (Array.isArray(value)) {
+    if (value.length === 0) return <span>—</span>
+    if (value.every((v) => typeof v !== 'object')) {
+      if (value.length <= 4) {
+        return (
+          <div className="flex flex-wrap gap-1">
+            {value.map((v, i) => (
+              <span
+                key={i}
+                className="px-1.5 py-0.5 bg-muted border border-border/50 rounded text-xs font-mono"
+              >
+                {String(v)}
+              </span>
+            ))}
+          </div>
+        )
+      }
+      return <ExpandableList items={value} />
+    }
+    return <NestedObject obj={value} t={t} />
+  }
+  if (typeof value === 'object') {
+    return <NestedObject obj={value} t={t} />
+  }
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value)) {
+    try {
+      return <span>{new Date(value).toLocaleDateString('ru-RU')}</span>
+    } catch {
+      /* fallthrough */
+    }
+  }
+  return <span>{String(value)}</span>
 }
 
 /**
@@ -377,6 +509,19 @@ function SnapshotFields({ snapshot, skip = [], t }) {
 }
 
 /**
+ * Технические поля, скрытые из details
+ */
+const DETAILS_SKIP_KEYS = [
+  'id',
+  'hotel_id',
+  'user_id',
+  'timestamp',
+  'exportId',
+  'ipAddress',
+  'userAgent',
+]
+
+/**
  * Секция: поле details JSON как читаемые KV
  */
 function DetailsFields({ details, t }) {
@@ -387,19 +532,42 @@ function DetailsFields({ details, t }) {
   )
     return null
   const entries = Object.entries(details).filter(
-    ([k]) => !['id', 'hotel_id', 'user_id', 'timestamp'].includes(k)
+    ([k]) => !DETAILS_SKIP_KEYS.includes(k)
   )
   if (entries.length === 0) return null
+
+  // Разделяем на простые и сложные значения
+  const simpleEntries = entries.filter(
+    ([, v]) => v === null || v === undefined || typeof v !== 'object'
+  )
+  const complexEntries = entries.filter(
+    ([, v]) => v !== null && v !== undefined && typeof v === 'object'
+  )
+
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-      {entries.map(([k, v]) => (
-        <div key={k} className="flex flex-col gap-0.5">
+    <div className="space-y-3">
+      {simpleEntries.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {simpleEntries.map(([k, v]) => (
+            <div key={k} className="flex flex-col gap-0.5">
+              <span className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
+                {getFieldLabel(k, t)}
+              </span>
+              <span className="text-sm text-foreground font-medium break-all">
+                <DetailValue value={v} t={t} />
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+      {complexEntries.map(([k, v]) => (
+        <div key={k} className="flex flex-col gap-1">
           <span className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
             {getFieldLabel(k, t)}
           </span>
-          <span className="text-sm text-foreground font-medium break-all">
-            {formatValue(v)}
-          </span>
+          <div className="pl-1">
+            <DetailValue value={v} t={t} />
+          </div>
         </div>
       ))}
     </div>

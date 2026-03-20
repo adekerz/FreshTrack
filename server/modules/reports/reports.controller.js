@@ -15,9 +15,10 @@ import {
   getAuditLogs,
   logAudit
 } from '../../db/database.js'
-import { 
-  authMiddleware, 
-  hotelIsolation, 
+import { query } from '../../db/postgres.js'
+import {
+  authMiddleware,
+  hotelIsolation,
   departmentIsolation,
   requirePermission,
   PermissionResource,
@@ -29,6 +30,17 @@ import {
 } from '../../services/ExpiryService.js'
 import { UnifiedFilterService } from '../../services/FilterService.js'
 import { StatisticsService } from '../../services/StatisticsService.js'
+import {
+  HEALTH_SUMMARY_QUERY,
+  EXPIRY_FORECAST_QUERY,
+  COLLECTION_ACTIVITY_QUERY,
+  PRODUCT_TURNOVER_QUERY,
+  DAILY_ACTIVE_USERS_QUERY,
+  DEPARTMENT_SCORECARD_QUERY,
+  COLLECTION_REASONS_QUERY,
+  BATCH_AGE_DISTRIBUTION_QUERY,
+  WEEKLY_SUMMARY_QUERY
+} from './report-queries.js'
 
 const router = Router()
 
@@ -477,6 +489,214 @@ router.get('/dashboard', authMiddleware, hotelIsolation, departmentIsolation, as
   } catch (error) {
     logError('Get dashboard error', error)
     res.status(500).json({ success: false, error: 'Failed to get dashboard data' })
+  }
+})
+
+// ========================================
+// Analytics Report Endpoints (Phase 2)
+// ========================================
+
+const AUTH_CHAIN = [authMiddleware, hotelIsolation, departmentIsolation, requirePermission(PermissionResource.REPORTS, PermissionAction.READ)]
+
+/**
+ * GET /api/reports/health-summary
+ * Daily inventory health summary by department
+ */
+router.get('/health-summary', ...AUTH_CHAIN, async (req, res) => {
+  try {
+    const deptId = req.canAccessAllDepartments
+      ? (req.query.department_id || null)
+      : req.departmentId
+
+    const result = await query(HEALTH_SUMMARY_QUERY, [req.hotelId, deptId || null])
+
+    await logAudit({
+      hotel_id: req.hotelId, user_id: req.user.id, user_name: req.user.name,
+      action: 'view_report', entity_type: 'report', entity_id: null,
+      details: { report_type: 'health_summary' }, ip_address: req.ip
+    })
+
+    res.json({ success: true, data: result.rows, report_type: 'health-summary' })
+  } catch (error) {
+    logError('Get health-summary error', error)
+    res.status(500).json({ success: false, error: 'Failed to generate health summary' })
+  }
+})
+
+/**
+ * GET /api/reports/expiry-forecast?days=7&department_id=...
+ * Products expiring within N days
+ */
+router.get('/expiry-forecast', ...AUTH_CHAIN, async (req, res) => {
+  try {
+    const days = Math.min(parseInt(req.query.days) || 7, 365)
+    const deptId = req.canAccessAllDepartments
+      ? (req.query.department_id || null)
+      : req.departmentId
+
+    const result = await query(EXPIRY_FORECAST_QUERY, [req.hotelId, days, deptId || null])
+
+    await logAudit({
+      hotel_id: req.hotelId, user_id: req.user.id, user_name: req.user.name,
+      action: 'view_report', entity_type: 'report', entity_id: null,
+      details: { report_type: 'expiry_forecast', days }, ip_address: req.ip
+    })
+
+    res.json({ success: true, data: result.rows, days, report_type: 'expiry-forecast' })
+  } catch (error) {
+    logError('Get expiry-forecast error', error)
+    res.status(500).json({ success: false, error: 'Failed to generate expiry forecast' })
+  }
+})
+
+/**
+ * GET /api/reports/collection-activity?from=&to=&department_id=
+ * Detailed collection activity log
+ */
+router.get('/collection-activity', ...AUTH_CHAIN, async (req, res) => {
+  try {
+    const { from, to, department_id } = req.query
+    const dateFrom = from ? new Date(from) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+    const dateTo = to ? new Date(to) : new Date()
+    const deptId = req.canAccessAllDepartments ? (department_id || null) : req.departmentId
+
+    const result = await query(COLLECTION_ACTIVITY_QUERY, [req.hotelId, dateFrom, dateTo, deptId || null])
+
+    await logAudit({
+      hotel_id: req.hotelId, user_id: req.user.id, user_name: req.user.name,
+      action: 'view_report', entity_type: 'report', entity_id: null,
+      details: { report_type: 'collection_activity', from: dateFrom, to: dateTo }, ip_address: req.ip
+    })
+
+    res.json({ success: true, data: result.rows, report_type: 'collection-activity' })
+  } catch (error) {
+    logError('Get collection-activity error', error)
+    res.status(500).json({ success: false, error: 'Failed to generate collection activity report' })
+  }
+})
+
+/**
+ * GET /api/reports/product-turnover?from=&to=
+ * Product turnover analysis (consumption vs waste)
+ */
+router.get('/product-turnover', ...AUTH_CHAIN, async (req, res) => {
+  try {
+    const { from, to } = req.query
+    const dateFrom = from ? new Date(from) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+    const dateTo = to ? new Date(to) : new Date()
+
+    const result = await query(PRODUCT_TURNOVER_QUERY, [req.hotelId, dateFrom, dateTo])
+
+    await logAudit({
+      hotel_id: req.hotelId, user_id: req.user.id, user_name: req.user.name,
+      action: 'view_report', entity_type: 'report', entity_id: null,
+      details: { report_type: 'product_turnover' }, ip_address: req.ip
+    })
+
+    res.json({ success: true, data: result.rows, report_type: 'product-turnover' })
+  } catch (error) {
+    logError('Get product-turnover error', error)
+    res.status(500).json({ success: false, error: 'Failed to generate product turnover report' })
+  }
+})
+
+/**
+ * GET /api/reports/daily-active-users?from=
+ * Daily active users from audit logs
+ */
+router.get('/daily-active-users', ...AUTH_CHAIN, async (req, res) => {
+  try {
+    const { from } = req.query
+    const dateFrom = from ? new Date(from) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+
+    const result = await query(DAILY_ACTIVE_USERS_QUERY, [req.hotelId, dateFrom])
+
+    res.json({ success: true, data: result.rows, report_type: 'daily-active-users' })
+  } catch (error) {
+    logError('Get daily-active-users error', error)
+    res.status(500).json({ success: false, error: 'Failed to generate daily active users report' })
+  }
+})
+
+/**
+ * GET /api/reports/department-scorecard
+ * Department performance scorecard
+ */
+router.get('/department-scorecard', ...AUTH_CHAIN, async (req, res) => {
+  try {
+    const result = await query(DEPARTMENT_SCORECARD_QUERY, [req.hotelId])
+
+    await logAudit({
+      hotel_id: req.hotelId, user_id: req.user.id, user_name: req.user.name,
+      action: 'view_report', entity_type: 'report', entity_id: null,
+      details: { report_type: 'department_scorecard' }, ip_address: req.ip
+    })
+
+    res.json({ success: true, data: result.rows, report_type: 'department-scorecard' })
+  } catch (error) {
+    logError('Get department-scorecard error', error)
+    res.status(500).json({ success: false, error: 'Failed to generate department scorecard' })
+  }
+})
+
+/**
+ * GET /api/reports/collection-reasons?from=&to=&department_id=
+ * Collection reason distribution
+ */
+router.get('/collection-reasons', ...AUTH_CHAIN, async (req, res) => {
+  try {
+    const { from, to, department_id } = req.query
+    const dateFrom = from ? new Date(from) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+    const dateTo = to ? new Date(to) : new Date()
+    const deptId = req.canAccessAllDepartments ? (department_id || null) : req.departmentId
+
+    const result = await query(COLLECTION_REASONS_QUERY, [req.hotelId, dateFrom, dateTo, deptId || null])
+
+    res.json({ success: true, data: result.rows, report_type: 'collection-reasons' })
+  } catch (error) {
+    logError('Get collection-reasons error', error)
+    res.status(500).json({ success: false, error: 'Failed to generate collection reasons report' })
+  }
+})
+
+/**
+ * GET /api/reports/weekly-summary
+ * Weekly executive summary with health delta
+ */
+router.get('/weekly-summary', ...AUTH_CHAIN, async (req, res) => {
+  try {
+    const result = await query(WEEKLY_SUMMARY_QUERY, [req.hotelId])
+    const summary = result.rows[0] || {}
+
+    await logAudit({
+      hotel_id: req.hotelId, user_id: req.user.id, user_name: req.user.name,
+      action: 'view_report', entity_type: 'report', entity_id: null,
+      details: { report_type: 'weekly_summary' }, ip_address: req.ip
+    })
+
+    res.json({ success: true, data: summary, report_type: 'weekly-summary' })
+  } catch (error) {
+    logError('Get weekly-summary error', error)
+    res.status(500).json({ success: false, error: 'Failed to generate weekly summary' })
+  }
+})
+
+/**
+ * GET /api/reports/batch-age-distribution?department_id=
+ * Batch age distribution buckets
+ */
+router.get('/batch-age-distribution', ...AUTH_CHAIN, async (req, res) => {
+  try {
+    const deptId = req.canAccessAllDepartments
+      ? (req.query.department_id || null)
+      : req.departmentId
+
+    const result = await query(BATCH_AGE_DISTRIBUTION_QUERY, [req.hotelId, deptId || null])
+
+    res.json({ success: true, data: result.rows, report_type: 'batch-age-distribution' })
+  } catch (error) {
+    logError('Get batch-age-distribution error', error)
+    res.status(500).json({ success: false, error: 'Failed to generate batch age distribution' })
   }
 })
 

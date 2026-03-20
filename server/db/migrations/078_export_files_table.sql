@@ -1,8 +1,8 @@
 CREATE TABLE IF NOT EXISTS export_files (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  hotel_id INTEGER NOT NULL REFERENCES hotels(id) ON DELETE CASCADE,
-  department_id INTEGER REFERENCES departments(id) ON DELETE SET NULL,
-  scheduled_export_id INTEGER REFERENCES scheduled_exports(id) ON DELETE SET NULL,
+  hotel_id UUID NOT NULL REFERENCES hotels(id) ON DELETE CASCADE,
+  department_id UUID REFERENCES departments(id) ON DELETE SET NULL,
+  scheduled_export_id UUID REFERENCES scheduled_exports(id) ON DELETE SET NULL,
   token UUID NOT NULL UNIQUE DEFAULT gen_random_uuid(),
   file_data BYTEA NOT NULL,
   file_name TEXT NOT NULL,

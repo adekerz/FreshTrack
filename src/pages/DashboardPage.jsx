@@ -81,7 +81,7 @@ function TaskWidget() {
           <h3 className="font-semibold text-foreground">Задачи</h3>
         </div>
         <Link
-          to="/task-planner"
+          to="/tasks"
           className="text-xs text-muted-foreground hover:text-accent flex items-center gap-1 transition-colors"
         >
           Открыть <ArrowRight className="w-3 h-3" />
@@ -146,16 +146,30 @@ function InventoryWidget({ stats, alerts, thresholds, t }) {
       bg: 'bg-success/10',
     },
     {
-      title: t('dashboard.expiringSoon'),
-      value: stats.warning + stats.critical,
+      title: 'Скоро истекает',
+      value: stats.warning,
       icon: Clock,
       color: 'text-warning',
       bg: 'bg-warning/10',
     },
     {
+      title: 'Внимание',
+      value: stats.attention ?? 0,
+      icon: AlertTriangle,
+      color: 'text-orange-500',
+      bg: 'bg-orange-500/10',
+    },
+    {
+      title: 'Критично',
+      value: stats.critical,
+      icon: AlertTriangle,
+      color: 'text-red-500',
+      bg: 'bg-red-500/10',
+    },
+    {
       title: t('dashboard.expired'),
       value: stats.expired,
-      icon: AlertTriangle,
+      icon: Ban,
       color: 'text-danger',
       bg: 'bg-danger/10',
     },
@@ -176,13 +190,13 @@ function InventoryWidget({ stats, alerts, thresholds, t }) {
         </Link>
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-3 gap-2">
         {statItems.map((item) => {
           const Icon = item.icon
           return (
             <div
               key={item.title}
-              className={`flex items-center gap-3 p-3 rounded-lg ${item.bg}`}
+              className={`flex items-center gap-2 p-3 rounded-lg ${item.bg}`}
             >
               <Icon className={`w-4 h-4 ${item.color} shrink-0`} />
               <div>
@@ -210,15 +224,22 @@ function InventoryWidget({ stats, alerts, thresholds, t }) {
                 alert.daysLeft < 0
                   ? 'border-l-danger'
                   : alert.daysLeft <= thresholds.critical
-                    ? 'border-l-critical'
-                    : 'border-l-warning'
+                    ? 'border-l-danger'
+                    : alert.daysLeft <= (thresholds.attention ?? 5)
+                      ? 'border-l-orange-500'
+                      : 'border-l-warning'
               }`}
             >
               <span className="text-sm text-foreground truncate">
                 {alert.productName}
               </span>
               <span
-                className={`text-xs shrink-0 font-medium ${alert.daysLeft < 0 ? 'text-danger' : 'text-warning'}`}
+                className={`text-xs shrink-0 font-medium ${
+                  alert.daysLeft < 0 ? 'text-danger'
+                  : alert.daysLeft <= thresholds.critical ? 'text-danger'
+                  : alert.daysLeft <= (thresholds.attention ?? 5) ? 'text-orange-500'
+                  : 'text-warning'
+                }`}
               >
                 {alert.daysLeft < 0
                   ? `−${Math.abs(alert.daysLeft)}д`
@@ -479,7 +500,7 @@ export default function DashboardPage() {
                 to={
                   hasInventory
                     ? `/inventory/${currentDept.id}`
-                    : '/task-planner'
+                    : '/tasks'
                 }
                 className="flex items-center gap-3 px-4 py-3 rounded-xl border border-border bg-card hover:bg-muted transition-colors group flex-1 sm:flex-none sm:min-w-[220px]"
               >
@@ -554,7 +575,7 @@ export default function DashboardPage() {
           {hasInventory && !hasTaskPlanner && (
             <>
               {/* Stat cards */}
-              <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-6">
                 {[
                   {
                     title: t('dashboard.totalBatches'),
@@ -571,16 +592,30 @@ export default function DashboardPage() {
                     bgColor: 'bg-success/10',
                   },
                   {
-                    title: t('dashboard.expiringSoon'),
-                    value: stats.warning + stats.critical,
+                    title: 'Скоро истекает',
+                    value: stats.warning,
                     icon: Clock,
                     color: 'text-warning',
                     bgColor: 'bg-warning/10',
                   },
                   {
+                    title: 'Внимание',
+                    value: stats.attention ?? 0,
+                    icon: AlertTriangle,
+                    color: 'text-orange-500',
+                    bgColor: 'bg-orange-500/10',
+                  },
+                  {
+                    title: 'Критично',
+                    value: stats.critical,
+                    icon: AlertTriangle,
+                    color: 'text-red-500',
+                    bgColor: 'bg-red-500/10',
+                  },
+                  {
                     title: t('dashboard.expired'),
                     value: stats.expired,
-                    icon: AlertTriangle,
+                    icon: Ban,
                     color: 'text-danger',
                     bgColor: 'bg-danger/10',
                   },

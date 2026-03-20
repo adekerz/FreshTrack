@@ -58,7 +58,21 @@
       "Bash(for f in ar es fr it kk de)",
       "Bash(do grep -l \"statusHint\" \"c:/Users/esima/OneDrive/Рабочий стол/Projects/FreshTrack-projectadekerz/src/locales/$f.json\")",
       "Bash(npx --yes node -e \"import\\(''lucide-react''\\).then\\(r => console.log\\(''GroupIcon'' in r, ''Tag'' in r\\)\\)\")",
-      "Read(//c/Users/esima/OneDrive/Рабочий стол/Projects/FreshTrack-projectadekerz/**)"
+      "Read(//c/Users/esima/OneDrive/Рабочий стол/Projects/FreshTrack-projectadekerz/**)",
+      "Read(//c/Users/esima/.claude/projects/c--Users-esima-OneDrive--------------Projects-FreshTrack-projectadekerz/8031080e-a00c-497c-8a8f-ae6fc9781eb8/tool-results/**)",
+      "Bash(netstat -ano)",
+      "Bash(findstr :5173)",
+      "Read(//c/Users/esima/OneDrive/Рабочий/ стол/Projects/FreshTrack-projectadekerz/src/utils/**)",
+      "Read(//c/Users/esima/OneDrive/Рабочий/ стол/Projects/FreshTrack-projectadekerz/server/modules/reports/**)",
+      "Read(//c/Users/esima/OneDrive/Рабочий/ стол/Projects/FreshTrack-projectadekerz/server/services/**)",
+      "Read(//c/Users/esima/OneDrive/Рабочий/ стол/Projects/FreshTrack-projectadekerz/server/modules/scheduled-exports/**)",
+      "Bash(awk 'NR>=20 && NR<=40')",
+      "Bash(awk 'NR>=2025 && NR<=2035' \"c:/Users/esima/OneDrive/Рабочий стол/Projects/FreshTrack-projectadekerz/src/pages/TaskPlannerPage.jsx\")",
+      "Bash(head:*)",
+      "Read(//c/Users/esima/OneDrive/Рабочий/ стол/Projects/FreshTrack-projectadekerz/src/pages/**)",
+      "Read(//c/Users/esima/OneDrive/**)",
+      "Bash(git checkout:*)",
+      "Bash(git rm:*)"
     ]
   }
 }

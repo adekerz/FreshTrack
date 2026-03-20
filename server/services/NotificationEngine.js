@@ -637,9 +637,9 @@ export class NotificationEngine {
       `
       INSERT INTO notification_rules (
         id, hotel_id, department_id, type, name, description,
-        warning_days, critical_days, notification_mode, warning_months,
+        warning_days, attention_days, critical_days, notification_mode, warning_months,
         channels, recipient_roles, enabled
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::jsonb, $12::jsonb, $13)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::jsonb, $13::jsonb, $14)
       ON CONFLICT (
         COALESCE(hotel_id, '00000000-0000-0000-0000-000000000000'),
         COALESCE(department_id, '00000000-0000-0000-0000-000000000000'),
@@ -648,6 +648,7 @@ export class NotificationEngine {
         name = EXCLUDED.name,
         description = EXCLUDED.description,
         warning_days = EXCLUDED.warning_days,
+        attention_days = EXCLUDED.attention_days,
         critical_days = EXCLUDED.critical_days,
         notification_mode = EXCLUDED.notification_mode,
         warning_months = EXCLUDED.warning_months,
@@ -664,6 +665,7 @@ export class NotificationEngine {
         rule.name,
         rule.description || null,
         rule.warningDays || 7,
+        rule.attentionDays || 5,
         rule.criticalDays || 3,
         rule.notificationMode || 'daily',
         rule.warningMonths || null,

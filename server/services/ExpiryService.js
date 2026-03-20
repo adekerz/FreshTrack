@@ -20,17 +20,19 @@ export const ExpiryStatus = {
   EXPIRED: 'expired',
   TODAY: 'today',
   CRITICAL: 'critical',
+  ATTENTION: 'attention',
   WARNING: 'warning',
   GOOD: 'good',
 }
 
 /**
- * Status Colors for UI (просрочка=red, критическое=red, предупреждение=yellow, норма=green)
+ * Status Colors for UI
  */
 export const StatusColor = {
   [ExpiryStatus.EXPIRED]: 'danger',
   [ExpiryStatus.TODAY]: 'danger',
   [ExpiryStatus.CRITICAL]: 'danger',
+  [ExpiryStatus.ATTENTION]: 'orange',
   [ExpiryStatus.WARNING]: 'warning',
   [ExpiryStatus.GOOD]: 'success',
 }
@@ -42,6 +44,7 @@ export const StatusCssClass = {
   [ExpiryStatus.EXPIRED]: 'bg-danger text-white',
   [ExpiryStatus.TODAY]: 'bg-critical text-white',
   [ExpiryStatus.CRITICAL]: 'bg-critical text-white',
+  [ExpiryStatus.ATTENTION]: 'bg-orange-500 text-white',
   [ExpiryStatus.WARNING]: 'bg-warning text-foreground',
   [ExpiryStatus.GOOD]: 'bg-success text-white',
 }
@@ -50,8 +53,9 @@ export const StatusCssClass = {
  * Default thresholds (days until expiry)
  */
 const DEFAULT_THRESHOLDS = {
-  critical: 3, // <= 3 days = critical
-  warning: 7, // <= 7 days = warning
+  critical: 3, // <= 3 days = critical (red)
+  attention: 5, // <= 5 days = attention (orange)
+  warning: 7, // <= 7 days = warning (yellow)
 }
 
 // Cache for notification rules thresholds
@@ -77,7 +81,7 @@ async function getThresholdsFromRules(hotelId) {
     // Get the first enabled expiry rule for this hotel
     const result = await query(
       `
-      SELECT warning_days, critical_days, notification_mode, warning_months
+      SELECT warning_days, critical_days, attention_days, notification_mode, warning_months
       FROM notification_rules
       WHERE (hotel_id = $1 OR hotel_id IS NULL)
         AND type = 'expiry'
@@ -90,13 +94,13 @@ async function getThresholdsFromRules(hotelId) {
 
     if (result.rows.length > 0) {
       const row = result.rows[0]
-      // Monthly mode: use warning_months * 30 as effective warning threshold
       const effectiveWarning =
         row.notification_mode === 'monthly'
           ? (row.warning_months || 2) * 30
           : row.warning_days
       const thresholds = {
         warning: effectiveWarning,
+        attention: row.attention_days ?? DEFAULT_THRESHOLDS.attention,
         critical: row.critical_days,
       }
       thresholdsCache.set(cacheKey, { thresholds, timestamp: Date.now() })
@@ -143,6 +147,8 @@ export function getExpiryStatus(daysLeft, thresholds = DEFAULT_THRESHOLDS) {
   if (daysLeft < 0) return ExpiryStatus.EXPIRED
   if (daysLeft === 0) return ExpiryStatus.TODAY
   if (daysLeft <= thresholds.critical) return ExpiryStatus.CRITICAL
+  if (thresholds.attention && daysLeft <= thresholds.attention)
+    return ExpiryStatus.ATTENTION
   if (daysLeft <= thresholds.warning) return ExpiryStatus.WARNING
   return ExpiryStatus.GOOD
 }
@@ -168,6 +174,7 @@ export async function getEnrichedExpiryData(expiryDate, options = {}) {
     if (rulesThresholds) {
       thresholds = {
         critical: rulesThresholds.critical ?? DEFAULT_THRESHOLDS.critical,
+        attention: rulesThresholds.attention ?? DEFAULT_THRESHOLDS.attention,
         warning: rulesThresholds.warning ?? DEFAULT_THRESHOLDS.warning,
       }
     } else {
@@ -177,6 +184,8 @@ export async function getEnrichedExpiryData(expiryDate, options = {}) {
         thresholds = {
           critical:
             settings.expiryThresholds.critical ?? DEFAULT_THRESHOLDS.critical,
+          attention:
+            settings.expiryThresholds.attention ?? DEFAULT_THRESHOLDS.attention,
           warning:
             settings.expiryThresholds.warning ?? DEFAULT_THRESHOLDS.warning,
         }
@@ -227,7 +236,8 @@ function getStatusText(status, daysLeft, locale = 'ru') {
           : `Просрочено ${Math.abs(daysLeft)} дн. назад`,
       [ExpiryStatus.TODAY]: 'Истекает сегодня!',
       [ExpiryStatus.CRITICAL]: `Критично: ${daysLeft} дн.`,
-      [ExpiryStatus.WARNING]: `Внимание: ${daysLeft} дн.`,
+      [ExpiryStatus.ATTENTION]: `Внимание: ${daysLeft} дн.`,
+      [ExpiryStatus.WARNING]: `Скоро истекает: ${daysLeft} дн.`,
       [ExpiryStatus.GOOD]: `В норме: ${daysLeft} дн.`,
     },
     en: {
@@ -237,7 +247,8 @@ function getStatusText(status, daysLeft, locale = 'ru') {
           : `Expired ${Math.abs(daysLeft)} days ago`,
       [ExpiryStatus.TODAY]: 'Expires today!',
       [ExpiryStatus.CRITICAL]: `Critical: ${daysLeft} days`,
-      [ExpiryStatus.WARNING]: `Warning: ${daysLeft} days`,
+      [ExpiryStatus.ATTENTION]: `Attention: ${daysLeft} days`,
+      [ExpiryStatus.WARNING]: `Expiring soon: ${daysLeft} days`,
       [ExpiryStatus.GOOD]: `Good: ${daysLeft} days`,
     },
     kk: {
@@ -247,7 +258,8 @@ function getStatusText(status, daysLeft, locale = 'ru') {
           : `${Math.abs(daysLeft)} күн бұрын мерзімі өтті`,
       [ExpiryStatus.TODAY]: 'Бүгін мерзімі аяқталады!',
       [ExpiryStatus.CRITICAL]: `Критикалық: ${daysLeft} күн`,
-      [ExpiryStatus.WARNING]: `Назар аударыңыз: ${daysLeft} күн`,
+      [ExpiryStatus.ATTENTION]: `Назар аударыңыз: ${daysLeft} күн`,
+      [ExpiryStatus.WARNING]: `Мерзімі жақындайды: ${daysLeft} күн`,
       [ExpiryStatus.GOOD]: `Қалыпты: ${daysLeft} күн`,
     },
   }
@@ -305,6 +317,7 @@ export async function enrichBatchesWithExpiryData(batches, options = {}) {
     if (rulesThresholds) {
       thresholds = {
         critical: rulesThresholds.critical ?? DEFAULT_THRESHOLDS.critical,
+        attention: rulesThresholds.attention ?? DEFAULT_THRESHOLDS.attention,
         warning: rulesThresholds.warning ?? DEFAULT_THRESHOLDS.warning,
       }
     } else {
@@ -313,6 +326,8 @@ export async function enrichBatchesWithExpiryData(batches, options = {}) {
         thresholds = {
           critical:
             settings.expiryThresholds.critical ?? DEFAULT_THRESHOLDS.critical,
+          attention:
+            settings.expiryThresholds.attention ?? DEFAULT_THRESHOLDS.attention,
           warning:
             settings.expiryThresholds.warning ?? DEFAULT_THRESHOLDS.warning,
         }
@@ -357,6 +372,7 @@ export async function calculateBatchStats(batches, options = {}) {
       total: 0,
       good: 0,
       warning: 0,
+      attention: 0,
       critical: 0,
       expired: 0,
       healthScore: 100,
@@ -378,6 +394,7 @@ export async function calculateBatchStats(batches, options = {}) {
     total: batches.length,
     good: 0,
     warning: 0,
+    attention: 0,
     critical: 0,
     expired: 0,
   }
@@ -395,6 +412,9 @@ export async function calculateBatchStats(batches, options = {}) {
         break
       case ExpiryStatus.CRITICAL:
         stats.critical++
+        break
+      case ExpiryStatus.ATTENTION:
+        stats.attention++
         break
       case ExpiryStatus.WARNING:
         stats.warning++

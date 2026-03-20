@@ -887,6 +887,8 @@
   },
   "export": {
     "title": "Деректерді экспорттау",
+    "reportsTitle": "Аналитикалық есептер",
+    "reportsDescription": "Аналитика және жұмыс көрсеткіштері бойынша есептер",
     "button": "Экспорт",
     "selectFormat": "Форматты таңдаңыз",
     "inventory": "Инвентарь",
@@ -1500,5 +1502,136 @@
       "completed": "Аяқталды",
       "cancelled": "Бас тартылды"
     }
+  },
+  "analyticsReports": {
+    "tabs": {
+      "health": "Денсаулық",
+      "expiry": "Жарамдылық болжамы",
+      "collections": "Жинаулар",
+      "departments": "Бөлімдер рейтингі",
+      "turnover": "Айналым",
+      "reasons": "Себептер",
+      "batchAge": "Топтам жасы",
+      "weekly": "Апта"
+    },
+    "apply": "Қолдану",
+    "retry": "Қайталау",
+    "noData": "Деректер жоқ",
+    "records": "жазба",
+    "unspecified": "Көрсетілмеген",
+    "status": {
+      "good": "Жақсы",
+      "warning": "Ескерту",
+      "critical": "Сыни",
+      "today": "Бүгін",
+      "expired": "Мерзімі өткен"
+    },
+    "health": {
+      "description": "Әр бөлім бойынша ағымдағы қор жағдайы",
+      "noData": "Қор деректері жоқ",
+      "colDept": "Бөлім",
+      "colTotal": "Барлығы",
+      "colGood": "Жақсы",
+      "colWarning": "Ескерту",
+      "colCritical": "Сыни",
+      "colExpired": "Мерзімі өткен",
+      "colScore": "Health Score"
+    },
+    "expiry": {
+      "description": "Жарамдылық мерзімі аяқталатын тауарлар",
+      "noData": "Жарамдылық мерзімі аяқталатын тауар жоқ",
+      "colProduct": "Өнім",
+      "colDept": "Бөлім",
+      "colCategory": "Санат",
+      "colExpiryDate": "Мерзім күні",
+      "colDaysLeft": "Күн",
+      "colQty": "Саны",
+      "colStatus": "Күй"
+    },
+    "collections": {
+      "noData": "Таңдалған кезең үшін жинау деректері жоқ",
+      "colDate": "Күні",
+      "colProduct": "Өнім",
+      "colDept": "Бөлім",
+      "colCollectedBy": "Жинаған",
+      "colQty": "Саны",
+      "colReason": "Себеп",
+      "colExpiry": "Жарамдылық мерзімі"
+    },
+    "departments": {
+      "description": "Қорды басқару сапасы бойынша бөлімдер рейтингі",
+      "noData": "Бөлім деректері жоқ",
+      "batches": "топтам",
+      "expiredLabel": "мерзімі өткен",
+      "avgDays": "Орт.",
+      "daysUnit": "күн.",
+      "collectionsLabel": "жинау"
+    },
+    "turnover": {
+      "noData": "Өнім деректері жоқ",
+      "colProduct": "Өнім",
+      "colCategory": "Санат",
+      "colBatches": "Топтам",
+      "colStock": "Қалдық",
+      "colCollected": "Жиналған",
+      "colExpired": "Мерзімі өткен",
+      "colConsumption": "Тұтыну %",
+      "colTurnover": "Айналым"
+    },
+    "reasons": {
+      "noData": "Себеп деректері жоқ",
+      "byQuantity": "Сан бойынша",
+      "colReason": "Себеп",
+      "colTransactions": "Транз.",
+      "colQty": "Саны",
+      "colShare": "Үлес"
+    },
+    "batchAge": {
+      "description": "Белсенді топтамдардың қалған жарамдылық мерзімі бойынша бөлінуі",
+      "noData": "Белсенді топтам жоқ",
+      "byBatchCount": "Топтам саны бойынша",
+      "batchesUnit": "топтам",
+      "unitsLabel": "барлығы бірлік"
+    },
+    "weekly": {
+      "description": "Соңғы 7 күннің негізгі KPI қорытындысы",
+      "noData": "Осы апта үшін деректер жоқ",
+      "totalBatches": "Барлық топтам",
+      "good": "Жақсы",
+      "expired": "Мерзімі өткен",
+      "healthScore": "Health Score",
+      "weeklyCollections": "Апталық жинаулар",
+      "collectedQty": "Жиналған бірліктер",
+      "healthChanged": "Health Score өзгерді",
+      "compared": "өткен аптамен салыстырғанда",
+      "prev": "Алд.",
+      "was": "болды",
+      "became": "қазір"
+    }
+  },
+  "scheduledExports": {
+    "pinLabel": "Жүктеу PIN",
+    "pinPlaceholder": "PIN кодын енгізіңіз",
+    "pinRequired": "PIN код қажет",
+    "pinKeepCurrent": "Ағымдағы PIN кодты сақтау",
+    "linkExpiryLabel": "Сілтеме мерзімі",
+    "securitySettings": "Қауіпсіздік параметрлері"
+  },
+  "download": {
+    "title": "Есепті жүктеу",
+    "enterPin": "PIN кодын енгізіңіз",
+    "enterLogin": "Кіру деректерін енгізіңіз",
+    "downloadBtn": "Жүктеу",
+    "expired": "Сілтеменің мерзімі өтті",
+    "revoked": "Сілтеме жойылды",
+    "invalidPin": "Қате PIN код",
+    "tooManyAttempts": "Тым көп әрекет",
+    "fileSize": "Файл өлшемі",
+    "expiresAt": "Мерзімі аяқталады",
+    "downloading": "Жүктелуде...",
+    "pinRequired": "PIN код қажет",
+    "fetchError": "Жүктеу қатесі",
+    "filesReady": "файл жүктеуге дайын",
+    "selectAll": "Барлығын таңдау"
   }
 }

@@ -56,13 +56,16 @@ import {
   useComments,
   useAddComment,
   useDeleteComment,
-  useTaskStats,
   useBoardLabels,
   useCreateLabel,
   useUpdateLabel,
   useDeleteLabel,
   useAssignLabel,
   useRemoveLabel,
+  useAssignTask,
+  useUnassignTask,
+  useHotelUsers,
+  useTaskActivities,
 } from '../hooks/useTasks'
 import {
   PieChart,
@@ -381,6 +384,65 @@ function eachDayOfMonth(year, month) {
     date.setDate(date.getDate() + 1)
   }
   return days
+}
+
+// ─────────────────────────────────────────────
+// ConfirmDialog — replaces native window.confirm()
+// ─────────────────────────────────────────────
+function ConfirmDialog({ message, onConfirm, onCancel }) {
+  useEffect(() => {
+    const h = (e) => { if (e.key === 'Escape') onCancel() }
+    document.addEventListener('keydown', h)
+    return () => document.removeEventListener('keydown', h)
+  }, [onCancel])
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+      <button
+        type="button"
+        aria-label="Close"
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm cursor-default"
+        onClick={onCancel}
+        tabIndex={-1}
+      />
+      <div className="relative bg-card border border-border rounded-2xl shadow-2xl p-6 w-full max-w-sm animate-slide-up">
+        <p className="text-sm text-foreground mb-5 leading-relaxed">{message}</p>
+        <div className="flex justify-end gap-2">
+          <button
+            onClick={onCancel}
+            className="px-4 py-2 rounded-xl border border-border text-sm text-foreground hover:bg-muted transition-colors"
+          >
+            Отмена
+          </button>
+          <button
+            autoFocus
+            onClick={onConfirm}
+            className="px-4 py-2 rounded-xl bg-red-500 text-white text-sm font-medium hover:bg-red-600 transition-colors"
+          >
+            Удалить
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function useConfirm() {
+  const [state, setState] = useState(null) // { message, resolve }
+  const confirm = useCallback((message) => {
+    return new Promise((resolve) => setState({ message, resolve }))
+  }, [])
+  const handleConfirm = useCallback(() => {
+    state?.resolve(true)
+    setState(null)
+  }, [state])
+  const handleCancel = useCallback(() => {
+    state?.resolve(false)
+    setState(null)
+  }, [state])
+  const dialog = state ? (
+    <ConfirmDialog message={state.message} onConfirm={handleConfirm} onCancel={handleCancel} />
+  ) : null
+  return { confirm, dialog }
 }
 
 // ─────────────────────────────────────────────
@@ -775,7 +837,7 @@ function GridView({ groups, onTaskClick, onTaskComplete, t }) {
                 </td>
                 <td className="py-2.5 pr-4">
                   <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-                    {task._groupName}
+                    {task._bucketName}
                   </span>
                 </td>
                 <td className="py-2.5 pr-4">
@@ -861,8 +923,9 @@ function ScheduleView({ allTasks, onTaskClick }) {
   const [month, setMonth] = useState(now.getMonth())
 
   const days = eachDayOfMonth(year, month)
-  const firstDayOfWeek = new Date(year, month, 1).getDay() // 0=Sun
-  const WEEKDAYS = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб']
+  // Mon-start: Sun(0) → offset 6, Mon(1) → 0, Tue(2) → 1, ...
+  const firstDayOfWeek = (new Date(year, month, 1).getDay() + 6) % 7
+  const WEEKDAYS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
   const MONTHS = [
     'Январь',
     'Февраль',
@@ -955,7 +1018,7 @@ function ScheduleView({ allTasks, onTaskClick }) {
           const key = day.toISOString().split('T')[0]
           const dayTasks = tasksByDate[key] || []
           const isToday = key === now.toISOString().split('T')[0]
-          const isWeekend = day.getDay() === 0 || day.getDay() === 6
+          const isWeekend = day.getDay() === 0 || day.getDay() === 6 // Sun or Sat
 
           return (
             <div
@@ -1943,11 +2006,16 @@ function LabelsPicker({ taskId, boardId, taskLabels, isMock }) {
     setForm({ name: label.name, color: label.color })
   }
 
+  const [deletingLabel, setDeletingLabel] = useState(null)
   const handleDeleteLabel = (label, e) => {
     e.stopPropagation()
-    if (!confirm(`Удалить метку "${label.name || label.color}"?`)) return
-    deleteLabel.mutate({ boardId, labelId: label.id })
-    if (editingId === label.id) setEditingId(null)
+    setDeletingLabel(label)
+  }
+  const handleDeleteLabelConfirmed = () => {
+    if (!deletingLabel) return
+    deleteLabel.mutate({ boardId, labelId: deletingLabel.id })
+    if (editingId === deletingLabel.id) setEditingId(null)
+    setDeletingLabel(null)
   }
 
   const isFormMode = creating || !!editingId
@@ -2113,6 +2181,13 @@ function LabelsPicker({ taskId, boardId, taskLabels, isMock }) {
           )}
         </div>
       )}
+      {deletingLabel && (
+        <ConfirmDialog
+          message={`Удалить метку "${deletingLabel.name || deletingLabel.color}"?`}
+          onConfirm={handleDeleteLabelConfirmed}
+          onCancel={() => setDeletingLabel(null)}
+        />
+      )}
     </div>
   )
 }
@@ -2133,6 +2208,8 @@ function TaskDetailModal({
   const updateTask = useUpdateTask()
   const deleteTask = useDeleteTask()
   const moveTask = useMoveTask()
+  const assignTask = useAssignTask()
+  const unassignTask = useUnassignTask()
   const addChecklistItem = useAddChecklistItem()
   const toggleChecklistItem = useToggleChecklistItem()
   const deleteChecklistItem = useDeleteChecklistItem()
@@ -2141,6 +2218,8 @@ function TaskDetailModal({
   const { data: commentsReal } = useComments(
     mockComments ? null : initialTask.id
   )
+  const { data: activities } = useTaskActivities(isMock ? null : initialTask.id)
+  const { data: hotelUsers } = useHotelUsers()
   const addComment = useAddComment()
   const deleteComment = useDeleteComment()
   const comments = mockComments ?? commentsReal
@@ -2202,13 +2281,17 @@ function TaskDetailModal({
     addComment.mutate({ taskId: task.id, content: newComment.trim() })
     setNewComment('')
   }
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const handleDelete = () => {
     if (isMock) return
-    if (confirm(t('tasks.detail.deleteConfirm')))
-      deleteTask.mutate(
-        { taskId: task.id, boardId: task.board_id },
-        { onSuccess: () => onClose() }
-      )
+    setShowDeleteConfirm(true)
+  }
+  const handleDeleteConfirmed = () => {
+    setShowDeleteConfirm(false)
+    deleteTask.mutate(
+      { taskId: task.id, boardId: task.board_id },
+      { onSuccess: () => onClose() }
+    )
   }
 
   const prio = PRIORITIES[localPriority] || PRIORITIES.MEDIUM
@@ -2217,13 +2300,18 @@ function TaskDetailModal({
     (c) => c.is_checked ?? c.is_completed
   ).length
 
+  const prevCheckDoneRef = useRef(checkDone)
   useEffect(() => {
     if (checklist.length === 0 || isMock) return
+    // Only fire when user actually toggled a checklist item (checkDone changed)
+    if (prevCheckDoneRef.current === checkDone) return
+    prevCheckDoneRef.current = checkDone
     const auto = Math.round((checkDone / checklist.length) * 100)
     if (auto !== localPercent) {
       setLocalPercent(auto)
       updateTask.mutate({
         taskId: task.id,
+        boardId,
         updates: { percent_complete: auto },
       })
     }
@@ -2246,6 +2334,11 @@ function TaskDetailModal({
       label: 'Комментарии',
       icon: <MessageSquare className="w-3.5 h-3.5" />,
       badge: task.comment_count || null,
+    },
+    {
+      id: 'activity',
+      label: 'Активность',
+      icon: <Clock className="w-3.5 h-3.5" />,
     },
   ]
 
@@ -2420,20 +2513,25 @@ function TaskDetailModal({
                   <label className="block text-xs font-medium text-muted-foreground mb-1.5">
                     {t('tasks.priority')}
                   </label>
-                  <select
-                    value={localPriority}
-                    onChange={(e) => {
-                      setLocalPriority(e.target.value)
-                      handleUpdateField('priority', e.target.value)
-                    }}
-                    className="w-full px-3 py-2 rounded-xl border border-border bg-background text-foreground text-sm focus:ring-2 focus:ring-accent outline-none"
-                  >
-                    {Object.entries(PRIORITIES).map(([k, v]) => (
-                      <option key={k} value={k}>
-                        {t(`tasks.priorities.${v.key}`)}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="relative">
+                    <select
+                      value={localPriority}
+                      onChange={(e) => {
+                        setLocalPriority(e.target.value)
+                        handleUpdateField('priority', e.target.value)
+                      }}
+                      className="w-full pl-7 pr-3 py-2 rounded-xl border border-border bg-background text-foreground text-sm focus:ring-2 focus:ring-accent outline-none appearance-none"
+                    >
+                      {Object.entries(PRIORITIES).map(([k, v]) => (
+                        <option key={k} value={k}>
+                          {t(`tasks.priorities.${v.key}`)}
+                        </option>
+                      ))}
+                    </select>
+                    <span
+                      className={`absolute left-2.5 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full pointer-events-none ${prio.dot}`}
+                    />
+                  </div>
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-muted-foreground mb-1.5">
@@ -2473,27 +2571,58 @@ function TaskDetailModal({
                   />
                 </div>
 
-                {/* Assignees display */}
-                {task.assignees?.length > 0 && (
-                  <div>
-                    <label className="block text-xs font-medium text-muted-foreground mb-1.5">
-                      Исполнители
-                    </label>
-                    <div className="flex flex-wrap gap-1.5">
-                      {task.assignees.map((a, i) => (
-                        <div
-                          key={a.user_id || i}
-                          className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-muted text-xs text-foreground"
-                        >
-                          <div className="w-5 h-5 rounded-full bg-accent/20 text-accent text-[9px] font-bold flex items-center justify-center">
-                            {getInitials(a.user_name)}
-                          </div>
-                          {a.user_name}
+                {/* Assignees management */}
+                <div>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">
+                    Исполнители
+                  </label>
+                  <div className="flex flex-wrap gap-1.5 mb-1.5">
+                    {(task.assignees ?? []).map((a, i) => (
+                      <div
+                        key={a.user_id || i}
+                        className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-muted text-xs text-foreground group"
+                      >
+                        <div className="w-5 h-5 rounded-full bg-accent/20 text-accent text-[9px] font-bold flex items-center justify-center">
+                          {getInitials(a.user_name)}
                         </div>
-                      ))}
-                    </div>
+                        {a.user_name}
+                        {!isMock && (
+                          <button
+                            onClick={() => unassignTask.mutate({ taskId: task.id, userId: a.user_id })}
+                            className="opacity-0 group-hover:opacity-100 ml-0.5 text-muted-foreground hover:text-red-500 transition-all"
+                            title="Убрать исполнителя"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        )}
+                      </div>
+                    ))}
                   </div>
-                )}
+                  {!isMock && hotelUsers && (
+                    <select
+                      defaultValue=""
+                      onChange={(e) => {
+                        const userId = e.target.value
+                        if (!userId) return
+                        const alreadyAssigned = (task.assignees ?? []).some((a) => a.user_id === userId)
+                        if (!alreadyAssigned) {
+                          assignTask.mutate({ taskId: task.id, user_id: userId })
+                        }
+                        e.target.value = ''
+                      }}
+                      className="w-full px-3 py-2 rounded-xl border border-dashed border-border bg-background text-foreground text-sm focus:ring-2 focus:ring-accent outline-none"
+                    >
+                      <option value="">+ Добавить исполнителя</option>
+                      {hotelUsers
+                        .filter((u) => !(task.assignees ?? []).some((a) => a.user_id === u.id))
+                        .map((u) => (
+                          <option key={u.id} value={u.id}>
+                            {u.name || u.login || u.email}
+                          </option>
+                        ))}
+                    </select>
+                  )}
+                </div>
               </div>
             </div>
           )}
@@ -2647,6 +2776,58 @@ function TaskDetailModal({
               </div>
             </div>
           )}
+
+          {showDeleteConfirm && (
+            <ConfirmDialog
+              message={t('tasks.detail.deleteConfirm')}
+              onConfirm={handleDeleteConfirmed}
+              onCancel={() => setShowDeleteConfirm(false)}
+            />
+          )}
+
+          {activeTab === 'activity' && (
+            <div className="space-y-2">
+              {(activities?.activities ?? activities ?? []).map((a, i) => {
+                const typeLabels = {
+                  TASK_CREATED: 'создал(а) задачу',
+                  TASK_UPDATED: 'обновил(а) задачу',
+                  TASK_COMPLETED: 'завершил(а) задачу',
+                  STATUS_CHANGED: 'изменил(а) статус',
+                  PRIORITY_CHANGED: 'изменил(а) приоритет',
+                  DUE_DATE_CHANGED: 'изменил(а) срок',
+                  TASK_MOVED: 'переместил(а) задачу',
+                  CHECKLIST_ITEM_CHECKED: 'отметил(а) пункт чеклиста',
+                  CHECKLIST_ITEM_UNCHECKED: 'снял(а) отметку с пункта',
+                  COMMENT_ADDED: 'добавил(а) комментарий',
+                  ASSIGNEE_ADDED: 'назначил(а) исполнителя',
+                  ASSIGNEE_REMOVED: 'убрал(а) исполнителя',
+                }
+                const label = typeLabels[a.activity_type] || a.activity_type || 'выполнил(а) действие'
+                return (
+                  <div key={a.id || i} className="flex gap-3 py-2.5 border-b border-border/40 last:border-0">
+                    <div className="w-6 h-6 rounded-full bg-accent/15 text-accent flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <Clock className="w-3 h-3" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-foreground">
+                        <span className="font-medium">{a.user_name}</span>
+                        {' '}{label}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        {new Date(a.created_at).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </div>
+                  </div>
+                )
+              })}
+              {(!activities || (activities?.activities ?? activities)?.length === 0) && (
+                <div className="text-center py-10 text-muted-foreground">
+                  <Clock className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                  <p className="text-sm">Нет активности</p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </ModalBackdrop>
@@ -2795,14 +2976,13 @@ export default function TaskPlannerPage() {
   const { t } = useTranslation()
   const { selectedHotelId } = useHotel()
   const toast = useToast()
+  const { confirm: confirmDialog, dialog: confirmDialogEl } = useConfirm()
 
   const { data: boardsReal, isLoading: boardsLoadingReal } =
     useBoards(selectedHotelId)
-  const { data: statsReal } = useTaskStats(selectedHotelId)
   const useMock = DEV_MOCK
   const boards = useMock ? MOCK_BOARDS : boardsReal
   const boardsLoading = useMock ? false : boardsLoadingReal
-  const stats = useMock ? MOCK_STATS : statsReal
 
   const [selectedBoardId, setSelectedBoardId] = useState(null)
   const [currentView, setCurrentView] = useState('board')
@@ -2839,6 +3019,17 @@ export default function TaskPlannerPage() {
       ),
     [buckets]
   )
+  const stats = useMemo(() => {
+    if (useMock) return MOCK_STATS
+    if (!allTasks.length) return null
+    const now = new Date()
+    return {
+      todo_count: allTasks.filter((t) => t.status === 'TODO').length,
+      in_progress_count: allTasks.filter((t) => t.status === 'IN_PROGRESS').length,
+      completed_count: allTasks.filter((t) => t.status === 'COMPLETED' || t.percent_complete === 100).length,
+      overdue_count: allTasks.filter((t) => t.due_date && new Date(t.due_date) < now && t.status !== 'COMPLETED').length,
+    }
+  }, [allTasks, useMock])
   const filteredTasks = useMemo(
     () => applyFilters(allTasks, filters, searchQuery),
     [allTasks, filters, searchQuery]
@@ -2877,19 +3068,17 @@ export default function TaskPlannerPage() {
       updateTask.mutate({
         taskId: task.id,
         boardId: currentBoardId,
-        updates: { percent_complete: isCompleted ? 0 : 100 },
+        updates: isCompleted
+          ? { percent_complete: 0, status: 'TODO' }
+          : { percent_complete: 100, status: 'COMPLETED' },
       })
     },
     [updateTask, useMock, currentBoardId]
   )
 
-  const handleDeleteBoard = (board) => {
-    if (
-      !confirm(
-        `Удалить доску "${board.name}"? Все колонки и задачи будут удалены.`
-      )
-    )
-      return
+  const handleDeleteBoard = async (board) => {
+    const ok = await confirmDialog(`Удалить доску "${board.name}"? Все колонки и задачи будут удалены.`)
+    if (!ok) return
     deleteBoard.mutate(board.id, {
       onSuccess: () => {
         toast.success('Доска удалена')
@@ -2898,8 +3087,9 @@ export default function TaskPlannerPage() {
       onError: () => toast.error('Не удалось удалить доску'),
     })
   }
-  const handleDeleteBucket = (bucket) => {
-    if (!confirm(`Удалить колонку "${bucket.name}"?`)) return
+  const handleDeleteBucket = async (bucket) => {
+    const ok = await confirmDialog(`Удалить колонку "${bucket.name}"?`)
+    if (!ok) return
     deleteBucket.mutate(
       { bucketId: bucket.id, boardId: currentBoardId },
       {
@@ -2963,6 +3153,17 @@ export default function TaskPlannerPage() {
                 onSelect={setSelectedBoardId}
                 onDelete={useMock ? undefined : handleDeleteBoard}
               />
+            )}
+
+            {/* New task */}
+            {currentBoardId && (
+              <button
+                onClick={() => handleAddTask(null)}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-border text-sm font-medium text-foreground hover:bg-muted transition-all"
+              >
+                <Plus className="w-4 h-4" />
+                <span className="hidden sm:inline">{t('tasks.createTask')}</span>
+              </button>
             )}
 
             {/* New board */}
@@ -3159,7 +3360,7 @@ export default function TaskPlannerPage() {
                       </div>
                       <div className="px-3 py-3">
                         <button
-                          onClick={() => handleAddTask(buckets[0]?.id)}
+                          onClick={() => handleAddTask(groupBy === 'bucket' ? group.id : null)}
                           className="w-full py-2 rounded-xl text-xs text-muted-foreground hover:text-accent hover:bg-accent/8 border border-dashed border-border/50 hover:border-accent/40 transition-all flex items-center justify-center gap-1.5"
                         >
                           <Plus className="w-3.5 h-3.5" />
@@ -3195,7 +3396,7 @@ export default function TaskPlannerPage() {
               <ChartsView
                 buckets={buckets}
                 stats={stats}
-                allTasks={allTasks}
+                allTasks={filteredTasks}
                 t={t}
               />
             )}
@@ -3236,6 +3437,7 @@ export default function TaskPlannerPage() {
           }
         />
       )}
+      {confirmDialogEl}
     </div>
   )
 }

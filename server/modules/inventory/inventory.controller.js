@@ -17,7 +17,7 @@ import {
   QuickCollectSchema,
   BatchFiltersSchema,
   ProductFiltersSchema,
-  validate
+  validate,
 } from './inventory.schemas.js'
 import {
   authMiddleware,
@@ -25,7 +25,7 @@ import {
   departmentIsolation,
   requirePermission,
   PermissionResource,
-  PermissionAction
+  PermissionAction,
 } from '../../middleware/auth.js'
 import { logAudit } from '../../db/database.js'
 import { StatisticsService } from '../../services/StatisticsService.js'
@@ -43,7 +43,8 @@ const router = Router()
 /**
  * GET /api/batches/stats
  */
-router.get('/batches/stats',
+router.get(
+  '/batches/stats',
   authMiddleware,
   hotelIsolation,
   departmentIsolation,
@@ -56,25 +57,34 @@ router.get('/batches/stats',
         return res.json({
           success: true,
           stats: {
-            byStatus: [], byCategory: [], trends: [],
-            total: 0, expired: 0, critical: 0, warning: 0, good: 0,
-            needsAttention: 0, totalBatches: 0, totalProducts: 0,
-            totalCategories: 0, healthScore: 100
-          }
+            byStatus: [],
+            byCategory: [],
+            trends: [],
+            total: 0,
+            expired: 0,
+            critical: 0,
+            warning: 0,
+            good: 0,
+            needsAttention: 0,
+            totalBatches: 0,
+            totalProducts: 0,
+            totalCategories: 0,
+            healthScore: 100,
+          },
         })
       }
 
       const context = {
         hotelId,
         departmentId: req.canAccessAllDepartments
-          ? (req.query.departmentId || null)
+          ? req.query.departmentId || null
           : req.departmentId,
-        canAccessAllDepartments: req.canAccessAllDepartments
+        canAccessAllDepartments: req.canAccessAllDepartments,
       }
 
       const options = {
         locale: req.query.locale || 'ru',
-        trendDays: parseInt(req.query.trendDays) || 30
+        trendDays: parseInt(req.query.trendDays) || 30,
       }
 
       if (req.query.dateFrom || req.query.dateTo) {
@@ -84,12 +94,13 @@ router.get('/batches/stats',
       const stats = await StatisticsService.getStatistics(context, options)
 
       const getStatusCount = (status) => {
-        const item = stats.byStatus?.find(s => s.status === status)
+        const item = stats.byStatus?.find((s) => s.status === status)
         return item?.count || 0
       }
 
       const expired = getStatusCount('expired')
       const critical = getStatusCount('critical')
+      const attention = getStatusCount('attention')
       const warning = getStatusCount('warning')
       const good = getStatusCount('good')
       const today = getStatusCount('today')
@@ -99,25 +110,31 @@ router.get('/batches/stats',
         success: true,
         stats: {
           ...stats,
-          total, expired, critical, warning, good,
-          needsAttention: expired + critical + warning + today,
+          total,
+          expired,
+          critical,
+          attention,
+          warning,
+          good,
+          needsAttention: expired + critical + attention + warning + today,
           totalBatches: total,
           totalProducts: stats.total?.products || 0,
           totalCategories: stats.total?.categories || 0,
-          healthScore: stats.total?.healthScore || 100
-        }
+          healthScore: stats.total?.healthScore || 100,
+        },
       })
-
     } catch (error) {
       logError('Inventory', error, { action: 'getBatchesStats' })
       res.status(500).json({ error: 'Ошибка получения статистики' })
     }
-  })
+  }
+)
 
 /**
  * GET /api/batches
  */
-router.get('/batches',
+router.get(
+  '/batches',
   authMiddleware,
   hotelIsolation,
   departmentIsolation,
@@ -126,7 +143,9 @@ router.get('/batches',
     try {
       const validation = validate(BatchFiltersSchema, req.query)
       if (!validation.isValid) {
-        return res.status(400).json({ error: 'Ошибка валидации', details: validation.errors })
+        return res
+          .status(400)
+          .json({ error: 'Ошибка валидации', details: validation.errors })
       }
 
       // ✅ Используем req.hotelId из hotelIsolation middleware
@@ -139,7 +158,9 @@ router.get('/batches',
       const { page, limit } = filters
       const { rows, total } = await repo.findBatches(hotelId, filters)
 
-      const enrichedBatches = await enrichBatchesWithExpiryData(rows, { hotelId })
+      const enrichedBatches = await enrichBatchesWithExpiryData(rows, {
+        hotelId,
+      })
 
       res.json({
         success: true,
@@ -148,19 +169,20 @@ router.get('/batches',
         page,
         limit,
         totalPages: Math.ceil(total / limit),
-        hasMore: ((page - 1) * limit) + rows.length < total
+        hasMore: (page - 1) * limit + rows.length < total,
       })
-
     } catch (error) {
       logError('Inventory', error, { action: 'getBatches' })
       res.status(500).json({ error: 'Ошибка сервера' })
     }
-  })
+  }
+)
 
 /**
  * POST /api/batches
  */
-router.post('/batches',
+router.post(
+  '/batches',
   authMiddleware,
   hotelIsolation,
   departmentIsolation,
@@ -175,14 +197,19 @@ router.post('/batches',
 
       const validation = validate(CreateBatchSchema, req.body)
       if (!validation.isValid) {
-        return res.status(400).json({ error: 'Ошибка валидации', details: validation.errors })
+        return res
+          .status(400)
+          .json({ error: 'Ошибка валидации', details: validation.errors })
       }
 
       const data = validation.data
-      const departmentId = data.departmentId || data.department || req.user.department_id
+      const departmentId =
+        data.departmentId || data.department || req.user.department_id
 
       if (!departmentId) {
-        return res.status(400).json({ error: 'Необходимо указать отдел (departmentId)' })
+        return res
+          .status(400)
+          .json({ error: 'Необходимо указать отдел (departmentId)' })
       }
 
       let productId = data.productId
@@ -200,7 +227,12 @@ router.post('/batches',
             if (cat) categoryId = cat.id
           }
 
-          const newProduct = await repo.createProductInline(hotelId, departmentId, categoryId, data.productName)
+          const newProduct = await repo.createProductInline(
+            hotelId,
+            departmentId,
+            categoryId,
+            data.productName
+          )
           productId = newProduct.id
         }
       }
@@ -215,13 +247,17 @@ router.post('/batches',
       }
 
       // ✅ Используем ExpiryService для расчёта статуса (бизнес-логика в service, не в controller)
-      const { getEnrichedExpiryData } = await import('../../services/ExpiryService.js')
-      const expiryData = await getEnrichedExpiryData(data.expiryDate, { hotelId })
+      const { getEnrichedExpiryData } =
+        await import('../../services/ExpiryService.js')
+      const expiryData = await getEnrichedExpiryData(data.expiryDate, {
+        hotelId,
+      })
 
       // Map ExpiryService status to batch status field
       let status = 'active'
       if (expiryData.status === 'expired') status = 'expired'
-      else if (['critical', 'today'].includes(expiryData.status)) status = 'expiring'
+      else if (['critical', 'today'].includes(expiryData.status))
+        status = 'expiring'
 
       // Always create a new batch (don't merge with existing batches with same expiry date)
       const result = await repo.createBatch({
@@ -232,7 +268,7 @@ router.post('/batches',
         expiryDate: data.expiryDate,
         batchNumber: data.batchNumber || null,
         status,
-        addedBy: req.user.id
+        addedBy: req.user.id,
       })
 
       await logAudit({
@@ -242,21 +278,22 @@ router.post('/batches',
         action: 'create',
         entity_type: 'batch',
         entity_id: result.id,
-        details: { productId, quantity: data.quantity }
+        details: { productId, quantity: data.quantity },
       })
 
       res.status(201).json(result)
-
     } catch (error) {
       logError('Inventory', error, { action: 'createBatch' })
       res.status(500).json({ error: 'Ошибка сервера' })
     }
-  })
+  }
+)
 
 /**
  * PUT /api/batches/:id
  */
-router.put('/batches/:id',
+router.put(
+  '/batches/:id',
   authMiddleware,
   hotelIsolation,
   departmentIsolation,
@@ -267,7 +304,8 @@ router.put('/batches/:id',
       // ✅ Используем req.hotelId из middleware
       const hotelId = req.hotelId
 
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+      const uuidRegex =
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
       if (!uuidRegex.test(batchId)) {
         return res.status(400).json({ error: 'Неверный ID партии' })
       }
@@ -277,7 +315,9 @@ router.put('/batches/:id',
 
       const validation = validate(UpdateBatchSchema, req.body)
       if (!validation.isValid) {
-        return res.status(400).json({ error: 'Ошибка валидации', details: validation.errors })
+        return res
+          .status(400)
+          .json({ error: 'Ошибка валидации', details: validation.errors })
       }
 
       const existing = await repo.findBatchById(batchId, hotelId)
@@ -295,21 +335,22 @@ router.put('/batches/:id',
         action: 'update',
         entity_type: 'batch',
         entity_id: batchId,
-        details: { changes: Object.keys(data) }
+        details: { changes: Object.keys(data) },
       })
 
       res.json(result)
-
     } catch (error) {
       logError('Inventory', error, { action: 'updateBatch' })
       res.status(500).json({ error: 'Ошибка сервера' })
     }
-  })
+  }
+)
 
 /**
  * POST /api/batches/:id/collect
  */
-router.post('/batches/:id/collect',
+router.post(
+  '/batches/:id/collect',
   authMiddleware,
   hotelIsolation,
   departmentIsolation,
@@ -320,7 +361,8 @@ router.post('/batches/:id/collect',
       // ✅ Используем req.hotelId из middleware
       const hotelId = req.hotelId
 
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+      const uuidRegex =
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
       if (!uuidRegex.test(batchId)) {
         return res.status(400).json({ error: 'Неверный ID партии' })
       }
@@ -330,7 +372,9 @@ router.post('/batches/:id/collect',
 
       const validation = validate(QuickCollectSchema, req.body)
       if (!validation.isValid) {
-        return res.status(400).json({ error: 'Ошибка валидации', details: validation.errors })
+        return res
+          .status(400)
+          .json({ error: 'Ошибка валидации', details: validation.errors })
       }
 
       const { quantity, type, reason } = validation.data
@@ -342,7 +386,7 @@ router.post('/batches/:id/collect',
 
       if (batch.quantity < quantity) {
         return res.status(400).json({
-          error: `Недостаточно количества. Доступно: ${batch.quantity}`
+          error: `Недостаточно количества. Доступно: ${batch.quantity}`,
         })
       }
 
@@ -352,7 +396,7 @@ router.post('/batches/:id/collect',
         reason,
         userId: req.user.id,
         currentQuantity: batch.quantity,
-        currentStatus: batch.status
+        currentStatus: batch.status,
       })
 
       await logAudit({
@@ -362,16 +406,16 @@ router.post('/batches/:id/collect',
         action: 'collect',
         entity_type: 'batch',
         entity_id: batchId,
-        details: { quantity, type, reason }
+        details: { quantity, type, reason },
       })
 
       res.json({ message: 'Сбор выполнен', batch: updated })
-
     } catch (error) {
       logError('Inventory', error, { action: 'collectBatch' })
       res.status(500).json({ error: 'Ошибка сервера' })
     }
-  })
+  }
+)
 
 /**
  * DELETE /api/batches/clear-all
@@ -380,7 +424,9 @@ router.post('/batches/:id/collect',
 router.delete('/batches/clear-all', authMiddleware, async (req, res) => {
   try {
     if (!isSuperAdmin(req.user)) {
-      return res.status(403).json({ error: 'Only super admin can clear all batches' })
+      return res
+        .status(403)
+        .json({ error: 'Only super admin can clear all batches' })
     }
 
     const hotelId = req.hotelId || req.query.hotel_id || req.query.hotelId
@@ -389,9 +435,15 @@ router.delete('/batches/clear-all', authMiddleware, async (req, res) => {
     }
 
     // Обязательный параметр — очистка только в пределах отдела, не всего отеля
-    const departmentId = req.query.department_id || req.query.departmentId || null
+    const departmentId =
+      req.query.department_id || req.query.departmentId || null
     if (!departmentId) {
-      return res.status(400).json({ error: 'Department ID is required. Clearing entire hotel is not allowed.' })
+      return res
+        .status(400)
+        .json({
+          error:
+            'Department ID is required. Clearing entire hotel is not allowed.',
+        })
     }
 
     const deleted = await repo.clearAllActiveBatches(hotelId, departmentId)
@@ -406,12 +458,15 @@ router.delete('/batches/clear-all', authMiddleware, async (req, res) => {
       details: {
         action: 'clear_all_batches',
         deleted: deleted.length,
-        department_id: departmentId
-      }
+        department_id: departmentId,
+      },
     })
 
-    res.json({ success: true, deleted: deleted.length, message: `Deleted ${deleted.length} batches` })
-
+    res.json({
+      success: true,
+      deleted: deleted.length,
+      message: `Deleted ${deleted.length} batches`,
+    })
   } catch (error) {
     logError('Inventory', error, { action: 'clearAllBatches' })
     res.status(500).json({ error: 'Failed to clear batches' })
@@ -421,7 +476,8 @@ router.delete('/batches/clear-all', authMiddleware, async (req, res) => {
 /**
  * DELETE /api/batches/:id
  */
-router.delete('/batches/:id',
+router.delete(
+  '/batches/:id',
   authMiddleware,
   hotelIsolation,
   departmentIsolation,
@@ -432,7 +488,8 @@ router.delete('/batches/:id',
       // ✅ Используем req.hotelId из middleware
       const hotelId = req.hotelId
 
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+      const uuidRegex =
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
       if (!uuidRegex.test(batchId)) {
         return res.status(400).json({ error: 'Неверный ID партии' })
       }
@@ -452,16 +509,16 @@ router.delete('/batches/:id',
         action: 'delete',
         entity_type: 'batch',
         entity_id: batchId,
-        details: {}
+        details: {},
       })
 
       res.json({ message: 'Партия удалена' })
-
     } catch (error) {
       logError('Inventory', error, { action: 'deleteBatch' })
       res.status(500).json({ error: 'Ошибка сервера' })
     }
-  })
+  }
+)
 
 // ========================================
 // Products
@@ -470,7 +527,8 @@ router.delete('/batches/:id',
 /**
  * GET /api/products/catalog
  */
-router.get('/products/catalog',
+router.get(
+  '/products/catalog',
   authMiddleware,
   hotelIsolation,
   departmentIsolation,
@@ -484,17 +542,18 @@ router.get('/products/catalog',
 
       const products = await repo.findProductsCatalog(hotelId)
       res.json({ success: true, products })
-
     } catch (error) {
       logError('Inventory', error, { action: 'getProductsCatalog' })
       res.status(500).json({ error: 'Ошибка сервера' })
     }
-  })
+  }
+)
 
 /**
  * GET /api/products/status/expired
  */
-router.get('/products/status/expired',
+router.get(
+  '/products/status/expired',
   authMiddleware,
   hotelIsolation,
   departmentIsolation,
@@ -507,17 +566,18 @@ router.get('/products/status/expired',
 
       const items = await repo.findExpiredBatches(hotelId)
       res.json({ success: true, items, count: items.length })
-
     } catch (error) {
       logError('Inventory', error, { action: 'getExpiredProducts' })
       res.status(500).json({ error: 'Ошибка сервера' })
     }
-  })
+  }
+)
 
 /**
  * GET /api/products/status/expiring-soon
  */
-router.get('/products/status/expiring-soon',
+router.get(
+  '/products/status/expiring-soon',
   authMiddleware,
   hotelIsolation,
   departmentIsolation,
@@ -531,17 +591,18 @@ router.get('/products/status/expiring-soon',
 
       const items = await repo.findExpiringSoonBatches(hotelId, days)
       res.json({ success: true, items, count: items.length, days })
-
     } catch (error) {
       logError('Inventory', error, { action: 'getExpiringSoon' })
       res.status(500).json({ error: 'Ошибка сервера' })
     }
-  })
+  }
+)
 
 /**
  * GET /api/products
  */
-router.get('/products',
+router.get(
+  '/products',
   authMiddleware,
   hotelIsolation,
   departmentIsolation,
@@ -550,7 +611,9 @@ router.get('/products',
     try {
       const validation = validate(ProductFiltersSchema, req.query)
       if (!validation.isValid) {
-        return res.status(400).json({ error: 'Ошибка валидации', details: validation.errors })
+        return res
+          .status(400)
+          .json({ error: 'Ошибка валидации', details: validation.errors })
       }
 
       const hotelId = req.hotelId
@@ -569,19 +632,20 @@ router.get('/products',
         page,
         limit,
         totalPages: Math.ceil(total / limit),
-        hasMore: ((page - 1) * limit) + rows.length < total
+        hasMore: (page - 1) * limit + rows.length < total,
       })
-
     } catch (error) {
       logError('Inventory', error, { action: 'getProducts' })
       res.status(500).json({ error: 'Ошибка сервера' })
     }
-  })
+  }
+)
 
 /**
  * POST /api/products
  */
-router.post('/products',
+router.post(
+  '/products',
   authMiddleware,
   hotelIsolation,
   departmentIsolation,
@@ -595,7 +659,9 @@ router.post('/products',
 
       const validation = validate(CreateProductSchema, req.body)
       if (!validation.isValid) {
-        return res.status(400).json({ error: 'Ошибка валидации', details: validation.errors })
+        return res
+          .status(400)
+          .json({ error: 'Ошибка валидации', details: validation.errors })
       }
 
       const data = validation.data
@@ -610,21 +676,22 @@ router.post('/products',
         action: 'create',
         entity_type: 'product',
         entity_id: result.id,
-        details: { name: data.name }
+        details: { name: data.name },
       })
 
       res.status(201).json(result)
-
     } catch (error) {
       logError('Inventory', error, { action: 'createProduct' })
       res.status(500).json({ error: 'Ошибка сервера' })
     }
-  })
+  }
+)
 
 /**
  * PUT /api/products/:id
  */
-router.put('/products/:id',
+router.put(
+  '/products/:id',
   authMiddleware,
   hotelIsolation,
   departmentIsolation,
@@ -639,7 +706,9 @@ router.put('/products/:id',
 
       const validation = validate(UpdateProductSchema, req.body)
       if (!validation.isValid) {
-        return res.status(400).json({ error: 'Ошибка валидации', details: validation.errors })
+        return res
+          .status(400)
+          .json({ error: 'Ошибка валидации', details: validation.errors })
       }
 
       const existing = await repo.findProductById(productId, hotelId)
@@ -661,21 +730,22 @@ router.put('/products/:id',
         action: 'update',
         entity_type: 'product',
         entity_id: productId,
-        details: { changes: Object.keys(data) }
+        details: { changes: Object.keys(data) },
       })
 
       res.json(result)
-
     } catch (error) {
       logError('Inventory', error, { action: 'updateProduct' })
       res.status(500).json({ error: 'Ошибка сервера' })
     }
-  })
+  }
+)
 
 /**
  * DELETE /api/products/:id
  */
-router.delete('/products/:id',
+router.delete(
+  '/products/:id',
   authMiddleware,
   hotelIsolation,
   departmentIsolation,
@@ -700,16 +770,16 @@ router.delete('/products/:id',
         action: 'delete',
         entity_type: 'product',
         entity_id: productId,
-        details: { name: result.name }
+        details: { name: result.name },
       })
 
       res.json({ success: true, id: productId })
-
     } catch (error) {
       logError('Inventory', error, { action: 'deleteProduct' })
       res.status(500).json({ error: 'Ошибка сервера' })
     }
-  })
+  }
+)
 
 // ========================================
 // Categories
@@ -718,7 +788,8 @@ router.delete('/products/:id',
 /**
  * GET /api/categories
  */
-router.get('/categories',
+router.get(
+  '/categories',
   authMiddleware,
   hotelIsolation,
   departmentIsolation,
@@ -731,17 +802,18 @@ router.get('/categories',
 
       const categories = await repo.findCategories(hotelId)
       res.json(categories)
-
     } catch (error) {
       logError('Inventory', error, { action: 'getCategories' })
       res.status(500).json({ error: 'Ошибка сервера' })
     }
-  })
+  }
+)
 
 /**
  * POST /api/categories
  */
-router.post('/categories',
+router.post(
+  '/categories',
   authMiddleware,
   hotelIsolation,
   departmentIsolation,
@@ -755,14 +827,18 @@ router.post('/categories',
 
       const validation = validate(CreateCategorySchema, req.body)
       if (!validation.isValid) {
-        return res.status(400).json({ error: 'Ошибка валидации', details: validation.errors })
+        return res
+          .status(400)
+          .json({ error: 'Ошибка валидации', details: validation.errors })
       }
 
       const data = validation.data
 
       const exists = await repo.checkCategoryNameExists(data.name, hotelId)
       if (exists) {
-        return res.status(400).json({ error: 'Категория с таким именем уже существует' })
+        return res
+          .status(400)
+          .json({ error: 'Категория с таким именем уже существует' })
       }
 
       const result = await repo.createCategory(hotelId, data)
@@ -774,21 +850,22 @@ router.post('/categories',
         action: 'create',
         entity_type: 'category',
         entity_id: result.id,
-        details: { name: data.name }
+        details: { name: data.name },
       })
 
       res.status(201).json(result)
-
     } catch (error) {
       logError('Inventory', error, { action: 'createCategory' })
       res.status(500).json({ error: 'Ошибка сервера' })
     }
-  })
+  }
+)
 
 /**
  * PUT /api/categories/:id
  */
-router.put('/categories/:id',
+router.put(
+  '/categories/:id',
   authMiddleware,
   hotelIsolation,
   departmentIsolation,
@@ -803,7 +880,9 @@ router.put('/categories/:id',
 
       const validation = validate(UpdateCategorySchema, req.body)
       if (!validation.isValid) {
-        return res.status(400).json({ error: 'Ошибка валидации', details: validation.errors })
+        return res
+          .status(400)
+          .json({ error: 'Ошибка валидации', details: validation.errors })
       }
 
       const existing = await repo.findCategoryById(categoryId, hotelId)
@@ -814,9 +893,15 @@ router.put('/categories/:id',
       const data = validation.data
 
       if (data.name !== undefined) {
-        const duplicate = await repo.checkCategoryNameExists(data.name, hotelId, categoryId)
+        const duplicate = await repo.checkCategoryNameExists(
+          data.name,
+          hotelId,
+          categoryId
+        )
         if (duplicate) {
-          return res.status(400).json({ error: 'Категория с таким именем уже существует' })
+          return res
+            .status(400)
+            .json({ error: 'Категория с таким именем уже существует' })
         }
       }
 
@@ -832,21 +917,22 @@ router.put('/categories/:id',
         action: 'update',
         entity_type: 'category',
         entity_id: categoryId,
-        details: { changes: Object.keys(data) }
+        details: { changes: Object.keys(data) },
       })
 
       res.json(result)
-
     } catch (error) {
       logError('Inventory', error, { action: 'updateCategory' })
       res.status(500).json({ error: 'Ошибка сервера' })
     }
-  })
+  }
+)
 
 /**
  * DELETE /api/categories/:id
  */
-router.delete('/categories/:id',
+router.delete(
+  '/categories/:id',
   authMiddleware,
   hotelIsolation,
   departmentIsolation,
@@ -880,15 +966,15 @@ router.delete('/categories/:id',
         action: 'delete',
         entity_type: 'category',
         entity_id: categoryId,
-        details: { name: categoryName }
+        details: { name: categoryName },
       })
 
       res.json({ message: 'Категория удалена' })
-
     } catch (error) {
       logError('Inventory', error, { action: 'deleteCategory' })
       res.status(500).json({ error: 'Ошибка сервера' })
     }
-  })
+  }
+)
 
 export default router

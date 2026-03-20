@@ -831,6 +831,8 @@
   },
   "export": {
     "title": "Exporter les données",
+    "reportsTitle": "Rapports analytiques",
+    "reportsDescription": "Rapports sur les analyses et les indicateurs de performance",
     "button": "Exporter",
     "selectFormat": "Sélectionner le format",
     "inventory": "Inventaire",
@@ -1712,5 +1714,136 @@
       "completed": "Terminé",
       "cancelled": "Annulé"
     }
+  },
+  "analyticsReports": {
+    "tabs": {
+      "health": "Santé",
+      "expiry": "Prévision",
+      "collections": "Collections",
+      "departments": "Classement",
+      "turnover": "Rotation",
+      "reasons": "Raisons",
+      "batchAge": "Âge Lots",
+      "weekly": "Semaine"
+    },
+    "apply": "Appliquer",
+    "retry": "Réessayer",
+    "noData": "Aucune donnée",
+    "records": "enregistrements",
+    "unspecified": "Non spécifié",
+    "status": {
+      "good": "Bon",
+      "warning": "Attention",
+      "critical": "Critique",
+      "today": "Aujourd'hui",
+      "expired": "Expiré"
+    },
+    "health": {
+      "description": "État actuel de l'inventaire par département",
+      "noData": "Aucune donnée d'inventaire",
+      "colDept": "Département",
+      "colTotal": "Total",
+      "colGood": "Bon",
+      "colWarning": "Attention",
+      "colCritical": "Critique",
+      "colExpired": "Expiré",
+      "colScore": "Health Score"
+    },
+    "expiry": {
+      "description": "Articles expirant dans les prochains",
+      "noData": "Aucun article expirant bientôt",
+      "colProduct": "Produit",
+      "colDept": "Département",
+      "colCategory": "Catégorie",
+      "colExpiryDate": "Date d'expiration",
+      "colDaysLeft": "Jours",
+      "colQty": "Qté",
+      "colStatus": "Statut"
+    },
+    "collections": {
+      "noData": "Aucune donnée de collection pour la période",
+      "colDate": "Date",
+      "colProduct": "Produit",
+      "colDept": "Département",
+      "colCollectedBy": "Collecté par",
+      "colQty": "Qté",
+      "colReason": "Raison",
+      "colExpiry": "Date d'exp."
+    },
+    "departments": {
+      "description": "Classement des départements par qualité de gestion",
+      "noData": "Aucune donnée départementale",
+      "batches": "lots",
+      "expiredLabel": "expiré",
+      "avgDays": "Moy.",
+      "daysUnit": "j.",
+      "collectionsLabel": "collections"
+    },
+    "turnover": {
+      "noData": "Aucune donnée produit",
+      "colProduct": "Produit",
+      "colCategory": "Catégorie",
+      "colBatches": "Lots",
+      "colStock": "Stock",
+      "colCollected": "Collecté",
+      "colExpired": "Expiré",
+      "colConsumption": "Consomm. %",
+      "colTurnover": "Rotation"
+    },
+    "reasons": {
+      "noData": "Aucune donnée de raisons",
+      "byQuantity": "Par quantité",
+      "colReason": "Raison",
+      "colTransactions": "Trans.",
+      "colQty": "Qté",
+      "colShare": "Part"
+    },
+    "batchAge": {
+      "description": "Distribution des lots actifs par durée de vie restante",
+      "noData": "Aucun lot actif",
+      "byBatchCount": "Par nombre de lots",
+      "batchesUnit": "lots",
+      "unitsLabel": "unités au total"
+    },
+    "weekly": {
+      "description": "Résumé des KPI clés des 7 derniers jours",
+      "noData": "Aucune donnée cette semaine",
+      "totalBatches": "Lots totaux",
+      "good": "Bon",
+      "expired": "Expiré",
+      "healthScore": "Health Score",
+      "weeklyCollections": "Collections hebdo.",
+      "collectedQty": "Unités collectées",
+      "healthChanged": "Health Score a changé de",
+      "compared": "par rapport à la semaine dernière",
+      "prev": "Préc.",
+      "was": "était",
+      "became": "maintenant"
+    }
+  },
+  "scheduledExports": {
+    "pinLabel": "PIN de téléchargement",
+    "pinPlaceholder": "Entrez le PIN",
+    "pinRequired": "PIN requis",
+    "pinKeepCurrent": "Conserver le PIN actuel",
+    "linkExpiryLabel": "Expiration du lien",
+    "securitySettings": "Paramètres de sécurité"
+  },
+  "download": {
+    "title": "Télécharger le rapport",
+    "enterPin": "Entrez le PIN",
+    "enterLogin": "Entrez les identifiants",
+    "downloadBtn": "Télécharger",
+    "expired": "Lien expiré",
+    "revoked": "Lien révoqué",
+    "invalidPin": "PIN invalide",
+    "tooManyAttempts": "Trop de tentatives",
+    "fileSize": "Taille du fichier",
+    "expiresAt": "Expire le",
+    "downloading": "Téléchargement...",
+    "pinRequired": "PIN requis",
+    "fetchError": "Erreur de téléchargement",
+    "filesReady": "fichiers prêts à télécharger",
+    "selectAll": "Tout sélectionner"
   }
 }

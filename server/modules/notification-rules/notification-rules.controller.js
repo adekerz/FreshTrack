@@ -178,6 +178,7 @@ router.post(
         name,
         description,
         warningDays,
+        attentionDays,
         criticalDays,
         notificationMode,
         warningMonths,
@@ -213,6 +214,7 @@ router.post(
         name,
         description,
         warningDays,
+        attentionDays,
         criticalDays,
         notificationMode,
         warningMonths,
@@ -236,6 +238,7 @@ router.post(
           type,
           name,
           warningDays,
+          attentionDays,
           criticalDays,
           notificationMode,
           warningMonths,
@@ -312,8 +315,8 @@ router.patch(
 
           const insertResult = await query(
             `
-          INSERT INTO notification_rules (hotel_id, type, name, description, warning_days, critical_days, notification_mode, warning_months, channels, recipient_roles, enabled)
-          SELECT $1, type, name, description, warning_days, critical_days, notification_mode, warning_months, channels, recipient_roles, $2
+          INSERT INTO notification_rules (hotel_id, type, name, description, warning_days, attention_days, critical_days, notification_mode, warning_months, channels, recipient_roles, enabled)
+          SELECT $1, type, name, description, warning_days, attention_days, critical_days, notification_mode, warning_months, channels, recipient_roles, $2
           FROM notification_rules WHERE id = $3
           RETURNING id
         `,

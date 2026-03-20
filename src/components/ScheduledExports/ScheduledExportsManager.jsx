@@ -8,7 +8,7 @@ import { useToast } from '../../context/ToastContext'
 import { useTranslation } from '../../context/LanguageContext'
 import { apiFetch } from '../../services/api'
 import { logError } from '../../utils/logger'
-import { Send, Calendar, Clock, BarChart3, FileText, Mail, Pencil, Trash2, Power, PowerOff, Package, FileSpreadsheet, FolderTree, Tags, History } from 'lucide-react'
+import { Send, Calendar, Clock, BarChart3, FileText, Mail, Pencil, Trash2, Power, PowerOff, Package, FileSpreadsheet, FolderTree, Tags, History, HeartPulse, CalendarClock, ClipboardList, TrendingUp, PieChart, Layers, LayoutDashboard } from 'lucide-react'
 import { SectionLoader, TouchButton } from '../ui'
 import SettingsLayout from '../ui/settings/SettingsLayout'
 import { ScheduleCreateModal } from './ScheduleCreateModal'
@@ -23,7 +23,15 @@ const EXPORT_ICONS = {
   collections: History,
   categories: Tags,
   departments: FolderTree,
-  audit: FileText
+  audit: FileText,
+  'health-summary': HeartPulse,
+  'expiry-forecast': CalendarClock,
+  'collection-activity': ClipboardList,
+  'product-turnover': TrendingUp,
+  'department-scorecard': BarChart3,
+  'collection-reasons': PieChart,
+  'batch-age-distribution': Layers,
+  'weekly-summary': LayoutDashboard
 }
 
 /**

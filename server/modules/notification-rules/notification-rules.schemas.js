@@ -39,10 +39,9 @@ export const CreateNotificationRuleSchema = z.object({
     .max(200, 'Название слишком длинное')
     .transform((v) => v.trim()),
   description: z.string().max(500).optional().nullable(),
-  // daily mode: warn when days_left <= warningDays
   warningDays: z.number().int().min(0).max(365).optional().nullable(),
+  attentionDays: z.number().int().min(0).max(365).optional().nullable(),
   criticalDays: z.number().int().min(0).max(365).optional().nullable(),
-  // monthly mode: group by expiry month within warningMonths ahead
   notificationMode: z.enum(['daily', 'monthly']).default('daily'),
   warningMonths: z.number().int().min(1).max(24).optional().nullable(),
   channels: z

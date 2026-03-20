@@ -838,6 +838,8 @@
   },
   "export": {
     "title": "Daten exportieren",
+    "reportsTitle": "Analyseberichte",
+    "reportsDescription": "Berichte zu Analysen und Leistungskennzahlen",
     "button": "Exportieren",
     "selectFormat": "Format auswählen",
     "inventory": "Bestand",
@@ -1685,5 +1687,136 @@
       "completed": "Erledigt",
       "cancelled": "Abgebrochen"
     }
+  },
+  "analyticsReports": {
+    "tabs": {
+      "health": "Gesundheit",
+      "expiry": "Ablaufprognose",
+      "collections": "Sammlungen",
+      "departments": "Abt.-Ranking",
+      "turnover": "Umsatz",
+      "reasons": "Gründe",
+      "batchAge": "Chargenalter",
+      "weekly": "Woche"
+    },
+    "apply": "Anwenden",
+    "retry": "Wiederholen",
+    "noData": "Keine Daten",
+    "records": "Einträge",
+    "unspecified": "Nicht angegeben",
+    "status": {
+      "good": "Gut",
+      "warning": "Warnung",
+      "critical": "Kritisch",
+      "today": "Heute",
+      "expired": "Abgelaufen"
+    },
+    "health": {
+      "description": "Aktueller Inventarzustand pro Abteilung",
+      "noData": "Keine Inventardaten",
+      "colDept": "Abteilung",
+      "colTotal": "Gesamt",
+      "colGood": "Gut",
+      "colWarning": "Warnung",
+      "colCritical": "Kritisch",
+      "colExpired": "Abgelaufen",
+      "colScore": "Health Score"
+    },
+    "expiry": {
+      "description": "Artikel die in den nächsten Tagen ablaufen",
+      "noData": "Keine ablaufenden Artikel",
+      "colProduct": "Produkt",
+      "colDept": "Abteilung",
+      "colCategory": "Kategorie",
+      "colExpiryDate": "Ablaufdatum",
+      "colDaysLeft": "Tage",
+      "colQty": "Menge",
+      "colStatus": "Status"
+    },
+    "collections": {
+      "noData": "Keine Sammeldaten für den Zeitraum",
+      "colDate": "Datum",
+      "colProduct": "Produkt",
+      "colDept": "Abteilung",
+      "colCollectedBy": "Gesammelt von",
+      "colQty": "Menge",
+      "colReason": "Grund",
+      "colExpiry": "Ablaufdatum"
+    },
+    "departments": {
+      "description": "Abteilungsranking nach Inventarverwaltungsqualität",
+      "noData": "Keine Abteilungsdaten",
+      "batches": "Chargen",
+      "expiredLabel": "abgelaufen",
+      "avgDays": "Ø",
+      "daysUnit": "T.",
+      "collectionsLabel": "Sammlungen"
+    },
+    "turnover": {
+      "noData": "Keine Produktdaten",
+      "colProduct": "Produkt",
+      "colCategory": "Kategorie",
+      "colBatches": "Chargen",
+      "colStock": "Bestand",
+      "colCollected": "Gesammelt",
+      "colExpired": "Abgelaufen",
+      "colConsumption": "Verbrauch %",
+      "colTurnover": "Umsatz"
+    },
+    "reasons": {
+      "noData": "Keine Grunddaten",
+      "byQuantity": "Nach Menge",
+      "colReason": "Grund",
+      "colTransactions": "Trans.",
+      "colQty": "Menge",
+      "colShare": "Anteil"
+    },
+    "batchAge": {
+      "description": "Verteilung aktiver Chargen nach verbleibender Haltbarkeit",
+      "noData": "Keine aktiven Chargen",
+      "byBatchCount": "Nach Chargenanzahl",
+      "batchesUnit": "Chargen",
+      "unitsLabel": "Einheiten gesamt"
+    },
+    "weekly": {
+      "description": "KPI-Zusammenfassung der letzten 7 Tage",
+      "noData": "Keine Wochendaten",
+      "totalBatches": "Chargen gesamt",
+      "good": "Gut",
+      "expired": "Abgelaufen",
+      "healthScore": "Health Score",
+      "weeklyCollections": "Wöchentl. Sammlungen",
+      "collectedQty": "Gesammelte Einheiten",
+      "healthChanged": "Health Score geändert um",
+      "compared": "im Vergleich zur Vorwoche",
+      "prev": "Vor.",
+      "was": "war",
+      "became": "jetzt"
+    }
+  },
+  "scheduledExports": {
+    "pinLabel": "Download-PIN",
+    "pinPlaceholder": "PIN eingeben",
+    "pinRequired": "PIN erforderlich",
+    "pinKeepCurrent": "Aktuellen PIN behalten",
+    "linkExpiryLabel": "Link-Ablaufzeit",
+    "securitySettings": "Sicherheitseinstellungen"
+  },
+  "download": {
+    "title": "Bericht herunterladen",
+    "enterPin": "PIN eingeben",
+    "enterLogin": "Anmeldedaten eingeben",
+    "downloadBtn": "Herunterladen",
+    "expired": "Link abgelaufen",
+    "revoked": "Link widerrufen",
+    "invalidPin": "Ungültiger PIN",
+    "tooManyAttempts": "Zu viele Versuche",
+    "fileSize": "Dateigröße",
+    "expiresAt": "Läuft ab am",
+    "downloading": "Wird heruntergeladen...",
+    "pinRequired": "PIN erforderlich",
+    "fetchError": "Download-Fehler",
+    "filesReady": "Dateien zum Download bereit",
+    "selectAll": "Alle auswählen"
   }
 }

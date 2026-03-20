@@ -252,7 +252,7 @@ function emailFooter() {
 /**
  * Base email template wrapper
  */
-function emailTemplate(content, options = {}) {
+export function emailTemplate(content, options = {}) {
   const { title = 'FreshTrack' } = options
 
   return `
