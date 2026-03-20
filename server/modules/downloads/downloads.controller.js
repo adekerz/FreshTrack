@@ -1,5 +1,5 @@
 import express from 'express'
-import bcrypt from 'bcrypt'
+import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import { query } from '../../db/postgres.js'
 import { logError, logInfo } from '../../utils/logger.js'
@@ -387,18 +387,16 @@ router.post('/bundle/:bundleToken/verify', async (req, res) => {
 
     if (!user) {
       if (!login)
-        return res
-          .status(400)
-          .json({
-            success: false,
-            error: 'Login is required',
-            errors: [
-              {
-                field: 'login',
-                message: 'Login is required when not authenticated',
-              },
-            ],
-          })
+        return res.status(400).json({
+          success: false,
+          error: 'Login is required',
+          errors: [
+            {
+              field: 'login',
+              message: 'Login is required when not authenticated',
+            },
+          ],
+        })
       const userResult = await query(
         'SELECT id, login, role, hotel_id, department_id FROM users WHERE (login = $1 OR email = $1) AND is_active = true',
         [login]

@@ -16,7 +16,7 @@ import {
   hotelIsolation,
   allowRoles,
 } from '../../middleware/auth.js'
-import bcrypt from 'bcrypt'
+import bcrypt from 'bcryptjs'
 import scheduledExportService from '../../services/ScheduledExportService.js'
 
 const router = express.Router()
