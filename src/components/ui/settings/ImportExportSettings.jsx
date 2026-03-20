@@ -10,7 +10,12 @@ import { useExport } from '../../../hooks/useExport'
 import { EXPORT_TYPES } from '../../../config/exportConfig'
 import { Loader } from '..'
 import { API_BASE_URL, apiFetch } from '../../../services/api'
-import { exportToExcel, exportToCSV, exportToPDF, EXPORT_COLUMNS } from '../../../utils/exportUtils'
+import {
+  exportToExcel,
+  exportToCSV,
+  exportToPDF,
+  EXPORT_COLUMNS,
+} from '../../../utils/exportUtils'
 import {
   Upload,
   Download,
@@ -78,8 +83,7 @@ const STATUS_STYLES = {
 
 function StatusBadge({ status }) {
   const { t } = useTranslation()
-  const label =
-    t(`analyticsReports.status.${status}`) || status
+  const label = t(`analyticsReports.status.${status}`) || status
   return (
     <span
       className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_STYLES[status] || 'bg-muted text-muted-foreground'}`}
@@ -99,7 +103,14 @@ function HealthRing({ score, size = 56 }) {
   const offset = circ - (s / 100) * circ
   return (
     <svg width={size} height={size} className="shrink-0">
-      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#e5e7eb" strokeWidth={4} />
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={r}
+        fill="none"
+        stroke="#e5e7eb"
+        strokeWidth={4}
+      />
       <circle
         cx={size / 2}
         cy={size / 2}
@@ -142,7 +153,11 @@ function Delta({ value }) {
     <span
       className={`flex items-center gap-0.5 text-xs font-medium ${pos ? 'text-emerald-600' : 'text-red-500'}`}
     >
-      {pos ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+      {pos ? (
+        <ChevronUp className="w-3 h-3" />
+      ) : (
+        <ChevronDown className="w-3 h-3" />
+      )}
       {Math.abs(v).toFixed(1)}
     </span>
   )
@@ -195,7 +210,9 @@ function useReport(endpoint, params = {}) {
     setError(null)
     try {
       const qs = new URLSearchParams(
-        Object.fromEntries(Object.entries(params).filter(([, v]) => v != null && v !== ''))
+        Object.fromEntries(
+          Object.entries(params).filter(([, v]) => v != null && v !== '')
+        )
       ).toString()
       const url = `/reports/${endpoint}${qs ? `?${qs}` : ''}`
       const res = await apiFetch(url)
@@ -235,7 +252,9 @@ function EmptyState({ message }) {
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center">
       <BarChart3 className="w-10 h-10 text-muted-foreground mb-3 opacity-40" />
-      <p className="text-sm text-muted-foreground">{message || t('analyticsReports.noData')}</p>
+      <p className="text-sm text-muted-foreground">
+        {message || t('analyticsReports.noData')}
+      </p>
     </div>
   )
 }
@@ -290,7 +309,9 @@ function DateFilter({ from, to, onFromChange, onToChange, onApply, children }) {
         <Filter className="w-3.5 h-3.5" />
         {t('analyticsReports.apply')}
       </button>
-      <div className="flex-1 flex items-center justify-end gap-2">{children}</div>
+      <div className="flex-1 flex items-center justify-end gap-2">
+        {children}
+      </div>
     </div>
   )
 }
@@ -321,33 +342,63 @@ function HealthSummaryPanel() {
         </div>
       </div>
 
-      {loading && <div className="flex justify-center py-12"><Loader /></div>}
+      {loading && (
+        <div className="flex justify-center py-12">
+          <Loader />
+        </div>
+      )}
       {error && <ErrorState message={error} onRetry={reload} />}
-      {!loading && !error && rows.length === 0 && <EmptyState message={ar?.noData} />}
+      {!loading && !error && rows.length === 0 && (
+        <EmptyState message={ar?.noData} />
+      )}
 
       {!loading && rows.length > 0 && (
         <div className="overflow-x-auto rounded-xl border border-border">
           <table className="w-full text-sm">
             <thead className="bg-muted/50">
               <tr>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">{ar?.colDept}</th>
-                <th className="text-center px-3 py-3 font-medium text-muted-foreground">{ar?.colTotal}</th>
-                <th className="text-center px-3 py-3 font-medium text-emerald-600">{ar?.colGood}</th>
-                <th className="text-center px-3 py-3 font-medium text-amber-600">{ar?.colWarning}</th>
-                <th className="text-center px-3 py-3 font-medium text-orange-600">{ar?.colCritical}</th>
-                <th className="text-center px-3 py-3 font-medium text-red-600">{ar?.colExpired}</th>
-                <th className="text-center px-3 py-3 font-medium text-muted-foreground">{ar?.colScore}</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground">
+                  {ar?.colDept}
+                </th>
+                <th className="text-center px-3 py-3 font-medium text-muted-foreground">
+                  {ar?.colTotal}
+                </th>
+                <th className="text-center px-3 py-3 font-medium text-emerald-600">
+                  {ar?.colGood}
+                </th>
+                <th className="text-center px-3 py-3 font-medium text-amber-600">
+                  {ar?.colWarning}
+                </th>
+                <th className="text-center px-3 py-3 font-medium text-orange-600">
+                  {ar?.colCritical}
+                </th>
+                <th className="text-center px-3 py-3 font-medium text-red-600">
+                  {ar?.colExpired}
+                </th>
+                <th className="text-center px-3 py-3 font-medium text-muted-foreground">
+                  {ar?.colScore}
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {rows.map((row, i) => (
                 <tr key={i} className="hover:bg-muted/30 transition-colors">
-                  <td className="px-4 py-3 font-medium text-foreground">{row.department}</td>
+                  <td className="px-4 py-3 font-medium text-foreground">
+                    {row.department}
+                  </td>
                   <td className="text-center px-3 py-3">{row.total_batches}</td>
-                  <td className="text-center px-3 py-3 text-emerald-600 font-medium">{row.good}</td>
-                  <td className="text-center px-3 py-3 text-amber-600 font-medium">{row.warning}</td>
-                  <td className="text-center px-3 py-3 text-orange-600 font-medium">{row.critical}</td>
-                  <td className="text-center px-3 py-3 text-red-600 font-medium">{row.expired}</td>
+                  <td className="text-center px-3 py-3 text-emerald-600 font-medium">
+                    {row.good}
+                  </td>
+                  <td className="text-center px-3 py-3 text-amber-600 font-medium">
+                    {row.warning}
+                  </td>
+                  <td className="text-center px-3 py-3 text-orange-600 font-medium">
+                    {row.critical}
+                  </td>
+                  <td className="text-center px-3 py-3 text-red-600 font-medium">
+                    {row.expired}
+                  </td>
                   <td className="px-3 py-3">
                     <div className="flex items-center justify-center">
                       <HealthRing score={row.health_score} size={44} />
@@ -366,7 +417,9 @@ function HealthSummaryPanel() {
 function ExpiryForecastPanel() {
   const { t } = useTranslation()
   const [days, setDays] = useState(7)
-  const { data, loading, error, reload } = useReport('expiry-forecast', { days })
+  const { data, loading, error, reload } = useReport('expiry-forecast', {
+    days,
+  })
   const rows = Array.isArray(data) ? data : []
   const ar = t('analyticsReports.expiry')
 
@@ -399,34 +452,68 @@ function ExpiryForecastPanel() {
         </div>
       </div>
 
-      {loading && <div className="flex justify-center py-12"><Loader /></div>}
+      {loading && (
+        <div className="flex justify-center py-12">
+          <Loader />
+        </div>
+      )}
       {error && <ErrorState message={error} onRetry={reload} />}
-      {!loading && !error && rows.length === 0 && <EmptyState message={ar?.noData} />}
+      {!loading && !error && rows.length === 0 && (
+        <EmptyState message={ar?.noData} />
+      )}
 
       {!loading && rows.length > 0 && (
         <div className="overflow-x-auto rounded-xl border border-border">
           <table className="w-full text-sm">
             <thead className="bg-muted/50">
               <tr>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">{ar?.colProduct}</th>
-                <th className="text-left px-3 py-3 font-medium text-muted-foreground">{ar?.colDept}</th>
-                <th className="text-left px-3 py-3 font-medium text-muted-foreground">{ar?.colCategory}</th>
-                <th className="text-center px-3 py-3 font-medium text-muted-foreground">{ar?.colExpiryDate}</th>
-                <th className="text-center px-3 py-3 font-medium text-muted-foreground">{ar?.colDaysLeft}</th>
-                <th className="text-center px-3 py-3 font-medium text-muted-foreground">{ar?.colQty}</th>
-                <th className="text-center px-3 py-3 font-medium text-muted-foreground">{ar?.colStatus}</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground">
+                  {ar?.colProduct}
+                </th>
+                <th className="text-left px-3 py-3 font-medium text-muted-foreground">
+                  {ar?.colDept}
+                </th>
+                <th className="text-left px-3 py-3 font-medium text-muted-foreground">
+                  {ar?.colCategory}
+                </th>
+                <th className="text-center px-3 py-3 font-medium text-muted-foreground">
+                  {ar?.colExpiryDate}
+                </th>
+                <th className="text-center px-3 py-3 font-medium text-muted-foreground">
+                  {ar?.colDaysLeft}
+                </th>
+                <th className="text-center px-3 py-3 font-medium text-muted-foreground">
+                  {ar?.colQty}
+                </th>
+                <th className="text-center px-3 py-3 font-medium text-muted-foreground">
+                  {ar?.colStatus}
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {rows.map((row, i) => (
                 <tr key={i} className="hover:bg-muted/30 transition-colors">
-                  <td className="px-4 py-3 font-medium text-foreground">{row.product}</td>
-                  <td className="px-3 py-3 text-muted-foreground">{row.department || '—'}</td>
-                  <td className="px-3 py-3 text-muted-foreground">{row.category || '—'}</td>
-                  <td className="text-center px-3 py-3">{formatDate(row.expiry_date)}</td>
-                  <td className="text-center px-3 py-3 font-medium">{row.days_left}</td>
-                  <td className="text-center px-3 py-3">{row.quantity} {row.unit}</td>
-                  <td className="text-center px-3 py-3"><StatusBadge status={row.status} /></td>
+                  <td className="px-4 py-3 font-medium text-foreground">
+                    {row.product}
+                  </td>
+                  <td className="px-3 py-3 text-muted-foreground">
+                    {row.department || '—'}
+                  </td>
+                  <td className="px-3 py-3 text-muted-foreground">
+                    {row.category || '—'}
+                  </td>
+                  <td className="text-center px-3 py-3">
+                    {formatDate(row.expiry_date)}
+                  </td>
+                  <td className="text-center px-3 py-3 font-medium">
+                    {row.days_left}
+                  </td>
+                  <td className="text-center px-3 py-3">
+                    {row.quantity} {row.unit}
+                  </td>
+                  <td className="text-center px-3 py-3">
+                    <StatusBadge status={row.status} />
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -442,51 +529,100 @@ function CollectionActivityPanel() {
   const [from, setFrom] = useState(ago(30))
   const [to, setTo] = useState(today())
   const [applied, setApplied] = useState({ from: ago(30), to: today() })
-  const { data, loading, error, reload } = useReport('collection-activity', applied)
+  const { data, loading, error, reload } = useReport(
+    'collection-activity',
+    applied
+  )
   const rows = Array.isArray(data) ? data : []
   const ar = t('analyticsReports.collections')
 
   return (
     <div className="space-y-4">
-      <DateFilter from={from} to={to} onFromChange={setFrom} onToChange={setTo} onApply={() => setApplied({ from, to })}>
-        <ExportToolbar data={rows} columns={EXPORT_COLUMNS.collectionActivity} title={t('analyticsReports.tabs.collections')} filename="collection_activity" t={t} />
+      <DateFilter
+        from={from}
+        to={to}
+        onFromChange={setFrom}
+        onToChange={setTo}
+        onApply={() => setApplied({ from, to })}
+      >
+        <ExportToolbar
+          data={rows}
+          columns={EXPORT_COLUMNS.collectionActivity}
+          title={t('analyticsReports.tabs.collections')}
+          filename="collection_activity"
+          t={t}
+        />
         <ReloadBtn onClick={reload} loading={loading} />
       </DateFilter>
 
-      {loading && <div className="flex justify-center py-12"><Loader /></div>}
+      {loading && (
+        <div className="flex justify-center py-12">
+          <Loader />
+        </div>
+      )}
       {error && <ErrorState message={error} onRetry={reload} />}
-      {!loading && !error && rows.length === 0 && <EmptyState message={ar?.noData} />}
+      {!loading && !error && rows.length === 0 && (
+        <EmptyState message={ar?.noData} />
+      )}
 
       {!loading && rows.length > 0 && (
         <>
-          <p className="text-xs text-muted-foreground">{rows.length} {t('analyticsReports.records')}</p>
+          <p className="text-xs text-muted-foreground">
+            {rows.length} {t('analyticsReports.records')}
+          </p>
           <div className="overflow-x-auto rounded-xl border border-border">
             <table className="w-full text-sm">
               <thead className="bg-muted/50">
                 <tr>
-                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">{ar?.colDate}</th>
-                  <th className="text-left px-3 py-3 font-medium text-muted-foreground">{ar?.colProduct}</th>
-                  <th className="text-left px-3 py-3 font-medium text-muted-foreground">{ar?.colDept}</th>
-                  <th className="text-left px-3 py-3 font-medium text-muted-foreground">{ar?.colCollectedBy}</th>
-                  <th className="text-center px-3 py-3 font-medium text-muted-foreground">{ar?.colQty}</th>
-                  <th className="text-left px-3 py-3 font-medium text-muted-foreground">{ar?.colReason}</th>
-                  <th className="text-center px-3 py-3 font-medium text-muted-foreground">{ar?.colExpiry}</th>
+                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">
+                    {ar?.colDate}
+                  </th>
+                  <th className="text-left px-3 py-3 font-medium text-muted-foreground">
+                    {ar?.colProduct}
+                  </th>
+                  <th className="text-left px-3 py-3 font-medium text-muted-foreground">
+                    {ar?.colDept}
+                  </th>
+                  <th className="text-left px-3 py-3 font-medium text-muted-foreground">
+                    {ar?.colCollectedBy}
+                  </th>
+                  <th className="text-center px-3 py-3 font-medium text-muted-foreground">
+                    {ar?.colQty}
+                  </th>
+                  <th className="text-left px-3 py-3 font-medium text-muted-foreground">
+                    {ar?.colReason}
+                  </th>
+                  <th className="text-center px-3 py-3 font-medium text-muted-foreground">
+                    {ar?.colExpiry}
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {rows.map((row, i) => (
                   <tr key={i} className="hover:bg-muted/30 transition-colors">
-                    <td className="px-4 py-3 text-muted-foreground">{formatDate(row.collected_at)}</td>
-                    <td className="px-3 py-3 font-medium text-foreground">{row.product_name}</td>
-                    <td className="px-3 py-3 text-muted-foreground">{row.department || '—'}</td>
-                    <td className="px-3 py-3 text-muted-foreground">{row.collected_by || '—'}</td>
-                    <td className="text-center px-3 py-3 font-medium">{row.quantity_collected}</td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {formatDate(row.collected_at)}
+                    </td>
+                    <td className="px-3 py-3 font-medium text-foreground">
+                      {row.product_name}
+                    </td>
+                    <td className="px-3 py-3 text-muted-foreground">
+                      {row.department || '—'}
+                    </td>
+                    <td className="px-3 py-3 text-muted-foreground">
+                      {row.collected_by || '—'}
+                    </td>
+                    <td className="text-center px-3 py-3 font-medium">
+                      {row.quantity_collected}
+                    </td>
                     <td className="px-3 py-3">
                       <span className="px-2 py-0.5 rounded-full text-xs bg-muted text-muted-foreground">
                         {row.collection_reason || '—'}
                       </span>
                     </td>
-                    <td className="text-center px-3 py-3 text-muted-foreground">{formatDate(row.expiry_date)}</td>
+                    <td className="text-center px-3 py-3 text-muted-foreground">
+                      {formatDate(row.expiry_date)}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -502,7 +638,9 @@ function DepartmentScorecardPanel() {
   const { t } = useTranslation()
   const { data, loading, error, reload } = useReport('department-scorecard')
   const rows = Array.isArray(data) ? data : []
-  const ranked = [...rows].sort((a, b) => (Number(b.health_score) || 0) - (Number(a.health_score) || 0))
+  const ranked = [...rows].sort(
+    (a, b) => (Number(b.health_score) || 0) - (Number(a.health_score) || 0)
+  )
   const ar = t('analyticsReports.departments')
 
   return (
@@ -510,36 +648,70 @@ function DepartmentScorecardPanel() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <p className="text-sm text-muted-foreground">{ar?.description}</p>
         <div className="flex items-center gap-2">
-          <ExportToolbar data={rows} columns={EXPORT_COLUMNS.departmentScorecard} title={t('analyticsReports.tabs.departments')} filename="department_scorecard" t={t} />
+          <ExportToolbar
+            data={rows}
+            columns={EXPORT_COLUMNS.departmentScorecard}
+            title={t('analyticsReports.tabs.departments')}
+            filename="department_scorecard"
+            t={t}
+          />
           <ReloadBtn onClick={reload} loading={loading} />
         </div>
       </div>
 
-      {loading && <div className="flex justify-center py-12"><Loader /></div>}
+      {loading && (
+        <div className="flex justify-center py-12">
+          <Loader />
+        </div>
+      )}
       {error && <ErrorState message={error} onRetry={reload} />}
-      {!loading && !error && ranked.length === 0 && <EmptyState message={ar?.noData} />}
+      {!loading && !error && ranked.length === 0 && (
+        <EmptyState message={ar?.noData} />
+      )}
 
       {!loading && ranked.length > 0 && (
         <div className="space-y-3">
           {ranked.map((row, i) => {
             const score = Number(row.health_score) || 0
             return (
-              <div key={i} className="flex items-center gap-4 p-4 rounded-xl border border-border bg-card hover:shadow-sm transition-shadow">
+              <div
+                key={i}
+                className="flex items-center gap-4 p-4 rounded-xl border border-border bg-card hover:shadow-sm transition-shadow"
+              >
                 <div className="flex items-center justify-center w-8 h-8 rounded-full bg-muted text-sm font-bold text-foreground shrink-0">
                   {i + 1}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-foreground">{row.department}</p>
+                  <p className="font-medium text-foreground">
+                    {row.department}
+                  </p>
                   <div className="flex items-center gap-4 mt-1 flex-wrap">
-                    <span className="text-xs text-muted-foreground">{row.total_batches} {ar?.batches}</span>
-                    <span className="text-xs text-red-500">{row.expired_count} {ar?.expiredLabel} ({row.expiry_rate_pct}%)</span>
-                    <span className="text-xs text-muted-foreground">{ar?.avgDays} {row.avg_days_to_expiry} {ar?.daysUnit}</span>
-                    <span className="text-xs text-emerald-600">{row.collections_this_month} {ar?.collectionsLabel}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {row.total_batches} {ar?.batches}
+                    </span>
+                    <span className="text-xs text-red-500">
+                      {row.expired_count} {ar?.expiredLabel} (
+                      {row.expiry_rate_pct}%)
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {ar?.avgDays} {row.avg_days_to_expiry} {ar?.daysUnit}
+                    </span>
+                    <span className="text-xs text-emerald-600">
+                      {row.collections_this_month} {ar?.collectionsLabel}
+                    </span>
                   </div>
                   <div className="mt-2 h-1.5 rounded-full bg-muted overflow-hidden">
                     <div
                       className="h-full rounded-full transition-all duration-500"
-                      style={{ width: `${score}%`, backgroundColor: score >= 80 ? '#059669' : score >= 50 ? '#d97706' : '#dc2626' }}
+                      style={{
+                        width: `${score}%`,
+                        backgroundColor:
+                          score >= 80
+                            ? '#059669'
+                            : score >= 50
+                              ? '#d97706'
+                              : '#dc2626',
+                      }}
                     />
                   </div>
                 </div>
@@ -558,53 +730,108 @@ function ProductTurnoverPanel() {
   const [from, setFrom] = useState(ago(30))
   const [to, setTo] = useState(today())
   const [applied, setApplied] = useState({ from: ago(30), to: today() })
-  const { data, loading, error, reload } = useReport('product-turnover', applied)
+  const { data, loading, error, reload } = useReport(
+    'product-turnover',
+    applied
+  )
   const rows = Array.isArray(data) ? data : []
   const ar = t('analyticsReports.turnover')
 
   return (
     <div className="space-y-4">
-      <DateFilter from={from} to={to} onFromChange={setFrom} onToChange={setTo} onApply={() => setApplied({ from, to })}>
-        <ExportToolbar data={rows} columns={EXPORT_COLUMNS.productTurnover} title={t('analyticsReports.tabs.turnover')} filename="product_turnover" t={t} />
+      <DateFilter
+        from={from}
+        to={to}
+        onFromChange={setFrom}
+        onToChange={setTo}
+        onApply={() => setApplied({ from, to })}
+      >
+        <ExportToolbar
+          data={rows}
+          columns={EXPORT_COLUMNS.productTurnover}
+          title={t('analyticsReports.tabs.turnover')}
+          filename="product_turnover"
+          t={t}
+        />
         <ReloadBtn onClick={reload} loading={loading} />
       </DateFilter>
 
-      {loading && <div className="flex justify-center py-12"><Loader /></div>}
+      {loading && (
+        <div className="flex justify-center py-12">
+          <Loader />
+        </div>
+      )}
       {error && <ErrorState message={error} onRetry={reload} />}
-      {!loading && !error && rows.length === 0 && <EmptyState message={ar?.noData} />}
+      {!loading && !error && rows.length === 0 && (
+        <EmptyState message={ar?.noData} />
+      )}
 
       {!loading && rows.length > 0 && (
         <div className="overflow-x-auto rounded-xl border border-border">
           <table className="w-full text-sm">
             <thead className="bg-muted/50">
               <tr>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">{ar?.colProduct}</th>
-                <th className="text-left px-3 py-3 font-medium text-muted-foreground">{ar?.colCategory}</th>
-                <th className="text-center px-3 py-3 font-medium text-muted-foreground">{ar?.colBatches}</th>
-                <th className="text-center px-3 py-3 font-medium text-muted-foreground">{ar?.colStock}</th>
-                <th className="text-center px-3 py-3 font-medium text-emerald-600">{ar?.colCollected}</th>
-                <th className="text-center px-3 py-3 font-medium text-red-500">{ar?.colExpired}</th>
-                <th className="text-center px-3 py-3 font-medium text-muted-foreground">{ar?.colConsumption}</th>
-                <th className="text-center px-3 py-3 font-medium text-muted-foreground">{ar?.colTurnover}</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground">
+                  {ar?.colProduct}
+                </th>
+                <th className="text-left px-3 py-3 font-medium text-muted-foreground">
+                  {ar?.colCategory}
+                </th>
+                <th className="text-center px-3 py-3 font-medium text-muted-foreground">
+                  {ar?.colBatches}
+                </th>
+                <th className="text-center px-3 py-3 font-medium text-muted-foreground">
+                  {ar?.colStock}
+                </th>
+                <th className="text-center px-3 py-3 font-medium text-emerald-600">
+                  {ar?.colCollected}
+                </th>
+                <th className="text-center px-3 py-3 font-medium text-red-500">
+                  {ar?.colExpired}
+                </th>
+                <th className="text-center px-3 py-3 font-medium text-muted-foreground">
+                  {ar?.colConsumption}
+                </th>
+                <th className="text-center px-3 py-3 font-medium text-muted-foreground">
+                  {ar?.colTurnover}
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {rows.map((row, i) => (
                 <tr key={i} className="hover:bg-muted/30 transition-colors">
-                  <td className="px-4 py-3 font-medium text-foreground">{row.product}</td>
-                  <td className="px-3 py-3 text-muted-foreground">{row.category || '—'}</td>
+                  <td className="px-4 py-3 font-medium text-foreground">
+                    {row.product}
+                  </td>
+                  <td className="px-3 py-3 text-muted-foreground">
+                    {row.category || '—'}
+                  </td>
                   <td className="text-center px-3 py-3">{row.total_batches}</td>
                   <td className="text-center px-3 py-3">{row.current_stock}</td>
-                  <td className="text-center px-3 py-3 text-emerald-600 font-medium">{row.total_collected}</td>
-                  <td className="text-center px-3 py-3 text-red-500 font-medium">{row.expired_batches}</td>
+                  <td className="text-center px-3 py-3 text-emerald-600 font-medium">
+                    {row.total_collected}
+                  </td>
+                  <td className="text-center px-3 py-3 text-red-500 font-medium">
+                    {row.expired_batches}
+                  </td>
                   <td className="text-center px-3 py-3">
                     {row.consumption_rate_pct != null ? (
-                      <span className={Number(row.consumption_rate_pct) >= 80 ? 'text-emerald-600 font-medium' : ''}>
+                      <span
+                        className={
+                          Number(row.consumption_rate_pct) >= 80
+                            ? 'text-emerald-600 font-medium'
+                            : ''
+                        }
+                      >
                         {row.consumption_rate_pct}%
                       </span>
-                    ) : '—'}
+                    ) : (
+                      '—'
+                    )}
                   </td>
-                  <td className="text-center px-3 py-3">{row.turnover_ratio ?? '—'}</td>
+                  <td className="text-center px-3 py-3">
+                    {row.turnover_ratio ?? '—'}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -615,44 +842,82 @@ function ProductTurnoverPanel() {
   )
 }
 
-const REASON_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899']
+const REASON_COLORS = [
+  '#3b82f6',
+  '#10b981',
+  '#f59e0b',
+  '#ef4444',
+  '#8b5cf6',
+  '#ec4899',
+]
 
 function CollectionReasonsPanel() {
   const { t } = useTranslation()
   const [from, setFrom] = useState(ago(30))
   const [to, setTo] = useState(today())
   const [applied, setApplied] = useState({ from: ago(30), to: today() })
-  const { data, loading, error, reload } = useReport('collection-reasons', applied)
+  const { data, loading, error, reload } = useReport(
+    'collection-reasons',
+    applied
+  )
   const rows = Array.isArray(data) ? data : []
   const maxQty = Math.max(...rows.map((r) => Number(r.total_quantity) || 0), 1)
   const ar = t('analyticsReports.reasons')
 
   return (
     <div className="space-y-4">
-      <DateFilter from={from} to={to} onFromChange={setFrom} onToChange={setTo} onApply={() => setApplied({ from, to })}>
-        <ExportToolbar data={rows} columns={EXPORT_COLUMNS.collectionReasons} title={t('analyticsReports.tabs.reasons')} filename="collection_reasons" t={t} />
+      <DateFilter
+        from={from}
+        to={to}
+        onFromChange={setFrom}
+        onToChange={setTo}
+        onApply={() => setApplied({ from, to })}
+      >
+        <ExportToolbar
+          data={rows}
+          columns={EXPORT_COLUMNS.collectionReasons}
+          title={t('analyticsReports.tabs.reasons')}
+          filename="collection_reasons"
+          t={t}
+        />
         <ReloadBtn onClick={reload} loading={loading} />
       </DateFilter>
 
-      {loading && <div className="flex justify-center py-12"><Loader /></div>}
+      {loading && (
+        <div className="flex justify-center py-12">
+          <Loader />
+        </div>
+      )}
       {error && <ErrorState message={error} onRetry={reload} />}
-      {!loading && !error && rows.length === 0 && <EmptyState message={ar?.noData} />}
+      {!loading && !error && rows.length === 0 && (
+        <EmptyState message={ar?.noData} />
+      )}
 
       {!loading && rows.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-card border border-border rounded-xl p-5">
-            <h3 className="text-sm font-medium text-foreground mb-4">{ar?.byQuantity}</h3>
+            <h3 className="text-sm font-medium text-foreground mb-4">
+              {ar?.byQuantity}
+            </h3>
             <div className="space-y-3">
               {rows.map((row, i) => (
                 <div key={i} className="space-y-1">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-foreground font-medium">{row.reason || t('analyticsReports.unspecified')}</span>
-                    <span className="text-muted-foreground">{row.total_quantity} ({row.percentage}%)</span>
+                    <span className="text-foreground font-medium">
+                      {row.reason || t('analyticsReports.unspecified')}
+                    </span>
+                    <span className="text-muted-foreground">
+                      {row.total_quantity} ({row.percentage}%)
+                    </span>
                   </div>
                   <div className="h-2 rounded-full bg-muted overflow-hidden">
                     <div
                       className="h-full rounded-full transition-all duration-500"
-                      style={{ width: `${(Number(row.total_quantity) / maxQty) * 100}%`, backgroundColor: REASON_COLORS[i % REASON_COLORS.length] }}
+                      style={{
+                        width: `${(Number(row.total_quantity) / maxQty) * 100}%`,
+                        backgroundColor:
+                          REASON_COLORS[i % REASON_COLORS.length],
+                      }}
                     />
                   </div>
                 </div>
@@ -664,10 +929,18 @@ function CollectionReasonsPanel() {
             <table className="w-full text-sm">
               <thead className="bg-muted/50">
                 <tr>
-                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">{ar?.colReason}</th>
-                  <th className="text-center px-3 py-3 font-medium text-muted-foreground">{ar?.colTransactions}</th>
-                  <th className="text-center px-3 py-3 font-medium text-muted-foreground">{ar?.colQty}</th>
-                  <th className="text-center px-3 py-3 font-medium text-muted-foreground">{ar?.colShare}</th>
+                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">
+                    {ar?.colReason}
+                  </th>
+                  <th className="text-center px-3 py-3 font-medium text-muted-foreground">
+                    {ar?.colTransactions}
+                  </th>
+                  <th className="text-center px-3 py-3 font-medium text-muted-foreground">
+                    {ar?.colQty}
+                  </th>
+                  <th className="text-center px-3 py-3 font-medium text-muted-foreground">
+                    {ar?.colShare}
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -675,13 +948,27 @@ function CollectionReasonsPanel() {
                   <tr key={i} className="hover:bg-muted/30 transition-colors">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: REASON_COLORS[i % REASON_COLORS.length] }} />
-                        <span className="font-medium text-foreground">{row.reason || t('analyticsReports.unspecified')}</span>
+                        <div
+                          className="w-2.5 h-2.5 rounded-full shrink-0"
+                          style={{
+                            backgroundColor:
+                              REASON_COLORS[i % REASON_COLORS.length],
+                          }}
+                        />
+                        <span className="font-medium text-foreground">
+                          {row.reason || t('analyticsReports.unspecified')}
+                        </span>
                       </div>
                     </td>
-                    <td className="text-center px-3 py-3">{row.transaction_count}</td>
-                    <td className="text-center px-3 py-3 font-medium">{row.total_quantity}</td>
-                    <td className="text-center px-3 py-3 text-accent font-medium">{row.percentage}%</td>
+                    <td className="text-center px-3 py-3">
+                      {row.transaction_count}
+                    </td>
+                    <td className="text-center px-3 py-3 font-medium">
+                      {row.total_quantity}
+                    </td>
+                    <td className="text-center px-3 py-3 text-accent font-medium">
+                      {row.percentage}%
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -726,35 +1013,58 @@ function BatchAgePanel() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <p className="text-sm text-muted-foreground">{ar?.description}</p>
         <div className="flex items-center gap-2">
-          <ExportToolbar data={rows} columns={EXPORT_COLUMNS.batchAgeDistribution} title={t('analyticsReports.tabs.batchAge')} filename="batch_age_distribution" t={t} />
+          <ExportToolbar
+            data={rows}
+            columns={EXPORT_COLUMNS.batchAgeDistribution}
+            title={t('analyticsReports.tabs.batchAge')}
+            filename="batch_age_distribution"
+            t={t}
+          />
           <ReloadBtn onClick={reload} loading={loading} />
         </div>
       </div>
 
-      {loading && <div className="flex justify-center py-12"><Loader /></div>}
+      {loading && (
+        <div className="flex justify-center py-12">
+          <Loader />
+        </div>
+      )}
       {error && <ErrorState message={error} onRetry={reload} />}
-      {!loading && !error && rows.length === 0 && <EmptyState message={ar?.noData} />}
+      {!loading && !error && rows.length === 0 && (
+        <EmptyState message={ar?.noData} />
+      )}
 
       {!loading && rows.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-card border border-border rounded-xl p-5">
-            <h3 className="text-sm font-medium text-foreground mb-4">{ar?.byBatchCount}</h3>
+            <h3 className="text-sm font-medium text-foreground mb-4">
+              {ar?.byBatchCount}
+            </h3>
             <div className="space-y-4">
               {rows.map((row, i) => {
                 const color = AGE_COLORS[row.age_range] || '#6b7280'
                 return (
                   <div key={i} className="space-y-1">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="font-medium" style={{ color }}>{translateAgeRange(row.age_range, t)}</span>
-                      <span className="text-muted-foreground">{row.batch_count} {ar?.batchesUnit} · {row.percentage}%</span>
+                      <span className="font-medium" style={{ color }}>
+                        {translateAgeRange(row.age_range, t)}
+                      </span>
+                      <span className="text-muted-foreground">
+                        {row.batch_count} {ar?.batchesUnit} · {row.percentage}%
+                      </span>
                     </div>
                     <div className="h-3 rounded-full bg-muted overflow-hidden">
                       <div
                         className="h-full rounded-full transition-all duration-700"
-                        style={{ width: `${(Number(row.batch_count) / maxCount) * 100}%`, backgroundColor: color }}
+                        style={{
+                          width: `${(Number(row.batch_count) / maxCount) * 100}%`,
+                          backgroundColor: color,
+                        }}
                       />
                     </div>
-                    <p className="text-xs text-muted-foreground">{row.total_quantity} {ar?.unitsLabel}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {row.total_quantity} {ar?.unitsLabel}
+                    </p>
                   </div>
                 )
               })}
@@ -765,10 +1075,25 @@ function BatchAgePanel() {
             {rows.map((row, i) => {
               const color = AGE_COLORS[row.age_range] || '#6b7280'
               return (
-                <div key={i} className="bg-card border border-border rounded-xl p-4 space-y-1" style={{ borderLeftColor: color, borderLeftWidth: 3 }}>
-                  <p className="text-xs font-medium" style={{ color }}>{translateAgeRange(row.age_range, t)}</p>
-                  <p className="text-2xl font-bold text-foreground">{row.batch_count}</p>
-                  <p className="text-xs text-muted-foreground">{row.percentage}% · {row.total_quantity} {t('analyticsReports.batchAge.unitsLabel')?.split(' ').slice(-1)[0]}</p>
+                <div
+                  key={i}
+                  className="bg-card border border-border rounded-xl p-4 space-y-1"
+                  style={{ borderLeftColor: color, borderLeftWidth: 3 }}
+                >
+                  <p className="text-xs font-medium" style={{ color }}>
+                    {translateAgeRange(row.age_range, t)}
+                  </p>
+                  <p className="text-2xl font-bold text-foreground">
+                    {row.batch_count}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {row.percentage}% · {row.total_quantity}{' '}
+                    {
+                      t('analyticsReports.batchAge.unitsLabel')
+                        ?.split(' ')
+                        .slice(-1)[0]
+                    }
+                  </p>
                 </div>
               )
             })}
@@ -785,17 +1110,51 @@ function WeeklySummaryPanel() {
   const summary =
     data && typeof data === 'object' && !Array.isArray(data)
       ? data
-      : Array.isArray(data) ? data[0] : null
+      : Array.isArray(data)
+        ? data[0]
+        : null
   const ar = t('analyticsReports.weekly')
 
   const kpiCards = summary
     ? [
-        { label: ar?.totalBatches, value: summary.total_batches, icon: Layers, color: 'text-foreground' },
-        { label: ar?.good, value: summary.good, icon: CheckCircle, color: 'text-emerald-600' },
-        { label: ar?.expired, value: summary.expired, icon: XCircle, color: 'text-red-500' },
-        { label: ar?.healthScore, value: summary.health_score, icon: HeartPulse, color: 'text-accent', delta: summary.health_delta, isScore: true },
-        { label: ar?.weeklyCollections, value: summary.collections, icon: ClipboardList, color: 'text-blue-500' },
-        { label: ar?.collectedQty, value: summary.collected_qty, icon: TrendingUp, color: 'text-emerald-600' },
+        {
+          label: ar?.totalBatches,
+          value: summary.total_batches,
+          icon: Layers,
+          color: 'text-foreground',
+        },
+        {
+          label: ar?.good,
+          value: summary.good,
+          icon: CheckCircle,
+          color: 'text-emerald-600',
+        },
+        {
+          label: ar?.expired,
+          value: summary.expired,
+          icon: XCircle,
+          color: 'text-red-500',
+        },
+        {
+          label: ar?.healthScore,
+          value: summary.health_score,
+          icon: HeartPulse,
+          color: 'text-accent',
+          delta: summary.health_delta,
+          isScore: true,
+        },
+        {
+          label: ar?.weeklyCollections,
+          value: summary.collections,
+          icon: ClipboardList,
+          color: 'text-blue-500',
+        },
+        {
+          label: ar?.collectedQty,
+          value: summary.collected_qty,
+          icon: TrendingUp,
+          color: 'text-emerald-600',
+        },
       ]
     : []
 
@@ -806,7 +1165,11 @@ function WeeklySummaryPanel() {
         <ReloadBtn onClick={reload} loading={loading} />
       </div>
 
-      {loading && <div className="flex justify-center py-12"><Loader /></div>}
+      {loading && (
+        <div className="flex justify-center py-12">
+          <Loader />
+        </div>
+      )}
       {error && <ErrorState message={error} onRetry={reload} />}
       {!loading && !error && !summary && <EmptyState message={ar?.noData} />}
 
@@ -816,20 +1179,31 @@ function WeeklySummaryPanel() {
             {kpiCards.map((card, i) => {
               const Icon = card.icon
               return (
-                <div key={i} className="bg-card border border-border rounded-xl p-4 flex items-center gap-3">
+                <div
+                  key={i}
+                  className="bg-card border border-border rounded-xl p-4 flex items-center gap-3"
+                >
                   <div className="p-2 rounded-lg bg-muted">
                     <Icon className={`w-5 h-5 ${card.color}`} />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-xs text-muted-foreground">{card.label}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {card.label}
+                    </p>
                     <div className="flex items-center gap-1.5">
                       <p className={`text-xl font-bold ${card.color}`}>
-                        {card.isScore ? <HealthRing score={card.value} size={36} /> : (card.value ?? '—')}
+                        {card.isScore ? (
+                          <HealthRing score={card.value} size={36} />
+                        ) : (
+                          (card.value ?? '—')
+                        )}
                       </p>
                       {card.delta != null && <Delta value={card.delta} />}
                     </div>
                     {card.isScore && summary.prev_health_score != null && (
-                      <p className="text-xs text-muted-foreground">{ar?.prev} {summary.prev_health_score}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {ar?.prev} {summary.prev_health_score}
+                      </p>
                     )}
                   </div>
                 </div>
@@ -840,8 +1214,12 @@ function WeeklySummaryPanel() {
           {summary.prev_health_score != null && (
             <div className="bg-muted/30 rounded-xl p-4 border border-border">
               <p className="text-sm text-muted-foreground flex items-center gap-1 flex-wrap">
-                {ar?.healthChanged} <strong><Delta value={summary.health_delta} /></strong> {ar?.compared}
-                ({ar?.was}: {summary.prev_health_score}, {ar?.became}: {summary.health_score})
+                {ar?.healthChanged}{' '}
+                <strong>
+                  <Delta value={summary.health_delta} />
+                </strong>{' '}
+                {ar?.compared}({ar?.was}: {summary.prev_health_score},{' '}
+                {ar?.became}: {summary.health_score})
               </p>
             </div>
           )}
@@ -900,13 +1278,22 @@ export default function ImportExportSettings() {
       const result = await response.json()
       setImportResult({
         success: response.ok,
-        message: result.message || (response.ok ? t('import.success') : t('import.error')),
+        message:
+          result.message ||
+          (response.ok ? t('import.success') : t('import.error')),
         imported: result.imported,
         errors: result.errors,
       })
-      addToast(t(response.ok ? 'toast.importSuccess' : 'toast.importError'), response.ok ? 'success' : 'error')
+      addToast(
+        t(response.ok ? 'toast.importSuccess' : 'toast.importError'),
+        response.ok ? 'success' : 'error'
+      )
     } catch (error) {
-      setImportResult({ success: false, message: t('import.error') || 'Ошибка импорта', errors: [error.message] })
+      setImportResult({
+        success: false,
+        message: t('import.error') || 'Ошибка импорта',
+        errors: [error.message],
+      })
       addToast(t('toast.importError'), 'error')
     } finally {
       setImporting(false)
@@ -926,9 +1313,15 @@ export default function ImportExportSettings() {
 
   const exportOptions = Object.values(EXPORT_TYPES)
     .filter((type) => !type.isReport)
-    .map((type) => ({ type: type.id, icon: exportIcons[type.id] || FileText, label: type.title, desc: type.subtitle }))
+    .map((type) => ({
+      type: type.id,
+      icon: exportIcons[type.id] || FileText,
+      label: type.title,
+      desc: type.subtitle,
+    }))
 
-  const activeTabConfig = ANALYTICS_TABS.find((tab) => tab.id === activeTab) || ANALYTICS_TABS[0]
+  const activeTabConfig =
+    ANALYTICS_TABS.find((tab) => tab.id === activeTab) || ANALYTICS_TABS[0]
   const ActivePanel = activeTabConfig.panel
 
   return (
@@ -938,44 +1331,99 @@ export default function ImportExportSettings() {
       icon={RefreshCw}
     >
       {/* ── Импорт ── */}
-      <SettingsSection title={t('import.title') || 'Импорт данных'} icon={Upload}>
+      <SettingsSection
+        title={t('import.title') || 'Импорт данных'}
+        icon={Upload}
+      >
         <div className="space-y-3 sm:space-y-4">
-          <div className={`border-2 border-dashed border-border rounded-xl text-center hover:border-accent/50 transition-colors ${isMobile ? 'p-6' : 'p-8'}`}>
-            <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" onChange={handleImport} className="hidden" id="import-file" />
+          <div
+            className={`border-2 border-dashed border-border rounded-xl text-center hover:border-accent/50 transition-colors ${isMobile ? 'p-6' : 'p-8'}`}
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".xlsx,.xls,.csv"
+              onChange={handleImport}
+              className="hidden"
+              id="import-file"
+            />
             <label htmlFor="import-file" className="cursor-pointer">
-              <div className={`mx-auto mb-3 sm:mb-4 bg-muted rounded-full flex items-center justify-center ${isMobile ? 'w-14 h-14' : 'w-16 h-16'}`}>
-                {importing ? <Loader size="medium" /> : <FileSpreadsheet className={`${isMobile ? 'w-7 h-7' : 'w-8 h-8'} text-accent`} />}
+              <div
+                className={`mx-auto mb-3 sm:mb-4 bg-muted rounded-full flex items-center justify-center ${isMobile ? 'w-14 h-14' : 'w-16 h-16'}`}
+              >
+                {importing ? (
+                  <Loader size="medium" />
+                ) : (
+                  <FileSpreadsheet
+                    className={`${isMobile ? 'w-7 h-7' : 'w-8 h-8'} text-accent`}
+                  />
+                )}
               </div>
-              <p className={`text-foreground font-medium mb-1 ${isMobile ? 'text-sm' : 'text-base'}`}>
+              <p
+                className={`text-foreground font-medium mb-1 ${isMobile ? 'text-sm' : 'text-base'}`}
+              >
                 {importing ? t('import.processing') : t('import.selectFile')}
               </p>
-              <p className={`text-muted-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}>
+              <p
+                className={`text-muted-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}
+              >
                 {t('import.formats')}: Excel (.xlsx, .xls), CSV
               </p>
             </label>
           </div>
-          <a href="/templates/import-template.xlsx" download className={`inline-flex items-center gap-2 text-accent hover:underline ${isMobile ? 'text-xs' : 'text-sm'}`}>
+          <a
+            href="/templates/import-template.xlsx"
+            download
+            className={`inline-flex items-center gap-2 text-accent hover:underline ${isMobile ? 'text-xs' : 'text-sm'}`}
+          >
             <Download className="w-4 h-4" />
             {t('import.downloadTemplate')}
           </a>
         </div>
 
         {importResult && (
-          <div className={`mt-4 sm:mt-6 rounded-lg ${isMobile ? 'p-3' : 'p-4'} ${importResult.success ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+          <div
+            className={`mt-4 sm:mt-6 rounded-lg ${isMobile ? 'p-3' : 'p-4'} ${importResult.success ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}
+          >
             <div className="flex items-start gap-2 sm:gap-3">
-              {importResult.success
-                ? <Check className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-green-600 shrink-0 mt-0.5`} />
-                : <AlertCircle className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-red-600 shrink-0 mt-0.5`} />
-              }
+              {importResult.success ? (
+                <Check
+                  className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-green-600 shrink-0 mt-0.5`}
+                />
+              ) : (
+                <AlertCircle
+                  className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-red-600 shrink-0 mt-0.5`}
+                />
+              )}
               <div className="flex-1 min-w-0">
-                <p className={`${isMobile ? 'text-sm' : 'text-base'} ${importResult.success ? 'text-green-800' : 'text-red-800'}`}>{importResult.message}</p>
+                <p
+                  className={`${isMobile ? 'text-sm' : 'text-base'} ${importResult.success ? 'text-green-800' : 'text-red-800'}`}
+                >
+                  {importResult.message}
+                </p>
                 {importResult.imported !== undefined && (
-                  <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-green-700 mt-1`}>{t('import.imported')}: {importResult.imported}</p>
+                  <p
+                    className={`${isMobile ? 'text-xs' : 'text-sm'} text-green-700 mt-1`}
+                  >
+                    {t('import.imported')}: {importResult.imported}
+                  </p>
                 )}
                 {importResult.errors?.length > 0 && (
-                  <ul className={`${isMobile ? 'text-xs' : 'text-sm'} text-red-600 mt-2 space-y-1`}>
-                    {importResult.errors.slice(0, 5).map((err, i) => <li key={i} className="break-words">• {err}</li>)}
-                    {importResult.errors.length > 5 && <li>{t('import.moreErrors', { count: importResult.errors.length - 5 })}</li>}
+                  <ul
+                    className={`${isMobile ? 'text-xs' : 'text-sm'} text-red-600 mt-2 space-y-1`}
+                  >
+                    {importResult.errors.slice(0, 5).map((err, i) => (
+                      <li key={i} className="break-words">
+                        • {err}
+                      </li>
+                    ))}
+                    {importResult.errors.length > 5 && (
+                      <li>
+                        {t('import.moreErrors', {
+                          count: importResult.errors.length - 5,
+                        })}
+                      </li>
+                    )}
                   </ul>
                 )}
               </div>
@@ -985,9 +1433,14 @@ export default function ImportExportSettings() {
       </SettingsSection>
 
       {/* ── Экспорт данных ── */}
-      <SettingsSection title={t('export.title') || 'Экспорт данных'} icon={Download}>
+      <SettingsSection
+        title={t('export.title') || 'Экспорт данных'}
+        icon={Download}
+      >
         <div className="space-y-3 sm:space-y-4">
-          <p className="text-xs sm:text-sm text-muted-foreground">{t('export.description')}</p>
+          <p className="text-xs sm:text-sm text-muted-foreground">
+            {t('export.description')}
+          </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             {exportOptions.map(({ type, icon: Icon, label, desc }) => (
               <button
@@ -996,12 +1449,28 @@ export default function ImportExportSettings() {
                 disabled={exportingType === type}
                 className={`flex items-start gap-3 sm:gap-4 border border-border rounded-xl hover:border-accent hover:bg-accent/5 active:bg-accent/10 transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed group ${isMobile ? 'p-3' : 'p-4'}`}
               >
-                <div className={`bg-muted rounded-lg flex items-center justify-center shrink-0 group-hover:bg-accent/10 transition-colors ${isMobile ? 'w-10 h-10' : 'w-12 h-12'}`}>
-                  {exportingType === type ? <Loader size="medium" /> : <Icon className={`${isMobile ? 'w-5 h-5' : 'w-6 h-6'} text-foreground group-hover:text-accent transition-colors`} />}
+                <div
+                  className={`bg-muted rounded-lg flex items-center justify-center shrink-0 group-hover:bg-accent/10 transition-colors ${isMobile ? 'w-10 h-10' : 'w-12 h-12'}`}
+                >
+                  {exportingType === type ? (
+                    <Loader size="medium" />
+                  ) : (
+                    <Icon
+                      className={`${isMobile ? 'w-5 h-5' : 'w-6 h-6'} text-foreground group-hover:text-accent transition-colors`}
+                    />
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className={`font-medium text-foreground group-hover:text-accent transition-colors ${isMobile ? 'text-sm' : 'text-base'}`}>{label}</p>
-                  <p className={`text-muted-foreground mt-0.5 ${isMobile ? 'text-xs line-clamp-1' : 'text-sm'}`}>{desc}</p>
+                  <p
+                    className={`font-medium text-foreground group-hover:text-accent transition-colors ${isMobile ? 'text-sm' : 'text-base'}`}
+                  >
+                    {label}
+                  </p>
+                  <p
+                    className={`text-muted-foreground mt-0.5 ${isMobile ? 'text-xs line-clamp-1' : 'text-sm'}`}
+                  >
+                    {desc}
+                  </p>
                 </div>
               </button>
             ))}
@@ -1010,7 +1479,10 @@ export default function ImportExportSettings() {
       </SettingsSection>
 
       {/* ── Аналитические отчёты ── */}
-      <SettingsSection title={t('export.reportsTitle') || 'Аналитические отчёты'} icon={BarChart3}>
+      <SettingsSection
+        title={t('export.reportsTitle') || 'Аналитические отчёты'}
+        icon={BarChart3}
+      >
         <div className="space-y-4">
           <p className="text-xs sm:text-sm text-muted-foreground">
             {t('export.reportsDescription')}

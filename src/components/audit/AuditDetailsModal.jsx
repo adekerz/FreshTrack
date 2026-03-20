@@ -267,8 +267,7 @@ function NestedObject({ obj, t, depth = 0 }) {
  */
 function DetailValue({ value, t }) {
   if (value === null || value === undefined) return <span>—</span>
-  if (typeof value === 'boolean')
-    return <span>{value ? '✓' : '✗'}</span>
+  if (typeof value === 'boolean') return <span>{value ? '✓' : '✗'}</span>
   if (Array.isArray(value)) {
     if (value.length === 0) return <span>—</span>
     if (value.every((v) => typeof v !== 'object')) {

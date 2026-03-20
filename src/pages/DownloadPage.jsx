@@ -26,7 +26,9 @@ export default function DownloadPage() {
   useEffect(() => {
     async function fetchMeta() {
       try {
-        const res = await fetch(`${base}/api/downloads/bundle/${bundleToken}`, { credentials: 'include' })
+        const res = await fetch(`${base}/api/downloads/bundle/${bundleToken}`, {
+          credentials: 'include',
+        })
         const data = await res.json()
         if (!res.ok) {
           setError(data?.error || t('download.fetchError'))
@@ -48,12 +50,15 @@ export default function DownloadPage() {
     setVerifying(true)
     try {
       const body = { pin, ...(showLogin && login ? { login } : {}) }
-      const res = await fetch(`${base}/api/downloads/bundle/${bundleToken}/verify`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(body),
-      })
+      const res = await fetch(
+        `${base}/api/downloads/bundle/${bundleToken}/verify`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(body),
+        }
+      )
       const data = await res.json()
       if (!res.ok) {
         if (res.status === 429) setVerifyError(t('download.tooManyAttempts'))
@@ -139,14 +144,17 @@ export default function DownloadPage() {
           ) : meta?.isExpired ? (
             <div className="text-center py-6">
               <p className="text-4xl mb-3">⏳</p>
-              <p className="text-[#2D2D2D] font-medium">{t('download.expired')}</p>
+              <p className="text-[#2D2D2D] font-medium">
+                {t('download.expired')}
+              </p>
             </div>
           ) : !verifiedFiles ? (
             /* PIN entry form */
             <form onSubmit={handleVerify} className="space-y-4">
               <div className="bg-[#FAF9F7] rounded-lg p-3 border border-[#E8E4DC]">
                 <p className="text-sm font-medium text-[#2D2D2D]">
-                  {meta?.files?.length || 0} {t('download.filesReady') || 'файлов готово к скачиванию'}
+                  {meta?.files?.length || 0}{' '}
+                  {t('download.filesReady') || 'файлов готово к скачиванию'}
                 </p>
               </div>
 
@@ -169,7 +177,9 @@ export default function DownloadPage() {
                 className="w-full border border-[#E8E4DC] rounded-lg px-3 py-2.5 text-sm text-[#2D2D2D] focus:outline-none focus:ring-2 focus:ring-[#2D2D2D]/20 focus:border-[#2D2D2D] placeholder-gray-400"
               />
 
-              {verifyError && <p className="text-red-600 text-sm">{verifyError}</p>}
+              {verifyError && (
+                <p className="text-red-600 text-sm">{verifyError}</p>
+              )}
 
               <button
                 type="submit"
@@ -191,7 +201,8 @@ export default function DownloadPage() {
                     className="w-4 h-4 rounded border-gray-300 text-[#2D2D2D] focus:ring-[#2D2D2D]"
                   />
                   <span className="text-sm font-medium text-[#2D2D2D]">
-                    {t('download.selectAll') || 'Выбрать все'} ({verifiedFiles.length})
+                    {t('download.selectAll') || 'Выбрать все'} (
+                    {verifiedFiles.length})
                   </span>
                 </label>
               </div>
@@ -212,10 +223,16 @@ export default function DownloadPage() {
                       onChange={() => toggleFile(file.token)}
                       className="w-4 h-4 rounded border-gray-300 text-[#2D2D2D] focus:ring-[#2D2D2D]"
                     />
-                    <span className="text-lg">{getFileIcon(file.fileName)}</span>
+                    <span className="text-lg">
+                      {getFileIcon(file.fileName)}
+                    </span>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-[#2D2D2D] truncate">{file.fileName}</p>
-                      <p className="text-xs text-gray-500">{formatSize(file.fileSize)}</p>
+                      <p className="text-sm font-medium text-[#2D2D2D] truncate">
+                        {file.fileName}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {formatSize(file.fileSize)}
+                      </p>
                     </div>
                     {downloading.has(file.token) && (
                       <div className="w-4 h-4 border-2 border-[#2D2D2D] border-t-transparent rounded-full animate-spin" />

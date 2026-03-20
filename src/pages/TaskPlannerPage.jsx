@@ -391,7 +391,9 @@ function eachDayOfMonth(year, month) {
 // ─────────────────────────────────────────────
 function ConfirmDialog({ message, onConfirm, onCancel }) {
   useEffect(() => {
-    const h = (e) => { if (e.key === 'Escape') onCancel() }
+    const h = (e) => {
+      if (e.key === 'Escape') onCancel()
+    }
     document.addEventListener('keydown', h)
     return () => document.removeEventListener('keydown', h)
   }, [onCancel])
@@ -405,7 +407,9 @@ function ConfirmDialog({ message, onConfirm, onCancel }) {
         tabIndex={-1}
       />
       <div className="relative bg-card border border-border rounded-2xl shadow-2xl p-6 w-full max-w-sm animate-slide-up">
-        <p className="text-sm text-foreground mb-5 leading-relaxed">{message}</p>
+        <p className="text-sm text-foreground mb-5 leading-relaxed">
+          {message}
+        </p>
         <div className="flex justify-end gap-2">
           <button
             onClick={onCancel}
@@ -440,7 +444,11 @@ function useConfirm() {
     setState(null)
   }, [state])
   const dialog = state ? (
-    <ConfirmDialog message={state.message} onConfirm={handleConfirm} onCancel={handleCancel} />
+    <ConfirmDialog
+      message={state.message}
+      onConfirm={handleConfirm}
+      onCancel={handleCancel}
+    />
   ) : null
   return { confirm, dialog }
 }
@@ -2588,7 +2596,12 @@ function TaskDetailModal({
                         {a.user_name}
                         {!isMock && (
                           <button
-                            onClick={() => unassignTask.mutate({ taskId: task.id, userId: a.user_id })}
+                            onClick={() =>
+                              unassignTask.mutate({
+                                taskId: task.id,
+                                userId: a.user_id,
+                              })
+                            }
                             className="opacity-0 group-hover:opacity-100 ml-0.5 text-muted-foreground hover:text-red-500 transition-all"
                             title="Убрать исполнителя"
                           >
@@ -2604,9 +2617,14 @@ function TaskDetailModal({
                       onChange={(e) => {
                         const userId = e.target.value
                         if (!userId) return
-                        const alreadyAssigned = (task.assignees ?? []).some((a) => a.user_id === userId)
+                        const alreadyAssigned = (task.assignees ?? []).some(
+                          (a) => a.user_id === userId
+                        )
                         if (!alreadyAssigned) {
-                          assignTask.mutate({ taskId: task.id, user_id: userId })
+                          assignTask.mutate({
+                            taskId: task.id,
+                            user_id: userId,
+                          })
                         }
                         e.target.value = ''
                       }}
@@ -2614,7 +2632,12 @@ function TaskDetailModal({
                     >
                       <option value="">+ Добавить исполнителя</option>
                       {hotelUsers
-                        .filter((u) => !(task.assignees ?? []).some((a) => a.user_id === u.id))
+                        .filter(
+                          (u) =>
+                            !(task.assignees ?? []).some(
+                              (a) => a.user_id === u.id
+                            )
+                        )
                         .map((u) => (
                           <option key={u.id} value={u.id}>
                             {u.name || u.login || u.email}
@@ -2802,25 +2825,37 @@ function TaskDetailModal({
                   ASSIGNEE_ADDED: 'назначил(а) исполнителя',
                   ASSIGNEE_REMOVED: 'убрал(а) исполнителя',
                 }
-                const label = typeLabels[a.activity_type] || a.activity_type || 'выполнил(а) действие'
+                const label =
+                  typeLabels[a.activity_type] ||
+                  a.activity_type ||
+                  'выполнил(а) действие'
                 return (
-                  <div key={a.id || i} className="flex gap-3 py-2.5 border-b border-border/40 last:border-0">
+                  <div
+                    key={a.id || i}
+                    className="flex gap-3 py-2.5 border-b border-border/40 last:border-0"
+                  >
                     <div className="w-6 h-6 rounded-full bg-accent/15 text-accent flex items-center justify-center flex-shrink-0 mt-0.5">
                       <Clock className="w-3 h-3" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm text-foreground">
-                        <span className="font-medium">{a.user_name}</span>
-                        {' '}{label}
+                        <span className="font-medium">{a.user_name}</span>{' '}
+                        {label}
                       </p>
                       <p className="text-[11px] text-muted-foreground mt-0.5">
-                        {new Date(a.created_at).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                        {new Date(a.created_at).toLocaleString('ru-RU', {
+                          day: 'numeric',
+                          month: 'short',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
                       </p>
                     </div>
                   </div>
                 )
               })}
-              {(!activities || (activities?.activities ?? activities)?.length === 0) && (
+              {(!activities ||
+                (activities?.activities ?? activities)?.length === 0) && (
                 <div className="text-center py-10 text-muted-foreground">
                   <Clock className="w-8 h-8 mx-auto mb-2 opacity-30" />
                   <p className="text-sm">Нет активности</p>
@@ -3025,9 +3060,15 @@ export default function TaskPlannerPage() {
     const now = new Date()
     return {
       todo_count: allTasks.filter((t) => t.status === 'TODO').length,
-      in_progress_count: allTasks.filter((t) => t.status === 'IN_PROGRESS').length,
-      completed_count: allTasks.filter((t) => t.status === 'COMPLETED' || t.percent_complete === 100).length,
-      overdue_count: allTasks.filter((t) => t.due_date && new Date(t.due_date) < now && t.status !== 'COMPLETED').length,
+      in_progress_count: allTasks.filter((t) => t.status === 'IN_PROGRESS')
+        .length,
+      completed_count: allTasks.filter(
+        (t) => t.status === 'COMPLETED' || t.percent_complete === 100
+      ).length,
+      overdue_count: allTasks.filter(
+        (t) =>
+          t.due_date && new Date(t.due_date) < now && t.status !== 'COMPLETED'
+      ).length,
     }
   }, [allTasks, useMock])
   const filteredTasks = useMemo(
@@ -3077,7 +3118,9 @@ export default function TaskPlannerPage() {
   )
 
   const handleDeleteBoard = async (board) => {
-    const ok = await confirmDialog(`Удалить доску "${board.name}"? Все колонки и задачи будут удалены.`)
+    const ok = await confirmDialog(
+      `Удалить доску "${board.name}"? Все колонки и задачи будут удалены.`
+    )
     if (!ok) return
     deleteBoard.mutate(board.id, {
       onSuccess: () => {
@@ -3162,7 +3205,9 @@ export default function TaskPlannerPage() {
                 className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-border text-sm font-medium text-foreground hover:bg-muted transition-all"
               >
                 <Plus className="w-4 h-4" />
-                <span className="hidden sm:inline">{t('tasks.createTask')}</span>
+                <span className="hidden sm:inline">
+                  {t('tasks.createTask')}
+                </span>
               </button>
             )}
 
@@ -3360,7 +3405,11 @@ export default function TaskPlannerPage() {
                       </div>
                       <div className="px-3 py-3">
                         <button
-                          onClick={() => handleAddTask(groupBy === 'bucket' ? group.id : null)}
+                          onClick={() =>
+                            handleAddTask(
+                              groupBy === 'bucket' ? group.id : null
+                            )
+                          }
                           className="w-full py-2 rounded-xl text-xs text-muted-foreground hover:text-accent hover:bg-accent/8 border border-dashed border-border/50 hover:border-accent/40 transition-all flex items-center justify-center gap-1.5"
                         >
                           <Plus className="w-3.5 h-3.5" />

@@ -8,7 +8,30 @@ import { useToast } from '../../context/ToastContext'
 import { useTranslation } from '../../context/LanguageContext'
 import { apiFetch } from '../../services/api'
 import { logError } from '../../utils/logger'
-import { Send, Calendar, Clock, BarChart3, FileText, Mail, Pencil, Trash2, Power, PowerOff, Package, FileSpreadsheet, FolderTree, Tags, History, HeartPulse, CalendarClock, ClipboardList, TrendingUp, PieChart, Layers, LayoutDashboard } from 'lucide-react'
+import {
+  Send,
+  Calendar,
+  Clock,
+  BarChart3,
+  FileText,
+  Mail,
+  Pencil,
+  Trash2,
+  Power,
+  PowerOff,
+  Package,
+  FileSpreadsheet,
+  FolderTree,
+  Tags,
+  History,
+  HeartPulse,
+  CalendarClock,
+  ClipboardList,
+  TrendingUp,
+  PieChart,
+  Layers,
+  LayoutDashboard,
+} from 'lucide-react'
 import { SectionLoader, TouchButton } from '../ui'
 import SettingsLayout from '../ui/settings/SettingsLayout'
 import { ScheduleCreateModal } from './ScheduleCreateModal'
@@ -31,13 +54,21 @@ const EXPORT_ICONS = {
   'department-scorecard': BarChart3,
   'collection-reasons': PieChart,
   'batch-age-distribution': Layers,
-  'weekly-summary': LayoutDashboard
+  'weekly-summary': LayoutDashboard,
 }
 
 /**
  * ScheduleCard - карточка расписания экспорта
  */
-function ScheduleCard({ schedule, t, testingSchedule, onTest, onEdit, onToggleActive, onDelete }) {
+function ScheduleCard({
+  schedule,
+  t,
+  testingSchedule,
+  onTest,
+  onEdit,
+  onToggleActive,
+  onDelete,
+}) {
   const exportTypes = Array.isArray(schedule.export_types)
     ? schedule.export_types
     : JSON.parse(schedule.export_types || '[]')
@@ -53,7 +84,8 @@ function ScheduleCard({ schedule, t, testingSchedule, onTest, onEdit, onToggleAc
       const key = dayKeys[Number(dayOfWeek)] ?? 'mon'
       return `${t('scheduledExports.weekly')} (${t(`scheduledExports.days.${key}`)})`
     }
-    if (type === 'monthly') return `${t('scheduledExports.monthly')} (${dayOfMonth})`
+    if (type === 'monthly')
+      return `${t('scheduledExports.monthly')} (${dayOfMonth})`
     return type
   }
 
@@ -61,7 +93,7 @@ function ScheduleCard({ schedule, t, testingSchedule, onTest, onEdit, onToggleAc
     const map = {
       email: t('scheduledExports.deliveryEmail'),
       telegram: t('scheduledExports.deliveryTelegram'),
-      both: t('scheduledExports.deliveryBoth')
+      both: t('scheduledExports.deliveryBoth'),
     }
     return map[method] ?? method
   }
@@ -75,18 +107,22 @@ function ScheduleCard({ schedule, t, testingSchedule, onTest, onEdit, onToggleAc
 
   return (
     <div
-      className={`p-5 border border-border rounded-xl bg-card transition-colors ${!schedule.is_active ? 'opacity-75 border-muted-foreground/30' : 'hover:border-accent/50'
-        }`}
+      className={`p-5 border border-border rounded-xl bg-card transition-colors ${
+        !schedule.is_active
+          ? 'opacity-75 border-muted-foreground/30'
+          : 'hover:border-accent/50'
+      }`}
     >
       <div className="flex items-start justify-between gap-3 mb-4">
         <h3 className="font-semibold text-foreground truncate flex-1 min-w-0">
           {schedule.department_name}
         </h3>
         <span
-          className={`shrink-0 text-xs font-medium px-2.5 py-1 rounded-full ${schedule.is_active
-            ? 'bg-success/15 text-success'
-            : 'bg-muted text-muted-foreground'
-            }`}
+          className={`shrink-0 text-xs font-medium px-2.5 py-1 rounded-full ${
+            schedule.is_active
+              ? 'bg-success/15 text-success'
+              : 'bg-muted text-muted-foreground'
+          }`}
         >
           {schedule.is_active ? t('common.active') : t('common.inactive')}
         </span>
@@ -94,16 +130,31 @@ function ScheduleCard({ schedule, t, testingSchedule, onTest, onEdit, onToggleAc
 
       <ul className="space-y-2 text-sm">
         <li className="flex items-start gap-2">
-          <Clock className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" aria-hidden="true" />
+          <Clock
+            className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5"
+            aria-hidden="true"
+          />
           <span className="text-muted-foreground">
-            <span className="font-medium text-foreground">{t('scheduledExports.schedule')}: </span>
-            {formatScheduleType(schedule.schedule_type, schedule.day_of_week, schedule.day_of_month)} {t('scheduledExports.at') || 'в'} {schedule.time}
+            <span className="font-medium text-foreground">
+              {t('scheduledExports.schedule')}:{' '}
+            </span>
+            {formatScheduleType(
+              schedule.schedule_type,
+              schedule.day_of_week,
+              schedule.day_of_month
+            )}{' '}
+            {t('scheduledExports.at') || 'в'} {schedule.time}
           </span>
         </li>
         <li className="flex items-start gap-2">
-          <BarChart3 className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" aria-hidden="true" />
+          <BarChart3
+            className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5"
+            aria-hidden="true"
+          />
           <div className="text-muted-foreground flex-1">
-            <span className="font-medium text-foreground">{t('scheduledExports.reports')}: </span>
+            <span className="font-medium text-foreground">
+              {t('scheduledExports.reports')}:{' '}
+            </span>
             <div className="flex flex-wrap gap-2 mt-1">
               {exportTypes.map((type) => {
                 const config = EXPORT_TYPES[type]
@@ -123,9 +174,14 @@ function ScheduleCard({ schedule, t, testingSchedule, onTest, onEdit, onToggleAc
           </div>
         </li>
         <li className="flex items-start gap-2">
-          <FileText className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" aria-hidden="true" />
+          <FileText
+            className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5"
+            aria-hidden="true"
+          />
           <div className="text-muted-foreground flex-1">
-            <span className="font-medium text-foreground">{t('scheduledExports.format')}: </span>
+            <span className="font-medium text-foreground">
+              {t('scheduledExports.format')}:{' '}
+            </span>
             <div className="flex flex-wrap gap-2 mt-1">
               {exportFormats.map((f) => (
                 <span
@@ -139,23 +195,45 @@ function ScheduleCard({ schedule, t, testingSchedule, onTest, onEdit, onToggleAc
           </div>
         </li>
         <li className="flex items-start gap-2">
-          {schedule.delivery_method === 'email' && <Mail className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" aria-hidden="true" />}
-          {schedule.delivery_method === 'telegram' && <Send className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" aria-hidden="true" />}
-          {schedule.delivery_method === 'both' && <Mail className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" aria-hidden="true" />}
+          {schedule.delivery_method === 'email' && (
+            <Mail
+              className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5"
+              aria-hidden="true"
+            />
+          )}
+          {schedule.delivery_method === 'telegram' && (
+            <Send
+              className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5"
+              aria-hidden="true"
+            />
+          )}
+          {schedule.delivery_method === 'both' && (
+            <Mail
+              className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5"
+              aria-hidden="true"
+            />
+          )}
           <span className="text-muted-foreground">
-            <span className="font-medium text-foreground">{t('scheduledExports.delivery')}: </span>
+            <span className="font-medium text-foreground">
+              {t('scheduledExports.delivery')}:{' '}
+            </span>
             {formatDeliveryMethod(schedule.delivery_method)}
           </span>
         </li>
         <li className="flex items-start gap-2">
-          <Clock className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" aria-hidden="true" />
+          <Clock
+            className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5"
+            aria-hidden="true"
+          />
           <span className="text-muted-foreground">
-            <span className="font-medium text-foreground">{t('scheduledExports.nextRun')}: </span>
+            <span className="font-medium text-foreground">
+              {t('scheduledExports.nextRun')}:{' '}
+            </span>
             {schedule.next_run_at
               ? new Date(schedule.next_run_at).toLocaleString(undefined, {
-                dateStyle: 'short',
-                timeStyle: 'short'
-              })
+                  dateStyle: 'short',
+                  timeStyle: 'short',
+                })
               : '–'}
           </span>
         </li>
@@ -165,8 +243,13 @@ function ScheduleCard({ schedule, t, testingSchedule, onTest, onEdit, onToggleAc
               {schedule.last_run_status === 'success' ? '✓' : '✕'}
             </span>
             <span className="text-muted-foreground">
-              <span className="font-medium text-foreground">{t('scheduledExports.lastRun')}: </span>
-              {new Date(schedule.last_run_at).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })}{' '}
+              <span className="font-medium text-foreground">
+                {t('scheduledExports.lastRun')}:{' '}
+              </span>
+              {new Date(schedule.last_run_at).toLocaleString(undefined, {
+                dateStyle: 'short',
+                timeStyle: 'short',
+              })}{' '}
               <span className={getStatusColor(schedule.last_run_status)}>
                 {schedule.last_run_status === 'success'
                   ? t('scheduledExports.statusSuccess') || 'Успешно'
@@ -209,7 +292,9 @@ function ScheduleCard({ schedule, t, testingSchedule, onTest, onEdit, onToggleAc
           icon={schedule.is_active ? PowerOff : Power}
           className="min-h-[44px]"
         >
-          {schedule.is_active ? t('scheduledExports.disable') : t('scheduledExports.enable')}
+          {schedule.is_active
+            ? t('scheduledExports.disable')
+            : t('scheduledExports.enable')}
         </TouchButton>
         <TouchButton
           variant="danger"
@@ -256,10 +341,13 @@ export function ScheduledExportsManager() {
   // Toggle active status
   const handleToggleStatus = async (scheduleId, currentStatus) => {
     try {
-      const response = await apiFetch(`/scheduled-exports/${scheduleId}/toggle`, {
-        method: 'POST',
-        body: JSON.stringify({ is_active: !currentStatus })
-      })
+      const response = await apiFetch(
+        `/scheduled-exports/${scheduleId}/toggle`,
+        {
+          method: 'POST',
+          body: JSON.stringify({ is_active: !currentStatus }),
+        }
+      )
 
       if (response.success) {
         addToast(t('common.saved') || 'Сохранено', 'success')
@@ -273,11 +361,12 @@ export function ScheduledExportsManager() {
 
   // Delete schedule
   const handleDelete = async (scheduleId) => {
-    if (!window.confirm('Вы уверены, что хотите удалить это расписание?')) return
+    if (!window.confirm('Вы уверены, что хотите удалить это расписание?'))
+      return
 
     try {
       const response = await apiFetch(`/scheduled-exports/${scheduleId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
       })
 
       if (response.success) {
@@ -296,7 +385,7 @@ export function ScheduledExportsManager() {
       setTestingSchedule(scheduleId)
       addToast('Запуск экспорта...', 'info')
       const response = await apiFetch(`/scheduled-exports/${scheduleId}/run`, {
-        method: 'POST'
+        method: 'POST',
       })
 
       if (response.success) {
@@ -351,7 +440,11 @@ export function ScheduledExportsManager() {
           <p className="text-sm text-muted-foreground mb-6 max-w-sm mx-auto">
             {t('scheduledExports.emptyDescription')}
           </p>
-          <TouchButton variant="primary" onClick={() => setShowCreateModal(true)} icon={Calendar}>
+          <TouchButton
+            variant="primary"
+            onClick={() => setShowCreateModal(true)}
+            icon={Calendar}
+          >
             {t('scheduledExports.createFirst')}
           </TouchButton>
         </div>
@@ -365,7 +458,9 @@ export function ScheduledExportsManager() {
               testingSchedule={testingSchedule}
               onTest={(schedule) => handleRunNow(schedule.id)}
               onEdit={setEditingSchedule}
-              onToggleActive={(schedule) => handleToggleStatus(schedule.id, schedule.is_active)}
+              onToggleActive={(schedule) =>
+                handleToggleStatus(schedule.id, schedule.is_active)
+              }
               onDelete={() => handleDelete(schedule.id)}
             />
           ))}

@@ -20,15 +20,6 @@
 </div>
 
 ---
-## AI Features
-
-FreshTrack uses Claude AI to:
-
-- generate inventory insights
-- predict stock shortages
-- help managers analyze supply chain data.
-
-Powered by Claude
 
 ## 🎯 About the Project
 

@@ -54,7 +54,10 @@ export function exportToCSV(data, columns, filename = 'export') {
             value = '🟡 ' + value
           } else if (status === 'good' || valueLower.includes('норм')) {
             value = '🟢 ' + value
-          } else if (status === 'noBatches' || valueLower.includes('нет парти')) {
+          } else if (
+            status === 'noBatches' ||
+            valueLower.includes('нет парти')
+          ) {
             value = '⚪ ' + value
           }
         }
@@ -75,12 +78,18 @@ export function exportToCSV(data, columns, filename = 'export') {
  * Экспорт данных в формате XLSX (простой Excel без библиотек)
  * Создаёт XML-based файл, совместимый с Excel
  */
-export function exportToExcel(data, columns, filename = 'export', sheetNameOrMeta = 'Sheet1') {
+export function exportToExcel(
+  data,
+  columns,
+  filename = 'export',
+  sheetNameOrMeta = 'Sheet1'
+) {
   // Support both old API (sheetName string) and new API (metadata object)
   const metadata = typeof sheetNameOrMeta === 'object' ? sheetNameOrMeta : {}
-  const sheetName = typeof sheetNameOrMeta === 'string'
-    ? sheetNameOrMeta
-    : (metadata.sheetName || 'Sheet1')
+  const sheetName =
+    typeof sheetNameOrMeta === 'string'
+      ? sheetNameOrMeta
+      : metadata.sheetName || 'Sheet1'
   const { title, filters, timestamp, totalRecords } = metadata
 
   const escapeXml = (str) => {
@@ -171,7 +180,9 @@ export function exportToExcel(data, columns, filename = 'export', sheetNameOrMet
 
   // Ширина колонок
   columns.forEach((col, idx) => {
-    const width = col.width || (col.key.includes('name') || col.key.includes('Name') ? 150 : 100)
+    const width =
+      col.width ||
+      (col.key.includes('name') || col.key.includes('Name') ? 150 : 100)
     xml += `\n      <Column ss:Index="${idx + 1}" ss:AutoFitWidth="0" ss:Width="${width}"/>`
   })
 
@@ -185,7 +196,9 @@ export function exportToExcel(data, columns, filename = 'export', sheetNameOrMet
       </Row>`
     }
     if (timestamp || totalRecords) {
-      const ts = timestamp ? new Date(timestamp).toLocaleString('ru-RU') : new Date().toLocaleString('ru-RU')
+      const ts = timestamp
+        ? new Date(timestamp).toLocaleString('ru-RU')
+        : new Date().toLocaleString('ru-RU')
       xml += `\n      <Row ss:Height="18">
         <Cell ss:StyleID="metaLabel"><Data ss:Type="String">Дата: ${ts}  •  Записей: ${totalRecords || data.length}</Data></Cell>
       </Row>`
@@ -228,20 +241,37 @@ export function exportToExcel(data, columns, filename = 'export', sheetNameOrMet
         type = 'DateTime'
         value = value.toISOString()
         style = 'date'
-      } else if (col.isStatus || col.key === 'statusLabel' || col.key === 'status') {
+      } else if (
+        col.isStatus ||
+        col.key === 'statusLabel' ||
+        col.key === 'status'
+      ) {
         // Применение стиля на основе статуса
         const status = item[col.statusKey] || item.status || item.overallStatus
         const statusValue = (value || '').toLowerCase()
 
-        if (status === 'expired' || status === 'today' || statusValue.includes('просроч') || statusValue.includes('истек')) {
+        if (
+          status === 'expired' ||
+          status === 'today' ||
+          statusValue.includes('просроч') ||
+          statusValue.includes('истек')
+        ) {
           style = 'danger'
         } else if (status === 'critical' || statusValue.includes('критич')) {
           style = 'critical'
         } else if (status === 'warning' || statusValue.includes('внимани')) {
           style = 'warning'
-        } else if (status === 'good' || status === 'ok' || statusValue.includes('норм') || statusValue.includes('хорош')) {
+        } else if (
+          status === 'good' ||
+          status === 'ok' ||
+          statusValue.includes('норм') ||
+          statusValue.includes('хорош')
+        ) {
           style = 'success'
-        } else if (status === 'noBatches' || statusValue.includes('нет парти')) {
+        } else if (
+          status === 'noBatches' ||
+          statusValue.includes('нет парти')
+        ) {
           style = 'noBatches'
         }
       }
@@ -275,7 +305,7 @@ export function exportToPDF(title, data, columns, options = {}) {
     companyName = 'FreshTrack',
     printDate = new Date().toLocaleDateString('ru-RU'),
     orientation = 'landscape',
-    summary = null
+    summary = null,
   } = options
 
   // Проверяем данные
@@ -287,7 +317,11 @@ export function exportToPDF(title, data, columns, options = {}) {
   // Создание нового окна для печати
   const printWindow = window.open('', '_blank', 'width=1200,height=800')
 
-  if (!printWindow || printWindow.closed || typeof printWindow.closed === 'undefined') {
+  if (
+    !printWindow ||
+    printWindow.closed ||
+    typeof printWindow.closed === 'undefined'
+  ) {
     alert('Пожалуйста, разрешите всплывающие окна для создания PDF')
     return
   }
@@ -490,23 +524,24 @@ export function exportToPDF(title, data, columns, options = {}) {
   <h1>${title}</h1>
   ${subtitle ? `<div class="subtitle">${subtitle}</div>` : ''}
   
-  ${summary
+  ${
+    summary
       ? `
   <div class="summary">
     ${Object.entries(summary)
-        .map(
-          ([label, value]) => `
+      .map(
+        ([label, value]) => `
       <div class="summary-item">
         <div class="summary-value">${value}</div>
         <div class="summary-label">${label}</div>
       </div>
     `
-        )
-        .join('')}
+      )
+      .join('')}
   </div>
   `
       : ''
-    }
+  }
   
   <table>
     <thead>
@@ -516,8 +551,8 @@ export function exportToPDF(title, data, columns, options = {}) {
     </thead>
     <tbody>
       ${data
-      .map(
-        (item) => `
+        .map(
+          (item) => `
         <tr>
           ${columns
             .map((col) => {
@@ -542,7 +577,7 @@ export function exportToPDF(title, data, columns, options = {}) {
                   good: 'Хорошо',
                   warning: 'Внимание',
                   critical: 'Критично',
-                  expired: 'Просрочено'
+                  expired: 'Просрочено',
                 }
                 value = `<span class="${className}">${statusLabels[value] || value}</span>`
               }
@@ -552,8 +587,8 @@ export function exportToPDF(title, data, columns, options = {}) {
             .join('')}
         </tr>
       `
-      )
-      .join('')}
+        )
+        .join('')}
     </tbody>
   </table>
   
@@ -600,8 +635,8 @@ export function formatBatchesForExport(batches, t) {
         good: t?.('common.good') || 'Хорошо',
         warning: t?.('common.warning') || 'Внимание',
         critical: t?.('common.critical') || 'Критично',
-        expired: t?.('common.expired') || 'Просрочено'
-      }[batch.status] || batch.status
+        expired: t?.('common.expired') || 'Просрочено',
+      }[batch.status] || batch.status,
   }))
 }
 
@@ -610,22 +645,70 @@ export function formatBatchesForExport(batches, t) {
  */
 export const EXPORT_COLUMNS = {
   products: (t) => [
-    { key: 'name', title: t?.('export.columns.product') || 'Название', width: 200 },
-    { key: 'barcode', title: t?.('export.columns.barcode') || 'Штрих-код', width: 120 },
-    { key: 'category_name', title: t?.('export.columns.category') || 'Категория', width: 150 },
+    {
+      key: 'name',
+      title: t?.('export.columns.product') || 'Название',
+      width: 200,
+    },
+    {
+      key: 'barcode',
+      title: t?.('export.columns.barcode') || 'Штрих-код',
+      width: 120,
+    },
+    {
+      key: 'category_name',
+      title: t?.('export.columns.category') || 'Категория',
+      width: 150,
+    },
     { key: 'unit', title: t?.('export.columns.unit') || 'Ед.изм.', width: 80 },
-    { key: 'default_shelf_life', title: t?.('export.columns.defaultShelfLife') || 'Срок хранения (дней)', width: 140 },
-    { key: 'created_at', title: t?.('export.columns.createdAt') || 'Дата создания', width: 120 }
+    {
+      key: 'default_shelf_life',
+      title: t?.('export.columns.defaultShelfLife') || 'Срок хранения (дней)',
+      width: 140,
+    },
+    {
+      key: 'created_at',
+      title: t?.('export.columns.createdAt') || 'Дата создания',
+      width: 120,
+    },
   ],
 
   batches: (t) => [
-    { key: 'batch_number', title: t?.('export.columns.batchNumber') || 'Номер партии', width: 150 },
-    { key: 'product_name', title: t?.('export.columns.product') || 'Продукт', width: 200 },
-    { key: 'department_name', title: t?.('export.columns.department') || 'Отдел', width: 150 },
-    { key: 'quantity', title: t?.('export.columns.quantity') || 'Количество', width: 100 },
-    { key: 'expiry_date', title: t?.('export.columns.expiryDate') || 'Срок годности', width: 120 },
-    { key: 'status', title: t?.('export.columns.status') || 'Статус', width: 100 },
-    { key: 'created_at', title: t?.('export.columns.createdAt') || 'Дата добавления', width: 120 }
+    {
+      key: 'batch_number',
+      title: t?.('export.columns.batchNumber') || 'Номер партии',
+      width: 150,
+    },
+    {
+      key: 'product_name',
+      title: t?.('export.columns.product') || 'Продукт',
+      width: 200,
+    },
+    {
+      key: 'department_name',
+      title: t?.('export.columns.department') || 'Отдел',
+      width: 150,
+    },
+    {
+      key: 'quantity',
+      title: t?.('export.columns.quantity') || 'Количество',
+      width: 100,
+    },
+    {
+      key: 'expiry_date',
+      title: t?.('export.columns.expiryDate') || 'Срок годности',
+      width: 120,
+    },
+    {
+      key: 'status',
+      title: t?.('export.columns.status') || 'Статус',
+      width: 100,
+    },
+    {
+      key: 'created_at',
+      title: t?.('export.columns.createdAt') || 'Дата добавления',
+      width: 120,
+    },
   ],
 
   inventory: (t) => [
@@ -634,35 +717,69 @@ export const EXPORT_COLUMNS = {
     { key: 'department', title: t?.('export.columns.department') || 'Отдел' },
     { key: 'quantity', title: t?.('export.columns.quantity') || 'Количество' },
     { key: 'unit', title: t?.('export.columns.unit') || 'Единица' },
-    { key: 'formattedDate', title: t?.('export.columns.expiryDate') || 'Срок годности' },
-    { key: 'daysLeft', title: t?.('export.columns.daysLeft') || 'Дней осталось' },
+    {
+      key: 'formattedDate',
+      title: t?.('export.columns.expiryDate') || 'Срок годности',
+    },
+    {
+      key: 'daysLeft',
+      title: t?.('export.columns.daysLeft') || 'Дней осталось',
+    },
     {
       key: 'statusLabel',
       title: t?.('export.columns.status') || 'Статус',
       isStatus: true,
-      statusKey: 'status'
-    }
+      statusKey: 'status',
+    },
   ],
 
   categories: (t) => [
-    { key: 'name', title: t?.('export.columns.name') || 'Название', width: 200 },
-    { key: 'description', title: t?.('export.columns.description') || 'Описание', width: 300 },
-    { key: 'created_at', title: t?.('export.columns.createdAt') || 'Дата создания', width: 120 }
+    {
+      key: 'name',
+      title: t?.('export.columns.name') || 'Название',
+      width: 200,
+    },
+    {
+      key: 'description',
+      title: t?.('export.columns.description') || 'Описание',
+      width: 300,
+    },
+    {
+      key: 'created_at',
+      title: t?.('export.columns.createdAt') || 'Дата создания',
+      width: 120,
+    },
   ],
 
   departments: (t) => [
-    { key: 'name', title: t?.('export.columns.name') || 'Название', width: 200 },
-    { key: 'description', title: t?.('export.columns.description') || 'Описание', width: 300 },
+    {
+      key: 'name',
+      title: t?.('export.columns.name') || 'Название',
+      width: 200,
+    },
+    {
+      key: 'description',
+      title: t?.('export.columns.description') || 'Описание',
+      width: 300,
+    },
     { key: 'email', title: t?.('export.columns.email') || 'Email', width: 200 },
-    { key: 'telegram_chat_id', title: t?.('export.columns.telegramChatId') || 'Telegram Chat ID', width: 150 },
-    { key: 'created_at', title: t?.('export.columns.createdAt') || 'Дата создания', width: 120 }
+    {
+      key: 'telegram_chat_id',
+      title: t?.('export.columns.telegramChatId') || 'Telegram Chat ID',
+      width: 150,
+    },
+    {
+      key: 'created_at',
+      title: t?.('export.columns.createdAt') || 'Дата создания',
+      width: 120,
+    },
   ],
 
   notifications: (t) => [
     { key: 'timestamp', title: t?.('export.columns.date') || 'Дата' },
     { key: 'type', title: t?.('export.columns.type') || 'Тип' },
     { key: 'message', title: t?.('export.columns.message') || 'Сообщение' },
-    { key: 'status', title: t?.('export.columns.status') || 'Статус' }
+    { key: 'status', title: t?.('export.columns.status') || 'Статус' },
   ],
 
   collections: (t) => [
@@ -671,97 +788,309 @@ export const EXPORT_COLUMNS = {
     { key: 'department', title: t?.('export.columns.department') || 'Отдел' },
     { key: 'quantity', title: t?.('export.columns.quantity') || 'Количество' },
     { key: 'reason', title: t?.('export.columns.reason') || 'Причина' },
-    { key: 'collectedBy', title: t?.('export.columns.collectedBy') || 'Собрал' }
+    {
+      key: 'collectedBy',
+      title: t?.('export.columns.collectedBy') || 'Собрал',
+    },
   ],
 
   auditLogs: (t) => [
     { key: 'timestamp', title: t?.('export.columns.date') || 'Дата и время' },
     { key: 'user_name', title: t?.('export.columns.user') || 'Пользователь' },
     { key: 'action', title: t?.('export.columns.action') || 'Действие' },
-    { key: 'entity_type', title: t?.('export.columns.entityType') || 'Тип объекта' },
+    {
+      key: 'entity_type',
+      title: t?.('export.columns.entityType') || 'Тип объекта',
+    },
     { key: 'details', title: t?.('export.columns.details') || 'Детали' },
-    { key: 'ip_address', title: t?.('export.columns.ip') || 'IP-адрес' }
+    { key: 'ip_address', title: t?.('export.columns.ip') || 'IP-адрес' },
   ],
 
   healthSummary: (t) => [
-    { key: 'department', title: t?.('export.columns.department') || 'Отдел', width: 160 },
-    { key: 'total_batches', title: t?.('export.analyticsColumns.totalBatches') || 'Всего партий', width: 110 },
+    {
+      key: 'department',
+      title: t?.('export.columns.department') || 'Отдел',
+      width: 160,
+    },
+    {
+      key: 'total_batches',
+      title: t?.('export.analyticsColumns.totalBatches') || 'Всего партий',
+      width: 110,
+    },
     { key: 'good', title: t?.('common.good') || 'Хорошие', width: 90 },
     { key: 'warning', title: t?.('common.warning') || 'Внимание', width: 90 },
     { key: 'critical', title: t?.('common.critical') || 'Критично', width: 90 },
     { key: 'expired', title: t?.('common.expired') || 'Просрочено', width: 90 },
-    { key: 'health_score', title: t?.('export.analyticsColumns.healthScore') || 'Health Score', width: 110 }
+    {
+      key: 'health_score',
+      title: t?.('export.analyticsColumns.healthScore') || 'Health Score',
+      width: 110,
+    },
   ],
 
   expiryForecast: (t) => [
-    { key: 'product', title: t?.('export.columns.product') || 'Продукт', width: 180 },
-    { key: 'department', title: t?.('export.columns.department') || 'Отдел', width: 140 },
-    { key: 'category', title: t?.('export.columns.category') || 'Категория', width: 120 },
-    { key: 'expiry_date', title: t?.('export.columns.expiryDate') || 'Дата истечения', width: 130 },
-    { key: 'days_left', title: t?.('export.columns.daysLeft') || 'Дней осталось', width: 110 },
-    { key: 'quantity', title: t?.('export.columns.quantity') || 'Количество', width: 100 },
+    {
+      key: 'product',
+      title: t?.('export.columns.product') || 'Продукт',
+      width: 180,
+    },
+    {
+      key: 'department',
+      title: t?.('export.columns.department') || 'Отдел',
+      width: 140,
+    },
+    {
+      key: 'category',
+      title: t?.('export.columns.category') || 'Категория',
+      width: 120,
+    },
+    {
+      key: 'expiry_date',
+      title: t?.('export.columns.expiryDate') || 'Дата истечения',
+      width: 130,
+    },
+    {
+      key: 'days_left',
+      title: t?.('export.columns.daysLeft') || 'Дней осталось',
+      width: 110,
+    },
+    {
+      key: 'quantity',
+      title: t?.('export.columns.quantity') || 'Количество',
+      width: 100,
+    },
     { key: 'unit', title: t?.('export.columns.unit') || 'Ед.изм.', width: 80 },
-    { key: 'batch_number', title: t?.('export.analyticsColumns.batchNumber') || 'Партия №', width: 120 },
-    { key: 'status', title: t?.('export.columns.status') || 'Статус', width: 100, isStatus: true }
+    {
+      key: 'batch_number',
+      title: t?.('export.analyticsColumns.batchNumber') || 'Партия №',
+      width: 120,
+    },
+    {
+      key: 'status',
+      title: t?.('export.columns.status') || 'Статус',
+      width: 100,
+      isStatus: true,
+    },
   ],
 
   collectionActivity: (t) => [
-    { key: 'collected_at', title: t?.('export.columns.date') || 'Дата', width: 140 },
-    { key: 'product_name', title: t?.('export.columns.product') || 'Продукт', width: 180 },
-    { key: 'category_name', title: t?.('export.columns.category') || 'Категория', width: 120 },
-    { key: 'department', title: t?.('export.columns.department') || 'Отдел', width: 140 },
-    { key: 'collected_by', title: t?.('export.columns.collectedBy') || 'Кто собрал', width: 140 },
-    { key: 'quantity_collected', title: t?.('export.columns.quantity') || 'Кол-во', width: 90 },
-    { key: 'collection_reason', title: t?.('export.columns.reason') || 'Причина', width: 120 },
-    { key: 'batch_number', title: t?.('export.analyticsColumns.batchNumber') || 'Партия №', width: 120 },
-    { key: 'expiry_date', title: t?.('export.columns.expiryDate') || 'Срок годности', width: 130 }
+    {
+      key: 'collected_at',
+      title: t?.('export.columns.date') || 'Дата',
+      width: 140,
+    },
+    {
+      key: 'product_name',
+      title: t?.('export.columns.product') || 'Продукт',
+      width: 180,
+    },
+    {
+      key: 'category_name',
+      title: t?.('export.columns.category') || 'Категория',
+      width: 120,
+    },
+    {
+      key: 'department',
+      title: t?.('export.columns.department') || 'Отдел',
+      width: 140,
+    },
+    {
+      key: 'collected_by',
+      title: t?.('export.columns.collectedBy') || 'Кто собрал',
+      width: 140,
+    },
+    {
+      key: 'quantity_collected',
+      title: t?.('export.columns.quantity') || 'Кол-во',
+      width: 90,
+    },
+    {
+      key: 'collection_reason',
+      title: t?.('export.columns.reason') || 'Причина',
+      width: 120,
+    },
+    {
+      key: 'batch_number',
+      title: t?.('export.analyticsColumns.batchNumber') || 'Партия №',
+      width: 120,
+    },
+    {
+      key: 'expiry_date',
+      title: t?.('export.columns.expiryDate') || 'Срок годности',
+      width: 130,
+    },
   ],
 
   productTurnover: (t) => [
-    { key: 'product', title: t?.('export.columns.product') || 'Продукт', width: 180 },
-    { key: 'category', title: t?.('export.columns.category') || 'Категория', width: 120 },
-    { key: 'total_batches', title: t?.('export.analyticsColumns.totalBatches') || 'Партий', width: 90 },
-    { key: 'current_stock', title: t?.('export.analyticsColumns.currentStock') || 'Остаток', width: 90 },
-    { key: 'total_collected', title: t?.('export.analyticsColumns.totalCollected') || 'Собрано', width: 90 },
-    { key: 'expired_batches', title: t?.('common.expired') || 'Просрочено', width: 100 },
-    { key: 'consumption_rate_pct', title: t?.('export.analyticsColumns.consumptionRate') || 'Доля потребления %', width: 140 },
-    { key: 'turnover_ratio', title: t?.('export.analyticsColumns.turnoverRatio') || 'Коэффициент оборота', width: 140 }
+    {
+      key: 'product',
+      title: t?.('export.columns.product') || 'Продукт',
+      width: 180,
+    },
+    {
+      key: 'category',
+      title: t?.('export.columns.category') || 'Категория',
+      width: 120,
+    },
+    {
+      key: 'total_batches',
+      title: t?.('export.analyticsColumns.totalBatches') || 'Партий',
+      width: 90,
+    },
+    {
+      key: 'current_stock',
+      title: t?.('export.analyticsColumns.currentStock') || 'Остаток',
+      width: 90,
+    },
+    {
+      key: 'total_collected',
+      title: t?.('export.analyticsColumns.totalCollected') || 'Собрано',
+      width: 90,
+    },
+    {
+      key: 'expired_batches',
+      title: t?.('common.expired') || 'Просрочено',
+      width: 100,
+    },
+    {
+      key: 'consumption_rate_pct',
+      title:
+        t?.('export.analyticsColumns.consumptionRate') || 'Доля потребления %',
+      width: 140,
+    },
+    {
+      key: 'turnover_ratio',
+      title:
+        t?.('export.analyticsColumns.turnoverRatio') || 'Коэффициент оборота',
+      width: 140,
+    },
   ],
 
   departmentScorecard: (t) => [
-    { key: 'department', title: t?.('export.columns.department') || 'Отдел', width: 160 },
-    { key: 'total_batches', title: t?.('export.analyticsColumns.totalBatches') || 'Всего партий', width: 110 },
-    { key: 'expired_count', title: t?.('common.expired') || 'Просрочено', width: 100 },
-    { key: 'expiry_rate_pct', title: t?.('export.analyticsColumns.expiryRate') || 'Доля истечений %', width: 130 },
-    { key: 'avg_days_to_expiry', title: t?.('export.analyticsColumns.avgDaysToExpiry') || 'Ср. дней до истечения', width: 150 },
-    { key: 'collections_this_month', title: t?.('export.analyticsColumns.collectionsThisMonth') || 'Сборов за месяц', width: 130 },
-    { key: 'health_score', title: t?.('export.analyticsColumns.healthScore') || 'Health Score', width: 110 }
+    {
+      key: 'department',
+      title: t?.('export.columns.department') || 'Отдел',
+      width: 160,
+    },
+    {
+      key: 'total_batches',
+      title: t?.('export.analyticsColumns.totalBatches') || 'Всего партий',
+      width: 110,
+    },
+    {
+      key: 'expired_count',
+      title: t?.('common.expired') || 'Просрочено',
+      width: 100,
+    },
+    {
+      key: 'expiry_rate_pct',
+      title: t?.('export.analyticsColumns.expiryRate') || 'Доля истечений %',
+      width: 130,
+    },
+    {
+      key: 'avg_days_to_expiry',
+      title:
+        t?.('export.analyticsColumns.avgDaysToExpiry') ||
+        'Ср. дней до истечения',
+      width: 150,
+    },
+    {
+      key: 'collections_this_month',
+      title:
+        t?.('export.analyticsColumns.collectionsThisMonth') ||
+        'Сборов за месяц',
+      width: 130,
+    },
+    {
+      key: 'health_score',
+      title: t?.('export.analyticsColumns.healthScore') || 'Health Score',
+      width: 110,
+    },
   ],
 
   collectionReasons: (t) => [
-    { key: 'reason', title: t?.('export.columns.reason') || 'Причина', width: 160 },
-    { key: 'transaction_count', title: t?.('export.analyticsColumns.transactions') || 'Транзакций', width: 110 },
-    { key: 'total_quantity', title: t?.('export.analyticsColumns.totalQuantity') || 'Всего кол-во', width: 110 },
-    { key: 'percentage', title: t?.('export.analyticsColumns.percentage') || 'Доля %', width: 90 }
+    {
+      key: 'reason',
+      title: t?.('export.columns.reason') || 'Причина',
+      width: 160,
+    },
+    {
+      key: 'transaction_count',
+      title: t?.('export.analyticsColumns.transactions') || 'Транзакций',
+      width: 110,
+    },
+    {
+      key: 'total_quantity',
+      title: t?.('export.analyticsColumns.totalQuantity') || 'Всего кол-во',
+      width: 110,
+    },
+    {
+      key: 'percentage',
+      title: t?.('export.analyticsColumns.percentage') || 'Доля %',
+      width: 90,
+    },
   ],
 
   batchAgeDistribution: (t) => [
-    { key: 'age_range', title: t?.('export.analyticsColumns.ageRange') || 'Диапазон', width: 140 },
-    { key: 'batch_count', title: t?.('export.analyticsColumns.batchCount') || 'Партий', width: 90 },
-    { key: 'total_quantity', title: t?.('export.columns.quantity') || 'Кол-во', width: 90 },
-    { key: 'percentage', title: t?.('export.analyticsColumns.percentage') || 'Доля %', width: 90 }
+    {
+      key: 'age_range',
+      title: t?.('export.analyticsColumns.ageRange') || 'Диапазон',
+      width: 140,
+    },
+    {
+      key: 'batch_count',
+      title: t?.('export.analyticsColumns.batchCount') || 'Партий',
+      width: 90,
+    },
+    {
+      key: 'total_quantity',
+      title: t?.('export.columns.quantity') || 'Кол-во',
+      width: 90,
+    },
+    {
+      key: 'percentage',
+      title: t?.('export.analyticsColumns.percentage') || 'Доля %',
+      width: 90,
+    },
   ],
 
   weeklySummary: (t) => [
-    { key: 'total_batches', title: t?.('export.analyticsColumns.totalBatches') || 'Всего партий', width: 120 },
+    {
+      key: 'total_batches',
+      title: t?.('export.analyticsColumns.totalBatches') || 'Всего партий',
+      width: 120,
+    },
     { key: 'good', title: t?.('common.good') || 'Хорошие', width: 90 },
     { key: 'expired', title: t?.('common.expired') || 'Просрочено', width: 90 },
-    { key: 'health_score', title: t?.('export.analyticsColumns.healthScore') || 'Health Score', width: 110 },
-    { key: 'prev_health_score', title: t?.('export.analyticsColumns.prevHealthScore') || 'Health Score (пред.)', width: 140 },
-    { key: 'health_delta', title: t?.('export.analyticsColumns.change') || 'Изменение', width: 90 },
-    { key: 'collections', title: t?.('export.analyticsColumns.weeklyCollections') || 'Сборов за неделю', width: 130 },
-    { key: 'collected_qty', title: t?.('export.analyticsColumns.collectedQty') || 'Собрано ед.', width: 110 }
-  ]
+    {
+      key: 'health_score',
+      title: t?.('export.analyticsColumns.healthScore') || 'Health Score',
+      width: 110,
+    },
+    {
+      key: 'prev_health_score',
+      title:
+        t?.('export.analyticsColumns.prevHealthScore') ||
+        'Health Score (пред.)',
+      width: 140,
+    },
+    {
+      key: 'health_delta',
+      title: t?.('export.analyticsColumns.change') || 'Изменение',
+      width: 90,
+    },
+    {
+      key: 'collections',
+      title:
+        t?.('export.analyticsColumns.weeklyCollections') || 'Сборов за неделю',
+      width: 130,
+    },
+    {
+      key: 'collected_qty',
+      title: t?.('export.analyticsColumns.collectedQty') || 'Собрано ед.',
+      width: 110,
+    },
+  ],
 }
 
 export default {
@@ -769,5 +1098,5 @@ export default {
   exportToExcel,
   exportToPDF,
   formatBatchesForExport,
-  EXPORT_COLUMNS
+  EXPORT_COLUMNS,
 }

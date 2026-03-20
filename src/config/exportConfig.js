@@ -15,7 +15,7 @@ export const EXPORT_TYPES = {
     title: 'Продукты',
     subtitle: 'Справочник продуктов',
     columnsKey: 'products',
-    labelKey: 'export.products'
+    labelKey: 'export.products',
   },
 
   batches: {
@@ -25,7 +25,7 @@ export const EXPORT_TYPES = {
     title: 'Все партии',
     subtitle: 'Полная история партий',
     columnsKey: 'batches',
-    labelKey: 'export.batches'
+    labelKey: 'export.batches',
   },
 
   inventory: {
@@ -35,7 +35,7 @@ export const EXPORT_TYPES = {
     title: 'Инвентарь',
     subtitle: 'Текущие товары и статусы',
     columnsKey: 'inventory',
-    labelKey: 'export.inventory'
+    labelKey: 'export.inventory',
   },
 
   collections: {
@@ -45,7 +45,7 @@ export const EXPORT_TYPES = {
     title: 'История сборов',
     subtitle: 'Журнал сборов товаров',
     columnsKey: 'collections',
-    labelKey: 'export.collections'
+    labelKey: 'export.collections',
   },
 
   categories: {
@@ -55,7 +55,7 @@ export const EXPORT_TYPES = {
     title: 'Категории',
     subtitle: 'Справочник категорий',
     columnsKey: 'categories',
-    labelKey: 'export.categories'
+    labelKey: 'export.categories',
   },
 
   departments: {
@@ -65,7 +65,7 @@ export const EXPORT_TYPES = {
     title: 'Отделы',
     subtitle: 'Справочник отделов',
     columnsKey: 'departments',
-    labelKey: 'export.departments'
+    labelKey: 'export.departments',
   },
 
   audit: {
@@ -75,7 +75,7 @@ export const EXPORT_TYPES = {
     title: 'Журнал действий',
     subtitle: 'Лог всех действий в системе',
     columnsKey: 'auditLogs',
-    labelKey: 'export.audit'
+    labelKey: 'export.audit',
   },
 
   // ── Analytics Reports ──────────────────────────────────────────────
@@ -87,7 +87,7 @@ export const EXPORT_TYPES = {
     subtitle: 'Сводка по статусам партий по отделам',
     columnsKey: 'healthSummary',
     labelKey: 'export.healthSummary',
-    isReport: true
+    isReport: true,
   },
 
   'expiry-forecast': {
@@ -98,7 +98,7 @@ export const EXPORT_TYPES = {
     subtitle: 'Товары с истекающим сроком годности',
     columnsKey: 'expiryForecast',
     labelKey: 'export.expiryForecast',
-    isReport: true
+    isReport: true,
   },
 
   'collection-activity': {
@@ -109,7 +109,7 @@ export const EXPORT_TYPES = {
     subtitle: 'Детальный журнал сборов с причинами',
     columnsKey: 'collectionActivity',
     labelKey: 'export.collectionActivity',
-    isReport: true
+    isReport: true,
   },
 
   'product-turnover': {
@@ -120,7 +120,7 @@ export const EXPORT_TYPES = {
     subtitle: 'Скорость потребления vs. списание',
     columnsKey: 'productTurnover',
     labelKey: 'export.productTurnover',
-    isReport: true
+    isReport: true,
   },
 
   'department-scorecard': {
@@ -131,7 +131,7 @@ export const EXPORT_TYPES = {
     subtitle: 'Сравнение отделов по качеству управления',
     columnsKey: 'departmentScorecard',
     labelKey: 'export.departmentScorecard',
-    isReport: true
+    isReport: true,
   },
 
   'collection-reasons': {
@@ -142,7 +142,7 @@ export const EXPORT_TYPES = {
     subtitle: 'Распределение сборов по причинам',
     columnsKey: 'collectionReasons',
     labelKey: 'export.collectionReasons',
-    isReport: true
+    isReport: true,
   },
 
   'batch-age-distribution': {
@@ -153,7 +153,7 @@ export const EXPORT_TYPES = {
     subtitle: 'Партии сгруппированы по остатку срока',
     columnsKey: 'batchAgeDistribution',
     labelKey: 'export.batchAgeDistribution',
-    isReport: true
+    isReport: true,
   },
 
   'weekly-summary': {
@@ -164,8 +164,8 @@ export const EXPORT_TYPES = {
     subtitle: 'KPI за неделю с динамикой',
     columnsKey: 'weeklySummary',
     labelKey: 'export.weeklySummary',
-    isReport: true
-  }
+    isReport: true,
+  },
 }
 
 /**
@@ -176,20 +176,21 @@ export const EXPORT_FORMATS = {
     id: 'excel',
     label: 'Excel',
     extension: 'xlsx',
-    mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    mimeType:
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   },
   csv: {
     id: 'csv',
     label: 'CSV',
     extension: 'csv',
-    mimeType: 'text/csv'
+    mimeType: 'text/csv',
   },
   pdf: {
     id: 'pdf',
     label: 'PDF',
     extension: 'pdf',
-    mimeType: 'application/pdf'
-  }
+    mimeType: 'application/pdf',
+  },
 }
 
 /**

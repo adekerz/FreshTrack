@@ -217,7 +217,9 @@ export default function NotificationRulesSettings() {
                       <span className="text-warning text-sm font-bold">!</span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground">Скоро истекает</p>
+                      <p className="text-sm font-medium text-foreground">
+                        Скоро истекает
+                      </p>
                       <p className="text-xs text-muted-foreground">жёлтое</p>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
@@ -240,10 +242,14 @@ export default function NotificationRulesSettings() {
                   {/* Внимание (оранжевое) */}
                   <div className="flex items-center gap-3 p-4 rounded-xl bg-orange-500/5 border border-orange-500/20">
                     <div className="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center shrink-0">
-                      <span className="text-orange-500 text-sm font-bold">!!</span>
+                      <span className="text-orange-500 text-sm font-bold">
+                        !!
+                      </span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground">Внимание</p>
+                      <p className="text-sm font-medium text-foreground">
+                        Внимание
+                      </p>
                       <p className="text-xs text-muted-foreground">оранжевое</p>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
@@ -269,7 +275,9 @@ export default function NotificationRulesSettings() {
                       <span className="text-danger text-sm font-bold">!!!</span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground">Критично</p>
+                      <p className="text-sm font-medium text-foreground">
+                        Критично
+                      </p>
                       <p className="text-xs text-muted-foreground">красное</p>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">

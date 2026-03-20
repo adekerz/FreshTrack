@@ -235,10 +235,13 @@ function InventoryWidget({ stats, alerts, thresholds, t }) {
               </span>
               <span
                 className={`text-xs shrink-0 font-medium ${
-                  alert.daysLeft < 0 ? 'text-danger'
-                  : alert.daysLeft <= thresholds.critical ? 'text-danger'
-                  : alert.daysLeft <= (thresholds.attention ?? 5) ? 'text-orange-500'
-                  : 'text-warning'
+                  alert.daysLeft < 0
+                    ? 'text-danger'
+                    : alert.daysLeft <= thresholds.critical
+                      ? 'text-danger'
+                      : alert.daysLeft <= (thresholds.attention ?? 5)
+                        ? 'text-orange-500'
+                        : 'text-warning'
                 }`}
               >
                 {alert.daysLeft < 0
@@ -497,11 +500,7 @@ export default function DashboardPage() {
           {currentDept && (
             <div className="flex flex-col sm:flex-row sm:items-center gap-3">
               <Link
-                to={
-                  hasInventory
-                    ? `/inventory/${currentDept.id}`
-                    : '/tasks'
-                }
+                to={hasInventory ? `/inventory/${currentDept.id}` : '/tasks'}
                 className="flex items-center gap-3 px-4 py-3 rounded-xl border border-border bg-card hover:bg-muted transition-colors group flex-1 sm:flex-none sm:min-w-[220px]"
               >
                 {CurrentDeptIcon && (

@@ -71,7 +71,13 @@ export default defineConfig({
   },
   // Performance optimizations
   optimizeDeps: {
-    include: ['react', 'react-dom', 'react-router-dom', 'date-fns', 'lucide-react'],
+    include: [
+      'react',
+      'react-dom',
+      'react-router-dom',
+      'date-fns',
+      'lucide-react',
+    ],
   },
   // PWA & Mobile optimizations
   server: {

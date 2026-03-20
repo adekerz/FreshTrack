@@ -8,7 +8,11 @@ import { useState } from 'react'
 import { useTranslation } from '../context/LanguageContext'
 import { useToast } from '../context/ToastContext'
 import { API_BASE_URL } from '../services/api'
-import { exportToExcel, exportToPDF, EXPORT_COLUMNS } from '../utils/exportUtils'
+import {
+  exportToExcel,
+  exportToPDF,
+  EXPORT_COLUMNS,
+} from '../utils/exportUtils'
 import { logError } from '../utils/logger'
 
 /**
@@ -20,49 +24,49 @@ const EXPORT_TYPES = {
     filename: 'inventory',
     title: 'Инвентарь',
     subtitle: 'Текущие товары и статусы',
-    columnsKey: 'inventory'
+    columnsKey: 'inventory',
   },
   batches: {
     endpoint: '/export/batches',
     filename: 'batches',
     title: 'Все партии',
     subtitle: 'Полная история партий',
-    columnsKey: 'batches'
+    columnsKey: 'batches',
   },
   collections: {
     endpoint: '/export/collections',
     filename: 'collections',
     title: 'История сборов',
     subtitle: 'Журнал сборов товаров',
-    columnsKey: 'collections'
+    columnsKey: 'collections',
   },
   audit: {
     endpoint: '/export/audit-logs',
     filename: 'audit_logs',
     title: 'Журнал действий',
     subtitle: 'Лог всех действий в системе',
-    columnsKey: 'auditLogs'
+    columnsKey: 'auditLogs',
   },
   products: {
     endpoint: '/export/products',
     filename: 'products',
     title: 'Продукты',
     subtitle: 'Справочник продуктов',
-    columnsKey: 'products'
+    columnsKey: 'products',
   },
   categories: {
     endpoint: '/export/categories',
     filename: 'categories',
     title: 'Категории',
     subtitle: 'Справочник категорий',
-    columnsKey: 'categories'
+    columnsKey: 'categories',
   },
   departments: {
     endpoint: '/export/departments',
     filename: 'departments',
     title: 'Отделы',
     subtitle: 'Справочник отделов',
-    columnsKey: 'departments'
+    columnsKey: 'departments',
   },
   'health-summary': {
     endpoint: '/reports/health-summary',
@@ -70,7 +74,7 @@ const EXPORT_TYPES = {
     title: 'Здоровье инвентаря',
     subtitle: 'Сводка по статусам партий по отделам',
     columnsKey: 'healthSummary',
-    jsonEndpoint: true
+    jsonEndpoint: true,
   },
   'expiry-forecast': {
     endpoint: '/reports/expiry-forecast',
@@ -78,7 +82,7 @@ const EXPORT_TYPES = {
     title: 'Прогноз истечения',
     subtitle: 'Товары с истекающим сроком годности',
     columnsKey: 'expiryForecast',
-    jsonEndpoint: true
+    jsonEndpoint: true,
   },
   'collection-activity': {
     endpoint: '/reports/collection-activity',
@@ -86,7 +90,7 @@ const EXPORT_TYPES = {
     title: 'Активность сборов',
     subtitle: 'Детальный журнал сборов с причинами',
     columnsKey: 'collectionActivity',
-    jsonEndpoint: true
+    jsonEndpoint: true,
   },
   'product-turnover': {
     endpoint: '/reports/product-turnover',
@@ -94,7 +98,7 @@ const EXPORT_TYPES = {
     title: 'Оборот продуктов',
     subtitle: 'Скорость потребления vs. списание',
     columnsKey: 'productTurnover',
-    jsonEndpoint: true
+    jsonEndpoint: true,
   },
   'department-scorecard': {
     endpoint: '/reports/department-scorecard',
@@ -102,7 +106,7 @@ const EXPORT_TYPES = {
     title: 'Рейтинг отделов',
     subtitle: 'Сравнение отделов по качеству управления',
     columnsKey: 'departmentScorecard',
-    jsonEndpoint: true
+    jsonEndpoint: true,
   },
   'collection-reasons': {
     endpoint: '/reports/collection-reasons',
@@ -110,7 +114,7 @@ const EXPORT_TYPES = {
     title: 'Причины сборов',
     subtitle: 'Распределение сборов по причинам',
     columnsKey: 'collectionReasons',
-    jsonEndpoint: true
+    jsonEndpoint: true,
   },
   'batch-age-distribution': {
     endpoint: '/reports/batch-age-distribution',
@@ -118,7 +122,7 @@ const EXPORT_TYPES = {
     title: 'Распределение по возрасту',
     subtitle: 'Партии сгруппированы по остатку срока',
     columnsKey: 'batchAgeDistribution',
-    jsonEndpoint: true
+    jsonEndpoint: true,
   },
   'weekly-summary': {
     endpoint: '/reports/weekly-summary',
@@ -126,8 +130,8 @@ const EXPORT_TYPES = {
     title: 'Еженедельный отчёт',
     subtitle: 'KPI за неделю с динамикой',
     columnsKey: 'weeklySummary',
-    jsonEndpoint: true
-  }
+    jsonEndpoint: true,
+  },
 }
 
 /**
@@ -167,7 +171,7 @@ function formatDataForExport(data, type, t) {
     expired: t?.('common.expired') || 'Просрочено',
     today: t?.('common.today') || 'Сегодня',
     active: t?.('common.active') || 'Активно',
-    collected: t?.('common.collected') || 'Собрано'
+    collected: t?.('common.collected') || 'Собрано',
   }
 
   switch (type) {
@@ -182,7 +186,7 @@ function formatDataForExport(data, type, t) {
         statusLabel: statusLabels[item.status] || item.status || '-',
         daysLeft: item.days_until_expiry ?? item.daysLeft ?? '-',
         quantity: item.quantity || item.total_quantity || 0,
-        unit: item.unit || 'шт'
+        unit: item.unit || 'шт',
       }))
 
     case 'collections':
@@ -193,7 +197,7 @@ function formatDataForExport(data, type, t) {
         department: item.department_name || '-',
         quantity: item.quantity || 0,
         reason: item.reason || item.type || '-',
-        collectedBy: item.collected_by_name || item.user_name || '-'
+        collectedBy: item.collected_by_name || item.user_name || '-',
       }))
 
     case 'audit':
@@ -203,10 +207,11 @@ function formatDataForExport(data, type, t) {
         user_name: item.user_name || '-',
         action: item.action || '-',
         entity_type: item.entity_type || '-',
-        details: typeof item.details === 'object'
-          ? JSON.stringify(item.details)
-          : item.details || '-',
-        ip_address: item.ip_address || '-'
+        details:
+          typeof item.details === 'object'
+            ? JSON.stringify(item.details)
+            : item.details || '-',
+        ip_address: item.ip_address || '-',
       }))
 
     default:
@@ -223,7 +228,7 @@ export function useExport() {
   const [exporting, setExporting] = useState(null)
   const [exportProgress, setExportProgress] = useState({
     status: null, // 'downloading' | 'success' | 'error'
-    filename: null
+    filename: null,
   })
 
   /**
@@ -251,7 +256,7 @@ export function useExport() {
     // Показываем прогресс "загрузка"
     setExportProgress({
       status: 'downloading',
-      filename
+      filename,
     })
 
     try {
@@ -265,9 +270,14 @@ export function useExport() {
             }
           })
         }
-        const response = await fetch(url.toString(), { method: 'GET', credentials: 'include' })
+        const response = await fetch(url.toString(), {
+          method: 'GET',
+          credentials: 'include',
+        })
         if (!response.ok) {
-          const error = await response.json().catch(() => ({ message: 'Export failed' }))
+          const error = await response
+            .json()
+            .catch(() => ({ message: 'Export failed' }))
           throw new Error(error.message || error.error || 'Export failed')
         }
         const body = await response.json()
@@ -282,10 +292,15 @@ export function useExport() {
         if (format === 'pdf') {
           exportToPDF(exportConfig.title, formattedData, columns, {
             subtitle: exportConfig.subtitle,
-            companyName: 'FreshTrack'
+            companyName: 'FreshTrack',
           })
         } else {
-          exportToExcel(formattedData, columns, `${exportConfig.filename}_${new Date().toISOString().split('T')[0]}`, exportConfig.title)
+          exportToExcel(
+            formattedData,
+            columns,
+            `${exportConfig.filename}_${new Date().toISOString().split('T')[0]}`,
+            exportConfig.title
+          )
         }
         setExportProgress({ status: 'success', filename })
         return
@@ -305,11 +320,13 @@ export function useExport() {
 
       const response = await fetch(url.toString(), {
         method: 'GET',
-        credentials: 'include'
+        credentials: 'include',
       })
 
       if (!response.ok) {
-        const error = await response.json().catch(() => ({ message: 'Export failed' }))
+        const error = await response
+          .json()
+          .catch(() => ({ message: 'Export failed' }))
         throw new Error(error.message || error.error || 'Export failed')
       }
 
@@ -329,16 +346,15 @@ export function useExport() {
 
       setExportProgress({
         status: 'success',
-        filename
+        filename,
       })
-
     } catch (error) {
       logError('Export error:', error)
 
       // Показываем ошибку в прогрессе
       setExportProgress({
         status: 'error',
-        filename
+        filename,
       })
 
       // Также показываем toast с деталями
@@ -355,7 +371,12 @@ export function useExport() {
    * Клиентский экспорт данных (без backend)
    * Используется когда данные уже загружены на клиенте
    */
-  const exportClientData = async (data, type, format = 'excel', options = {}) => {
+  const exportClientData = async (
+    data,
+    type,
+    format = 'excel',
+    options = {}
+  ) => {
     if (!data || !Array.isArray(data) || data.length === 0) {
       addToast(t('export.noData') || 'Нет данных для экспорта', 'warning')
       return
@@ -365,7 +386,7 @@ export function useExport() {
       filename: 'export',
       title: options.title || 'Отчет',
       subtitle: options.subtitle || '',
-      columnsKey: type
+      columnsKey: type,
     }
 
     setExporting(type)
@@ -378,7 +399,7 @@ export function useExport() {
     // Показываем прогресс "загрузка"
     setExportProgress({
       status: 'downloading',
-      filename
+      filename,
     })
 
     try {
@@ -388,23 +409,29 @@ export function useExport() {
         : formatDataForExport(data, type, t)
 
       // Получаем конфигурацию колонок
-      const columns = options.columns || EXPORT_COLUMNS[exportConfig.columnsKey]?.(t) || []
+      const columns =
+        options.columns || EXPORT_COLUMNS[exportConfig.columnsKey]?.(t) || []
 
       // Экспорт в нужном формате
       if (format === 'excel') {
-        exportToExcel(formattedData, columns, `${exportConfig.filename}_${timestamp}`, exportConfig.title)
+        exportToExcel(
+          formattedData,
+          columns,
+          `${exportConfig.filename}_${timestamp}`,
+          exportConfig.title
+        )
       } else if (format === 'pdf') {
         exportToPDF(exportConfig.title, formattedData, columns, {
           subtitle: exportConfig.subtitle,
           summary: options.summary,
-          companyName: 'FreshTrack'
+          companyName: 'FreshTrack',
         })
       }
 
       // Показываем успех в прогрессе
       setExportProgress({
         status: 'success',
-        filename
+        filename,
       })
     } catch (error) {
       logError('Client export error:', error)
@@ -412,7 +439,7 @@ export function useExport() {
       // Показываем ошибку в прогрессе
       setExportProgress({
         status: 'error',
-        filename
+        filename,
       })
 
       // Также показываем toast с деталями
@@ -428,7 +455,7 @@ export function useExport() {
   const dismissExportProgress = () => {
     setExportProgress({
       status: null,
-      filename: null
+      filename: null,
     })
   }
 
@@ -439,7 +466,7 @@ export function useExport() {
     isExporting: !!exporting,
     exportProgress,
     dismissExportProgress,
-    EXPORT_TYPES
+    EXPORT_TYPES,
   }
 }
 
