@@ -324,7 +324,7 @@ export class TelegramService {
    * BUG FIX: /notify, /filter, /silent, /test were previously unreachable.
    */
   static async handleMessage(message) {
-    const { chat, text, from } = message
+    const { chat, text } = message
     if (!text) return
 
     const chatId = chat.id
@@ -335,8 +335,8 @@ export class TelegramService {
 
     // ── Setup & info ────────────────────────
     if (cmd === '/start' || cmd === '/help') return this.sendHelpMessage(chatId)
-    if (cmd === '/link') return this.handleLinkCommand(chatId, text, from)
-    if (cmd === '/unlink') return this.handleUnlinkCommand(chatId, from)
+    if (cmd === '/link') return this.handleLinkCommand(chatId, text)
+    if (cmd === '/unlink') return this.handleUnlinkCommand(chatId)
     if (cmd === '/status') return this.handleStatusCommand(chatId)
     if (cmd === '/departments') return this.handleDepartmentsCommand(chatId)
 
@@ -371,7 +371,7 @@ export class TelegramService {
   /**
    * /link HOTEL_CODE[:Department]
    */
-  static async handleLinkCommand(chatId, text, from) {
+  static async handleLinkCommand(chatId, text) {
     const lang = await this.getChatLang(chatId)
     const tr = t(lang)
     const match = text.match(/\/link\s+([A-Za-z0-9_-]+)(?::(.+))?$/i)
@@ -466,7 +466,7 @@ export class TelegramService {
   /**
    * /unlink
    */
-  static async handleUnlinkCommand(chatId, from) {
+  static async handleUnlinkCommand(chatId) {
     const lang = await this.getChatLang(chatId)
     const tr = t(lang)
     try {
