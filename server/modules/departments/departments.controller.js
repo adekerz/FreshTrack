@@ -249,7 +249,24 @@ router.put(
             : String(telegram_chat_id).trim()
       }
 
+      // Detect email change before updating
+      const emailChanged =
+        email !== undefined &&
+        String(email || '').trim() !== String(department.email || '').trim()
+
       const success = await updateDepartment(req.params.id, updates)
+
+      if (success && emailChanged) {
+        await dbQuery(
+          `UPDATE departments SET email_confirmed = FALSE, email_confirmed_at = NULL WHERE id = $1`,
+          [req.params.id]
+        )
+        await dbQuery(
+          'DELETE FROM department_email_otps WHERE department_id = $1',
+          [req.params.id]
+        )
+      }
+
       if (success) {
         await logAudit({
           hotel_id: department.hotel_id,
@@ -352,18 +369,11 @@ async function generateDepartmentCode(hotelId) {
 // EMAIL VERIFICATION ENDPOINTS
 // ═══════════════════════════════════════════════════════════════
 
-// Rate limiter for verification code sending (3 per hour per department)
-// Deprecated rate limiters (kept for reference, not used since endpoints are deprecated)
-const _sendCodeLimiter = new RateLimiterMemory({
+// Rate limiter: max 3 OTP sends per hour per department
+const sendCodeLimiter = new RateLimiterMemory({
   points: 3,
   duration: 60 * 60, // 1 hour
-  blockDuration: 60 * 60, // Block for 1 hour if exceeded
-})
-
-const _verifyCodeLimiter = new RateLimiterMemory({
-  points: 5,
-  duration: 15 * 60, // 15 minutes
-  blockDuration: 60 * 60, // Block for 1 hour if exceeded
+  blockDuration: 60 * 60,
 })
 
 /**
@@ -416,6 +426,204 @@ router.post(
       deprecated: true,
       alternative: '/api/departments/:id/send-confirmation',
     })
+  }
+)
+
+/**
+ * POST /api/departments/:id/send-code
+ * Send 6-digit OTP to department email for verification
+ */
+router.post(
+  '/:id/send-code',
+  authMiddleware,
+  requirePermission(PermissionResource.DEPARTMENTS, PermissionAction.UPDATE, {
+    getTargetHotelId: async (req) => {
+      const dept = await getDepartmentById(req.params.id)
+      return dept?.hotel_id
+    },
+  }),
+  async (req, res) => {
+    const id = req.params.id
+    try {
+      // Rate limit by department id
+      await sendCodeLimiter.consume(id)
+    } catch {
+      return res.status(429).json({
+        success: false,
+        error: 'rate_limit',
+        message: 'Слишком много отправок. Попробуйте позже.',
+      })
+    }
+
+    try {
+      const department = await getDepartmentById(id)
+      if (!department) {
+        return res
+          .status(404)
+          .json({ success: false, error: 'Department not found' })
+      }
+      if (!department.email) {
+        return res
+          .status(400)
+          .json({ success: false, error: 'Department has no email' })
+      }
+
+      const otp = String(crypto.randomInt(100000, 1000000))
+
+      // Replace any existing OTP for this department
+      await dbQuery(
+        'DELETE FROM department_email_otps WHERE department_id = $1',
+        [id]
+      )
+      await dbQuery(
+        `INSERT INTO department_email_otps (department_id, otp, expires_at)
+         VALUES ($1, $2, NOW() + interval '15 minutes')`,
+        [id, otp]
+      )
+
+      // Get hotel name for email context
+      const hotel = await getHotelById(department.hotel_id)
+
+      await sendVerificationEmail({
+        target: 'DEPARTMENT_OTP',
+        verificationCode: otp,
+        email: department.email,
+        departmentName: department.name,
+        hotelName: hotel?.name,
+      })
+
+      logInfo(
+        'DeptEmailOTP',
+        `OTP sent for department ${id} to ${department.email}`
+      )
+
+      res.json({ success: true, cooldown_seconds: 60 })
+    } catch (error) {
+      logError('DeptEmailOTP send-code error', error)
+      res
+        .status(500)
+        .json({ success: false, error: 'Failed to send verification code' })
+    }
+  }
+)
+
+/**
+ * POST /api/departments/:id/verify-code
+ * Verify 6-digit OTP for department email
+ */
+router.post(
+  '/:id/verify-code',
+  authMiddleware,
+  requirePermission(PermissionResource.DEPARTMENTS, PermissionAction.UPDATE, {
+    getTargetHotelId: async (req) => {
+      const dept = await getDepartmentById(req.params.id)
+      return dept?.hotel_id
+    },
+  }),
+  async (req, res) => {
+    const id = req.params.id
+    const { code } = req.body
+
+    if (!code || !/^\d{6}$/.test(String(code))) {
+      return res
+        .status(400)
+        .json({
+          success: false,
+          error: 'invalid_code',
+          message: 'Code must be 6 digits',
+        })
+    }
+
+    try {
+      const otpResult = await dbQuery(
+        'SELECT * FROM department_email_otps WHERE department_id = $1',
+        [id]
+      )
+      const otpRow = otpResult.rows[0]
+
+      if (!otpRow) {
+        return res
+          .status(400)
+          .json({
+            success: false,
+            error: 'no_code',
+            message: 'Код не найден. Запросите новый.',
+          })
+      }
+
+      if (new Date(otpRow.expires_at) < new Date()) {
+        await dbQuery(
+          'DELETE FROM department_email_otps WHERE department_id = $1',
+          [id]
+        )
+        return res
+          .status(400)
+          .json({
+            success: false,
+            error: 'expired',
+            message: 'Код устарел. Запросите новый.',
+          })
+      }
+
+      if (otpRow.attempts >= 5) {
+        return res
+          .status(429)
+          .json({
+            success: false,
+            error: 'too_many_attempts',
+            message: 'Превышено число попыток. Запросите новый код.',
+          })
+      }
+
+      if (otpRow.otp !== String(code)) {
+        const newAttempts = otpRow.attempts + 1
+        await dbQuery(
+          'UPDATE department_email_otps SET attempts = $1 WHERE department_id = $2',
+          [newAttempts, id]
+        )
+        if (newAttempts >= 5) {
+          return res.status(429).json({
+            success: false,
+            error: 'too_many_attempts',
+            message: 'Превышено число попыток. Запросите новый код.',
+          })
+        }
+        return res.status(400).json({
+          success: false,
+          error: 'invalid_code',
+          remaining_attempts: 5 - newAttempts,
+          message: `Неверный код. Осталось попыток: ${5 - newAttempts}`,
+        })
+      }
+
+      // OTP correct — confirm email
+      await dbQuery(
+        `UPDATE departments SET email_confirmed = TRUE, email_confirmed_at = NOW() WHERE id = $1`,
+        [id]
+      )
+      await dbQuery(
+        'DELETE FROM department_email_otps WHERE department_id = $1',
+        [id]
+      )
+
+      const department = await getDepartmentById(id)
+      await logAudit({
+        hotel_id: department?.hotel_id,
+        user_id: req.user.id,
+        user_name: req.user.name,
+        action: 'verify_email',
+        entity_type: 'department',
+        entity_id: id,
+        details: { email: department?.email },
+        ip_address: req.ip,
+      })
+
+      logInfo('DeptEmailOTP', `Email confirmed for department ${id}`)
+      res.json({ success: true })
+    } catch (error) {
+      logError('DeptEmailOTP verify-code error', error)
+      res.status(500).json({ success: false, error: 'Failed to verify code' })
+    }
   }
 )
 

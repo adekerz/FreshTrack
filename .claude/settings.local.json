@@ -76,7 +76,8 @@
       "Bash(for f:*)",
       "Bash(do echo:*)",
       "Read(//c/Users/esima/OneDrive/Рабочий стол/Projects/FreshTrack-projectadekerz/src/**)",
-      "Read(//c/Users/esima/OneDrive/Рабочий стол/Projects/FreshTrack-projectadekerz/src/locales/**)"
+      "Read(//c/Users/esima/OneDrive/Рабочий стол/Projects/FreshTrack-projectadekerz/src/locales/**)",
+      "Read(//c/Users/esima/.claude/plugins/cache/claude-plugins-official/superpowers/5.0.5/skills/subagent-driven-development/**)"
     ]
   }
 }
