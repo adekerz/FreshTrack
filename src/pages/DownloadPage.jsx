@@ -112,11 +112,15 @@ export default function DownloadPage() {
     const filesToDownload = verifiedFiles.filter((f) => selected.has(f.token))
     for (const file of filesToDownload) {
       setDownloading((prev) => new Set(prev).add(file.token))
-      const iframe = document.createElement('iframe')
-      iframe.style.display = 'none'
-      iframe.src = `${SERVER_BASE_URL}/api/downloads/${file.token}/file?ticket=${file.ticket}`
-      document.body.appendChild(iframe)
-      await new Promise((r) => setTimeout(r, 300))
+      // Use anchor click instead of iframe (CSP blocks cross-origin frames)
+      const a = document.createElement('a')
+      a.href = `${SERVER_BASE_URL}/api/downloads/${file.token}/file?ticket=${file.ticket}`
+      a.download = file.fileName
+      a.style.display = 'none'
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      await new Promise((r) => setTimeout(r, 400))
       setDownloading((prev) => {
         const next = new Set(prev)
         next.delete(file.token)
