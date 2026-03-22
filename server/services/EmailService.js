@@ -571,6 +571,19 @@ export async function sendVerificationEmail({
         ${unsubLink ? `<br><a href="${unsubLink}" style="color: #888;">Unsubscribe</a>` : ''}
       </p>
     `
+  } else if (target === 'DEPARTMENT_OTP') {
+    if (!verificationCode) {
+      throw new Error('Verification code is required for DEPARTMENT_OTP target')
+    }
+    const deptName = departmentName || 'your department'
+    const hName = hotelName || 'your hotel'
+    content = `
+      <h2 style="margin-top: 0;">Код подтверждения email</h2>
+      <p>Для подтверждения email адреса отдела <strong>${deptName}</strong> (<strong>${hName}</strong>) введите код ниже:</p>
+      <div class="code">${verificationCode}</div>
+      <p style="text-align: center; margin-top: 16px; color: #888;">Код действителен <strong>15 минут</strong>.</p>
+      <p style="text-align: center; margin-top: 12px; color: #888; font-size: 14px;">Если вы не запрашивали этот код — проигнорируйте письмо.</p>
+    `
   } else {
     // USER — OTP code only
     if (!verificationCode) {
@@ -593,10 +606,16 @@ export async function sendVerificationEmail({
     subject:
       target === 'DEPARTMENT'
         ? `Verify email for ${departmentName || 'department'} reports`
-        : 'Your FreshTrack verification code',
+        : target === 'DEPARTMENT_OTP'
+          ? `Подтверждение email отдела «${departmentName || 'отдел'}» — код ${verificationCode}`
+          : 'Your FreshTrack verification code',
     html: emailTemplate(content, {
       title:
-        target === 'DEPARTMENT' ? 'Verify email address' : 'Verification code',
+        target === 'DEPARTMENT'
+          ? 'Verify email address'
+          : target === 'DEPARTMENT_OTP'
+            ? 'Подтверждение email'
+            : 'Verification code',
     }),
   })
 }
