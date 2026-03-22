@@ -1,10 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { useTranslation } from '../context/LanguageContext'
-import { API_BASE_URL } from '../services/api'
+import { API_BASE_URL, SERVER_BASE_URL } from '../services/api'
 import { useAuth } from '../context/AuthContext'
-
-const base = API_BASE_URL.replace('/api', '')
 
 export default function DownloadPage() {
   const { bundleToken } = useParams()
@@ -26,9 +24,12 @@ export default function DownloadPage() {
   useEffect(() => {
     async function fetchMeta() {
       try {
-        const res = await fetch(`${base}/api/downloads/bundle/${bundleToken}`, {
-          credentials: 'include',
-        })
+        const res = await fetch(
+          `${API_BASE_URL}/downloads/bundle/${bundleToken}`,
+          {
+            credentials: 'include',
+          }
+        )
         const data = await res.json()
         if (!res.ok) {
           setError(data?.error || t('download.fetchError'))
@@ -51,7 +52,7 @@ export default function DownloadPage() {
     try {
       const body = { pin, ...(showLogin && login ? { login } : {}) }
       const res = await fetch(
-        `${base}/api/downloads/bundle/${bundleToken}/verify`,
+        `${API_BASE_URL}/downloads/bundle/${bundleToken}/verify`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -99,7 +100,7 @@ export default function DownloadPage() {
       // Use iframe to trigger download without navigating away
       const iframe = document.createElement('iframe')
       iframe.style.display = 'none'
-      iframe.src = `${base}/api/downloads/${file.token}/file?ticket=${file.ticket}`
+      iframe.src = `${SERVER_BASE_URL}/api/downloads/${file.token}/file?ticket=${file.ticket}`
       document.body.appendChild(iframe)
       // Stagger downloads slightly
       await new Promise((r) => setTimeout(r, 300))
