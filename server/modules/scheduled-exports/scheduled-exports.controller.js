@@ -52,6 +52,62 @@ function mapRow(row) {
 /**
  * Helper: Calculate next run time based on schedule configuration
  */
+/**
+ * Get current date parts in a given timezone
+ */
+function getNowInTimezone(tz) {
+  const now = new Date()
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: tz,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  })
+  const parts = Object.fromEntries(
+    formatter.formatToParts(now).map((p) => [p.type, p.value])
+  )
+  return {
+    year: Number(parts.year),
+    month: Number(parts.month) - 1,
+    day: Number(parts.day),
+    hour: Number(parts.hour === '24' ? '0' : parts.hour),
+    minute: Number(parts.minute),
+    weekday: new Date(
+      `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:${parts.second}`
+    ).getDay(),
+  }
+}
+
+/**
+ * Convert a date specified in a timezone to a UTC Date object
+ */
+function tzDateToUtc(year, month, day, hours, minutes, tz) {
+  // Build an ISO string as if it were UTC, then find the offset
+  const fake = new Date(Date.UTC(year, month, day, hours, minutes, 0))
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: tz,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  })
+  const parts = Object.fromEntries(
+    formatter.formatToParts(fake).map((p) => [p.type, p.value])
+  )
+  const fakeInTz = new Date(
+    `${parts.year}-${parts.month}-${parts.day}T${parts.hour === '24' ? '00' : parts.hour}:${parts.minute}:${parts.second}Z`
+  )
+  const offsetMs = fakeInTz.getTime() - fake.getTime()
+  return new Date(fake.getTime() - offsetMs)
+}
+
 function calculateNextRun({
   schedule_type,
   day_of_week,
@@ -59,44 +115,52 @@ function calculateNextRun({
   time,
   timezone,
 }) {
-  const now = new Date()
+  const tz = timezone || 'UTC'
   const [hours, minutes] = time.split(':').map(Number)
+  const { year, month, day, hour, minute, weekday } = getNowInTimezone(tz)
 
-  // Simple calculation - в production используйте moment-timezone
-  let nextRun = new Date(now)
-  nextRun.setHours(hours, minutes, 0, 0)
+  // Compare in timezone-local values
+  const nowMinutes = hour * 60 + minute
+  const targetMinutes = hours * 60 + minutes
+
+  let nextYear = year,
+    nextMonth = month,
+    nextDay = day
 
   if (schedule_type === 'daily') {
-    // Если время уже прошло сегодня, берем завтра
-    if (nextRun <= now) {
-      nextRun.setDate(nextRun.getDate() + 1)
+    if (targetMinutes <= nowMinutes) {
+      // Time already passed today in this timezone, move to tomorrow
+      const d = new Date(year, month, day + 1)
+      nextYear = d.getFullYear()
+      nextMonth = d.getMonth()
+      nextDay = d.getDate()
     }
   } else if (schedule_type === 'weekly') {
-    // Находим следующий нужный день недели
-    const currentDay = nextRun.getDay()
-    let daysToAdd = (day_of_week - currentDay + 7) % 7
-    if (daysToAdd === 0 && nextRun <= now) {
+    let daysToAdd = (day_of_week - weekday + 7) % 7
+    if (daysToAdd === 0 && targetMinutes <= nowMinutes) {
       daysToAdd = 7
     }
-    nextRun.setDate(nextRun.getDate() + daysToAdd)
+    const d = new Date(year, month, day + daysToAdd)
+    nextYear = d.getFullYear()
+    nextMonth = d.getMonth()
+    nextDay = d.getDate()
   } else if (schedule_type === 'monthly') {
-    // Устанавливаем день месяца
-    nextRun.setDate(day_of_month)
-    if (nextRun <= now) {
-      nextRun.setMonth(nextRun.getMonth() + 1)
-    }
-    // Если день месяца больше чем дней в месяце, берем последний день
-    const lastDay = new Date(
-      nextRun.getFullYear(),
-      nextRun.getMonth() + 1,
-      0
-    ).getDate()
-    if (day_of_month > lastDay) {
-      nextRun.setDate(lastDay)
+    nextDay = day_of_month
+    const candidate = new Date(year, month, nextDay)
+    if (
+      candidate.getMonth() !== month ||
+      (nextDay <= day && targetMinutes <= nowMinutes)
+    ) {
+      // Move to next month
+      const d = new Date(year, month + 1, 1)
+      nextYear = d.getFullYear()
+      nextMonth = d.getMonth()
+      const lastDay = new Date(nextYear, nextMonth + 1, 0).getDate()
+      nextDay = Math.min(day_of_month, lastDay)
     }
   }
 
-  return nextRun
+  return tzDateToUtc(nextYear, nextMonth, nextDay, hours, minutes, tz)
 }
 
 // effectiveHotelId removed — use req.hotelId from hotelIsolation middleware instead

@@ -1136,7 +1136,6 @@ ${reportLines}
    * Calculate next run time based on schedule configuration
    */
   calculateNextRun(schedule) {
-    const now = new Date()
     const timeStr = schedule.send_time ?? schedule.time
     const [hours, minutes] = (
       typeof timeStr === 'string' ? timeStr : String(timeStr)
@@ -1144,27 +1143,73 @@ ${reportLines}
       .split(':')
       .map(Number)
 
-    let nextRun = new Date(now)
-    nextRun.setHours(hours, minutes, 0, 0)
+    const tz = schedule.timezone || 'UTC'
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: tz,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    })
+    const parts = Object.fromEntries(
+      formatter.formatToParts(new Date()).map((p) => [p.type, p.value])
+    )
+    const year = Number(parts.year)
+    const month = Number(parts.month) - 1
+    const day = Number(parts.day)
+    const nowHour = Number(parts.hour === '24' ? '0' : parts.hour)
+    const nowMinute = Number(parts.minute)
+    const nowMinutes = nowHour * 60 + nowMinute
+    const targetMinutes = hours * 60 + minutes
+
+    let nextYear = year,
+      nextMonth = month,
+      nextDay = day
 
     if (schedule.schedule_type === 'daily') {
-      nextRun.setDate(nextRun.getDate() + 1)
+      // After execution, always schedule for next day
+      const d = new Date(year, month, day + 1)
+      nextYear = d.getFullYear()
+      nextMonth = d.getMonth()
+      nextDay = d.getDate()
     } else if (schedule.schedule_type === 'weekly') {
-      nextRun.setDate(nextRun.getDate() + 7)
+      const d = new Date(year, month, day + 7)
+      nextYear = d.getFullYear()
+      nextMonth = d.getMonth()
+      nextDay = d.getDate()
     } else if (schedule.schedule_type === 'monthly') {
-      nextRun.setMonth(nextRun.getMonth() + 1)
-      // Handle month end edge cases
-      const lastDay = new Date(
-        nextRun.getFullYear(),
-        nextRun.getMonth() + 1,
-        0
-      ).getDate()
-      if (schedule.day_of_month > lastDay) {
-        nextRun.setDate(lastDay)
-      }
+      const d = new Date(year, month + 1, 1)
+      nextYear = d.getFullYear()
+      nextMonth = d.getMonth()
+      const lastDay = new Date(nextYear, nextMonth + 1, 0).getDate()
+      nextDay = Math.min(schedule.day_of_month || day, lastDay)
     }
 
-    return nextRun
+    // Convert timezone-local date back to UTC
+    const fakeUtc = new Date(
+      Date.UTC(nextYear, nextMonth, nextDay, hours, minutes, 0)
+    )
+    const fmtCheck = new Intl.DateTimeFormat('en-CA', {
+      timeZone: tz,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    })
+    const cp = Object.fromEntries(
+      fmtCheck.formatToParts(fakeUtc).map((p) => [p.type, p.value])
+    )
+    const fakeInTz = new Date(
+      `${cp.year}-${cp.month}-${cp.day}T${cp.hour === '24' ? '00' : cp.hour}:${cp.minute}:${cp.second}Z`
+    )
+    const offsetMs = fakeInTz.getTime() - fakeUtc.getTime()
+    return new Date(fakeUtc.getTime() - offsetMs)
   }
 
   /**
