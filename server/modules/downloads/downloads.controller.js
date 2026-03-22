@@ -171,7 +171,7 @@ router.post('/bundle/:bundleToken/verify', async (req, res) => {
       return res
         .status(403)
         .json({ success: false, error: 'Insufficient permissions' })
-    if (user.hotel_id !== first.hotel_id)
+    if (user.role !== 'SUPER_ADMIN' && user.hotel_id !== first.hotel_id)
       return res.status(403).json({ success: false, error: 'Access denied' })
     if (
       first.department_id &&
@@ -353,8 +353,8 @@ router.post('/:token/verify', async (req, res) => {
         .json({ success: false, error: 'Insufficient permissions' })
     }
 
-    // Hotel isolation
-    if (user.hotel_id !== file.hotel_id) {
+    // Hotel isolation (SUPER_ADMIN bypasses hotel check)
+    if (user.role !== 'SUPER_ADMIN' && user.hotel_id !== file.hotel_id) {
       return res.status(403).json({ success: false, error: 'Access denied' })
     }
 
