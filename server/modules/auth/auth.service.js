@@ -1110,7 +1110,8 @@ export class AuthService {
 
       // Фильтр по отелю
       if (effectiveHotelId) {
-        conditions.push(`(u.hotel_id = $${paramIndex} OR u.hotel_id IS NULL)`)
+        // SUPER_ADMIN (hotel_id IS NULL) не должны попадать в список отеля
+        conditions.push(`u.hotel_id = $${paramIndex}`)
         params.push(effectiveHotelId)
         paramIndex++
       }
