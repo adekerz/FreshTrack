@@ -16,7 +16,8 @@
     "backup": "node db/backup.js",
     "backup:gzip": "node db/backup.js --gzip",
     "backup:schema": "node db/backup.js --format=schema-only",
-    "backup:data": "node db/backup.js --format=data-only"
+    "backup:data": "node db/backup.js --format=data-only",
+    "seed:demo": "node db/seed-demo.js"
   },
   "dependencies": {
     "@sentry/node": "^10.32.1",

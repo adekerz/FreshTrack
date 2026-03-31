@@ -1,4 +1,12 @@
-import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react'
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+} from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 
 const OnboardingContext = createContext(null)
 
@@ -12,6 +20,7 @@ export const onboardingSteps = [
     title: 'onboarding.welcome.title',
     description: 'onboarding.welcome.description',
     placement: 'center',
+    route: null,
   },
   {
     id: 'dashboard',
@@ -19,13 +28,7 @@ export const onboardingSteps = [
     title: 'onboarding.dashboard.title',
     description: 'onboarding.dashboard.description',
     placement: 'right',
-  },
-  {
-    id: 'inventory',
-    target: '[data-onboarding="inventory"]',
-    title: 'onboarding.inventory.title',
-    description: 'onboarding.inventory.description',
-    placement: 'right',
+    route: '/',
   },
   {
     id: 'add-batch',
@@ -33,6 +36,15 @@ export const onboardingSteps = [
     title: 'onboarding.addBatch.title',
     description: 'onboarding.addBatch.description',
     placement: 'bottom',
+    route: '/',
+  },
+  {
+    id: 'inventory',
+    target: '[data-onboarding="inventory"]',
+    title: 'onboarding.inventory.title',
+    description: 'onboarding.inventory.description',
+    placement: 'right',
+    route: null,
   },
   {
     id: 'notifications',
@@ -40,6 +52,7 @@ export const onboardingSteps = [
     title: 'onboarding.notifications.title',
     description: 'onboarding.notifications.description',
     placement: 'right',
+    route: null,
   },
   {
     id: 'calendar',
@@ -47,6 +60,7 @@ export const onboardingSteps = [
     title: 'onboarding.calendar.title',
     description: 'onboarding.calendar.description',
     placement: 'right',
+    route: null,
   },
   {
     id: 'complete',
@@ -54,6 +68,7 @@ export const onboardingSteps = [
     title: 'onboarding.complete.title',
     description: 'onboarding.complete.description',
     placement: 'center',
+    route: null,
   },
 ]
 
@@ -63,6 +78,8 @@ export function OnboardingProvider({ children }) {
   const [hasCompleted, setHasCompleted] = useState(() => {
     return localStorage.getItem(STORAGE_KEY) === 'true'
   })
+  const navigate = useNavigate()
+  const location = useLocation()
 
   // Start onboarding for new users
   useEffect(() => {
@@ -76,27 +93,18 @@ export function OnboardingProvider({ children }) {
     return undefined
   }, [hasCompleted])
 
+  // Navigate to the required route when step changes
+  useEffect(() => {
+    if (!isActive) return
+    const step = onboardingSteps[currentStep]
+    if (step?.route && location.pathname !== step.route) {
+      navigate(step.route)
+    }
+  }, [isActive, currentStep, navigate, location.pathname])
+
   const startOnboarding = useCallback(() => {
     setCurrentStep(0)
     setIsActive(true)
-  }, [])
-
-  const nextStep = useCallback(() => {
-    if (currentStep < onboardingSteps.length - 1) {
-      setCurrentStep(prev => prev + 1)
-    } else {
-      completeOnboarding()
-    }
-  }, [currentStep])
-
-  const prevStep = useCallback(() => {
-    if (currentStep > 0) {
-      setCurrentStep(prev => prev - 1)
-    }
-  }, [currentStep])
-
-  const skipOnboarding = useCallback(() => {
-    completeOnboarding()
   }, [])
 
   const completeOnboarding = useCallback(() => {
@@ -105,27 +113,55 @@ export function OnboardingProvider({ children }) {
     localStorage.setItem(STORAGE_KEY, 'true')
   }, [])
 
+  const nextStep = useCallback(() => {
+    if (currentStep < onboardingSteps.length - 1) {
+      setCurrentStep((prev) => prev + 1)
+    } else {
+      completeOnboarding()
+    }
+  }, [currentStep, completeOnboarding])
+
+  const prevStep = useCallback(() => {
+    if (currentStep > 0) {
+      setCurrentStep((prev) => prev - 1)
+    }
+  }, [currentStep])
+
+  const skipOnboarding = useCallback(() => {
+    completeOnboarding()
+  }, [completeOnboarding])
+
   const resetOnboarding = useCallback(() => {
     setHasCompleted(false)
     localStorage.removeItem(STORAGE_KEY)
   }, [])
 
-  const value = useMemo(() => ({
-    isActive,
-    currentStep,
-    totalSteps: onboardingSteps.length,
-    currentStepData: onboardingSteps[currentStep],
-    hasCompleted,
-    startOnboarding,
-    nextStep,
-    prevStep,
-    skipOnboarding,
-    completeOnboarding,
-    resetOnboarding,
-  }), [
-    isActive, currentStep, hasCompleted,
-    startOnboarding, nextStep, prevStep, skipOnboarding, completeOnboarding, resetOnboarding
-  ])
+  const value = useMemo(
+    () => ({
+      isActive,
+      currentStep,
+      totalSteps: onboardingSteps.length,
+      currentStepData: onboardingSteps[currentStep],
+      hasCompleted,
+      startOnboarding,
+      nextStep,
+      prevStep,
+      skipOnboarding,
+      completeOnboarding,
+      resetOnboarding,
+    }),
+    [
+      isActive,
+      currentStep,
+      hasCompleted,
+      startOnboarding,
+      nextStep,
+      prevStep,
+      skipOnboarding,
+      completeOnboarding,
+      resetOnboarding,
+    ]
+  )
 
   return (
     <OnboardingContext.Provider value={value}>

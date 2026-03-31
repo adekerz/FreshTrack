@@ -77,7 +77,10 @@
       "Bash(do echo:*)",
       "Read(//c/Users/esima/OneDrive/Рабочий стол/Projects/FreshTrack-projectadekerz/src/**)",
       "Read(//c/Users/esima/OneDrive/Рабочий стол/Projects/FreshTrack-projectadekerz/src/locales/**)",
-      "Read(//c/Users/esima/.claude/plugins/cache/claude-plugins-official/superpowers/5.0.5/skills/subagent-driven-development/**)"
+      "Read(//c/Users/esima/.claude/plugins/cache/claude-plugins-official/superpowers/5.0.5/skills/subagent-driven-development/**)",
+      "Bash(cd C:/Users/esima/OneDrive/Рабочий стол/Projects/FreshTrack-projectadekerz)",
+      "Bash(railway ssh:*)",
+      "Bash(railway run:*)"
     ]
   }
 }
