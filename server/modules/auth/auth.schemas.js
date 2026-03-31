@@ -55,7 +55,7 @@ export const UserRole = z.enum([
 // Какие роли может создавать каждая роль
 export const ROLE_HIERARCHY = {
   SUPER_ADMIN: ['SUPER_ADMIN', 'HOTEL_ADMIN', 'DEPARTMENT_MANAGER', 'STAFF'],
-  HOTEL_ADMIN: ['HOTEL_ADMIN', 'DEPARTMENT_MANAGER', 'STAFF'],
+  HOTEL_ADMIN: ['DEPARTMENT_MANAGER', 'STAFF'],
   DEPARTMENT_MANAGER: ['STAFF'],
   STAFF: [],
 }

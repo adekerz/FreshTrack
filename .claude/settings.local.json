@@ -4,7 +4,6 @@
       "Bash(find:*)",
       "Bash(git add:*)",
       "Bash(git reset:*)",
-      "Bash(git commit -m \"$\\(cat <<''EOF''\nMajor update: FAQ page, improved UX, settings reorganization, bug fixes\n\nUser Interface:\n- Add FAQ page with role-based content for all user roles\n- Move Settings from sidebar to dropdown menu \\(Header\\)\n- Add hotel and department info to user dropdown menu\n- Improve inventory page mobile layout and text wrapping\n- Add Help/FAQ link to both desktop and mobile navigation\n\nSettings Reorganization:\n- Move Accounts and MARSHA Codes pages into Settings tabs\n- Create dedicated settings components in ui/settings folder\n- Reorganize settings into Personal, Admin Panel, Super Admin Panel\n- Remove duplicate settings navigation items from sidebar\n\nBackend Improvements:\n- Add department info to user response \\(formatUserResponse\\)\n- Fix account deactivation bug \\(updateUserStatus was using wrong column\\)\n- Add audit logging improvements and SSE support\n- Add email verification service with OTP\n- Improve MARSHA codes management endpoints\n\nBug Fixes:\n- Fix account toggle status not persisting \\(is_active vs status column\\)\n- Fix bcrypt.compare error when password_hash is undefined\n- Improve date formatting and timezone handling\n\nTranslations:\n- Add comprehensive FAQ translations for English and Russian\n- Add navigation translations for FAQ/Help\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
       "Bash(npm run migrate:*)",
       "Bash(npm run build:*)",
       "Bash(node --check:*)",
@@ -80,7 +79,11 @@
       "Read(//c/Users/esima/.claude/plugins/cache/claude-plugins-official/superpowers/5.0.5/skills/subagent-driven-development/**)",
       "Bash(cd C:/Users/esima/OneDrive/Рабочий стол/Projects/FreshTrack-projectadekerz)",
       "Bash(railway ssh:*)",
-      "Bash(railway run:*)"
+      "Bash(railway run:*)",
+      "Bash(railway variables:*)",
+      "Bash(DATABASE_URL=\"postgresql://postgres:AXhqksMysqzAJqCCOrhgwKtKIntqSrTk@turntable.proxy.rlwy.net:11180/railway\" node -e \"\nimport\\('./server/db/postgres.js'\\).then\\(async \\({query}\\) => {\n  const r = await query\\(\\\\\"DELETE FROM hotels WHERE marsha_code = 'ALMGH'\\\\\"\\)\n  console.log\\('Deleted:', r.rowCount, 'hotel\\(s\\)'\\)\n  process.exit\\(0\\)\n}\\)\" 2>&1)",
+      "Bash(DATABASE_URL=\"postgresql://postgres:AXhqksMysqzAJqCCOrhgwKtKIntqSrTk@turntable.proxy.rlwy.net:11180/railway\" node -e \"\nimport\\('./server/db/postgres.js'\\).then\\(async \\({query}\\) => {\n  const r = await query\\(\\\\\"SELECT unnest\\(enum_range\\(NULL::task_priority\\)\\)::text\\\\\"\\)\n  console.log\\('task_priority values:', r.rows.map\\(x=>Object.values\\(x\\)[0]\\)\\)\n  process.exit\\(0\\)\n}\\)\" 2>&1)",
+      "Bash(DATABASE_URL=\"postgresql://postgres:AXhqksMysqzAJqCCOrhgwKtKIntqSrTk@turntable.proxy.rlwy.net:11180/railway\" node -e \"\nimport\\('./server/db/postgres.js'\\).then\\(async \\({query}\\) => {\n  const r = await query\\(\\\\\"DELETE FROM hotels WHERE marsha_code = 'ALMGH'\\\\\"\\)\n  console.log\\('Cleaned:', r.rowCount\\)\n  process.exit\\(0\\)\n}\\)\" 2>&1)"
     ]
   }
 }

@@ -205,9 +205,17 @@ export default function SettingsPage() {
       icon: Settings,
       label: t('settings.tabs.general') || 'Общие',
     },
-    // "Пользователи" только для HOTEL_ADMIN - SUPER_ADMIN управляет через "Организация"
+    // "Пользователи" (OrganizationSettings) только для HOTEL_ADMIN
+    // SUPER_ADMIN управляет через "Организация" в superAdminTabs
+    // "Аккаунты" (AccountsSettings) только для SUPER_ADMIN — там сквозной список всех пользователей
     ...(userIsSuperAdmin
-      ? []
+      ? [
+          {
+            id: 'accounts',
+            icon: Users,
+            label: t('settings.tabs.accounts') || 'Аккаунты',
+          },
+        ]
       : [
           {
             id: 'users',
@@ -215,11 +223,6 @@ export default function SettingsPage() {
             label: t('settings.tabs.users') || 'Пользователи',
           },
         ]),
-    {
-      id: 'accounts',
-      icon: Users,
-      label: t('settings.tabs.accounts') || 'Аккаунты',
-    },
     {
       id: 'join-requests',
       icon: UserPlus,

@@ -131,28 +131,40 @@ export default function CreateUserModal({
             <label className="block text-sm font-medium text-foreground mb-1">
               Роль
             </label>
-            {!departmentId ? (
-              canCreateSuperAdmin ? (
-                <select
-                  value={formState.role}
-                  onChange={(e) =>
-                    setFormState({ ...formState, role: e.target.value })
-                  }
-                  className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-card"
-                >
-                  <option value="HOTEL_ADMIN">
-                    {t?.('users.roles.HOTEL_ADMIN') || 'Hotel Admin'}
-                  </option>
-                  <option value="SUPER_ADMIN">
-                    {t?.('users.roles.SUPER_ADMIN') || 'Super Admin'}
-                  </option>
-                </select>
-              ) : (
-                <div className="w-full px-4 py-2.5 border border-border rounded-lg bg-muted/50 text-foreground">
+            {canCreateSuperAdmin ? (
+              // SUPER_ADMIN (is_owner): может создать HOTEL_ADMIN или SUPER_ADMIN
+              <select
+                value={formState.role}
+                onChange={(e) =>
+                  setFormState({ ...formState, role: e.target.value })
+                }
+                className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-card"
+              >
+                <option value="HOTEL_ADMIN">
                   {t?.('users.roles.HOTEL_ADMIN') || 'Hotel Admin'}
-                </div>
-              )
+                </option>
+                <option value="SUPER_ADMIN">
+                  {t?.('users.roles.SUPER_ADMIN') || 'Super Admin'}
+                </option>
+              </select>
+            ) : !departmentId ? (
+              // HOTEL_ADMIN без отдела: может создать только HOTEL_ADMIN — убрано, теперь DEPARTMENT_MANAGER
+              <select
+                value={formState.role}
+                onChange={(e) =>
+                  setFormState({ ...formState, role: e.target.value })
+                }
+                className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent bg-card"
+              >
+                <option value="DEPARTMENT_MANAGER">
+                  {t?.('users.roles.DEPARTMENT_MANAGER') || 'Dept Manager'}
+                </option>
+                <option value="STAFF">
+                  {t?.('users.roles.STAFF') || 'Staff'}
+                </option>
+              </select>
             ) : (
+              // Создание в конкретном отделе: STAFF или DEPARTMENT_MANAGER
               <select
                 value={formState.role}
                 onChange={(e) =>

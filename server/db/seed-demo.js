@@ -667,7 +667,6 @@ async function seedDemo() {
         `
         INSERT INTO settings (id, hotel_id, key, value)
         VALUES ($1, $2, $3, $4)
-        ON CONFLICT (hotel_id, key) DO NOTHING
       `,
         [uuidv4(), hotelId, s.key, JSON.stringify(s.value)]
       )
@@ -741,71 +740,77 @@ async function seedDemo() {
           bucket: todoBucket.id,
           title: 'Списать просроченные чипсы Pringles',
           desc: '3 упаковки с истёкшим сроком годности (LOT-2025-001)',
-          priority: 'high',
+          priority: 'HIGH',
           assignee: demoStaffId,
         },
         {
           bucket: todoBucket.id,
           title: "Проверить партию Lay's и Gummy Bears",
           desc: 'Истёк срок годности, необходимо списание',
-          priority: 'high',
+          priority: 'HIGH',
           assignee: demoStaffId,
         },
         {
           bucket: todoBucket.id,
           title: 'Пополнить запасы Pepsi Cola',
           desc: 'Текущий запас: 12 шт, истекает через 4 дня',
-          priority: 'medium',
+          priority: 'MEDIUM',
           assignee: null,
         },
         {
           bucket: inProgressBucket.id,
           title: 'Провести инвентаризацию Honor Bar',
           desc: 'Ежемесячная проверка всех позиций',
-          priority: 'medium',
+          priority: 'MEDIUM',
           assignee: demoManagerId,
         },
         {
           bucket: inProgressBucket.id,
           title: 'Обновить ценники на алкогольные позиции',
           desc: 'Новые цены с 1 апреля',
-          priority: 'low',
+          priority: 'LOW',
           assignee: demoStaffId,
         },
         {
           bucket: doneBucket.id,
           title: 'Приёмка товара от поставщика',
           desc: 'Получено 80 позиций, всё соответствует заказу',
-          priority: 'medium',
+          priority: 'MEDIUM',
           assignee: demoManagerId,
         },
         {
           bucket: doneBucket.id,
           title: 'Обучение нового сотрудника',
           desc: 'Диана Юсупова прошла обучение по системе FreshTrack',
-          priority: 'low',
+          priority: 'LOW',
           assignee: demoManagerId,
         },
       ]
       for (let i = 0; i < tasks.length; i++) {
         const tk = tasks[i]
+        const taskId = uuidv4()
         await client.query(
           `
-          INSERT INTO tasks (id, board_id, bucket_id, title, description, priority, position, created_by, assigned_to)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+          INSERT INTO tasks (id, board_id, bucket_id, title, description, priority, order_hint, created_by)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
         `,
           [
-            uuidv4(),
+            taskId,
             boardId,
             tk.bucket,
             tk.title,
             tk.desc,
             tk.priority,
-            i,
+            i.toString(),
             demoManagerId,
-            tk.assignee,
           ]
         )
+        if (tk.assignee) {
+          await client.query(
+            `INSERT INTO task_assignments (id, task_id, user_id, assigned_by) VALUES ($1, $2, $3, $4)`,
+            [uuidv4(), taskId, tk.assignee, demoManagerId]
+          )
+        }
       }
       console.log('✅ Task board + 7 tasks created')
     } else {
