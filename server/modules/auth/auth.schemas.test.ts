@@ -174,9 +174,10 @@ describe('Auth Validation Schemas', () => {
       expect(canAssignRole('SUPER_ADMIN', 'STAFF')).toBe(true)
     })
 
-    it('HOTEL_ADMIN cannot assign SUPER_ADMIN', () => {
+    it('HOTEL_ADMIN cannot assign SUPER_ADMIN or HOTEL_ADMIN', () => {
       expect(canAssignRole('HOTEL_ADMIN', 'SUPER_ADMIN')).toBe(false)
-      expect(canAssignRole('HOTEL_ADMIN', 'HOTEL_ADMIN')).toBe(true)
+      expect(canAssignRole('HOTEL_ADMIN', 'HOTEL_ADMIN')).toBe(false)
+      expect(canAssignRole('HOTEL_ADMIN', 'DEPARTMENT_MANAGER')).toBe(true)
       expect(canAssignRole('HOTEL_ADMIN', 'STAFF')).toBe(true)
     })
 
