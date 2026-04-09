@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Menu Knowledge Guide — Ritz-Carlton IRD</title>
+<title>Menu Knowledge Guide — The Ritz-Carlton,Astana - IRD</title>
+<link rel="icon" type="image/png" href="menu-favicon.png">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300;1,400&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -23,6 +24,16 @@
     --memory: #2a0a4a;
     --memory-bg: #f8f0ff;
     --memory-border: #c8a0f0;
+    /* Beverage palette */
+    --bev-dark: #0d1520;
+    --bev-accent: #4a8fa8;
+    --bev-accent-light: #7bb8cc;
+    --bev-bg: #f0f6fa;
+    --bev-card: #ffffff;
+    --bev-divider: #c8dce8;
+    --bev-memory: #0a2030;
+    --bev-memory-bg: #e8f4ff;
+    --bev-memory-border: #7ab0d0;
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -35,143 +46,280 @@
     line-height: 1.6;
   }
 
-  nav {
-    position: sticky; top: 0; z-index: 100;
-    background: var(--dark);
-    display: flex; gap: 0; overflow-x: auto; scrollbar-width: none;
-    border-bottom: 2px solid var(--gold);
+  /* ── TAB SWITCHER ── */
+  .tab-bar {
+    position: sticky; top: 0; z-index: 200;
+    background: #0e0e0e;
+    display: flex;
+    border-bottom: 3px solid var(--gold);
   }
-  nav::-webkit-scrollbar { display: none; }
-  nav a {
-    color: var(--gold-light); text-decoration: none;
-    padding: 10px 16px; white-space: nowrap;
-    font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase;
+  .tab-btn {
+    flex: 1;
+    padding: 14px 10px;
+    text-align: center;
+    font-family: 'Playfair Display', serif;
+    font-size: 1rem;
+    font-weight: 400;
+    letter-spacing: 0.05em;
+    color: #888;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    transition: all 0.25s;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -3px;
+  }
+  .tab-btn.active { color: var(--gold-light); border-bottom-color: var(--gold); }
+  .tab-btn:hover { color: var(--gold); }
+  .tab-btn .tab-icon { display: block; font-size: 1.4rem; margin-bottom: 2px; }
+
+  /* ── SUB-NAV ── */
+  .sub-nav {
+    position: sticky; top: 67px; z-index: 100;
+    display: flex; gap: 0; overflow-x: auto; scrollbar-width: none;
+    border-bottom: 1px solid var(--divider);
+  }
+  .sub-nav::-webkit-scrollbar { display: none; }
+  .sub-nav.food-nav { background: var(--dark); }
+  .sub-nav.bev-nav { background: var(--bev-dark); }
+  .sub-nav a {
+    text-decoration: none;
+    padding: 9px 15px; white-space: nowrap;
+    font-size: 11px; letter-spacing: 0.07em; text-transform: uppercase;
     font-family: 'Crimson Pro', serif; font-weight: 600;
     transition: background 0.2s, color 0.2s;
+    border-right: 1px solid rgba(255,255,255,0.07);
   }
-  nav a:hover { background: var(--gold); color: var(--dark); }
+  .food-nav a { color: var(--gold-light); }
+  .food-nav a:hover { background: var(--gold); color: var(--dark); }
+  .bev-nav a { color: var(--bev-accent-light); }
+  .bev-nav a:hover { background: var(--bev-accent); color: #fff; }
 
+  /* ── HEADERS ── */
   header {
-    background: var(--dark); color: var(--cream);
-    text-align: center; padding: 40px 20px 30px;
+    text-align: center; padding: 36px 20px 28px;
     position: relative; overflow: hidden;
   }
+  header.food-header { background: var(--dark); color: var(--cream); }
+  header.bev-header { background: var(--bev-dark); color: #e8f0f8; }
   header::before {
     content: ''; position: absolute; inset: 0;
-    background: radial-gradient(ellipse at center, rgba(184,150,46,0.15) 0%, transparent 70%);
+    background: radial-gradient(ellipse at center, rgba(184,150,46,0.12) 0%, transparent 70%);
   }
-  header .ornament { color: var(--gold); font-size: 28px; letter-spacing: 8px; display: block; margin-bottom: 8px; }
-  header h1 { font-family: 'Playfair Display', serif; font-size: 2.4rem; color: var(--gold-light); font-weight: 400; letter-spacing: 0.04em; margin-bottom: 4px; }
-  header p { color: #c4a86a; font-style: italic; font-size: 1rem; }
+  header.bev-header::before {
+    background: radial-gradient(ellipse at center, rgba(74,143,168,0.18) 0%, transparent 70%);
+  }
+  header .ornament { font-size: 24px; letter-spacing: 8px; display: block; margin-bottom: 6px; }
+  header.food-header .ornament { color: var(--gold); }
+  header.bev-header .ornament { color: var(--bev-accent-light); }
+  header h1 { font-family: 'Playfair Display', serif; font-size: 2rem; font-weight: 400; letter-spacing: 0.04em; margin-bottom: 4px; }
+  header.food-header h1 { color: var(--gold-light); }
+  header.bev-header h1 { color: var(--bev-accent-light); }
+  header p { font-style: italic; font-size: 0.95rem; opacity: 0.75; }
 
-  .wrapper { max-width: 1100px; margin: 0 auto; padding: 24px 16px; }
+  /* ── PAGES ── */
+  #food-page { display: block; }
+  #bev-page { display: none; }
+  #bev-page { background: var(--bev-bg); min-height: 100vh; }
 
+  /* ── LAYOUT ── */
+  .wrapper { max-width: 1100px; margin: 0 auto; padding: 20px 14px; }
+
+  /* ── SECTION TITLES ── */
   .section-title {
-    font-family: 'Playfair Display', serif; font-size: 1.6rem;
+    font-family: 'Playfair Display', serif; font-size: 1.5rem;
     color: var(--charcoal); border-bottom: 2px solid var(--gold);
-    padding-bottom: 6px; margin: 36px 0 20px;
+    padding-bottom: 6px; margin: 32px 0 18px;
     display: flex; align-items: center; gap: 10px;
   }
-  .section-title .emoji { font-size: 1.3rem; }
+  .section-title.bev { color: var(--bev-dark); border-bottom-color: var(--bev-accent); }
+  .section-title .emoji { font-size: 1.2rem; }
   .subsection {
-    font-family: 'Playfair Display', serif; font-size: 1.1rem;
-    color: var(--medium); margin: 24px 0 12px;
+    font-family: 'Playfair Display', serif; font-size: 1.05rem;
+    color: var(--medium); margin: 22px 0 10px;
     font-style: italic; letter-spacing: 0.03em;
   }
+  .subsection.bev { color: var(--bev-accent); }
 
-  .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
-  .card-grid.two { grid-template-columns: repeat(auto-fill, minmax(480px, 1fr)); }
+  /* ── GRIDS ── */
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
+  .card-grid.two { grid-template-columns: repeat(auto-fill, minmax(460px, 1fr)); }
+  .card-grid.three { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
 
+  /* ── FOOD CARDS ── */
   .dish-card {
     background: var(--card-bg); border: 1px solid var(--divider);
-    border-radius: 4px; padding: 16px 18px;
-    border-left: 4px solid var(--gold); position: relative;
+    border-radius: 6px; padding: 14px 16px;
+    border-left: 4px solid var(--gold);
   }
   .dish-card .dish-name {
-    font-family: 'Playfair Display', serif; font-size: 1.05rem;
-    color: var(--charcoal); margin-bottom: 8px; font-weight: 700;
+    font-family: 'Playfair Display', serif; font-size: 1rem;
+    color: var(--charcoal); margin-bottom: 7px; font-weight: 700;
   }
   .dish-card .tag-row { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0; }
   .tag {
     display: inline-block; padding: 1px 8px; border-radius: 20px;
-    font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;
-    font-family: 'Crimson Pro', serif;
+    font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
   }
   .tag.allergy { background: #fff0f0; color: var(--red-flag); border: 1px solid #ffcfcf; }
   .tag.wine { background: #f0f4ff; color: var(--blue); border: 1px solid #c8d4f0; }
-  .tag.time { background: #f5faf0; color: var(--green); border: 1px solid #bce0bd; }
   .tag.method { background: #fffbf0; color: #7a5c00; border: 1px solid #f0d870; }
   .tag.custom { background: #faf0ff; color: #5c1a8c; border: 1px solid #d4a8f0; }
   .tag.veg { background: #f0faf4; color: #1a7a3c; border: 1px solid #8dd4a8; }
+  .tag.bev-tag { background: #e8f4ff; color: #1a3a5c; border: 1px solid #a0c8e8; }
 
-  .dish-card p { font-size: 0.9rem; color: var(--medium); line-height: 1.5; margin-top: 4px; }
-  .dish-card .ingredients { font-size: 0.88rem; color: #7a6030; margin-top: 6px; }
-  .dish-card .flex-note { font-size: 0.88rem; color: #3a6030; font-style: italic; margin-top: 4px; }
+  .dish-card p { font-size: 0.88rem; color: var(--medium); line-height: 1.5; margin-top: 4px; }
+  .dish-card .ingredients { font-size: 0.85rem; color: #7a6030; margin-top: 5px; }
+  .dish-card .flex-note { font-size: 0.85rem; color: #3a6030; font-style: italic; margin-top: 4px; }
 
   /* ── MEMORY BOX ── */
   .memory {
-    background: var(--memory-bg);
-    border: 1px solid var(--memory-border);
-    border-left: 4px solid #9040d0;
-    border-radius: 4px;
-    padding: 12px 16px;
-    margin: 10px 0 0;
-    font-size: 0.88rem;
-    color: var(--memory);
-    line-height: 1.55;
+    background: var(--memory-bg); border: 1px solid var(--memory-border);
+    border-left: 4px solid #9040d0; border-radius: 4px;
+    padding: 10px 14px; margin: 10px 0 0;
+    font-size: 0.86rem; color: var(--memory); line-height: 1.5;
   }
-  .memory::before { content: '🧠 '; font-size: 1rem; }
+  .memory::before { content: '🧠 '; font-size: 0.95rem; }
   .memory strong { color: #6020a0; }
 
-  /* ── COMPARE TABLE ── */
-  .compare-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 0.9rem; background: var(--card-bg); border: 1px solid var(--divider); }
-  .compare-table th { background: var(--dark); color: var(--gold-light); padding: 10px 14px; font-family: 'Playfair Display', serif; font-weight: 400; font-size: 0.95rem; text-align: left; letter-spacing: 0.04em; }
-  .compare-table th:first-child { background: #2a1e0e; color: var(--gold); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; width: 130px; }
-  .compare-table td { padding: 9px 14px; border-bottom: 1px solid var(--divider); vertical-align: top; color: var(--charcoal); line-height: 1.4; }
+  .memory.bev {
+    background: var(--bev-memory-bg); border: 1px solid var(--bev-memory-border);
+    border-left: 4px solid var(--bev-accent); color: var(--bev-memory);
+  }
+  .memory.bev::before { content: '💡 '; }
+  .memory.bev strong { color: var(--bev-accent); }
+
+  /* ── BEV CARDS ── */
+  .bev-card {
+    background: var(--bev-card); border: 1px solid var(--bev-divider);
+    border-radius: 6px; padding: 14px 16px;
+    border-left: 4px solid var(--bev-accent);
+  }
+  .bev-card .bev-name {
+    font-family: 'Playfair Display', serif; font-size: 1rem;
+    color: var(--bev-dark); margin-bottom: 6px; font-weight: 700;
+  }
+  .bev-card .bev-sub { font-size: 0.8rem; color: var(--bev-accent); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+  .bev-card p { font-size: 0.87rem; color: #3a5060; line-height: 1.5; margin-top: 4px; }
+  .bev-card .bev-notes { font-size: 0.84rem; color: #2a4050; margin-top: 6px; font-style: italic; }
+
+  /* ── TABLES ── */
+  .compare-table { width: 100%; border-collapse: collapse; margin-bottom: 18px; font-size: 0.88rem; background: var(--card-bg); border: 1px solid var(--divider); }
+  .compare-table th { background: var(--dark); color: var(--gold-light); padding: 9px 12px; font-family: 'Playfair Display', serif; font-weight: 400; font-size: 0.9rem; text-align: left; }
+  .compare-table th:first-child { background: #2a1e0e; color: var(--gold); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.07em; width: 120px; }
+  .compare-table td { padding: 8px 12px; border-bottom: 1px solid var(--divider); vertical-align: top; color: var(--charcoal); line-height: 1.4; font-size: 0.87rem; }
   .compare-table tr:nth-child(even) td { background: var(--section-bg); }
-  .compare-table td:first-child { font-weight: 600; color: var(--medium); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.04em; }
+  .compare-table td:first-child { font-weight: 600; color: var(--medium); font-size: 0.82rem; text-transform: uppercase; }
   .compare-table .highlight { color: var(--red-flag); font-weight: 600; }
 
-  /* ── WINE TABLE ── */
-  .wine-table { width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 0.88rem; }
-  .wine-table th { background: #1a2040; color: #c8d4f0; padding: 8px 12px; text-align: left; font-size: 0.8rem; letter-spacing: 0.06em; text-transform: uppercase; }
-  .wine-table td { padding: 7px 12px; border-bottom: 1px solid #e0eaff; vertical-align: top; }
-  .wine-table tr:nth-child(even) td { background: #f4f7ff; }
+  .bev-table { width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 0.86rem; }
+  .bev-table th { background: var(--bev-dark); color: var(--bev-accent-light); padding: 8px 12px; text-align: left; font-size: 0.78rem; letter-spacing: 0.05em; text-transform: uppercase; }
+  .bev-table td { padding: 7px 12px; border-bottom: 1px solid var(--bev-divider); vertical-align: top; color: #1a2a38; }
+  .bev-table tr:nth-child(even) td { background: #f0f8fc; }
+  .bev-table td:first-child { font-weight: 600; color: var(--bev-accent); }
 
-  /* ── ALERT ── */
-  .alert { padding: 12px 16px; border-radius: 4px; margin: 12px 0; font-size: 0.9rem; line-height: 1.5; display: flex; gap: 10px; align-items: flex-start; }
+  /* ── ALERTS ── */
+  .alert { padding: 11px 14px; border-radius: 4px; margin: 10px 0; font-size: 0.88rem; line-height: 1.5; display: flex; gap: 10px; align-items: flex-start; }
   .alert.warning { background: #fff8e0; border-left: 4px solid #d4a000; color: #5c3c00; }
   .alert.info { background: #e8f4ff; border-left: 4px solid var(--blue); color: #0a1e40; }
   .alert.success { background: #e8f8ee; border-left: 4px solid var(--green); color: #0a2a14; }
-  .alert.danger { background: #fff0f0; border-left: 4px solid var(--red-flag); color: #4a0a0a; }
-  .alert-icon { font-size: 1.1rem; flex-shrink: 0; }
+  .alert.bev-info { background: #e4f2f8; border-left: 4px solid var(--bev-accent); color: #0a2030; }
+  .alert-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
 
   /* ── PREP GRID ── */
-  .prep-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin: 8px 0; }
-  .prep-card { background: var(--card-bg); border: 1px solid var(--divider); border-radius: 4px; padding: 10px 12px; text-align: center; font-size: 0.88rem; }
-  .prep-card .prep-name { font-weight: 700; color: var(--charcoal); font-size: 0.95rem; margin-bottom: 2px; }
+  .prep-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 9px; margin: 8px 0; }
+  .prep-card { background: var(--card-bg); border: 1px solid var(--divider); border-radius: 4px; padding: 10px; text-align: center; }
+  .prep-card .prep-name { font-weight: 700; color: var(--charcoal); font-size: 0.9rem; margin-bottom: 2px; }
   .prep-card .prep-temp { color: var(--gold); font-size: 1.1rem; font-weight: 700; font-family: 'Playfair Display', serif; }
-  .prep-card .prep-desc { color: var(--medium); font-size: 0.8rem; margin-top: 2px; }
+  .prep-card .prep-desc { color: var(--medium); font-size: 0.78rem; margin-top: 2px; }
 
   /* ── QUICK REF ── */
-  .quick-ref { background: var(--dark); color: var(--cream); border-radius: 4px; padding: 18px 20px; margin: 12px 0; }
-  .quick-ref h4 { color: var(--gold-light); font-family: 'Playfair Display', serif; font-size: 1rem; margin-bottom: 8px; font-weight: 400; letter-spacing: 0.04em; }
-  .quick-ref p, .quick-ref li { font-size: 0.88rem; line-height: 1.6; color: #d4c4a0; }
+  .quick-ref { background: var(--dark); color: var(--cream); border-radius: 6px; padding: 16px 18px; margin: 10px 0; }
+  .quick-ref.bev { background: var(--bev-dark); }
+  .quick-ref h4 { font-family: 'Playfair Display', serif; font-size: 0.95rem; margin-bottom: 8px; font-weight: 400; letter-spacing: 0.03em; }
+  .quick-ref.bev h4 { color: var(--bev-accent-light); }
+  .quick-ref:not(.bev) h4 { color: var(--gold-light); }
+  .quick-ref p, .quick-ref li { font-size: 0.86rem; line-height: 1.6; color: #d4c4a0; }
+  .quick-ref.bev li, .quick-ref.bev p { color: #b8d8e8; }
   .quick-ref ul { padding-left: 16px; }
   .quick-ref li { margin-bottom: 3px; }
 
-  footer { text-align: center; padding: 30px; color: var(--light-text); font-size: 0.8rem; letter-spacing: 0.06em; border-top: 1px solid var(--divider); margin-top: 40px; }
+  /* ── REGION BADGE ── */
+  .region-badge {
+    display: inline-block; padding: 2px 10px; border-radius: 20px;
+    font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+    margin-bottom: 6px;
+  }
+  .region-speyside { background: #fff3d4; color: #7a4800; border: 1px solid #e8c060; }
+  .region-highland { background: #e8f4e0; color: #2a5010; border: 1px solid #90c060; }
+  .region-islay { background: #e8eeff; color: #1a2880; border: 1px solid #8090e0; }
+  .region-lowland { background: #fff0f8; color: #6a1040; border: 1px solid #e090c0; }
+  .region-islands { background: #e8faff; color: #006080; border: 1px solid #60c0d8; }
+  .region-japan { background: #ffe8e8; color: #800010; border: 1px solid #e06060; }
+  .region-ireland { background: #e8ffe8; color: #006010; border: 1px solid #60c060; }
+  .region-scotland { background: #f0e8ff; color: #400080; border: 1px solid #a060e0; }
 
-  @media(max-width: 600px) {
-    .card-grid, .card-grid.two { grid-template-columns: 1fr; }
-    header h1 { font-size: 1.7rem; }
-    .compare-table { font-size: 0.82rem; }
+  /* ── COCKTAIL CARD ── */
+  .cocktail-card {
+    background: var(--bev-card); border: 1px solid var(--bev-divider);
+    border-radius: 6px; padding: 12px 14px;
+    border-top: 3px solid var(--bev-accent);
+  }
+  .cocktail-card .c-name { font-family: 'Playfair Display', serif; font-size: 0.95rem; font-weight: 700; color: var(--bev-dark); margin-bottom: 4px; }
+  .cocktail-card .c-ingredients { font-size: 0.82rem; color: #3a5060; line-height: 1.4; }
+  .cocktail-card .c-style { font-size: 0.78rem; color: var(--bev-accent); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 4px; }
+
+  /* ── FORTIFIED CARD ── */
+  .fort-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+  .fort-card {
+    background: #fdf8f0; border: 1px solid #e8d090;
+    border-radius: 6px; padding: 12px 14px;
+    border-left: 4px solid #c8900a;
+  }
+  .fort-card .f-name { font-weight: 700; color: #4a2800; font-size: 0.9rem; }
+  .fort-card .f-origin { font-size: 0.78rem; color: #8a6030; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+  .fort-card p { font-size: 0.83rem; color: #5c4020; line-height: 1.4; margin-top: 4px; }
+
+  footer { text-align: center; padding: 28px; color: var(--light-text); font-size: 0.78rem; letter-spacing: 0.05em; border-top: 1px solid var(--divider); margin-top: 36px; }
+
+  /* ── MOBILE ── */
+  @media(max-width: 640px) {
+    .card-grid, .card-grid.two, .card-grid.three { grid-template-columns: 1fr; }
+    .fort-grid { grid-template-columns: 1fr; }
+    header h1 { font-size: 1.5rem; }
+    .tab-btn { font-size: 0.85rem; }
+    .tab-btn .tab-icon { font-size: 1.2rem; }
+    .compare-table { font-size: 0.8rem; }
+    .bev-table { font-size: 0.8rem; }
+    .compare-table th:first-child { width: 90px; }
+    .section-title { font-size: 1.25rem; }
+    .prep-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media(min-width: 641px) and (max-width: 900px) {
+    .card-grid { grid-template-columns: repeat(2, 1fr); }
+    .card-grid.two { grid-template-columns: 1fr; }
+    .prep-grid { grid-template-columns: repeat(3, 1fr); }
   }
 </style>
 </head>
 <body>
 
-<nav>
+<!-- ════ MAIN TAB BAR ════ -->
+<div class="tab-bar" role="tablist">
+  <button class="tab-btn active" id="tab-food" onclick="switchTab('food')" role="tab" aria-selected="true">
+    <span class="tab-icon">🍽️</span>FOOD
+  </button>
+  <button class="tab-btn" id="tab-bev" onclick="switchTab('bev')" role="tab" aria-selected="false">
+    <span class="tab-icon">🍾</span>BEVERAGE
+  </button>
+</div>
+
+<!-- ════════════════════════════════════
+     FOOD PAGE
+════════════════════════════════════ -->
+<div id="food-page">
+
+<nav class="sub-nav food-nav">
   <a href="#memory-tips">🧠 Как учить</a>
   <a href="#compare">⚖️ Сравнения</a>
   <a href="#soups">🍜 Супы</a>
@@ -189,7 +337,7 @@
   <a href="#flex">🎯 Гибкость</a>
 </nav>
 
-<header>
+<header class="food-header">
   <span class="ornament">✦ ✦ ✦</span>
   <h1>Menu Knowledge Guide</h1>
   <p>In-Room Dining · A La Carte 2025 · Ritz-Carlton</p>
@@ -199,154 +347,119 @@
 
 <!-- ════════════ HOW TO MEMORIZE ════════════ -->
 <section id="memory-tips">
-  <h2 class="section-title"><span class="emoji">🧠</span> Как учить меню: система запоминания</h2>
-
+  <h2 class="section-title"><span class="emoji">🧠</span> Как учить меню</h2>
   <div class="card-grid two">
-
     <div class="dish-card" style="border-left-color:#9040d0;">
-      <div class="dish-name">Принцип якоря — «Что делает блюдо особенным?»</div>
-      <p>Для каждого блюда найди <strong>одну якорную деталь</strong>, которую ты не забудешь. Всё остальное держится вокруг неё. Например: Рибай = «глаз» (это слово само рисует картинку). Тендерлойн = «мышца не работает = нет жира = не пересушить». Казеречче = «caserecce от слова casa — домашняя паста из Сицилии».</p>
-      <div class="memory">Не учи список ингредиентов. Учи <strong>историю</strong> блюда + <strong>одну ключевую особенность</strong>.</div>
+      <div class="dish-name">Принцип якоря</div>
+      <p>Для каждого блюда найди одну якорную деталь. Рибай = «глаз» (rib + eye). Тендерлойн = «мышца не работает = нет жира = Rare/MR». Казеречче = «casa = дом — домашняя паста из Сицилии».</p>
+      <div class="memory">Не учи список ингредиентов. Учи <strong>историю + одну ключевую особенность</strong>.</div>
     </div>
-
     <div class="dish-card" style="border-left-color:#9040d0;">
       <div class="dish-name">Метод «Что скажу гостю?»</div>
-      <p>Прочитай описание блюда и сразу проговори вслух: <em>«Гость спрашивает — в чём разница между форелью и лососем? Я отвечу...»</em> Это переводит пассивное чтение в активное воспроизведение. Твой мозг запоминает не то, что читал, а то, что говорил вслух.</p>
-      <div class="memory">После каждой секции закрой шпаргалку и объясни блюдо воображаемому гостю — вслух, как будто уже идёшь к нему в номер.</div>
+      <p>После прочтения сразу проговори вслух: «Гость спрашивает — в чём разница между форелью и лососем? Я отвечу...» Мозг запоминает то, что говоришь, а не то, что читаешь.</p>
+      <div class="memory">После каждой секции закрой шпаргалку и объясни блюдо вслух воображаемому гостю.</div>
     </div>
-
     <div class="dish-card" style="border-left-color:#9040d0;">
-      <div class="dish-name">Группировка по цвету соуса / типу белка</div>
-      <p>Запоминай блюда кластерами: <strong>«все сливочные»</strong> (Порчини, Альфредо, Цыплёнок), <strong>«все томатные»</strong> (Болоньезе, Аррабиата, Дьявола, Маргарита), <strong>«все с демигласом»</strong> (Тендерлойн, Рибай, Тальятеле с рагу, Щёчки). Если ты знаешь, что соус один и тот же — запомнить разницу гораздо легче.</p>
-      <div class="memory">Нарисуй на бумаге 4 кружка: Томат / Сливки / Демиглас / Масло-Лимон — и впиши туда блюда. Это займёт 5 минут и даст структуру на всё меню.</div>
+      <div class="dish-name">Группировка по соусам</div>
+      <p>Сливочные: Порчини, Альфредо, Цыплёнок. Томатные: Болоньезе, Аррабиата, Дьявола, Маргарита. Демиглас: Тендерлойн, Рибай, Тальятеле с рагу, Щёчки. Знаешь соус — знаешь разницу.</p>
+      <div class="memory">Нарисуй 4 кружка: Томат / Сливки / Демиглас / Масло-Лимон — впиши блюда.</div>
     </div>
-
     <div class="dish-card" style="border-left-color:#9040d0;">
       <div class="dish-name">Аллергены — правило «ГЛЯРС»</div>
-      <p>Самые частые аллергены в меню: <strong>Г</strong>лютен, <strong>Л</strong>актоза, <strong>Я</strong>йцо, <strong>Р</strong>ыба, <strong>С</strong>оя. Запомни аббревиатуру ГЛЯРС. Для каждого блюда спроси себя: «Есть ли тут кто-то из ГЛЯРС?» Цезарь — вся пятёрка плюс горчица и рак. Крем-брюле — только ЛЯ (лактоза + яйцо). Минестроне — бобы + сельдерей (нет ни одного из ГЛЯРС).</p>
-      <div class="memory"><strong>Цезарь — чемпион по аллергенам</strong>: Глютен, Лактоза, Яйцо, Рыба (анчоусы!), Горчица, Диоксид, Рак (креветки). Гость с аллергией на рыбу — Цезарь уже нельзя, даже без креветок.</div>
+      <p>Самые частые: <strong>Г</strong>лютен, <strong>Л</strong>актоза, <strong>Я</strong>йцо, <strong>Р</strong>ыба, <strong>С</strong>оя. Для каждого блюда: «Есть ли кто из ГЛЯРС?» Цезарь — вся пятёрка + горчица + рак.</p>
+      <div class="memory"><strong>Цезарь — чемпион по аллергенам.</strong> Анчоусы в заправке = аллерген Рыба, даже без добавок.</div>
     </div>
-
     <div class="dish-card" style="border-left-color:#9040d0;">
-      <div class="dish-name">Вина — три правила вместо таблицы</div>
-      <p><strong>Правило 1:</strong> Красное мясо = красное вино. Белая рыба и морепродукты = белое. <strong>Правило 2:</strong> Острые блюда (Буффало, Крылья) = Riesling — кислотность гасит остроту. <strong>Правило 3:</strong> Трюфель и сыр = богатый Chardonnay (Tartufо, Четыре сыра, Альфредо). Если помнишь эти три правила, ты уже покрываешь 80% вопросов по вину.</p>
-      <div class="memory">Запомни 3 «якорных» вина: <strong>Hans Greyl SB</strong> = универсальный белый (к рыбе, салатам, курице), <strong>Querciabella Rosso</strong> = топовый красный (к стейкам), <strong>Tunella Pinot Grigio</strong> = элегантный белый (к форели, Альфредо, пиццам без мяса).</div>
+      <div class="dish-name">Вина — три правила</div>
+      <p>Красное мясо = красное вино. Рыба/морепродукты = белое. Острые блюда = Riesling (кислота гасит остроту). Chardonnay = сливочные блюда. Три правила покрывают 80% вопросов.</p>
+      <div class="memory">Якоря: <strong>Hans Greyl SB</strong> = универсальный белый. <strong>Querciabella Rosso</strong> = к стейкам. <strong>Riesling</strong> = к острому.</div>
     </div>
-
     <div class="dish-card" style="border-left-color:#9040d0;">
-      <div class="dish-name">Время приготовления — запомни исключения</div>
-      <p>Большинство блюд — 15–20 минут. Исключения нужно знать наизусть, потому что гостя надо предупредить сразу. <strong>Цыплёнок на гриле — 30–35 минут</strong>, это единственный аутсайдер. Стейки — 25–35 минут (зависит от прожарки). Супы и десерты — 5–15 минут. Крем-брюле — 5 минут (уже готово, только прожигается).</p>
-      <div class="memory">Если гость заказал Цыплёнка — скажи <em>сразу же</em>, до того как он закончит говорить. Это профессионализм. «Отличный выбор — обратите внимание, цыплёнок готовится 30–35 минут».</div>
+      <div class="dish-name">Время — запомни исключения</div>
+      <p>Большинство блюд 15–20 мин. Исключения: <strong>Цыплёнок 30–35 мин</strong> — предупреждать сразу. Стейки 25–35 мин. Супы и десерты 5–15 мин. Крем-брюле 5 мин.</p>
+      <div class="memory">Гость заказал Цыплёнка — скажи немедленно: «Цыплёнок готовится 30–35 минут».</div>
     </div>
-
   </div>
 </section>
 
 <!-- ════════════ COMPARE ════════════ -->
 <section id="compare">
-  <h2 class="section-title"><span class="emoji">⚖️</span> Ключевые сравнения блюд</h2>
+  <h2 class="section-title"><span class="emoji">⚖️</span> Ключевые сравнения</h2>
 
   <p class="subsection">Рыба: Форель vs Лосось</p>
   <table class="compare-table">
     <tr><th></th><th>🟠 Филе Форели (Казахстан)</th><th>🩷 Лосось на пару / на гриле</th></tr>
-    <tr><td>Рыба</td><td>Форель — лососёвое семейство, <strong>местная казахстанская</strong></td><td>Лосось — атлантический, насыщенный вкус</td></tr>
-    <tr><td>Жирность</td><td>Умеренная, нежнее</td><td>Выше, более насыщенный</td></tr>
+    <tr><td>Рыба</td><td>Форель — лососёвое, <strong>местная казахстанская</strong></td><td>Лосось — атлантический, насыщенный</td></tr>
     <tr><td>Способ</td><td><span class="highlight">Только на гриле</span></td><td><span class="highlight">На пару ИЛИ на гриле — гость выбирает</span></td></tr>
     <tr><td>Гарнир</td><td>Спаржа на гриле</td><td>Овощи (пар или гриль)</td></tr>
     <tr><td>Соус</td><td colspan="2">Lemon Butter — <strong>идентичный</strong>: рыбный бульон, сливки, масло, лимон, чеснок, шалот</td></tr>
     <tr><td>Аллергены</td><td colspan="2">Лактоза + Рыба (одинаково)</td></tr>
-    <tr><td>Время</td><td colspan="2">20–25 мин (одинаково)</td></tr>
     <tr><td>Вино GLS</td><td>Tunella Pinot Grigio</td><td>Hans Greyl Sauvignon Blanc</td></tr>
-    <tr><td>Зачем брать</td><td>Местный продукт, поддержать Казахстан, нежнее</td><td>Flexible — сам выбираешь пар или гриль</td></tr>
   </table>
-  <div class="memory">Форель = <strong>фиксированный гриль + местная</strong>. Лосось = <strong>гибкий способ готовки</strong>. Соус один и тот же — это ловушка на экзамене, предупреждают именно об этом.</div>
+  <div class="memory">Форель = <strong>фиксированный гриль + местная</strong>. Лосось = <strong>гибкий способ</strong>. Соус идентичен — это ловушка на экзамене.</div>
 
-  <p class="subsection">Мясо: Тендерлойн vs Рибай</p>
+  <p class="subsection">Стейки: Тендерлойн vs Рибай</p>
   <table class="compare-table">
-    <tr><th></th><th>🥩 Говяжья вырезка (Тендерлойн) — 180г</th><th>🥩 Стейк Рибай — 300г</th></tr>
-    <tr><td>Откуда</td><td>Тонкая часть, вырезка. Мышца почти не работает</td><td>Толстый край, 6–12 ребро туши</td></tr>
-    <tr><td>Жир</td><td><span class="highlight">Почти нет жира — очень постное</span></td><td><strong>Высокая мраморность</strong>, зерновой откорм</td></tr>
-    <tr><td>Нежность</td><td>Самое нежное мясо на туше</td><td>Нежное за счёт жира и мраморности</td></tr>
-    <tr><td>Вкус</td><td>Деликатный, чистый мясной</td><td>Насыщенный, яркий, выраженный умами</td></tr>
+    <tr><th></th><th>🥩 Тендерлойн — 180г</th><th>🥩 Рибай — 300г</th></tr>
+    <tr><td>Откуда</td><td>Тонкая часть, мышца почти не работает</td><td>Толстый край, 6–12 ребро туши</td></tr>
+    <tr><td>Жир</td><td><span class="highlight">Почти нет жира — постное</span></td><td><strong>Высокая мраморность</strong>, зерновой откорм</td></tr>
     <tr><td>Рек. прожарка</td><td><span class="highlight">Rare / Medium Rare — нельзя пересушить!</span></td><td>Medium Rare / Medium</td></tr>
-    <tr><td>Порция</td><td>180г (меньше)</td><td>300г (сытнее)</td></tr>
     <tr><td>Соус</td><td colspan="2">Peppercorn — <strong>идентичный</strong>: сливки, чёрный перец, шалот, демиглас</td></tr>
-    <tr><td>Вино GLS</td><td>Tunella Pinot Nero, Friuli</td><td>Arba Saperavi / Laqyl Arba Saperavi</td></tr>
-    <tr><td>Зачем брать</td><td>Нежнее, деликатнее — для тех, кто ценит текстуру</td><td>Вкуснее, сочнее, насыщеннее — для любителей стейков</td></tr>
+    <tr><td>Вино GLS</td><td>Tunella Pinot Nero, Friuli</td><td>Arba Saperavi, Almaty</td></tr>
   </table>
-  <div class="memory">Тендерлойн = <strong>«нет жира = легко пересушить = только Rare/MR»</strong>. Рибай = <strong>«рибай — ribeye — rib + eye = ребро + глаз (центр вырезки)»</strong>. Два разных слова на слуху — два разных ключа в памяти.</div>
+  <div class="memory">Тендерлойн = нет жира → только Rare/MR. Рибай = rib+eye = ребро+глаз (центр вырезки).</div>
 
-  <p class="subsection">Говяжьи блюда: от быстрого к медленному</p>
+  <p class="subsection">Пицца: сравнение позиций</p>
   <table class="compare-table">
-    <tr><th></th><th>Говяжьи Щёчки</th><th>Глазированные Рёбрышки</th><th>Тальятеле с Рагу</th></tr>
-    <tr><td>Часть туши</td><td>Лицевая мышца — жёсткая, требует долгой готовки</td><td>Говяжье ребро на кости (220г)</td><td>Говяжьи щёчки (в составе пасты)</td></tr>
-    <tr><td>Метод</td><td>Сувид + <strong>3 ч в печи при 150°С</strong></td><td>Сувид, маринад 12 ч, соус Бурбон</td><td>Щёчки томятся 5 ч при 150°С</td></tr>
-    <tr><td>Результат</td><td>Тающее сладковатое мясо</td><td>Карамелизированные, с кости</td><td>Мясо разбирается в соус</td></tr>
-    <tr><td>Подача</td><td>Картофельное пюре, демиглас, шимеджи</td><td>Пюре, соус бурбон, квашеная капуста</td><td>Домашняя тальятеле + зелёный соус + трюфель</td></tr>
-    <tr><td>Аллергены</td><td>Сельдерей, Лактоза, Алкоголь</td><td>Алкоголь, Горчица, Соя, Лактоза</td><td>Диоксид, Лактоза, Глютен, Яйцо</td></tr>
+    <tr><th>Пицца</th><th>База</th><th>Главная особенность</th></tr>
+    <tr><td>Маргарита</td><td>Томат</td><td>Классика. Флаг Италии. 1889, королева Маргарита.</td></tr>
+    <tr><td>С Бурратой</td><td>Томат</td><td><span class="highlight">Буррата равномерно — предупреждать гостя!</span> Внутри страчателла.</td></tr>
+    <tr><td>Дьявола</td><td>Томат</td><td>Острая. <strong>Говяжья</strong> салями (не свинина). Пепперони.</td></tr>
+    <tr><td>Тартуфо</td><td><span class="highlight">Белая (без томата!)</span></td><td>Сливочно-трюфельная. Рецепт шефа Рикардо.</td></tr>
+    <tr><td>Четыре сыра</td><td>Томат</td><td>Моцарелла / Пармезан / Голубой / Скаморца.</td></tr>
   </table>
-  <div class="memory">Щёчки и рагу — <strong>одна и та же часть туши</strong> (говяжьи щёчки), но разные блюда. На экзамене могут спросить: «В чём разница между Щёчками и Тальятеле с рагу?» Ответ: одно — основное блюдо с пюре, другое — паста с той же говядиной + трюфельное масло + зелёный соус.</div>
-
-  <p class="subsection">Пицца: чем отличаются похожие позиции</p>
-  <table class="compare-table">
-    <tr><th>Пицца</th><th>Ключевая начинка</th><th>База</th><th>Главная особенность</th></tr>
-    <tr><td>Маргарита</td><td>Томат Мутти, Моцарелла, Базилик</td><td>Томатная</td><td>Классика. Флаг Италии: красный+белый+зелёный. 1889 год, королева Маргарита.</td></tr>
-    <tr><td>С Бурратой</td><td>Как Маргарита + Буррата</td><td>Томатная</td><td><span class="highlight">Буррата распределена равномерно — предупреждать гостя!</span> Внутри — страчателла (сливки + рваная моцарелла).</td></tr>
-    <tr><td>Дьявола</td><td>Томат, Говяжья салями, Перец Чили, Моцарелла</td><td>Томатная</td><td>Острая. Говяжья салями (не свинина). Другое название — «пепперони».</td></tr>
-    <tr><td>Тартуфо</td><td>Тартуфата, Маскарпоне, Творожный сыр, Шампиньоны, Моцарелла</td><td><span class="highlight">Белая (без томата!)</span></td><td>Сливочно-трюфельная. Рецепт шефа Рикардо, вдохновлён Пьемонтом.</td></tr>
-    <tr><td>Четыре сыра</td><td>Томат + Моцарелла + Пармезан + Голубой + Скаморца</td><td>Томатная</td><td>4 разных характера сыра: молочный / ореховый / острый / сливочный.</td></tr>
-  </table>
-  <div class="memory"><strong>Тартуфо — единственная без томата.</strong> Если гость хочет что-то «нежирное» или «без кислоты» — Тартуфо и Четыре сыра (томата меньше). Если хочет «что-то особенное» — Буррата (но предупредить про равномерное распределение!).</div>
+  <div class="memory"><strong>Тартуфо — единственная без томата.</strong> Буррата — всегда предупреждать про равномерное распределение.</div>
 
   <p class="subsection">Паста: соусы и белки</p>
   <table class="compare-table">
-    <tr><th>Паста</th><th>Тип соуса</th><th>Белок</th><th>Острота</th><th>Особенность</th></tr>
-    <tr><td>Аррабиата</td><td>Томат (веганский)</td><td>Нет</td><td>🌶️ Острая</td><td>«Сердитая» по-итальянски. Самая простая.</td></tr>
-    <tr><td>Болоньезе</td><td>Томат + мясо</td><td>Говядина (фарш)</td><td>Нет</td><td>Из Болоньи, XVIII в. Исторически — тальятелле.</td></tr>
-    <tr><td>Порчини</td><td>Белое сливочное</td><td>Нет (вег)</td><td>Нет</td><td>Гриб порчини — аромат каштана и фундука.</td></tr>
-    <tr><td>Альфредо</td><td>Сливочный с грибами</td><td>Курица ИЛИ Креветки</td><td>Нет</td><td>Рим, нач. XX в. Альфредо ди Лелио. Белок на выбор.</td></tr>
-    <tr><td>Тальятеле с рагу</td><td>Демиглас + щёчки + зелёный соус + трюфель</td><td>Говядина (щёчки)</td><td>Нет</td><td>Домашняя паста (желток+мука). Щёчки 5ч при 150°С.</td></tr>
-    <tr><td>Казеречче Ромеско</td><td>Испанский ромеско (перцы+миндаль)</td><td>Тигровые креветки</td><td>Умеренная</td><td>Из Сицилии (casa = дом). Соус из Каталонии.</td></tr>
+    <tr><th>Паста</th><th>Соус</th><th>Белок</th><th>Особенность</th></tr>
+    <tr><td>Аррабиата</td><td>Томат</td><td>Нет (vegan)</td><td>🌶️ Острая. «Сердитая».</td></tr>
+    <tr><td>Болоньезе</td><td>Томат + мясо</td><td>Говядина</td><td>Из Болоньи, XVIII в.</td></tr>
+    <tr><td>Порчини</td><td>Белые сливки</td><td>Нет (вег)</td><td>Гриб = аромат каштана.</td></tr>
+    <tr><td>Альфредо</td><td>Сливки + грибы</td><td>Курица ИЛИ Креветки</td><td>Белок на выбор.</td></tr>
+    <tr><td>Тальятеле</td><td>Демиглас + трюфель</td><td>Говяжьи щёчки</td><td>Домашняя паста.</td></tr>
+    <tr><td>Казеречче</td><td>Ромеско (Испания)</td><td>Тигровые креветки</td><td>Паста фиксирована.</td></tr>
   </table>
-  <div class="memory"><strong>Ключ для паст:</strong> Аррабиата = вег+острая. Болоньезе = мясная+томат. Порчини = вег+сливки. Альфредо = сливки+выбор белка. Тальятеле = домашняя+трюфель. Казеречче = морепродукт+испанский соус. Запомни эти 6 «меток» — и структура пасты у тебя готова.</div>
-
-  <div class="alert success">
-    <span class="alert-icon">✅</span>
-    <div><strong>Гибкость пасты (4 из 6):</strong> Тальятелле / Пенне / Спагетти. Пенне и Спагетти — доступны <strong>без глютена</strong>. Тальятеле с рагу и Казеречче — паста фиксирована. Всегда готовится al dente («на зубок»).</div>
-  </div>
+  <div class="alert success"><span class="alert-icon">✅</span><div><strong>Гибкость пасты (4 из 6):</strong> Тальятелле / Пенне (GF) / Спагетти (GF). Тальятеле с рагу и Казеречче — паста фиксирована.</div></div>
 </section>
 
 <!-- ════════════ SOUPS ════════════ -->
 <section id="soups">
   <h2 class="section-title"><span class="emoji">🍜</span> Супы</h2>
   <div class="card-grid">
-
     <div class="dish-card">
       <div class="dish-name">Борщ</div>
-      <p>Свекольный суп с говядиной. Подаётся со сметаной. Традиционное восточнославянское блюдо. 10–15 мин.</p>
-      <div class="ingredients">Говядина, свёкла, картофель, капуста, морковь, укроп, уксус, томатная паста → сметана</div>
+      <p>Свекольный суп с говядиной. Подаётся со сметаной. Восточнославянское блюдо. 10–15 мин.</p>
+      <div class="ingredients">Говядина, свёкла, картофель, капуста, морковь → сметана</div>
       <div class="tag-row"><span class="tag allergy">Лактоза</span></div>
       <div class="flex-note">✓ Предлагать хлеб</div>
       <div class="memory">Единственный мясной суп. Красный цвет = свёкла.</div>
     </div>
-
     <div class="dish-card">
       <div class="dish-name">Минестроне</div>
       <p>«Большой суп» — итальянский с перловкой и овощами. «Суп долгожителей». 10–15 мин.</p>
       <div class="ingredients">Перловка, цуккини, базилик, помидоры, морковь, белая фасоль, сельдерей</div>
       <div class="tag-row"><span class="tag allergy">Бобы</span><span class="tag allergy">Сельдерей</span><span class="tag veg">Веган</span></div>
       <div class="flex-note">✓ Предлагать хлеб · Без кондиментов</div>
-      <div class="memory">Единственный веганский суп. Minestrone = «большой» по-итальянски.</div>
+      <div class="memory">Единственный веганский суп.</div>
     </div>
-
     <div class="dish-card">
       <div class="dish-name">Куриный суп Лапша</div>
       <p>Классический куриный суп с яичной лапшой и овощами. 10–15 мин.</p>
-      <div class="ingredients">Куриный бульон, лук, морковь, картофель, яичная лапша, курица → декор: петрушка</div>
+      <div class="ingredients">Куриный бульон, лук, морковь, картофель, яичная лапша, курица</div>
       <div class="tag-row"><span class="tag allergy">Глютен</span><span class="tag allergy">Яйцо</span></div>
-      <div class="flex-note">✓ Предлагать хлеб · Без кондиментов</div>
+      <div class="flex-note">✓ Предлагать хлеб</div>
     </div>
-
   </div>
 </section>
 
@@ -354,49 +467,36 @@
 <section id="salads">
   <h2 class="section-title"><span class="emoji">🥗</span> Салаты</h2>
   <div class="card-grid">
-
     <div class="dish-card">
       <div class="dish-name">Греческий салат с Киноа</div>
-      <p>Традиционный «деревенский» греческий салат (хориатики) + киноа. Только оливковое масло — без горчицы, без яиц. 10–15 мин.</p>
-      <div class="ingredients">Огурец, томаты, красный лук, Фета, маслины, орегано, болгарский перец кр+зел, киноа</div>
+      <p>«Хориатики» — деревенский греческий + киноа. Только оливковое масло. 10–15 мин.</p>
+      <div class="ingredients">Огурец, томаты, красный лук, Фета, маслины, орегано, болгарский перец, киноа</div>
       <div class="tag-row"><span class="tag allergy">Лактоза</span><span class="tag veg">Вегетарианский</span></div>
-      <p style="margin-top:6px;"><strong>Вино:</strong> Hans Greyl SB / Tunella SB</p>
-      <div class="memory">Маслины = зрелые чёрные оливки. Фета = овечье молоко, выдержка 3+ мес. Киноа = ореховый вкус, горные склоны.</div>
+      <p style="margin-top:5px;"><strong>Вино:</strong> Hans Greyl SB / Tunella SB</p>
+      <div class="memory">Маслины = зрелые чёрные оливки. Фета = овечье молоко, 3+ мес. Киноа = ореховый вкус.</div>
     </div>
-
     <div class="dish-card">
       <div class="dish-name">Минеральный салат</div>
-      <p>Витаминный салат из сырых овощей с заправкой из мяты и лайма. Халлуми — опция за доплату. 10–15 мин.</p>
-      <div class="ingredients">Свёкла, белая + краснокочанная капуста, корень сельдерея, шпинат, морковь, ромэн, фисташки, цуккини → мятная заправка на лайме</div>
+      <p>Сырые овощи, заправка мята+лайм. +Халлуми по желанию. 10–15 мин.</p>
+      <div class="ingredients">Свёкла, белая+краснокочанная капуста, корень сельдерея, шпинат, морковь, ромэн, фисташки, цуккини</div>
       <div class="tag-row"><span class="tag allergy">Сельдерей</span><span class="tag allergy">Орехи</span><span class="tag custom">+Халлуми (Лактоза)</span><span class="tag veg">Веган (без халлуми)</span></div>
-      <p style="margin-top:6px;"><strong>Вино:</strong> Arba Sary Rkatseteli / Sepp Moser Grüner Veltliner</p>
-      <div class="memory">Халлуми = кипрский сыр с высокой температурой плавления → можно жарить. Минеральный = полный витаминов и минералов.</div>
+      <p style="margin-top:5px;"><strong>Вино:</strong> Arba Sary Rkatseteli</p>
     </div>
-
     <div class="dish-card">
       <div class="dish-name">Классический Салат Цезарь</div>
-      <p>Назван в честь <strong>Цезаря Кардини</strong> (итало-американский повар, Тихуана, Мексика, 1920–40е). Не в честь Юлия Цезаря! Опционально: курица, тигровые креветки, халлуми. 10–15 мин.</p>
+      <p>Назван в честь <strong>Цезаря Кардини</strong> (Тихуана, Мексика, 1920-е). Не Юлий Цезарь! +Курица / +Креветки / +Халлуми. 10–15 мин.</p>
       <div class="ingredients">Ромэн, крутоны, пармезан → заправка: желток, горчица, чеснок, <strong>анчоусы</strong>, вустер, табаско</div>
-      <div class="tag-row">
-        <span class="tag allergy">Глютен</span><span class="tag allergy">Лактоза</span><span class="tag allergy">Яйцо</span>
-        <span class="tag allergy">Рыба</span><span class="tag allergy">Горчица</span><span class="tag allergy">Диоксид</span><span class="tag allergy">Рак</span>
-      </div>
-      <p style="margin-top:6px;"><strong>Вино:</strong> Voche Blanco Chardonnay / L'Altro Chardonnay</p>
-      <div class="memory"><strong>Анчоусы в заправке = аллерген Рыба</strong> — даже если гость не заказывает добавки. Это самый важный факт про Цезарь на ассессменте.</div>
+      <div class="tag-row"><span class="tag allergy">Глютен</span><span class="tag allergy">Лактоза</span><span class="tag allergy">Яйцо</span><span class="tag allergy">Рыба</span><span class="tag allergy">Горчица</span><span class="tag allergy">Рак</span></div>
+      <p style="margin-top:5px;"><strong>Вино:</strong> Voche Blanco Chardonnay</p>
+      <div class="memory"><strong>Анчоусы в заправке = Рыба</strong> — даже без добавок. Самый важный факт про Цезарь.</div>
     </div>
-
     <div class="dish-card">
       <div class="dish-name">Кейл Салат</div>
-      <p>Азиатский хрустящий салат. Капуста кале = горьковатый вкус, напоминает шпинат. Шиитаке — только шляпки (ножки жёсткие). Мирин = японское сладкое вино. 10–15 мин.</p>
-      <div class="ingredients">Кале, брокколи (маринад: мисо+уксус), шиитаке (маринад: кунжут+мёд+мисо+соевый), кешью, вяленые томаты, семена тыквы, эдамаме → куркумная паста + соево-имбирная заправка</div>
-      <div class="tag-row">
-        <span class="tag allergy">Соя</span><span class="tag allergy">Лактоза</span><span class="tag allergy">Семена</span>
-        <span class="tag allergy">Орехи</span><span class="tag allergy">Горчица</span><span class="tag veg">Вегетарианский</span>
-      </div>
-      <p style="margin-top:6px;"><strong>Вино:</strong> Hans Greyl SB / Markus Molitor Riesling</p>
-      <div class="memory">Кейл = самый «азиатский» салат в меню. Много аллергенов из-за соуса (соя, мёд, кунжут). Эдамаме = незрелые соевые бобы.</div>
+      <p>Азиатский хрустящий. Кале = горьковатый, как шпинат. Шиитаке — только шляпки. 10–15 мин.</p>
+      <div class="ingredients">Кале, брокколи (мисо+уксус), шиитаке (кунжут+мёд+соевый), кешью, семена тыквы, эдамаме → куркума + соево-имбирная заправка</div>
+      <div class="tag-row"><span class="tag allergy">Соя</span><span class="tag allergy">Лактоза</span><span class="tag allergy">Семена</span><span class="tag allergy">Орехи</span><span class="tag veg">Вегетарианский</span></div>
+      <p style="margin-top:5px;"><strong>Вино:</strong> Hans Greyl SB / Markus Molitor Riesling</p>
     </div>
-
   </div>
 </section>
 
@@ -404,220 +504,165 @@
 <section id="starters">
   <h2 class="section-title"><span class="emoji">🍤</span> Закуски</h2>
   <div class="card-grid">
-
     <div class="dish-card">
       <div class="dish-name">Куриные Крылья — Буффало 🌶️</div>
-      <p><strong>Острые.</strong> 6 штук в порции. Маринуются в молоке 12 часов. Панировка + жарка. Соус: Шрирача + сливочное масло. 15–20 мин.</p>
+      <p><strong>Острые.</strong> 6 штук. Маринад в молоке 12 ч. Соус: Шрирача + сливочное масло. 15–20 мин.</p>
       <div class="tag-row"><span class="tag allergy">Глютен</span><span class="tag allergy">Яйцо</span><span class="tag allergy">Лактоза</span></div>
-      <div class="memory">Шрирача = тайский город Сирача + перец чили. Буффало vs Барбекю: <strong>только соус разный</strong>, всё остальное идентично.</div>
     </div>
-
     <div class="dish-card">
       <div class="dish-name">Куриные Крылья — Барбекю 🍯</div>
-      <p><strong>Сладкие.</strong> Тот же рецепт крыльев — другой соус: Барбекю + кленовый сироп. Украшение: кунжут. 15–20 мин.</p>
+      <p><strong>Сладкие.</strong> Тот же рецепт. Соус: Барбекю + кленовый сироп. Украшение кунжут. 15–20 мин.</p>
       <div class="tag-row"><span class="tag allergy">Глютен</span><span class="tag allergy">Яйцо</span><span class="tag allergy">Лактоза</span><span class="tag allergy">Семена</span></div>
-      <div class="memory">Барбекю = сладкий, Буффало = острый. Семена кунжута добавляют аллерген «Семена» — у Буффало его нет.</div>
+      <div class="memory">Буффало vs Барбекю: <strong>только соус</strong> разный. У Барбекю добавляется аллерген «Семена» (кунжут).</div>
     </div>
-
     <div class="dish-card">
       <div class="dish-name">Котлеты из Креветок</div>
-      <p>Азиатские котлеты из мякоти креветок с листьями шисо (японская мята/перилла). Йогуртовый соус: чили-лайм с кинзой. 15–20 мин.</p>
-      <div class="ingredients">1.2 кг мякоти креветок, кориандр, шисо, имбирь, куркума, зелёный чили, кукурузный крахмал → йогуртовый соус (греческий йогурт, тайский сладкий чили, лайм, кинза)</div>
+      <p>Азиатские котлеты из мякоти креветок с листьями шисо (японская мята). Йогуртовый соус чили-лайм. 15–20 мин.</p>
+      <div class="ingredients">Мякоть креветок, шисо, имбирь, куркума, зелёный чили → йогуртовый соус (чили, лайм, кинза)</div>
       <div class="tag-row"><span class="tag allergy">Яйцо</span><span class="tag allergy">Лактоза</span><span class="tag allergy">Цитрус</span><span class="tag allergy">Мёд</span></div>
     </div>
-
     <div class="dish-card">
       <div class="dish-name">Фиш энд Чипс</div>
-      <p><strong>Дикий Средиземноморский Сибас</strong> (170г) в кляре темпура. Британское неофициальное нац. блюдо. Изначально завезено евреями-сефардами. Традиционно с тёмным пивом — у нас с газированной водой. 15–20 мин.</p>
-      <div class="ingredients">Сибас в кляре (мука темпура, яйцо, газировка, специи) + картофель каджун + соус тартар + соус из зелёного горошка</div>
-      <div class="tag-row"><span class="tag allergy">Яйцо</span><span class="tag allergy">Горчица</span><span class="tag allergy">Рыба</span><span class="tag allergy">Глютен</span><span class="tag allergy">Лактоза</span><span class="tag allergy">Бобы</span></div>
-      <p style="margin-top:6px;"><strong>Вино:</strong> Hans Greyl SB</p>
-      <div class="memory">Дикий Сибас = ловится в море, не ферма → дороже. Каджун = луизианская приправа (французские переселенцы). Тартар назван в честь татаро-монголов.</div>
+      <p><strong>Дикий Средиземноморский Сибас</strong> (170г) в кляре темпура. Британское нац. блюдо. Традиционно с тёмным пивом — у нас с газированной водой. 15–20 мин.</p>
+      <div class="ingredients">Сибас в кляре + картофель каджун + соус тартар + соус из горошка</div>
+      <div class="tag-row"><span class="tag allergy">Яйцо</span><span class="tag allergy">Горчица</span><span class="tag allergy">Рыба</span><span class="tag allergy">Глютен</span><span class="tag allergy">Лактоза</span></div>
+      <div class="memory">Дикий сибас = ловится в море, не ферма → потому дороже.</div>
     </div>
-
     <div class="dish-card">
       <div class="dish-name">Креветки Динамит</div>
-      <p>Тигровые креветки во фритюре (мука темпура). Соус «Динамит»: шрирача + сладкий чили + мёд + майонез. 15–20 мин.</p>
-      <div class="tag-row"><span class="tag allergy">Глютен</span><span class="tag allergy">Рак</span><span class="tag allergy">Лактоза</span><span class="tag allergy">Семена</span><span class="tag allergy">Яйцо</span><span class="tag allergy">Орехи</span></div>
-      <div class="memory">Темпура = японская панировочная мука для фритюра. Тигровые креветки — самые крупные, с тёмными полосами на панцире.</div>
+      <p>Тигровые креветки во фритюре (темпура). Соус «Динамит»: шрирача + сладкий чили + мёд + майонез. 15–20 мин.</p>
+      <div class="tag-row"><span class="tag allergy">Глютен</span><span class="tag allergy">Рак</span><span class="tag allergy">Лактоза</span><span class="tag allergy">Семена</span><span class="tag allergy">Яйцо</span></div>
     </div>
-
   </div>
 </section>
 
 <!-- ════════════ PASTA ════════════ -->
 <section id="pasta">
   <h2 class="section-title"><span class="emoji">🍝</span> Паста</h2>
-  <div class="alert success">
-    <span class="alert-icon">✅</span>
-    <div><strong>Выбор пасты (4 из 6):</strong> Тальятелле / Пенне без глютена / Спагетти без глютена. Степень готовки: al dente. Тальятеле с рагу и Казеречче — паста фиксирована.</div>
-  </div>
+  <div class="alert success"><span class="alert-icon">✅</span><div><strong>Выбор пасты (4 из 6):</strong> Тальятелле / Пенне (GF) / Спагетти (GF). Al dente. Тальятеле с рагу и Казеречче — фиксированы.</div></div>
   <div class="card-grid">
-
     <div class="dish-card">
       <div class="dish-name">Аррабиата</div>
-      <p>«Сердитая» по-итальянски. Острый томатный соус. Самая простая и быстрая (10–15 мин). Подаётся с пармезаном.</p>
-      <div class="ingredients">Чеснок, перец чили, оливковое масло, томат Мутти → пармезан при подаче</div>
-      <div class="tag-row"><span class="tag allergy">Лактоза</span><span class="tag allergy">Глютен</span><span class="tag allergy">Яйцо</span><span class="tag veg">Вегетарианская</span><span class="tag method">🌶️ Острая</span></div>
-      <p style="margin-top:6px;"><strong>Вино:</strong> Talo Primitivo·Merlot / P.F. Bobal, Manchuela</p>
+      <p>«Сердитая» — острый томатный соус. Самая простая. Подаётся с пармезаном. 10–15 мин.</p>
+      <div class="ingredients">Чеснок, перец чили, оливковое масло, томат Мутти → пармезан</div>
+      <div class="tag-row"><span class="tag allergy">Лактоза</span><span class="tag allergy">Глютен</span><span class="tag veg">Веган (без пармезана)</span><span class="tag method">🌶️ Острая</span></div>
     </div>
-
     <div class="dish-card">
       <div class="dish-name">Болоньезе</div>
-      <p>Мясной соус из Болоньи, конец XVIII в. Исторически подаётся с тальятелле. Томат Пилати Мутти — паста из помидоров с базиликом. 15–20 мин.</p>
-      <div class="ingredients">Фарш, томат Пилати Мутти, морковь, сельдерей, красное вино, лук, чеснок, базилик</div>
+      <p>Мясной соус из Болоньи, конец XVIII в. Исторически — с тальятелле. 15–20 мин.</p>
+      <div class="ingredients">Фарш, томат Пилати Мутти, морковь, сельдерей, красное вино, лук, чеснок</div>
       <div class="tag-row"><span class="tag allergy">Диоксид</span><span class="tag allergy">Глютен</span><span class="tag allergy">Сельдерей</span><span class="tag allergy">Яйцо</span></div>
-      <p style="margin-top:6px;"><strong>Вино:</strong> Centine Rosso Sangiovese·CS·Merlot / Isole E Olena</p>
     </div>
-
     <div class="dish-card">
       <div class="dish-name">Порчини</div>
-      <p>Белое грибное рагу — нежное, сливочное, без мяса. Гриб порчини = аромат каштана и фундука, ~25 диких видов. 15–20 мин.</p>
-      <div class="ingredients">Шампиньоны, белое вино, шалот, чеснок, овощной бульон, сливки, тимьян</div>
-      <div class="tag-row"><span class="tag allergy">Диоксид</span><span class="tag allergy">Глютен</span><span class="tag allergy">Лактоза</span><span class="tag allergy">Яйцо</span><span class="tag veg">Вегетарианская</span></div>
-      <p style="margin-top:6px;"><strong>Вино:</strong> Calaluna Sardegna / Montes Alpha Chardonnay</p>
-      <div class="memory">Порчини ≠ Альфредо. Оба сливочных — но Порчини без белка и без чьего-либо имени в названии. Альфредо = имя повара + белок на выбор.</div>
+      <p>Белое грибное рагу — сливочное, без мяса. Гриб порчини = аромат каштана и фундука. 15–20 мин.</p>
+      <div class="ingredients">Шампиньоны, белое вино, шалот, чеснок, сливки, тимьян</div>
+      <div class="tag-row"><span class="tag allergy">Диоксид</span><span class="tag allergy">Глютен</span><span class="tag allergy">Лактоза</span><span class="tag veg">Вегетарианская</span></div>
     </div>
-
     <div class="dish-card">
       <div class="dish-name">Альфредо</div>
-      <p>Рим, нач. XX в., Альфредо ди Лелио. Сливочно-грибной соус с пармезаном. Белок на выбор гостя. 15–20 мин.</p>
-      <div class="ingredients">Сливки, шампиньоны, пармезан, белое вино, сливочное масло, тимьян → + курица ИЛИ тигровые креветки</div>
+      <p>Рим, нач. XX в., Альфредо ди Лелио. Сливочный соус с грибами и пармезаном. Белок на выбор. 15–20 мин.</p>
+      <div class="ingredients">Сливки, шампиньоны, пармезан, белое вино, тимьян → + курица ИЛИ тигровые креветки</div>
       <div class="tag-row"><span class="tag allergy">Алкоголь</span><span class="tag allergy">Лактоза</span><span class="tag custom">Курица или Креветки</span></div>
-      <p style="margin-top:6px;"><strong>Вино:</strong> Tunella Pinot Grigio / L'Altro Chardonnay</p>
     </div>
-
     <div class="dish-card">
       <div class="dish-name">Тальятеле с рагу из Говядины</div>
-      <p>Домашняя тальятеле (ручная, желток+мука) с говяжьими щёчками (5 часов при 150°С) и трюфельным маслом. Зелёный соус с каперсами и дижонской горчицей. 10–15 мин.</p>
-      <div class="ingredients">Домашняя тальятеле, говяжьи щёчки, красное вино, демиглас → зелёный соус (каперсы, мята, петрушка, дижонская горчица) + трюфельное масло</div>
+      <p>Домашняя тальятеле (желток+мука) с говяжьими щёчками (5 ч при 150°С) + трюфельное масло. 10–15 мин.</p>
+      <div class="ingredients">Домашняя тальятеле, говяжьи щёчки, красное вино, демиглас → зелёный соус (каперсы, мята, дижонская горчица) + трюфель</div>
       <div class="tag-row"><span class="tag allergy">Диоксид</span><span class="tag allergy">Лактоза</span><span class="tag allergy">Глютен</span><span class="tag allergy">Яйцо</span><span class="tag method">Паста фиксирована</span></div>
-      <p style="margin-top:6px;"><strong>Вино:</strong> Fleurie Game, Beaujolais / El Rapolao Mencia, Bierzo</p>
     </div>
-
     <div class="dish-card">
       <div class="dish-name">Казеречче Ромеско с Креветками</div>
-      <p>Caserecce = «домашняя» (от casa — дом), родом из Сицилии. Соус Ромеско = традиционный каталонский испанский соус с перцами и миндалём. 15–20 мин.</p>
-      <div class="ingredients">Казеречче, ромеско (красные перцы, миндаль, паприка, помидоры, хересный уксус), зелёный горошек, вяленые томаты, лимонная рикотта, тигровые креветки, пармезан</div>
-      <div class="tag-row"><span class="tag allergy">Орехи</span><span class="tag allergy">Глютен</span><span class="tag allergy">Ракообразные</span><span class="tag allergy">Лактоза</span><span class="tag allergy">Диоксид</span><span class="tag method">Паста фиксирована</span></div>
-      <p style="margin-top:6px;"><strong>Вино:</strong> Hans Greyl SB / Saint Martin Chablis, Burgundy</p>
-      <div class="memory">Казеречче = итальянская паста + испанский соус = самое «интернациональное» блюдо в разделе пасты.</div>
+      <p>Caserecce = «домашняя» (casa = дом), из Сицилии. Соус Ромеско = каталонский испанский. 15–20 мин.</p>
+      <div class="ingredients">Казеречче, ромеско (красные перцы, миндаль, паприка, помидоры), зелёный горошек, лимонная рикотта, тигровые креветки</div>
+      <div class="tag-row"><span class="tag allergy">Орехи</span><span class="tag allergy">Глютен</span><span class="tag allergy">Ракообразные</span><span class="tag allergy">Лактоза</span><span class="tag method">Паста фиксирована</span></div>
     </div>
-
   </div>
 </section>
 
 <!-- ════════════ PIZZA ════════════ -->
 <section id="pizza">
   <h2 class="section-title"><span class="emoji">🍕</span> Пицца</h2>
-  <div class="quick-ref">
+  <div class="quick-ref" style="margin-bottom:14px;">
     <h4>Общее для всех пицц:</h4>
     <ul>
-      <li>Тесто: Мука 00, мёд, сахар, оливковое масло, живые дрожжи · Время: 15–20 мин</li>
-      <li>Посуда: круглая тарелка для пиццы + шейринг тарелка · Кондименты: оливковое масло + Табаско</li>
-      <li>Аллергены всегда: Лактоза + Глютен</li>
+      <li>Тесто: Мука 00, мёд, оливковое масло, живые дрожжи · 15–20 мин</li>
+      <li>Кондименты: Оливковое масло + Табаско · Аллергены всегда: Лактоза + Глютен</li>
     </ul>
   </div>
   <div class="card-grid">
-
     <div class="dish-card">
       <div class="dish-name">Маргарита</div>
-      <p>Создана 11 июня 1889 пиццамэном Раффаэле Эспозито для королевы Маргариты Савойской. Цвета флага Италии.</p>
+      <p>11 июня 1889, для королевы Маргариты Савойской. Цвета флага Италии.</p>
       <div class="ingredients">Томат Мутти, Моцарелла, Базилик, Оливковое масло, Чеснок</div>
-      <p style="margin-top:6px;"><strong>Вино:</strong> Centine Rosso / Isole E Olena</p>
     </div>
-
     <div class="dish-card">
       <div class="dish-name">Пицца с Бурратой ⚠️</div>
-      <p>База как Маргарита + Буррата. Буррата = шар моцареллы, внутри страчателла (сливки + рваная моцарелла). <span class="highlight">Буррата распределена равномерно — не целиком! Всегда предупреждать гостя до заказа.</span></p>
-      <p style="margin-top:6px;"><strong>Вино:</strong> Centine Rosso / Isole E Olena</p>
-      <div class="memory">Это единственная пицца с особым предупреждением для гостя. Не забыть = профессионализм.</div>
+      <p>База как Маргарита + Буррата. Буррата = шар моцареллы, внутри страчателла. <span class="highlight">Буррата распределена равномерно — всегда предупреждать гостя!</span></p>
+      <div class="memory">Единственная пицца с обязательным предупреждением гостю.</div>
     </div>
-
     <div class="dish-card">
       <div class="dish-name">Дьявола 🌶️</div>
-      <p>«Пепперони» — пикантная. <strong>Говяжья салями</strong> (не свинина — халяльная опция). Острая за счёт свежего перца чили.</p>
+      <p>«Пепперони». <strong>Говяжья салями</strong> (не свинина). Острая за счёт свежего чили.</p>
       <div class="ingredients">Томат Пилати, Говяжья Салями, Перец Чили, Моцарелла → базилик</div>
-      <p style="margin-top:6px;"><strong>Вино:</strong> Fleurie Game / El Rapolao Mencia</p>
     </div>
-
     <div class="dish-card">
       <div class="dish-name">Тартуфо 🍄</div>
-      <p>Единственная пицца <strong>без томатного соуса</strong>. Сливочно-трюфельная. Рецепт шефа Рикардо, вдохновлён Пьемонтом. Тартуфата = тапенада из грибов+оливок+трюфеля.</p>
+      <p>Единственная <strong>без томатного соуса</strong>. Сливочно-трюфельная. Рецепт шефа Рикардо, вдохновлён Пьемонтом.</p>
       <div class="ingredients">Тартуфата, Маскарпоне, Творожный сыр, Шампиньоны, Моцарелла</div>
-      <p style="margin-top:6px;"><strong>Вино:</strong> Tunella Pinot Grigio / L'Altro Chardonnay</p>
-      <div class="memory">Маскарпоне = сливочный итальянский сыр из Ломбардии, хранится 3 дня. Тартуфо ≠ Трюфель напрямую, но тартуфата содержит трюфель.</div>
     </div>
-
     <div class="dish-card">
       <div class="dish-name">Четыре Сыра</div>
-      <p>Четыре разных характера сыра на одной пицце. От нейтрального к острому: Моцарелла (3–5ч) → Скаморца (5 дней, сливочная) → Пармезан (12–36 мес, ореховый) → Голубой (острый, грибной).</p>
+      <p>4 сыра с разным характером. По выдержке: Моцарелла (часы) → Скаморца (5 дней) → Голубой (мес.) → Пармезан (12–36 мес.).</p>
       <div class="ingredients">Томат Мутти + Моцарелла + Пармезан + Голубой сыр + Скаморца</div>
-      <p style="margin-top:6px;"><strong>Вино:</strong> Hans Greyl SB / L'Altro Chardonnay</p>
-      <div class="memory">Запомни порядок по выдержке: Моцарелла (часы) → Скаморца (дни) → Голубой (месяцы) → Пармезан (годы).</div>
     </div>
-
   </div>
 </section>
 
 <!-- ════════════ SANDWICHES ════════════ -->
 <section id="sandwiches">
   <h2 class="section-title"><span class="emoji">🥪</span> Сэндвичи</h2>
-  <p style="color:var(--medium);margin-bottom:12px;font-size:0.9rem;">Все сэндвичи подаются с картофелем фри + кетчуп/майонез/горчица. 15–20 мин.</p>
+  <p style="color:var(--medium);margin-bottom:10px;font-size:0.88rem;">Все с картофелем фри + кетчуп/майонез/горчица. 15–20 мин.</p>
   <div class="card-grid">
-
     <div class="dish-card">
       <div class="dish-name">Классический Клаб Сэндвич</div>
-      <p>Белый хлеб, куриная грудка, яйцо, помидор, майонез. Бекон на выбор: говяжий или свиной.</p>
+      <p>Белый хлеб, куриная грудка, яйцо, помидор, майонез. Бекон: говяжий или свиной.</p>
       <div class="tag-row"><span class="tag allergy">Лактоза</span><span class="tag allergy">Глютен</span><span class="tag allergy">Яйцо</span><span class="tag custom">Бекон на выбор</span></div>
     </div>
-
     <div class="dish-card">
       <div class="dish-name">Рубен Сэндвич</div>
-      <p>Пастрами готовится <strong>12 дней</strong> (4 этапа). Метод сувид 5ч при 75°С. Изобретён Рубеном Кулаковским (Омаха, Небраска).</p>
-      <div class="ingredients">Бездрожжевой ржаной хлеб, пастрами из говяжьей грудинки, квашеная капуста, маринованные огурцы, сыр Качковалло, соус Рубен</div>
+      <p>Пастрами готовится <strong>12 дней</strong> (4 этапа). Сувид 5ч при 75°С. Американский гриль-сэндвич.</p>
+      <div class="ingredients">Бездрожжевой хлеб, пастрами из говяжьей грудинки, квашеная капуста, маринованные огурцы, Качковалло, соус Рубен</div>
       <div class="tag-row"><span class="tag allergy">Лактоза</span><span class="tag allergy">Глютен</span></div>
-      <div class="memory">Качковалло = итальянский сыр, похож на Проволоне. Пастрами = говядина, маринованная и копчёная. 12 дней — самый долгий «ингредиент» в меню.</div>
     </div>
-
     <div class="dish-card">
       <div class="dish-name">Веган Сэндвич</div>
-      <p>Овощи гриль с соусом Мухаммара — ближневосточный соус из болгарского перца и грецких орехов (Турция, Ливан, Палестина).</p>
-      <div class="ingredients">Бездрожжевой хлеб, баклажан, кабачок, цуккини, болгарский перец, вешенки → Мухаммара (перец, грецкий орех, гранатовый сироп) + баклажановый релиш</div>
+      <p>Овощи гриль с соусом Мухаммара (болгарский перец + грецкий орех + гранатовый сироп). Ближневосточный рецепт.</p>
       <div class="tag-row"><span class="tag allergy">Глютен</span><span class="tag allergy">Орехи</span><span class="tag veg">Веган</span></div>
-      <div class="memory">Единственный веганский сэндвич. Мухаммара = ближневосточный соус (не европейский). Вешенки по вкусу напоминают куриное мясо.</div>
     </div>
-
   </div>
 </section>
 
 <!-- ════════════ BURGERS ════════════ -->
 <section id="burgers">
   <h2 class="section-title"><span class="emoji">🍔</span> Бургеры</h2>
-  <p style="color:var(--medium);margin-bottom:12px;font-size:0.9rem;">Все бургеры: картофельная булочка (с пюре), маринованные огурцы, луковые кольца (молоко 12ч), картофель фри. 15–20 мин.</p>
+  <p style="color:var(--medium);margin-bottom:10px;font-size:0.88rem;">Все: картофельная булочка (с пюре), маринованные огурцы, луковые кольца (молоко 12 ч), картофель фри. 15–20 мин.</p>
   <div class="card-grid">
-
     <div class="dish-card">
-      <div class="dish-name">Классический Говяжий / Куриный Бургер</div>
-      <p>Выбор котлеты: говяжья или куриная. Выбор бекона: говяжий или свиной. Два вида домашнего кетчупа: обычный и острый.</p>
-      <div class="ingredients">Картофельная булочка, Качковалло + Чеддар, луковый релиш, маринованные огурцы</div>
-      <div class="tag-row"><span class="tag allergy">Лактоза</span><span class="tag allergy">Глютен</span><span class="tag allergy">Яйцо</span><span class="tag custom">Котлета на выбор</span><span class="tag custom">Бекон на выбор</span></div>
+      <div class="dish-name">Классический Говяжий / Куриный</div>
+      <p>Котлета: говяжья или куриная. Бекон: говяжий или свиной. Два вида домашнего кетчупа.</p>
+      <div class="tag-row"><span class="tag allergy">Лактоза</span><span class="tag allergy">Глютен</span><span class="tag allergy">Яйцо</span><span class="tag custom">Котлета на выбор</span></div>
     </div>
-
     <div class="dish-card">
       <div class="dish-name">Шиитаке Бургер (Вегетарианский)</div>
-      <p>Котлета из шиитаке+нут+тахини+рис. Баклажановый релиш, вешенки, майонез с вялеными помидорами.</p>
-      <div class="ingredients">Котлета: шиитаке, нут, тахини (кунжутная паста), соевый соус, финики, рис басмати</div>
-      <div class="tag-row"><span class="tag allergy">Бобы</span><span class="tag allergy">Семена</span><span class="tag allergy">Соя</span><span class="tag allergy">Лактоза</span><span class="tag allergy">Глютен</span><span class="tag allergy">Яйцо</span><span class="tag veg">Вегетарианский</span></div>
+      <p>Котлета: шиитаке + нут + тахини + рис. Баклажановый релиш, вешенки.</p>
+      <div class="tag-row"><span class="tag allergy">Бобы</span><span class="tag allergy">Семена</span><span class="tag allergy">Соя</span><span class="tag allergy">Лактоза</span><span class="tag allergy">Глютен</span><span class="tag veg">Вегетарианский</span></div>
     </div>
-
     <div class="dish-card">
       <div class="dish-name">Вагю Бургер ⭐</div>
-      <p>Японская порода Вагю — исключительная мраморность, жир плавится при низкой температуре, сливочный вкус. <strong>Рек. Medium Rare.</strong> Дорогой из-за: особый рацион, нет стресса, медленный рост, ограниченное производство.</p>
+      <p>Японская порода Вагю. Исключительная мраморность, жир плавится при низкой температуре. <strong>Рек. Medium Rare.</strong> Дорогой из-за особого рациона, медленного роста, ограниченного производства.</p>
       <div class="tag-row"><span class="tag allergy">Лактоза</span><span class="tag allergy">Глютен</span><span class="tag allergy">Яйцо</span><span class="tag method">⭐ Wagyu · Рек. MR</span></div>
-      <div class="memory">Вагю vs Классический = только котлета разная. Всё остальное — та же сборка. Продажный акцент: «уникальная порода, которую нет смысла пережаривать».</div>
     </div>
-
   </div>
 </section>
 
@@ -625,274 +670,1249 @@
 <section id="mains">
   <h2 class="section-title"><span class="emoji">🥩</span> Основные блюда</h2>
   <div class="card-grid">
-
     <div class="dish-card">
       <div class="dish-name">Говяжья вырезка (Тендерлойн) — 180г</div>
-      <p>Самое нежное мясо туши — мышца почти не работает, нет жира. <span class="highlight">Обязательно рекомендовать Rare или Medium Rare — нельзя пересушить!</span> 25–35 мин.</p>
-      <div class="ingredients">Говяжья вырезка 180г + зелёный салат (помидор, огурец) + Peppercorn соус (сливки, чёрный перец, шалот, демиглас)</div>
+      <p>Самое нежное мясо туши — мышца почти не работает, нет жира. <span class="highlight">Рек. Rare/Medium Rare — нельзя пересушить!</span> 25–35 мин.</p>
+      <div class="ingredients">Вырезка 180г + зелёный салат + Peppercorn соус (сливки, перец, шалот, демиглас)</div>
       <div class="tag-row"><span class="tag allergy">Лактоза</span><span class="tag method">⚠️ Спрашивать прожарку!</span></div>
-      <p style="margin-top:6px;"><strong>Вино:</strong> Tunella Pinot Nero, Friuli / Hochheimer Stein Pinot Noir, Germany</p>
-      <div class="memory">Демиглас = основной соус французской кухни (говяжьи кости + овощи + красное вино). Появляется в нескольких блюдах: Стейки, Щёчки, Тальятеле.</div>
     </div>
-
     <div class="dish-card">
       <div class="dish-name">Стейк Рибай — 300г</div>
-      <p>«Ribeye» = rib (ребро) + eye (глаз — центр вырезки). Мраморная говядина зернового откорма, 6–12 ребро. Чем выше мраморность — тем сочнее. 25–35 мин.</p>
+      <p>Ribeye = rib + eye. Мраморная говядина, 6–12 ребро. Чем выше мраморность — тем сочнее. 25–35 мин.</p>
       <div class="ingredients">Рибай 300г + зелёный салат + Peppercorn соус (идентичен Тендерлойну)</div>
       <div class="tag-row"><span class="tag allergy">Лактоза</span><span class="tag method">⚠️ Спрашивать прожарку!</span></div>
-      <p style="margin-top:6px;"><strong>Вино:</strong> Arba Saperavi / Vina Tondonia Tempranillo·Grenache, Rioja</p>
     </div>
-
     <div class="dish-card">
       <div class="dish-name">Говяжьи Щёчки — 200г</div>
-      <p>Лицевая мышца — жёсткая, нужна долгая готовка. Результат: сладковатое тающее мясо. <strong>Сувид + 3 часа в печи при 150°С.</strong> 20–25 мин (уже приготовлено заранее).</p>
-      <div class="ingredients">Говяжьи щёчки 200г, шимеджи, картофельное пюре, демиглас (хересное вино), жареная морковь, микрозелень</div>
+      <p>Лицевая мышца → тающее сладковатое мясо. <strong>Сувид + 3 ч в печи при 150°С.</strong> 20–25 мин.</p>
+      <div class="ingredients">Щёчки 200г, шимеджи, картофельное пюре, демиглас (хересное вино), жареная морковь</div>
       <div class="tag-row"><span class="tag allergy">Сельдерей</span><span class="tag allergy">Лактоза</span><span class="tag allergy">Алкоголь</span></div>
-      <p style="margin-top:6px;"><strong>Вино:</strong> Talo Primitivo·Merlot / Michele Chiarlo Barolo, Piedmont</p>
-      <div class="memory">Шимеджи = деликатесные японские устричные грибы. Хересное вино в демигласе = даёт глубину соуса. Barolo = «король итальянских вин».</div>
     </div>
-
     <div class="dish-card">
       <div class="dish-name">Глазированные Рёбрышки — 220г</div>
-      <p>Говяжье ребро на кости. Маринад 12 часов, метод сувид. Соус Бурбон (бурбон = американское виски из кукурузы ≥51%). 20–25 мин.</p>
-      <div class="ingredients">Говяжье ребро, маринад (специи+яблочный сок), соус Бурбон → картофельное пюре + квашеная капуста + маринованные огурцы + луковые чипсы</div>
+      <p>Говяжье ребро на кости. Маринад 12 ч, сувид, соус Бурбон (виски из кукурузы ≥51%). 20–25 мин.</p>
+      <div class="ingredients">Ребро, соус Бурбон → картофельное пюре + квашеная капуста + маринованные огурцы</div>
       <div class="tag-row"><span class="tag allergy">Алкоголь</span><span class="tag allergy">Горчица</span><span class="tag allergy">Соя</span><span class="tag allergy">Лактоза</span></div>
-      <p style="margin-top:6px;"><strong>Вино:</strong> Arba Saperavi / Three Finger Jack Zinfandel, California</p>
     </div>
-
     <div class="dish-card">
       <div class="dish-name">Цыплёнок на Гриле ⏰</div>
-      <p>Бройлер (270–380г). Засолка 2.5ч → маринад → сувид → гриль. <span class="highlight">30–35 МИНУТ — предупреждать сразу при заказе!</span></p>
-      <div class="ingredients">Цыплёнок, засолка (соль+сахар+мёд+специи), маринад (оливковое масло+розмарин+чеснок) → грибной соус (шампиньоны, сливки, говяжий и куриный бульон) + овощи гриль (спаржа, цуккини, перец)</div>
-      <div class="tag-row"><span class="tag allergy">Сельдерей</span><span class="tag allergy">Лактоза</span><span class="tag allergy">Диоксид</span><span class="tag method">⏰ Самый долгий!</span></div>
-      <p style="margin-top:6px;"><strong>Вино:</strong> Voche Blanco Chardonnay / Napa Valley Chardonnay, California</p>
+      <p>Бройлер 270–380г. Засолка 2.5 ч → сувид → гриль. <span class="highlight">30–35 МИН — предупреждать сразу!</span></p>
+      <div class="ingredients">Цыплёнок → грибной соус (шампиньоны, сливки, говяжий+куриный бульон) + овощи гриль</div>
+      <div class="tag-row"><span class="tag allergy">Сельдерей</span><span class="tag allergy">Лактоза</span><span class="tag method">⏰ Самый долгий!</span></div>
     </div>
-
     <div class="dish-card">
       <div class="dish-name">Жареный Палтус с Шафрановым Пюре</div>
-      <p>Палтус = семейство камбаловых, белое жирное мясо, <strong>очень мало костей</strong>. Шафран = самая дорогая пряность в мире (из рылец цветка). Соус чимичурри = аргентинский (к говядине на гриле, асадо). 20–25 мин.</p>
-      <div class="ingredients">Палтус + цветная капуста+шафран+сливки (пюре) + соус чимичурри (красный перец, петрушка, халапеньо, кинза)</div>
+      <p>Палтус = семейство камбаловых, белое жирное мясо, <strong>мало костей</strong>. Шафран = самая дорогая пряность. Соус чимичурри = аргентинский. 20–25 мин.</p>
+      <div class="ingredients">Палтус + цветная капуста+шафран+сливки (пюре) + чимичурри</div>
       <div class="tag-row"><span class="tag allergy">Рыба</span><span class="tag allergy">Лактоза</span></div>
-      <p style="margin-top:6px;"><strong>Вино:</strong> Hans Greyl SB / Joseph Drouhin Chablis, Burgundy</p>
-      <div class="memory">Цветная капуста идёт в пюре (не как гарнир!). Шафран окрашивает пюре в золотой цвет. Чимичурри — аргентинский, но подаётся к рыбе: интересный контраст.</div>
     </div>
-
     <div class="dish-card">
       <div class="dish-name">Филе Форели (Казахстан)</div>
-      <p>Местная казахстанская форель, семейство лососёвых. <strong>Только на гриле.</strong> Подаётся со спаржей на гриле. 20–25 мин.</p>
-      <div class="ingredients">Филе форели + спаржа на гриле + Lemon Butter соус + зелёное растительное масло (масло с петрушкой)</div>
+      <p>Местная казахстанская, семейство лососёвых. <strong>Только на гриле.</strong> Спаржа на гриле. Зелёное масло (петрушка) тает на горячей рыбе. 20–25 мин.</p>
       <div class="tag-row"><span class="tag allergy">Лактоза</span><span class="tag allergy">Рыба</span></div>
-      <p style="margin-top:6px;"><strong>Вино:</strong> Tunella Pinot Grigio / Sepp Moser Grüner Veltliner, Kremstal</p>
-      <div class="memory">Зелёное растительное масло = кусочек масла с петрушкой кладут на горячую рыбу — он тает. Это элегантная деталь подачи, которую стоит упомянуть гостю.</div>
     </div>
-
     <div class="dish-card">
       <div class="dish-name">Лосось на Пару / на Гриле</div>
-      <p>Гость сам выбирает способ приготовления. Атлантический лосось. 20–25 мин.</p>
-      <div class="ingredients">Филе лосося + овощи (пар или гриль) + Lemon Butter соус (идентичен форели)</div>
+      <p>Гость выбирает способ приготовления. Тот же Lemon Butter соус, что у форели. 20–25 мин.</p>
       <div class="tag-row"><span class="tag allergy">Лактоза</span><span class="tag allergy">Рыба</span><span class="tag custom">Пар ИЛИ Гриль</span></div>
-      <p style="margin-top:6px;"><strong>Вино:</strong> Hans Greyl SB / Craggy Range Chardonnay, Hawke's Bay NZ</p>
     </div>
-
     <div class="dish-card">
       <div class="dish-name">Стейк из Цветной Капусты</div>
-      <p>Веганский «стейк» с восточными специями. Маринад: корица, тмин, карри, кардамон. Кунжутно-куркумный соус (тахини + финики). 20–25 мин.</p>
-      <div class="ingredients">Цветная капуста, маринад (виноградное масло+специи) → соус (тахини, лимон, финики, карри) + томатный салат (черри, оливковая крошка, апельсиновый сок) → миндаль+кунжут</div>
+      <p>Веган. Маринад: корица, тмин, карри, кардамон. Кунжутно-куркумный соус (тахини + финики). 20–25 мин.</p>
       <div class="tag-row"><span class="tag allergy">Семена</span><span class="tag allergy">Орехи</span><span class="tag veg">Веган</span></div>
-      <p style="margin-top:6px;"><strong>Вино:</strong> Hans Greyl SB / Gunderloch Riesling, Rheinhessen</p>
     </div>
-
     <div class="dish-card">
       <div class="dish-name">Тушёная Баранья Корейка</div>
-      <p>Баранина с полентой (итальянская кукурузная каша, традиционное северное итальянское блюдо). Маринованный лук с редисом и бадьяном. 15–20 мин.</p>
-      <div class="ingredients">Баранина (яблочный сок+паприка+кумин+соевый+горчица), соус → полента (кукурузная крупа, сливки, пармезан) + маринованный лук с редисом</div>
+      <p>С полентой (итальянская кукурузная каша). Соус Вустер → содержит анчоусы! 15–20 мин.</p>
+      <div class="ingredients">Баранина + полента (кукурузная крупа, сливки, пармезан) + маринованный лук с редисом</div>
       <div class="tag-row"><span class="tag allergy">Диоксид</span><span class="tag allergy">Лактоза</span><span class="tag allergy">Горчица</span><span class="tag allergy">Анчоусы</span></div>
-      <p style="margin-top:6px;"><strong>Вино:</strong> Arba Sary Rkatseteli / Peter Lehmann Riesling, Barossa, Australia</p>
-      <div class="memory">Анчоусы в составе Вустерского соуса! Гость с аллергией на рыбу — важно предупредить. Полента = итальянский аналог каши, как гарнир.</div>
     </div>
-
   </div>
 </section>
 
 <!-- ════════════ SIDES ════════════ -->
 <section id="sides">
-  <h2 class="section-title"><span class="emoji">🥔</span> Гарниры — все 10–15 мин</h2>
+  <h2 class="section-title"><span class="emoji">🥔</span> Гарниры — 10–15 мин</h2>
   <div class="card-grid">
     <div class="dish-card">
       <div class="dish-name">Картофельное Пюре</div>
       <p>Картофель <strong>запекается</strong> (не варится!), молоко, сливочное масло.</p>
       <div class="tag-row"><span class="tag allergy">Лактоза</span></div>
-      <div class="memory">«Запекается, не варится» — неожиданный факт, который удивит и гостя, и экзаменатора.</div>
     </div>
     <div class="dish-card">
       <div class="dish-name">Картофель Фри</div>
-      <p>С пармезаном и трюфельным маслом. Трюфель = гриб, растущий под землёй, с земляным/ореховым ароматом.</p>
+      <p>С пармезаном и <strong>трюфельным маслом</strong>. Трюфель = подземный гриб.</p>
       <div class="tag-row"><span class="tag allergy">Лактоза</span></div>
     </div>
     <div class="dish-card">
       <div class="dish-name">Овощи на Гриле</div>
-      <p>Баклажан, цуккини, болгарский перец, кабачок, шампиньоны. Единственный полностью веганский гарнир без аллергенов.</p>
+      <p>Баклажан, цуккини, болгарский перец, кабачок, шампиньоны.</p>
       <div class="tag-row"><span class="tag veg">Веган</span></div>
     </div>
     <div class="dish-card">
       <div class="dish-name">Луковые Кольца</div>
-      <p>Вымачиваются в молоке <strong>12 часов</strong>, затем высушиваются и панируются.</p>
+      <p>Вымачиваются в молоке <strong>12 часов</strong>, затем панируются.</p>
       <div class="tag-row"><span class="tag allergy">Лактоза</span><span class="tag allergy">Яйцо</span><span class="tag allergy">Глютен</span></div>
     </div>
     <div class="dish-card">
       <div class="dish-name">Жареные Шампиньоны</div>
-      <p>Маринад: майонез, кинза, шрирача, паприка. Зелёная сальса с анчоусами и каперсами.</p>
+      <p>Маринад: майонез, кинза, шрирача. Зелёная сальса с <strong>анчоусами</strong> и каперсами.</p>
       <div class="tag-row"><span class="tag allergy">Анчоусы</span><span class="tag allergy">Лактоза</span><span class="tag allergy">Цитрус</span></div>
-      <div class="memory">Анчоусы в сальсе! Гость просит «без рыбы» — Жареные Шампиньоны тоже нельзя.</div>
+      <div class="memory">Анчоусы в сальсе! Гость «без рыбы» — нельзя.</div>
     </div>
   </div>
 </section>
 
 <!-- ════════════ DESSERTS ════════════ -->
 <section id="desserts">
-  <h2 class="section-title"><span class="emoji">🍮</span> Десерты — все 7 000 ₸ · 5–15 мин</h2>
+  <h2 class="section-title"><span class="emoji">🍮</span> Десерты — 5–15 мин</h2>
   <div class="card-grid">
-
     <div class="dish-card">
       <div class="dish-name">Шоколадный Торт Ritz-Carlton ⭐</div>
-      <p>Визитная карточка бренда. Выбран из <strong>23 предложений</strong> шеф-поваром Зиннгребе. Победитель — молодой японский кондитер из RC Toronto. Три правила рецепта: шоколад Valrhona + Grand Marnier (у нас Куантро) + можно транспортировать. 10 мин.</p>
+      <p>Визитная карточка бренда. Выбран из <strong>23 предложений</strong> шеф-поваром Зиннгребе. Победитель — японский кондитер из RC Toronto. 3 правила: шоколад Valrhona + Куантро + можно транспортировать.</p>
       <div class="ingredients">Тёмный шоколад Valrhona, апельсиновое конфи, Куантро, шоколадный крем</div>
       <div class="tag-row"><span class="tag allergy">Алкоголь</span><span class="tag allergy">Цитрус</span></div>
-      <div class="memory">Куантро = Grand Marnier = апельсиновый ликёр. Цезарь Ритц и Луи Лапостоль (изобретатель Grand Marnier) были друзьями — отсюда связь бренда с ликёром.</div>
     </div>
-
     <div class="dish-card">
       <div class="dish-name">Классический Чизкейк</div>
-      <p>Родина — Древняя Греция, мировая популярность — США. Крем-чиз появился в 1872 г. Агар-агар = растительный желатин из красных водорослей. Подаётся с голубичным пюре. 10–15 мин.</p>
-      <div class="ingredients">Крем-чиз, яйца, сметана, агар-агар, ваниль (стручки), бисквитная корочка → голубичное пюре</div>
+      <p>Родина — Древняя Греция, популярность — США. Крем-чиз с 1872 г. Агар-агар = растительный желатин из водорослей. С голубичным пюре.</p>
       <div class="tag-row"><span class="tag allergy">Лактоза</span><span class="tag allergy">Яйцо</span><span class="tag allergy">Глютен</span></div>
     </div>
-
     <div class="dish-card">
       <div class="dish-name">Крем-Брюле</div>
-      <p>«Обожжённые сливки», XVII в. <strong>Только желтки</strong> — поэтому нет яичного запаха. Карамельная корочка делается горелкой перед подачей. Подаётся при комнатной температуре. Самый быстрый десерт — 5 минут.</p>
-      <div class="ingredients">Сливки, молоко, желтки, сахар, стручковая ваниль → карамелизированный сахар</div>
+      <p>«Обожжённые сливки», XVII в. <strong>Только желтки</strong> → нет яичного запаха. Карамельная корочка делается горелкой перед подачей. Комнатная температура. <strong>5 минут</strong>.</p>
       <div class="tag-row"><span class="tag allergy">Яйцо</span><span class="tag allergy">Лактоза</span></div>
-      <div class="memory">«Только желтки» = нет белков = нет яичного запаха. Это и есть секрет гладкости текстуры.</div>
     </div>
-
     <div class="dish-card">
       <div class="dish-name">Tres Leche</div>
-      <p>«Три молока» — бисквит, пропитанный тремя видами молока: сгущённым, топлёным и сливками. Сублимированная малина = быстрая заморозка + вакуум = убирают влагу. 10–15 мин.</p>
-      <div class="ingredients">Яйцо, мука, манная крупа, молоко, жирные сливки, сгущённое молоко, ванильный экстракт → клубника, фисташки, взбитые сливки, сублимированная малина</div>
+      <p>«Три молока» — бисквит, пропитанный сгущённым, топлёным молоком и сливками. Сублимированная малина = быстрая заморозка + вакуум.</p>
       <div class="tag-row"><span class="tag allergy">Яйцо</span><span class="tag allergy">Лактоза</span><span class="tag allergy">Глютен</span></div>
     </div>
-
     <div class="dish-card">
       <div class="dish-name">Финиковый Пудинг</div>
-      <p>Sticky date pudding — британский. Влажный бисквит с финиками, тоффи-соус + карамель + орехи пекан. Подаётся с ванильным мороженым. 10–15 мин.</p>
-      <div class="ingredients">Финики, пекан, сода, кофейная и ванильная эссенция, специи (гвоздика, мускатный, корица, имбирь) → соус тоффи + карамельный соус + ванильное мороженое</div>
+      <p>Sticky date pudding — британский. Влажный бисквит, тоффи-соус + карамель + пекан. Подаётся с ванильным мороженым.</p>
       <div class="tag-row"><span class="tag allergy">Орехи</span><span class="tag allergy">Лактоза</span><span class="tag allergy">Яйцо</span><span class="tag allergy">Глютен</span></div>
-      <div class="memory">Единственный десерт с ванильным мороженым. Тоффи = варёная смесь сахара и масла = ирис.</div>
     </div>
-
   </div>
 </section>
 
-<!-- ════════════ WINE ════════════ -->
+<!-- ════════════ WINE FOOD PAIRING ════════════ -->
 <section id="wines">
-  <h2 class="section-title"><span class="emoji">🍷</span> Вина — логика подбора</h2>
-
-  <div class="alert info">
-    <span class="alert-icon">🍷</span>
-    <div><strong>3 правила, покрывающие 80% вопросов:</strong> (1) Красное мясо = красное вино. (2) Рыба и морепродукты = белое. (3) Острые блюда = Riesling (кислота гасит остроту). Chardonnay = универсальный белый к сливочным блюдам.</div>
-  </div>
-
-  <table class="wine-table">
+  <h2 class="section-title"><span class="emoji">🍷</span> Вина к блюдам</h2>
+  <div class="alert info"><span class="alert-icon">🍷</span><div><strong>3 правила:</strong> Красное мясо = красное. Рыба/морепродукты = белое. Острое = Riesling. Chardonnay = к сливочным блюдам.</div></div>
+  <table class="compare-table">
     <tr><th>Вино</th><th>Регион</th><th>Тип</th><th>К чему подходит</th></tr>
-    <tr><td><strong>Hans Greyl Sauvignon Blanc</strong></td><td>Malborough, NZ</td><td>Белое, свежее</td><td>Греч. салат, Кейл, Крылья Буффало, Казеречче, Лосось, Палтус, Цветная капуста — <strong>самый универсальный белый</strong></td></tr>
-    <tr><td>Tunella Pinot Grigio</td><td>Friuli, Italy</td><td>Белое, лёгкое</td><td>Форель, Альфредо, Пицца Маргарита, Тартуфо</td></tr>
-    <tr><td>Voche Blanco Viura·Chardonnay</td><td>Rioja, Spain</td><td>Белое</td><td>Цезарь, Котлеты из креветок, Цыплёнок</td></tr>
+    <tr><td>Hans Greyl Sauvignon Blanc</td><td>Malborough, NZ</td><td>Белое, свежее</td><td>Греч. салат, Кейл, Лосось, Палтус, Цветная капуста — <strong>универсальный белый</strong></td></tr>
+    <tr><td>Tunella Pinot Grigio</td><td>Friuli, Italy</td><td>Белое, лёгкое</td><td>Форель, Альфредо, Маргарита, Тартуфо</td></tr>
+    <tr><td>Voche Blanco Viura·Chard.</td><td>Rioja, Spain</td><td>Белое</td><td>Цезарь, Котлеты из креветок, Цыплёнок</td></tr>
     <tr><td>Marcus Molitor Riesling</td><td>Mosel, Germany</td><td>Белое, кислотное</td><td><strong>Крылья Буффало (острые!)</strong>, Форель</td></tr>
     <tr><td>Arba Saperavi</td><td>Almaty, Kazakhstan</td><td>Красное, местное</td><td>Рибай, Рёбрышки</td></tr>
-    <tr><td>Talo Primitivo·Merlot</td><td>Puglia, Italy</td><td>Красное</td><td>Крылья BBQ, Аррабиата, Дьявола, Говяжьи щёчки</td></tr>
-    <tr><td>Centine Rosso Sangiovese·CS·Merlot</td><td>Tuscany, Italy</td><td>Красное</td><td>Болоньезе, Маргарита, Пицца с Бурратой</td></tr>
-    <tr><td>Fleurie Game Gamay</td><td>Beaujolais, France</td><td>Красное, лёгкое</td><td>Тальятеле с рагу, Дьявола</td></tr>
-    <tr><td>Querciabella Mongrana Rosso</td><td>Maremma Tuscany</td><td>Красное, насыщенное</td><td>Рибай, Говяжьи щёчки, Пицца Дьявола</td></tr>
-    <tr><td>Tunella Pinot Nero</td><td>Friuli, Italy</td><td>Красное, деликатное</td><td>Тендерлойн (вырезка) — тонкое вино к нежному мясу</td></tr>
-    <tr><td>Edda Chardonnay</td><td>Puglia, Italy</td><td>Белое, богатое</td><td>Тартуфо, Четыре сыра — насыщенный к сырным пиццам</td></tr>
-    <tr><td>Vina Tondonia Tempranillo·Grenache</td><td>Rioja, Spain</td><td>Красное, выдержанное</td><td>Стейк Рибай (BTL)</td></tr>
+    <tr><td>Talo Primitivo·Merlot</td><td>Puglia, Italy</td><td>Красное</td><td>Крылья BBQ, Аррабиата, Дьявола, Щёчки</td></tr>
+    <tr><td>Querciabella Mongrana Rosso</td><td>Maremma Tuscany</td><td>Красное, насыщенное</td><td>Рибай, Говяжьи щёчки, Дьявола</td></tr>
+    <tr><td>Tunella Pinot Nero</td><td>Friuli, Italy</td><td>Красное, деликатное</td><td>Тендерлойн — тонкое вино к нежному мясу</td></tr>
+    <tr><td>Domaine Maldant Chard.</td><td>Burgundy, France</td><td>Белое, элегантное</td><td>Рыба на гриле, белое мясо, паста</td></tr>
+    <tr><td>Edda Bianco Chardonnay</td><td>Puglia, Italy</td><td>Белое, богатое</td><td>Тартуфо, Четыре сыра, сливочные пасты</td></tr>
   </table>
-
-  <div class="memory">Запомни 3 «якоря»: <strong>Hans Greyl</strong> = go-to белый к рыбе и салатам. <strong>Querciabella Rosso</strong> = go-to красный к стейкам. <strong>Riesling</strong> = к острому. Остальные вина — детали поверх этой структуры.</div>
+  <div class="memory">Якоря: <strong>Hans Greyl</strong> = go-to белый к рыбе. <strong>Querciabella</strong> = go-to красный к стейкам. <strong>Riesling</strong> = к острому.</div>
 </section>
 
 <!-- ════════════ PREPS ════════════ -->
 <section id="preps">
   <h2 class="section-title"><span class="emoji">🔥</span> Прожарки стейков</h2>
-
   <div class="prep-grid">
-    <div class="prep-card"><div class="prep-name">Blue (Raw)</div><div class="prep-temp">&lt; 40°С</div><div class="prep-desc">Снаружи румяный, внутри холодный, сырой. Для любителей сырого.</div></div>
-    <div class="prep-card"><div class="prep-name">Rare</div><div class="prep-temp">45°С</div><div class="prep-desc">Тёплый, мягкий, очень сочный. Яркий мясной вкус.</div></div>
-    <div class="prep-card"><div class="prep-name">Medium Rare ⭐</div><div class="prep-temp">50°С</div><div class="prep-desc">Розово-красный, насыщен соком. Рекомендуется для обоих стейков и Вагю.</div></div>
+    <div class="prep-card"><div class="prep-name">Blue (Raw)</div><div class="prep-temp">&lt;40°С</div><div class="prep-desc">Снаружи румяный, внутри холодный, сырой.</div></div>
+    <div class="prep-card"><div class="prep-name">Rare</div><div class="prep-temp">45°С</div><div class="prep-desc">Тёплый, мягкий, очень сочный.</div></div>
+    <div class="prep-card"><div class="prep-name">Medium Rare ⭐</div><div class="prep-temp">50°С</div><div class="prep-desc">Розово-красный. Рек. для обоих стейков и Вагю.</div></div>
     <div class="prep-card"><div class="prep-name">Medium</div><div class="prep-temp">60°С</div><div class="prep-desc">Розовый без красного. Немного меньше сока.</div></div>
-    <div class="prep-card"><div class="prep-name">Medium Well</div><div class="prep-temp">65°С</div><div class="prep-desc">Серо-коричневый, чуть розовый. Прозрачный сок. Для тех, кто не любит «сырое».</div></div>
-    <div class="prep-card"><div class="prep-name">Well Done</div><div class="prep-temp">&gt; 70°С</div><div class="prep-desc">Коричневый насквозь. Сок отсутствует. Полностью готово.</div></div>
+    <div class="prep-card"><div class="prep-name">Medium Well</div><div class="prep-temp">65°С</div><div class="prep-desc">Серо-коричневый, чуть розовый.</div></div>
+    <div class="prep-card"><div class="prep-name">Well Done</div><div class="prep-temp">&gt;70°С</div><div class="prep-desc">Коричневый насквозь. Сок отсутствует.</div></div>
   </div>
-
-  <div class="memory" style="margin-top:16px;">Запомни последовательность через температуры: <strong>40 → 45 → 50 → 60 → 65 → 70</strong>. Шаг примерно 5–10°С. Самое важное: Medium Rare = 50°С = «розово-красный + максимальный сок».</div>
-
-  <p class="subsection">Специальные методы готовки</p>
-  <div class="card-grid">
-    <div class="dish-card">
-      <div class="dish-name">Сувид (Sous-Vide)</div>
-      <p>Готовка в вакуумном пакете в водяной бане при точной температуре. Результат: идеально равномерная готовность, максимальная сочность. Применяется к: говяжьим щёчкам, цыплёнку, рёбрышкам, пастрами (Рубен).</p>
-      <div class="memory">Sous-vide по-французски = «под вакуумом». Всё, что готовится долго и должно быть мягким — скорее всего, сувид.</div>
-    </div>
-    <div class="dish-card">
-      <div class="dish-name">Маринады — время имеет значение</div>
-      <p>Крылья → молоко 12ч. Луковые кольца → молоко 12ч. Цыплёнок → засолка 2.5ч. Рёбрышки → маринад 12ч. Пастрами (Рубен) → 12 дней! Вагю → рекомендуется MR.</p>
-      <div class="memory">«Молочный маринад» = крылья и луковые кольца. «12 дней» = только пастрами. Это уникальные факты, которые стоит упоминать гостям.</div>
-    </div>
-  </div>
+  <div class="memory" style="margin-top:14px;">40 → 45 → 50 → 60 → 65 → 70°С. Medium Rare = 50°С = розово-красный + максимальный сок.</div>
 </section>
 
 <!-- ════════════ FLEX ════════════ -->
 <section id="flex">
-  <h2 class="section-title"><span class="emoji">🎯</span> Гибкость меню — что можно и что нельзя</h2>
-
+  <h2 class="section-title"><span class="emoji">🎯</span> Гибкость меню</h2>
   <div class="card-grid two">
     <div class="quick-ref">
       <h4>✅ Что гость МОЖЕТ выбрать сам:</h4>
       <ul>
-        <li>Паста (4 из 6): Тальятелле / Пенне / Спагетти</li>
-        <li>Пенне и Спагетти → доступны <strong>без глютена</strong></li>
-        <li>Альфредо: курица ИЛИ креветки на выбор</li>
-        <li>Цезарь: +курица / +креветки / +халлуми (или без)</li>
-        <li>Минеральный салат: +халлуми или без</li>
+        <li>Паста (4 из 6): Тальятелле / Пенне (GF) / Спагетти (GF)</li>
+        <li>Альфредо: курица ИЛИ креветки</li>
+        <li>Цезарь: +курица / +креветки / +халлуми</li>
+        <li>Минеральный: +халлуми или без</li>
         <li>Лосось: на пару ИЛИ на гриле</li>
         <li>Крылья: Буффало (острые) ИЛИ Барбекю (сладкие)</li>
-        <li>Клаб сэндвич / Бургер: говяжий или свиной бекон</li>
+        <li>Бургер / Клаб: говяжий или свиной бекон</li>
         <li>Классический бургер: говяжья или куриная котлета</li>
-        <li>Стейки: прожарка на выбор — <strong>обязательно спросить!</strong></li>
+        <li>Стейки: прожарка — <strong>обязательно спросить!</strong></li>
       </ul>
     </div>
     <div class="quick-ref">
       <h4>⚠️ Что ВАЖНО сообщить гостю заранее:</h4>
       <ul>
-        <li><strong>Цыплёнок:</strong> 30–35 минут — говорить сразу при заказе</li>
+        <li><strong>Цыплёнок:</strong> 30–35 минут — говорить сразу</li>
         <li><strong>Пицца с Бурратой:</strong> буррата равномерно, не целиком</li>
-        <li><strong>Стейки:</strong> всегда уточнять прожарку перед отправкой заказа</li>
-        <li><strong>Цезарь:</strong> анчоусы в заправке = аллерген Рыба (даже без добавок)</li>
-        <li><strong>Баранина:</strong> анчоусы в вустерском соусе = аллерген Рыба</li>
-        <li><strong>Шампиньоны гриль:</strong> анчоусы в сальсе = аллерген Рыба</li>
-        <li><strong>Тартуфо:</strong> без томатного соуса (белая сливочная база)</li>
+        <li><strong>Стейки:</strong> всегда уточнять прожарку</li>
+        <li><strong>Цезарь:</strong> анчоусы = аллерген Рыба даже без добавок</li>
+        <li><strong>Баранина:</strong> анчоусы в вустере = аллерген Рыба</li>
+        <li><strong>Шампиньоны:</strong> анчоусы в сальсе = аллерген Рыба</li>
+        <li><strong>Тартуфо:</strong> без томатного соуса — белая база</li>
         <li><strong>Тальятеле с рагу / Казеречче:</strong> паста не меняется</li>
       </ul>
     </div>
   </div>
 </section>
 
-</div><!-- /wrapper -->
+</div><!-- /wrapper food -->
+<footer>✦ In-Room Dining · A La Carte 2025 · Ritz-Carlton ✦ &nbsp;|&nbsp; Food Knowledge Guide</footer>
+</div><!-- /food-page -->
 
-<footer>
-  ✦ In-Room Dining · A La Carte 2025 · Ritz-Carlton ✦ &nbsp;|&nbsp; Шпаргалка для ассессмента
-</footer>
+
+<!-- ════════════════════════════════════
+     BEVERAGE PAGE
+════════════════════════════════════ -->
+<div id="bev-page" style="display:none;">
+
+<nav class="sub-nav bev-nav">
+  <a href="#bev-intro">📖 Основы</a>
+  <a href="#bev-sparkling">🥂 Игристые</a>
+  <a href="#bev-white">🍋 Белые вина</a>
+  <a href="#bev-rose">🌸 Розовое</a>
+  <a href="#bev-red">🍷 Красные вина</a>
+  <a href="#bev-fortified">🏺 Крепл. вина</a>
+  <a href="#bev-scotch">🥃 Scotch</a>
+  <a href="#bev-world-whisky">🌍 Виски мира</a>
+  <a href="#bev-asian-whisky">🎌 Японский</a>
+  <a href="#bev-cognac">✨ Коньяк</a>
+  <a href="#bev-gin">🌿 Джин</a>
+  <a href="#bev-tequila">🌵 Текила</a>
+  <a href="#bev-rum">🍬 Ром</a>
+  <a href="#bev-vodka">❄️ Водка</a>
+  <a href="#bev-beer">🍺 Пиво</a>
+  <a href="#bev-sake">🍶 Sake/Baijiu</a>
+  <a href="#bev-aperitif">🫒 Аперитивы</a>
+  <a href="#bev-cocktails">🍹 Коктейли</a>
+</nav>
+
+<header class="bev-header">
+  <span class="ornament">✦ ✦ ✦</span>
+  <h1>Beverage Knowledge Guide</h1>
+  <p>Ozen · Room Service · Полная карта напитков</p>
+</header>
+
+<div class="wrapper">
+
+<!-- ════ INTRO ════ -->
+<section id="bev-intro">
+  <h2 class="section-title bev"><span class="emoji">📖</span> Основы: как понимать алкоголь</h2>
+  <div class="card-grid two">
+    <div class="bev-card">
+      <div class="bev-name">Как делают любой алкоголь — 3 шага</div>
+      <p><strong>1. Ферментация</strong> — дрожжи превращают сахар в спирт (вино, пиво, саке). Максимум ~15% алкоголя.<br><strong>2. Дистилляция</strong> — нагревают и собирают пары спирта → крепкий алкоголь (виски, водка, коньяк, джин). Можно получить 40–96%.<br><strong>3. Выдержка</strong> — хранение в бочках или ёмкостях. Добавляет цвет, вкус, сложность.</p>
+      <div class="memory bev">Вино и пиво = ферментация. Виски/коньяк/ром = ферментация + дистилляция + выдержка. Водка = дистилляция без выдержки.</div>
+    </div>
+    <div class="bev-card">
+      <div class="bev-name">Как говорить с гостем о напитке</div>
+      <p>Структура любого описания: <strong>Откуда + Из чего + Вкус + К чему подходит.</strong><br>
+      Пример: «Это шотландский виски из региона Speyside, сделан из ячменя, с нотами фруктов и мёда, выдержан в бочках из-под хереса. Хорошо подойдёт тем, кто любит мягкий, некурительный виски».<br>
+      Запомни: гостя интересует <em>ощущение</em>, а не технология.</p>
+      <div class="memory bev">Не говори «10 лет выдержки» без объяснения. Говори: <strong>«10 лет выдержки = более глубокий, мягкий, сложный вкус»</strong>.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ════ SPARKLING ════ -->
+<section id="bev-sparkling">
+  <h2 class="section-title bev"><span class="emoji">🥂</span> Игристые вина</h2>
+
+  <p class="subsection bev">Шампанское vs Просекко — ключевое отличие</p>
+  <table class="bev-table">
+    <tr><th></th><th>Champagne (Шампанское)</th><th>Prosecco (Просекко)</th></tr>
+    <tr><td>Страна</td><td>Только Франция, регион Шампань</td><td>Италия, Венето (северо-восток)</td></tr>
+    <tr><td>Виноград</td><td>Chardonnay + Pinot Noir + Pinot Meunier</td><td>100% Glera (Глера)</td></tr>
+    <tr><td>Метод</td><td>Вторая ферментация в <strong>бутылке</strong> (méthode traditionnelle)</td><td>Вторая ферментация в <strong>стальных чанах</strong> (метод Шарма)</td></tr>
+    <tr><td>Пузырьки</td><td>Мелкие, стойкие</td><td>Крупнее, более фруктовые</td></tr>
+    <tr><td>Вкус</td><td>Сложный, дрожжевой, хлебный, долгое послевкусие</td><td>Лёгкий, свежий, фруктовый (яблоко, груша)</td></tr>
+    <tr><td>Правило</td><td>Шампанское = место + метод + виноград. Всё остальное = просто игристое вино</td><td>Хорошая альтернатива шампанскому — легче и доступнее</td></tr>
+  </table>
+  <div class="memory bev">Champagne = Champagne = Champagne (только там). Prosecco = Prosecco (только Veneto + только Glera + только Charmat). Cava = Испания. Sekt = Германия. Crémant = Франция, но не Шампань.</div>
+
+  <p class="subsection bev">Виды шампанского по сладости (от сухого к сладкому)</p>
+  <div class="card-grid three">
+    <div class="bev-card"><div class="bev-name">Brut Nature</div><p>0–3 г/л сахара. Очень сухое. Для ценителей.</p></div>
+    <div class="bev-card"><div class="bev-name">Extra Brut</div><p>0–6 г/л. Сухое, строгое.</p></div>
+    <div class="bev-card" style="border-left-color:#c8900a;"><div class="bev-name">Brut ⭐</div><p>0–12 г/л. Самое популярное. Именно такое в меню.</p></div>
+    <div class="bev-card"><div class="bev-name">Extra Dry</div><p>12–17 г/л. Слегка сладкое (несмотря на «Dry»).</p></div>
+    <div class="bev-card"><div class="bev-name">Demi-Sec</div><p>32–50 г/л. Сладкое. К десертам.</p></div>
+    <div class="bev-card"><div class="bev-name">Doux</div><p>50+ г/л. Очень сладкое. Редко встречается.</p></div>
+  </div>
+  <div class="memory bev">Extra Dry — слегка сладкое, несмотря на слово «Dry». Это ловушка для гостей. Если хочет «совсем сухое» — Brut или Brut Nature.</div>
+
+  <p class="subsection bev">Наши игристые вина</p>
+  <div class="card-grid">
+    <div class="bev-card">
+      <div class="bev-sub">Champagne · France · N.V.</div>
+      <div class="bev-name">Taittinger Brut Réserve</div>
+      <p>Купаж: ~40% Chardonnay + 35% Pinot Noir + 25% Pinot Meunier. Необычно высокое содержание Chardonnay для NV — отсюда особая свежесть. Выдержка 3 года на дрожжах.</p>
+      <p><strong>Вкус:</strong> белые фрукты, белые цветы, бриошь, мягкая кислотность.</p>
+      <div class="bev-notes">Идеально как аперитив, к морепродуктам, рыбе, лёгким закускам.</div>
+      <div class="memory bev">«Много Chardonnay = свежее и элегантное». Выдержка 3 года = более сложный вкус, чем у бюджетных NV.</div>
+    </div>
+    <div class="bev-card">
+      <div class="bev-sub">Sparkling · Italy · Veneto · N.V.</div>
+      <div class="bev-name">Prosecco Belstar Extra Dry</div>
+      <p>100% Glera. Метод Шарма (чаны). Стиль Extra Dry = чуть мягче и фруктовее, чем Brut.</p>
+      <p><strong>Вкус:</strong> зелёное яблоко, груша, персик, лёгкая сладость в послевкусии.</p>
+      <div class="bev-notes">Как аперитив, к лёгким закускам. Основа для Aperol Spritz.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ════ WHITE WINE ════ -->
+<section id="bev-white">
+  <h2 class="section-title bev"><span class="emoji">🍋</span> Белые вина</h2>
+
+  <div class="alert bev-info"><span class="alert-icon">💡</span><div><strong>Ключ к белым:</strong> Кислое и лёгкое → Sauvignon Blanc. Мягкое и ароматное → Riesling. Сливочное и плотное → Chardonnay. Нежное и минеральное → Pinot Grigio. Цветочное и ароматное → Gessami (мускат+гевюрц).</div></div>
+
+  <div class="card-grid">
+    <div class="bev-card">
+      <div class="bev-sub">White · Kazakhstan · 2016</div>
+      <div class="bev-name">Ak Arba Riesling · Assa Valley</div>
+      <p>100% Riesling. Arba Wine — виноградники у подножия Заилийского Алатау, 70 км от Алматы. Ферментация в стали + частично дуб, 6–8 мес.</p>
+      <p><strong>Вкус:</strong> зелёное яблоко, цитрусы, минеральные ноты, лёгкая солоноватость в послевкусии. Характерные «бензольные» оттенки выдержанного рислинга.</p>
+      <div class="bev-notes">К рыбе, морепродуктам, лёгким закускам. Продажная история: местное вино из Казахстана.</div>
+    </div>
+    <div class="bev-card">
+      <div class="bev-sub">White · Spain · Rioja · N.V.</div>
+      <div class="bev-name">Voche Blanco · Rioja</div>
+      <p>Viura + Chardonnay. Выдержка в дубе → сливочные и ванильные ноты.</p>
+      <p><strong>Вкус:</strong> цитрусы, белые цветы, лёгкая ваниль, округлая текстура.</p>
+      <div class="bev-notes">К рыбе, морепродуктам, ризотто, пасте с белым соусом, мягким сырам.</div>
+    </div>
+    <div class="bev-card">
+      <div class="bev-sub">White · Spain · Penedès · 2021</div>
+      <div class="bev-name">Gramona Gessami · Penedès</div>
+      <p>Мускат + Совиньон Блан + Гевюрцтраминер. Холодная ферментация в стали — для сохранения ароматов.</p>
+      <p><strong>Вкус:</strong> жасмин, виноград, личи, цитрусовая цедра. Очень ароматное и лёгкое.</p>
+      <div class="bev-notes">Как аперитив, к салатам, морепродуктам, азиатской кухне, козьему сыру.</div>
+      <div class="memory bev">Самое «цветочное» вино в карте. Гостям, которые хотят «что-то лёгкое и ароматное».</div>
+    </div>
+    <div class="bev-card">
+      <div class="bev-sub">White · France · Burgundy · 2022</div>
+      <div class="bev-name">Domaine Maldant-Pauvelot · Bourgogne Chardonnay</div>
+      <p>100% Chardonnay. Semya Maldant-Pauvelot из Côte de Beaune. Выдержка в дубовых бочках 10–12 мес + работа на осадке.</p>
+      <p><strong>Вкус:</strong> белые фрукты, цветы, мёд, лёгкое масло, ореховые нюансы, минеральность.</p>
+      <div class="bev-notes">К рыбе, морепродуктам, белому мясу, пасте, мягким сырам.</div>
+    </div>
+    <div class="bev-card">
+      <div class="bev-sub">White · New Zealand · Marlborough · 2023</div>
+      <div class="bev-name">Hans Greyl · Sauvignon Blanc</div>
+      <p>100% Sauvignon Blanc. Ферментация в стальных чанах — для максимальной свежести.</p>
+      <p><strong>Вкус:</strong> тропические фрукты, крыжовник, манго, маракуйя, свежая трава, высокая кислотность.</p>
+      <div class="bev-notes">К морепродуктам, рыбе, курице, суши, салатам, козьему сыру, спарже.</div>
+      <div class="memory bev">Самый продаваемый белый в меню. <strong>«Яркий, живой, тропический»</strong> — так описывать гостям.</div>
+    </div>
+    <div class="bev-card">
+      <div class="bev-sub">White · Italy · Friuli · 2022</div>
+      <div class="bev-name">Tunella · Pinot Grigio · Friuli</div>
+      <p>100% Pinot Grigio. Холодная ферментация в стали. Хозяйство La Tunella — Friuli Colli Orientali.</p>
+      <p><strong>Вкус:</strong> зелёное яблоко, груша, белые цветы, цитрусы, лёгкая минеральность и миндаль.</p>
+      <div class="bev-notes">К рыбе, морепродуктам, салатам, пасте с овощами, ризотто.</div>
+    </div>
+    <div class="bev-card">
+      <div class="bev-sub">White · Germany · Mosel · 2022</div>
+      <div class="bev-name">Riesling Trocken · Markus Molitor · Haus Klosterberg</div>
+      <p>100% Riesling. Trocken = сухое (по-немецки). Ручной сбор, ферментация в стали и старых дубовых фудрах. Markus Molitor — культовый производитель Мозеля.</p>
+      <p><strong>Вкус:</strong> лайм, лимонная цедра, зелёное яблоко, белые цветы, сланцевая минералика. Очень свежий и строгий.</p>
+      <div class="bev-notes">К устрицам, морепродуктам, рыбе, азиатской кухне, блюдам с цитрусами. <strong>К острым блюдам.</strong></div>
+    </div>
+    <div class="bev-card">
+      <div class="bev-sub">White · Italy · Puglia · 2023</div>
+      <div class="bev-name">Edda Bianco · Salento · Cantine San Marzano</div>
+      <p>100% Chardonnay из солнечной Апулии. Частичная выдержка в дубе + батонаж → кремовая текстура.</p>
+      <p><strong>Вкус:</strong> абрикос, персик, ваниль, тропические ноты, бархатистое и насыщенное.</p>
+      <div class="bev-notes">К пасте со сливочными соусами, рыбе и морепродуктам на гриле, выдержанным сырам.</div>
+      <div class="memory bev">Самое «плотное» белое в карте. Гостям, которые любят «богатое, сливочное» — это их вино.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ════ ROSÉ ════ -->
+<section id="bev-rose">
+  <h2 class="section-title bev"><span class="emoji">🌸</span> Розовое вино</h2>
+  <div class="alert bev-info"><span class="alert-icon">💡</span><div><strong>Розовое ≠ смесь белого и красного</strong> (кроме игристых). Цвет берётся из кожицы тёмного винограда при коротком контакте сока с ней (несколько часов). Чем дольше контакт — тем темнее и насыщеннее.</div></div>
+  <div class="card-grid">
+    <div class="bev-card">
+      <div class="bev-sub">Rosé · France · Côtes de Provence · 2021</div>
+      <div class="bev-name">Domaines Ott By.Ott · Côtes de Provence Rosé</div>
+      <p>Grenache + Cinsault + Syrah. Domaines Ott* — легендарный дом Прованса, эталон розового. Прямое прессование + холодная ферментация в стали.</p>
+      <p><strong>Вкус:</strong> лесная земляника, белая вишня, персик, розовые лепестки, цитрусовая цедра. Сухое, лёгкое, освежающее.</p>
+      <div class="bev-notes">Как аперитив, к морепродуктам, салатам, рыбе на гриле, средиземноморской кухне.</div>
+      <div class="memory bev">Прованское розе = самый «летний» напиток. Гостям, которые хотят «что-то лёгкое и элегантное».</div>
+    </div>
+  </div>
+</section>
+
+<!-- ════ RED WINE ════ -->
+<section id="bev-red">
+  <h2 class="section-title bev"><span class="emoji">🍷</span> Красные вина</h2>
+  <div class="alert bev-info"><span class="alert-icon">💡</span><div><strong>Танины</strong> = вещества из кожицы/косточек → ощущение сухости и вяжущее ощущение во рту (как от крепкого чая). Чем больше танинов — тем «серьёзнее» вино и лучше к мясу. Выдержка в дубе добавляет ваниль, специи, шоколад.</div></div>
+  <div class="card-grid">
+    <div class="bev-card">
+      <div class="bev-sub">Red · Kazakhstan · 2018</div>
+      <div class="bev-name">Lagyl Arba · Assa Valley</div>
+      <p>Saperavi 87% + Shiraz 13%. Arba Wine, долина Ассы. Выдержка в дубе.</p>
+      <p><strong>Вкус:</strong> вишня, тёмные ягоды, слива, лёгкие пряные и дубовые ноты. Мягкие танины, полнотелое.</p>
+      <div class="bev-notes">К мясу, блюдам на гриле, выдержанным сырам. <strong>Локальное — продавать как особенность заведения.</strong></div>
+    </div>
+    <div class="bev-card">
+      <div class="bev-sub">Red · South Africa · 2021</div>
+      <div class="bev-name">Barista · Pinotage Val de Vie</div>
+      <p>100% Pinotage (уникальный ЮАР сорт = Pinot Noir × Cinsaut). Выдержка во французском дубе.</p>
+      <p><strong>Вкус:</strong> шелковица, слива, <strong>кофе, шоколад</strong>, ваниль. Бархатистые танины.</p>
+      <div class="bev-notes">К красному мясу, жареной утке, шоколадным десертам.</div>
+      <div class="memory bev">Pinotage = «кофейный» виноград ЮАР. Запомни: <strong>кофе + шоколад + ягоды</strong>. Единственное африканское вино в карте.</div>
+    </div>
+    <div class="bev-card">
+      <div class="bev-sub">Red · France · Burgundy · 2022</div>
+      <div class="bev-name">Domaine Maldant-Pauvelot · Bourgogne Pinot Noir</div>
+      <p>100% Pinot Noir. Côte de Beaune. Выдержка в французских дубовых бочках (частично использованных).</p>
+      <p><strong>Вкус:</strong> малина, вишня, красная смородина, лёгкая кислинка, мягкие танины, цветочные нотки. Элегантное.</p>
+      <div class="bev-notes">К птице, лёгким мясным блюдам, грибной пасте, мягким сырам.</div>
+    </div>
+    <div class="bev-card">
+      <div class="bev-sub">Red · Italy · Puglia · 2021</div>
+      <div class="bev-name">Talo · Primitivo-Merlot · Feudi di San Marzano</div>
+      <p>50% Primitivo + 50% Merlot. Саленто, Апулия. Выдержка 4–6 мес в дубе.</p>
+      <p><strong>Вкус:</strong> вишня, черешня, спелые тёмные ягоды, лёгкие пряности, возможно корица. Полнотелое.</p>
+      <div class="bev-notes">К плотным первым блюдам, красному мясу, дичи, выдержанным сырам.</div>
+    </div>
+    <div class="bev-card">
+      <div class="bev-sub">Red · Argentina · Mendoza · 2018</div>
+      <div class="bev-name">Clos de los Siete · Michel Rolland</div>
+      <p>Malbec 57% + Merlot 15% + Cab. Sauv. 15% + Syrah 10% + Petit Verdot 3%. Проект французского энолога Мишеля Роллана. Выдержка 12 мес в французском дубе.</p>
+      <p><strong>Вкус:</strong> чёрная вишня, ежевика, специи, ваниль, шоколад. Бархатистые танины, полнотелое.</p>
+      <div class="bev-notes">К стейкам, запечённой дичи, выдержанным сырам. «Французская элегантность в аргентинском теле».</div>
+    </div>
+    <div class="bev-card">
+      <div class="bev-sub">Red · Italy · Maremma Tuscany · 2021</div>
+      <div class="bev-name">Querciabella Mongrana Rosso · Maremma</div>
+      <p>Sangiovese + Cabernet Sauvignon + Merlot. Querciabella — органическое виноделие. Выдержка 12 мес в французском дубе.</p>
+      <p><strong>Вкус:</strong> чёрные ягоды, вишня, ваниль, специи, лёгкая дымность. Плотная структура, бархатистые танины.</p>
+      <div class="bev-notes">К стейкам, рёбрышкам, тушёной дичи, выдержанным сырам.</div>
+      <div class="memory bev">Самое «мощное» красное в карте. Для любителей насыщенных итальянских вин.</div>
+    </div>
+    <div class="bev-card">
+      <div class="bev-sub">Red · Italy · Friuli · 2022</div>
+      <div class="bev-name">Tunella · Pinot Nero · Friuli</div>
+      <p>100% Pinot Nero (итальянское название Pinot Noir). Частичная выдержка в дубе 6–8 мес.</p>
+      <p><strong>Вкус:</strong> красные ягоды, вишня, малина, лёгкие цветочные и минеральные ноты. Лёгкое и элегантное.</p>
+      <div class="bev-notes">К пасте с грибами, птице, лёгким мясным блюдам, мягким сырам.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ════ FORTIFIED ════ -->
+<section id="bev-fortified">
+  <h2 class="section-title bev"><span class="emoji">🏺</span> Крепленые вина</h2>
+  <div class="bev-card" style="margin-bottom:14px;">
+    <div class="bev-name">Что такое крепленое вино?</div>
+    <p>Вино, в которое добавили виноградный спирт во время или после ферментации. Это останавливает брожение (сохраняет сладость) и повышает крепость до 15–22%. <strong>Порт</strong> (Португалия) — добавляют спирт во время брожения → сладкое. <strong>Херес/Sherry</strong> (Испания) — добавляют после → от сухого до сладкого.</p>
+    <div class="memory bev">Крепленое = вино + виноградный спирт = дольше хранится + выше крепость + разные стили от сухого до очень сладкого.</div>
+  </div>
+
+  <p class="subsection bev">Портвейн (Port) — Португалия</p>
+  <div class="fort-grid">
+    <div class="fort-card"><div class="f-name">Graham's Tawny 20 Y.O. Port</div><div class="f-origin">Portugal · 75ml</div><p>Tawny = выдержан в малых бочках → окисление → янтарный цвет. 20 лет = ноты орехов, сухофруктов, карамели, цедры. Подаётся слегка охлаждённым.</p></div>
+    <div class="fort-card"><div class="f-name">Graham's Tawny 30 Y.O. Port</div><div class="f-origin">Portugal · 75ml</div><p>30 лет = ещё глубже. Очень сложный, с нотами орехов, сухих трав, мёда и дуба.</p></div>
+    <div class="fort-card"><div class="f-name">Niepoort LBV 2017</div><div class="f-origin">Portugal · Late Bottled Vintage · 75ml</div><p>LBV = Late Bottled Vintage. Тёмный рубиновый цвет, ягодный, сладкий. Хорошая альтернатива Vintage Port.</p></div>
+    <div class="fort-card"><div class="f-name">Niepoort Vintage Port 1987</div><div class="f-origin">Portugal · 75ml</div><p>Коллекционный урожай 1987 г. Максимальная сложность и глубина. Редкость.</p></div>
+    <div class="fort-card"><div class="f-name">Porto Fine White · Quinta do Noval</div><div class="f-origin">Portugal · 75ml</div><p>Белый портвейн — редкость. Из белых сортов. Более лёгкий, ореховый, немного менее сладкий. Хорошо со льдом как аперитив.</p></div>
+    <div class="fort-card"><div class="f-name">Barbeito Single Harvest Madeira 2007</div><div class="f-origin">Portugal · Madeira · 75ml</div><p>Мадейра = крепленое с острова Мадейра. Уникальный процесс нагрева (estufa) → долго хранится. Кислотное, ореховое, карамельное.</p></div>
+  </div>
+
+  <p class="subsection bev">Херес (Sherry) — Испания</p>
+  <div class="fort-grid">
+    <div class="fort-card"><div class="f-name">Gonzalo Byass Tio Pepe Fino</div><div class="f-origin">Spain · 75ml</div><p>Fino = самый сухой и лёгкий херес. Под слоем дрожжей (flor). Очень бледный, сухой, солёный, миндальный. Пить холодным, как аперитив. Быстро окисляется.</p></div>
+    <div class="fort-card"><div class="f-name">Gonzalo Byass Alfonso Oloroso</div><div class="f-origin">Spain · 75ml</div><p>Oloroso = богатый, тёмный, ореховый. Без дрожжей → окисление. Более сладкий. К десертам, орехам, твёрдым сырам.</p></div>
+    <div class="fort-card"><div class="f-name">Delgado Zuleta · Pedro Ximenez</div><div class="f-origin">Spain · 75ml</div><p>Pedro Ximenez (PX) = самый сладкий херес. Из подвяленного винограда. Густой, как сироп. Изюм, финики, шоколад. Поливают на ванильное мороженое.</p></div>
+  </div>
+
+  <p class="subsection bev">Другие крепленые вина</p>
+  <div class="fort-grid">
+    <div class="fort-card"><div class="f-name">Marco de Bartoli · Marsala Superiore Oro DOC</div><div class="f-origin">Italy · Sicilia · 75ml</div><p>Марсала = итальянское крепленое из Сицилии. Золотистое, ореховое, медовое. К десертам и как ингредиент в тирамису.</p></div>
+    <div class="fort-card"><div class="f-name">Penfolds Father Grand Tawny 10 Y.O.</div><div class="f-origin">Australia · 75ml</div><p>Австралийский стиль Tawny. Более фруктовый и тёплый, чем португальский. Орехи, ваниль, карамель.</p></div>
+  </div>
+  <div class="memory bev">Подавать: Fino Sherry — холодным, как аперитив. Tawny Port — слегка охлаждённым, к орехам и сырам. PX Sherry — как десертное, небольшими порциями. Vintage Port — комнатная температура, декантировать.</div>
+</section>
+
+<!-- ════ SCOTCH ════ -->
+<section id="bev-scotch">
+  <h2 class="section-title bev"><span class="emoji">🥃</span> Scotch Single Malt Whisky</h2>
+
+  <div class="bev-card" style="margin-bottom:14px;">
+    <div class="bev-name">Что такое Single Malt Scotch?</div>
+    <p>Виски = зерновой дистиллят, выдержанный в дубовых бочках. <strong>Single Malt</strong> = из <strong>соложенного ячменя</strong> (только ячмень!) + одна дистиллерия + Шотландия + выдержка минимум 3 года + не менее 40%. «Single» = одна дистиллерия. «Malt» = соложенный ячмень.<br>
+    <strong>Blended</strong> = смесь нескольких дистиллерий (Chivas, Johnnie Walker). Более мягкий и доступный.<br>
+    <strong>Бочки важны:</strong> херес (sherry) = сухофрукты, орехи, шоколад. Бурбон = ваниль, карамель. Торф = дым, йод.</p>
+    <div class="memory bev">5 регионов = 5 разных характеров: Speyside = фрукты+мёд. Highland = разнообразие. Lowland = лёгкий. Islay = дым+торф. Islands = морской+умеренный торф.</div>
+  </div>
+
+  <p class="subsection bev">🌾 Speyside — фруктовый и элегантный</p>
+  <div class="card-grid">
+    <div class="bev-card">
+      <div class="region-badge region-speyside">Speyside</div>
+      <div class="bev-name">The Glenlivet 15 / 18 / 25</div>
+      <p>Эталон «классического» Speyside. Один из первых легальных производителей. Минимальное влияние торфа, акцент на чистоте.</p>
+      <p>15 = свежие фрукты, лёгкая пряность · 18 = глубже, сухофрукты, специи · 25 = многослойный, зрелый</p>
+      <div class="memory bev">Glenlivet = «входная точка» в мир Single Malt. Мягкий и доступный для новичков.</div>
+    </div>
+    <div class="bev-card">
+      <div class="region-badge region-speyside">Speyside</div>
+      <div class="bev-name">The Macallan 12 / 15 / 18 / 25 + Classic Cut + M</div>
+      <p>«Король хересных бочек». Малые перегонные кубы → плотный, маслянистый спирт. Значительная выдержка в испанском хересном дубе.</p>
+      <p><strong>Стиль:</strong> тёмный шоколад, апельсиновая цедра, сухофрукты, орехи, выразительный дуб.</p>
+      <div class="bev-notes">Classic Cut = повышенная крепость, яркая пряность. M = премиальный коллекционный.</div>
+      <div class="memory bev">Macallan ≠ лёгкий Speyside. Это плотный, насыщенный стиль. Для ценителей богатого виски.</div>
+    </div>
+    <div class="bev-card">
+      <div class="region-badge region-speyside">Speyside</div>
+      <div class="bev-name">Glenfiddich 18 / 21 / 30 / 40</div>
+      <p>Эталон чистого и сбалансированного Speyside. Разные типы бочек, нет доминирования. Акцент на чистоте.</p>
+      <p><strong>Стиль:</strong> груша, яблоко, цветочные ноты, лёгкий дуб, чистый профиль.</p>
+      <div class="bev-notes">30/40 лет = коллекционные. 18/21 = для серьёзной дегустации.</div>
+    </div>
+    <div class="bev-card">
+      <div class="region-badge region-speyside">Speyside</div>
+      <div class="bev-name">Aberlour 16 / 18</div>
+      <p>Насыщенный шери-стиль. Сухофрукты, специи, ореховые ноты. Более доступен, чем Macallan.</p>
+    </div>
+    <div class="bev-card">
+      <div class="region-badge region-speyside">Speyside</div>
+      <div class="bev-name">Tamdhu 15</div>
+      <p>Фокус на sherry cask. Тёплый, округлый, насыщенный.</p>
+    </div>
+    <div class="bev-card">
+      <div class="region-badge region-speyside">Speyside</div>
+      <div class="bev-name">Singleton of Dufftown 15</div>
+      <p>Мягкий, сливочный стиль. Лёгкий вход в мир Single Malt. Отличный выбор для гостей без опыта.</p>
+    </div>
+  </div>
+
+  <p class="subsection bev">🏔️ Highland — самый большой и разнообразный регион</p>
+  <div class="card-grid">
+    <div class="bev-card">
+      <div class="region-badge region-highland">Highland</div>
+      <div class="bev-name">Glenmorangie · The Lasanta 15 / Quinta Ruban 14 / 18 / Signet</div>
+      <p>Одна из самых высоких перегонных башен → очень лёгкий и чистый спирт. Лёгкий, фруктово-цветочный Highland.</p>
+      <p>Lasanta = шери → мягкая сладость · Quinta Ruban = портвейн → тёмный шоколад · Signet = кофе, специи, премиум</p>
+    </div>
+    <div class="bev-card">
+      <div class="region-badge region-highland">Highland</div>
+      <div class="bev-name">Dalmore 21</div>
+      <p>Плотный и насыщенный Highland. Большая часть выдержки в sherry cask. Шоколад, цедра апельсина, сухофрукты, орехи. 21 год = глубокая зрелость.</p>
+    </div>
+    <div class="bev-card">
+      <div class="region-badge region-highland">Highland</div>
+      <div class="bev-name">Glengoyne 15 / 25 / 30</div>
+      <p>Без торфа. Медленная перегонка → мягкий и элегантный профиль. Sherry cask добавляет глубины. Цветочные ноты, мёд, карамель.</p>
+    </div>
+    <div class="bev-card">
+      <div class="region-badge region-highland">Highland</div>
+      <div class="bev-name">Glenfarclas 15 / 25 / 40</div>
+      <p>Все релизы без холодной фильтрации (non-chill-filtered) → плотный и насыщенный вкус. Шоколад, орехи, дуб. 40 лет = коллекционный раритет.</p>
+    </div>
+    <div class="bev-card">
+      <div class="region-badge region-highland">Highland</div>
+      <div class="bev-name">Oban 14</div>
+      <p>Баланс: фрукты + лёгкая морская соль + лёгкий дым. Переходный стиль между Highland и Islands.</p>
+    </div>
+    <div class="bev-card">
+      <div class="region-badge region-highland">Highland</div>
+      <div class="bev-name">Aberfeldy 21 · Samaroli Deanston 1999</div>
+      <p>Aberfeldy 21 = мёд, карамель, лёгкая сладость. Deanston 1999 = коллекционный, non-chill-filtered, мягкий, фруктовый.</p>
+    </div>
+  </div>
+
+  <p class="subsection bev">🏖️ Lowland — лёгкий и элегантный</p>
+  <div class="card-grid">
+    <div class="bev-card">
+      <div class="region-badge region-lowland">Lowland</div>
+      <div class="bev-name">Auchentoshan American Oak / 12 Y.O.</div>
+      <p>Тройная перегонка (уникально для Шотландии) → очень чистый и элегантный профиль. American Oak = ваниль + фрукты. 12 лет = мягкий, свежий.</p>
+      <div class="memory bev">Auchentoshan = лучший выбор для <strong>первого знакомства с Single Malt</strong>. Мягкий, понятный, без дыма.</div>
+    </div>
+    <div class="bev-card">
+      <div class="region-badge region-lowland">Lowland</div>
+      <div class="bev-name">Rosebank 1990 Vintage 31 Y.O.</div>
+      <p>Коллекционный релиз закрытой дистиллерии. Non-chill-filtered. Мягкий, фруктовый, цветочный с нотами сухофруктов. Для ценителей.</p>
+    </div>
+  </div>
+
+  <p class="subsection bev">🌊 Islay — дымный и торфяной</p>
+  <div class="card-grid">
+    <div class="bev-card">
+      <div class="region-badge region-islay">Islay</div>
+      <div class="bev-name">Lagavulin 16</div>
+      <p>Один из самых известных торфяных виски. Долгая выдержка в бурбоновых и шери-бочках.</p>
+      <p><strong>Стиль:</strong> торф и дым, морская соль, йод, шоколад, сухофрукты. Плотный и многослойный.</p>
+    </div>
+    <div class="bev-card">
+      <div class="region-badge region-islay">Islay</div>
+      <div class="bev-name">Ardbeg 10 / Corryvreckan</div>
+      <p>Один из самых мощных и дымных. Узкие медные аламбики → концентрированный аромат. Non-chill-filtered.</p>
+      <p>10 = экстремальный торф, прямой · Corryvreckan = более сложный, кофе, тёмный шоколад</p>
+      <div class="memory bev">Ardbeg = для любителей «экстремального» Islay. Если гость хочет «самый дымный» — это оно.</div>
+    </div>
+    <div class="bev-card">
+      <div class="region-badge region-islay">Islay</div>
+      <div class="bev-name">Laphroaig Quarter Cask</div>
+      <p>Интенсивный торф и дым, морская соль, йод. Quarter Cask = часть выдержки в маленьких бочках → ускоренный контакт с деревом → маслянистый вкус. Non-chill-filtered.</p>
+    </div>
+    <div class="bev-card">
+      <div class="region-badge region-islay">Islay</div>
+      <div class="bev-name">Bunnahabhain 18</div>
+      <p>Наименее торфяной из Islay — почти без дыма. Мягкая морская свежесть, фруктовый. Non-chill-filtered.</p>
+      <div class="memory bev">Bunnahabhain = «мягкий Islay». Для гостей, которые хотят Islay, но боятся дыма.</div>
+    </div>
+    <div class="bev-card">
+      <div class="region-badge region-islay">Islay</div>
+      <div class="bev-name">Port Charlotte · Kilchoman Machir Bay / Sanaig · Bruichladdich</div>
+      <p>Port Charlotte = умеренный торф, фруктовый.<br>Kilchoman Machir Bay = лёгкий, свежий. Sanaig = насыщеннее, но мягче Lagavulin.<br>Bruichladdich = почти без торфа, фруктово-цветочный.</p>
+    </div>
+  </div>
+
+  <p class="subsection bev">🏝️ Islands — морской и умеренный</p>
+  <div class="card-grid">
+    <div class="bev-card">
+      <div class="region-badge region-islands">Islands · Skye</div>
+      <div class="bev-name">Talisker Skye</div>
+      <p>Остров Скай. Стиль близок к Islay, но мягче. Лёгкий торф, морская соль, пряности, цитрус. Non-chill-filtered. Хорошо показывает «островной» стиль без экстремальности Ardbeg.</p>
+    </div>
+  </div>
+
+  <div class="memory bev" style="margin-top:14px;"><strong>Навигация по стилю для гостя:</strong> Хочет мягкий → Lowland (Auchentoshan) или Speyside (Glenlivet/Singleton). Хочет фруктовый шери-стиль → Macallan, Aberlour, Glenfarclas. Хочет лёгкий дым → Talisker, Port Charlotte. Хочет «экстремальный» дым → Ardbeg, Laphroaig, Lagavulin.</div>
+</section>
+
+<!-- ════ WORLD WHISKY ════ -->
+<section id="bev-world-whisky">
+  <h2 class="section-title bev"><span class="emoji">🌍</span> Виски мира — Blended, Irish, American, World</h2>
+
+  <div class="card-grid">
+    <div class="bev-card">
+      <div class="bev-sub">Scotch Blended Whisky</div>
+      <div class="bev-name">Chivas Regal 15 / 18 / Ultis / 25</div>
+      <p>Blended = солодовый + зерновой спирт из нескольких дистиллерий. Более лёгкий и доступный стиль. Для тех, кто «не хочет Single Malt».</p>
+    </div>
+    <div class="bev-card">
+      <div class="bev-sub">Scotch Blended Whisky</div>
+      <div class="bev-name">Johnnie Walker Blue Label / King George V</div>
+      <p>Премиальные купажированные. Blue = из редких дистиллерий, бархатный, без возраста. King George V = очень редкие виски, коллекционный уровень.</p>
+    </div>
+    <div class="bev-card">
+      <div class="bev-sub">Scotch Blended</div>
+      <div class="bev-name">Ballantine's 17 / 21 · Dewar's 18 · Royal Salute 100 Cask</div>
+      <p>Balantine's 17/21 = элегантный, сбалансированный. Dewar's 18 = фруктовый, медовый. Royal Salute 100 Cask = люксовый купаж.</p>
+    </div>
+  </div>
+
+  <p class="subsection bev">Irish Whiskey — ирландский виски</p>
+  <div class="alert bev-info"><span class="alert-icon">💡</span><div><strong>Ирландский vs Шотландский:</strong> Ирландский — как правило, тройная перегонка → мягче и легче. Без торфа. Часто с фруктовыми нотами. Минимум 3 года выдержки в дереве.</div></div>
+  <div class="card-grid">
+    <div class="bev-card">
+      <div class="bev-sub">Irish Whiskey · Ireland</div>
+      <div class="bev-name">Jameson Crested / Black Barrel · Drumshanbo Single Pot Still</div>
+      <p>Jameson = самый известный ирландский бренд. Crested = классический, мягкий, ванильный. Black Barrel = выдержан в бурбоновых бочках → карамель, пряности.<br>Drumshanbo = Single Pot Still = уникальная ирландская техника с нешелушенным зерном → масляный, пряный, сложный.</p>
+    </div>
+    <div class="bev-card">
+      <div class="bev-sub">Irish Whiskey · Ireland</div>
+      <div class="bev-name">Natterjack Blend / Cask Strength</div>
+      <p>Небольшой ирландский бренд. Blend = лёгкий, фруктовый. Cask Strength = неразбавленный, интенсивный.</p>
+    </div>
+  </div>
+
+  <p class="subsection bev">American Bourbon — бурбон</p>
+  <div class="alert bev-info"><span class="alert-icon">💡</span><div><strong>Бурбон</strong> = американский виски. По закону: ≥51% кукурузы, новые обожжённые дубовые бочки, выдержка ≥2 года, крепость при заполнении ≤62.5%. Отсюда ваниль, карамель, мёд, кукурузная сладость.</div></div>
+  <div class="card-grid">
+    <div class="bev-card">
+      <div class="bev-sub">Bourbon · USA</div>
+      <div class="bev-name">Four Roses Single Barrel · Blanton's Original · Maker's Mark</div>
+      <p>Four Roses Single Barrel = богатый, фруктовый, пряный. Blanton's = первый Single Barrel, мягкий, ванильный, коллекционная бутылка. Maker's Mark = пшеничный бурбон, мягкий, сладкий.</p>
+    </div>
+    <div class="bev-card">
+      <div class="bev-sub">Bourbon / Rye · USA</div>
+      <div class="bev-name">Bulleit / Bulleit Rye · Templeton Cask Finish Tequila</div>
+      <p>Bulleit = высокое содержание ржи → пряный, перечный. Bulleit Rye = ещё пряней. Templeton = бурбон с финишем в текильных бочках → интересная комбинация.</p>
+    </div>
+  </div>
+
+  <p class="subsection bev">Whisky of the World — виски со всего мира</p>
+  <div class="card-grid">
+    <div class="bev-card">
+      <div class="bev-sub">French Whisky · Brittany</div>
+      <div class="bev-name">Armorik / Armorik Yeun Elez / Marcel Cabelier Trésor Légendaire</div>
+      <p>Французский виски — нетипично и интересно. Armorik = из Бретани, солёный морской характер. Cabelier = бургундский стиль, выдержан в бочках из-под вина.</p>
+    </div>
+    <div class="bev-card">
+      <div class="bev-sub">Israeli Whisky</div>
+      <div class="bev-name">M&H Elements</div>
+      <p>Израильский Single Malt. Жаркий климат = более быстрое взаимодействие с деревом. Фруктовый, медовый стиль.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ════ JAPANESE / ASIAN WHISKY ════ -->
+<section id="bev-asian-whisky">
+  <h2 class="section-title bev"><span class="emoji">🎌</span> Японский виски & азиатский</h2>
+  <div class="bev-card" style="margin-bottom:14px;">
+    <div class="bev-name">Японский виски — в чём отличие?</div>
+    <p>Вдохновлён шотландским, но со своей философией — баланс, гармония, точность. Из ячменя (или ржи/зерновые). Часто более мягкий и цветочный. Бочки Mizunara (японский дуб) = редкость, добавляет сандал и ваниль.<br><strong>Ключевые дома:</strong> Nikka, Suntory, Kamiki, Hakushu, Hibiki.</p>
+    <div class="memory bev">Японский виски ≠ дешевле шотландского. Хороший японский = редкость и высокое мастерство.</div>
+  </div>
+  <div class="card-grid">
+    <div class="bev-card">
+      <div class="region-badge region-japan">Japan · Blended Malt</div>
+      <div class="bev-name">Nikka Taketsuru Pure Malt / From the Barrel / Gold&Gold</div>
+      <p>Taketsuru = основатель японского виски, учился в Шотландии. Pure Malt = blended malt, мягкий, округлый. From the Barrel = бочковая крепость (~51%), насыщенный, концентрированный. Gold&Gold = премиум, богатый.</p>
+    </div>
+    <div class="bev-card">
+      <div class="region-badge region-japan">Japan · Blended</div>
+      <div class="bev-name">Hibiki Suntory / Yamazaki Distillers Reserve</div>
+      <p>Hibiki = самый узнаваемый японский blended whisky. Гармоничный, цветочный, элегантный. Коллекционный. Yamazaki = Single Malt от Suntory, тропические фрукты, водяная лилия, японский стиль.</p>
+    </div>
+    <div class="bev-card">
+      <div class="region-badge region-japan">Japan</div>
+      <div class="bev-name">Kamiki Blended Malt / Intense Wood / Sakura Wood</div>
+      <p>Kamiki = японский malt, выдержан в японских горных бочках. Intense Wood = насыщенный, дубовый. Sakura Wood = выдержан в бочках сакуры = цветочный, уникальный японский.</p>
+    </div>
+    <div class="bev-card">
+      <div class="region-badge region-japan">Japan</div>
+      <div class="bev-name">Hakushu Single Malt</div>
+      <p>Дистиллерия в горном лесу. Лёгкий, свежий, травяной, слегка торфяной. Уникальный для японского виски.</p>
+    </div>
+    <div class="bev-card">
+      <div class="region-badge region-japan">Japan</div>
+      <div class="bev-name">Matsui Single Malt The Peated / Kurayoshi Sherry Cask · Togouchi Beer/Sake Cask · Kura Blended Malt · Suntory Kakubin 7 Y.O.</div>
+      <p>Matsui Peated = торфяной японский. Kurayoshi Sherry = шери-бочки по-японски. Togouchi Beer/Sake Cask = финиш в пивных/саке бочках = экзотика.</p>
+    </div>
+    <div class="bev-card">
+      <div class="region-badge" style="background:#fff0e8;color:#803000;border:1px solid #e09060;">Taiwan</div>
+      <div class="bev-name">Kavalan Port Cask Finish</div>
+      <p>Тайваньский Single Malt. Тропический климат = быстрое взаимодействие с деревом = насыщенный фруктовый вкус. Port Cask Finish = портвейновые бочки → ягоды, шоколад, полнотелый.</p>
+    </div>
+    <div class="bev-card">
+      <div class="region-badge" style="background:#f0e8ff;color:#600060;border:1px solid #c080c0;">Korea</div>
+      <div class="bev-name">Hwayo X Premium</div>
+      <p>Корейский спиритус. Рисовый зерновой дистиллят в стиле виски. Мягкий, слегка сладкий.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ════ COGNAC ════ -->
+<section id="bev-cognac">
+  <h2 class="section-title bev"><span class="emoji">✨</span> Коньяк, Арманьяк, Бренди</h2>
+  <div class="bev-card" style="margin-bottom:14px;">
+    <div class="bev-name">Коньяк — что это?</div>
+    <p>Коньяк = <strong>французский бренди</strong> из региона Cognac. Делается из <strong>белого винограда</strong> (Ugni Blanc) → двойная дистилляция в медных кубах → выдержка в дубовых бочках (лимузенский дуб).<br>
+    <strong>Система обозначений:</strong><br>
+    <strong>VS</strong> (Very Special) = выдержка мин. 2 года. Лёгкий, фруктовый, для коктейлей.<br>
+    <strong>VSOP</strong> (Very Superior Old Pale) = мин. 4 года. Более сложный. Пить чистым или со льдом.<br>
+    <strong>XO</strong> (Extra Old) = мин. 10 лет. Богатый, сложный. Пить чистым.<br>
+    <strong>Коньяк ≠ Арманьяк:</strong> Арманьяк тоже французский бренди, но из Гаскони, одинарная дистилляция → более сырой и характерный. Коньяк = более полированный.</p>
+    <div class="memory bev">VS = коктейли. VSOP = сиппинг. XO = праздник. Hennessy Richard / Martell L'Or = крайний люкс.</div>
+  </div>
+  <div class="card-grid">
+    <div class="bev-card">
+      <div class="bev-sub">Cognac · France</div>
+      <div class="bev-name">Martell VS / VSOP / XO / Cordon Bleu Extra / L'Or</div>
+      <p>Один из старейших домов коньяка (1715). Стиль: более сухой и фруктовый, чем Hennessy. XO = слива, сухофрукты, цветы, специи. L'Or = люкс.</p>
+    </div>
+    <div class="bev-card">
+      <div class="bev-sub">Cognac · France</div>
+      <div class="bev-name">Hennessy VS / VSOP / XO / Paradis Imperial / Richard</div>
+      <p>Самый продаваемый коньяк в мире. VS = ванильный, лёгкий. VSOP = ореховый, цветочный. XO = интенсивный, дубовый, специи. Richard / Paradis = коллекционный уровень.</p>
+    </div>
+    <div class="bev-card">
+      <div class="bev-sub">Cognac · France</div>
+      <div class="bev-name">Rémy Martin XO / Louis XIII</div>
+      <p>Rémy Martin XO = Grande Champagne, самый деликатный терруар. Фруктовый, цветочный, изысканный. Louis XIII = коллекционный, смесь 1200+ Eaux-de-Vie, в хрустале. До 100 лет некоторых спиртов.</p>
+    </div>
+    <div class="bev-card">
+      <div class="bev-sub">Armagnac · France</div>
+      <div class="bev-name">Delord Bas Armagnac 25 Ans d'Age</div>
+      <p>25 лет. Bas Armagnac = лучший терруар Гаскони. Одинарная дистилляция → более «сырой» и характерный, чем коньяк. Чернослив, ваниль, пряности, кожа.</p>
+    </div>
+    <div class="bev-card">
+      <div class="bev-sub">Brandy · Various</div>
+      <div class="bev-name">Ararat 15 / 20 · Calvados du Breuil XO · Torres Brandy 10</div>
+      <p>Ararat = армянский бренди из Арарата (15/20 лет). Calvados = яблочный бренди из Нормандии (Франция). Torres = испанский виноградный бренди.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ════ GIN ════ -->
+<section id="bev-gin">
+  <h2 class="section-title bev"><span class="emoji">🌿</span> Джин</h2>
+  <div class="bev-card" style="margin-bottom:14px;">
+    <div class="bev-name">Джин — что это?</div>
+    <p>Джин = зерновой дистиллят, ароматизированный <strong>можжевельником</strong> (juniper) и другими ботаниками (цитрус, кориандр, специи, цветы и т.д.). Вкус зависит от набора ботаников.<br>
+    <strong>Стили:</strong><br>
+    <strong>London Dry</strong> = классический, сухой, можжевельник доминирует (Tanqueray, Bombay, Plymouth).<br>
+    <strong>Contemporary/New Wave</strong> = ботаники на первом плане (цветы, фрукты, экзотика) (Monkey 47, Roku).<br>
+    <strong>Genever</strong> = голландский прародитель джина, более солодовый и тяжёлый.<br>
+    Базовое правило: хороший джин = хороший тоник + правильный лёд + правильный гарнир.</p>
+    <div class="memory bev">London Dry = можжевельник главный. Contemporary = ботаники главные. Джин пьют в G&T (джин + тоник) или в Negroni, Martini.</div>
+  </div>
+  <div class="card-grid">
+    <div class="bev-card">
+      <div class="bev-sub">Gin · Germany</div>
+      <div class="bev-name">Monkey 47</div>
+      <p>47 ботаников + 47% алкоголя. Из Шварцвальда (Германия). Очень сложный, пряный, цветочный, цитрусовый. Один из самых известных в мире.</p>
+    </div>
+    <div class="bev-card">
+      <div class="bev-sub">Gin · Italy · Amalfi</div>
+      <div class="bev-name">Malfy Gin Originale / Rosa / Con Limone</div>
+      <p>Из Амальфи. Originale = классический итальянский. Rosa = розовый грейпфрут. Con Limone = лимон из Амальфи. Яркий, фруктовый, итальянский стиль.</p>
+    </div>
+    <div class="bev-card">
+      <div class="bev-sub">Gin · England (London Dry)</div>
+      <div class="bev-name">Tanqueray London Dry / №10 / Flor de Sevilla / Black Currant</div>
+      <p>Tanqueray = классика. №10 = citrus forward, свежий. Flor de Sevilla = апельсин из Севильи. Black Currant = смородина.</p>
+    </div>
+    <div class="bev-card">
+      <div class="bev-sub">Gin · England</div>
+      <div class="bev-name">Bulldog London Dry · Plymouth · Bombay Sapphire</div>
+      <p>Plymouth = мягкий, слегка землистый. Bombay Sapphire = цветочный, кориандровый. Bulldog = специи, мак.</p>
+    </div>
+    <div class="bev-card">
+      <div class="bev-sub">Gin · France</div>
+      <div class="bev-name">Citadelle Original / Jardin d'Été · Yu Gin</div>
+      <p>Citadelle = французский стиль, цветочный, пряный, деликатный. Jardin d'Été = летний, цветочный. Yu Gin = ароматный французский с восточными нотами.</p>
+    </div>
+    <div class="bev-card">
+      <div class="bev-sub">Gin · Japan</div>
+      <div class="bev-name">Ki No Bi · Tenjaku · Nikka Coffey Gin · Roku</div>
+      <p>Ki No Bi = Kyoto Dry Gin, с японскими ботаниками (сансё, чайный лист). Tenjaku = миный и цветочный. Roku = «6» ботаников (сакура, чайный цветок и т.д.). Nikka Coffey = на колонных аппаратах Coffey.</p>
+    </div>
+    <div class="bev-card">
+      <div class="bev-sub">Gin · Italy</div>
+      <div class="bev-name">Del Professore Monsieur / Madame · Roby Marton / Big Gino</div>
+      <p>Итальянские арtisan джины. Del Professore = можжевельник + итальянские специи. Roby Marton Big Gino = мощный, пряный стиль.</p>
+    </div>
+    <div class="bev-card">
+      <div class="bev-sub">Genever · Holland</div>
+      <div class="bev-name">Bols Genever Original</div>
+      <p>Голландский прародитель джина. Более солодовый и тяжёлый, чем London Dry. Пьют чистым или с пивом (Belgian tradition).</p>
+    </div>
+  </div>
+</section>
+
+<!-- ════ TEQUILA ════ -->
+<section id="bev-tequila">
+  <h2 class="section-title bev"><span class="emoji">🌵</span> Текила и Мескаль</h2>
+  <div class="bev-card" style="margin-bottom:14px;">
+    <div class="bev-name">Текила — что это?</div>
+    <p>Текила = мексиканский дистиллят из <strong>голубой агавы</strong> (Blue Agave Tequilana Weber), только из региона Халиско и ещё 4 штатов.<br>
+    <strong>Категории по выдержке:</strong><br>
+    <strong>Blanco/Silver</strong> = без выдержки. Чистый, агавовый вкус. Для коктейлей.<br>
+    <strong>Reposado</strong> = выдержка 2–12 мес в дубе. Мягче, ваниль, дерево.<br>
+    <strong>Añejo</strong> = 1–3 года. Сложный, карамель, специи. Пить чистым.<br>
+    <strong>Extra Añejo</strong> = 3+ года. Как коньяк. Для сиппинга.<br>
+    <strong>Мескаль vs Текила:</strong> Мескаль = из ЛЮБОГО вида агавы, чаще с дымным вкусом (пьеча). Текила = только из голубой агавы. Мескаль = более традиционный и сложный.</p>
+    <div class="memory bev">Blanco = коктейли. Reposado = переходный. Añejo = сиппинг. Don Julio 1942 = культовый. Clase Azul = самый дорогой в карте.</div>
+  </div>
+  <div class="card-grid">
+    <div class="bev-card">
+      <div class="bev-sub">Tequila · Mexico</div>
+      <div class="bev-name">Don Julio Blanco / Reposado / Añejo / 1942</div>
+      <p>Один из лучших брендов премиум-текилы. 1942 = Extra Añejo, выдержан 2.5 года, карамель, ваниль, дерево, дымок. Культовый. Для сиппинга.</p>
+    </div>
+    <div class="bev-card">
+      <div class="bev-sub">Tequila · Mexico · Premium</div>
+      <div class="bev-name">Fortaleza Blanco / Reposado / Añejo</div>
+      <p>Tahona process = традиционное производство с каменным колесом. Очень аутентичный, интенсивный агавовый вкус. Для ценителей.</p>
+    </div>
+    <div class="bev-card">
+      <div class="bev-sub">Tequila · Mexico · Ultra Premium</div>
+      <div class="bev-name">Clase Azul Reposado · Avion Cristalino · Celosa Joven Rose · Volcan Reposado</div>
+      <p>Clase Azul = самая дорогая текила в карте. Вручную расписанная бутылка. Плавный, карамельный, элегантный. Avion Cristalino = прозрачный añejo (фильтрация). Celosa Joven Rose = необычный розовый стиль.</p>
+    </div>
+    <div class="bev-card">
+      <div class="bev-sub">Tequila · Mexico</div>
+      <div class="bev-name">Patrón Añejo / Silver · Espolón Blanco/Reposado · Olmeca Altos</div>
+      <p>Patrón = знаковый бренд, чистый и мягкий стиль. Espolón = доступный, яркий. Olmeca Altos = Highland агава → фруктовый, цветочный.</p>
+    </div>
+    <div class="bev-card">
+      <div class="bev-sub">Mezcal · Mexico</div>
+      <div class="bev-name">Montelobos Pechuga / Espadin</div>
+      <p>Мескаль более дымный и «диковатый». Pechuga = редкий стиль, при дистилляции добавляют куриную грудку → невероятная сложность. Espadin = базовая агава, классический мескаль.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ════ RUM ════ -->
+<section id="bev-rum">
+  <h2 class="section-title bev"><span class="emoji">🍬</span> Ром</h2>
+  <div class="bev-card" style="margin-bottom:14px;">
+    <div class="bev-name">Ром — что это?</div>
+    <p>Ром = дистиллят из <strong>сахарного тростника</strong> (сока или мелассы). Производится в основном в Карибском регионе. Стили:<br>
+    <strong>Белый/Silver</strong> = лёгкий, для коктейлей. <strong>Золотой/Amber</strong> = выдержка → карамель, ваниль. <strong>Тёмный/Dark</strong> = длительная выдержка → сухофрукты, шоколад, специи. <strong>Agricole/Rhum</strong> = из свежего тростникового сока (Мартиника, Гваделупа) → более живой и травяной вкус.</p>
+    <div class="memory bev">Barbados = мягкий. Martinique (Agricole) = живой, травяной. Guatemala = богатый, сладкий. Jamaica = интенсивный, фруктовый.</div>
+  </div>
+  <div class="card-grid">
+    <div class="bev-card">
+      <div class="bev-sub">Rum · Barbados</div>
+      <div class="bev-name">Bumbu Original / XO · Plantation Dark / Overproof · R.L. Seale's</div>
+      <p>Bumbu = пряный ром с тропическими специями. XO = выдержан, богатый. Plantation Dark = многострановой бленд. Overproof = высокая крепость.</p>
+    </div>
+    <div class="bev-card">
+      <div class="bev-sub">Rhum Agricole · Martinique / France</div>
+      <div class="bev-name">Vieux Clement Private Cask · Clement Single Cask</div>
+      <p>Agricole = из свежего тростника → фруктовый, флоральный, живой вкус. Single Cask = одна бочка = максимальная уникальность.</p>
+    </div>
+    <div class="bev-card">
+      <div class="bev-sub">Rum · Guatemala</div>
+      <div class="bev-name">Zacapa Centenario 23 / XO</div>
+      <p>Один из лучших ромов в мире. Sistema Solera = смешивание разных возрастов. Зрел на высоте 2300м → медленная выдержка. Очень сладкий, богатый, шоколад, ваниль, сухофрукты.</p>
+      <div class="memory bev">Zacapa 23 = «шоколадный ром». Для гостей, которые любят «что-то сладкое и богатое».</div>
+    </div>
+    <div class="bev-card">
+      <div class="bev-sub">Rum · Dominican Republic</div>
+      <div class="bev-name">Brugal 1888 · Matusalem Gran Reserva</div>
+      <p>Brugal 1888 = двойная выдержка (бурбон + херес). Матуcалем = Sistema Solera, очень мягкий и элегантный.</p>
+    </div>
+    <div class="bev-card">
+      <div class="bev-sub">Rum · Japan · Puerto Rico</div>
+      <div class="bev-name">Ryoma (Japan) · Bacardi Ocho (Puerto Rico) · Naga Malacca (Indonesia)</div>
+      <p>Ryoma = японский ром из местного тростника. Bacardi Ocho = 8 лет, классика. Naga Malacca = индонезийский, экзотика.</p>
+    </div>
+    <div class="bev-card">
+      <div class="bev-sub">Brazil</div>
+      <div class="bev-name">Cachaca Pitú Aguardiente</div>
+      <p>Кашаса = бразильский дистиллят из свежего тростникового сока. Основа Caipirinha. Более резкий, чем ром, с выраженным тростниковым характером.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ════ VODKA ════ -->
+<section id="bev-vodka">
+  <h2 class="section-title bev"><span class="emoji">❄️</span> Водка</h2>
+  <div class="bev-card" style="margin-bottom:14px;">
+    <div class="bev-name">Водка — что это?</div>
+    <p>Водка = нейтральный зерновой (или картофельный) дистиллят, очищенный фильтрацией, разбавленный водой до ~40%. Максимальная чистота — минимум посторонних вкусов. Разница брендов в мягкости, «водяном» ощущении, лёгкости.<br>
+    Делают из: пшеница, рожь, ячмень, картофель (Belvedere = рожь; Grey Goose = пшеница; Beluga = пшеница/рожь).</p>
+    <div class="memory bev">Водка = чистота + мягкость. Тёплая водка = не ошибка — раскрывает вкус. Холодная = максимальная чистота ощущений.</div>
+  </div>
+  <div class="card-grid">
+    <div class="bev-card">
+      <div class="bev-sub">Vodka · France</div>
+      <div class="bev-name">Grey Goose</div>
+      <p>Французская пшеничная водка из Cognac. Мягкая, чистая, лёгкая сладость.</p>
+    </div>
+    <div class="bev-card">
+      <div class="bev-sub">Vodka · Sweden</div>
+      <div class="bev-name">Absolut Elyx</div>
+      <p>Медный однократный дистилляционный аппарат → исключительная мягкость. Пшеница из одной фермы Швеции.</p>
+    </div>
+    <div class="bev-card">
+      <div class="bev-sub">Vodka · Russia</div>
+      <div class="bev-name">Beluga Noble / Gold</div>
+      <p>Пшеничная. Noble = мягкая, нейтральная. Gold = коллекционный, очень редкая фильтрация через активированный уголь + серебро.</p>
+    </div>
+    <div class="bev-card">
+      <div class="bev-sub">Vodka · Poland</div>
+      <div class="bev-name">Belvedere Organic</div>
+      <p>Польская ржаная, органическая. Более характерная и пряная, чем пшеничная.</p>
+    </div>
+    <div class="bev-card">
+      <div class="bev-sub">Vodka · USA</div>
+      <div class="bev-name">Tito's Handmade</div>
+      <p>Кукурузная, gluten-free. Мягкая, слегка сладковатая. Большая популярность.</p>
+    </div>
+    <div class="bev-card">
+      <div class="bev-sub">Vodka · Japan</div>
+      <div class="bev-name">Nikka Coffey Vodka</div>
+      <p>Японская водка, дистиллированная в колонных аппаратах Coffey. Чистая, с лёгкой злаковой сладостью.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ════ BEER ════ -->
+<section id="bev-beer">
+  <h2 class="section-title bev"><span class="emoji">🍺</span> Пиво</h2>
+  <div class="bev-card" style="margin-bottom:14px;">
+    <div class="bev-name">Пиво — основные типы</div>
+    <p><strong>Lager</strong> = низовое брожение → светлое, чистое, освежающее (Estrella Damm, Corona, Menabrea).<br>
+    <strong>Ale</strong> = верховое брожение → более сложное, фруктовое, ароматное.<br>
+    <strong>Stout/Porter</strong> = тёмное пиво, обжаренный ячмень → кофе, шоколад (Guinness).<br>
+    <strong>Wheat/Weizen</strong> = пшеничное → бананово-гвоздичный аромат (Paulaner, Krombacher).<br>
+    <strong>0.0</strong> = безалкогольное (Guinness 0.0, Krombacher 0.0).</p>
+  </div>
+  <div class="card-grid">
+    <div class="bev-card">
+      <div class="bev-sub">Draught · Spain</div>
+      <div class="bev-name">Estrella Damm 0.33 / 0.5</div>
+      <p>Barcelona. Разливное. Лагер — светлое, освежающее. Основа барселонского пивного культа.</p>
+    </div>
+    <div class="bev-card">
+      <div class="bev-sub">Bottled · Ireland</div>
+      <div class="bev-name">Guinness 0.0</div>
+      <p>Безалкогольный Irish Dry Stout. Кофе, шоколад, кремовая пена — при нулевом алкоголе. Инновация Guinness.</p>
+    </div>
+    <div class="bev-card">
+      <div class="bev-sub">Bottled · Italy</div>
+      <div class="bev-name">Menabrea 0.33</div>
+      <p>Итальянский лагер из Альп. Очень чистый, мягкий, лёгкая горчинка.</p>
+    </div>
+    <div class="bev-card">
+      <div class="bev-sub">Bottled · Mexico</div>
+      <div class="bev-name">Corona 0.33</div>
+      <p>Светлое, лёгкое. Традиционно подаётся с долькой лайма.</p>
+    </div>
+    <div class="bev-card">
+      <div class="bev-sub">Bottled · Germany · 0.0</div>
+      <div class="bev-name">Krombacher 0.0</div>
+      <p>Немецкое безалкогольное пшеничное. Лагерный стиль без алкоголя.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ════ SAKE / BAIJIU ════ -->
+<section id="bev-sake">
+  <h2 class="section-title bev"><span class="emoji">🍶</span> Саке и Байцзю</h2>
+
+  <p class="subsection bev">Саке — японский рисовый напиток</p>
+  <div class="bev-card" style="margin-bottom:14px;">
+    <div class="bev-name">Что такое саке?</div>
+    <p>Саке = ферментированный напиток из <strong>шлифованного риса</strong>. Не вино, не пиво, не дистиллят — уникальная категория. Крепость 14–16%. Ключевой фактор = степень шлифовки риса (seimai-buai): чем больше сошлифовано → тем чище и деликатнее вкус.<br>
+    <strong>Junmai</strong> = только рис, вода, кодзи, дрожжи. «Чистое» саке.<br>
+    <strong>Ginjo/Daiginjo</strong> = высокая шлифовка (≥40/50% удалено). Фруктовый, цветочный, элегантный.<br>
+    <strong>Genshu</strong> = неразбавленное. Более концентрированное.</p>
+    <div class="memory bev">Чем длиннее название (Junmai Daiginjo) — тем дороже и тоньше. Подавать охлаждённым (Ginjo/Daiginjo) или тёплым (обычное). Бокал для белого вина или традиционная чаша.</div>
+  </div>
+  <div class="card-grid">
+    <div class="bev-card">
+      <div class="bev-sub">Sake · Japan · 0.18 / 0.72</div>
+      <div class="bev-name">Choya Sake</div>
+      <p>Доступный японский саке. Мягкий, нейтральный. Хороший для первого знакомства. Подавать охлаждённым.</p>
+    </div>
+    <div class="bev-card">
+      <div class="bev-sub">Sake · Japan · Sparkling</div>
+      <div class="bev-name">Akashi-Tai Sake Junmai Ginjo Sparkling</div>
+      <p>Игристый саке. Освежающий, лёгкий, рисовый. Подавать как шампанское — охлаждённым в бокале.</p>
+    </div>
+    <div class="bev-card">
+      <div class="bev-sub">Sake · Japan · Premium</div>
+      <div class="bev-name">Akashi-Tai Sake Daiginjo Genshu · Sakari Daiginjo · Sakari Kanjuku Umeshu · Sakari Fuga Junmai Daiginjo · Yuji Junmai Sake</div>
+      <p>Daiginjo = элитная шлифовка, фруктовый, цветочный. Genshu = неразбавленный, насыщенный. Umeshu = со сливой умэ. Fuga = «ветер» = очень деликатный.</p>
+    </div>
+  </div>
+
+  <p class="subsection bev">Байцзю — китайский крепкий дистиллят</p>
+  <div class="bev-card" style="margin-bottom:14px;">
+    <div class="bev-name">Что такое байцзю?</div>
+    <p>Байцзю = крепкий зерновой дистиллят из Китая. <strong>Самый потребляемый крепкий алкоголь в мире.</strong> Крепость 38–53%. Делают из сорго (чаще) с уникальной закваской цюй (смесь плесени, дрожжей, бактерий) → твёрдая ферментация → дистилляция твёрдой массы → выдержка в керамике.<br>
+    <strong>Стили:</strong><br>
+    <strong>Strong Aroma</strong> = яркий фруктовый, сладковатый, насыщенный.<br>
+    <strong>Sauce Aroma</strong> = сложный, ферментированные ноты, соевые оттенки, длинное послевкусие.<br>
+    <strong>Light Aroma</strong> = чистый, мягкий, лёгкий.<br>
+    Это <strong>не водка, не саке</strong>. Уникальная категория. В культуре — напиток для тостов в компании.</p>
+    <div class="memory bev">Strong Aroma = для первого знакомства. Sauce Aroma = для знающих гостей. Подаётся в маленьких рюмках в графинчике даже при заказе 50 мл.</div>
+  </div>
+  <div class="card-grid">
+    <div class="bev-card">
+      <div class="bev-sub">Baijiu · China · Strong Aroma</div>
+      <div class="bev-name">Gujinggong Baijiu 8</div>
+      <p>Классический Strong Aroma. Насыщенный, сладковатые зерновые ноты, спелые фрукты, лёгкая пряность. Для первого знакомства если гость не боится ярких вкусов.</p>
+    </div>
+    <div class="bev-card">
+      <div class="bev-sub">Baijiu · China · Strong Aroma · Gentle</div>
+      <div class="bev-name">Gujinggong Baijiu Happiness</div>
+      <p>Более мягкая и дружелюбная версия strong aroma. Меньше резкости, более сладкий и гладкий. Для новичков.</p>
+    </div>
+    <div class="bev-card">
+      <div class="bev-sub">Baijiu · China · Sauce Aroma · Premium</div>
+      <div class="bev-name">Xijiu Jiaocang 1988</div>
+      <p>Премиальный Sauce Aroma. Сложный, ферментированные ноты, орехи, соя, сухофрукты. Длинное послевкусие. Для знающих гостей.</p>
+    </div>
+    <div class="bev-card">
+      <div class="bev-sub">Baijiu · China · Sauce Aroma</div>
+      <div class="bev-name">Xijiu Golden Diamond</div>
+      <p>Более доступный и понятный Sauce Aroma. Меньше резких ферментированных нот. Хороший выбор для объяснения разницы стилей.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ════ APERITIF / VERMOUTH ════ -->
+<section id="bev-aperitif">
+  <h2 class="section-title bev"><span class="emoji">🫒</span> Аперитивы, Вермуты, Биттеры</h2>
+  <div class="bev-card" style="margin-bottom:14px;">
+    <div class="bev-name">Что такое аперитив?</div>
+    <p>Аперитив = напиток перед едой, стимулирующий аппетит. Вермут = вино, настоянное на полыни и ботаниках. Биттер = крепкий, горький настой трав. Ликёр = сладкий настой. Амаро = горький итальянский ликёр после ужина.</p>
+    <div class="memory bev">Lillet Blanc = к рыбе + как аперитив. Campari = Negroni + Spritz. Contratto / Antica Formula = для классических коктейлей. Amaro = после ужина.</div>
+  </div>
+  <div class="card-grid">
+    <div class="bev-card">
+      <div class="bev-sub">French Aperitif · 50ml</div>
+      <div class="bev-name">Lillet Blanc</div>
+      <p>Французский aperitif-wine из Бордо. Белое вино + апельсиновые ликёры. Сладковатый, цитрусовый, цветочный. Пить охлаждённым со льдом и долькой апельсина. Основа коктейля Vesper Martini.</p>
+    </div>
+    <div class="bev-card">
+      <div class="bev-sub">French Absinthe · 50ml</div>
+      <div class="bev-name">Pernod Absinthe</div>
+      <p>Абсент = дистиллят полыни + анис + фенхель. Крепость ~68%. Традиционно разбавляют водой с сахаром — напиток становится мутным (louche). Pernod = классический французский стиль.</p>
+    </div>
+    <div class="bev-card">
+      <div class="bev-sub">Italian Bitter · 50ml</div>
+      <div class="bev-name">Campari</div>
+      <p>Ярко-красный горький итальянский биттер. Апельсиновая корка + травы + карамин. Основа Negroni, Americano, Aperol Spritz style. Низкая крепость (25%).</p>
+    </div>
+    <div class="bev-card">
+      <div class="bev-sub">Italian Vermouth · 50ml</div>
+      <div class="bev-name">Contratto Rosso / Bianco · Antica Formula · Martini Fiero / Dry</div>
+      <p>Contratto = премиальный итальянский вермут. Antica Formula = исторический рецепт от Carpano. Martini Fiero = апельсиновый вермут, Dry = классический для Dry Martini.</p>
+    </div>
+  </div>
+  <p class="subsection bev">Ликёры</p>
+  <div class="card-grid">
+    <div class="bev-card">
+      <div class="bev-sub">Liqueur · Various</div>
+      <div class="bev-name">Baileys · Kahlua · Cointreau · Grand Marnier · Drambuie · Sambuca · Malibu</div>
+      <p>Baileys = ирландский сливочный, к кофе. Kahlua = кофейный мексиканский. Cointreau = апельсиновый (основа Cosmopolitan, Margarita). Grand Marnier = Cognac + апельсин. Drambuie = шотландский мёд+виски. Sambuca = анисовый итальянский. Malibu = кокосовый ром.</p>
+    </div>
+    <div class="bev-card">
+      <div class="bev-sub">Amaro / Bitter Liqueur · Italy</div>
+      <div class="bev-name">Caffo Amaro Vecchio del Capo · Jägermeister · Antica Torino Amaro · Pimm's No.1</div>
+      <p>Амаро = горький травяной ликёр после ужина (digestivo). Jägermeister = немецкий, 56 трав. Pimm's = английский, к летним коктейлям. Antica Torino = элитный итальянский.</p>
+    </div>
+    <div class="bev-card">
+      <div class="bev-sub">Special Liqueur</div>
+      <div class="bev-name">Italicus Rosolio Dibergamotto · Muyu Jasmine Verte · Bumbu Crème</div>
+      <p>Italicus = бергамот + итальянские цветы = один из самых трендовых ликёров. Muyu Jasmine = жасминовый, восточный. Bumbu Crème = сливочный ром-ликёр.</p>
+    </div>
+  </div>
+
+  <p class="subsection bev">Граппа — итальянский дистиллят из выжимок</p>
+  <div class="card-grid">
+    <div class="bev-card">
+      <div class="bev-sub">Grappa · Italy · Nonino</div>
+      <div class="bev-name">Nonino Il Moscato / Il Merlot / Lo Chardonnay / Picolit Cru Monovitigno</div>
+      <p>Граппа = итальянский дистиллят из виноградных выжимок (жмых). Nonino = самый известный производитель. Каждый сорт сделан из конкретного сорта винограда.</p>
+    </div>
+    <div class="bev-card">
+      <div class="bev-sub">Grappa · Italy · Gaja</div>
+      <div class="bev-name">Grappa di Barolo Gaja · Grappa Magia Distillerie Berta</div>
+      <p>Di Barolo Gaja = из выжимок Barolo (Пьемонт). Magia = коллекционная граппа из маленькой artisan дистиллерии.</p>
+    </div>
+  </div>
+  <div class="memory bev">Граппа традиционно пьётся после ужина (digestivo). Не с едой. Маленькая рюмка, слегка охлаждённая.</div>
+</section>
+
+<!-- ════ COCKTAILS ════ -->
+<section id="bev-cocktails">
+  <h2 class="section-title bev"><span class="emoji">🍹</span> Авторские коктейли — Mixology</h2>
+  <div class="alert bev-info"><span class="alert-icon">💡</span><div>Все авторские коктейли — <strong>7 000 ₸</strong>. Уметь объяснить основу каждого: что за алкоголь, какой вкус ожидать (сладкий/кислый/горький/освежающий).</div></div>
+  <div class="card-grid three">
+    <div class="cocktail-card">
+      <div class="c-name">Hanami Harmony</div>
+      <div class="c-ingredients">Sagaan Dali Gin + Elderflower Liqueur + Grapefruit Soda</div>
+      <div class="c-style">Лёгкий · Цветочный · Освежающий</div>
+    </div>
+    <div class="cocktail-card">
+      <div class="c-name">Aloe Pear Serenity</div>
+      <div class="c-ingredients">Pear Vodka + Aloe Chamomile Cordial + Sour Apple Liqueur</div>
+      <div class="c-style">Фруктовый · Мягкий · Травяной</div>
+    </div>
+    <div class="cocktail-card">
+      <div class="c-name">Zen Star Punch</div>
+      <div class="c-ingredients">Vodka + Passion Fruit + Vanilla Ice Cream</div>
+      <div class="c-style">Тропический · Кремовый · Сладкий</div>
+    </div>
+    <div class="cocktail-card">
+      <div class="c-name">Art Groni</div>
+      <div class="c-ingredients">Tequila + Mezcal + Bianco Vermouth + Apricot Brandy</div>
+      <div class="c-style">Сложный · Горький · Дымный</div>
+    </div>
+    <div class="cocktail-card">
+      <div class="c-name">Mango Chili Fusion</div>
+      <div class="c-ingredients">Tequila + Chili + Mango + Sparkling Wine</div>
+      <div class="c-style">Острый · Тропический · Игристый</div>
+    </div>
+    <div class="cocktail-card">
+      <div class="c-name">Tsukimi</div>
+      <div class="c-ingredients">Strawberry Gin + Basil-Lime Cordial</div>
+      <div class="c-style">Ягодный · Травяной · Освежающий</div>
+    </div>
+    <div class="cocktail-card">
+      <div class="c-name">Fujian Sour</div>
+      <div class="c-ingredients">Fujian Oolong Gin + Yuzu + Kaffir Lime Syrup</div>
+      <div class="c-style">Кислый · Цитрусовый · Чайный</div>
+    </div>
+    <div class="cocktail-card">
+      <div class="c-name">Lychee Delight</div>
+      <div class="c-ingredients">Milk-Washed Vodka + Lychee</div>
+      <div class="c-style">Мягкий · Фруктовый · Экзотический</div>
+    </div>
+    <div class="cocktail-card">
+      <div class="c-name">Infinite</div>
+      <div class="c-ingredients">Vanilla Vodka + Yogurt Liqueur + Mango</div>
+      <div class="c-style">Кремовый · Тропический · Мягкий</div>
+    </div>
+    <div class="cocktail-card">
+      <div class="c-name">Basil Bliss</div>
+      <div class="c-ingredients">Vodka + Grape-Basil Cordial</div>
+      <div class="c-style">Травяной · Виноградный · Освежающий</div>
+    </div>
+  </div>
+  <div class="memory bev"><strong>Навигация по коктейлям для гостя:</strong> Хочет что-то лёгкое и цветочное → Hanami Harmony / Tsukimi. Любит острое → Mango Chili Fusion. Хочет тропическое → Zen Star Punch / Infinite. Нравится кислое → Fujian Sour. Любит горькое сложное → Art Groni.</div>
+</section>
+
+</div><!-- /wrapper bev -->
+<footer style="background:var(--bev-dark);color:var(--bev-accent-light);">✦ Ozen Room Service · Beverage Knowledge Guide ✦ &nbsp;|&nbsp; Шпаргалка бар & сервис</footer>
+</div><!-- /bev-page -->
+
+
+<script>
+function switchTab(tab) {
+  const foodPage = document.getElementById('food-page');
+  const bevPage = document.getElementById('bev-page');
+  const tabFood = document.getElementById('tab-food');
+  const tabBev = document.getElementById('tab-bev');
+
+  if (tab === 'food') {
+    foodPage.style.display = 'block';
+    bevPage.style.display = 'none';
+    tabFood.classList.add('active');
+    tabBev.classList.remove('active');
+    tabFood.setAttribute('aria-selected', 'true');
+    tabBev.setAttribute('aria-selected', 'false');
+  } else {
+    foodPage.style.display = 'none';
+    bevPage.style.display = 'block';
+    tabFood.classList.remove('active');
+    tabBev.classList.add('active');
+    tabFood.setAttribute('aria-selected', 'false');
+    tabBev.setAttribute('aria-selected', 'true');
+    // Switch subnav sticky top
+    document.querySelector('.bev-nav').style.top = '67px';
+  }
+  window.scrollTo(0, 0);
+}
+
+// Smooth scroll for anchor links within each page
+document.addEventListener('click', function(e) {
+  const a = e.target.closest('a[href^="#"]');
+  if (!a) return;
+  e.preventDefault();
+  const target = document.querySelector(a.getAttribute('href'));
+  if (target) {
+    const offset = 140; // tab bar + subnav
+    const top = target.getBoundingClientRect().top + window.scrollY - offset;
+    window.scrollTo({ top, behavior: 'smooth' });
+  }
+});
+</script>
 
 </body>
 </html>

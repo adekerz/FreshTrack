@@ -41,7 +41,6 @@ coverage/
 Thumbs.db
 .idea/
 .vscode/
-!.vscode/extensions.json
 
 # ═══════════════════════════════════════════════════════════════
 # AI / Agent instructions
