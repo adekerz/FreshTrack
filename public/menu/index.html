@@ -2071,7 +2071,7 @@ document.addEventListener('DOMContentLoaded', () => {
       icon: "⚗️"
     },
     aging: {
-      regex: /(?<!без )\b(?:выдержк[аиуой]|выдерживают)\b/gi,
+      regex: /\b(?:выдержк[аиуой]|выдерживают)\b/gi,
       title: "Выдержка",
       text: "Хранение алкоголя в деревянных бочках. Придаёт цвет, смягчает вкус, добавляет ноты дерева, ванили и специй.",
       example: "Светлый виски в бочке темнеет.",
@@ -2162,7 +2162,7 @@ document.addEventListener('DOMContentLoaded', () => {
       icon: "🌾"
     },
     peated: {
-      regex: /(?<!не)\b(?:торф(?:яно[йг]?|ом)?|peated)\b/gi,
+      regex: /\b(?:торф(?:яно[йг]?|ом)?|peated)\b/gi,
       title: "Торфяной (Peated)",
       text: "Солод для виски сушат над горящим торфом. Дым проникает в зерно, давая аромат костра, йода и лекарств.",
       example: "Виски Islay (Lagavulin).",
@@ -2218,7 +2218,7 @@ document.addEventListener('DOMContentLoaded', () => {
       icon: "🪨"
     },
     tequila_age: {
-      regex: /\b(?:(?<!Voche\s)blanco|reposado|a[ñn]ejo|extra a[ñn]ejo)\b/gi,
+      regex: /\b(?:blanco|reposado|a[ñn]ejo|extra a[ñn]ejo)\b/gi,
       title: "Стили текилы",
       text: "Blanco (без бочки). Reposado (отдохнувшая, до 1 года). Añejo (выдержанная, 1-3 года). Extra Añejo (от 3 лет).",
       example: "Blanco для коктейлей, Añejo для сиппинга.",
@@ -2349,7 +2349,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Wrap matches in placeholders to avoid overlapping replacements
       for(const [key, termObj] of Object.entries(termsData)) {
-        text = text.replace(termObj.regex, match => {
+        text = text.replace(termObj.regex, (match, offset, str) => {
+          // Ignore "без выдержки" instead of using lookbehind
+          if (key === 'aging' && str.substring(Math.max(0, offset - 4), offset).toLowerCase().includes('без ')) return match;
+          // Ignore "не торфяной"
+          if (key === 'peated' && str.substring(Math.max(0, offset - 3), offset).toLowerCase().includes('не ')) return match;
+          // Ignore "Voche blanco"
+          if (key === 'tequila_age' && match.toLowerCase() === 'blanco') {
+            if (str.substring(Math.max(0, offset - 6), offset).toLowerCase().includes('voche')) return match;
+          }
+
           replaced = true;
           return `%%TERM-${key}%%${match}%%END%%`;
         });
