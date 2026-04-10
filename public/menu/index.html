@@ -44,6 +44,17 @@
     color: var(--dark);
     font-size: 15px;
     line-height: 1.6;
+    -webkit-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  #food-page, #bev-page {
+    animation: fadeIn 0.35s cubic-bezier(0.2, 0, 0, 1) forwards;
   }
 
   /* ── TAB SWITCHER ── */
@@ -286,23 +297,28 @@
   /* ── GLOSSARY & TOOLTIPS UX ── */
   .term {
     border-bottom: 1px dashed var(--bev-accent);
-    color: var(--bev-dark);
+    color: inherit;
     font-weight: 600;
-    cursor: help;
+    cursor: pointer;
     transition: color 0.2s, background 0.2s;
     position: relative;
+    -webkit-tap-highlight-color: transparent;
   }
   .term:hover { color: var(--bev-accent); background: rgba(74, 143, 168, 0.08); border-bottom-style: solid; }
 
   .term-tooltip {
-    position: absolute; z-index: 1000;
-    background: #ffffff; color: var(--bev-dark);
-    padding: 12px 14px; border-radius: 8px;
+    position: absolute; z-index: 2000;
+    background: rgba(26, 30, 36, 0.98);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: #f0f6fa;
+    padding: 10px 14px; border-radius: 8px;
     font-family: 'Crimson Pro', Georgia, serif;
-    font-size: 0.88rem; line-height: 1.5;
-    box-shadow: 0 8px 24px rgba(13, 21, 32, 0.15);
-    border: 1px solid var(--bev-divider);
-    max-width: 280px;
+    font-size: 0.85rem; line-height: 1.4;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255,255,255,0.1);
+    max-width: 250px;
+    width: max-content;
     pointer-events: none; opacity: 0;
     transform: translateY(8px);
     transition: opacity 0.2s cubic-bezier(0.2, 0, 0, 1), transform 0.2s cubic-bezier(0.2, 0, 0, 1);
@@ -312,65 +328,20 @@
     content: ''; position: absolute;
     top: 100%; left: 50%; transform: translateX(-50%);
     border-width: 6px; border-style: solid;
-    border-color: #ffffff transparent transparent transparent;
+    border-color: rgba(26, 30, 36, 0.98) transparent transparent transparent;
   }
-  /* Optional: small shadow for the triangle arrow */
-  .term-tooltip::before {
-    content: ''; position: absolute;
-    top: 100%; left: 50%; transform: translateX(-50%);
-    border-width: 7px; border-style: solid;
-    border-color: var(--bev-divider) transparent transparent transparent;
-    z-index: -1; margin-top: 1px;
-  }
-
   .term-tooltip.show { opacity: 1; transform: translateY(0); visibility: visible; }
-  .term-tooltip .tt-header { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
-  .term-tooltip .tt-icon { font-size: 1.1rem; }
+  .term-tooltip .tt-header { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+  .term-tooltip .tt-icon { font-size: 1.1rem; line-height: 1; }
   .term-tooltip .tt-title {
     font-family: 'Playfair Display', serif; font-size: 0.95rem;
-    font-weight: 700; color: var(--bev-accent); flex: 1;
+    font-weight: 700; color: #fff; flex: 1; letter-spacing: 0.02em; margin-bottom: 0;
   }
   .term-tooltip .tt-example {
-    margin-top: 8px; padding-top: 6px;
-    border-top: 1px solid var(--bev-bg);
-    font-style: italic; color: #5c7482; font-size: 0.8rem;
+    margin-top: 6px; padding-top: 6px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    font-style: italic; color: #a8b8c2; font-size: 0.8rem;
   }
-
-  /* ── BOTTOM SHEET (MOBILE) ── */
-  .bottom-sheet-overlay {
-    position: fixed; inset: 0; background: rgba(13, 21, 32, 0.6);
-    z-index: 2000; opacity: 0; visibility: hidden; transition: opacity 0.3s;
-    backdrop-filter: blur(2px);
-  }
-  .bottom-sheet-overlay.show { opacity: 1; visibility: visible; }
-
-  .bottom-sheet {
-    position: fixed; bottom: 0; left: 0; right: 0; z-index: 2001;
-    background: #ffffff; border-top-left-radius: 20px; border-top-right-radius: 20px;
-    padding: 0 20px 24px; max-height: 85vh; overflow-y: auto;
-    transform: translateY(100%);
-    transition: transform 0.4s cubic-bezier(0.32, 1, 0.23, 1);
-    box-shadow: 0 -4px 24px rgba(0,0,0,0.1);
-  }
-  .bottom-sheet.show { transform: translateY(0); }
-  .bs-drag-handle { width: 44px; height: 5px; background: #dce4e8; border-radius: 3px; margin: 12px auto 18px; }
-  .bs-header { display: flex; align-items: center; margin-bottom: 14px; gap: 10px; }
-  .bs-icon { font-size: 1.5rem; }
-  .bs-title { font-family: 'Playfair Display', serif; font-size: 1.35rem; color: var(--bev-dark); font-weight: 700; flex: 1; }
-  .bs-close {
-    background: var(--bev-bg); border: none; border-radius: 50%;
-    width: 34px; height: 34px; font-size: 1.4rem; cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    color: var(--bev-accent); transition: background 0.2s;
-  }
-  .bs-close:active { background: var(--bev-divider); }
-  .bs-content { font-size: 1rem; color: #2a3b4a; line-height: 1.6; }
-  .bs-example {
-    margin-top: 14px; padding: 12px 14px; background: #f0f6fa;
-    border-left: 3px solid var(--bev-accent-light);
-    border-radius: 6px; font-size: 0.9rem; color: #1a3040;
-  }
-  .bs-example::before { content: '👉 Пример: '; font-weight: 600; color: var(--bev-accent); display: block; margin-bottom: 2px; }
 
   /* ── MOBILE ── */
   @media(max-width: 640px) {
@@ -381,7 +352,8 @@
     .tab-btn { font-size: 0.85rem; padding: 14px 6px; }
     .tab-btn .tab-icon { font-size: 1.3rem; margin-bottom: 3px; }
     .sub-nav a { padding: 14px 16px; font-size: 12px; } /* larger touch targets */
-    .compare-table, .bev-table { font-size: 0.8rem; display: block; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; border: none; box-shadow: 0 0 0 1px var(--divider); }
+    .compare-table, .bev-table { font-size: 0.75rem; display: block; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; border: none; box-shadow: 0 0 0 1px var(--divider); }
+    .compare-table th, .compare-table td, .bev-table th, .bev-table td { padding: 6px 8px !important; }
     .compare-table th:first-child { width: auto; }
     .section-title { font-size: 1.3rem; margin: 32px 0 16px; }
     .prep-grid { grid-template-columns: 1fr; gap: 10px; }
@@ -960,7 +932,10 @@
 </section>
 
 </div><!-- /wrapper food -->
-<footer>✦  In-Room Dining · A La Carte 2026 · The Ritz-Carlton, Astana ✦ &nbsp;|&nbsp; Food Knowledge Guide</footer>
+<footer>
+  ✦ In-Room Dining · A La Carte 2026 · The Ritz-Carlton, Astana ✦ &nbsp;|&nbsp; Food Knowledge Guide<br>
+  <span style="font-size: 0.72rem; opacity: 0.85; font-weight: 500; margin-top: 10px; display: inline-block;">Designed & Developed by Adilet Yerzhanuly · esimadilet@gmail.com</span>
+</footer>
 </div><!-- /food-page -->
 
 
@@ -1964,7 +1939,10 @@
 </section>
 
 </div><!-- /wrapper bev -->
-<footer style="background:var(--bev-dark);color:var(--bev-accent-light);">✦ In-Room Dining · A La Carte 2026 · The Ritz-Carlton, Astana ✦ &nbsp;|&nbsp; Beverage Knowledge Guide</footer>
+<footer style="background:var(--bev-dark);color:var(--bev-accent-light);">
+  ✦ In-Room Dining · A La Carte 2026 · The Ritz-Carlton, Astana ✦ &nbsp;|&nbsp; Beverage Knowledge Guide<br>
+  <span style="font-size: 0.72rem; opacity: 0.85; font-weight: 500; margin-top: 10px; display: inline-block;">Designed & Developed by Adilet Yerzhanuly · esimadilet@gmail.com</span>
+</footer>
 </div><!-- /bev-page -->
 
 
@@ -2040,132 +2018,221 @@ document.addEventListener('DOMContentLoaded', () => {
   <div class="tt-example" id="tt-example"></div>
 </div>
 
-<!-- Mobile Bottom Sheet -->
-<div id="bs-overlay" class="bottom-sheet-overlay"></div>
-<div id="bottom-sheet" class="bottom-sheet">
-  <div class="bs-drag-handle"></div>
-  <div class="bs-header">
-    <span class="bs-icon" id="bs-icon"></span>
-    <h3 class="bs-title" id="bs-title"></h3>
-    <button class="bs-close" id="bs-close">&times;</button>
-  </div>
-  <div class="bs-content" id="bs-content"></div>
-  <div class="bs-example" id="bs-example"></div>
-</div>
+<!-- Mobile Bottom Sheet (Removed, using unified tooltip for UI/UX) -->
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
   const termsData = {
+    marbling: {
+      regex: /\b(?:мраморн(?:ая|ой)|мраморность)\b/gi,
+      title: "Мраморность",
+      text: "Тонкие жировые прослойки в мясе. При жарке они тают и делают стейк очень сочным и вкусным.",
+      example: "Вагю и Рибай имеют высокую мраморность.",
+      icon: "🥩"
+    },
+    sous_vide: {
+      regex: /\b(?:сувид(?:о|а|ом|е)?|sous-vide)\b/gi,
+      title: "Сувид (Sous-vide)",
+      text: "Готовка в вакууме при низкой температуре. Мясо получается идеально мягким, сочным и не пересушивается.",
+      example: "Позволяет достичь равномерной нежности по всему куску.",
+      icon: "🌡️"
+    },
+    demi_glace: {
+      regex: /\b(?:демиглас(?:а|у|ом)?|demi-?glace)\b/gi,
+      title: "Демиглас (Demi-glace)",
+      text: "Очень густой, насыщенный мясной соус. Долго варится из говяжьих костей и овощей.",
+      icon: "🤎"
+    },
+    romesco: {
+      regex: /\b(?:ромеско)\b/gi,
+      title: "Ромеско (Romesco)",
+      text: "Испанский соус на основе запечённого сладкого перца, помидоров, чеснока и орехов.",
+      icon: "🍅"
+    },
+    burrata: {
+      regex: /\b(?:буррат(?:а|ы|у|ой|е))\b/gi,
+      title: "Буррата",
+      text: "Свежий сыр. Снаружи как моцарелла, а внутри — очень нежное скопление сливок и сырных нитей.",
+      icon: "🧀"
+    },
+    stracciatella: {
+      regex: /\b(?:страчателл(?:а|ы|у|ой|е))\b/gi,
+      title: "Страчателла",
+      text: "Нежнейшие сырные волокна, смешанные с густыми сливками. По сути, это начинка сыра Буррата.",
+      icon: "🥛"
+    },
+    scamorza: {
+      regex: /\b(?:скаморц(?:а|ы|у|ой|е))\b/gi,
+      title: "Скаморца",
+      text: "Итальянский сыр, похожий на плотную моцареллу. Часто имеет лёгкий вкус копчения.",
+      icon: "🧀"
+    },
+    caciocavallo: {
+      regex: /\b(?:качковалло)\b/gi,
+      title: "Качковалло",
+      text: "Итальянский вытяжной сыр в форме капли. Имеет яркий, чуть островатый сливочный вкус.",
+      icon: "🧀"
+    },
+    wagyu: {
+      regex: /\b(?:вагю|wagyu)\b/gi,
+      title: "Вагю (Wagyu)",
+      text: "Премиальная японская говядина. Очень сочная и мягкая, так как её жир тает буквально при комнатной температуре.",
+      icon: "🐄"
+    },
+    chimichurri: {
+      regex: /\b(?:чимичурри)\b/gi,
+      title: "Чимичурри",
+      text: "Яркий зелёный аргентинский соус к мясу на основе свежей петрушки, чеснока и оливкового масла.",
+      icon: "🌿"
+    },
+    polenta: {
+      regex: /\b(?:полент(?:а|ы|у|ой|е))\b/gi,
+      title: "Полента",
+      text: "Гарнир из кукурузной крупы. Часто готовится со сливками и сыром, чтобы быть мягче и вкуснее.",
+      icon: "🌽"
+    },
+    tahini: {
+      regex: /\b(?:тахини)\b/gi,
+      title: "Тахини",
+      text: "Густая паста из молотого кунжута. Добавляет блюдам лёгкий орехово-кунжутный вкус (её много в хумусе).",
+      icon: "🥥"
+    },
+    muhammara: {
+      regex: /\b(?:мухаммара(?:|у|ы)?)\b/gi,
+      title: "Мухаммара",
+      text: "Восточный соус-закуска из запечённого сладкого красного перца и грецких орехов.",
+      icon: "🌶️"
+    },
+    shiso: {
+      regex: /\b(?:шисо)\b/gi,
+      title: "Шисо (Перилла)",
+      text: "Азиатское пряное растение. По вкусу напоминает микс мяты, базилика и аниса.",
+      icon: "🍃"
+    },
+    tempura: {
+      regex: /\b(?:темпур(?:а|ы|у|ой|е))\b/gi,
+      title: "Темпура",
+      text: "Обжарка (морепродуктов или овощей) в очень лёгком и хрустящем кляре.",
+      icon: "🍤"
+    },
+    cajun: {
+      regex: /\b(?:каджун(?:а|у|ом)?)\b/gi,
+      title: "Каджун",
+      text: "Пикантная американская смесь специй (паприка, чеснок, лук, острый перец и травы).",
+      icon: "🌶️"
+    },
+    agar: {
+      regex: /\b(?:агар-?агар(?:а|у|ом)?)\b/gi,
+      title: "Агар-агар",
+      text: "Натуральная растительная замена желатину, которую добывают из водорослей. Идеален для желе.",
+      icon: "🌱"
+    },
     fermentation: {
       regex: /\b(?:ферментаци[яиюей]|брожени[еяюм])\b/gi,
       title: "Ферментация (брожение)",
-      text: "Процесс, при котором дрожжи превращают сахар в спирт и углекислый газ. Базовый шаг для любого алкоголя.",
-      example: "Вино, пиво, брага.",
+      text: "Процесс, когда дрожжи съедают сахар и выделяют алкоголь. Так делают любое вино и пиво.",
       icon: "🦠"
     },
     distillation: {
       regex: /\b(?:дистилляци[яиюей]|перегонк[аиуой])\b/gi,
       title: "Дистилляция (перегонка)",
-      text: "Нагрев жидкости: спирт испаряется раньше воды, пары собирают и охлаждают. Так получают крепкий алкоголь.",
-      example: "Из вина делают коньяк.",
+      text: "Жидкость кипятят, собирают пар и охлаждают его. Так делают весь крепкий алкоголь (коньяк, виски, водку).",
       icon: "⚗️"
     },
     aging: {
       regex: /\b(?:выдержк[аиуой]|выдерживают)\b/gi,
       title: "Выдержка",
-      text: "Хранение алкоголя в деревянных бочках. Придаёт цвет, смягчает вкус, добавляет ноты дерева, ванили и специй.",
-      example: "Светлый виски в бочке темнеет.",
+      text: "Хранение алкоголя (вина/виски) в бочках. Напиток становится мягче, получает цвет и запах дерева или ванили.",
       icon: "🪵"
     },
     eaux_de_vie: {
       regex: /\b(?:Eaux-de-Vie|О-де-ви)\b/gi,
       title: "Дистиллят / Eaux-de-Vie",
-      text: "Переводится как «Вода жизни». Чистый спирт, полученный сразу после дистилляции до выдержки в бочке.",
-      example: "Молодой коньячный спирт.",
+      text: "«Вода жизни». Молодой чистый спирт, который только-только получили после перегонки (до бочки).",
       icon: "💧"
     },
     meth_trad: {
       regex: /\b(?:m[ée]thode traditionnelle)\b/gi,
       title: "Méthode traditionnelle",
-      text: "Традиционный метод шампанизации: вторая ферментация происходит прямо в закрытой бутылке.",
-      example: "Шампанское, Кава.",
+      text: "Традиционный способ делать игристое, при котором вино даёт пузырьки прямо внутри самой бутылки (как Шампанское).",
       icon: "🍾"
     },
     charmat: {
       regex: /\b(?:метод(?:ом|а)? Шарма)\b/gi,
       title: "Метод Шарма",
-      text: "Вторая ферментация происходит не в бутылках, а в гигантских стальных резервуарах. Быстрее и фруктовее.",
-      example: "Просекко.",
+      text: "Способ делать игристое вино в больших закрытых чанах, а не в бутылках (по этому методу делают Просекко). Быстрее и фруктовее.",
       icon: "🏭"
     },
     sweetness: {
       regex: /\b(?:Brut Nature|Extra Brut|Brut|Extra Dry|Demi-Sec|Doux)\b/gi,
       title: "Градации сладости",
-      text: "Brut Nature (совсем сухое), Brut (стандартное), Extra Dry (уже слегка сладковатое), Demi-Sec (сладкое).",
-      example: "Просекко Extra Dry на вкус слаще Брюта.",
+      text: "Brut Nature (самое сухое), Brut (сухое), Extra Dry (немного сладкое), Demi-Sec (сладкое).",
       icon: "🥂"
     },
     nv: {
-      regex: /(?:\bN\.V\.\b|\bNon-Vintage\b)/g,
+      regex: /(?:\bN\.V\.(?!\w)|\bNon-Vintage\b|\bNV\b)/g,
       title: "N.V. (Non-Vintage)",
-      text: "Без указания года урожая. Смешивают вина из разных годов, чтобы всегда получать стабильный вкус.",
-      example: "Базовое шампанское.",
+      text: "Вино без указания конкретного года. Смешивают вина разных лет, чтобы вкус всегда был одинаково хорошим.",
       icon: "📅"
+    },
+    cognac_age: {
+      regex: /\b(?:VSOP|VS|XO|Extra\s?Old)\b/g,
+      title: "Выдержка Коньяка",
+      text: "VS = мин. 2 года (для коктейлей). VSOP = мин. 4 года (золотая середина). XO = мин. 10 лет (элита, пить чистым).",
+      icon: "🥃"
+    },
+    sherry_styles: {
+      regex: /\b(?:Oloroso|Fino|Pedro Ximenez|PX)\b/gi,
+      title: "Стили Хереса",
+      text: "Fino = самый сухой. Oloroso = богатый, ореховый. Pedro Ximenez (PX) = самый сладкий, густой как сироп.",
+      icon: "🏺"
     },
     blend: {
       regex: /\b(?:купаж(?:а|у|ем)?|blended|blend)\b/gi,
       title: "Купаж (Бленд)",
-      text: "Смешивание разных сортов винограда, или спиртов разных дистиллерий для сложного вкуса.",
-      example: "Scotch Blended Whisky.",
+      text: "Смесь разных сортов винограда или спиртов. Делается, чтобы получить более богатый и сбалансированный вкус.",
       icon: "🎨"
     },
     tannins: {
       regex: /\b(?:танин(?:ы|ов|ами))\b/gi,
       title: "Танины",
-      text: "Вещества из кожицы и косточек винограда (и из дуба). Дают терпкое, вяжущее ощущение во рту.",
-      example: "Как от крепкого чёрного чая.",
+      text: "Вещества в вине, которые создают вяжущее ощущение во рту (как от очень крепкого чёрного чая).",
       icon: "🍇"
     },
     batonnage: {
       regex: /\b(?:батонаж(?:а|ем)?)\b/gi,
       title: "Батонаж",
-      text: "Перемешивание дрожжевого осадка в бочке с вином. Придаёт вину богатую, хлебную текстуру.",
-      example: "Выдержанное Шардоне.",
+      text: "Метод перемешивания осадка на дне бочки с вином. Делает вкус плотнее и добавляет сливочно-хлебные ноты.",
       icon: "🥖"
     },
     fortified: {
       regex: /\b(?:креплено[егму] вин[оауе])\b/gi,
       title: "Крепленое вино",
-      text: "Вино, в которое добавлен крепкий виноградный спирт, повышающий крепость до 15-22%.",
-      example: "Портвейн, Херес.",
+      text: "Вино (как Портвейн или Херес), в которое добавили крепкий спирт, чтобы сделать его крепче и дольше сохранить.",
       icon: "🏺"
     },
     decant: {
       regex: /\b(?:декантирова[тл][ьс]?|декантаци[яи])\b/gi,
       title: "Декантировать",
-      text: "Перелить вино из бутылки в графин для обогащения кислородом («подышать») или отделения осадка.",
-      example: "Старые красные вина.",
+      text: "Переливание вина в специальный кувшин (декантер), чтобы оно «подышало» воздухом и лучше раскрыло свой вкус.",
       icon: "🍷"
     },
     single_malt: {
       regex: /\b(?:Single Malt|односолодов(?:ый|ого|ому))\b/gi,
       title: "Single Malt vs Blended",
-      text: "Single Malt: спирт только из ячменя с ОДНОЙ (single) дистиллерии. Blended: смесь спиртов с разных заводов.",
-      example: "Macallan (Single), Chivas (Blended).",
+      text: "Single Malt — виски из одного вида зерна (ячменя) с одного завода. Бленд — смесь разных виски с разных заводов.",
       icon: "🥃"
     },
     barley: {
       regex: /\b(?:соложен(?:ного|ный|ным)? ячмен[яьем])\b/gi,
       title: "Соложенный ячмень",
-      text: "Ячмень, который замочили, прорастили и высушили для высвобождения сахаров.",
-      example: "Основа шотландского виски.",
+      text: "Зёрна ячменя, которые специально прорастили и высушили. Это самый главный ингредиент для создания виски.",
       icon: "🌾"
     },
     peated: {
       regex: /\b(?:торф(?:яно[йг]?|ом)?|peated)\b/gi,
       title: "Торфяной (Peated)",
-      text: "Солод для виски сушат над горящим торфом. Дым проникает в зерно, давая аромат костра, йода и лекарств.",
-      example: "Виски Islay (Lagavulin).",
+      text: "Для такого виски зерно сушат на дыму от торфяного костра. Напиток приобретает дымный запах костра или больничных бинтов.",
       icon: "🔥"
     },
     casks: {
@@ -2178,161 +2245,207 @@ document.addEventListener('DOMContentLoaded', () => {
     non_chill: {
       regex: /\b(?:non-chill-filtered|без холодной фильтрации)\b/gi,
       title: "Нефильтрованный",
-      text: "Виски не подвергался холодной фильтрации. Сохраняет натуральные масла (может мутнеть со льдом).",
-      example: "Ценится гурманами.",
+      text: "Виски не фильтровали холодом. В нём осталось больше натурального вкуса, но от льда он может слегка помутнеть.",
       icon: "❄️"
     },
     alembic: {
       regex: /\b(?:перегонны(?:е|х) куб(?:ы|ах)?|аламбик(?:ах|и)?)\b/gi,
       title: "Аламбик (Перегонный куб)",
-      text: "Медный аппарат-луковка для порционной перегонки. Даёт насыщенный, маслянистый и тяжёлый спирт.",
-      example: "Для Коньяка и Single Malt.",
+      text: "Традиционный медный аппарат для перегонки. Даёт напитку более тяжёлый и богатый вкус (как у Коньяка).",
       icon: "🏺"
     },
     coffey: {
       regex: /\b(?:колонны(?:е|х) аппарат(?:ы|ах)|колонног(?:о|онн)|coffey)\b/gi,
       title: "Колонные аппараты",
-      text: "Аппарат непрерывного действия. Даёт очень чистый, лёгкий и нейтральный спирт.",
-      example: "Водка, лёгкие джины.",
+      text: "Аппарат непрерывного действия. Даёт очень чистый, лёгкий и нейтральный спирт (как для водки).",
       icon: "🏭"
     },
     cask_strength: {
       regex: /\b(?:бочков(?:ая|ой) крепост[ьи]|cask strength|genshu)\b/gi,
       title: "Бочковая крепость",
-      text: "Алкоголь разливают прямо из бочки (50-60%) без разбавления водой. Максимальная концентрация вкуса.",
-      example: "Genshu — то же самое для саке.",
+      text: "Крепкий алкоголь, который налили в бутылку прямо из бочки (50-60%), не разбавляя водой.",
       icon: "💪"
     },
     agave: {
       regex: /\b(?:голубая агава|голубой агав(?:ы|у)|агав(?:ы|а|у))\b/gi,
       title: "Голубая агава",
-      text: "Текилу делают ТОЛЬКО из голубой агавы. Мескаль можно делать из множества других её видов.",
-      example: "Растёт в Мексике.",
+      text: "Особое растение. Настоящую Текилу делают ТОЛЬКО из голубой агавы. А вот Мескаль можно делать из любой агавы.",
       icon: "🌵"
     },
     tahona: {
       regex: /\b(?:tahona(?: process)?)\b/gi,
       title: "Tahona process",
-      text: "Древний метод, при котором запечённую агаву давят огромным каменным вулканическим колесом.",
-      example: "Текила Fortaleza.",
+      text: "Древний метод, при котором запечённую мягкую агаву давят огромным каменным колесом.",
       icon: "🪨"
     },
     tequila_age: {
       regex: /\b(?:blanco|reposado|a[ñn]ejo|extra a[ñn]ejo)\b/gi,
       title: "Стили текилы",
-      text: "Blanco (без бочки). Reposado (отдохнувшая, до 1 года). Añejo (выдержанная, 1-3 года). Extra Añejo (от 3 лет).",
-      example: "Blanco для коктейлей, Añejo для сиппинга.",
+      text: "Blanco (без бочки). Reposado (до 1 года в бочке). Añejo (от 1 до 3 лет). Extra Añejo (больше 3 лет).",
       icon: "⏳"
     },
     molasses: {
       regex: /\b(?:меласс(?:а|ы|у)|паток(?:а|и|у))\b/gi,
       title: "Меласса (патока)",
-      text: "Тёмный сироп, побочный продукт переработки сахарного тростника. 90% рома делают из неё.",
-      example: "Даёт рому карамельные и шоколадные ноты.",
+      text: "Тёмный сладкий сироп, остающийся после производства сахара. 90% всего рома делают из неё.",
       icon: "🍯"
     },
     rhum_agricole: {
       regex: /\b(?:rhum agricole|сельскохозяйственн(?:ый|ого))\b/gi,
       title: "Rhum Agricole",
-      text: "Сделан не из патоки, а прямо из свежего сока сахарного тростника.",
-      example: "Живой, травянистый, цветочный вкус.",
+      text: "Ром, который делают не из патоки, а прямо из свежего сока сахарного тростника. Вкус очень свежий и травянистый.",
       icon: "🌱"
     },
     solera: {
       regex: /\b(?:солер(?:а|ы|у)|solera)\b/gi,
       title: "Система Солера",
-      text: "Пирамидальная система выдержки: молодые спирты переливаются сверху в нижние бочки со старыми.",
-      example: "Стабильный профиль (Ром Zacapa, Херес).",
+      text: "Пирамида из бочек: молодые спирты наливают сверху, и они постепенно смешиваются со старыми в нижних бочках.",
       icon: "🔺"
     },
     botanicals: {
       regex: /\b(?:ботаник(?:и|ами|ов)|botanicals?)\b/gi,
       title: "Ботаники",
-      text: "Натуральные ингредиенты (травы, ягоды, специи, цедра), настоенные со спиртом.",
-      example: "Можжевельник — обязательный ботаник в джине.",
+      text: "Натуральные добавки (травы, ягоды, специи, цедра), на которых настаивают алкоголь (особенно джин).",
       icon: "🌿"
     },
     london_dry: {
       regex: /\b(?:london dry|genever)\b/gi,
       title: "London Dry / Genever",
-      text: "London Dry = сухой джин без добавления сахара. Genever = голландский джин (плотный, хлебный).",
-      example: "London Dry идеален к тонику.",
+      text: "London Dry = классический сухой джин без добавления сахара. Genever = голландский джин (более плотный и хлебный).",
       icon: "🍸"
     },
     lager_ale: {
       regex: /\b(?:низов(?:ое|ого) брожени[ея]|верхов(?:ое|ого) брожени[ея]|lager|лагер|ale|эль|stout|стаут)\b/gi,
       title: "Типы пива",
-      text: "Лагер (низовое) = гладкий, освежающий. Эль/Стаут (верховое) = ароматный, теплый, сложный.",
-      example: "Corona — это лагер.",
+      text: "Лагер = лёгкий и освежающий (Corona, Heineken). Эль и Стаут = плотные, теплые и ароматные виды пива.",
       icon: "🍺"
     },
     seimai: {
       regex: /\b(?:степень шлифовки ?(?:риса)?|seimai-buai)\b/gi,
       title: "Seimai-buai (Шлифовка)",
-      text: "Процент оставшегося зерна риса после того как удалили верхнюю оболочку с жиром.",
-      example: "Шлифовка 50% = 50% зерна удалили.",
+      text: "Процент. Показывает, сколько чистого риса осталось после того, как с зёрнышек счесали верхнюю оболочку.",
       icon: "🌾"
     },
     sake_types: {
       regex: /\b(?:junmai(?: ginjo| daiginjo)?|ginjo|daiginjo)\b/gi,
       title: "Классы Саке",
-      text: "Junmai = чистый рис (без добавления стороннего алкоголя). Daiginjo = премиум высшей шлифовки.",
-      example: "Junmai Daiginjo = вершина самурайского шика.",
+      text: "Junmai = чистый рис (без добавления чистого спирта). Daiginjo = саке премиум-класса с очень сильной шлифовкой риса.",
       icon: "🍶"
     },
     koji: {
       regex: /\b(?:кодзи|koji)\b/gi,
       title: "Кодзи",
-      text: "Специальная плесень, которой заражают рис. Расщепляет рисовый крахмал в сахар для дрожжей.",
-      example: "Основа не только саке, но и соевого соуса.",
+      text: "Специальная благородная плесень. Ей заражают рис, чтобы она расщепила крахмал в сахар для дрожжей.",
       icon: "🍄"
     },
     baijiu: {
       regex: /\b(?:байдзю|байцзю|закваск(?:а|и) цюй)\b/gi,
       title: "Байцзю",
-      text: "Китайский крепкий дистиллят с уникальной твёрдой ферментацией в ямах и дикой закваской «цюй».",
-      example: "Самый популярный алкоголь в Китае.",
+      text: "Традиционный китайский крепкий алкоголь с очень специфичным запахом. Ферментируется в глиняных ямах.",
       icon: "🇨🇳"
     },
     aromas: {
       regex: /\b(?:strong aroma|sauce aroma|light aroma)\b/gi,
       title: "Стили Байцзю",
-      text: "Strong = яркий, фруктовый (для новичков). Sauce = соевый, умами, долгий (высший престиж). Light = мягкий, лёгкий.",
-      example: "Xijiu — статусный Sauce Aroma.",
+      text: "Strong = яркий (для новичков). Sauce = вкус соевого соуса и долгий финиш (самый элитный). Light = мягкий и лёгкий.",
       icon: "🏺"
     },
     aperitif: {
       regex: /\b(?:аперитив(?:ы|а|ом)?|дижестив(?:ы|а|ом)?)\b/gi,
       title: "Аперитив / Дижестив",
-      text: "Аперитив = до еды (для аппетита). Дижестив = после ужина (помогает пищеварению, часто амаро).",
-      example: "Апероль (До) / Граппа (После).",
+      text: "Аперитив = пьют ДО еды (разжигает аппетит, как Апероль). Дижестив = ПОСЛЕ еды (помогает пищеварению, как Граппа).",
       icon: "🍽️"
     },
     vermouth: {
       regex: /\b(?:вермут(?:ы|ом|а)?|биттер(?:ы|ом|а)?|амаро)\b/gi,
       title: "Вермут / Биттер / Амаро",
-      text: "Вермут = крепленое вино с травами и полынью. Биттер = горький алкогольный настой. Амаро = сладковатый биттер.",
-      example: "Martini / Campari / Jägermeister.",
+      text: "Вермут = вино с полынью и травами. Биттер = горький настой. Амаро = тоже биттер, но сладковатый.",
       icon: "🌿"
     },
     grappa: {
       regex: /\b(?:грапп(?:а|у|ы|ой)|дистиллят(?:ы|а|ом) из выжимок)\b/gi,
       title: "Граппа",
-      text: "Итальянский дистиллят из виноградных выжимок (косточек, веточек, кожицы). Парфюмерный аромат.",
-      example: "Классический итальянский дижестив.",
+      text: "Итальянский дистиллят. Его делают из того, что осталось от винограда (косточки, веточки, кожица).",
       icon: "🍇"
     },
     cordial: {
       regex: /\b(?:кордиал(?:а|ом)?)\b/gi,
       title: "Кордиал",
-      text: "Сладкий, концентрированный фруктовый/травяной сироп с добавлением натуральных кислот.",
-      example: "Даёт коктейлю сбалансированный вкус.",
+      text: "Сладкий фруктовый сироп с добавлением натуральных кислот. Даёт коктейлям идеальный баланс кисло-сладкого.",
       icon: "🧪"
+    },
+    maceration: {
+      regex: /\b(?:мацераци(?:я|и|ю|ей)|настаивании на кожице)\b/gi,
+      title: "Мацерация",
+      text: "Процесс настаивания виноградного сока на кожице и косточках. Отдаёт вину цвет, вкус и танины.",
+      icon: "🍇"
+    },
+    terroir: {
+      regex: /\b(?:терруар(?:а|у|ом)?)\b/gi,
+      title: "Терруар",
+      text: "Уникальная совокупность почвы, климата и рельефа местности, которая определяет характер и вкус вина.",
+      icon: "🌍"
+    },
+    vintage: {
+      regex: /\b(?:винтаж(?:а|у|ем)?|миллезим(?:а|у|ом)?|vintage)\b/gi,
+      title: "Винтаж / Миллезим",
+      text: "Год урожая винограда. Винтажное вино делается из урожая одного, как правило, выдающегося года.",
+      icon: "📅"
+    },
+    cru: {
+      regex: /\b(?:крю|cru(?: \w+)?)\b/gi,
+      title: "Крю (Cru)",
+      text: "Особый, строго определённый участок виноградника, дающий вина исключительного качества.",
+      icon: "🥇"
+    },
+    cuvee: {
+      regex: /\b(?:кюве|cuv[ée]e)\b/gi,
+      title: "Кюве (Cuvée)",
+      text: "Лучшая бочка или специальный купаж. В Шампани так называют сок самого первого, самого ценного отжима.",
+      icon: "✨"
+    },
+    tartare: {
+      regex: /\b(?:тартар(?:а|у|ом)?)\b/gi,
+      title: "Тартар",
+      text: "Способ подачи: очень мелко порубленное сырое мясо или рыба, приправленные ярким пикантным соусом.",
+      icon: "🔪"
+    },
+    ceviche: {
+      regex: /\b(?:севиче)\b/gi,
+      title: "Севиче",
+      text: "Перуанское блюдо из сырой рыбы, замаринованной («сваренной холодом») в соке цитрусовых с чили.",
+      icon: "🐟"
+    },
+    carpaccio: {
+      regex: /\b(?:карпаччо)\b/gi,
+      title: "Карпаччо",
+      text: "Тончайшие (почти прозрачные) слайсы сырого мяса или рыбы (иногда овощей), сбрызнутые маслом и лимоном.",
+      icon: "🥩"
+    },
+    bisque: {
+      regex: /\b(?:биск(?:а|у|ом)?)\b/gi,
+      title: "Биск",
+      text: "Густой крем-суп французского происхождения. Готовится на концентрированном бульоне из панцирей ракообразных.",
+      icon: "🦞"
+    },
+    ganache: {
+      regex: /\b(?:ганаш(?:а|у|ем)?)\b/gi,
+      title: "Ганаш",
+      text: "Шоколадно-сливочная эмульсия. Плотный шоколадный крем, используемый как начинка десертов или конфет.",
+      icon: "🍫"
     }
   };
 
-  const bevPage = document.getElementById('bev-page');
-  const sectionsToProcess = Array.from(bevPage.querySelectorAll('p, li, td, .bev-name, .bev-notes, .memory, .alert div, .f-name'));
+  // Convert termsData regexes by removing JS \b to solve Cyrillic boundary issues
+  // We will manually check boundaries in the replacement loop
+  for (const [key, termObj] of Object.entries(termsData)) {
+    let source = termObj.regex.source;
+    source = source.replace(/\\b/g, ''); // strip \b
+    source = source.replace(/\(\?\!\\w\)/g, ''); // strip (?!\\w)
+    termObj.cleanRegex = new RegExp(source, termObj.regex.flags);
+  }
+
+  const sectionsToProcess = Array.from(document.querySelectorAll('.wrapper p, .wrapper li, .wrapper td, .bev-name, .bev-notes, .memory, .alert div, .f-name, .bev-sub, .region-badge, .c-ingredients, .c-style, .f-origin, .dish-name, .ingredients, .quick-ref li'));
 
   sectionsToProcess.forEach(el => {
     const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null, false);
@@ -2349,7 +2462,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Wrap matches in placeholders to avoid overlapping replacements
       for(const [key, termObj] of Object.entries(termsData)) {
-        text = text.replace(termObj.regex, (match, offset, str) => {
+        text = text.replace(termObj.cleanRegex, (match, offset, str) => {
+          // Manual boundary check for all alphabets (including Cyrillic)
+          const before = offset > 0 ? str[offset - 1] : ' ';
+          const after = offset + match.length < str.length ? str[offset + match.length] : ' ';
+          const isWordChar = (c) => /[a-zA-Zа-яА-ЯёЁ0-9_]/.test(c);
+
+          if (isWordChar(before) || isWordChar(after)) {
+            return match; // Ignore, part of a bigger word
+          }
+
           // Ignore "без выдержки" instead of using lookbehind
           if (key === 'aging' && str.substring(Math.max(0, offset - 4), offset).toLowerCase().includes('без ')) return match;
           // Ignore "не торфяной"
@@ -2378,23 +2500,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const ttTitle = document.getElementById('tt-title');
   const ttContent = document.getElementById('tt-content');
   const ttExample = document.getElementById('tt-example');
-  const ttIcon = document.getElementById('tt-icon'); // Assuming you add an ID for icon in HTML
-
-  const bsOverlay = document.getElementById('bs-overlay');
-  const bottomSheet = document.getElementById('bottom-sheet');
-  const bsTitle = document.getElementById('bs-title');
-  const bsContent = document.getElementById('bs-content');
-  const bsExample = document.getElementById('bs-example');
-  const bsIcon = document.getElementById('bs-icon'); // ID for icon
+  const ttIcon = document.getElementById('tt-icon');
 
   let activeTooltipTerm = null;
 
+  // Modern check for touch devices
   function isMobile() {
-    return window.innerWidth <= 768;
+    return ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (window.matchMedia("(max-width: 768px)").matches);
   }
 
   function showTooltip(el, termObj) {
-    if (isMobile()) return;
     activeTooltipTerm = el;
     
     ttTitle.textContent = termObj.title;
@@ -2410,14 +2525,24 @@ document.addEventListener('DOMContentLoaded', () => {
     tooltip.classList.add('show');
     
     const rect = el.getBoundingClientRect();
-    let left = rect.left + rect.width / 2 - tooltip.offsetWidth / 2;
+    const tooltipWidth = tooltip.offsetWidth || 250; 
+    let left = rect.left + rect.width / 2 - tooltipWidth / 2;
     let top = rect.top + window.scrollY - tooltip.offsetHeight - 12;
 
     if (left < 10) left = 10;
-    if (left + tooltip.offsetWidth > window.innerWidth - 10) {
-      left = window.innerWidth - tooltip.offsetWidth - 10;
+    if (left + tooltipWidth > window.innerWidth - 10) {
+      left = window.innerWidth - tooltipWidth - 10;
     }
     
+    // On mobile, try not to hide under finger, better place it slightly above or nicely
+    if (isMobile() && (rect.top - tooltip.offsetHeight - 20) < 0) {
+      // open below if goes out of screen at the top
+      top = rect.bottom + window.scrollY + 12;
+      tooltip.style.transform = "translateY(-8px)"; // flip the animation visually
+    } else if (isMobile()) {
+      tooltip.style.transform = "translateY(8px)";
+    }
+
     tooltip.style.left = left + 'px';
     tooltip.style.top = top + 'px';
   }
@@ -2427,59 +2552,56 @@ document.addEventListener('DOMContentLoaded', () => {
     tooltip.classList.remove('show');
   }
 
-  function openBottomSheet(termObj) {
-    bsTitle.textContent = termObj.title;
-    bsIcon.textContent = termObj.icon || '';
-    bsContent.textContent = termObj.text;
-    if (termObj.example) {
-      bsExample.textContent = termObj.example;
-      bsExample.style.display = 'block';
-    } else {
-      bsExample.style.display = 'none';
-    }
-    bsOverlay.classList.add('show');
-    bottomSheet.classList.add('show');
-    document.body.style.overflow = 'hidden';
-  }
-
-  function closeBottomSheet() {
-    bsOverlay.classList.remove('show');
-    bottomSheet.classList.remove('show');
-    document.body.style.overflow = '';
-  }
-
+  // Handle Desktop Hover
   document.addEventListener('mouseover', (e) => {
+    if (isMobile()) return;
     const termEl = e.target.closest('.term');
     if (termEl) {
       const termKey = termEl.getAttribute('data-term');
       if (termsData[termKey]) showTooltip(termEl, termsData[termKey]);
     } else if (activeTooltipTerm) {
-      hideTooltip();
+      setTimeout(() => {
+        if (!tooltip.matches(':hover') && !e.target.closest('.term-tooltip')) {
+           hideTooltip();
+        }
+      }, 100);
     }
   });
-  
-  // Also close tooltip on leave
+
   document.addEventListener('mouseout', (e) => {
-      const termEl = e.target.closest('.term');
-      if (termEl) {
-          setTimeout(() => {
-              if (!tooltip.matches(':hover')) hideTooltip();
-          }, 100);
-      }
+    if (isMobile()) return;
+    const termEl = e.target.closest('.term');
+    if (termEl) {
+        setTimeout(() => {
+            if (!tooltip.matches(':hover') && !e.target.closest('.term-tooltip')) {
+               hideTooltip();
+            }
+        }, 150);
+    }
   });
 
+  // Handle Mobile Tap & General Click
   document.addEventListener('click', (e) => {
     const termEl = e.target.closest('.term');
     if (termEl) {
       if (isMobile()) {
         const termKey = termEl.getAttribute('data-term');
-        if (termsData[termKey]) openBottomSheet(termsData[termKey]);
+        if (activeTooltipTerm === termEl) {
+           hideTooltip();
+        } else if (termsData[termKey]) {
+           showTooltip(termEl, termsData[termKey]);
+        }
+      }
+    } else {
+      if (activeTooltipTerm && !e.target.closest('.term-tooltip')) {
+         hideTooltip();
       }
     }
-    if (e.target === bsOverlay || e.target.closest('#bs-close')) {
-      closeBottomSheet();
-    }
   });
+
+  // Prevent Copying & Context Menu
+  document.addEventListener('contextmenu', event => event.preventDefault());
+  document.addEventListener('copy', event => event.preventDefault());
 });
 </script>
 
