@@ -21,6 +21,22 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,woff,json}'],
       },
     }),
+    // ── Serve /menu as static HTML, bypassing React Router ──
+    {
+      name: 'static-menu-route',
+      configureServer(server) {
+        server.middlewares.use((req, res, next) => {
+          if (
+            req.url === '/menu' ||
+            req.url === '/menu/' ||
+            req.url?.startsWith('/menu/?')
+          ) {
+            req.url = '/menu/index.html'
+          }
+          next()
+        })
+      },
+    },
   ],
   // base: '/FreshTrack/', // Removed for Vercel deployment
   resolve: {
@@ -39,11 +55,8 @@ export default defineConfig({
     },
   },
   build: {
-    // Target modern browsers for better bundle size
     target: 'esnext',
-    // Enable source maps for debugging
     sourcemap: false,
-    // Minification settings
     minify: 'terser',
     terserOptions: {
       compress: {
@@ -51,25 +64,18 @@ export default defineConfig({
         drop_debugger: true,
       },
     },
-    // Chunk splitting for better caching and lazy loading
     rollupOptions: {
       output: {
         manualChunks: {
-          // Vendor chunk for React
           'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          // Utility libraries
           'utils-vendor': ['date-fns', 'clsx'],
-          // Icons - separate chunk for tree-shaking
           'icons-vendor': ['lucide-react'],
-          // Chart.js - loaded only by AuditLogsPage (lazy)
           'chart-vendor': ['chart.js', 'react-chartjs-2'],
         },
       },
     },
-    // Asset size warnings
     chunkSizeWarningLimit: 500,
   },
-  // Performance optimizations
   optimizeDeps: {
     include: [
       'react',
@@ -79,10 +85,8 @@ export default defineConfig({
       'lucide-react',
     ],
   },
-  // PWA & Mobile optimizations
   server: {
-    host: '127.0.0.1', // Avoid IPv6 ::1 permission issues on Windows
+    host: '127.0.0.1',
     port: 3000,
-    // https: true, // Enable for PWA testing locally
   },
 })

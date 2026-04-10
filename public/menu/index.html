@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Menu Knowledge Guide — The Ritz-Carlton,Astana - IRD</title>
-<link rel="icon" type="image/png" href="menu-favicon.png">
+<link rel="icon" type="image/png" href="/menu-favicon.png">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300;1,400&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -52,6 +52,8 @@
     background: #0e0e0e;
     display: flex;
     border-bottom: 3px solid var(--gold);
+    /* margin-bottom to fix any 1px rendering gaps */
+    margin-bottom: -1px;
   }
   .tab-btn {
     flex: 1;
@@ -63,21 +65,20 @@
     letter-spacing: 0.05em;
     color: #888;
     cursor: pointer;
-    border: none;
     background: transparent;
     transition: all 0.25s;
-    border-bottom: 3px solid transparent;
-    margin-bottom: -3px;
+    border: none;
   }
-  .tab-btn.active { color: var(--gold-light); border-bottom-color: var(--gold); }
+  .tab-btn.active { color: var(--gold-light); }
   .tab-btn:hover { color: var(--gold); }
   .tab-btn .tab-icon { display: block; font-size: 1.4rem; margin-bottom: 2px; }
 
   /* ── SUB-NAV ── */
   .sub-nav {
-    position: sticky; top: 67px; z-index: 100;
+    position: sticky; top: var(--tab-height, 66px); z-index: 100;
     display: flex; gap: 0; overflow-x: auto; scrollbar-width: none;
     border-bottom: 1px solid var(--divider);
+    -webkit-overflow-scrolling: touch;
   }
   .sub-nav::-webkit-scrollbar { display: none; }
   .sub-nav.food-nav { background: var(--dark); }
@@ -282,18 +283,112 @@
 
   footer { text-align: center; padding: 28px; color: var(--light-text); font-size: 0.78rem; letter-spacing: 0.05em; border-top: 1px solid var(--divider); margin-top: 36px; }
 
+  /* ── GLOSSARY & TOOLTIPS UX ── */
+  .term {
+    border-bottom: 1px dashed var(--bev-accent);
+    color: var(--bev-dark);
+    font-weight: 600;
+    cursor: help;
+    transition: color 0.2s, background 0.2s;
+    position: relative;
+  }
+  .term:hover { color: var(--bev-accent); background: rgba(74, 143, 168, 0.08); border-bottom-style: solid; }
+
+  .term-tooltip {
+    position: absolute; z-index: 1000;
+    background: #ffffff; color: var(--bev-dark);
+    padding: 12px 14px; border-radius: 8px;
+    font-family: 'Crimson Pro', Georgia, serif;
+    font-size: 0.88rem; line-height: 1.5;
+    box-shadow: 0 8px 24px rgba(13, 21, 32, 0.15);
+    border: 1px solid var(--bev-divider);
+    max-width: 280px;
+    pointer-events: none; opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 0.2s cubic-bezier(0.2, 0, 0, 1), transform 0.2s cubic-bezier(0.2, 0, 0, 1);
+    visibility: hidden;
+  }
+  .term-tooltip::after {
+    content: ''; position: absolute;
+    top: 100%; left: 50%; transform: translateX(-50%);
+    border-width: 6px; border-style: solid;
+    border-color: #ffffff transparent transparent transparent;
+  }
+  /* Optional: small shadow for the triangle arrow */
+  .term-tooltip::before {
+    content: ''; position: absolute;
+    top: 100%; left: 50%; transform: translateX(-50%);
+    border-width: 7px; border-style: solid;
+    border-color: var(--bev-divider) transparent transparent transparent;
+    z-index: -1; margin-top: 1px;
+  }
+
+  .term-tooltip.show { opacity: 1; transform: translateY(0); visibility: visible; }
+  .term-tooltip .tt-header { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+  .term-tooltip .tt-icon { font-size: 1.1rem; }
+  .term-tooltip .tt-title {
+    font-family: 'Playfair Display', serif; font-size: 0.95rem;
+    font-weight: 700; color: var(--bev-accent); flex: 1;
+  }
+  .term-tooltip .tt-example {
+    margin-top: 8px; padding-top: 6px;
+    border-top: 1px solid var(--bev-bg);
+    font-style: italic; color: #5c7482; font-size: 0.8rem;
+  }
+
+  /* ── BOTTOM SHEET (MOBILE) ── */
+  .bottom-sheet-overlay {
+    position: fixed; inset: 0; background: rgba(13, 21, 32, 0.6);
+    z-index: 2000; opacity: 0; visibility: hidden; transition: opacity 0.3s;
+    backdrop-filter: blur(2px);
+  }
+  .bottom-sheet-overlay.show { opacity: 1; visibility: visible; }
+
+  .bottom-sheet {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 2001;
+    background: #ffffff; border-top-left-radius: 20px; border-top-right-radius: 20px;
+    padding: 0 20px 24px; max-height: 85vh; overflow-y: auto;
+    transform: translateY(100%);
+    transition: transform 0.4s cubic-bezier(0.32, 1, 0.23, 1);
+    box-shadow: 0 -4px 24px rgba(0,0,0,0.1);
+  }
+  .bottom-sheet.show { transform: translateY(0); }
+  .bs-drag-handle { width: 44px; height: 5px; background: #dce4e8; border-radius: 3px; margin: 12px auto 18px; }
+  .bs-header { display: flex; align-items: center; margin-bottom: 14px; gap: 10px; }
+  .bs-icon { font-size: 1.5rem; }
+  .bs-title { font-family: 'Playfair Display', serif; font-size: 1.35rem; color: var(--bev-dark); font-weight: 700; flex: 1; }
+  .bs-close {
+    background: var(--bev-bg); border: none; border-radius: 50%;
+    width: 34px; height: 34px; font-size: 1.4rem; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--bev-accent); transition: background 0.2s;
+  }
+  .bs-close:active { background: var(--bev-divider); }
+  .bs-content { font-size: 1rem; color: #2a3b4a; line-height: 1.6; }
+  .bs-example {
+    margin-top: 14px; padding: 12px 14px; background: #f0f6fa;
+    border-left: 3px solid var(--bev-accent-light);
+    border-radius: 6px; font-size: 0.9rem; color: #1a3040;
+  }
+  .bs-example::before { content: '👉 Пример: '; font-weight: 600; color: var(--bev-accent); display: block; margin-bottom: 2px; }
+
   /* ── MOBILE ── */
   @media(max-width: 640px) {
-    .card-grid, .card-grid.two, .card-grid.three { grid-template-columns: 1fr; }
-    .fort-grid { grid-template-columns: 1fr; }
-    header h1 { font-size: 1.5rem; }
-    .tab-btn { font-size: 0.85rem; }
-    .tab-btn .tab-icon { font-size: 1.2rem; }
-    .compare-table { font-size: 0.8rem; }
-    .bev-table { font-size: 0.8rem; }
-    .compare-table th:first-child { width: 90px; }
-    .section-title { font-size: 1.25rem; }
-    .prep-grid { grid-template-columns: repeat(2, 1fr); }
+    .card-grid, .card-grid.two, .card-grid.three { grid-template-columns: 1fr; gap: 16px; }
+    .fort-grid { grid-template-columns: 1fr; gap: 16px; }
+    header { padding: 32px 16px 24px; }
+    header h1 { font-size: 1.6rem; }
+    .tab-btn { font-size: 0.85rem; padding: 14px 6px; }
+    .tab-btn .tab-icon { font-size: 1.3rem; margin-bottom: 3px; }
+    .sub-nav a { padding: 14px 16px; font-size: 12px; } /* larger touch targets */
+    .compare-table, .bev-table { font-size: 0.8rem; display: block; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; border: none; box-shadow: 0 0 0 1px var(--divider); }
+    .compare-table th:first-child { width: auto; }
+    .section-title { font-size: 1.3rem; margin: 32px 0 16px; }
+    .prep-grid { grid-template-columns: 1fr; gap: 10px; }
+    .wrapper { padding: 16px 12px; }
+    .memory { font-size: 0.9rem; padding: 14px; margin-top: 14px; }
+    .dish-card, .bev-card, .fort-card { padding: 16px 14px; }
+    .quick-ref { padding: 18px 16px; }
   }
   @media(min-width: 641px) and (max-width: 900px) {
     .card-grid { grid-template-columns: repeat(2, 1fr); }
@@ -306,10 +401,10 @@
 
 <!-- ════ MAIN TAB BAR ════ -->
 <div class="tab-bar" role="tablist">
-  <button class="tab-btn active" id="tab-food" onclick="switchTab('food')" role="tab" aria-selected="true">
+  <button class="tab-btn active" id="tab-food" role="tab" aria-selected="true">
     <span class="tab-icon">🍽️</span>FOOD
   </button>
-  <button class="tab-btn" id="tab-bev" onclick="switchTab('bev')" role="tab" aria-selected="false">
+  <button class="tab-btn" id="tab-bev" role="tab" aria-selected="false">
     <span class="tab-icon">🍾</span>BEVERAGE
   </button>
 </div>
@@ -338,9 +433,9 @@
 </nav>
 
 <header class="food-header">
-  <span class="ornament">✦ ✦ ✦</span>
+  <span class="ornament">✦ ✦ ✦ ✦ ✦</span>
   <h1>Menu Knowledge Guide</h1>
-  <p>In-Room Dining · A La Carte 2025 · Ritz-Carlton</p>
+  <p>In-Room Dining · A La Carte 2026 · The Ritz-Carlton, Astana</p>
 </header>
 
 <div class="wrapper">
@@ -865,7 +960,7 @@
 </section>
 
 </div><!-- /wrapper food -->
-<footer>✦ In-Room Dining · A La Carte 2025 · Ritz-Carlton ✦ &nbsp;|&nbsp; Food Knowledge Guide</footer>
+<footer>✦  In-Room Dining · A La Carte 2026 · The Ritz-Carlton, Astana ✦ &nbsp;|&nbsp; Food Knowledge Guide</footer>
 </div><!-- /food-page -->
 
 
@@ -896,9 +991,9 @@
 </nav>
 
 <header class="bev-header">
-  <span class="ornament">✦ ✦ ✦</span>
+  <span class="ornament">✦ ✦ ✦ ✦ ✦</span>
   <h1>Beverage Knowledge Guide</h1>
-  <p>Ozen · Room Service · Полная карта напитков</p>
+  <p>In-Room Dining · Beverage Menu 2026 · The Ritz-Carlton, Astana</p>
 </header>
 
 <div class="wrapper">
@@ -1869,48 +1964,513 @@
 </section>
 
 </div><!-- /wrapper bev -->
-<footer style="background:var(--bev-dark);color:var(--bev-accent-light);">✦ Ozen Room Service · Beverage Knowledge Guide ✦ &nbsp;|&nbsp; Шпаргалка бар & сервис</footer>
+<footer style="background:var(--bev-dark);color:var(--bev-accent-light);">✦ In-Room Dining · A La Carte 2026 · The Ritz-Carlton, Astana ✦ &nbsp;|&nbsp; Beverage Knowledge Guide</footer>
 </div><!-- /bev-page -->
 
 
 <script>
-function switchTab(tab) {
-  const foodPage = document.getElementById('food-page');
-  const bevPage = document.getElementById('bev-page');
+document.addEventListener('DOMContentLoaded', () => {
   const tabFood = document.getElementById('tab-food');
   const tabBev = document.getElementById('tab-bev');
+  const foodPage = document.getElementById('food-page');
+  const bevPage = document.getElementById('bev-page');
+  const tabBar = document.querySelector('.tab-bar');
 
-  if (tab === 'food') {
-    foodPage.style.display = 'block';
-    bevPage.style.display = 'none';
-    tabFood.classList.add('active');
-    tabBev.classList.remove('active');
-    tabFood.setAttribute('aria-selected', 'true');
-    tabBev.setAttribute('aria-selected', 'false');
-  } else {
-    foodPage.style.display = 'none';
-    bevPage.style.display = 'block';
-    tabFood.classList.remove('active');
-    tabBev.classList.add('active');
-    tabFood.setAttribute('aria-selected', 'false');
-    tabBev.setAttribute('aria-selected', 'true');
-    // Switch subnav sticky top
-    document.querySelector('.bev-nav').style.top = '67px';
+  function getTabBarHeight() {
+    return tabBar ? tabBar.offsetHeight : 67;
   }
-  window.scrollTo(0, 0);
-}
 
-// Smooth scroll for anchor links within each page
-document.addEventListener('click', function(e) {
-  const a = e.target.closest('a[href^="#"]');
-  if (!a) return;
-  e.preventDefault();
-  const target = document.querySelector(a.getAttribute('href'));
-  if (target) {
-    const offset = 140; // tab bar + subnav
-    const top = target.getBoundingClientRect().top + window.scrollY - offset;
-    window.scrollTo({ top, behavior: 'smooth' });
+  // Use ResizeObserver for perfect sticky top
+  const observer = new ResizeObserver(() => {
+    document.documentElement.style.setProperty('--tab-height', (getTabBarHeight() - 1) + 'px');
+  });
+  if (tabBar) observer.observe(tabBar);
+  document.documentElement.style.setProperty('--tab-height', (getTabBarHeight() - 1) + 'px');
+
+  function switchTab(tab) {
+    if (tab === 'food') {
+      foodPage.style.display = 'block';
+      bevPage.style.display = 'none';
+      tabFood.classList.add('active');
+      tabBev.classList.remove('active');
+      tabFood.setAttribute('aria-selected', 'true');
+      tabBev.setAttribute('aria-selected', 'false');
+    } else {
+      foodPage.style.display = 'none';
+      bevPage.style.display = 'block';
+      tabFood.classList.remove('active');
+      tabBev.classList.add('active');
+      tabFood.setAttribute('aria-selected', 'false');
+      tabBev.setAttribute('aria-selected', 'true');
+    }
+    window.scrollTo(0, 0);
   }
+
+  tabFood.addEventListener('click', (e) => { e.preventDefault(); switchTab('food'); });
+  tabBev.addEventListener('click', (e) => { e.preventDefault(); switchTab('bev'); });
+
+  // Smooth scroll for anchor links within each page
+  document.addEventListener('click', function(e) {
+    const a = e.target.closest('a[href^="#"]');
+    if (!a) return;
+    
+    const href = a.getAttribute('href');
+    if (href === '#') return;
+
+    e.preventDefault();
+    const target = document.querySelector(href);
+    if (target) {
+      const activeNav = foodPage.style.display !== 'none' ? document.querySelector('.food-nav') : document.querySelector('.bev-nav');
+      const offset = getTabBarHeight() + (activeNav ? activeNav.offsetHeight : 45) + 10;
+      const top = target.getBoundingClientRect().top + window.scrollY - offset;
+      window.scrollTo({ top, behavior: 'smooth' });
+    }
+  });
+});
+</script>
+
+<!-- ════════════ GLOSSARY UI (TOOLTIPS & BOTTOM SHEETS) ════════════ -->
+<!-- Desktop Tooltip -->
+<div id="term-tooltip" class="term-tooltip">
+  <div class="tt-header">
+    <span class="tt-icon" id="tt-icon"></span>
+    <span class="tt-title" id="tt-title"></span>
+  </div>
+  <div class="tt-content" id="tt-content"></div>
+  <div class="tt-example" id="tt-example"></div>
+</div>
+
+<!-- Mobile Bottom Sheet -->
+<div id="bs-overlay" class="bottom-sheet-overlay"></div>
+<div id="bottom-sheet" class="bottom-sheet">
+  <div class="bs-drag-handle"></div>
+  <div class="bs-header">
+    <span class="bs-icon" id="bs-icon"></span>
+    <h3 class="bs-title" id="bs-title"></h3>
+    <button class="bs-close" id="bs-close">&times;</button>
+  </div>
+  <div class="bs-content" id="bs-content"></div>
+  <div class="bs-example" id="bs-example"></div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const termsData = {
+    fermentation: {
+      regex: /\b(?:ферментаци[яиюей]|брожени[еяюм])\b/gi,
+      title: "Ферментация (брожение)",
+      text: "Процесс, при котором дрожжи превращают сахар в спирт и углекислый газ. Базовый шаг для любого алкоголя.",
+      example: "Вино, пиво, брага.",
+      icon: "🦠"
+    },
+    distillation: {
+      regex: /\b(?:дистилляци[яиюей]|перегонк[аиуой])\b/gi,
+      title: "Дистилляция (перегонка)",
+      text: "Нагрев жидкости: спирт испаряется раньше воды, пары собирают и охлаждают. Так получают крепкий алкоголь.",
+      example: "Из вина делают коньяк.",
+      icon: "⚗️"
+    },
+    aging: {
+      regex: /(?<!без )\b(?:выдержк[аиуой]|выдерживают)\b/gi,
+      title: "Выдержка",
+      text: "Хранение алкоголя в деревянных бочках. Придаёт цвет, смягчает вкус, добавляет ноты дерева, ванили и специй.",
+      example: "Светлый виски в бочке темнеет.",
+      icon: "🪵"
+    },
+    eaux_de_vie: {
+      regex: /\b(?:Eaux-de-Vie|О-де-ви)\b/gi,
+      title: "Дистиллят / Eaux-de-Vie",
+      text: "Переводится как «Вода жизни». Чистый спирт, полученный сразу после дистилляции до выдержки в бочке.",
+      example: "Молодой коньячный спирт.",
+      icon: "💧"
+    },
+    meth_trad: {
+      regex: /\b(?:m[ée]thode traditionnelle)\b/gi,
+      title: "Méthode traditionnelle",
+      text: "Традиционный метод шампанизации: вторая ферментация происходит прямо в закрытой бутылке.",
+      example: "Шампанское, Кава.",
+      icon: "🍾"
+    },
+    charmat: {
+      regex: /\b(?:метод(?:ом|а)? Шарма)\b/gi,
+      title: "Метод Шарма",
+      text: "Вторая ферментация происходит не в бутылках, а в гигантских стальных резервуарах. Быстрее и фруктовее.",
+      example: "Просекко.",
+      icon: "🏭"
+    },
+    sweetness: {
+      regex: /\b(?:Brut Nature|Extra Brut|Brut|Extra Dry|Demi-Sec|Doux)\b/gi,
+      title: "Градации сладости",
+      text: "Brut Nature (совсем сухое), Brut (стандартное), Extra Dry (уже слегка сладковатое), Demi-Sec (сладкое).",
+      example: "Просекко Extra Dry на вкус слаще Брюта.",
+      icon: "🥂"
+    },
+    nv: {
+      regex: /(?:\bN\.V\.\b|\bNon-Vintage\b)/g,
+      title: "N.V. (Non-Vintage)",
+      text: "Без указания года урожая. Смешивают вина из разных годов, чтобы всегда получать стабильный вкус.",
+      example: "Базовое шампанское.",
+      icon: "📅"
+    },
+    blend: {
+      regex: /\b(?:купаж(?:а|у|ем)?|blended|blend)\b/gi,
+      title: "Купаж (Бленд)",
+      text: "Смешивание разных сортов винограда, или спиртов разных дистиллерий для сложного вкуса.",
+      example: "Scotch Blended Whisky.",
+      icon: "🎨"
+    },
+    tannins: {
+      regex: /\b(?:танин(?:ы|ов|ами))\b/gi,
+      title: "Танины",
+      text: "Вещества из кожицы и косточек винограда (и из дуба). Дают терпкое, вяжущее ощущение во рту.",
+      example: "Как от крепкого чёрного чая.",
+      icon: "🍇"
+    },
+    batonnage: {
+      regex: /\b(?:батонаж(?:а|ем)?)\b/gi,
+      title: "Батонаж",
+      text: "Перемешивание дрожжевого осадка в бочке с вином. Придаёт вину богатую, хлебную текстуру.",
+      example: "Выдержанное Шардоне.",
+      icon: "🥖"
+    },
+    fortified: {
+      regex: /\b(?:креплено[егму] вин[оауе])\b/gi,
+      title: "Крепленое вино",
+      text: "Вино, в которое добавлен крепкий виноградный спирт, повышающий крепость до 15-22%.",
+      example: "Портвейн, Херес.",
+      icon: "🏺"
+    },
+    decant: {
+      regex: /\b(?:декантирова[тл][ьс]?|декантаци[яи])\b/gi,
+      title: "Декантировать",
+      text: "Перелить вино из бутылки в графин для обогащения кислородом («подышать») или отделения осадка.",
+      example: "Старые красные вина.",
+      icon: "🍷"
+    },
+    single_malt: {
+      regex: /\b(?:Single Malt|односолодов(?:ый|ого|ому))\b/gi,
+      title: "Single Malt vs Blended",
+      text: "Single Malt: спирт только из ячменя с ОДНОЙ (single) дистиллерии. Blended: смесь спиртов с разных заводов.",
+      example: "Macallan (Single), Chivas (Blended).",
+      icon: "🥃"
+    },
+    barley: {
+      regex: /\b(?:соложен(?:ного|ный|ным)? ячмен[яьем])\b/gi,
+      title: "Соложенный ячмень",
+      text: "Ячмень, который замочили, прорастили и высушили для высвобождения сахаров.",
+      example: "Основа шотландского виски.",
+      icon: "🌾"
+    },
+    peated: {
+      regex: /(?<!не)\b(?:торф(?:яно[йг]?|ом)?|peated)\b/gi,
+      title: "Торфяной (Peated)",
+      text: "Солод для виски сушат над горящим торфом. Дым проникает в зерно, давая аромат костра, йода и лекарств.",
+      example: "Виски Islay (Lagavulin).",
+      icon: "🔥"
+    },
+    casks: {
+      regex: /\b(?:sherry cask|хересн(?:ая|ые|ых) бочк[аиах]?|бурбонов(?:ая|ые|ых) бочк[аиах]?|cask finish|finish)\b/gi,
+      title: "Бочки (Cask / Finish)",
+      text: "Херес = сухофрукты, шоколад. Бурбон = ваниль, карамель. Финиш = перелитие в специфическую бочку в самом конце.",
+      example: "Macallan в Sherry Cask.",
+      icon: "🪵"
+    },
+    non_chill: {
+      regex: /\b(?:non-chill-filtered|без холодной фильтрации)\b/gi,
+      title: "Нефильтрованный",
+      text: "Виски не подвергался холодной фильтрации. Сохраняет натуральные масла (может мутнеть со льдом).",
+      example: "Ценится гурманами.",
+      icon: "❄️"
+    },
+    alembic: {
+      regex: /\b(?:перегонны(?:е|х) куб(?:ы|ах)?|аламбик(?:ах|и)?)\b/gi,
+      title: "Аламбик (Перегонный куб)",
+      text: "Медный аппарат-луковка для порционной перегонки. Даёт насыщенный, маслянистый и тяжёлый спирт.",
+      example: "Для Коньяка и Single Malt.",
+      icon: "🏺"
+    },
+    coffey: {
+      regex: /\b(?:колонны(?:е|х) аппарат(?:ы|ах)|колонног(?:о|онн)|coffey)\b/gi,
+      title: "Колонные аппараты",
+      text: "Аппарат непрерывного действия. Даёт очень чистый, лёгкий и нейтральный спирт.",
+      example: "Водка, лёгкие джины.",
+      icon: "🏭"
+    },
+    cask_strength: {
+      regex: /\b(?:бочков(?:ая|ой) крепост[ьи]|cask strength|genshu)\b/gi,
+      title: "Бочковая крепость",
+      text: "Алкоголь разливают прямо из бочки (50-60%) без разбавления водой. Максимальная концентрация вкуса.",
+      example: "Genshu — то же самое для саке.",
+      icon: "💪"
+    },
+    agave: {
+      regex: /\b(?:голубая агава|голубой агав(?:ы|у)|агав(?:ы|а|у))\b/gi,
+      title: "Голубая агава",
+      text: "Текилу делают ТОЛЬКО из голубой агавы. Мескаль можно делать из множества других её видов.",
+      example: "Растёт в Мексике.",
+      icon: "🌵"
+    },
+    tahona: {
+      regex: /\b(?:tahona(?: process)?)\b/gi,
+      title: "Tahona process",
+      text: "Древний метод, при котором запечённую агаву давят огромным каменным вулканическим колесом.",
+      example: "Текила Fortaleza.",
+      icon: "🪨"
+    },
+    tequila_age: {
+      regex: /\b(?:(?<!Voche\s)blanco|reposado|a[ñn]ejo|extra a[ñn]ejo)\b/gi,
+      title: "Стили текилы",
+      text: "Blanco (без бочки). Reposado (отдохнувшая, до 1 года). Añejo (выдержанная, 1-3 года). Extra Añejo (от 3 лет).",
+      example: "Blanco для коктейлей, Añejo для сиппинга.",
+      icon: "⏳"
+    },
+    molasses: {
+      regex: /\b(?:меласс(?:а|ы|у)|паток(?:а|и|у))\b/gi,
+      title: "Меласса (патока)",
+      text: "Тёмный сироп, побочный продукт переработки сахарного тростника. 90% рома делают из неё.",
+      example: "Даёт рому карамельные и шоколадные ноты.",
+      icon: "🍯"
+    },
+    rhum_agricole: {
+      regex: /\b(?:rhum agricole|сельскохозяйственн(?:ый|ого))\b/gi,
+      title: "Rhum Agricole",
+      text: "Сделан не из патоки, а прямо из свежего сока сахарного тростника.",
+      example: "Живой, травянистый, цветочный вкус.",
+      icon: "🌱"
+    },
+    solera: {
+      regex: /\b(?:солер(?:а|ы|у)|solera)\b/gi,
+      title: "Система Солера",
+      text: "Пирамидальная система выдержки: молодые спирты переливаются сверху в нижние бочки со старыми.",
+      example: "Стабильный профиль (Ром Zacapa, Херес).",
+      icon: "🔺"
+    },
+    botanicals: {
+      regex: /\b(?:ботаник(?:и|ами|ов)|botanicals?)\b/gi,
+      title: "Ботаники",
+      text: "Натуральные ингредиенты (травы, ягоды, специи, цедра), настоенные со спиртом.",
+      example: "Можжевельник — обязательный ботаник в джине.",
+      icon: "🌿"
+    },
+    london_dry: {
+      regex: /\b(?:london dry|genever)\b/gi,
+      title: "London Dry / Genever",
+      text: "London Dry = сухой джин без добавления сахара. Genever = голландский джин (плотный, хлебный).",
+      example: "London Dry идеален к тонику.",
+      icon: "🍸"
+    },
+    lager_ale: {
+      regex: /\b(?:низов(?:ое|ого) брожени[ея]|верхов(?:ое|ого) брожени[ея]|lager|лагер|ale|эль|stout|стаут)\b/gi,
+      title: "Типы пива",
+      text: "Лагер (низовое) = гладкий, освежающий. Эль/Стаут (верховое) = ароматный, теплый, сложный.",
+      example: "Corona — это лагер.",
+      icon: "🍺"
+    },
+    seimai: {
+      regex: /\b(?:степень шлифовки ?(?:риса)?|seimai-buai)\b/gi,
+      title: "Seimai-buai (Шлифовка)",
+      text: "Процент оставшегося зерна риса после того как удалили верхнюю оболочку с жиром.",
+      example: "Шлифовка 50% = 50% зерна удалили.",
+      icon: "🌾"
+    },
+    sake_types: {
+      regex: /\b(?:junmai(?: ginjo| daiginjo)?|ginjo|daiginjo)\b/gi,
+      title: "Классы Саке",
+      text: "Junmai = чистый рис (без добавления стороннего алкоголя). Daiginjo = премиум высшей шлифовки.",
+      example: "Junmai Daiginjo = вершина самурайского шика.",
+      icon: "🍶"
+    },
+    koji: {
+      regex: /\b(?:кодзи|koji)\b/gi,
+      title: "Кодзи",
+      text: "Специальная плесень, которой заражают рис. Расщепляет рисовый крахмал в сахар для дрожжей.",
+      example: "Основа не только саке, но и соевого соуса.",
+      icon: "🍄"
+    },
+    baijiu: {
+      regex: /\b(?:байдзю|байцзю|закваск(?:а|и) цюй)\b/gi,
+      title: "Байцзю",
+      text: "Китайский крепкий дистиллят с уникальной твёрдой ферментацией в ямах и дикой закваской «цюй».",
+      example: "Самый популярный алкоголь в Китае.",
+      icon: "🇨🇳"
+    },
+    aromas: {
+      regex: /\b(?:strong aroma|sauce aroma|light aroma)\b/gi,
+      title: "Стили Байцзю",
+      text: "Strong = яркий, фруктовый (для новичков). Sauce = соевый, умами, долгий (высший престиж). Light = мягкий, лёгкий.",
+      example: "Xijiu — статусный Sauce Aroma.",
+      icon: "🏺"
+    },
+    aperitif: {
+      regex: /\b(?:аперитив(?:ы|а|ом)?|дижестив(?:ы|а|ом)?)\b/gi,
+      title: "Аперитив / Дижестив",
+      text: "Аперитив = до еды (для аппетита). Дижестив = после ужина (помогает пищеварению, часто амаро).",
+      example: "Апероль (До) / Граппа (После).",
+      icon: "🍽️"
+    },
+    vermouth: {
+      regex: /\b(?:вермут(?:ы|ом|а)?|биттер(?:ы|ом|а)?|амаро)\b/gi,
+      title: "Вермут / Биттер / Амаро",
+      text: "Вермут = крепленое вино с травами и полынью. Биттер = горький алкогольный настой. Амаро = сладковатый биттер.",
+      example: "Martini / Campari / Jägermeister.",
+      icon: "🌿"
+    },
+    grappa: {
+      regex: /\b(?:грапп(?:а|у|ы|ой)|дистиллят(?:ы|а|ом) из выжимок)\b/gi,
+      title: "Граппа",
+      text: "Итальянский дистиллят из виноградных выжимок (косточек, веточек, кожицы). Парфюмерный аромат.",
+      example: "Классический итальянский дижестив.",
+      icon: "🍇"
+    },
+    cordial: {
+      regex: /\b(?:кордиал(?:а|ом)?)\b/gi,
+      title: "Кордиал",
+      text: "Сладкий, концентрированный фруктовый/травяной сироп с добавлением натуральных кислот.",
+      example: "Даёт коктейлю сбалансированный вкус.",
+      icon: "🧪"
+    }
+  };
+
+  const bevPage = document.getElementById('bev-page');
+  const sectionsToProcess = Array.from(bevPage.querySelectorAll('p, li, td, .bev-name, .bev-notes, .memory, .alert div, .f-name'));
+
+  sectionsToProcess.forEach(el => {
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null, false);
+    let nodes = [];
+    while(walker.nextNode()) {
+      if(walker.currentNode.parentNode.tagName === 'SCRIPT' || walker.currentNode.parentNode.tagName === 'STYLE') continue;
+      if(walker.currentNode.parentNode.classList.contains('term')) continue;
+      nodes.push(walker.currentNode);
+    }
+
+    nodes.forEach(node => {
+      let text = node.nodeValue;
+      let replaced = false;
+
+      // Wrap matches in placeholders to avoid overlapping replacements
+      for(const [key, termObj] of Object.entries(termsData)) {
+        text = text.replace(termObj.regex, match => {
+          replaced = true;
+          return `%%TERM-${key}%%${match}%%END%%`;
+        });
+      }
+
+      if (replaced) {
+        text = text.replace(/%%TERM-([^%]+)%%(.*?)%%END%%/g, '<span class="term" data-term="$1">$2</span>');
+        let wrapper = document.createElement('span');
+        wrapper.innerHTML = text;
+        node.parentNode.replaceChild(wrapper, node);
+      }
+    });
+  });
+
+  // UX Logic
+  const tooltip = document.getElementById('term-tooltip');
+  const ttTitle = document.getElementById('tt-title');
+  const ttContent = document.getElementById('tt-content');
+  const ttExample = document.getElementById('tt-example');
+  const ttIcon = document.getElementById('tt-icon'); // Assuming you add an ID for icon in HTML
+
+  const bsOverlay = document.getElementById('bs-overlay');
+  const bottomSheet = document.getElementById('bottom-sheet');
+  const bsTitle = document.getElementById('bs-title');
+  const bsContent = document.getElementById('bs-content');
+  const bsExample = document.getElementById('bs-example');
+  const bsIcon = document.getElementById('bs-icon'); // ID for icon
+
+  let activeTooltipTerm = null;
+
+  function isMobile() {
+    return window.innerWidth <= 768;
+  }
+
+  function showTooltip(el, termObj) {
+    if (isMobile()) return;
+    activeTooltipTerm = el;
+    
+    ttTitle.textContent = termObj.title;
+    ttIcon.textContent = termObj.icon || '';
+    ttContent.textContent = termObj.text;
+    if (termObj.example) {
+      ttExample.textContent = termObj.example;
+      ttExample.style.display = 'block';
+    } else {
+      ttExample.style.display = 'none';
+    }
+
+    tooltip.classList.add('show');
+    
+    const rect = el.getBoundingClientRect();
+    let left = rect.left + rect.width / 2 - tooltip.offsetWidth / 2;
+    let top = rect.top + window.scrollY - tooltip.offsetHeight - 12;
+
+    if (left < 10) left = 10;
+    if (left + tooltip.offsetWidth > window.innerWidth - 10) {
+      left = window.innerWidth - tooltip.offsetWidth - 10;
+    }
+    
+    tooltip.style.left = left + 'px';
+    tooltip.style.top = top + 'px';
+  }
+
+  function hideTooltip() {
+    activeTooltipTerm = null;
+    tooltip.classList.remove('show');
+  }
+
+  function openBottomSheet(termObj) {
+    bsTitle.textContent = termObj.title;
+    bsIcon.textContent = termObj.icon || '';
+    bsContent.textContent = termObj.text;
+    if (termObj.example) {
+      bsExample.textContent = termObj.example;
+      bsExample.style.display = 'block';
+    } else {
+      bsExample.style.display = 'none';
+    }
+    bsOverlay.classList.add('show');
+    bottomSheet.classList.add('show');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeBottomSheet() {
+    bsOverlay.classList.remove('show');
+    bottomSheet.classList.remove('show');
+    document.body.style.overflow = '';
+  }
+
+  document.addEventListener('mouseover', (e) => {
+    const termEl = e.target.closest('.term');
+    if (termEl) {
+      const termKey = termEl.getAttribute('data-term');
+      if (termsData[termKey]) showTooltip(termEl, termsData[termKey]);
+    } else if (activeTooltipTerm) {
+      hideTooltip();
+    }
+  });
+  
+  // Also close tooltip on leave
+  document.addEventListener('mouseout', (e) => {
+      const termEl = e.target.closest('.term');
+      if (termEl) {
+          setTimeout(() => {
+              if (!tooltip.matches(':hover')) hideTooltip();
+          }, 100);
+      }
+  });
+
+  document.addEventListener('click', (e) => {
+    const termEl = e.target.closest('.term');
+    if (termEl) {
+      if (isMobile()) {
+        const termKey = termEl.getAttribute('data-term');
+        if (termsData[termKey]) openBottomSheet(termsData[termKey]);
+      }
+    }
+    if (e.target === bsOverlay || e.target.closest('#bs-close')) {
+      closeBottomSheet();
+    }
+  });
 });
 </script>
 
