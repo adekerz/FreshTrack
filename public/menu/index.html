@@ -5,7 +5,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Menu Knowledge Guide — The Ritz-Carlton,Astana - IRD</title>
 <link rel="icon" type="image/png" href="/menu-favicon.png">
+<link rel="manifest" href="/menu/manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="RC Menu">
+<link rel="apple-touch-icon" href="/menu-icon192.png">
+<meta name="theme-color" content="#0e0e0e">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300;1,400&display=swap" rel="stylesheet">
+<script>
+  // Apply saved theme immediately to prevent flash
+  (function(){
+    var t = localStorage.getItem('menuTheme');
+    if (t) document.documentElement.setAttribute('data-theme', t);
+  })();
+</script>
 <style>
   :root {
     --gold: #b8962e;
@@ -49,12 +62,8 @@
     user-select: none;
   }
   
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(4px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
   #food-page, #bev-page {
-    animation: fadeIn 0.35s cubic-bezier(0.2, 0, 0, 1) forwards;
+    transition: opacity 0.18s ease;
   }
 
   /* ── TAB SWITCHER ── */
@@ -130,8 +139,6 @@
   header p { font-style: italic; font-size: 0.95rem; opacity: 0.75; }
 
   /* ── PAGES ── */
-  #food-page { display: block; }
-  #bev-page { display: none; }
   #bev-page { background: var(--bev-bg); min-height: 100vh; }
 
   /* ── LAYOUT ── */
@@ -343,6 +350,31 @@
     font-style: italic; color: #a8b8c2; font-size: 0.8rem;
   }
 
+  /* ── TOAST NOTIFICATION ── */
+  .toast-notification {
+    position: fixed; bottom: 24px; left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: rgba(30, 34, 40, 0.98);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    color: #f0f6fa; padding: 14px 18px; border-radius: 12px;
+    font-size: 0.88rem; line-height: 1.45; display: flex; align-items: flex-start; gap: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255,255,255,0.08);
+    z-index: 9999; opacity: 0; pointer-events: none;
+    transition: transform 0.4s cubic-bezier(0.2, 0, 0, 1), opacity 0.4s ease;
+    width: max-content; max-width: 92%;
+  }
+  .toast-notification.show { transform: translateX(-50%) translateY(0); opacity: 1; pointer-events: auto; }
+  .toast-icon { font-size: 1.3rem; line-height: 1; margin-top: 2px; flex-shrink: 0; }
+  .toast-text { flex: 1; margin: 0; }
+  .toast-hl { border-bottom: 1px dashed var(--bev-accent); font-weight: 600; color: #fff; }
+  .toast-close {
+    background: none; border: none; color: #8a9ba8; font-size: 1.5rem; cursor: pointer;
+    padding: 0; line-height: 0.8; transition: color 0.2s;
+    margin-top: 3px; flex-shrink: 0;
+  }
+  .toast-close:hover { color: #fff; }
+
   /* ── MOBILE ── */
   @media(max-width: 640px) {
     .card-grid, .card-grid.two, .card-grid.three { grid-template-columns: 1fr; gap: 16px; }
@@ -352,9 +384,18 @@
     .tab-btn { font-size: 0.85rem; padding: 14px 6px; }
     .tab-btn .tab-icon { font-size: 1.3rem; margin-bottom: 3px; }
     .sub-nav a { padding: 14px 16px; font-size: 12px; } /* larger touch targets */
-    .compare-table, .bev-table { font-size: 0.75rem; display: block; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; border: none; box-shadow: 0 0 0 1px var(--divider); }
-    .compare-table th, .compare-table td, .bev-table th, .bev-table td { padding: 6px 8px !important; }
-    .compare-table th:first-child { width: auto; }
+    /* ── COMPARE-TABLE: card-stack на мобильных ── */
+    .compare-table { display: block; overflow: visible; border: none; }
+    .compare-table thead { display: none; }
+    .compare-table tbody, .compare-table tr { display: block; }
+    .compare-table tr { border: 1px solid var(--divider); border-radius: 6px; margin-bottom: 10px; overflow: hidden; background: var(--card-bg); }
+    .compare-table td { display: block; white-space: normal !important; padding: 9px 12px !important; border-bottom: 1px solid var(--divider); font-size: 0.88rem; }
+    .compare-table td:last-child { border-bottom: none; }
+    .compare-table td:first-child { background: var(--dark); color: var(--gold-light) !important; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+    .compare-table td:not(:first-child)[data-label]::before { content: attr(data-label); display: block; font-size: 0.7rem; font-weight: 700; color: var(--light-text); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 3px; }
+    /* ── BEV-TABLE: горизонтальный скролл ── */
+    .bev-table { font-size: 0.75rem; display: block; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; }
+    .bev-table th, .bev-table td { padding: 6px 8px !important; }
     .section-title { font-size: 1.3rem; margin: 32px 0 16px; }
     .prep-grid { grid-template-columns: 1fr; gap: 10px; }
     .wrapper { padding: 16px 12px; }
@@ -366,6 +407,253 @@
     .card-grid { grid-template-columns: repeat(2, 1fr); }
     .card-grid.two { grid-template-columns: 1fr; }
     .prep-grid { grid-template-columns: repeat(3, 1fr); }
+  }
+
+  /* ── DARK THEME ── */
+  [data-theme="dark"] {
+    --cream: #181818;
+    --dark: #e0d8c4;
+    --charcoal: #ccc0a4;
+    --medium: #a89868;
+    --light-text: #807460;
+    --divider: #302818;
+    --section-bg: #1e1c16;
+    --card-bg: #222018;
+    --memory-bg: #1e1028;
+    --memory-border: #6838a0;
+    --memory: #c8a8f0;
+    --bev-bg: #141c24;
+    --bev-card: #1a2430;
+    --bev-divider: #243040;
+    --bev-memory-bg: #10202e;
+    --bev-memory-border: #366888;
+    --bev-memory: #98c8e0;
+  }
+  [data-theme="dark"] body { background: #181818; color: #d0c8b0; }
+  [data-theme="dark"] #bev-page { background: var(--bev-bg); }
+  [data-theme="dark"] .tab-bar { background: #141414; }
+  [data-theme="dark"] .search-wrap { background: #141414; }
+  [data-theme="dark"] .search-inner { border-bottom-color: #2a2a2a; }
+  [data-theme="dark"] .search-input { background: #222; border-color: #383838; }
+  [data-theme="dark"] .dish-card,
+  [data-theme="dark"] .bev-card,
+  [data-theme="dark"] .fort-card,
+  [data-theme="dark"] .prep-card,
+  [data-theme="dark"] .cocktail-card { box-shadow: 0 1px 6px rgba(0,0,0,0.35); }
+  [data-theme="dark"] .compare-table th { background: #1a1610; }
+  [data-theme="dark"] .compare-table td { background: var(--card-bg); color: var(--charcoal); }
+  [data-theme="dark"] .compare-table tr:nth-child(even) td { background: #1e1c14; }
+  [data-theme="dark"] .compare-table td:first-child { background: #1a1610; color: var(--gold-light) !important; }
+  [data-theme="dark"] .alert.warning { background: #28200a; border-color: #6a5400; color: #e0c050; }
+  [data-theme="dark"] .alert.info { background: #0e1428; border-color: #2a4070; color: #90b0d8; }
+  [data-theme="dark"] .alert.success { background: #0e1c0e; border-color: #1a5020; color: #70c080; }
+  [data-theme="dark"] .alert.bev-info { background: #0e1c28; border-color: #2a5468; color: #78b8d0; }
+  [data-theme="dark"] .quick-ref { background: #141210; }
+  [data-theme="dark"] .quick-ref.bev { background: #0e1620; }
+  [data-theme="dark"] footer { border-top-color: #282018; color: #706048; }
+  [data-theme="dark"] .whats-new-block.wnb-changed { background: #241e08; border-color: #585000; color: #c8b040; }
+  [data-theme="dark"] .whats-new-block.wnb-changed h3 { color: #d4b848; }
+  [data-theme="dark"] .whats-new-block.wnb-changed ul { color: #b8a860; }
+  [data-theme="dark"] .whats-new-block.wnb-new { background: #0e1c0e; border-color: #1a5020; color: #70c080; }
+  [data-theme="dark"] .whats-new-block.wnb-new h3 { color: #68c878; }
+  [data-theme="dark"] .whats-new-block.wnb-new ul { color: #80b888; }
+  [data-theme="dark"] .whats-new-block.wnb-removed { background: #200e0e; border-color: #581818; color: #d07070; }
+  [data-theme="dark"] .whats-new-block.wnb-removed h3 { color: #d07070; }
+  [data-theme="dark"] .whats-new-block.wnb-removed ul { color: #b88080; }
+  [data-theme="dark"] .whats-new-block.wnb-removed p { color: #a08080; }
+  [data-theme="dark"] .bev-table td { background: var(--bev-card); color: #a0b8c8; }
+  [data-theme="dark"] .bev-table tr:nth-child(even) td { background: #162028; }
+  [data-theme="dark"] .bev-table th { background: #101820; }
+  [data-theme="dark"] .tag.allergy { background: #2a1010; color: #e08080; border-color: #602020; }
+  [data-theme="dark"] .tag.wine { background: #10142a; color: #8090d0; border-color: #283060; }
+  [data-theme="dark"] .tag.method { background: #2a2410; color: #d0b060; border-color: #504010; }
+  [data-theme="dark"] .tag.custom { background: #201028; color: #c090e0; border-color: #482868; }
+  [data-theme="dark"] .tag.veg { background: #0e200e; color: #70c080; border-color: #1a4020; }
+  [data-theme="dark"] .tag.bev-tag { background: #0e1828; color: #78b0d0; border-color: #1a3850; }
+  [data-theme="dark"] .fort-card { background: #22200e; border-color: #484010; }
+  [data-theme="dark"] .fort-card .f-name { color: #d4b860; }
+  [data-theme="dark"] .fort-card .f-origin { color: #a89060; }
+  [data-theme="dark"] .fort-card p { color: #b0a070; }
+  [data-theme="dark"] .sub-nav.food-nav { background: #141210; }
+  [data-theme="dark"] .sub-nav.bev-nav { background: #0e1418; }
+  [data-theme="dark"] .dish-card p { color: var(--medium); }
+  [data-theme="dark"] .dish-card .ingredients { color: #988860; }
+  [data-theme="dark"] .bev-card p { color: #8098a8; }
+  [data-theme="dark"] .bev-card .bev-notes { color: #8098a8; }
+  [data-theme="dark"] .region-speyside { background: #2a2010; color: #d0a840; border-color: #585020; }
+  [data-theme="dark"] .region-highland { background: #102010; color: #60b040; border-color: #305020; }
+  [data-theme="dark"] .region-islay { background: #101428; color: #7080d0; border-color: #283060; }
+  [data-theme="dark"] .region-lowland { background: #201020; color: #d068a0; border-color: #502850; }
+  [data-theme="dark"] .region-islands { background: #0e2028; color: #50b8d0; border-color: #1a4858; }
+  [data-theme="dark"] .region-japan { background: #200e0e; color: #d06060; border-color: #502020; }
+  [data-theme="dark"] .region-ireland { background: #0e200e; color: #50c050; border-color: #1a4020; }
+  [data-theme="dark"] .region-scotland { background: #180e28; color: #a868e0; border-color: #382060; }
+  [data-theme="dark"] .prep-card { background: var(--card-bg); border-color: var(--divider); }
+  [data-theme="dark"] .prep-card .prep-name { color: var(--charcoal); }
+  [data-theme="dark"] .prep-card .prep-desc { color: var(--medium); }
+
+  /* ── THEME TOGGLE BUTTON ── */
+  .theme-toggle {
+    position: relative;
+    background: none; border: none;
+    color: #888; font-size: 1.2rem;
+    padding: 14px 14px;
+    cursor: pointer;
+    transition: color 0.2s;
+    line-height: 1;
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .theme-toggle:hover { color: var(--gold-light); }
+
+  /* ── SEARCH BAR ── */
+  .search-wrap {
+    background: #0e0e0e;
+    overflow: hidden;
+    max-height: 0;
+    transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: sticky;
+    top: var(--tab-height, 66px);
+    z-index: 150;
+  }
+  .search-wrap.open { max-height: 56px; }
+  .search-inner {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 14px;
+    border-bottom: 1px solid #2a2a2a;
+  }
+  .search-input {
+    flex: 1;
+    background: #1e1e1e;
+    border: 1px solid #3a3a3a;
+    border-radius: 6px;
+    color: #f0f0f0;
+    font-family: 'Crimson Pro', Georgia, serif;
+    font-size: 0.95rem;
+    padding: 7px 12px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .search-input::placeholder { color: #666; }
+  .search-input:focus { border-color: var(--gold); }
+  .search-clear {
+    background: none; border: none;
+    color: #888; font-size: 1.4rem; line-height: 1;
+    cursor: pointer; padding: 4px 6px;
+    transition: color 0.2s; flex-shrink: 0;
+  }
+  .search-clear:hover { color: #fff; }
+  .search-count {
+    font-size: 0.75rem; color: #666;
+    font-family: 'Crimson Pro', serif;
+    white-space: nowrap; flex-shrink: 0;
+  }
+  .search-btn {
+    background: none; border: none;
+    color: #888; font-size: 1.1rem;
+    padding: 14px 10px;
+    cursor: pointer;
+    transition: color 0.2s;
+    line-height: 1;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .search-btn:hover, .search-btn.active { color: var(--gold-light); }
+  .search-nav-btn {
+    background: none; border: none;
+    color: #888; font-size: 1.1rem; line-height: 1;
+    cursor: pointer; padding: 4px 6px;
+    transition: color 0.2s; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .search-nav-btn:hover { color: #fff; }
+  .search-nav-btn:disabled { opacity: 0.3; cursor: default; }
+  .search-no-results {
+    text-align: center; padding: 40px 20px;
+    color: var(--light-text);
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    display: none;
+  }
+  .search-no-results span { display: block; font-size: 2rem; margin-bottom: 8px; }
+
+  /* ── SEARCH HIGHLIGHTS (Chrome-style) ── */
+  mark.search-hl {
+    background: #fff2a8; color: inherit;
+    border-radius: 2px; padding: 0 1px;
+    box-shadow: 0 0 0 1px rgba(200,170,0,0.3);
+  }
+  mark.search-hl.current {
+    background: #ff9632; color: #000;
+    box-shadow: 0 0 0 2px rgba(255,120,0,0.5);
+  }
+  [data-theme="dark"] mark.search-hl {
+    background: #665800; color: #fff;
+    box-shadow: 0 0 0 1px rgba(200,170,0,0.4);
+  }
+  [data-theme="dark"] mark.search-hl.current {
+    background: #cc6600; color: #fff;
+    box-shadow: 0 0 0 2px rgba(255,120,0,0.6);
+  }
+
+  /* ── SCROLL TO TOP ── */
+  .scroll-top-btn {
+    position: fixed;
+    bottom: 24px; right: 16px;
+    z-index: 500;
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.2rem;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+    opacity: 0; pointer-events: none;
+    transform: scale(0.8) translateY(8px);
+    transition: opacity 0.25s ease, transform 0.25s ease, background 0.3s;
+  }
+  .scroll-top-btn.visible { opacity: 1; pointer-events: auto; transform: scale(1) translateY(0); }
+  .scroll-top-btn:active { transform: scale(0.92); }
+  [data-tab="food"] .scroll-top-btn { background: var(--gold); color: var(--dark); }
+  [data-tab="bev"] .scroll-top-btn { background: var(--bev-accent); color: #fff; }
+  [data-theme="dark"] .scroll-top-btn { box-shadow: 0 4px 16px rgba(0,0,0,0.6); }
+
+  /* ── TAB FADE ANIMATION ── */
+  #food-page, #bev-page {
+    transition: opacity 0.3s ease;
+  }
+  #food-page.tab-hidden, #bev-page.tab-hidden {
+    opacity: 0;
+    pointer-events: none;
+    position: absolute;
+    width: 100%;
+    visibility: hidden;
+  }
+  #food-page.tab-visible, #bev-page.tab-visible {
+    opacity: 1;
+    pointer-events: auto;
+    position: relative;
+    visibility: visible;
+  }
+
+  /* ── WHAT'S NEW GRID ── */
+  .whats-new-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 18px; }
+  .whats-new-col { display: flex; flex-direction: column; gap: 12px; }
+  .whats-new-block { border-radius: 6px; padding: 14px 16px; }
+  .whats-new-block h3 { font-family: 'Playfair Display', serif; font-size: 0.95rem; margin-bottom: 8px; font-weight: 700; }
+  .whats-new-block ul { font-size: 0.85rem; line-height: 1.7; padding-left: 16px; margin: 0; }
+  .whats-new-block p { font-size: 0.82rem; margin-top: 8px; font-style: italic; }
+  .wnb-changed { background: #fff9e6; border: 1px solid #e8c840; border-left: 4px solid #c8a000; }
+  .wnb-changed h3 { color: #5c3c00; }
+  .wnb-changed ul { color: #3a2a00; }
+  .wnb-new { background: #e8f8ee; border: 1px solid #60c880; border-left: 4px solid #1a7a40; }
+  .wnb-new h3 { color: #0a3a18; }
+  .wnb-new ul { color: #0a2810; }
+  .wnb-removed { background: #ffe8e8; border: 1px solid #e88080; border-left: 4px solid #8b1a1a; }
+  .wnb-removed h3 { color: #5c0a0a; }
+  .wnb-removed ul { color: #3a0a0a; }
+  .wnb-removed p { color: #5c2a2a; }
+  @media(max-width: 640px) {
+    .whats-new-grid { grid-template-columns: 1fr; }
   }
 </style>
 </head>
@@ -379,14 +667,31 @@
   <button class="tab-btn" id="tab-bev" role="tab" aria-selected="false">
     <span class="tab-icon">🍾</span>BEVERAGE
   </button>
+  <button class="search-btn" id="search-toggle-btn" aria-label="Поиск" title="Поиск"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button>
+  <button class="theme-toggle" id="theme-toggle-btn" aria-label="Сменить тему" title="Тёмная / Светлая тема"><svg id="theme-icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></svg><svg id="theme-icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></button>
 </div>
+
+<!-- ════ SEARCH BAR ════ -->
+<div class="search-wrap" id="search-wrap">
+  <div class="search-inner">
+    <input type="search" class="search-input" id="search-input" placeholder="Поиск по меню…" autocomplete="off" spellcheck="false">
+    <span class="search-count" id="search-count"></span>
+    <button class="search-nav-btn" id="search-prev" aria-label="Предыдущий" disabled><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg></button>
+    <button class="search-nav-btn" id="search-next" aria-label="Следующий" disabled><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
+    <button class="search-clear" id="search-clear" aria-label="Закрыть поиск"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+  </div>
+</div>
+
+<!-- ════ SCROLL TO TOP ════ -->
+<button class="scroll-top-btn" id="scroll-top-btn" aria-label="Наверх">↑</button>
 
 <!-- ════════════════════════════════════
      FOOD PAGE
 ════════════════════════════════════ -->
-<div id="food-page">
+<div id="food-page" data-tab-page="food">
 
 <nav class="sub-nav food-nav">
+  <a href="#whats-new">🆕 Новое</a>
   <a href="#memory-tips">🧠 Как учить</a>
   <a href="#compare">⚖️ Сравнения</a>
   <a href="#soups">🍜 Супы</a>
@@ -412,6 +717,48 @@
 
 <div class="wrapper">
 
+<!-- ════════════ WHAT'S NEW ════════════ -->
+<section id="whats-new" style="margin-bottom:0;">
+  <h2 class="section-title" style="margin-top:0;"><span class="emoji">🆕</span> Что нового в меню 2026</h2>
+  <div class="whats-new-grid">
+
+    <div class="whats-new-block wnb-changed">
+      <h3>✏️ Изменённые блюда</h3>
+      <ul>
+        <li><strong>Куриный суп Лапша</strong> — обновлён состав: яичная лапша, куриный бульон, курица, петрушка</li>
+        <li><strong>Традиционный Греческий Салат</strong> — добавлены каперсы, орегано, капсикум; фета — обязательно</li>
+        <li><strong>Казеречче → Lamb Shank</strong> — вместо ромеско+креветки теперь тушёный ягнёнок 3 ч. в печи с демигласом</li>
+        <li><strong>Классический бургер</strong> — обновлён состав: говядина/курица, двойной сыр, новые соусы</li>
+        <li><strong>Вагю бургер</strong> — обновлён состав: вагю-котлета, сыр чеддер, трюфельный айоли</li>
+        <li><strong>Вегетарианский сэндвич</strong> — был веганский, стал вегетарианский (добавлены сыры, авокадо, батат-фри)</li>
+        <li><strong>Стики Дейт Пудинг</strong> — обновлён состав соуса тоффи</li>
+        <li><strong>Чизкейк</strong> — переименован: теперь Vanilla &amp; Tary Cheesecake (добавлен казахский тары)</li>
+      </ul>
+    </div>
+
+    <div class="whats-new-col">
+      <div class="whats-new-block wnb-new">
+        <h3>✅ Новые блюда</h3>
+        <ul>
+          <li><strong>Лингуини Вонголе</strong> — новая паста: вонголе (моллюски), алио олио, белое вино, петрушка</li>
+          <li><strong>Шоколадный Мусс</strong> — новый десерт: тёмный шоколад, пралине, хрустящий фейетин</li>
+          <li><strong>Лимонный Тарт с Меренгой</strong> — новый десерт: лимонный курд, итальянская меренга</li>
+        </ul>
+      </div>
+
+      <div class="whats-new-block wnb-removed">
+        <h3>❌ Убраны из меню</h3>
+        <ul>
+          <li><strong>RC Chocolate Cake</strong> — больше не в меню(имеется на витрине мини версия)</li>
+          <li><strong>Tres Leche</strong> — больше не в меню</li>
+        </ul>
+        <p>Остались: Крем Брюле (без изменений), Мороженое, Фрукты и Ягоды</p>
+      </div>
+    </div>
+
+  </div>
+</section>
+
 <!-- ════════════ HOW TO MEMORIZE ════════════ -->
 <section id="memory-tips">
   <h2 class="section-title"><span class="emoji">🧠</span> Как учить меню</h2>
@@ -428,8 +775,8 @@
     </div>
     <div class="dish-card" style="border-left-color:#9040d0;">
       <div class="dish-name">Группировка по соусам</div>
-      <p>Сливочные: Порчини, Альфредо, Цыплёнок. Томатные: Болоньезе, Аррабиата, Дьявола, Маргарита. Демиглас: Тендерлойн, Рибай, Тальятеле с рагу, Щёчки. Знаешь соус — знаешь разницу.</p>
-      <div class="memory">Нарисуй 4 кружка: Томат / Сливки / Демиглас / Масло-Лимон — впиши блюда.</div>
+      <p>Сливочные: Порчини, Альфредо, Цыплёнок. Томатные: Болоньезе, Аррабиата, Дьявола, Маргарита. Демиглас: Тендерлойн, Рибай, Тальятеле с рагу, Щёчки, Казеречче. Масло+Чеснок: Лингуини Вонголе. Знаешь соус — знаешь разницу.</p>
+      <div class="memory">Нарисуй 4 кружка: Томат / Сливки / Демиглас / Алио Олио — впиши блюда.</div>
     </div>
     <div class="dish-card" style="border-left-color:#9040d0;">
       <div class="dish-name">Аллергены — правило «ГЛЯРС»</div>
@@ -457,13 +804,13 @@
   <table class="compare-table">
     <tr><th></th><th>🟠 Филе Форели (Казахстан)</th><th>🩷 Лосось на пару / на гриле</th></tr>
     <tr><td>Рыба</td><td>Форель — лососёвое, <strong>местная казахстанская</strong></td><td>Лосось — атлантический, насыщенный</td></tr>
-    <tr><td>Способ</td><td><span class="highlight">Только на гриле</span></td><td><span class="highlight">На пару ИЛИ на гриле — гость выбирает</span></td></tr>
-    <tr><td>Гарнир</td><td>Спаржа на гриле</td><td>Овощи (пар или гриль)</td></tr>
+    <tr><td>Способ</td><td><span class="highlight">На пару ИЛИ на гриле — гость выбирает</span></td><td><span class="highlight">На пару ИЛИ на гриле — гость выбирает</span></td></tr>
+    <tr><td>Гарнир</td><td>Спаржа (пар или гриль)</td><td>Овощи (пар или гриль)</td></tr>
     <tr><td>Соус</td><td colspan="2">Lemon Butter — <strong>идентичный</strong>: рыбный бульон, сливки, масло, лимон, чеснок, шалот</td></tr>
     <tr><td>Аллергены</td><td colspan="2">Лактоза + Рыба (одинаково)</td></tr>
     <tr><td>Вино GLS</td><td>Tunella Pinot Grigio</td><td>Hans Greyl Sauvignon Blanc</td></tr>
   </table>
-  <div class="memory">Форель = <strong>фиксированный гриль + местная</strong>. Лосось = <strong>гибкий способ</strong>. Соус идентичен — это ловушка на экзамене.</div>
+  <div class="memory">Форель = <strong>местная казахстанская</strong>. Лосось = <strong>атлантический</strong>. Оба — на пару или гриль на выбор гостя. Соус идентичен — это ловушка на экзамене.</div>
 
   <p class="subsection">Стейки: Тендерлойн vs Рибай</p>
   <table class="compare-table">
@@ -495,9 +842,10 @@
     <tr><td>Порчини</td><td>Белые сливки</td><td>Нет (вег)</td><td>Гриб = аромат каштана.</td></tr>
     <tr><td>Альфредо</td><td>Сливки + грибы</td><td>Курица ИЛИ Креветки</td><td>Белок на выбор.</td></tr>
     <tr><td>Тальятеле</td><td>Демиглас + трюфель</td><td>Говяжьи щёчки</td><td>Домашняя паста.</td></tr>
-    <tr><td>Казеречче</td><td>Ромеско (Испания)</td><td>Тигровые креветки</td><td>Паста фиксирована.</td></tr>
+    <tr><td>Казеречче</td><td>Демиглас + сливки</td><td>Ягнёнок (3 ч в печи)</td><td>Паста фиксирована.</td></tr>
+    <tr><td>Лингуини Вонголе</td><td>Алио олио</td><td>Вонголе (моллюски)</td><td>Паста на выбор.</td></tr>
   </table>
-  <div class="alert success"><span class="alert-icon">✅</span><div><strong>Гибкость пасты (4 из 6):</strong> Тальятелле / Пенне (GF) / Спагетти (GF). Тальятеле с рагу и Казеречче — паста фиксирована.</div></div>
+  <div class="alert success"><span class="alert-icon">✅</span><div><strong>Гибкость пасты (5 из 7):</strong> Тальятелле / Пенне (GF) / Спагетти (GF). Тальятеле с рагу, Казеречче — паста фиксирована. Лингуини Вонголе — паста на выбор.</div></div>
 </section>
 
 <!-- ════════════ SOUPS ════════════ -->
@@ -522,8 +870,8 @@
     </div>
     <div class="dish-card">
       <div class="dish-name">Куриный суп Лапша</div>
-      <p>Классический куриный суп с яичной лапшой и овощами. 10–15 мин.</p>
-      <div class="ingredients">Куриный бульон, лук, морковь, картофель, яичная лапша, курица</div>
+      <p>Куриный суп с яичной лапшой и курицей. Петрушка в украшении. 10–15 мин.</p>
+      <div class="ingredients">Куриный бульон, курица, яичная лапша, соль, перец → петрушка</div>
       <div class="tag-row"><span class="tag allergy">Глютен</span><span class="tag allergy">Яйцо</span></div>
       <div class="flex-note">✓ Предлагать хлеб</div>
     </div>
@@ -535,12 +883,12 @@
   <h2 class="section-title"><span class="emoji">🥗</span> Салаты</h2>
   <div class="card-grid">
     <div class="dish-card">
-      <div class="dish-name">Греческий салат с Киноа</div>
-      <p>«Хориатики» — деревенский греческий + киноа. Только оливковое масло. 10–15 мин.</p>
-      <div class="ingredients">Огурец, томаты, красный лук, Фета, маслины, орегано, болгарский перец, киноа</div>
+      <div class="dish-name">Традиционный Греческий Салат</div>
+      <p>«Хориатики» — деревенский греческий. Заправка: лимон + оливковое масло. 10–15 мин.</p>
+      <div class="ingredients">Огурец, томаты, помидоры черри, капсикум, красный лук, Фета, оливки, каперсы, базилик, петрушка, орегано</div>
       <div class="tag-row"><span class="tag allergy">Лактоза</span><span class="tag veg">Вегетарианский</span></div>
       <p style="margin-top:5px;"><strong>Вино:</strong> Hans Greyl SB / Tunella SB</p>
-      <div class="memory">Маслины = зрелые чёрные оливки. Фета = овечье молоко, 3+ мес. Киноа = ореховый вкус.</div>
+      <div class="memory">Фета = овечье молоко, выдержка 3+ мес. Каперсы = бутоны, солёные и пикантные. Капсикум = декоративный мексиканский перец.</div>
     </div>
     <div class="dish-card">
       <div class="dish-name">Минеральный салат</div>
@@ -569,7 +917,7 @@
 
 <!-- ════════════ STARTERS ════════════ -->
 <section id="starters">
-  <h2 class="section-title"><span class="emoji">🍤</span> Закуски</h2>
+  <h2 class="section-title"><span class="emoji">🍤</span> Закуски — 15–20 мин</h2>
   <div class="card-grid">
     <div class="dish-card">
       <div class="dish-name">Куриные Крылья — Буффало 🌶️</div>
@@ -606,7 +954,7 @@
 <!-- ════════════ PASTA ════════════ -->
 <section id="pasta">
   <h2 class="section-title"><span class="emoji">🍝</span> Паста</h2>
-  <div class="alert success"><span class="alert-icon">✅</span><div><strong>Выбор пасты (4 из 6):</strong> Тальятелле / Пенне (GF) / Спагетти (GF). Al dente. Тальятеле с рагу и Казеречче — фиксированы.</div></div>
+  <div class="alert success"><span class="alert-icon">✅</span><div><strong>Выбор пасты (5 из 7):</strong> Тальятелле / Пенне (GF) / Спагетти (GF). Al dente. Тальятеле с рагу, Казеречче — паста фиксирована. Лингуини Вонголе — паста на выбор.</div></div>
   <div class="card-grid">
     <div class="dish-card">
       <div class="dish-name">Аррабиата</div>
@@ -625,6 +973,7 @@
       <p>Белое грибное рагу — сливочное, без мяса. Гриб порчини = аромат каштана и фундука. 15–20 мин.</p>
       <div class="ingredients">Шампиньоны, белое вино, шалот, чеснок, сливки, тимьян</div>
       <div class="tag-row"><span class="tag allergy">Диоксид</span><span class="tag allergy">Глютен</span><span class="tag allergy">Лактоза</span><span class="tag veg">Вегетарианская</span></div>
+      <div class="memory">Porcini = «свинёнок» по-итальянски (из-за формы). Единственная вегетарианская паста с белым соусом.</div>
     </div>
     <div class="dish-card">
       <div class="dish-name">Альфредо</div>
@@ -639,10 +988,17 @@
       <div class="tag-row"><span class="tag allergy">Диоксид</span><span class="tag allergy">Лактоза</span><span class="tag allergy">Глютен</span><span class="tag allergy">Яйцо</span><span class="tag method">Паста фиксирована</span></div>
     </div>
     <div class="dish-card">
-      <div class="dish-name">Казеречче Ромеско с Креветками</div>
-      <p>Caserecce = «домашняя» (casa = дом), из Сицилии. Соус Ромеско = каталонский испанский. 15–20 мин.</p>
-      <div class="ingredients">Казеречче, ромеско (красные перцы, миндаль, паприка, помидоры), зелёный горошек, лимонная рикотта, тигровые креветки</div>
-      <div class="tag-row"><span class="tag allergy">Орехи</span><span class="tag allergy">Глютен</span><span class="tag allergy">Ракообразные</span><span class="tag allergy">Лактоза</span><span class="tag method">Паста фиксирована</span></div>
+      <div class="dish-name">Казеречче с Бараньей Голенью</div>
+      <p>Caserecce = «домашняя» (casa = дом), из Сицилии. Ягнёнок томится 3 часа в печи. 10–15 мин.</p>
+      <div class="ingredients">Казеречче, ягнёнок (3 ч в печи), пармезан, сливочное масло, демиглас, сливки, чили, лук-шалот, чеснок, петрушка</div>
+      <div class="tag-row"><span class="tag allergy">Лактоза</span><span class="tag allergy">Глютен</span><span class="tag method">Паста фиксирована</span></div>
+      <div class="memory">Раньше была с Ромеско и креветками — теперь с бараниной. Чили можно убрать, но соус станет слишком жирным.</div>
+    </div>
+    <div class="dish-card">
+      <div class="dish-name">Лингуини Вонголе</div>
+      <p>Linguine — «маленькие язычки», плоская длинная паста из Лигурии. Вонголе = моллюски. Соус Алио Олио = чеснок + масло. 15–20 мин.</p>
+      <div class="ingredients">Паста на выбор, вонголе (моллюски), белое вино, лук-шалот, чеснок, чили, петрушка, оливковое масло, соус алио олио</div>
+      <div class="tag-row"><span class="tag allergy">Глютен</span><span class="tag allergy">Морепродукты</span><span class="tag allergy">Диоксид</span></div>
     </div>
   </div>
 </section>
@@ -662,16 +1018,19 @@
       <div class="dish-name">Маргарита</div>
       <p>11 июня 1889, для королевы Маргариты Савойской. Цвета флага Италии.</p>
       <div class="ingredients">Томат Мутти, Моцарелла, Базилик, Оливковое масло, Чеснок</div>
+      <div class="memory">Красный (томат) + белый (моцарелла) + зелёный (базилик) = флаг Италии. Самая «чистая» пицца.</div>
     </div>
     <div class="dish-card">
       <div class="dish-name">Пицца с Бурратой ⚠️</div>
       <p>База как Маргарита + Буррата. Буррата = шар моцареллы, внутри страчателла. <span class="highlight">Буррата распределена равномерно — всегда предупреждать гостя!</span></p>
-      <div class="memory">Единственная пицца с обязательным предупреждением гостю.</div>
+      <div class="ingredients">Томат Мутти, Моцарелла, Буррата, Базилик, Оливковое масло</div>
+      <div class="memory">Единственная пицца с обязательным предупреждением гостю. Буррата ≠ целая — она равномерно распределяется.</div>
     </div>
     <div class="dish-card">
       <div class="dish-name">Дьявола 🌶️</div>
       <p>«Пепперони». <strong>Говяжья салями</strong> (не свинина). Острая за счёт свежего чили.</p>
       <div class="ingredients">Томат Пилати, Говяжья Салями, Перец Чили, Моцарелла → базилик</div>
+      <div class="memory"><strong>Салями — говяжья, не свиная.</strong> Важно для гостей, которые не едят свинину.</div>
     </div>
     <div class="dish-card">
       <div class="dish-name">Тартуфо 🍄</div>
@@ -684,6 +1043,24 @@
       <div class="ingredients">Томат Мутти + Моцарелла + Пармезан + Голубой сыр + Скаморца</div>
     </div>
   </div>
+
+  <div class="alert info" style="margin-top:14px;">
+    <span class="alert-icon">➕</span>
+    <div>
+      <strong>Дополнительные топпинги для пиццы</strong> — гость может добавить к любой пицце:
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:4px 16px;margin-top:8px;font-size:0.86rem;line-height:1.8;">
+        <span>🥩 Говяжья ветчина</span>
+        <span>🐟 Лосось (свежий / копчёный)</span>
+        <span>🍄 Жареные грибы</span>
+        <span>🫒 Оливки</span>
+        <span>🫑 Болгарский перец</span>
+        <span>🧅 Красный лук</span>
+        <span>🌽 Консервированная кукуруза</span>
+        <span>🍗 Куриная грудка</span>
+        <span>🍖 Соус BBQ</span>
+      </div>
+    </div>
+  </div>
 </section>
 
 <!-- ════════════ SANDWICHES ════════════ -->
@@ -693,8 +1070,10 @@
   <div class="card-grid">
     <div class="dish-card">
       <div class="dish-name">Классический Клаб Сэндвич</div>
-      <p>Белый хлеб, куриная грудка, яйцо, помидор, майонез. Бекон: говяжий или свиной.</p>
+      <p>Трёхслойный американский сэндвич. Бекон: говяжий или свиной — уточнять у гостя.</p>
+      <div class="ingredients">Белый тостовый хлеб × 3, куриная грудка, яйцо пашот, помидор, майонез, салат → бекон (говяжий или свиной)</div>
       <div class="tag-row"><span class="tag allergy">Лактоза</span><span class="tag allergy">Глютен</span><span class="tag allergy">Яйцо</span><span class="tag custom">Бекон на выбор</span></div>
+      <div class="memory">«Club» = три слоя хлеба. Единственный сэндвич с выбором говяжьего или свиного бекона.</div>
     </div>
     <div class="dish-card">
       <div class="dish-name">Рубен Сэндвич</div>
@@ -703,9 +1082,11 @@
       <div class="tag-row"><span class="tag allergy">Лактоза</span><span class="tag allergy">Глютен</span></div>
     </div>
     <div class="dish-card">
-      <div class="dish-name">Веган Сэндвич</div>
-      <p>Овощи гриль с соусом Мухаммара (болгарский перец + грецкий орех + гранатовый сироп). Ближневосточный рецепт.</p>
-      <div class="tag-row"><span class="tag allergy">Глютен</span><span class="tag allergy">Орехи</span><span class="tag veg">Веган</span></div>
+      <div class="dish-name">Вегетарианский Сэндвич</div>
+      <p>Бездрожжевой хлеб, Креметте (сливочный творожный сыр), авокадо краш, руккола. Фри из батата вместо обычного картофеля. 15–20 мин.</p>
+      <div class="ingredients">Бездрожжевой хлеб, Креметте, вяленые томаты, авокадо краш, Чеддер, руккола → фри из батата</div>
+      <div class="tag-row"><span class="tag allergy">Глютен</span><span class="tag allergy">Лактоза</span><span class="tag allergy">Семена</span><span class="tag allergy">Орехи</span><span class="tag veg">Вегетарианский</span></div>
+      <div class="memory">Раньше был веганским с мухаммарой. Теперь вегетарианский (есть сыр) с авокадо и бататом.</div>
     </div>
   </div>
 </section>
@@ -717,17 +1098,21 @@
   <div class="card-grid">
     <div class="dish-card">
       <div class="dish-name">Классический Говяжий / Куриный</div>
-      <p>Котлета: говяжья или куриная. Бекон: говяжий или свиной. Два вида домашнего кетчупа.</p>
+      <p>Котлета 250г: говяжья или куриная. Чатни из говяжьего бекона, чесночный айоли, чеддер (двойная порция), халапеньо. Домашний кетчуп.</p>
+      <div class="ingredients">Картофельная булочка, котлета 250г, Чеддар ×2, маринованные огурцы, чесночный айоли, чатни из говяжьего бекона, халапеньо → фри с каджуном</div>
       <div class="tag-row"><span class="tag allergy">Лактоза</span><span class="tag allergy">Глютен</span><span class="tag allergy">Яйцо</span><span class="tag custom">Котлета на выбор</span></div>
     </div>
     <div class="dish-card">
       <div class="dish-name">Шиитаке Бургер (Вегетарианский)</div>
-      <p>Котлета: шиитаке + нут + тахини + рис. Баклажановый релиш, вешенки.</p>
+      <p>Котлета без мяса — из грибов и нута. Баклажановый релиш + жареные вешенки. 15–20 мин.</p>
+      <div class="ingredients">Картофельная булочка, котлета (шиитаке+нут+тахини+рис), баклажановый релиш, вешенки, маринованные огурцы → фри</div>
       <div class="tag-row"><span class="tag allergy">Бобы</span><span class="tag allergy">Семена</span><span class="tag allergy">Соя</span><span class="tag allergy">Лактоза</span><span class="tag allergy">Глютен</span><span class="tag veg">Вегетарианский</span></div>
+      <div class="memory">Единственный вегетарианский бургер. Котлета — шиитаке + нут (не соевый текстурат).</div>
     </div>
     <div class="dish-card">
       <div class="dish-name">Вагю Бургер ⭐</div>
-      <p>Японская порода Вагю. Исключительная мраморность, жир плавится при низкой температуре. <strong>Рек. Medium Rare.</strong> Дорогой из-за особого рациона, медленного роста, ограниченного производства.</p>
+      <p>Котлета Вагю 250г. Японская порода. Исключительная мраморность, жир тает при низкой t. <strong>Рек. Medium Rare.</strong> Дорогой: особый рацион, отсутствие стресса, медленный рост.</p>
+      <div class="ingredients">Картофельная булочка, Вагю котлета 250г, Чеддар ×2, маринованные огурцы, чесночный айоли, чатни из говяжьего бекона, халапеньо → фри с каджуном</div>
       <div class="tag-row"><span class="tag allergy">Лактоза</span><span class="tag allergy">Глютен</span><span class="tag allergy">Яйцо</span><span class="tag method">⭐ Wagyu · Рек. MR</span></div>
     </div>
   </div>
@@ -775,12 +1160,15 @@
     </div>
     <div class="dish-card">
       <div class="dish-name">Филе Форели (Казахстан)</div>
-      <p>Местная казахстанская, семейство лососёвых. <strong>Только на гриле.</strong> Спаржа на гриле. Зелёное масло (петрушка) тает на горячей рыбе. 20–25 мин.</p>
-      <div class="tag-row"><span class="tag allergy">Лактоза</span><span class="tag allergy">Рыба</span></div>
+      <p>Местная казахстанская, семейство лососёвых. Способ — на пару или гриль, <strong>гость выбирает</strong>. Спаржа — тоже пар или гриль. Зелёное масло тает на горячей рыбе. 20–25 мин.</p>
+      <div class="ingredients">Форель 180г → спаржа (пар или гриль) + Lemon Butter соус (рыбный бульон, сливки, масло, лимон) + зелёное масло</div>
+      <div class="tag-row"><span class="tag allergy">Лактоза</span><span class="tag allergy">Рыба</span><span class="tag custom">Пар ИЛИ Гриль</span></div>
+      <div class="memory">Форель = местная казахстанская. Лосось = атлантический. Оба — способ на выбор гостя. Соус и аллергены — идентичны.</div>
     </div>
     <div class="dish-card">
       <div class="dish-name">Лосось на Пару / на Гриле</div>
-      <p>Гость выбирает способ приготовления. Тот же Lemon Butter соус, что у форели. 20–25 мин.</p>
+      <p>Атлантический лосось. Гость выбирает способ. Тот же Lemon Butter соус, что у форели. 20–25 мин.</p>
+      <div class="ingredients">Лосось 180г → овощи (пар или гриль) + Lemon Butter соус (идентичен форели)</div>
       <div class="tag-row"><span class="tag allergy">Лактоза</span><span class="tag allergy">Рыба</span><span class="tag custom">Пар ИЛИ Гриль</span></div>
     </div>
     <div class="dish-card">
@@ -805,11 +1193,13 @@
       <div class="dish-name">Картофельное Пюре</div>
       <p>Картофель <strong>запекается</strong> (не варится!), молоко, сливочное масло.</p>
       <div class="tag-row"><span class="tag allergy">Лактоза</span></div>
+      <div class="memory">Запекается, не варится — это важно! При запекании теряется меньше крахмала, пюре плотнее и насыщеннее.</div>
     </div>
     <div class="dish-card">
       <div class="dish-name">Картофель Фри</div>
       <p>С пармезаном и <strong>трюфельным маслом</strong>. Трюфель = подземный гриб.</p>
       <div class="tag-row"><span class="tag allergy">Лактоза</span></div>
+      <div class="memory">Не простой фри — трюфельное масло делает его уникальным. Можно предлагать гостям как «апгрейд».</div>
     </div>
     <div class="dish-card">
       <div class="dish-name">Овощи на Гриле</div>
@@ -835,30 +1225,60 @@
   <h2 class="section-title"><span class="emoji">🍮</span> Десерты — 5–15 мин</h2>
   <div class="card-grid">
     <div class="dish-card">
-      <div class="dish-name">Шоколадный Торт Ritz-Carlton ⭐</div>
-      <p>Визитная карточка бренда. Выбран из <strong>23 предложений</strong> шеф-поваром Зиннгребе. Победитель — японский кондитер из RC Toronto. 3 правила: шоколад Valrhona + Куантро + можно транспортировать.</p>
-      <div class="ingredients">Тёмный шоколад Valrhona, апельсиновое конфи, Куантро, шоколадный крем</div>
-      <div class="tag-row"><span class="tag allergy">Алкоголь</span><span class="tag allergy">Цитрус</span></div>
+      <div class="dish-name">Шоколадный Мусс</div>
+      <p>Несколько текстур в одной тарелке: мусс, бисквит, ганаш, хрустящий слой (фейетин) и горячий шоколадный соус. Насыщенный шоколадный вкус. 10 мин.</p>
+      <div class="ingredients">Тёмный и молочный шоколад, ореховая пралине (фундук), молоко, желатин, сливки, яйца, мука, какао, Feuilletine, ваниль</div>
+      <div class="tag-row"><span class="tag allergy">Лактоза</span><span class="tag allergy">Яйцо</span><span class="tag allergy">Глютен</span><span class="tag allergy">Орехи</span></div>
+      <div class="memory">Фейетин = хрустящие вафельные крошки, остаются хрустящими даже в жирной среде. Пралине = перетёртый фундук с карамельным сахаром.</div>
     </div>
     <div class="dish-card">
-      <div class="dish-name">Классический Чизкейк</div>
-      <p>Родина — Древняя Греция, популярность — США. Крем-чиз с 1872 г. Агар-агар = растительный желатин из водорослей. С голубичным пюре.</p>
-      <div class="tag-row"><span class="tag allergy">Лактоза</span><span class="tag allergy">Яйцо</span><span class="tag allergy">Глютен</span></div>
+      <div class="dish-name">Лимонный Тарт с Меренгой</div>
+      <p>Французский классический десерт. Кисло-сладкий лимонный крем + сладкая итальянская меренга, обожжённая горелкой. 10–15 мин.</p>
+      <div class="ingredients">Лимонное пюре, яйца, сливки, мука, масло, миндальная мука, желатин, пектин, малина, кокос</div>
+      <div class="tag-row"><span class="tag allergy">Лактоза</span><span class="tag allergy">Яйцо</span><span class="tag allergy">Глютен</span><span class="tag allergy">Цитрус</span><span class="tag allergy">Орехи</span></div>
+      <div class="memory">Меренга = взбитые яичные белки с сахаром. Пектин = натуральный загуститель из фруктов.</div>
     </div>
     <div class="dish-card">
       <div class="dish-name">Крем-Брюле</div>
       <p>«Обожжённые сливки», XVII в. <strong>Только желтки</strong> → нет яичного запаха. Карамельная корочка делается горелкой перед подачей. Комнатная температура. <strong>5 минут</strong>.</p>
+      <div class="ingredients">Сливки, молоко, яичные желтки, сахар, стручковая ваниль</div>
       <div class="tag-row"><span class="tag allergy">Яйцо</span><span class="tag allergy">Лактоза</span></div>
     </div>
     <div class="dish-card">
-      <div class="dish-name">Tres Leche</div>
-      <p>«Три молока» — бисквит, пропитанный сгущённым, топлёным молоком и сливками. Сублимированная малина = быстрая заморозка + вакуум.</p>
-      <div class="tag-row"><span class="tag allergy">Яйцо</span><span class="tag allergy">Лактоза</span><span class="tag allergy">Глютен</span></div>
+      <div class="dish-name">Ванильный Чизкейк с Тары</div>
+      <p>Родина чизкейка — Древняя Греция, популярность — США. Тары — традиционный казахский обжаренный пшён. Кунжут в составе. 10–15 мин.</p>
+      <div class="ingredients">Сливочный сыр, сливки, сметана, глюкоза, масло, сахар, ваниль, тары (казахское просо), кунжут, яйца, мука → ягоды</div>
+      <div class="tag-row"><span class="tag allergy">Яйцо</span><span class="tag allergy">Лактоза</span><span class="tag allergy">Глютен</span><span class="tag allergy">Семена</span></div>
+      <div class="memory">Тары = обжаренное просо, традиционный казахский продукт. Глюкоза = предотвращает кристаллизацию сахара в десерте.</div>
     </div>
     <div class="dish-card">
       <div class="dish-name">Финиковый Пудинг</div>
-      <p>Sticky date pudding — британский. Влажный бисквит, тоффи-соус + карамель + пекан. Подаётся с ванильным мороженым.</p>
-      <div class="tag-row"><span class="tag allergy">Орехи</span><span class="tag allergy">Лактоза</span><span class="tag allergy">Яйцо</span><span class="tag allergy">Глютен</span></div>
+      <p>Sticky date pudding — британский. Очень мягкий, влажный бисквит с тоффи-соусом (карамель). Рядом подаётся горячий шоколад с молочника, поливается сверху. 10–15 мин.</p>
+      <div class="ingredients">Финики, масло, яйца, мука, сливки, ваниль, корица, сода → карамель (тоффи)</div>
+      <div class="tag-row"><span class="tag allergy">Лактоза</span><span class="tag allergy">Яйцо</span><span class="tag allergy">Глютен</span></div>
+      <div class="memory">Тоффи = сливочно-сахарная карамель, ириска. Ваниль эссенция = концентрат из стручков ванили + алкоголь.</div>
+    </div>
+    <div class="dish-card">
+      <div class="dish-name">Мороженое / Сорбет</div>
+      <p>1 шарик на выбор. <strong>5 мин</strong> — самый быстрый десерт.</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0;font-size:0.83rem;">
+        <div>
+          <div style="font-weight:700;color:var(--medium);text-transform:uppercase;font-size:0.72rem;letter-spacing:0.05em;margin-bottom:4px;">🍦 Ice Cream</div>
+          <div style="color:var(--charcoal);line-height:1.7;">Chocolate<br>Caramel<br>Pistachio<br>Coconut</div>
+        </div>
+        <div>
+          <div style="font-weight:700;color:var(--medium);text-transform:uppercase;font-size:0.72rem;letter-spacing:0.05em;margin-bottom:4px;">🍧 Sorbet</div>
+          <div style="color:var(--charcoal);line-height:1.7;">Raspberry &amp; Strawberry<br>Mango &amp; Passion Fruit<br>Lemon &amp; Lime</div>
+        </div>
+      </div>
+      <div class="tag-row"><span class="tag allergy">Лактоза</span><span class="tag veg">Сорбет — Веган</span></div>
+      <div class="memory">1 шарик, без рожка. Сорбеты — без молока, подходят веганам и гостям с непереносимостью лактозы.</div>
+    </div>
+    <div class="dish-card">
+      <div class="dish-name">Фрукты и Ягоды</div>
+      <p>Сезонный ассортимент свежих фруктов и ягод. Единственный десерт без лактозы и глютена. <strong>10 мин.</strong></p>
+      <div class="tag-row"><span class="tag veg">Веган</span></div>
+      <div class="memory">Единственный веганский и безглютеновый десерт. Отличный выбор для гостей с ограничениями.</div>
     </div>
   </div>
 </section>
@@ -904,11 +1324,11 @@
     <div class="quick-ref">
       <h4>✅ Что гость МОЖЕТ выбрать сам:</h4>
       <ul>
-        <li>Паста (4 из 6): Тальятелле / Пенне (GF) / Спагетти (GF)</li>
+        <li>Паста (5 из 7): Тальятелле / Пенне (GF) / Спагетти (GF)</li>
         <li>Альфредо: курица ИЛИ креветки</li>
         <li>Цезарь: +курица / +креветки / +халлуми</li>
         <li>Минеральный: +халлуми или без</li>
-        <li>Лосось: на пару ИЛИ на гриле</li>
+        <li>Форель / Лосось: на пару ИЛИ на гриле (оба блюда)</li>
         <li>Крылья: Буффало (острые) ИЛИ Барбекю (сладкие)</li>
         <li>Бургер / Клаб: говяжий или свиной бекон</li>
         <li>Классический бургер: говяжья или куриная котлета</li>
@@ -925,13 +1345,14 @@
         <li><strong>Баранина:</strong> анчоусы в вустере = аллерген Рыба</li>
         <li><strong>Шампиньоны:</strong> анчоусы в сальсе = аллерген Рыба</li>
         <li><strong>Тартуфо:</strong> без томатного соуса — белая база</li>
-        <li><strong>Тальятеле с рагу / Казеречче:</strong> паста не меняется</li>
+        <li><strong>Тальятеле с рагу / Казеречче с бараниной:</strong> паста не меняется</li>
       </ul>
     </div>
   </div>
 </section>
 
 </div><!-- /wrapper food -->
+<div class="search-no-results" id="food-no-results"><span>🔍</span>Ничего не найдено</div>
 <footer>
   ✦ In-Room Dining · A La Carte 2026 · The Ritz-Carlton, Astana ✦ &nbsp;|&nbsp; Food Knowledge Guide<br>
   <span style="font-size: 0.72rem; opacity: 0.85; font-weight: 500; margin-top: 10px; display: inline-block;">Designed & Developed by Adilet Yerzhanuly · esimadilet@gmail.com</span>
@@ -942,7 +1363,7 @@
 <!-- ════════════════════════════════════
      BEVERAGE PAGE
 ════════════════════════════════════ -->
-<div id="bev-page" style="display:none;">
+<div id="bev-page" data-tab-page="bev" style="display:none;">
 
 <nav class="sub-nav bev-nav">
   <a href="#bev-intro">📖 Основы</a>
@@ -1939,6 +2360,7 @@
 </section>
 
 </div><!-- /wrapper bev -->
+<div class="search-no-results" id="bev-no-results"><span>🔍</span>Ничего не найдено</div>
 <footer style="background:var(--bev-dark);color:var(--bev-accent-light);">
   ✦ In-Room Dining · A La Carte 2026 · The Ritz-Carlton, Astana ✦ &nbsp;|&nbsp; Beverage Knowledge Guide<br>
   <span style="font-size: 0.72rem; opacity: 0.85; font-weight: 500; margin-top: 10px; display: inline-block;">Designed & Developed by Adilet Yerzhanuly · esimadilet@gmail.com</span>
@@ -1953,57 +2375,282 @@ document.addEventListener('DOMContentLoaded', () => {
   const foodPage = document.getElementById('food-page');
   const bevPage = document.getElementById('bev-page');
   const tabBar = document.querySelector('.tab-bar');
+  let currentTab = 'food';
 
   function getTabBarHeight() {
     return tabBar ? tabBar.offsetHeight : 67;
   }
 
-  // Use ResizeObserver for perfect sticky top
-  const observer = new ResizeObserver(() => {
+  // ── ResizeObserver for sticky top ──
+  const resizeObserver = new ResizeObserver(() => {
     document.documentElement.style.setProperty('--tab-height', (getTabBarHeight() - 1) + 'px');
   });
-  if (tabBar) observer.observe(tabBar);
+  if (tabBar) resizeObserver.observe(tabBar);
   document.documentElement.style.setProperty('--tab-height', (getTabBarHeight() - 1) + 'px');
 
+  // ── TAB SWITCHING with fade animation ──
   function switchTab(tab) {
+    if (tab === currentTab) return;
+    currentTab = tab;
+    document.body.setAttribute('data-tab', tab);
+
+    const outPage = tab === 'food' ? bevPage : foodPage;
+    const inPage  = tab === 'food' ? foodPage : bevPage;
+
+    // Fade out
+    outPage.style.opacity = '0';
+    outPage.style.pointerEvents = 'none';
+
+    setTimeout(() => {
+      outPage.style.display = 'none';
+      inPage.style.display = 'block';
+      inPage.style.opacity = '0';
+      inPage.style.pointerEvents = 'none';
+
+      // Force reflow then fade in
+      inPage.getBoundingClientRect();
+      inPage.style.opacity = '1';
+      inPage.style.pointerEvents = 'auto';
+    }, 180);
+
     if (tab === 'food') {
-      foodPage.style.display = 'block';
-      bevPage.style.display = 'none';
-      tabFood.classList.add('active');
-      tabBev.classList.remove('active');
-      tabFood.setAttribute('aria-selected', 'true');
-      tabBev.setAttribute('aria-selected', 'false');
+      tabFood.classList.add('active'); tabBev.classList.remove('active');
+      tabFood.setAttribute('aria-selected', 'true'); tabBev.setAttribute('aria-selected', 'false');
     } else {
-      foodPage.style.display = 'none';
-      bevPage.style.display = 'block';
-      tabFood.classList.remove('active');
-      tabBev.classList.add('active');
-      tabFood.setAttribute('aria-selected', 'false');
-      tabBev.setAttribute('aria-selected', 'true');
+      tabBev.classList.add('active'); tabFood.classList.remove('active');
+      tabBev.setAttribute('aria-selected', 'true'); tabFood.setAttribute('aria-selected', 'false');
     }
     window.scrollTo(0, 0);
+    // Re-run search highlights for new tab
+    if (document.getElementById('search-input').value.trim()) {
+      applySearch(document.getElementById('search-input').value);
+    }
   }
 
   tabFood.addEventListener('click', (e) => { e.preventDefault(); switchTab('food'); });
   tabBev.addEventListener('click', (e) => { e.preventDefault(); switchTab('bev'); });
+  document.body.setAttribute('data-tab', 'food');
+  foodPage.style.opacity = '1';
+  foodPage.style.pointerEvents = 'auto';
+  bevPage.style.opacity = '0';
+  bevPage.style.pointerEvents = 'none';
 
-  // Smooth scroll for anchor links within each page
+  // ── SMOOTH SCROLL for anchor links ──
   document.addEventListener('click', function(e) {
     const a = e.target.closest('a[href^="#"]');
     if (!a) return;
-    
     const href = a.getAttribute('href');
     if (href === '#') return;
-
     e.preventDefault();
     const target = document.querySelector(href);
     if (target) {
-      const activeNav = foodPage.style.display !== 'none' ? document.querySelector('.food-nav') : document.querySelector('.bev-nav');
-      const offset = getTabBarHeight() + (activeNav ? activeNav.offsetHeight : 45) + 10;
+      const searchWrap = document.getElementById('search-wrap');
+      const searchH = searchWrap && searchWrap.classList.contains('open') ? searchWrap.offsetHeight : 0;
+      const activeNav = currentTab === 'food' ? document.querySelector('.food-nav') : document.querySelector('.bev-nav');
+      const offset = getTabBarHeight() + (activeNav ? activeNav.offsetHeight : 45) + searchH + 10;
       const top = target.getBoundingClientRect().top + window.scrollY - offset;
       window.scrollTo({ top, behavior: 'smooth' });
     }
   });
+
+  // ── SCROLL TO TOP BUTTON ──
+  const scrollTopBtn = document.getElementById('scroll-top-btn');
+  window.addEventListener('scroll', () => {
+    if (window.scrollY > 300) {
+      scrollTopBtn.classList.add('visible');
+    } else {
+      scrollTopBtn.classList.remove('visible');
+    }
+  }, { passive: true });
+  scrollTopBtn.addEventListener('click', () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+  // ── DARK THEME TOGGLE ──
+  const themeBtn = document.getElementById('theme-toggle-btn');
+  const iconMoon = document.getElementById('theme-icon-moon');
+  const iconSun = document.getElementById('theme-icon-sun');
+  function applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    iconMoon.style.display = theme === 'dark' ? 'none' : '';
+    iconSun.style.display = theme === 'dark' ? '' : 'none';
+    localStorage.setItem('menuTheme', theme);
+  }
+  const savedTheme = localStorage.getItem('menuTheme') || 'light';
+  applyTheme(savedTheme);
+  themeBtn.addEventListener('click', () => {
+    const current = document.documentElement.getAttribute('data-theme') || 'light';
+    applyTheme(current === 'dark' ? 'light' : 'dark');
+  });
+
+  // ── CHROME-STYLE SEARCH (highlight + scroll) ──
+  const searchWrap = document.getElementById('search-wrap');
+  const searchInput = document.getElementById('search-input');
+  const searchCount = document.getElementById('search-count');
+  const searchClear = document.getElementById('search-clear');
+  const searchToggleBtn = document.getElementById('search-toggle-btn');
+  const searchPrev = document.getElementById('search-prev');
+  const searchNext = document.getElementById('search-next');
+
+  let searchMarks = [];
+  let currentMarkIdx = -1;
+
+  function clearHighlights() {
+    searchMarks = [];
+    currentMarkIdx = -1;
+    document.querySelectorAll('mark.search-hl').forEach(m => {
+      const parent = m.parentNode;
+      parent.replaceChild(document.createTextNode(m.textContent), m);
+      parent.normalize();
+    });
+  }
+
+  function highlightText(root, query) {
+    const marks = [];
+    if (!query) return marks;
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+      acceptNode(node) {
+        // Skip script, style, and already-marked nodes
+        const p = node.parentElement;
+        if (!p) return NodeFilter.FILTER_REJECT;
+        const tag = p.tagName;
+        if (tag === 'SCRIPT' || tag === 'STYLE' || tag === 'MARK') return NodeFilter.FILTER_REJECT;
+        // Skip search UI
+        if (p.closest('.search-wrap, .tab-bar, .term-tooltip, .toast-notification')) return NodeFilter.FILTER_REJECT;
+        return NodeFilter.FILTER_ACCEPT;
+      }
+    });
+    const textNodes = [];
+    while (walker.nextNode()) textNodes.push(walker.currentNode);
+
+    const lowerQ = query.toLowerCase();
+    textNodes.forEach(node => {
+      const text = node.textContent;
+      const lower = text.toLowerCase();
+      let idx = lower.indexOf(lowerQ);
+      if (idx === -1) return;
+
+      const frag = document.createDocumentFragment();
+      let lastIdx = 0;
+      while (idx !== -1) {
+        if (idx > lastIdx) frag.appendChild(document.createTextNode(text.slice(lastIdx, idx)));
+        const mark = document.createElement('mark');
+        mark.className = 'search-hl';
+        mark.textContent = text.slice(idx, idx + query.length);
+        frag.appendChild(mark);
+        marks.push(mark);
+        lastIdx = idx + query.length;
+        idx = lower.indexOf(lowerQ, lastIdx);
+      }
+      if (lastIdx < text.length) frag.appendChild(document.createTextNode(text.slice(lastIdx)));
+      node.parentNode.replaceChild(frag, node);
+    });
+    return marks;
+  }
+
+  function scrollToMark(idx) {
+    if (!searchMarks.length) return;
+    // Remove current class from previous
+    if (currentMarkIdx >= 0 && currentMarkIdx < searchMarks.length) {
+      searchMarks[currentMarkIdx].classList.remove('current');
+    }
+    currentMarkIdx = idx;
+    const mark = searchMarks[currentMarkIdx];
+    mark.classList.add('current');
+    // Scroll into view with offset
+    const searchH = searchWrap.classList.contains('open') ? searchWrap.offsetHeight : 0;
+    const activeNav = currentTab === 'food' ? document.querySelector('.food-nav') : document.querySelector('.bev-nav');
+    const offset = getTabBarHeight() + (activeNav ? activeNav.offsetHeight : 45) + searchH + 20;
+    const top = mark.getBoundingClientRect().top + window.scrollY - offset;
+    window.scrollTo({ top, behavior: 'smooth' });
+    // Update counter
+    searchCount.textContent = `${currentMarkIdx + 1} / ${searchMarks.length}`;
+  }
+
+  function applySearch(query) {
+    clearHighlights();
+    const q = query.trim();
+    if (!q) {
+      searchCount.textContent = '';
+      searchPrev.disabled = true;
+      searchNext.disabled = true;
+      return;
+    }
+
+    // Highlight in both pages (visible tab)
+    const activePage = currentTab === 'food' ? foodPage : bevPage;
+    searchMarks = highlightText(activePage, q);
+
+    if (searchMarks.length > 0) {
+      searchPrev.disabled = false;
+      searchNext.disabled = false;
+      scrollToMark(0);
+    } else {
+      searchCount.textContent = '0 / 0';
+      searchPrev.disabled = true;
+      searchNext.disabled = true;
+    }
+  }
+
+  let searchDebounce;
+  searchInput.addEventListener('input', () => {
+    clearTimeout(searchDebounce);
+    searchDebounce = setTimeout(() => applySearch(searchInput.value), 200);
+  });
+
+  searchPrev.addEventListener('click', () => {
+    if (!searchMarks.length) return;
+    const newIdx = currentMarkIdx <= 0 ? searchMarks.length - 1 : currentMarkIdx - 1;
+    scrollToMark(newIdx);
+  });
+
+  searchNext.addEventListener('click', () => {
+    if (!searchMarks.length) return;
+    const newIdx = currentMarkIdx >= searchMarks.length - 1 ? 0 : currentMarkIdx + 1;
+    scrollToMark(newIdx);
+  });
+
+  // Enter = next, Shift+Enter = prev
+  searchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (e.shiftKey) searchPrev.click();
+      else searchNext.click();
+    }
+  });
+
+  searchToggleBtn.addEventListener('click', () => {
+    const isOpen = searchWrap.classList.toggle('open');
+    searchToggleBtn.classList.toggle('active', isOpen);
+    if (isOpen) {
+      setTimeout(() => searchInput.focus(), 300);
+    } else {
+      searchInput.value = '';
+      applySearch('');
+    }
+  });
+
+  // Close button = close entire search bar
+  searchClear.addEventListener('click', () => {
+    searchInput.value = '';
+    applySearch('');
+    searchWrap.classList.remove('open');
+    searchToggleBtn.classList.remove('active');
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && searchWrap.classList.contains('open')) {
+      searchInput.value = '';
+      applySearch('');
+      searchWrap.classList.remove('open');
+      searchToggleBtn.classList.remove('active');
+    }
+  });
+
+  // ── SERVICE WORKER ──
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/menu/sw.js').catch(() => {});
+  }
 });
 </script>
 
@@ -2097,12 +2744,6 @@ document.addEventListener('DOMContentLoaded', () => {
       text: "Густая паста из молотого кунжута. Добавляет блюдам лёгкий орехово-кунжутный вкус (её много в хумусе).",
       icon: "🥥"
     },
-    muhammara: {
-      regex: /\b(?:мухаммара(?:|у|ы)?)\b/gi,
-      title: "Мухаммара",
-      text: "Восточный соус-закуска из запечённого сладкого красного перца и грецких орехов.",
-      icon: "🌶️"
-    },
     shiso: {
       regex: /\b(?:шисо)\b/gi,
       title: "Шисо (Перилла)",
@@ -2121,12 +2762,6 @@ document.addEventListener('DOMContentLoaded', () => {
       text: "Пикантная американская смесь специй (паприка, чеснок, лук, острый перец и травы).",
       icon: "🌶️"
     },
-    agar: {
-      regex: /\b(?:агар-?агар(?:а|у|ом)?)\b/gi,
-      title: "Агар-агар",
-      text: "Натуральная растительная замена желатину, которую добывают из водорослей. Идеален для желе.",
-      icon: "🌱"
-    },
     fermentation: {
       regex: /\b(?:ферментаци[яиюей]|брожени[еяюм])\b/gi,
       title: "Ферментация (брожение)",
@@ -2139,9 +2774,15 @@ document.addEventListener('DOMContentLoaded', () => {
       text: "Жидкость кипятят, собирают пар и охлаждают его. Так делают весь крепкий алкоголь (коньяк, виски, водку).",
       icon: "⚗️"
     },
+    aging_cheese: {
+      regex: /\b(?:выдержк[аиуой]|выдерживают)\b/gi,
+      title: "Выдержка сыра",
+      text: "Процесс созревания сыра (Фета, Пармезан и др.) в контролируемых условиях. Чем дольше выдержка, тем тверже текстура и насыщеннее вкус.",
+      icon: "🧀"
+    },
     aging: {
       regex: /\b(?:выдержк[аиуой]|выдерживают)\b/gi,
-      title: "Выдержка",
+      title: "Выдержка (Алкоголь)",
       text: "Хранение алкоголя (вина/виски) в бочках. Напиток становится мягче, получает цвет и запах дерева или ванили.",
       icon: "🪵"
     },
@@ -2150,12 +2791,6 @@ document.addEventListener('DOMContentLoaded', () => {
       title: "Дистиллят / Eaux-de-Vie",
       text: "«Вода жизни». Молодой чистый спирт, который только-только получили после перегонки (до бочки).",
       icon: "💧"
-    },
-    meth_trad: {
-      regex: /\b(?:m[ée]thode traditionnelle)\b/gi,
-      title: "Méthode traditionnelle",
-      text: "Традиционный способ делать игристое, при котором вино даёт пузырьки прямо внутри самой бутылки (как Шампанское).",
-      icon: "🍾"
     },
     charmat: {
       regex: /\b(?:метод(?:ом|а)? Шарма)\b/gi,
@@ -2368,29 +3003,11 @@ document.addEventListener('DOMContentLoaded', () => {
       text: "Итальянский дистиллят. Его делают из того, что осталось от винограда (косточки, веточки, кожица).",
       icon: "🍇"
     },
-    cordial: {
-      regex: /\b(?:кордиал(?:а|ом)?)\b/gi,
-      title: "Кордиал",
-      text: "Сладкий фруктовый сироп с добавлением натуральных кислот. Даёт коктейлям идеальный баланс кисло-сладкого.",
-      icon: "🧪"
-    },
-    maceration: {
-      regex: /\b(?:мацераци(?:я|и|ю|ей)|настаивании на кожице)\b/gi,
-      title: "Мацерация",
-      text: "Процесс настаивания виноградного сока на кожице и косточках. Отдаёт вину цвет, вкус и танины.",
-      icon: "🍇"
-    },
     terroir: {
       regex: /\b(?:терруар(?:а|у|ом)?)\b/gi,
       title: "Терруар",
       text: "Уникальная совокупность почвы, климата и рельефа местности, которая определяет характер и вкус вина.",
       icon: "🌍"
-    },
-    vintage: {
-      regex: /\b(?:винтаж(?:а|у|ем)?|миллезим(?:а|у|ом)?|vintage)\b/gi,
-      title: "Винтаж / Миллезим",
-      text: "Год урожая винограда. Винтажное вино делается из урожая одного, как правило, выдающегося года.",
-      icon: "📅"
     },
     cru: {
       regex: /\b(?:крю|cru(?: \w+)?)\b/gi,
@@ -2398,29 +3015,11 @@ document.addEventListener('DOMContentLoaded', () => {
       text: "Особый, строго определённый участок виноградника, дающий вина исключительного качества.",
       icon: "🥇"
     },
-    cuvee: {
-      regex: /\b(?:кюве|cuv[ée]e)\b/gi,
-      title: "Кюве (Cuvée)",
-      text: "Лучшая бочка или специальный купаж. В Шампани так называют сок самого первого, самого ценного отжима.",
-      icon: "✨"
-    },
     tartare: {
       regex: /\b(?:тартар(?:а|у|ом)?)\b/gi,
       title: "Тартар",
       text: "Способ подачи: очень мелко порубленное сырое мясо или рыба, приправленные ярким пикантным соусом.",
       icon: "🔪"
-    },
-    ceviche: {
-      regex: /\b(?:севиче)\b/gi,
-      title: "Севиче",
-      text: "Перуанское блюдо из сырой рыбы, замаринованной («сваренной холодом») в соке цитрусовых с чили.",
-      icon: "🐟"
-    },
-    carpaccio: {
-      regex: /\b(?:карпаччо)\b/gi,
-      title: "Карпаччо",
-      text: "Тончайшие (почти прозрачные) слайсы сырого мяса или рыбы (иногда овощей), сбрызнутые маслом и лимоном.",
-      icon: "🥩"
     },
     bisque: {
       regex: /\b(?:биск(?:а|у|ом)?)\b/gi,
@@ -2433,6 +3032,330 @@ document.addEventListener('DOMContentLoaded', () => {
       title: "Ганаш",
       text: "Шоколадно-сливочная эмульсия. Плотный шоколадный крем, используемый как начинка десертов или конфет.",
       icon: "🍫"
+    },
+    feta: {
+      regex: /\b(?:фет(?:а|ы|у|ой|е))\b/gi,
+      title: "Сыр Фета",
+      text: "Традиционный греческий сыр из овечьего молока. Белый, рассыпчатый, солёный. Выдержка — не менее 3 месяцев.",
+      icon: "🧀"
+    },
+    capers: {
+      regex: /\b(?:каперс(?:ы|ов|ами|ах)?)\b/gi,
+      title: "Каперсы",
+      text: "Бутоны средиземноморского растения, консервированные в рассоле. Придают пикантный, чуть кисловатый вкус.",
+      icon: "🫒"
+    },
+    oregano: {
+      regex: /\b(?:орегано|душиц(?:а|ы|у|ой)?)\b/gi,
+      title: "Орегано (Душица)",
+      text: "Любимая пряность средиземноморской кухни. Тёплый, слегка перечный аромат. Обязателен в греческих и итальянских блюдах.",
+      icon: "🌿"
+    },
+    capsicum: {
+      regex: /\b(?:капсикум)\b/gi,
+      title: "Капсикум",
+      text: "Декоративный многолетний мексиканский перец с ярким цветом. Немного острее обычного болгарского перца.",
+      icon: "🌶️"
+    },
+    hallumi: {
+      regex: /\b(?:халлуми)\b/gi,
+      title: "Халлуми",
+      text: "Кипрский сыр из козьего и овечьего молока. Высокая точка плавления — не тает при жарке, а покрывается румяной корочкой.",
+      icon: "🧀"
+    },
+    pearl_barley: {
+      regex: /\b(?:перловк(?:а|и|у|ой))\b/gi,
+      title: "Перловка",
+      text: "Шлифованные ядра ячменя. Богата витаминами В6, В9, Е и минералами. Основа Минестроне — «суп долгожителей».",
+      icon: "🌾"
+    },
+    zucchini: {
+      regex: /\b(?:цуккини|цукини)\b/gi,
+      title: "Цуккини",
+      text: "Итальянский кабачок. Мякоть нежная и мягкая, можно есть сырой в салатах. Богат витамином С.",
+      icon: "🥒"
+    },
+    basil: {
+      regex: /\b(?:базилик(?:а|ом|е)?)\b/gi,
+      title: "Базилик",
+      text: "Пряная трава с ароматом душистого перца и лёгким холодящим вкусом. Любимая пряность итальянской кухни.",
+      icon: "🌿"
+    },
+    tiger_shrimp: {
+      regex: /\b(?:тигров(?:ые|ых|ыми|ую) креветки?|тигровых? креветок?)\b/gi,
+      title: "Тигровые Креветки",
+      text: "Самые крупные креветки — до 30+ см, ~650 г. Тёмные полосы на панцире. Вкус нежный, напоминает мясо раков.",
+      icon: "🦐"
+    },
+    croutons: {
+      regex: /\b(?:крутон(?:ы|ов|ами|ах)?)\b/gi,
+      title: "Крутоны",
+      text: "Обжаренные ломтики хлеба. Добавляют хрусткость в салаты. В Цезаре обязательный ингредиент.",
+      icon: "🍞"
+    },
+    parmesan: {
+      regex: /\b(?:пармезан(?:а|у|ом|е)?)\b/gi,
+      title: "Пармезан",
+      text: "Итальянский твёрдый сыр с выдержкой 12–36 месяцев. Зернистая текстура, насыщенный вкус с ореховыми нотками.",
+      icon: "🧀"
+    },
+    anchovy: {
+      regex: /\b(?:анчоус(?:ы|ов|ами|ах)?)\b/gi,
+      title: "Анчоусы",
+      text: "Мелкая рыба семейства сельдевых, консервированная в рассоле. Солёный, пикантный вкус. Аллерген — рыба.",
+      icon: "🐟"
+    },
+    kale: {
+      regex: /\b(?:кал[её]|кейл|капуст(?:а|ы|у|ой) кале?)\b/gi,
+      title: "Капуста Кале",
+      text: "Листовая капуста без кочана. Горьковатый травяной вкус, напоминающий шпинат. Богата витаминами.",
+      icon: "🥬"
+    },
+    miso: {
+      regex: /\b(?:мисо)\b/gi,
+      title: "Мисо",
+      text: "Японская паста из ферментированных соевых бобов. Пикантный, солёно-сладкий умами вкус. Используется как маринад и основа соусов.",
+      icon: "🍜"
+    },
+    sriracha: {
+      regex: /\b(?:шрирача)\b/gi,
+      title: "Шрирача",
+      text: "Острый тайский соус-чили: перец чили, уксус, чеснок, сахар, соль. Назван по городу Сирача.",
+      icon: "🌶️"
+    },
+    vongole: {
+      regex: /\b(?:вонголе)\b/gi,
+      title: "Вонголе (Vongole)",
+      text: "Итальянское название двустворчатых моллюсков-клем. Маленькие, с ярким морским вкусом. Аллерген — моллюски.",
+      icon: "🐚"
+    },
+    aglio_olio: {
+      regex: /\b(?:алио олио|aglio e olio)\b/gi,
+      title: "Алио Олио (Aglio e Olio)",
+      text: "Итальянский соус для пасты: оливковое масло + чеснок + чили. Простой, ароматный. Готовится прямо на сковороде за минуты.",
+      icon: "🫒"
+    },
+    caserecce: {
+      regex: /\b(?:казеречче|caserecce)\b/gi,
+      title: "Казеречче (Caserecce)",
+      text: "Паста из Сицилии в форме свёрнутых трубочек. От «casa» — «дом». Хорошо удерживает густые соусы.",
+      icon: "🍝"
+    },
+    lamb: {
+      regex: /\b(?:ягнёнок|ягнёнка|ягнят(?:ина|ины|ину))\b/gi,
+      title: "Ягнёнок (Ягнятина)",
+      text: "Мясо молодой овцы до 1 года. Нежное, чуть сладковатое. В Казеречче томится 3 часа в печи до полного приготовления.",
+      icon: "🐑"
+    },
+    mozzarella: {
+      regex: /\b(?:моцарелл(?:а|ы|у|ой|е))\b/gi,
+      title: "Моцарелла",
+      text: "Итальянский свежий сыр из коровьего молока. Выдержка 3–5 часов. Лёгкая тягучая текстура, нейтральный молочный вкус.",
+      icon: "🧀"
+    },
+    pastrami: {
+      regex: /\b(?:пастрами)\b/gi,
+      title: "Пастрами",
+      text: "Говяжья грудинка со специями. У нас — 12 дней приготовления в 4 этапа. Финал: сувид 5 ч при 75°С.",
+      icon: "🥩"
+    },
+    chickpea: {
+      regex: /\b(?:нут(?:а|ом|е)?)\b/gi,
+      title: "Нут",
+      text: "Жёлтые круглые бобы с ореховым вкусом. Богаты белком. Входят в котлету шитаке-бургера.",
+      icon: "🫘"
+    },
+    shimeji: {
+      regex: /\b(?:шимеджи)\b/gi,
+      title: "Шимеджи",
+      text: "Деликатесные азиатские грибы с нежным вкусом. Популярны в Японии и Корее. Подаются к говяжьим щёчкам.",
+      icon: "🍄"
+    },
+    bourbon: {
+      regex: /\b(?:бурбон(?:а|ом|е)?)\b/gi,
+      title: "Бурбон",
+      text: "Американский виски из кукурузы (≥51%). Золотистый цвет, сладкий вкус с нотами карамели и ванили.",
+      icon: "🥃"
+    },
+    tenderloin: {
+      regex: /\b(?:тендерлойн(?:а|е|у|ом)?)\b/gi,
+      title: "Тендерлойн (Вырезка)",
+      text: "Самая нежная часть туши — мышца почти не работает, нет жира. Нельзя пересушивать: только Rare или Medium Rare.",
+      icon: "🥩"
+    },
+    halibut: {
+      regex: /\b(?:палтус(?:а|у|ом|е)?)\b/gi,
+      title: "Палтус",
+      text: "Крупная рыба семейства камбаловых из северных морей. Жирное белое мясо, очень мало костей.",
+      icon: "🐟"
+    },
+    saffron: {
+      regex: /\b(?:шафран(?:а|ом|е)?)\b/gi,
+      title: "Шафран",
+      text: "Самая дорогая пряность в мире. Из рылец цветка крокуса. Даёт золотистый цвет и уникальный аромат блюду.",
+      icon: "✨"
+    },
+    asparagus: {
+      regex: /\b(?:спаржа|спарж(?:и|у|ей)?)\b/gi,
+      title: "Спаржа",
+      text: "Молодые побеги многолетнего растения (15–20 см). Сочная и хрустящая даже после гриля. Нежный травяной вкус с ореховыми нотками.",
+      icon: "🌱"
+    },
+    truffle: {
+      regex: /\b(?:трюфел(?:ь|я|ю|ем|е)|тартуфат(?:а|у))\b/gi,
+      title: "Трюфель / Тартуфата",
+      text: "Подземный гриб — самый дорогой в мире. Интенсивный землисто-ореховый аромат. Тартуфата — паста из трюфелей.",
+      icon: "🍄"
+    },
+    truffle_oil: {
+      regex: /\b(?:трюфельн(?:ое|ого|ым) масло)\b/gi,
+      title: "Трюфельное масло",
+      text: "Масло с ароматом трюфеля. Добавляется к картофелю фри и пасте, чтобы придать насыщенный грибной аромат без использования самого трюфеля.",
+      icon: "🍄"
+    },
+    feuilletine: {
+      regex: /\b(?:фейетин|feuilletine)\b/gi,
+      title: "Фейетин (Feuilletine)",
+      text: "Хрустящие кондитерские хлопья из тончайшего вафельного теста. Сохраняют хруст даже в кремовых начинках.",
+      icon: "✨"
+    },
+    praline: {
+      regex: /\b(?:пралине|фундучн(?:ое|ого|ым) пралине)\b/gi,
+      title: "Пралине",
+      text: "Кондитерская паста: обжаренный фундук + карамелизованный сахар. Насыщенный ореховый вкус, золотисто-коричневый цвет.",
+      icon: "🌰"
+    },
+    meringue: {
+      regex: /\b(?:меренг(?:а|и|у|ой|е)|безе)\b/gi,
+      title: "Меренга (Безе)",
+      text: "Взбитые яичные белки с сахаром. В лимонном тарте — итальянская меренга, обожжённая горелкой для карамельной корочки.",
+      icon: "☁️"
+    },
+    pectin: {
+      regex: /\b(?:пектин(?:а|ом|е)?)\b/gi,
+      title: "Пектин",
+      text: "Натуральный загуститель из фруктов. Делает начинки гелеобразными и предотвращает растекание в выпечке.",
+      icon: "🍎"
+    },
+    tary: {
+      regex: /\b(?:тары)\b/gi,
+      title: "Тары (Казахский продукт)",
+      text: "Обжаренное и очищенное просо. Традиционный казахский продукт, добавляется в чай и десерты. Уникальный ингредиент нашего чизкейка.",
+      icon: "🇰🇿"
+    },
+    sesame: {
+      regex: /\b(?:кунжут(?:а|ом|е)?)\b/gi,
+      title: "Кунжут (Сезам)",
+      text: "Семена масличного растения. Ореховый вкус, богаты кальцием и антиоксидантами. Основа пасты тахини.",
+      icon: "🌱"
+    },
+    toffee: {
+      regex: /\b(?:тоффи|ириска)\b/gi,
+      title: "Тоффи (Ириска)",
+      text: "Карамельная конфета из сливочного масла и варёного сахара. Липкая, тягучая. Основа соуса финикового пудинга.",
+      icon: "🍬"
+    },
+    avocado: {
+      regex: /\b(?:авокадо)\b/gi,
+      title: "Авокадо краш",
+      text: "Спелое авокадо, размятое в пасту. Кремовая текстура, мягкий сливочный вкус. Богато полезными жирами.",
+      icon: "🥑"
+    },
+    bataat: {
+      regex: /\b(?:батат(?:а|у|ом|е)?)\b/gi,
+      title: "Батат (Сладкий картофель)",
+      text: "Не родственник обычного картофеля. Слаще, богат витамином А, более низкий гликемический индекс. Фри из батата подаётся в вегетарианском сэндвиче.",
+      icon: "🍠"
+    },
+    arugula: {
+      regex: /\b(?:руккол(?:а|ы|у|ой|е))\b/gi,
+      title: "Руккола",
+      text: "Листовой салат с горьковато-перечным вкусом. Традиционна в итальянских сэндвичах и пицце.",
+      icon: "🥬"
+    },
+    parsley: {
+      regex: /\b(?:петрушк(?:а|и|у|ой|е)?)\b/gi,
+      title: "Петрушка",
+      text: "Растение из семейства сельдерейных. Два вида: листовая (только листья) и корневая (листья + корень). Используется как приправа и украшение.",
+      icon: "🌿"
+    },
+    romaine: {
+      regex: /\b(?:ромэн|салат ромэн)\b/gi,
+      title: "Салат Ромэн",
+      text: "Рыхлый кочан удлинённо-овальной формы. Пряный и терпкий вкус с яркой горчинкой. Основа салата Цезарь.",
+      icon: "🥬"
+    },
+    shiitake: {
+      regex: /\b(?:шиитаке)\b/gi,
+      title: "Шиитаке",
+      text: "Деликатесный азиатский гриб. Используют только шляпки — ножки жёстче. Широко применяется в китайской, корейской и японской кухнях.",
+      icon: "🍄"
+    },
+    edamame: {
+      regex: /\b(?:эдамаме)\b/gi,
+      title: "Эдамаме",
+      text: "Незрелые соевые бобы, сваренные в стручках. Японская закуска. «Боб на стебельке». Нежный сладковатый вкус с лёгкой горчинкой.",
+      icon: "🫘"
+    },
+    turmeric: {
+      regex: /\b(?:куркум(?:а|ы|у|ой|е)?)\b/gi,
+      title: "Куркума (Индийский имбирь)",
+      text: "Жёлто-оранжевая специя из семейства имбирных. Придаёт блюдам яркий золотистый цвет. Вкус смолянистый с нотками имбиря и апельсина.",
+      icon: "✨"
+    },
+    tabasco: {
+      regex: /\b(?:табаско)\b/gi,
+      title: "Табаско",
+      text: "Острый перечный соус из перца табаско, уксуса и соли. Оригинальный рецепт выдерживается 3 года в дубовых бочках.",
+      icon: "🌶️"
+    },
+    seabass: {
+      regex: /\b(?:сибас(?:а|у|ом|е)?)\b/gi,
+      title: "Сибас (Морской окунь)",
+      text: "Морская рыба с белым плотным мясом и чуть сладковатым вкусом. Дикий сибас ловится удочкой (не фермерский) — поэтому ценнее.",
+      icon: "🐟"
+    },
+    champignon: {
+      regex: /\b(?:шампиньон(?:ы|ов|ам|ами|е)?)\b/gi,
+      title: "Шампиньоны",
+      text: "Самый распространённый культивируемый гриб. Нежный вкус и аромат. Идеальны для салатов, супов, жарки и соусов.",
+      icon: "🍄"
+    },
+    thyme: {
+      regex: /\b(?:тимьян(?:а|ом|е)?)\b/gi,
+      title: "Тимьян (Чабрец)",
+      text: "Ароматная пряность с сильным пряным запахом, напоминающим тмин и анис. Используется в соусах, маринадах и мясных блюдах.",
+      icon: "🌿"
+    },
+    mascarpone: {
+      regex: /\b(?:маскарпон(?:е|а|у)?)\b/gi,
+      title: "Маскарпоне",
+      text: "Итальянский сливочный сыр из Ломбардии. Маслянистая структура, слегка сладковатый, очень жирный. Хранить не более 3 дней без заморозки.",
+      icon: "🧀"
+    },
+    salami: {
+      regex: /\b(?:салями)\b/gi,
+      title: "Салями",
+      text: "Традиционная итальянская колбаса. Производится путём сушки и вяления свежего мяса в течение нескольких месяцев. Богатый вкус и аромат.",
+      icon: "🥩"
+    },
+    buffalo: {
+      regex: /\b(?:буффало)\b/gi,
+      title: "Буффало",
+      text: "Популярный стиль приготовления острых куриных крылышек, родом из города Буффало (Нью-Йорк). Отличается острым соусом на основе перца и сливочного масла.",
+      icon: "🌶️"
+    },
+    red_cabbage: {
+      regex: /\b(?:краснокочанн(?:ая|ой|ую|ому) капуст[аыу]?|краснокочанная)\b/gi,
+      title: "Краснокочанная Капуста",
+      text: "Ближайшая родственница белокочанной капусты. Главное отличие — синевато-фиолетовый цвет листьев. Антоцианы дают насыщенный цвет.",
+      icon: "🫐"
+    },
+    spinach: {
+      regex: /\b(?:шпинат(?:а|у|ом|е)?)\b/gi,
+      title: "Молодой Шпинат",
+      text: "Специально рано собранные листья с тонкими жилками. В сыром виде — сладковатый вкус. Богат железом и витаминами.",
+      icon: "🥬"
     }
   };
 
@@ -2444,6 +3367,16 @@ document.addEventListener('DOMContentLoaded', () => {
     source = source.replace(/\(\?\!\\w\)/g, ''); // strip (?!\\w)
     termObj.cleanRegex = new RegExp(source, termObj.regex.flags);
   }
+
+  // Inject data-label into compare-table cells for mobile card layout
+  document.querySelectorAll('.compare-table').forEach(table => {
+    const headers = Array.from(table.querySelectorAll('th')).map(th => th.textContent.trim());
+    table.querySelectorAll('tbody tr').forEach(row => {
+      Array.from(row.querySelectorAll('td')).forEach((td, i) => {
+        if (i > 0 && headers[i]) td.setAttribute('data-label', headers[i]);
+      });
+    });
+  });
 
   const sectionsToProcess = Array.from(document.querySelectorAll('.wrapper p, .wrapper li, .wrapper td, .bev-name, .bev-notes, .memory, .alert div, .f-name, .bev-sub, .region-badge, .c-ingredients, .c-style, .f-origin, .dish-name, .ingredients, .quick-ref li'));
 
@@ -2473,7 +3406,12 @@ document.addEventListener('DOMContentLoaded', () => {
           }
 
           // Ignore "без выдержки" instead of using lookbehind
-          if (key === 'aging' && str.substring(Math.max(0, offset - 4), offset).toLowerCase().includes('без ')) return match;
+          if ((key === 'aging' || key === 'aging_cheese') && str.substring(Math.max(0, offset - 4), offset).toLowerCase().includes('без ')) return match;
+          
+          // Contextual aging checks
+          if (key === 'aging' && node.parentNode && node.parentNode.closest('#food-page')) return match;
+          if (key === 'aging_cheese' && node.parentNode && node.parentNode.closest('#bev-page')) return match;
+
           // Ignore "не торфяной"
           if (key === 'peated' && str.substring(Math.max(0, offset - 3), offset).toLowerCase().includes('не ')) return match;
           // Ignore "Voche blanco"
@@ -2602,8 +3540,37 @@ document.addEventListener('DOMContentLoaded', () => {
   // Prevent Copying & Context Menu
   document.addEventListener('contextmenu', event => event.preventDefault());
   document.addEventListener('copy', event => event.preventDefault());
+
+  // Show Toast Notification
+  const hintToast = document.getElementById('hint-toast');
+  const toastClose = hintToast.querySelector('.toast-close');
+  
+  if (hintToast && !localStorage.getItem('glossaryHintSeenLocal')) {
+    setTimeout(() => {
+      hintToast.classList.add('show');
+    }, 1500);
+
+    toastClose.addEventListener('click', () => {
+      hintToast.classList.remove('show');
+      localStorage.setItem('glossaryHintSeenLocal', 'true');
+    });
+
+    setTimeout(() => {
+      if (hintToast.classList.contains('show')) {
+        hintToast.classList.remove('show');
+        localStorage.setItem('glossaryHintSeenLocal', 'true');
+      }
+    }, 7000);
+  }
 });
 </script>
+
+<!-- ════════════ TOAST NOTIFICATION ════════════ -->
+<div id="hint-toast" class="toast-notification">
+  <span class="toast-icon">💡</span>
+  <span class="toast-text">Нажмите на <span class="toast-hl">подчеркнутый текст</span>, чтобы прочитать подробную подсказку (глоссарий).</span>
+  <button class="toast-close" aria-label="Закрыть">&times;</button>
+</div>
 
 </body>
 </html>

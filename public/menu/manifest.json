@@ -1,0 +1,25 @@
+{
+  "name": "Menu Knowledge Guide — The Ritz-Carlton, Astana",
+  "short_name": "RC Menu",
+  "description": "In-Room Dining · A La Carte 2026",
+  "start_url": "/menu/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#0e0e0e",
+  "background_color": "#1a1208",
+  "lang": "ru",
+  "icons": [
+    {
+      "src": "/menu-icon192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/menu-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
