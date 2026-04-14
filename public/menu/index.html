@@ -490,6 +490,72 @@
   .sub-nav a.active-section { background: var(--gold); color: var(--dark); }
   .bev-nav a.active-section { background: var(--bev-accent); color: #fff; }
 
+  /* ── STUDY BAR ── */
+  .study-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 16px; background: var(--dark); border-bottom: 1px solid rgba(255,255,255,0.08);
+    gap: 8px;
+  }
+  .study-bar.bev-study { background: var(--bev-dark); border-bottom-color: rgba(74,143,168,0.2); }
+  .study-bar-left, .study-bar-right { flex-shrink: 0; }
+  .study-bar-center { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: center; }
+  .study-btn {
+    padding: 6px 14px; border-radius: 20px; border: 1px solid rgba(184,150,46,0.5);
+    background: transparent; color: var(--gold-light); font-family: 'Crimson Pro', serif;
+    font-size: 0.85rem; cursor: pointer; white-space: nowrap; transition: all 0.2s;
+    touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+  }
+  .study-btn:hover { border-color: var(--gold); color: var(--gold); }
+  .study-btn.active { background: var(--gold); color: var(--dark); border-color: var(--gold); font-weight: 600; }
+  .study-btn.bev-style { border-color: rgba(74,143,168,0.5); color: var(--bev-accent-light); }
+  .study-btn.bev-style:hover { border-color: var(--bev-accent); color: #fff; }
+  .study-btn.bev-style.active { background: var(--bev-accent); color: #fff; border-color: var(--bev-accent); }
+  .study-btn.reset-btn { border-color: rgba(255,255,255,0.15); color: #888; font-size: 0.8rem; }
+  .study-btn.reset-btn:hover { border-color: #c55; color: #f88; }
+  .progress-counter { font-size: 0.78rem; color: #888; white-space: nowrap; }
+  .progress-counter.bev { color: var(--bev-accent-light); }
+  /* ── CUSTOM MODAL ── */
+  .custom-modal-overlay {
+    position: fixed; inset: 0; z-index: 99000;
+    background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none; transition: opacity 0.2s;
+  }
+  .custom-modal-overlay.show { opacity: 1; pointer-events: auto; }
+  .custom-modal {
+    background: var(--dark); border: 1px solid rgba(184,150,46,0.3);
+    border-radius: 14px; padding: 28px 24px; max-width: 340px; width: 90%;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5); text-align: center;
+  }
+  .custom-modal h3 { font-family: 'Playfair Display', serif; color: var(--gold-light); font-size: 1.1rem; margin-bottom: 10px; font-weight: 400; }
+  .custom-modal p { color: #b0a080; font-size: 0.88rem; margin-bottom: 20px; line-height: 1.5; }
+  .custom-modal-btns { display: flex; gap: 10px; justify-content: center; }
+  .custom-modal-cancel { padding: 9px 22px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.15); background: transparent; color: #888; font-family: 'Crimson Pro', serif; font-size: 0.9rem; cursor: pointer; transition: all 0.2s; }
+  .custom-modal-cancel:hover { color: #ccc; border-color: rgba(255,255,255,0.3); }
+  .custom-modal-confirm { padding: 9px 22px; border-radius: 20px; border: none; background: #8b1a1a; color: #f8d0d0; font-family: 'Crimson Pro', serif; font-size: 0.9rem; cursor: pointer; transition: all 0.2s; font-weight: 600; }
+  .custom-modal-confirm:hover { background: #a82020; }
+  /* ── QUIZ IMPROVEMENTS ── */
+  body.quiz-food .dish-card:not(.quiz-revealed),
+  body.quiz-bev .cocktail-card:not(.quiz-revealed),
+  body.quiz-bev .bev-card:not(.quiz-revealed) {
+    border: 2px dashed var(--gold) !important;
+  }
+  body.quiz-food .dish-card.quiz-revealed,
+  body.quiz-bev .cocktail-card.quiz-revealed,
+  body.quiz-bev .bev-card.quiz-revealed {
+    border: 2px solid var(--green) !important;
+  }
+  .quiz-score-bar {
+    position: sticky; top: calc(var(--tab-height,66px) + 48px + 44px + 44px); z-index: 88;
+    background: rgba(26,18,8,0.95); backdrop-filter: blur(8px);
+    padding: 8px 16px; display: none; align-items: center; gap: 12px;
+    border-bottom: 1px solid rgba(184,150,46,0.2); font-size: 0.85rem; color: var(--gold-light);
+  }
+  body.quiz-food .quiz-score-bar,
+  body.quiz-bev .quiz-score-bar-bev { display: flex; }
+  .quiz-score-progress { flex: 1; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden; }
+  .quiz-score-fill { height: 100%; background: var(--gold); transition: width 0.3s; border-radius: 2px; }
+  .quiz-score-text { white-space: nowrap; font-size: 0.8rem; }
   /* ── QUICK FILTERS ── */
   .filter-bar {
     display: flex; gap: 8px; padding: 10px 16px; overflow-x: auto; scrollbar-width: none;
@@ -511,31 +577,15 @@
   [data-theme="dark"] .filter-btn.filter-active { background: var(--gold); color: var(--dark); }
 
   /* ── QUIZ MODE ── */
-  .quiz-btn {
-    margin-left: auto; padding: 6px 14px; border-radius: 20px;
-    border: 1px solid var(--gold); background: transparent; color: var(--gold);
-    font-family: 'Crimson Pro', serif; font-size: 0.85rem; cursor: pointer;
-    white-space: nowrap; transition: all 0.2s; touch-action: manipulation;
-    -webkit-tap-highlight-color: transparent;
-  }
-  .quiz-btn.active { background: var(--gold); color: var(--dark); }
-  .bev-quiz-btn {
-    margin-left: auto; padding: 6px 14px; border-radius: 20px;
-    border: 1px solid var(--bev-accent); background: transparent; color: var(--bev-accent-light);
-    font-family: 'Crimson Pro', serif; font-size: 0.85rem; cursor: pointer;
-    white-space: nowrap; transition: all 0.2s; touch-action: manipulation;
-    -webkit-tap-highlight-color: transparent;
-  }
-  .bev-quiz-btn.active { background: var(--bev-accent); color: #fff; }
   body.quiz-food .dish-card { cursor: pointer; position: relative; }
   body.quiz-food .dish-card .ingredients,
   body.quiz-food .dish-card .tag-row,
   body.quiz-food .dish-card .memory,
   body.quiz-food .dish-card .flex-note,
   body.quiz-food .dish-card > p:not(:first-of-type) { opacity: 0; pointer-events: none; transition: opacity 0.3s; }
-  body.quiz-food .dish-card::after {
-    content: 'Нажмите для ответа'; position: absolute; bottom: 10px; right: 12px;
-    font-size: 0.75rem; color: var(--light-text); font-style: italic;
+  body.quiz-food .dish-card:not(.quiz-revealed)::after {
+    content: '👆 Нажмите для ответа'; position: absolute; bottom: 10px; right: 12px;
+    font-size: 0.75rem; color: var(--gold); font-style: italic; font-weight: 600;
   }
   body.quiz-food .dish-card.quiz-revealed .ingredients,
   body.quiz-food .dish-card.quiz-revealed .tag-row,
@@ -546,14 +596,14 @@
   body.quiz-bev .cocktail-card { cursor: pointer; position: relative; }
   body.quiz-bev .cocktail-card .c-ingredients,
   body.quiz-bev .cocktail-card .c-style { opacity: 0; pointer-events: none; transition: opacity 0.3s; }
-  body.quiz-bev .cocktail-card::after { content: 'Нажмите для ответа'; position: absolute; bottom: 8px; right: 10px; font-size: 0.72rem; color: var(--bev-accent); font-style: italic; }
+  body.quiz-bev .cocktail-card:not(.quiz-revealed)::after { content: '👆 Нажмите для ответа'; position: absolute; bottom: 8px; right: 10px; font-size: 0.72rem; color: var(--bev-accent); font-style: italic; font-weight: 600; }
   body.quiz-bev .cocktail-card.quiz-revealed .c-ingredients,
   body.quiz-bev .cocktail-card.quiz-revealed .c-style { opacity: 1; pointer-events: auto; }
   body.quiz-bev .cocktail-card.quiz-revealed::after { content: '✓'; color: var(--bev-accent); font-style: normal; }
   body.quiz-bev .bev-card { cursor: pointer; position: relative; }
   body.quiz-bev .bev-card .bev-notes,
   body.quiz-bev .bev-card .memory { opacity: 0; pointer-events: none; transition: opacity 0.3s; }
-  body.quiz-bev .bev-card::after { content: 'Нажмите для ответа'; position: absolute; bottom: 8px; right: 12px; font-size: 0.72rem; color: var(--bev-accent); font-style: italic; }
+  body.quiz-bev .bev-card:not(.quiz-revealed)::after { content: '👆 Нажмите для ответа'; position: absolute; bottom: 8px; right: 12px; font-size: 0.72rem; color: var(--bev-accent); font-style: italic; font-weight: 600; }
   body.quiz-bev .bev-card.quiz-revealed .bev-notes,
   body.quiz-bev .bev-card.quiz-revealed .memory { opacity: 1; pointer-events: auto; }
   body.quiz-bev .bev-card.quiz-revealed::after { content: '✓'; color: var(--bev-accent); font-style: normal; }
@@ -577,17 +627,6 @@
   .bev-card.learned { opacity: 0.65; }
   .bev-card.learned .learned-btn { background: var(--bev-accent); border-color: var(--bev-accent); color: #fff; }
   .learned-btn .check-icon { font-size: 0.8rem; }
-  .progress-counter {
-    font-size: 0.78rem; padding: 0 12px; color: var(--light-text);
-    display: flex; align-items: center; gap: 6px; white-space: nowrap;
-  }
-  .progress-counter.bev { color: var(--bev-accent-light); }
-  .reset-progress-btn {
-    padding: 4px 10px; border-radius: 12px; border: 1px solid var(--divider);
-    background: transparent; color: var(--light-text); font-size: 0.75rem;
-    cursor: pointer; touch-action: manipulation; transition: all 0.2s;
-  }
-  .reset-progress-btn:hover { border-color: var(--red-flag); color: var(--red-flag); }
 
   /* ── FAQ ── */
   .faq-item {
@@ -906,9 +945,6 @@
   <a href="#preps">🔥 Прожарки</a>
   <a href="#flex">🎯 Гибкость</a>
   <a href="#faq">❓ FAQ</a>
-  <button class="quiz-btn" id="quiz-food-btn" aria-label="Режим экзамена">🎓 Экзамен</button>
-  <span class="progress-counter" id="food-progress-counter"></span>
-  <button class="reset-progress-btn" id="food-reset-btn" title="Сбросить прогресс">🔄</button>
 </nav>
 
 <div class="filter-bar" id="food-filter-bar">
@@ -919,6 +955,23 @@
   <button class="filter-btn" data-filter="fast">⚡ Быстрое</button>
 </div>
 <span class="filter-count" id="filter-count"></span>
+<div class="study-bar" id="food-study-bar">
+  <div class="study-bar-left">
+    <span class="progress-counter" id="food-progress-counter"></span>
+  </div>
+  <div class="study-bar-center">
+    <button class="study-btn quiz-food-trigger" id="quiz-food-btn">🎓 Режим экзамена</button>
+    <button class="study-btn reveal-all-btn" id="quiz-food-reveal-all" style="display:none;">👁 Открыть все</button>
+  </div>
+  <div class="study-bar-right">
+    <button class="study-btn reset-btn" id="food-reset-btn">🔄 Сбросить</button>
+  </div>
+</div>
+<div class="quiz-score-bar" id="food-quiz-score">
+  <span>🎓 Экзамен</span>
+  <div class="quiz-score-progress"><div class="quiz-score-fill" id="food-quiz-fill" style="width:0%"></div></div>
+  <span class="quiz-score-text" id="food-quiz-text">0 / 0</span>
+</div>
 
 <header class="food-header">
   <span class="ornament">✦ ✦ ✦ ✦ ✦</span>
@@ -1751,10 +1804,24 @@
   <a href="#bev-sake">🍶 Sake/Baijiu</a>
   <a href="#bev-aperitif">🫒 Аперитивы</a>
   <a href="#bev-cocktails">🍹 Коктейли</a>
-  <button class="bev-quiz-btn" id="quiz-bev-btn" aria-label="Режим экзамена">🎓 Экзамен</button>
-  <span class="progress-counter bev" id="bev-progress-counter"></span>
-  <button class="reset-progress-btn" id="bev-reset-btn" title="Сбросить прогресс">🔄</button>
 </nav>
+<div class="study-bar bev-study" id="bev-study-bar">
+  <div class="study-bar-left">
+    <span class="progress-counter bev" id="bev-progress-counter"></span>
+  </div>
+  <div class="study-bar-center">
+    <button class="study-btn bev-style quiz-bev-trigger" id="quiz-bev-btn">🎓 Режим экзамена</button>
+    <button class="study-btn bev-style reveal-all-btn" id="quiz-bev-reveal-all" style="display:none;">👁 Открыть все</button>
+  </div>
+  <div class="study-bar-right">
+    <button class="study-btn bev-style reset-btn" id="bev-reset-btn">🔄 Сбросить</button>
+  </div>
+</div>
+<div class="quiz-score-bar quiz-score-bar-bev" id="bev-quiz-score">
+  <span>🎓 Экзамен</span>
+  <div class="quiz-score-progress"><div class="quiz-score-fill" id="bev-quiz-fill" style="width:0%"></div></div>
+  <span class="quiz-score-text" id="bev-quiz-text">0 / 0</span>
+</div>
 
 <header class="bev-header">
   <span class="ornament">✦ ✦ ✦ ✦ ✦</span>
@@ -3207,36 +3274,6 @@ document.addEventListener('DOMContentLoaded', () => {
     localStorage.setItem('pwaDismissed', '1');
   });
 
-  function setupFilters() {
-    const bar = document.getElementById('food-filter-bar');
-    const countEl = document.getElementById('filter-count');
-    if (!bar) return;
-    const allCards = () => document.querySelectorAll('#food-page .dish-card');
-    function updateCount() {
-      const visible = document.querySelectorAll('#food-page .dish-card:not(.filter-hidden)').length;
-      const total = allCards().length;
-      countEl.textContent = visible < total ? `Показано: ${visible} из ${total}` : '';
-    }
-    bar.addEventListener('click', (e) => {
-      const btn = e.target.closest('.filter-btn');
-      if (!btn) return;
-      const filter = btn.dataset.filter;
-      bar.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('filter-active'));
-      btn.classList.add('filter-active');
-      allCards().forEach(card => {
-        if (filter === 'all') {
-          card.classList.remove('filter-hidden');
-        } else {
-          const tags = (card.dataset.tags || '').split(' ');
-          card.classList.toggle('filter-hidden', !tags.includes(filter));
-        }
-      });
-      updateCount();
-    });
-    updateCount();
-  }
-  setupFilters();
-
   // ── SCROLL SPY — highlight active nav link ──
   function setupScrollSpy() {
     const foodNav = document.querySelector('.food-nav');
@@ -3284,15 +3321,31 @@ document.addEventListener('DOMContentLoaded', () => {
     updateActiveNav();
   }
   // ── QUICK FILTERS ──
+  // Info sections (no dish cards) to hide when filter is active
+  const INFO_SECTIONS = ['#whats-new', '#memory-tips', '#compare'];
   function setupFilters() {
     const bar = document.getElementById('food-filter-bar');
     const countEl = document.getElementById('filter-count');
     if (!bar) return;
     const allCards = () => document.querySelectorAll('#food-page .dish-card');
+    function updateSections(filter) {
+      // Hide info-only sections when filter is active
+      INFO_SECTIONS.forEach(sel => {
+        const sec = document.querySelector(sel);
+        if (sec) sec.style.display = filter === 'all' ? '' : 'none';
+      });
+      // Hide sections that have NO visible cards when filter is active
+      const contentSections = document.querySelectorAll('#food-page section[id]:not([id="whats-new"]):not([id="memory-tips"]):not([id="compare"]):not([id="wines"]):not([id="preps"]):not([id="flex"]):not([id="faq"])');
+      contentSections.forEach(sec => {
+        if (filter === 'all') { sec.style.display = ''; return; }
+        const visibleCards = sec.querySelectorAll('.dish-card:not(.filter-hidden)');
+        sec.style.display = visibleCards.length === 0 ? 'none' : '';
+      });
+    }
     function updateCount() {
       const visible = document.querySelectorAll('#food-page .dish-card:not(.filter-hidden)').length;
       const total = allCards().length;
-      countEl.textContent = visible < total ? `Показано: ${visible} из ${total}` : '';
+      countEl.textContent = visible < total ? `Показано блюд: ${visible} из ${total}` : '';
     }
     bar.addEventListener('click', (e) => {
       const btn = e.target.closest('.filter-btn');
@@ -3308,46 +3361,117 @@ document.addEventListener('DOMContentLoaded', () => {
           card.classList.toggle('filter-hidden', !tags.includes(filter));
         }
       });
+      updateSections(filter);
       updateCount();
     });
     updateCount();
   }
   setupFilters();
 
+  // ── CUSTOM MODAL ──
+  function showModal(title, message, onConfirm) {
+    const overlay = document.getElementById('custom-modal-overlay');
+    document.getElementById('modal-title').textContent = title;
+    document.getElementById('modal-message').textContent = message;
+    overlay.classList.add('show');
+    const confirmBtn = document.getElementById('modal-confirm');
+    const cancelBtn = document.getElementById('modal-cancel');
+    function close() { overlay.classList.remove('show'); confirmBtn.onclick = null; cancelBtn.onclick = null; }
+    confirmBtn.onclick = () => { close(); onConfirm(); };
+    cancelBtn.onclick = close;
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); }, { once: true });
+  }
+
   // ── QUIZ MODE ──
   function setupQuiz() {
     const foodBtn = document.getElementById('quiz-food-btn');
     const bevBtn = document.getElementById('quiz-bev-btn');
+    const foodRevealAll = document.getElementById('quiz-food-reveal-all');
+    const bevRevealAll = document.getElementById('quiz-bev-reveal-all');
+
+    function updateQuizScore(page) {
+      if (page === 'food') {
+        const cards = document.querySelectorAll('#food-page .dish-card');
+        const revealed = document.querySelectorAll('#food-page .dish-card.quiz-revealed').length;
+        const fill = document.getElementById('food-quiz-fill');
+        const text = document.getElementById('food-quiz-text');
+        if (fill) fill.style.width = cards.length ? `${(revealed/cards.length)*100}%` : '0%';
+        if (text) text.textContent = `${revealed} / ${cards.length}`;
+      } else {
+        const cards = document.querySelectorAll('#bev-page .cocktail-card, #bev-page .bev-card');
+        const revealed = document.querySelectorAll('#bev-page .cocktail-card.quiz-revealed, #bev-page .bev-card.quiz-revealed').length;
+        const fill = document.getElementById('bev-quiz-fill');
+        const text = document.getElementById('bev-quiz-text');
+        if (fill) fill.style.width = cards.length ? `${(revealed/cards.length)*100}%` : '0%';
+        if (text) text.textContent = `${revealed} / ${cards.length}`;
+      }
+    }
+
     function exitQuiz() {
       document.body.classList.remove('quiz-food', 'quiz-bev');
       document.querySelectorAll('.quiz-revealed').forEach(el => el.classList.remove('quiz-revealed'));
-      if (foodBtn) { foodBtn.classList.remove('active'); foodBtn.textContent = '🎓 Экзамен'; }
-      if (bevBtn) { bevBtn.classList.remove('active'); bevBtn.textContent = '🎓 Экзамен'; }
+      if (foodBtn) { foodBtn.classList.remove('active'); foodBtn.textContent = '🎓 Режим экзамена'; }
+      if (bevBtn) { bevBtn.classList.remove('active'); bevBtn.textContent = '🎓 Режим экзамена'; }
+      if (foodRevealAll) foodRevealAll.style.display = 'none';
+      if (bevRevealAll) bevRevealAll.style.display = 'none';
+      updateQuizScore('food'); updateQuizScore('bev');
     }
+
     if (foodBtn) {
       foodBtn.addEventListener('click', () => {
         if (document.body.classList.contains('quiz-food')) { exitQuiz(); }
-        else { exitQuiz(); document.body.classList.add('quiz-food'); foodBtn.classList.add('active'); foodBtn.textContent = '❌ Выйти'; }
+        else {
+          exitQuiz();
+          document.body.classList.add('quiz-food');
+          foodBtn.classList.add('active'); foodBtn.textContent = '❌ Выйти из режима';
+          if (foodRevealAll) foodRevealAll.style.display = '';
+          updateQuizScore('food');
+        }
       });
     }
+
     if (bevBtn) {
       bevBtn.addEventListener('click', () => {
         if (document.body.classList.contains('quiz-bev')) { exitQuiz(); }
-        else { exitQuiz(); document.body.classList.add('quiz-bev'); bevBtn.classList.add('active'); bevBtn.textContent = '❌ Выйти'; }
+        else {
+          exitQuiz();
+          document.body.classList.add('quiz-bev');
+          bevBtn.classList.add('active'); bevBtn.textContent = '❌ Выйти из режима';
+          if (bevRevealAll) bevRevealAll.style.display = '';
+          updateQuizScore('bev');
+        }
       });
     }
+
+    if (foodRevealAll) {
+      foodRevealAll.addEventListener('click', () => {
+        document.querySelectorAll('#food-page .dish-card').forEach(c => c.classList.add('quiz-revealed'));
+        updateQuizScore('food');
+      });
+    }
+    if (bevRevealAll) {
+      bevRevealAll.addEventListener('click', () => {
+        document.querySelectorAll('#bev-page .cocktail-card, #bev-page .bev-card').forEach(c => c.classList.add('quiz-revealed'));
+        updateQuizScore('bev');
+      });
+    }
+
     document.addEventListener('click', (e) => {
       if (document.body.classList.contains('quiz-food')) {
         const card = e.target.closest('#food-page .dish-card');
-        if (card && !e.target.closest('.learned-btn')) card.classList.toggle('quiz-revealed');
+        if (card && !e.target.closest('.learned-btn') && !e.target.closest('.filter-btn')) {
+          card.classList.toggle('quiz-revealed');
+          updateQuizScore('food');
+        }
       }
       if (document.body.classList.contains('quiz-bev')) {
         const ccard = e.target.closest('#bev-page .cocktail-card');
-        if (ccard) ccard.classList.toggle('quiz-revealed');
+        if (ccard && !e.target.closest('.learned-btn')) { ccard.classList.toggle('quiz-revealed'); updateQuizScore('bev'); }
         const bcard = e.target.closest('#bev-page .bev-card');
-        if (bcard && !e.target.closest('.learned-btn')) bcard.classList.toggle('quiz-revealed');
+        if (bcard && !e.target.closest('.learned-btn')) { bcard.classList.toggle('quiz-revealed'); updateQuizScore('bev'); }
       }
     });
+
     document.getElementById('tab-food')?.addEventListener('click', () => { if (document.body.classList.contains('quiz-bev')) exitQuiz(); });
     document.getElementById('tab-bev')?.addEventListener('click', () => { if (document.body.classList.contains('quiz-food')) exitQuiz(); });
   }
@@ -3365,11 +3489,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const foodCards = document.querySelectorAll('#food-page .dish-card[id]');
       const foodLearned = [...foodCards].filter(c => learned.has(c.id)).length;
       const foodCounter = document.getElementById('food-progress-counter');
-      if (foodCounter) foodCounter.textContent = foodLearned > 0 ? `${foodLearned}/${foodCards.length} изучено` : '';
+      if (foodCounter) foodCounter.textContent = foodLearned > 0 ? `✓ ${foodLearned}/${foodCards.length}` : '';
       const bevCards = document.querySelectorAll('#bev-page [id].cocktail-card, #bev-page [id].bev-card');
       const bevLearned = [...bevCards].filter(c => learned.has(c.id)).length;
       const bevCounter = document.getElementById('bev-progress-counter');
-      if (bevCounter) bevCounter.textContent = bevLearned > 0 ? `${bevLearned}/${bevCards.length} изучено` : '';
+      if (bevCounter) bevCounter.textContent = bevLearned > 0 ? `✓ ${bevLearned}/${bevCards.length}` : '';
     }
     function applyLearned() {
       const learned = getLearned();
@@ -3390,16 +3514,18 @@ document.addEventListener('DOMContentLoaded', () => {
       applyLearned();
     });
     document.getElementById('food-reset-btn')?.addEventListener('click', () => {
-      if (!confirm('Сбросить весь прогресс Food?')) return;
-      const learned = getLearned();
-      document.querySelectorAll('#food-page [id].dish-card').forEach(c => learned.delete(c.id));
-      saveLearned(learned); applyLearned();
+      showModal('Сбросить прогресс Food', 'Все отметки "Изучено" в разделе Food будут удалены. Это действие нельзя отменить.', () => {
+        const learned = getLearned();
+        document.querySelectorAll('#food-page [id].dish-card').forEach(c => learned.delete(c.id));
+        saveLearned(learned); applyLearned();
+      });
     });
     document.getElementById('bev-reset-btn')?.addEventListener('click', () => {
-      if (!confirm('Сбросить весь прогресс Beverage?')) return;
-      const learned = getLearned();
-      document.querySelectorAll('#bev-page [id].cocktail-card, #bev-page [id].bev-card').forEach(c => learned.delete(c.id));
-      saveLearned(learned); applyLearned();
+      showModal('Сбросить прогресс Beverage', 'Все отметки "Изучено" в разделе Beverage будут удалены. Это действие нельзя отменить.', () => {
+        const learned = getLearned();
+        document.querySelectorAll('#bev-page [id].cocktail-card, #bev-page [id].bev-card').forEach(c => learned.delete(c.id));
+        saveLearned(learned); applyLearned();
+      });
     });
     applyLearned();
   }
@@ -4341,6 +4467,19 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 
 <!-- ════════════ TOAST NOTIFICATION ════════════ -->
+<!-- ════════════ CUSTOM MODAL ════════════ -->
+<div class="custom-modal-overlay" id="custom-modal-overlay">
+  <div class="custom-modal">
+    <h3 id="modal-title">Подтвердите действие</h3>
+    <p id="modal-message">Вы уверены?</p>
+    <div class="custom-modal-btns">
+      <button class="custom-modal-cancel" id="modal-cancel">Отмена</button>
+      <button class="custom-modal-confirm" id="modal-confirm">Сбросить</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ QUIZ SCORE BAR ════════════ -->
 <div id="hint-toast" class="toast-notification">
   <span class="toast-icon">💡</span>
   <span class="toast-text">Нажмите на <span class="toast-hl">подчеркнутый текст</span>, чтобы прочитать подробную подсказку (глоссарий).</span>
