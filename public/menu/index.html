@@ -91,7 +91,8 @@
   }
   .tab-btn.active { color: var(--gold-light); }
   .tab-btn:hover { color: var(--gold); }
-  .tab-btn .tab-icon { display: block; font-size: 1.4rem; margin-bottom: 2px; }
+  .tab-btn .tab-icon { display: flex; align-items: center; justify-content: center; margin-bottom: 3px; }
+  .tab-btn .tab-icon svg { width: 22px; height: 22px; }
 
   /* ── SUB-NAV ── */
   .sub-nav {
@@ -393,9 +394,17 @@
     .compare-table td:last-child { border-bottom: none; }
     .compare-table td:first-child { background: var(--dark); color: var(--gold-light) !important; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
     .compare-table td:not(:first-child)[data-label]::before { content: attr(data-label); display: block; font-size: 0.7rem; font-weight: 700; color: var(--light-text); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 3px; }
-    /* ── BEV-TABLE: горизонтальный скролл ── */
-    .bev-table { font-size: 0.75rem; display: block; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; }
-    .bev-table th, .bev-table td { padding: 6px 8px !important; }
+    /* ── BEV-TABLE: card-stack на мобильных (как compare-table) ── */
+    .bev-table { display: block; overflow: visible; border: none; }
+    .bev-table thead { display: none; }
+    .bev-table tbody, .bev-table tr { display: block; }
+    .bev-table tr { border: 1px solid var(--bev-divider); border-radius: 6px; margin-bottom: 10px; overflow: hidden; background: var(--bev-card); }
+    .bev-table td { display: block; white-space: normal !important; padding: 9px 12px !important; border-bottom: 1px solid var(--bev-divider); font-size: 0.88rem; }
+    .bev-table td:last-child { border-bottom: none; }
+    .bev-table td:first-child { background: var(--bev-dark); color: var(--bev-accent-light) !important; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+    .bev-table td:not(:first-child)[data-label]::before { content: attr(data-label); display: block; font-size: 0.7rem; font-weight: 700; color: var(--bev-accent); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 3px; }
+    [data-theme="dark"] .bev-table tr { background: var(--bev-card); border-color: var(--bev-divider); }
+    [data-theme="dark"] .bev-table td:first-child { background: #101820; }
     .section-title { font-size: 1.3rem; margin: 32px 0 16px; }
     .prep-grid { grid-template-columns: 1fr; gap: 10px; }
     .wrapper { padding: 16px 12px; }
@@ -451,6 +460,166 @@
   [data-theme="dark"] .quick-ref { background: #141210; }
   [data-theme="dark"] .quick-ref.bev { background: #0e1620; }
   [data-theme="dark"] footer { border-top-color: #282018; color: #706048; }
+  /* ── PWA INSTALL BANNER ── */
+  .pwa-install-banner {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 9000;
+    background: rgba(20, 20, 20, 0.97); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    color: #f0f0f0; padding: 16px 18px; display: flex; align-items: center; gap: 14px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.4);
+    transform: translateY(100%); transition: transform 0.4s cubic-bezier(0.2, 0, 0, 1);
+  }
+  .pwa-install-banner.show { transform: translateY(0); }
+  .pwa-install-banner .pwa-icon { font-size: 1.6rem; flex-shrink: 0; }
+  .pwa-install-banner .pwa-text { flex: 1; font-size: 0.88rem; line-height: 1.4; }
+  .pwa-install-banner .pwa-text strong { color: var(--gold-light); }
+  .pwa-install-banner .pwa-btn {
+    background: var(--gold); color: #1a1208; border: none; border-radius: 8px;
+    padding: 9px 18px; font-family: 'Playfair Display', serif; font-size: 0.85rem;
+    font-weight: 700; cursor: pointer; white-space: nowrap; flex-shrink: 0;
+  }
+  .pwa-install-banner .pwa-close {
+    background: none; border: none; color: #888; font-size: 1.4rem; cursor: pointer;
+    padding: 4px; line-height: 1; flex-shrink: 0;
+  }
+  .pwa-install-banner .pwa-close:hover { color: #fff; }
+  /* Push toast above PWA banner when both visible */
+  body.pwa-active .toast-notification { bottom: calc(24px + 84px); }
+
+  /* ── ACTIVE NAV LINK ── */
+  .sub-nav a.active-section { background: var(--gold); color: var(--dark); }
+  .bev-nav a.active-section { background: var(--bev-accent); color: #fff; }
+
+  /* ── QUICK FILTERS ── */
+  .filter-bar {
+    display: flex; gap: 8px; padding: 10px 16px; overflow-x: auto; scrollbar-width: none;
+    background: var(--section-bg); border-bottom: 1px solid var(--divider);
+    position: sticky; top: calc(var(--tab-height, 66px) + 48px); z-index: 90;
+  }
+  .filter-bar::-webkit-scrollbar { display: none; }
+  .filter-btn {
+    padding: 6px 14px; border-radius: 20px; border: 1px solid var(--divider);
+    background: var(--card-bg); color: var(--medium); font-family: 'Crimson Pro', serif;
+    font-size: 0.85rem; cursor: pointer; white-space: nowrap; transition: all 0.2s;
+    touch-action: manipulation; -webkit-tap-highlight-color: transparent; flex-shrink: 0;
+  }
+  .filter-btn.filter-active { background: var(--gold); color: var(--dark); border-color: var(--gold); font-weight: 600; }
+  .filter-count { font-size: 0.78rem; color: var(--light-text); padding: 4px 16px 8px; display: block; }
+  .dish-card.filter-hidden { display: none; }
+  [data-theme="dark"] .filter-bar { background: #1a1610; border-color: #3a2e18; }
+  [data-theme="dark"] .filter-btn { background: #2a2010; color: var(--gold-light); border-color: #3a2e18; }
+  [data-theme="dark"] .filter-btn.filter-active { background: var(--gold); color: var(--dark); }
+
+  /* ── QUIZ MODE ── */
+  .quiz-btn {
+    margin-left: auto; padding: 6px 14px; border-radius: 20px;
+    border: 1px solid var(--gold); background: transparent; color: var(--gold);
+    font-family: 'Crimson Pro', serif; font-size: 0.85rem; cursor: pointer;
+    white-space: nowrap; transition: all 0.2s; touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .quiz-btn.active { background: var(--gold); color: var(--dark); }
+  .bev-quiz-btn {
+    margin-left: auto; padding: 6px 14px; border-radius: 20px;
+    border: 1px solid var(--bev-accent); background: transparent; color: var(--bev-accent-light);
+    font-family: 'Crimson Pro', serif; font-size: 0.85rem; cursor: pointer;
+    white-space: nowrap; transition: all 0.2s; touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .bev-quiz-btn.active { background: var(--bev-accent); color: #fff; }
+  body.quiz-food .dish-card { cursor: pointer; position: relative; }
+  body.quiz-food .dish-card .ingredients,
+  body.quiz-food .dish-card .tag-row,
+  body.quiz-food .dish-card .memory,
+  body.quiz-food .dish-card .flex-note,
+  body.quiz-food .dish-card > p:not(:first-of-type) { opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+  body.quiz-food .dish-card::after {
+    content: 'Нажмите для ответа'; position: absolute; bottom: 10px; right: 12px;
+    font-size: 0.75rem; color: var(--light-text); font-style: italic;
+  }
+  body.quiz-food .dish-card.quiz-revealed .ingredients,
+  body.quiz-food .dish-card.quiz-revealed .tag-row,
+  body.quiz-food .dish-card.quiz-revealed .memory,
+  body.quiz-food .dish-card.quiz-revealed .flex-note,
+  body.quiz-food .dish-card.quiz-revealed > p:not(:first-of-type) { opacity: 1; pointer-events: auto; }
+  body.quiz-food .dish-card.quiz-revealed::after { content: '✓'; color: var(--green); font-style: normal; font-size: 1rem; }
+  body.quiz-bev .cocktail-card { cursor: pointer; position: relative; }
+  body.quiz-bev .cocktail-card .c-ingredients,
+  body.quiz-bev .cocktail-card .c-style { opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+  body.quiz-bev .cocktail-card::after { content: 'Нажмите для ответа'; position: absolute; bottom: 8px; right: 10px; font-size: 0.72rem; color: var(--bev-accent); font-style: italic; }
+  body.quiz-bev .cocktail-card.quiz-revealed .c-ingredients,
+  body.quiz-bev .cocktail-card.quiz-revealed .c-style { opacity: 1; pointer-events: auto; }
+  body.quiz-bev .cocktail-card.quiz-revealed::after { content: '✓'; color: var(--bev-accent); font-style: normal; }
+  body.quiz-bev .bev-card { cursor: pointer; position: relative; }
+  body.quiz-bev .bev-card .bev-notes,
+  body.quiz-bev .bev-card .memory { opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+  body.quiz-bev .bev-card::after { content: 'Нажмите для ответа'; position: absolute; bottom: 8px; right: 12px; font-size: 0.72rem; color: var(--bev-accent); font-style: italic; }
+  body.quiz-bev .bev-card.quiz-revealed .bev-notes,
+  body.quiz-bev .bev-card.quiz-revealed .memory { opacity: 1; pointer-events: auto; }
+  body.quiz-bev .bev-card.quiz-revealed::after { content: '✓'; color: var(--bev-accent); font-style: normal; }
+
+  /* ── PROGRESS TRACKING ── */
+  .learned-btn {
+    position: absolute; top: 8px; right: 8px; width: 26px; height: 26px;
+    border-radius: 50%; border: 2px solid var(--divider); background: var(--card-bg);
+    cursor: pointer; font-size: 0.75rem; display: flex; align-items: center;
+    justify-content: center; color: transparent; transition: all 0.2s; z-index: 2;
+    touch-action: manipulation; -webkit-tap-highlight-color: transparent; flex-shrink: 0;
+  }
+  .learned-btn:hover { border-color: var(--green); }
+  .dish-card { position: relative; }
+  .dish-card.learned { opacity: 0.65; }
+  .dish-card.learned .learned-btn { background: var(--green); border-color: var(--green); color: #fff; }
+  .cocktail-card { position: relative; }
+  .cocktail-card.learned { opacity: 0.65; }
+  .cocktail-card.learned .learned-btn { background: var(--bev-accent); border-color: var(--bev-accent); color: #fff; }
+  .bev-card { position: relative; }
+  .bev-card.learned { opacity: 0.65; }
+  .bev-card.learned .learned-btn { background: var(--bev-accent); border-color: var(--bev-accent); color: #fff; }
+  .learned-btn .check-icon { font-size: 0.8rem; }
+  .progress-counter {
+    font-size: 0.78rem; padding: 0 12px; color: var(--light-text);
+    display: flex; align-items: center; gap: 6px; white-space: nowrap;
+  }
+  .progress-counter.bev { color: var(--bev-accent-light); }
+  .reset-progress-btn {
+    padding: 4px 10px; border-radius: 12px; border: 1px solid var(--divider);
+    background: transparent; color: var(--light-text); font-size: 0.75rem;
+    cursor: pointer; touch-action: manipulation; transition: all 0.2s;
+  }
+  .reset-progress-btn:hover { border-color: var(--red-flag); color: var(--red-flag); }
+
+  /* ── FAQ ── */
+  .faq-item {
+    border: 1px solid var(--divider); border-radius: 8px; margin-bottom: 10px;
+    overflow: hidden; background: var(--card-bg);
+  }
+  .faq-question {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 16px; cursor: pointer; font-family: 'Playfair Display', serif;
+    font-size: 0.92rem; font-weight: 400; color: var(--charcoal);
+    touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+    user-select: none; -webkit-user-select: none;
+  }
+  .faq-question:hover { background: var(--section-bg); }
+  .faq-icon { font-size: 1.1rem; color: var(--gold); flex-shrink: 0; margin-left: 12px; transition: transform 0.25s; }
+  .faq-item.open .faq-icon { transform: rotate(45deg); }
+  .faq-answer {
+    max-height: 0; overflow: hidden; transition: max-height 0.35s ease, padding 0.25s;
+    padding: 0 16px; font-size: 0.88rem; line-height: 1.6; color: var(--charcoal);
+  }
+  .faq-item.open .faq-answer { max-height: 400px; padding: 0 16px 14px; }
+  .faq-answer ul { padding-left: 16px; margin: 6px 0; }
+  .faq-answer li { margin-bottom: 4px; }
+  .faq-answer strong { color: var(--dark); }
+  [data-theme="dark"] .faq-item { border-color: #3a2e18; background: var(--card-bg); }
+  [data-theme="dark"] .faq-question { color: #d4c4a0; }
+  [data-theme="dark"] .faq-question:hover { background: #1e1a10; }
+  [data-theme="dark"] .faq-answer { color: #b8a880; }
+
+  /* ── PREVENT ZOOM ON BUTTONS (iOS) ── */
+  .search-nav-btn, .search-btn, .search-clear, .theme-toggle, .scroll-top-btn, .tab-btn, .pwa-btn, .pwa-close { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+
   [data-theme="dark"] .whats-new-block.wnb-changed { background: #241e08; border-color: #585000; color: #c8b040; }
   [data-theme="dark"] .whats-new-block.wnb-changed h3 { color: #d4b848; }
   [data-theme="dark"] .whats-new-block.wnb-changed ul { color: #b8a860; }
@@ -461,9 +630,11 @@
   [data-theme="dark"] .whats-new-block.wnb-removed h3 { color: #d07070; }
   [data-theme="dark"] .whats-new-block.wnb-removed ul { color: #b88080; }
   [data-theme="dark"] .whats-new-block.wnb-removed p { color: #a08080; }
-  [data-theme="dark"] .bev-table td { background: var(--bev-card); color: #a0b8c8; }
+  [data-theme="dark"] .bev-table { border: 1px solid var(--bev-divider); }
+  [data-theme="dark"] .bev-table td { background: var(--bev-card); color: #c0d4e0; border-bottom-color: var(--bev-divider); }
   [data-theme="dark"] .bev-table tr:nth-child(even) td { background: #162028; }
   [data-theme="dark"] .bev-table th { background: #101820; }
+  [data-theme="dark"] .bev-table td:first-child { color: var(--bev-accent-light); }
   [data-theme="dark"] .tag.allergy { background: #2a1010; color: #e08080; border-color: #602020; }
   [data-theme="dark"] .tag.wine { background: #10142a; color: #8090d0; border-color: #283060; }
   [data-theme="dark"] .tag.method { background: #2a2410; color: #d0b060; border-color: #504010; }
@@ -478,8 +649,20 @@
   [data-theme="dark"] .sub-nav.bev-nav { background: #0e1418; }
   [data-theme="dark"] .dish-card p { color: var(--medium); }
   [data-theme="dark"] .dish-card .ingredients { color: #988860; }
-  [data-theme="dark"] .bev-card p { color: #8098a8; }
-  [data-theme="dark"] .bev-card .bev-notes { color: #8098a8; }
+  [data-theme="dark"] .bev-card p { color: #a0bcc8; }
+  [data-theme="dark"] .bev-card .bev-notes { color: #90b0c0; }
+  [data-theme="dark"] .bev-card .bev-name { color: #e0eff8; }
+  [data-theme="dark"] .bev-card .bev-sub { color: var(--bev-accent-light); }
+  [data-theme="dark"] .section-title.bev { color: #c8dce8; }
+  [data-theme="dark"] .subsection.bev { color: var(--bev-accent-light); }
+  [data-theme="dark"] .cocktail-card { background: var(--bev-card); border-color: var(--bev-divider); }
+  [data-theme="dark"] .cocktail-card .c-name { color: #e0eff8; }
+  [data-theme="dark"] .cocktail-card .c-ingredients { color: #a0bcc8; }
+  [data-theme="dark"] .cocktail-card .c-style { color: var(--bev-accent-light); }
+  [data-theme="dark"] .fort-card.bev-fort { background: var(--bev-card); border-color: var(--bev-divider); border-left-color: var(--bev-accent); }
+  [data-theme="dark"] .fort-card .f-name { color: #e0d8a0; }
+  [data-theme="dark"] .fort-card .f-origin { color: #b0a070; }
+  [data-theme="dark"] .alert.bev-info { background: #0e1824; border-color: #1e4058; color: #90c8e0; }
   [data-theme="dark"] .region-speyside { background: #2a2010; color: #d0a840; border-color: #585020; }
   [data-theme="dark"] .region-highland { background: #102010; color: #60b040; border-color: #305020; }
   [data-theme="dark"] .region-islay { background: #101428; color: #7080d0; border-color: #283060; }
@@ -662,10 +845,10 @@
 <!-- ════ MAIN TAB BAR ════ -->
 <div class="tab-bar" role="tablist">
   <button class="tab-btn active" id="tab-food" role="tab" aria-selected="true">
-    <span class="tab-icon">🍽️</span>FOOD
+    <span class="tab-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/><path d="M12 2v2"/><path d="M4.93 4.93l1.41 1.41"/><path d="M2 12h2"/><circle cx="12" cy="12" r="4"/></svg></span>FOOD
   </button>
   <button class="tab-btn" id="tab-bev" role="tab" aria-selected="false">
-    <span class="tab-icon">🍾</span>BEVERAGE
+    <span class="tab-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2h8l-1 9H9L8 2z"/><path d="M9 11l-1 9h8l-1-9"/><path d="M6 22h12"/><path d="M10 2c0 0 .5-1 2-1s2 1 2 1"/></svg></span>BEVERAGE
   </button>
   <button class="search-btn" id="search-toggle-btn" aria-label="Поиск" title="Поиск"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button>
   <button class="theme-toggle" id="theme-toggle-btn" aria-label="Сменить тему" title="Тёмная / Светлая тема"><svg id="theme-icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></svg><svg id="theme-icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></button>
@@ -680,6 +863,14 @@
     <button class="search-nav-btn" id="search-next" aria-label="Следующий" disabled><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
     <button class="search-clear" id="search-clear" aria-label="Закрыть поиск"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
   </div>
+</div>
+
+<!-- ════ PWA INSTALL BANNER ════ -->
+<div class="pwa-install-banner" id="pwa-install-banner">
+  <span class="pwa-icon">📲</span>
+  <div class="pwa-text"><strong>RC Menu</strong> — добавьте на главный экран для быстрого доступа</div>
+  <button class="pwa-btn" id="pwa-install-btn">Установить</button>
+  <button class="pwa-close" id="pwa-install-close" aria-label="Закрыть">×</button>
 </div>
 
 <!-- ════ SCROLL TO TOP ════ -->
@@ -707,7 +898,20 @@
   <a href="#wines">🍷 Вина</a>
   <a href="#preps">🔥 Прожарки</a>
   <a href="#flex">🎯 Гибкость</a>
+  <a href="#faq">❓ FAQ</a>
+  <button class="quiz-btn" id="quiz-food-btn" aria-label="Режим экзамена">🎓 Экзамен</button>
+  <span class="progress-counter" id="food-progress-counter"></span>
+  <button class="reset-progress-btn" id="food-reset-btn" title="Сбросить прогресс">🔄</button>
 </nav>
+
+<div class="filter-bar" id="food-filter-bar">
+  <button class="filter-btn filter-active" data-filter="all">Все</button>
+  <button class="filter-btn" data-filter="vegan">🌱 Веган</button>
+  <button class="filter-btn" data-filter="gluten-free">🌾 Без глютена</button>
+  <button class="filter-btn" data-filter="spicy">🌶️ Острое</button>
+  <button class="filter-btn" data-filter="fast">⚡ Быстрое</button>
+</div>
+<span class="filter-count" id="filter-count"></span>
 
 <header class="food-header">
   <span class="ornament">✦ ✦ ✦ ✦ ✦</span>
@@ -719,7 +923,7 @@
 
 <!-- ════════════ WHAT'S NEW ════════════ -->
 <section id="whats-new" style="margin-bottom:0;">
-  <h2 class="section-title" style="margin-top:0;"><span class="emoji">🆕</span> Что нового в меню 2026</h2>
+  <h2 class="section-title" style="margin-top:0;"><span class="emoji">🆕</span> Что нового — обновлено апрель 2026</h2>
   <div class="whats-new-grid">
 
     <div class="whats-new-block wnb-changed">
@@ -774,7 +978,7 @@
       <div class="memory">После каждой секции закрой шпаргалку и объясни блюдо вслух воображаемому гостю.</div>
     </div>
     <div class="dish-card" style="border-left-color:#9040d0;">
-      <div class="dish-name">Группировка по соусам</div>
+      <div class="dish-name"><span style="background:var(--gold);color:var(--dark);padding:2px 8px;border-radius:10px;">Группировка по соусам</span></div>
       <p>Сливочные: Порчини, Альфредо, Цыплёнок. Томатные: Болоньезе, Аррабиата, Дьявола, Маргарита. Демиглас: Тендерлойн, Рибай, Тальятеле с рагу, Щёчки, Казеречче. Масло+Чеснок: Лингуини Вонголе. Знаешь соус — знаешь разницу.</p>
       <div class="memory">Нарисуй 4 кружка: Томат / Сливки / Демиглас / Алио Олио — впиши блюда.</div>
     </div>
@@ -852,7 +1056,8 @@
 <section id="soups">
   <h2 class="section-title"><span class="emoji">🍜</span> Супы</h2>
   <div class="card-grid">
-    <div class="dish-card">
+    <div class="dish-card" id="dc-borsch" data-tags="gluten-free fast">
+      <button class="learned-btn" aria-label="Отметить изученным"><span class="check-icon">✓</span></button>
       <div class="dish-name">Борщ</div>
       <p>Свекольный суп с говядиной. Подаётся со сметаной. Восточнославянское блюдо. 10–15 мин.</p>
       <div class="ingredients">Говядина, свёкла, картофель, капуста, морковь → сметана</div>
@@ -860,7 +1065,8 @@
       <div class="flex-note">✓ Предлагать хлеб</div>
       <div class="memory">Единственный мясной суп. Красный цвет = свёкла.</div>
     </div>
-    <div class="dish-card">
+    <div class="dish-card" id="dc-minestrone" data-tags="vegan gluten-free fast">
+      <button class="learned-btn" aria-label="Отметить изученным"><span class="check-icon">✓</span></button>
       <div class="dish-name">Минестроне</div>
       <p>«Большой суп» — итальянский с перловкой и овощами. «Суп долгожителей». 10–15 мин.</p>
       <div class="ingredients">Перловка, цуккини, базилик, помидоры, морковь, белая фасоль, сельдерей</div>
@@ -868,9 +1074,10 @@
       <div class="flex-note">✓ Предлагать хлеб · Без кондиментов</div>
       <div class="memory">Единственный веганский суп.</div>
     </div>
-    <div class="dish-card">
+    <div class="dish-card" id="dc-chicken-soup" data-tags="fast">
+      <button class="learned-btn" aria-label="Отметить изученным"><span class="check-icon">✓</span></button>
       <div class="dish-name">Куриный суп Лапша</div>
-      <p>Куриный суп с яичной лапшой и курицей. Петрушка в украшении. 10–15 мин.</p>
+      <p>Классический бульон, сваренный из целой курицы, с яичной лапшой. Петрушка в украшении. 10–15 мин.</p>
       <div class="ingredients">Куриный бульон, курица, яичная лапша, соль, перец → петрушка</div>
       <div class="tag-row"><span class="tag allergy">Глютен</span><span class="tag allergy">Яйцо</span></div>
       <div class="flex-note">✓ Предлагать хлеб</div>
@@ -882,7 +1089,8 @@
 <section id="salads">
   <h2 class="section-title"><span class="emoji">🥗</span> Салаты</h2>
   <div class="card-grid">
-    <div class="dish-card">
+    <div class="dish-card" id="dc-greek-salad" data-tags="gluten-free fast">
+      <button class="learned-btn" aria-label="Отметить изученным"><span class="check-icon">✓</span></button>
       <div class="dish-name">Традиционный Греческий Салат</div>
       <p>«Хориатики» — деревенский греческий. Заправка: лимон + оливковое масло. 10–15 мин.</p>
       <div class="ingredients">Огурец, томаты, помидоры черри, капсикум, красный лук, Фета, оливки, каперсы, базилик, петрушка, орегано</div>
@@ -890,14 +1098,16 @@
       <p style="margin-top:5px;"><strong>Вино:</strong> Hans Greyl SB / Tunella SB</p>
       <div class="memory">Фета = овечье молоко, выдержка 3+ мес. Каперсы = бутоны, солёные и пикантные. Капсикум = декоративный мексиканский перец.</div>
     </div>
-    <div class="dish-card">
+    <div class="dish-card" id="dc-mineral-salad" data-tags="vegan gluten-free fast">
+      <button class="learned-btn" aria-label="Отметить изученным"><span class="check-icon">✓</span></button>
       <div class="dish-name">Минеральный салат</div>
       <p>Сырые овощи, заправка мята+лайм. +Халлуми по желанию. 10–15 мин.</p>
       <div class="ingredients">Свёкла, белая+краснокочанная капуста, корень сельдерея, шпинат, морковь, ромэн, фисташки, цуккини</div>
       <div class="tag-row"><span class="tag allergy">Сельдерей</span><span class="tag allergy">Орехи</span><span class="tag custom">+Халлуми (Лактоза)</span><span class="tag veg">Веган (без халлуми)</span></div>
       <p style="margin-top:5px;"><strong>Вино:</strong> Arba Sary Rkatseteli</p>
     </div>
-    <div class="dish-card">
+    <div class="dish-card" id="dc-caesar" data-tags="fast">
+      <button class="learned-btn" aria-label="Отметить изученным"><span class="check-icon">✓</span></button>
       <div class="dish-name">Классический Салат Цезарь</div>
       <p>Назван в честь <strong>Цезаря Кардини</strong> (Тихуана, Мексика, 1920-е). Не Юлий Цезарь! +Курица / +Креветки / +Халлуми. 10–15 мин.</p>
       <div class="ingredients">Ромэн, крутоны, пармезан → заправка: желток, горчица, чеснок, <strong>анчоусы</strong>, вустер, табаско</div>
@@ -905,7 +1115,8 @@
       <p style="margin-top:5px;"><strong>Вино:</strong> Voche Blanco Chardonnay</p>
       <div class="memory"><strong>Анчоусы в заправке = Рыба</strong> — даже без добавок. Самый важный факт про Цезарь.</div>
     </div>
-    <div class="dish-card">
+    <div class="dish-card" id="dc-kale" data-tags="gluten-free fast">
+      <button class="learned-btn" aria-label="Отметить изученным"><span class="check-icon">✓</span></button>
       <div class="dish-name">Кейл Салат</div>
       <p>Азиатский хрустящий. Кале = горьковатый, как шпинат. Шиитаке — только шляпки. 10–15 мин.</p>
       <div class="ingredients">Кале, брокколи (мисо+уксус), шиитаке (кунжут+мёд+соевый), кешью, семена тыквы, эдамаме → куркума + соево-имбирная заправка</div>
@@ -919,31 +1130,36 @@
 <section id="starters">
   <h2 class="section-title"><span class="emoji">🍤</span> Закуски — 15–20 мин</h2>
   <div class="card-grid">
-    <div class="dish-card">
+    <div class="dish-card" id="dc-wings-buffalo" data-tags="spicy fast">
+      <button class="learned-btn" aria-label="Отметить изученным"><span class="check-icon">✓</span></button>
       <div class="dish-name">Куриные Крылья — Буффало 🌶️</div>
       <p><strong>Острые.</strong> 6 штук. Маринад в молоке 12 ч. Соус: Шрирача + сливочное масло. 15–20 мин.</p>
       <div class="tag-row"><span class="tag allergy">Глютен</span><span class="tag allergy">Яйцо</span><span class="tag allergy">Лактоза</span></div>
     </div>
-    <div class="dish-card">
+    <div class="dish-card" id="dc-wings-bbq" data-tags="fast">
+      <button class="learned-btn" aria-label="Отметить изученным"><span class="check-icon">✓</span></button>
       <div class="dish-name">Куриные Крылья — Барбекю 🍯</div>
       <p><strong>Сладкие.</strong> Тот же рецепт. Соус: Барбекю + кленовый сироп. Украшение кунжут. 15–20 мин.</p>
       <div class="tag-row"><span class="tag allergy">Глютен</span><span class="tag allergy">Яйцо</span><span class="tag allergy">Лактоза</span><span class="tag allergy">Семена</span></div>
       <div class="memory">Буффало vs Барбекю: <strong>только соус</strong> разный. У Барбекю добавляется аллерген «Семена» (кунжут).</div>
     </div>
-    <div class="dish-card">
+    <div class="dish-card" id="dc-shrimp-cakes" data-tags="gluten-free fast">
+      <button class="learned-btn" aria-label="Отметить изученным"><span class="check-icon">✓</span></button>
       <div class="dish-name">Котлеты из Креветок</div>
       <p>Азиатские котлеты из мякоти креветок с листьями шисо (японская мята). Йогуртовый соус чили-лайм. 15–20 мин.</p>
       <div class="ingredients">Мякоть креветок, шисо, имбирь, куркума, зелёный чили → йогуртовый соус (чили, лайм, кинза)</div>
       <div class="tag-row"><span class="tag allergy">Яйцо</span><span class="tag allergy">Лактоза</span><span class="tag allergy">Цитрус</span><span class="tag allergy">Мёд</span></div>
     </div>
-    <div class="dish-card">
+    <div class="dish-card" id="dc-fish-chips" data-tags="fast">
+      <button class="learned-btn" aria-label="Отметить изученным"><span class="check-icon">✓</span></button>
       <div class="dish-name">Фиш энд Чипс</div>
       <p><strong>Дикий Средиземноморский Сибас</strong> (170г) в кляре темпура. Британское нац. блюдо. Традиционно с тёмным пивом — у нас с газированной водой. 15–20 мин.</p>
       <div class="ingredients">Сибас в кляре + картофель каджун + соус тартар + соус из горошка</div>
       <div class="tag-row"><span class="tag allergy">Яйцо</span><span class="tag allergy">Горчица</span><span class="tag allergy">Рыба</span><span class="tag allergy">Глютен</span><span class="tag allergy">Лактоза</span></div>
       <div class="memory">Дикий сибас = ловится в море, не ферма → потому дороже.</div>
     </div>
-    <div class="dish-card">
+    <div class="dish-card" id="dc-dynamite-shrimp" data-tags="spicy fast">
+      <button class="learned-btn" aria-label="Отметить изученным"><span class="check-icon">✓</span></button>
       <div class="dish-name">Креветки Динамит</div>
       <p>Тигровые креветки во фритюре (темпура). Соус «Динамит»: шрирача + сладкий чили + мёд + майонез. 15–20 мин.</p>
       <div class="tag-row"><span class="tag allergy">Глютен</span><span class="tag allergy">Рак</span><span class="tag allergy">Лактоза</span><span class="tag allergy">Семена</span><span class="tag allergy">Яйцо</span></div>
@@ -956,45 +1172,52 @@
   <h2 class="section-title"><span class="emoji">🍝</span> Паста</h2>
   <div class="alert success"><span class="alert-icon">✅</span><div><strong>Выбор пасты (5 из 7):</strong> Тальятелле / Пенне (GF) / Спагетти (GF). Al dente. Тальятеле с рагу, Казеречче — паста фиксирована. Лингуини Вонголе — паста на выбор.</div></div>
   <div class="card-grid">
-    <div class="dish-card">
+    <div class="dish-card" id="dc-arrabiata" data-tags="spicy">
+      <button class="learned-btn" aria-label="Отметить изученным"><span class="check-icon">✓</span></button>
       <div class="dish-name">Аррабиата</div>
       <p>«Сердитая» — острый томатный соус. Самая простая. Подаётся с пармезаном. 10–15 мин.</p>
       <div class="ingredients">Чеснок, перец чили, оливковое масло, томат Мутти → пармезан</div>
       <div class="tag-row"><span class="tag allergy">Лактоза</span><span class="tag allergy">Глютен</span><span class="tag veg">Веган (без пармезана)</span><span class="tag method">🌶️ Острая</span></div>
     </div>
-    <div class="dish-card">
+    <div class="dish-card" id="dc-bolognese">
+      <button class="learned-btn" aria-label="Отметить изученным"><span class="check-icon">✓</span></button>
       <div class="dish-name">Болоньезе</div>
       <p>Мясной соус из Болоньи, конец XVIII в. Исторически — с тальятелле. 15–20 мин.</p>
       <div class="ingredients">Фарш, томат Пилати Мутти, морковь, сельдерей, красное вино, лук, чеснок</div>
       <div class="tag-row"><span class="tag allergy">Диоксид</span><span class="tag allergy">Глютен</span><span class="tag allergy">Сельдерей</span><span class="tag allergy">Яйцо</span></div>
     </div>
-    <div class="dish-card">
+    <div class="dish-card" id="dc-porcini">
+      <button class="learned-btn" aria-label="Отметить изученным"><span class="check-icon">✓</span></button>
       <div class="dish-name">Порчини</div>
       <p>Белое грибное рагу — сливочное, без мяса. Гриб порчини = аромат каштана и фундука. 15–20 мин.</p>
       <div class="ingredients">Шампиньоны, белое вино, шалот, чеснок, сливки, тимьян</div>
       <div class="tag-row"><span class="tag allergy">Диоксид</span><span class="tag allergy">Глютен</span><span class="tag allergy">Лактоза</span><span class="tag veg">Вегетарианская</span></div>
       <div class="memory">Porcini = «свинёнок» по-итальянски (из-за формы). Единственная вегетарианская паста с белым соусом.</div>
     </div>
-    <div class="dish-card">
+    <div class="dish-card" id="dc-alfredo" data-tags="gluten-free">
+      <button class="learned-btn" aria-label="Отметить изученным"><span class="check-icon">✓</span></button>
       <div class="dish-name">Альфредо</div>
       <p>Рим, нач. XX в., Альфредо ди Лелио. Сливочный соус с грибами и пармезаном. Белок на выбор. 15–20 мин.</p>
       <div class="ingredients">Сливки, шампиньоны, пармезан, белое вино, тимьян → + курица ИЛИ тигровые креветки</div>
       <div class="tag-row"><span class="tag allergy">Алкоголь</span><span class="tag allergy">Лактоза</span><span class="tag custom">Курица или Креветки</span></div>
     </div>
-    <div class="dish-card">
+    <div class="dish-card" id="dc-tagliatelle">
+      <button class="learned-btn" aria-label="Отметить изученным"><span class="check-icon">✓</span></button>
       <div class="dish-name">Тальятеле с рагу из Говядины</div>
       <p>Домашняя тальятеле (желток+мука) с говяжьими щёчками (5 ч при 150°С) + трюфельное масло. 10–15 мин.</p>
       <div class="ingredients">Домашняя тальятеле, говяжьи щёчки, красное вино, демиглас → зелёный соус (каперсы, мята, дижонская горчица) + трюфель</div>
       <div class="tag-row"><span class="tag allergy">Диоксид</span><span class="tag allergy">Лактоза</span><span class="tag allergy">Глютен</span><span class="tag allergy">Яйцо</span><span class="tag method">Паста фиксирована</span></div>
     </div>
-    <div class="dish-card">
+    <div class="dish-card" id="dc-caserecce">
+      <button class="learned-btn" aria-label="Отметить изученным"><span class="check-icon">✓</span></button>
       <div class="dish-name">Казеречче с Бараньей Голенью</div>
       <p>Caserecce = «домашняя» (casa = дом), из Сицилии. Ягнёнок томится 3 часа в печи. 10–15 мин.</p>
       <div class="ingredients">Казеречче, ягнёнок (3 ч в печи), пармезан, сливочное масло, демиглас, сливки, чили, лук-шалот, чеснок, петрушка</div>
       <div class="tag-row"><span class="tag allergy">Лактоза</span><span class="tag allergy">Глютен</span><span class="tag method">Паста фиксирована</span></div>
       <div class="memory">Раньше была с Ромеско и креветками — теперь с бараниной. Чили можно убрать, но соус станет слишком жирным.</div>
     </div>
-    <div class="dish-card">
+    <div class="dish-card" id="dc-linguine">
+      <button class="learned-btn" aria-label="Отметить изученным"><span class="check-icon">✓</span></button>
       <div class="dish-name">Лингуини Вонголе</div>
       <p>Linguine — «маленькие язычки», плоская длинная паста из Лигурии. Вонголе = моллюски. Соус Алио Олио = чеснок + масло. 15–20 мин.</p>
       <div class="ingredients">Паста на выбор, вонголе (моллюски), белое вино, лук-шалот, чеснок, чили, петрушка, оливковое масло, соус алио олио</div>
@@ -1014,30 +1237,35 @@
     </ul>
   </div>
   <div class="card-grid">
-    <div class="dish-card">
+    <div class="dish-card" id="dc-margherita">
+      <button class="learned-btn" aria-label="Отметить изученным"><span class="check-icon">✓</span></button>
       <div class="dish-name">Маргарита</div>
       <p>11 июня 1889, для королевы Маргариты Савойской. Цвета флага Италии.</p>
       <div class="ingredients">Томат Мутти, Моцарелла, Базилик, Оливковое масло, Чеснок</div>
       <div class="memory">Красный (томат) + белый (моцарелла) + зелёный (базилик) = флаг Италии. Самая «чистая» пицца.</div>
     </div>
-    <div class="dish-card">
+    <div class="dish-card" id="dc-burrata-pizza">
+      <button class="learned-btn" aria-label="Отметить изученным"><span class="check-icon">✓</span></button>
       <div class="dish-name">Пицца с Бурратой ⚠️</div>
       <p>База как Маргарита + Буррата. Буррата = шар моцареллы, внутри страчателла. <span class="highlight">Буррата распределена равномерно — всегда предупреждать гостя!</span></p>
       <div class="ingredients">Томат Мутти, Моцарелла, Буррата, Базилик, Оливковое масло</div>
       <div class="memory">Единственная пицца с обязательным предупреждением гостю. Буррата ≠ целая — она равномерно распределяется.</div>
     </div>
-    <div class="dish-card">
+    <div class="dish-card" id="dc-diavola" data-tags="spicy">
+      <button class="learned-btn" aria-label="Отметить изученным"><span class="check-icon">✓</span></button>
       <div class="dish-name">Дьявола 🌶️</div>
       <p>«Пепперони». <strong>Говяжья салями</strong> (не свинина). Острая за счёт свежего чили.</p>
       <div class="ingredients">Томат Пилати, Говяжья Салями, Перец Чили, Моцарелла → базилик</div>
       <div class="memory"><strong>Салями — говяжья, не свиная.</strong> Важно для гостей, которые не едят свинину.</div>
     </div>
-    <div class="dish-card">
+    <div class="dish-card" id="dc-tartufo">
+      <button class="learned-btn" aria-label="Отметить изученным"><span class="check-icon">✓</span></button>
       <div class="dish-name">Тартуфо 🍄</div>
       <p>Единственная <strong>без томатного соуса</strong>. Сливочно-трюфельная. Рецепт шефа Рикардо, вдохновлён Пьемонтом.</p>
       <div class="ingredients">Тартуфата, Маскарпоне, Творожный сыр, Шампиньоны, Моцарелла</div>
     </div>
-    <div class="dish-card">
+    <div class="dish-card" id="dc-quattro-formaggi">
+      <button class="learned-btn" aria-label="Отметить изученным"><span class="check-icon">✓</span></button>
       <div class="dish-name">Четыре Сыра</div>
       <p>4 сыра с разным характером. По выдержке: Моцарелла (часы) → Скаморца (5 дней) → Голубой (мес.) → Пармезан (12–36 мес.).</p>
       <div class="ingredients">Томат Мутти + Моцарелла + Пармезан + Голубой сыр + Скаморца</div>
@@ -1068,20 +1296,23 @@
   <h2 class="section-title"><span class="emoji">🥪</span> Сэндвичи</h2>
   <p style="color:var(--medium);margin-bottom:10px;font-size:0.88rem;">Все с картофелем фри + кетчуп/майонез/горчица. 15–20 мин.</p>
   <div class="card-grid">
-    <div class="dish-card">
+    <div class="dish-card" id="dc-club-sandwich" data-tags="fast">
+      <button class="learned-btn" aria-label="Отметить изученным"><span class="check-icon">✓</span></button>
       <div class="dish-name">Классический Клаб Сэндвич</div>
       <p>Трёхслойный американский сэндвич. Бекон: говяжий или свиной — уточнять у гостя.</p>
       <div class="ingredients">Белый тостовый хлеб × 3, куриная грудка, яйцо пашот, помидор, майонез, салат → бекон (говяжий или свиной)</div>
       <div class="tag-row"><span class="tag allergy">Лактоза</span><span class="tag allergy">Глютен</span><span class="tag allergy">Яйцо</span><span class="tag custom">Бекон на выбор</span></div>
       <div class="memory">«Club» = три слоя хлеба. Единственный сэндвич с выбором говяжьего или свиного бекона.</div>
     </div>
-    <div class="dish-card">
+    <div class="dish-card" id="dc-reuben" data-tags="fast">
+      <button class="learned-btn" aria-label="Отметить изученным"><span class="check-icon">✓</span></button>
       <div class="dish-name">Рубен Сэндвич</div>
       <p>Пастрами готовится <strong>12 дней</strong> (4 этапа). Сувид 5ч при 75°С. Американский гриль-сэндвич.</p>
       <div class="ingredients">Бездрожжевой хлеб, пастрами из говяжьей грудинки, квашеная капуста, маринованные огурцы, Качковалло, соус Рубен</div>
       <div class="tag-row"><span class="tag allergy">Лактоза</span><span class="tag allergy">Глютен</span></div>
     </div>
-    <div class="dish-card">
+    <div class="dish-card" id="dc-veg-sandwich" data-tags="fast">
+      <button class="learned-btn" aria-label="Отметить изученным"><span class="check-icon">✓</span></button>
       <div class="dish-name">Вегетарианский Сэндвич</div>
       <p>Бездрожжевой хлеб, Креметте (сливочный творожный сыр), авокадо краш, руккола. Фри из батата вместо обычного картофеля. 15–20 мин.</p>
       <div class="ingredients">Бездрожжевой хлеб, Креметте, вяленые томаты, авокадо краш, Чеддер, руккола → фри из батата</div>
@@ -1096,20 +1327,23 @@
   <h2 class="section-title"><span class="emoji">🍔</span> Бургеры</h2>
   <p style="color:var(--medium);margin-bottom:10px;font-size:0.88rem;">Все: картофельная булочка (с пюре), маринованные огурцы, луковые кольца (молоко 12 ч), картофель фри. 15–20 мин.</p>
   <div class="card-grid">
-    <div class="dish-card">
+    <div class="dish-card" id="dc-classic-burger" data-tags="fast">
+      <button class="learned-btn" aria-label="Отметить изученным"><span class="check-icon">✓</span></button>
       <div class="dish-name">Классический Говяжий / Куриный</div>
       <p>Котлета 250г: говяжья или куриная. Чатни из говяжьего бекона, чесночный айоли, чеддер (двойная порция), халапеньо. Домашний кетчуп.</p>
       <div class="ingredients">Картофельная булочка, котлета 250г, Чеддар ×2, маринованные огурцы, чесночный айоли, чатни из говяжьего бекона, халапеньо → фри с каджуном</div>
       <div class="tag-row"><span class="tag allergy">Лактоза</span><span class="tag allergy">Глютен</span><span class="tag allergy">Яйцо</span><span class="tag custom">Котлета на выбор</span></div>
     </div>
-    <div class="dish-card">
+    <div class="dish-card" id="dc-shitake-burger" data-tags="fast">
+      <button class="learned-btn" aria-label="Отметить изученным"><span class="check-icon">✓</span></button>
       <div class="dish-name">Шиитаке Бургер (Вегетарианский)</div>
       <p>Котлета без мяса — из грибов и нута. Баклажановый релиш + жареные вешенки. 15–20 мин.</p>
       <div class="ingredients">Картофельная булочка, котлета (шиитаке+нут+тахини+рис), баклажановый релиш, вешенки, маринованные огурцы → фри</div>
       <div class="tag-row"><span class="tag allergy">Бобы</span><span class="tag allergy">Семена</span><span class="tag allergy">Соя</span><span class="tag allergy">Лактоза</span><span class="tag allergy">Глютен</span><span class="tag veg">Вегетарианский</span></div>
       <div class="memory">Единственный вегетарианский бургер. Котлета — шиитаке + нут (не соевый текстурат).</div>
     </div>
-    <div class="dish-card">
+    <div class="dish-card" id="dc-wagyu-burger" data-tags="fast">
+      <button class="learned-btn" aria-label="Отметить изученным"><span class="check-icon">✓</span></button>
       <div class="dish-name">Вагю Бургер ⭐</div>
       <p>Котлета Вагю 250г. Японская порода. Исключительная мраморность, жир тает при низкой t. <strong>Рек. Medium Rare.</strong> Дорогой: особый рацион, отсутствие стресса, медленный рост.</p>
       <div class="ingredients">Картофельная булочка, Вагю котлета 250г, Чеддар ×2, маринованные огурцы, чесночный айоли, чатни из говяжьего бекона, халапеньо → фри с каджуном</div>
@@ -1122,61 +1356,71 @@
 <section id="mains">
   <h2 class="section-title"><span class="emoji">🥩</span> Основные блюда</h2>
   <div class="card-grid">
-    <div class="dish-card">
+    <div class="dish-card" id="dc-tenderloin" data-tags="gluten-free">
+      <button class="learned-btn" aria-label="Отметить изученным"><span class="check-icon">✓</span></button>
       <div class="dish-name">Говяжья вырезка (Тендерлойн) — 180г</div>
       <p>Самое нежное мясо туши — мышца почти не работает, нет жира. <span class="highlight">Рек. Rare/Medium Rare — нельзя пересушить!</span> 25–35 мин.</p>
       <div class="ingredients">Вырезка 180г + зелёный салат + Peppercorn соус (сливки, перец, шалот, демиглас)</div>
       <div class="tag-row"><span class="tag allergy">Лактоза</span><span class="tag method">⚠️ Спрашивать прожарку!</span></div>
     </div>
-    <div class="dish-card">
+    <div class="dish-card" id="dc-ribeye" data-tags="gluten-free">
+      <button class="learned-btn" aria-label="Отметить изученным"><span class="check-icon">✓</span></button>
       <div class="dish-name">Стейк Рибай — 300г</div>
       <p>Ribeye = rib + eye. Мраморная говядина, 6–12 ребро. Чем выше мраморность — тем сочнее. 25–35 мин.</p>
       <div class="ingredients">Рибай 300г + зелёный салат + Peppercorn соус (идентичен Тендерлойну)</div>
       <div class="tag-row"><span class="tag allergy">Лактоза</span><span class="tag method">⚠️ Спрашивать прожарку!</span></div>
     </div>
-    <div class="dish-card">
+    <div class="dish-card" id="dc-beef-cheeks" data-tags="gluten-free">
+      <button class="learned-btn" aria-label="Отметить изученным"><span class="check-icon">✓</span></button>
       <div class="dish-name">Говяжьи Щёчки — 200г</div>
       <p>Лицевая мышца → тающее сладковатое мясо. <strong>Сувид + 3 ч в печи при 150°С.</strong> 20–25 мин.</p>
       <div class="ingredients">Щёчки 200г, шимеджи, картофельное пюре, демиглас (хересное вино), жареная морковь</div>
       <div class="tag-row"><span class="tag allergy">Сельдерей</span><span class="tag allergy">Лактоза</span><span class="tag allergy">Алкоголь</span></div>
     </div>
-    <div class="dish-card">
+    <div class="dish-card" id="dc-ribs" data-tags="gluten-free">
+      <button class="learned-btn" aria-label="Отметить изученным"><span class="check-icon">✓</span></button>
       <div class="dish-name">Глазированные Рёбрышки — 220г</div>
       <p>Говяжье ребро на кости. Маринад 12 ч, сувид, соус Бурбон (виски из кукурузы ≥51%). 20–25 мин.</p>
       <div class="ingredients">Ребро, соус Бурбон → картофельное пюре + квашеная капуста + маринованные огурцы</div>
       <div class="tag-row"><span class="tag allergy">Алкоголь</span><span class="tag allergy">Горчица</span><span class="tag allergy">Соя</span><span class="tag allergy">Лактоза</span></div>
     </div>
-    <div class="dish-card">
+    <div class="dish-card" id="dc-chicken" data-tags="gluten-free">
+      <button class="learned-btn" aria-label="Отметить изученным"><span class="check-icon">✓</span></button>
       <div class="dish-name">Цыплёнок на Гриле ⏰</div>
       <p>Бройлер 270–380г. Засолка 2.5 ч → сувид → гриль. <span class="highlight">30–35 МИН — предупреждать сразу!</span></p>
       <div class="ingredients">Цыплёнок → грибной соус (шампиньоны, сливки, говяжий+куриный бульон) + овощи гриль</div>
       <div class="tag-row"><span class="tag allergy">Сельдерей</span><span class="tag allergy">Лактоза</span><span class="tag method">⏰ Самый долгий!</span></div>
     </div>
-    <div class="dish-card">
+    <div class="dish-card" id="dc-halibut" data-tags="gluten-free">
+      <button class="learned-btn" aria-label="Отметить изученным"><span class="check-icon">✓</span></button>
       <div class="dish-name">Жареный Палтус с Шафрановым Пюре</div>
       <p>Палтус = семейство камбаловых, белое жирное мясо, <strong>мало костей</strong>. Шафран = самая дорогая пряность. Соус чимичурри = аргентинский. 20–25 мин.</p>
       <div class="ingredients">Палтус + цветная капуста+шафран+сливки (пюре) + чимичурри</div>
       <div class="tag-row"><span class="tag allergy">Рыба</span><span class="tag allergy">Лактоза</span></div>
     </div>
-    <div class="dish-card">
+    <div class="dish-card" id="dc-trout" data-tags="gluten-free">
+      <button class="learned-btn" aria-label="Отметить изученным"><span class="check-icon">✓</span></button>
       <div class="dish-name">Филе Форели (Казахстан)</div>
       <p>Местная казахстанская, семейство лососёвых. Способ — на пару или гриль, <strong>гость выбирает</strong>. Спаржа — тоже пар или гриль. Зелёное масло тает на горячей рыбе. 20–25 мин.</p>
       <div class="ingredients">Форель 180г → спаржа (пар или гриль) + Lemon Butter соус (рыбный бульон, сливки, масло, лимон) + зелёное масло</div>
       <div class="tag-row"><span class="tag allergy">Лактоза</span><span class="tag allergy">Рыба</span><span class="tag custom">Пар ИЛИ Гриль</span></div>
       <div class="memory">Форель = местная казахстанская. Лосось = атлантический. Оба — способ на выбор гостя. Соус и аллергены — идентичны.</div>
     </div>
-    <div class="dish-card">
+    <div class="dish-card" id="dc-salmon" data-tags="gluten-free">
+      <button class="learned-btn" aria-label="Отметить изученным"><span class="check-icon">✓</span></button>
       <div class="dish-name">Лосось на Пару / на Гриле</div>
       <p>Атлантический лосось. Гость выбирает способ. Тот же Lemon Butter соус, что у форели. 20–25 мин.</p>
       <div class="ingredients">Лосось 180г → овощи (пар или гриль) + Lemon Butter соус (идентичен форели)</div>
       <div class="tag-row"><span class="tag allergy">Лактоза</span><span class="tag allergy">Рыба</span><span class="tag custom">Пар ИЛИ Гриль</span></div>
     </div>
-    <div class="dish-card">
+    <div class="dish-card" id="dc-cauliflower" data-tags="vegan gluten-free">
+      <button class="learned-btn" aria-label="Отметить изученным"><span class="check-icon">✓</span></button>
       <div class="dish-name">Стейк из Цветной Капусты</div>
       <p>Веган. Маринад: корица, тмин, карри, кардамон. Кунжутно-куркумный соус (тахини + финики). 20–25 мин.</p>
       <div class="tag-row"><span class="tag allergy">Семена</span><span class="tag allergy">Орехи</span><span class="tag veg">Веган</span></div>
     </div>
-    <div class="dish-card">
+    <div class="dish-card" id="dc-lamb" data-tags="gluten-free">
+      <button class="learned-btn" aria-label="Отметить изученным"><span class="check-icon">✓</span></button>
       <div class="dish-name">Тушёная Баранья Корейка</div>
       <p>С полентой (итальянская кукурузная каша). Соус Вустер → содержит анчоусы! 15–20 мин.</p>
       <div class="ingredients">Баранина + полента (кукурузная крупа, сливки, пармезан) + маринованный лук с редисом</div>
@@ -1189,29 +1433,34 @@
 <section id="sides">
   <h2 class="section-title"><span class="emoji">🥔</span> Гарниры — 10–15 мин</h2>
   <div class="card-grid">
-    <div class="dish-card">
+    <div class="dish-card" id="dc-mashed-potato" data-tags="gluten-free fast">
+      <button class="learned-btn" aria-label="Отметить изученным"><span class="check-icon">✓</span></button>
       <div class="dish-name">Картофельное Пюре</div>
       <p>Картофель <strong>запекается</strong> (не варится!), молоко, сливочное масло.</p>
       <div class="tag-row"><span class="tag allergy">Лактоза</span></div>
       <div class="memory">Запекается, не варится — это важно! При запекании теряется меньше крахмала, пюре плотнее и насыщеннее.</div>
     </div>
-    <div class="dish-card">
+    <div class="dish-card" id="dc-fries" data-tags="gluten-free fast">
+      <button class="learned-btn" aria-label="Отметить изученным"><span class="check-icon">✓</span></button>
       <div class="dish-name">Картофель Фри</div>
       <p>С пармезаном и <strong>трюфельным маслом</strong>. Трюфель = подземный гриб.</p>
       <div class="tag-row"><span class="tag allergy">Лактоза</span></div>
       <div class="memory">Не простой фри — трюфельное масло делает его уникальным. Можно предлагать гостям как «апгрейд».</div>
     </div>
-    <div class="dish-card">
+    <div class="dish-card" id="dc-grilled-veg" data-tags="vegan gluten-free fast">
+      <button class="learned-btn" aria-label="Отметить изученным"><span class="check-icon">✓</span></button>
       <div class="dish-name">Овощи на Гриле</div>
       <p>Баклажан, цуккини, болгарский перец, кабачок, шампиньоны.</p>
       <div class="tag-row"><span class="tag veg">Веган</span></div>
     </div>
-    <div class="dish-card">
+    <div class="dish-card" id="dc-onion-rings" data-tags="fast">
+      <button class="learned-btn" aria-label="Отметить изученным"><span class="check-icon">✓</span></button>
       <div class="dish-name">Луковые Кольца</div>
       <p>Вымачиваются в молоке <strong>12 часов</strong>, затем панируются.</p>
       <div class="tag-row"><span class="tag allergy">Лактоза</span><span class="tag allergy">Яйцо</span><span class="tag allergy">Глютен</span></div>
     </div>
-    <div class="dish-card">
+    <div class="dish-card" id="dc-mushrooms" data-tags="gluten-free fast">
+      <button class="learned-btn" aria-label="Отметить изученным"><span class="check-icon">✓</span></button>
       <div class="dish-name">Жареные Шампиньоны</div>
       <p>Маринад: майонез, кинза, шрирача. Зелёная сальса с <strong>анчоусами</strong> и каперсами.</p>
       <div class="tag-row"><span class="tag allergy">Анчоусы</span><span class="tag allergy">Лактоза</span><span class="tag allergy">Цитрус</span></div>
@@ -1224,41 +1473,47 @@
 <section id="desserts">
   <h2 class="section-title"><span class="emoji">🍮</span> Десерты — 5–15 мин</h2>
   <div class="card-grid">
-    <div class="dish-card">
+    <div class="dish-card" id="dc-choc-mousse" data-tags="fast">
+      <button class="learned-btn" aria-label="Отметить изученным"><span class="check-icon">✓</span></button>
       <div class="dish-name">Шоколадный Мусс</div>
       <p>Несколько текстур в одной тарелке: мусс, бисквит, ганаш, хрустящий слой (фейетин) и горячий шоколадный соус. Насыщенный шоколадный вкус. 10 мин.</p>
       <div class="ingredients">Тёмный и молочный шоколад, ореховая пралине (фундук), молоко, желатин, сливки, яйца, мука, какао, Feuilletine, ваниль</div>
       <div class="tag-row"><span class="tag allergy">Лактоза</span><span class="tag allergy">Яйцо</span><span class="tag allergy">Глютен</span><span class="tag allergy">Орехи</span></div>
       <div class="memory">Фейетин = хрустящие вафельные крошки, остаются хрустящими даже в жирной среде. Пралине = перетёртый фундук с карамельным сахаром.</div>
     </div>
-    <div class="dish-card">
+    <div class="dish-card" id="dc-lemon-tart" data-tags="fast">
+      <button class="learned-btn" aria-label="Отметить изученным"><span class="check-icon">✓</span></button>
       <div class="dish-name">Лимонный Тарт с Меренгой</div>
       <p>Французский классический десерт. Кисло-сладкий лимонный крем + сладкая итальянская меренга, обожжённая горелкой. 10–15 мин.</p>
       <div class="ingredients">Лимонное пюре, яйца, сливки, мука, масло, миндальная мука, желатин, пектин, малина, кокос</div>
       <div class="tag-row"><span class="tag allergy">Лактоза</span><span class="tag allergy">Яйцо</span><span class="tag allergy">Глютен</span><span class="tag allergy">Цитрус</span><span class="tag allergy">Орехи</span></div>
       <div class="memory">Меренга = взбитые яичные белки с сахаром. Пектин = натуральный загуститель из фруктов.</div>
     </div>
-    <div class="dish-card">
+    <div class="dish-card" id="dc-creme-brulee" data-tags="gluten-free fast">
+      <button class="learned-btn" aria-label="Отметить изученным"><span class="check-icon">✓</span></button>
       <div class="dish-name">Крем-Брюле</div>
       <p>«Обожжённые сливки», XVII в. <strong>Только желтки</strong> → нет яичного запаха. Карамельная корочка делается горелкой перед подачей. Комнатная температура. <strong>5 минут</strong>.</p>
       <div class="ingredients">Сливки, молоко, яичные желтки, сахар, стручковая ваниль</div>
       <div class="tag-row"><span class="tag allergy">Яйцо</span><span class="tag allergy">Лактоза</span></div>
     </div>
-    <div class="dish-card">
+    <div class="dish-card" id="dc-cheesecake" data-tags="fast">
+      <button class="learned-btn" aria-label="Отметить изученным"><span class="check-icon">✓</span></button>
       <div class="dish-name">Ванильный Чизкейк с Тары</div>
       <p>Родина чизкейка — Древняя Греция, популярность — США. Тары — традиционный казахский обжаренный пшён. Кунжут в составе. 10–15 мин.</p>
       <div class="ingredients">Сливочный сыр, сливки, сметана, глюкоза, масло, сахар, ваниль, тары (казахское просо), кунжут, яйца, мука → ягоды</div>
       <div class="tag-row"><span class="tag allergy">Яйцо</span><span class="tag allergy">Лактоза</span><span class="tag allergy">Глютен</span><span class="tag allergy">Семена</span></div>
       <div class="memory">Тары = обжаренное просо, традиционный казахский продукт. Глюкоза = предотвращает кристаллизацию сахара в десерте.</div>
     </div>
-    <div class="dish-card">
+    <div class="dish-card" id="dc-sticky-pudding" data-tags="fast">
+      <button class="learned-btn" aria-label="Отметить изученным"><span class="check-icon">✓</span></button>
       <div class="dish-name">Финиковый Пудинг</div>
-      <p>Sticky date pudding — британский. Очень мягкий, влажный бисквит с тоффи-соусом (карамель). Рядом подаётся горячий шоколад с молочника, поливается сверху. 10–15 мин.</p>
+      <p>Sticky date pudding — британский (один из самых популярных в мире — бисквит с финиковой карамелью). Очень мягкий, влажный бисквит с тоффи-соусом (карамель). Рядом подаётся горячий шоколад с молочника, поливается сверху. 10–15 мин.</p>
       <div class="ingredients">Финики, масло, яйца, мука, сливки, ваниль, корица, сода → карамель (тоффи)</div>
       <div class="tag-row"><span class="tag allergy">Лактоза</span><span class="tag allergy">Яйцо</span><span class="tag allergy">Глютен</span></div>
       <div class="memory">Тоффи = сливочно-сахарная карамель, ириска. Ваниль эссенция = концентрат из стручков ванили + алкоголь.</div>
     </div>
-    <div class="dish-card">
+    <div class="dish-card" id="dc-ice-cream" data-tags="gluten-free fast">
+      <button class="learned-btn" aria-label="Отметить изученным"><span class="check-icon">✓</span></button>
       <div class="dish-name">Мороженое / Сорбет</div>
       <p>1 шарик на выбор. <strong>5 мин</strong> — самый быстрый десерт.</p>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0;font-size:0.83rem;">
@@ -1274,7 +1529,8 @@
       <div class="tag-row"><span class="tag allergy">Лактоза</span><span class="tag veg">Сорбет — Веган</span></div>
       <div class="memory">1 шарик, без рожка. Сорбеты — без молока, подходят веганам и гостям с непереносимостью лактозы.</div>
     </div>
-    <div class="dish-card">
+    <div class="dish-card" id="dc-fruits" data-tags="vegan gluten-free fast">
+      <button class="learned-btn" aria-label="Отметить изученным"><span class="check-icon">✓</span></button>
       <div class="dish-name">Фрукты и Ягоды</div>
       <p>Сезонный ассортимент свежих фруктов и ягод. Единственный десерт без лактозы и глютена. <strong>10 мин.</strong></p>
       <div class="tag-row"><span class="tag veg">Веган</span></div>
@@ -1288,17 +1544,17 @@
   <h2 class="section-title"><span class="emoji">🍷</span> Вина к блюдам</h2>
   <div class="alert info"><span class="alert-icon">🍷</span><div><strong>3 правила:</strong> Красное мясо = красное. Рыба/морепродукты = белое. Острое = Riesling. Chardonnay = к сливочным блюдам.</div></div>
   <table class="compare-table">
-    <tr><th>Вино</th><th>Регион</th><th>Тип</th><th>К чему подходит</th></tr>
-    <tr><td>Hans Greyl Sauvignon Blanc</td><td>Malborough, NZ</td><td>Белое, свежее</td><td>Греч. салат, Кейл, Лосось, Палтус, Цветная капуста — <strong>универсальный белый</strong></td></tr>
-    <tr><td>Tunella Pinot Grigio</td><td>Friuli, Italy</td><td>Белое, лёгкое</td><td>Форель, Альфредо, Маргарита, Тартуфо</td></tr>
-    <tr><td>Voche Blanco Viura·Chard.</td><td>Rioja, Spain</td><td>Белое</td><td>Цезарь, Котлеты из креветок, Цыплёнок</td></tr>
-    <tr><td>Marcus Molitor Riesling</td><td>Mosel, Germany</td><td>Белое, кислотное</td><td><strong>Крылья Буффало (острые!)</strong>, Форель</td></tr>
-    <tr><td>Arba Saperavi</td><td>Almaty, Kazakhstan</td><td>Красное, местное</td><td>Рибай, Рёбрышки</td></tr>
-    <tr><td>Talo Primitivo·Merlot</td><td>Puglia, Italy</td><td>Красное</td><td>Крылья BBQ, Аррабиата, Дьявола, Щёчки</td></tr>
-    <tr><td>Querciabella Mongrana Rosso</td><td>Maremma Tuscany</td><td>Красное, насыщенное</td><td>Рибай, Говяжьи щёчки, Дьявола</td></tr>
-    <tr><td>Tunella Pinot Nero</td><td>Friuli, Italy</td><td>Красное, деликатное</td><td>Тендерлойн — тонкое вино к нежному мясу</td></tr>
-    <tr><td>Domaine Maldant Chard.</td><td>Burgundy, France</td><td>Белое, элегантное</td><td>Рыба на гриле, белое мясо, паста</td></tr>
-    <tr><td>Edda Bianco Chardonnay</td><td>Puglia, Italy</td><td>Белое, богатое</td><td>Тартуфо, Четыре сыра, сливочные пасты</td></tr>
+    <tr><th>Вино</th><th>Регион</th><th>GLS ₸</th><th>К чему подходит</th></tr>
+    <tr><td>Hans Greyl Sauvignon Blanc</td><td>Malborough, NZ</td><td>9 400</td><td>Греч. салат, Кейл, Лосось, Палтус, Цветная капуста — <strong>универсальный белый</strong></td></tr>
+    <tr><td>Tunella Pinot Grigio</td><td>Friuli, Italy</td><td>11 960</td><td>Форель, Альфредо, Маргарита, Тартуфо</td></tr>
+    <tr><td>Voche Blanco Viura·Chard.</td><td>Rioja, Spain</td><td>7 500</td><td>Цезарь, Котлеты из креветок, Цыплёнок</td></tr>
+    <tr><td>Marcus Molitor Riesling</td><td>Mosel, Germany</td><td>12 500</td><td><strong>Крылья Буффало (острые!)</strong>, Форель</td></tr>
+    <tr><td>Arba Saperavi</td><td>Almaty, Kazakhstan</td><td>6 400</td><td>Рибай, Рёбрышки</td></tr>
+    <tr><td>Talo Primitivo·Merlot</td><td>Puglia, Italy</td><td>8 900</td><td>Крылья BBQ, Аррабиата, Дьявола, Щёчки</td></tr>
+    <tr><td>Querciabella Mongrana Rosso</td><td>Maremma Tuscany</td><td>—</td><td>Рибай, Говяжьи щёчки, Дьявола</td></tr>
+    <tr><td>Tunella Pinot Nero</td><td>Friuli, Italy</td><td>—</td><td>Тендерлойн — тонкое вино к нежному мясу</td></tr>
+    <tr><td>Domaine Maldant Chard.</td><td>Burgundy, France</td><td>11 500</td><td>Рыба на гриле, белое мясо, паста</td></tr>
+    <tr><td>Edda Bianco Chardonnay</td><td>Puglia, Italy</td><td>13 250</td><td>Тартуфо, Четыре сыра, сливочные пасты</td></tr>
   </table>
   <div class="memory">Якоря: <strong>Hans Greyl</strong> = go-to белый к рыбе. <strong>Querciabella</strong> = go-to красный к стейкам. <strong>Riesling</strong> = к острому.</div>
 </section>
@@ -1338,7 +1594,7 @@
     <div class="quick-ref">
       <h4>⚠️ Что ВАЖНО сообщить гостю заранее:</h4>
       <ul>
-        <li><strong>Цыплёнок:</strong> 30–35 минут — говорить сразу</li>
+        <li><strong>Цыплёнок:</strong> 30–35 минут (бройлер целиком на гриле) — говорить сразу</li>
         <li><strong>Пицца с Бурратой:</strong> буррата равномерно, не целиком</li>
         <li><strong>Стейки:</strong> всегда уточнять прожарку</li>
         <li><strong>Цезарь:</strong> анчоусы = аллерген Рыба даже без добавок</li>
@@ -1351,10 +1607,114 @@
   </div>
 </section>
 
+<!-- ════════════ FAQ ════════════ -->
+<section id="faq">
+  <h2 class="section-title"><span class="emoji">❓</span> Частые вопросы гостей</h2>
+
+  <div class="faq-item">
+    <div class="faq-question">Что посоветуете к стейку?<span class="faq-icon">+</span></div>
+    <div class="faq-answer">
+      <p><strong>Напитки:</strong> Querciabella Mongrana Rosso (Тоскана) или Talo Primitivo·Merlot к Рибай. Tunella Pinot Nero к Тендерлойну — деликатное вино к нежному мясу.</p>
+      <p><strong>Прожарка:</strong> Всегда уточнять! Рекомендуем Medium Rare (50°С) — максимальный сок и вкус. Wagyu — только Medium Rare.</p>
+      <p><strong>Время:</strong> Тендерлойн ~25–35 мин, Рибай ~25–35 мин.</p>
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-question">Что самое быстрое из меню?<span class="faq-icon">+</span></div>
+    <div class="faq-answer">
+      <p>Блюда до 15 мин: Крем-Брюле (5 мин), Мороженое/Сорбет (5 мин), все супы (10–15 мин), все салаты (10–15 мин).</p>
+      <p>15–20 мин: Закуски, Сэндвичи, Бургеры, Десерты, Гарниры.</p>
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-question">Есть ли блюда без глютена?<span class="faq-icon">+</span></div>
+    <div class="faq-answer">
+      <p><strong>Без глютена:</strong> Борщ, Минестроне, Греческий салат, Минеральный салат, Кейл, Котлеты из Креветок, все стейки (Тендерлойн, Рибай, Щёчки, Рёбрышки, Цыплёнок), рыбные блюда (Палтус, Форель, Лосось), Цветная капуста, Крем-Брюле, Фрукты и ягоды.</p>
+      <p><strong>Паста с GF вариантом:</strong> Пенне (GF) или Спагетти (GF) — 5 из 7 паст.</p>
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-question">Что порекомендуете вегану?<span class="faq-icon">+</span></div>
+    <div class="faq-answer">
+      <ul>
+        <li><strong>Минестроне</strong> — веганский суп (перловка, овощи)</li>
+        <li><strong>Минеральный салат</strong> — без халлуми (указать при заказе)</li>
+        <li><strong>Аррабиата</strong> — паста без мяса (без пармезана по запросу)</li>
+        <li><strong>Стейк из цветной капусты</strong> — маринад со специями, кунжутный соус</li>
+        <li><strong>Овощи на гриле</strong> — гарнир</li>
+        <li><strong>Фрукты и ягоды</strong> — десерт</li>
+        <li><strong>Сорбеты</strong> — без молока</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-question">Что такое Wagyu?<span class="faq-icon">+</span></div>
+    <div class="faq-answer">
+      <p>Вагю — японская порода коровы с исключительной <strong>мраморностью</strong>. Жир тает при низкой температуре (+35°С). Особый рацион (кукуруза, пиво), отсутствие стресса, медленный рост — поэтому дорогой.</p>
+      <p><strong>Рекомендация:</strong> Medium Rare. Well Done — потеря жира и вкуса.</p>
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-question">Чем отличается Рибай от Тендерлойна?<span class="faq-icon">+</span></div>
+    <div class="faq-answer">
+      <ul>
+        <li><strong>Рибай (300г):</strong> Толстый край, 6–12 ребро. Высокая мраморность. Medium Rare/Medium. Сочный, насыщенный.</li>
+        <li><strong>Тендерлойн (180г):</strong> Почти нет жира, нежнейший. Только Rare/MR — нельзя пересушить.</li>
+        <li><strong>Общее:</strong> Тот же Peppercorn соус. Прожарку всегда уточнять!</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-question">Можно ли изменить пасту / заменить ингредиент?<span class="faq-icon">+</span></div>
+    <div class="faq-answer">
+      <p><strong>Паста (5 из 7):</strong> Тальятелле / Пенне (GF) / Спагетти (GF) на выбор.</p>
+      <p><strong>Фиксированная паста:</strong> Тальятеле с рагу и Казеречче — паста не меняется.</p>
+      <p><strong>Белок:</strong> Альфредо — курица ИЛИ креветки на выбор. Цезарь — +курица / +креветки / +халлуми.</p>
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-question">Как долго ждать цыплёнка?<span class="faq-icon">+</span></div>
+    <div class="faq-answer">
+      <p><strong>30–35 минут</strong> — самое долгое блюдо в меню. Бройлер целиком: засолка 2.5 ч → сувид → гриль.</p>
+      <p>⚠️ <strong>Всегда предупреждать гостя при заказе!</strong></p>
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-question">Есть ли что-то для детей?<span class="faq-icon">+</span></div>
+    <div class="faq-answer">
+      <ul>
+        <li>Куриный суп Лапша — классический, без остроты</li>
+        <li>Маргарита — простая, понятная</li>
+        <li>Болоньезе — мясной, знакомый вкус</li>
+        <li>Крем-Брюле — мягкий десерт</li>
+        <li>Мороженое — шоколад / карамель / фисташки</li>
+        <li>Фрукты и ягоды</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-question">Какое вино подойдёт начинающему?<span class="faq-icon">+</span></div>
+    <div class="faq-answer">
+      <p><strong>Белые (лёгкие):</strong> Voche Blanco (7 500 ₸) — мягкое; Hans Greyl SB (9 400 ₸) — свежее, цитрус.</p>
+      <p><strong>Красные (мягкие):</strong> Arba Saperavi (6 400 ₸) — местное, доступное; Talo Primitivo·Merlot (8 900 ₸) — фруктовое.</p>
+    </div>
+  </div>
+</section>
+
 </div><!-- /wrapper food -->
 <div class="search-no-results" id="food-no-results"><span>🔍</span>Ничего не найдено</div>
 <footer>
   ✦ In-Room Dining · A La Carte 2026 · The Ritz-Carlton, Astana ✦ &nbsp;|&nbsp; Food Knowledge Guide<br>
+  <span style="font-size:0.72rem;opacity:0.7;display:block;margin-top:6px;">Последнее обновление: апрель 2026</span>
   <span style="font-size: 0.72rem; opacity: 0.85; font-weight: 500; margin-top: 10px; display: inline-block;">Designed & Developed by Adilet Yerzhanuly · esimadilet@gmail.com</span>
 </footer>
 </div><!-- /food-page -->
@@ -1384,6 +1744,9 @@
   <a href="#bev-sake">🍶 Sake/Baijiu</a>
   <a href="#bev-aperitif">🫒 Аперитивы</a>
   <a href="#bev-cocktails">🍹 Коктейли</a>
+  <button class="bev-quiz-btn" id="quiz-bev-btn" aria-label="Режим экзамена">🎓 Экзамен</button>
+  <span class="progress-counter bev" id="bev-progress-counter"></span>
+  <button class="reset-progress-btn" id="bev-reset-btn" title="Сбросить прогресс">🔄</button>
 </nav>
 
 <header class="bev-header">
@@ -1408,6 +1771,9 @@
       <p>Структура любого описания: <strong>Откуда + Из чего + Вкус + К чему подходит.</strong><br>
       Пример: «Это шотландский виски из региона Speyside, сделан из ячменя, с нотами фруктов и мёда, выдержан в бочках из-под хереса. Хорошо подойдёт тем, кто любит мягкий, некурительный виски».<br>
       Запомни: гостя интересует <em>ощущение</em>, а не технология.</p>
+      <ul>
+        <li><strong>Красное вино (пример):</strong> «Querciabella из Тосканы — Sangiovese с Cabernet. Тёмные ягоды, немного специй, хорошая структура. Отлично к стейку или пасте в томатном соусе.»</li>
+      </ul>
       <div class="memory bev">Не говори «10 лет выдержки» без объяснения. Говори: <strong>«10 лет выдержки = более глубокий, мягкий, сложный вкус»</strong>.</div>
     </div>
   </div>
@@ -1622,6 +1988,7 @@
     <div class="fort-card"><div class="f-name">Porto Fine White · Quinta do Noval</div><div class="f-origin">Portugal · 75ml</div><p>Белый портвейн — редкость. Из белых сортов. Более лёгкий, ореховый, немного менее сладкий. Хорошо со льдом как аперитив.</p></div>
     <div class="fort-card"><div class="f-name">Barbeito Single Harvest Madeira 2007</div><div class="f-origin">Portugal · Madeira · 75ml</div><p>Мадейра = крепленое с острова Мадейра. Уникальный процесс нагрева (estufa) → долго хранится. Кислотное, ореховое, карамельное.</p></div>
   </div>
+  <div class="bev-notes" style="margin-top:6px;">К чему подходит: сыры с плесенью, шоколадные десерты, орехи, финики.</div>
 
   <p class="subsection bev">Херес (Sherry) — Испания</p>
   <div class="fort-grid">
@@ -1629,6 +1996,7 @@
     <div class="fort-card"><div class="f-name">Gonzalo Byass Alfonso Oloroso</div><div class="f-origin">Spain · 75ml</div><p>Oloroso = богатый, тёмный, ореховый. Без дрожжей → окисление. Более сладкий. К десертам, орехам, твёрдым сырам.</p></div>
     <div class="fort-card"><div class="f-name">Delgado Zuleta · Pedro Ximenez</div><div class="f-origin">Spain · 75ml</div><p>Pedro Ximenez (PX) = самый сладкий херес. Из подвяленного винограда. Густой, как сироп. Изюм, финики, шоколад. Поливают на ванильное мороженое.</p></div>
   </div>
+  <div class="bev-notes" style="margin-top:6px;">К чему подходит: Dry Sherry → оливки, морепродукты, хамон. Sweet Sherry → крем-брюле, финики, паштет.</div>
 
   <p class="subsection bev">Другие крепленые вина</p>
   <div class="fort-grid">
@@ -1641,6 +2009,17 @@
 <!-- ════ SCOTCH ════ -->
 <section id="bev-scotch">
   <h2 class="section-title bev"><span class="emoji">🥃</span> Scotch Single Malt Whisky</h2>
+
+  <div class="quick-ref bev" style="margin-bottom:14px;">
+    <h4>⚡ Быстрая шпаргалка — Гость хочет X → рекомендуй Y</h4>
+    <ul>
+      <li><strong>Что-то лёгкое и мягкое →</strong> Glenlivet 15 или Singleton of Dufftown 15</li>
+      <li><strong>Богатое, шоколад, сухофрукты →</strong> Macallan 12 или Aberlour 16</li>
+      <li><strong>Дымное, торфяное →</strong> Laphroaig 10 или Ardbeg 10</li>
+      <li><strong>Что-то необычное →</strong> Hakushu (травяной) или Kavalan Port Cask (тропический)</li>
+      <li><strong>Впервые пробует виски →</strong> Glenlivet 15 или Glenfiddich 18</li>
+    </ul>
+  </div>
 
   <div class="bev-card" style="margin-bottom:14px;">
     <div class="bev-name">Что такое Single Malt Scotch?</div>
@@ -1884,8 +2263,18 @@
     </div>
     <div class="bev-card">
       <div class="region-badge region-japan">Japan</div>
-      <div class="bev-name">Matsui Single Malt The Peated / Kurayoshi Sherry Cask · Togouchi Beer/Sake Cask · Kura Blended Malt · Suntory Kakubin 7 Y.O.</div>
-      <p>Matsui Peated = торфяной японский. Kurayoshi Sherry = шери-бочки по-японски. Togouchi Beer/Sake Cask = финиш в пивных/саке бочках = экзотика.</p>
+      <div class="bev-name">Matsui Single Malt The Peated · Kurayoshi Sherry Cask</div>
+      <p><strong>Matsui Peated</strong> — торфяной японский. Дым + морской бриз, японская интерпретация Islay-стиля.<br>
+      <strong>Kurayoshi Sherry Cask</strong> — выдержка в хересных бочках. Сухофрукты, специи, тёплый финиш.</p>
+      <div class="bev-notes">Для гостей, которые хотят «японский Scotch» — привычный стиль, азиатская точность.</div>
+    </div>
+    <div class="bev-card">
+      <div class="region-badge region-japan">Japan</div>
+      <div class="bev-name">Togouchi Beer/Sake Cask · Kura Blended Malt · Suntory Kakubin 7 Y.O.</div>
+      <p><strong>Togouchi Beer/Sake Cask</strong> — финиш в пивных и саке бочках = экзотика, уникальный вкус.<br>
+      <strong>Kura Blended Malt</strong> — мягкий, доступный, хороший вход в японский виски.<br>
+      <strong>Kakubin 7 Y.O.</strong> — культовый японский хайбольный виски Suntory.</p>
+      <div class="bev-notes">Для гостей, которые любят эксперименты и нестандартные вкусы.</div>
     </div>
     <div class="bev-card">
       <div class="region-badge" style="background:#fff0e8;color:#803000;border:1px solid #e09060;">Taiwan</div>
@@ -2145,26 +2534,31 @@
       <div class="bev-sub">Draught · Spain</div>
       <div class="bev-name">Estrella Damm 0.33 / 0.5</div>
       <p>Barcelona. Разливное. Лагер — светлое, освежающее. Основа барселонского пивного культа.</p>
+      <div class="bev-notes">К еде: пицца, бургеры, куриные крылья</div>
     </div>
     <div class="bev-card">
       <div class="bev-sub">Bottled · Ireland</div>
       <div class="bev-name">Guinness 0.0</div>
       <p>Безалкогольный Irish Dry Stout. Кофе, шоколад, кремовая пена — при нулевом алкоголе. Инновация Guinness.</p>
+      <div class="bev-notes">К еде: стейк, рёбрышки, шоколадные десерты</div>
     </div>
     <div class="bev-card">
       <div class="bev-sub">Bottled · Italy</div>
       <div class="bev-name">Menabrea 0.33</div>
       <p>Итальянский лагер из Альп. Очень чистый, мягкий, лёгкая горчинка.</p>
+      <div class="bev-notes">К еде: морепродукты, лёгкие закуски, паста</div>
     </div>
     <div class="bev-card">
       <div class="bev-sub">Bottled · Mexico</div>
       <div class="bev-name">Corona 0.33</div>
       <p>Светлое, лёгкое. Традиционно подаётся с долькой лайма.</p>
+      <div class="bev-notes">К еде: лёгкие закуски, рыба, цитрусовые</div>
     </div>
     <div class="bev-card">
       <div class="bev-sub">Bottled · Germany · 0.0</div>
       <div class="bev-name">Krombacher 0.0</div>
       <p>Немецкое безалкогольное пшеничное. Лагерный стиль без алкоголя.</p>
+      <div class="bev-notes">К еде: любые блюда, идеально для гостей без алкоголя</div>
     </div>
   </div>
 </section>
@@ -2210,6 +2604,7 @@
     <strong>Light Aroma</strong> = чистый, мягкий, лёгкий.<br>
     Это <strong>не водка, не саке</strong>. Уникальная категория. В культуре — напиток для тостов в компании.</p>
     <div class="memory bev">Strong Aroma = для первого знакомства. Sauce Aroma = для знающих гостей. Подаётся в маленьких рюмках в графинчике даже при заказе 50 мл.</div>
+      <div class="memory bev" style="border-left-color:#e8a040;margin-top:8px;">⚠️ <strong>Совет официанту:</strong> Большинство гостей не знакомы с байцзю. Предложите попробовать 50 мл перед заказом бутылки — это предотвратит разочарование.</div>
   </div>
   <div class="card-grid">
     <div class="bev-card">
@@ -2312,7 +2707,7 @@
     </div>
     <div class="cocktail-card">
       <div class="c-name">Aloe Pear Serenity</div>
-      <div class="c-ingredients">Pear Vodka + Aloe Chamomile Cordial + Sour Apple Liqueur</div>
+      <div class="c-ingredients">Pear Vodka + Aloe Chamomile Cordial<span class="term" data-def="Cordial — концентрированный сладкий сироп на основе фруктов или цветов. В отличие от ликёра — безалкогольный."> (?)</span> + Sour Apple Liqueur</div>
       <div class="c-style">Фруктовый · Мягкий · Травяной</div>
     </div>
     <div class="cocktail-card">
@@ -2332,7 +2727,7 @@
     </div>
     <div class="cocktail-card">
       <div class="c-name">Tsukimi</div>
-      <div class="c-ingredients">Strawberry Gin + Basil-Lime Cordial</div>
+      <div class="c-ingredients">Strawberry Gin + Basil-Lime Cordial<span class="term" data-def="Cordial — концентрированный сладкий сироп на основе фруктов или цветов. В отличие от ликёра — безалкогольный."> (?)</span></div>
       <div class="c-style">Ягодный · Травяной · Освежающий</div>
     </div>
     <div class="cocktail-card">
@@ -2352,7 +2747,7 @@
     </div>
     <div class="cocktail-card">
       <div class="c-name">Basil Bliss</div>
-      <div class="c-ingredients">Vodka + Grape-Basil Cordial</div>
+      <div class="c-ingredients">Vodka + Grape-Basil Cordial<span class="term" data-def="Cordial — концентрированный сладкий сироп на основе фруктов или цветов. В отличие от ликёра — безалкогольный."> (?)</span></div>
       <div class="c-style">Травяной · Виноградный · Освежающий</div>
     </div>
   </div>
@@ -2557,12 +2952,18 @@ document.addEventListener('DOMContentLoaded', () => {
     currentMarkIdx = idx;
     const mark = searchMarks[currentMarkIdx];
     mark.classList.add('current');
-    // Scroll into view with offset
+    // Scroll into view with offset — use window.scrollTo to prevent iOS zoom
     const searchH = searchWrap.classList.contains('open') ? searchWrap.offsetHeight : 0;
     const activeNav = currentTab === 'food' ? document.querySelector('.food-nav') : document.querySelector('.bev-nav');
     const offset = getTabBarHeight() + (activeNav ? activeNav.offsetHeight : 45) + searchH + 20;
-    const top = mark.getBoundingClientRect().top + window.scrollY - offset;
+    const top = mark.getBoundingClientRect().top + window.pageYOffset - offset;
+    // Prevent zoom: temporarily disable viewport zoom, scroll, re-enable
+    const vp = document.querySelector('meta[name="viewport"]');
+    const origContent = vp ? vp.getAttribute('content') : '';
+    if (vp) vp.setAttribute('content', origContent + ', maximum-scale=1.0');
     window.scrollTo({ top, behavior: 'smooth' });
+    // Restore original viewport after scroll completes
+    setTimeout(() => { if (vp) vp.setAttribute('content', origContent); }, 600);
     // Update counter
     searchCount.textContent = `${currentMarkIdx + 1} / ${searchMarks.length}`;
   }
@@ -2651,6 +3052,265 @@ document.addEventListener('DOMContentLoaded', () => {
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/menu/sw.js').catch(() => {});
   }
+
+  // ── PWA INSTALL PROMPT ──
+  let deferredPrompt = null;
+  const pwaBanner = document.getElementById('pwa-install-banner');
+  const pwaInstallBtn = document.getElementById('pwa-install-btn');
+  const pwaCloseBtn = document.getElementById('pwa-install-close');
+
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    // Show banner if not dismissed before
+    if (!localStorage.getItem('pwaDismissed')) {
+      setTimeout(() => { pwaBanner.classList.add('show'); document.body.classList.add('pwa-active'); }, 2000);
+    }
+  });
+
+  // iOS Safari detection — show manual instructions
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+  if (isIOS && !isStandalone && !localStorage.getItem('pwaDismissed')) {
+    setTimeout(() => {
+      document.querySelector('.pwa-text').innerHTML = '<strong>RC Menu</strong> — нажмите <strong>«Поделиться»</strong> → <strong>«На экран Домой»</strong>';
+      pwaInstallBtn.style.display = 'none';
+      pwaBanner.classList.add('show'); document.body.classList.add('pwa-active');
+    }, 2500);
+  }
+
+  if (pwaInstallBtn) pwaInstallBtn.addEventListener('click', async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    deferredPrompt = null;
+    pwaBanner.classList.remove('show'); document.body.classList.remove('pwa-active');
+  });
+
+  if (pwaCloseBtn) pwaCloseBtn.addEventListener('click', () => {
+    pwaBanner.classList.remove('show'); document.body.classList.remove('pwa-active');
+    localStorage.setItem('pwaDismissed', '1');
+  });
+
+  function setupFilters() {
+    const bar = document.getElementById('food-filter-bar');
+    const countEl = document.getElementById('filter-count');
+    if (!bar) return;
+    const allCards = () => document.querySelectorAll('#food-page .dish-card');
+    function updateCount() {
+      const visible = document.querySelectorAll('#food-page .dish-card:not(.filter-hidden)').length;
+      const total = allCards().length;
+      countEl.textContent = visible < total ? `Показано: ${visible} из ${total}` : '';
+    }
+    bar.addEventListener('click', (e) => {
+      const btn = e.target.closest('.filter-btn');
+      if (!btn) return;
+      const filter = btn.dataset.filter;
+      bar.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('filter-active'));
+      btn.classList.add('filter-active');
+      allCards().forEach(card => {
+        if (filter === 'all') {
+          card.classList.remove('filter-hidden');
+        } else {
+          const tags = (card.dataset.tags || '').split(' ');
+          card.classList.toggle('filter-hidden', !tags.includes(filter));
+        }
+      });
+      updateCount();
+    });
+    updateCount();
+  }
+  setupFilters();
+
+  // ── SCROLL SPY — highlight active nav link ──
+  function setupScrollSpy() {
+    const foodNav = document.querySelector('.food-nav');
+    const bevNav = document.querySelector('.bev-nav');
+
+    function updateActiveNav() {
+      const nav = currentTab === 'food' ? foodNav : bevNav;
+      if (!nav) return;
+      const links = Array.from(nav.querySelectorAll('a[href^="#"]'));
+      const searchH = searchWrap.classList.contains('open') ? searchWrap.offsetHeight : 0;
+      const offset = getTabBarHeight() + (nav ? nav.offsetHeight : 45) + searchH + 40;
+
+      let activeLink = links[0];
+      for (const link of links) {
+        const target = document.querySelector(link.getAttribute('href'));
+        if (target) {
+          const rect = target.getBoundingClientRect();
+          if (rect.top <= offset) {
+            activeLink = link;
+          }
+        }
+      }
+
+      links.forEach(l => l.classList.remove('active-section'));
+      if (activeLink) {
+        activeLink.classList.add('active-section');
+        // Scroll nav to show active link
+        const navRect = nav.getBoundingClientRect();
+        const linkRect = activeLink.getBoundingClientRect();
+        if (linkRect.left < navRect.left || linkRect.right > navRect.right) {
+          activeLink.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+        }
+      }
+    }
+
+    let scrollSpyTicking = false;
+    window.addEventListener('scroll', () => {
+      if (!scrollSpyTicking) {
+        requestAnimationFrame(() => { updateActiveNav(); scrollSpyTicking = false; });
+        scrollSpyTicking = true;
+      }
+    }, { passive: true });
+
+    // Initial call
+    updateActiveNav();
+  }
+  // ── QUICK FILTERS ──
+  function setupFilters() {
+    const bar = document.getElementById('food-filter-bar');
+    const countEl = document.getElementById('filter-count');
+    if (!bar) return;
+    const allCards = () => document.querySelectorAll('#food-page .dish-card');
+    function updateCount() {
+      const visible = document.querySelectorAll('#food-page .dish-card:not(.filter-hidden)').length;
+      const total = allCards().length;
+      countEl.textContent = visible < total ? `Показано: ${visible} из ${total}` : '';
+    }
+    bar.addEventListener('click', (e) => {
+      const btn = e.target.closest('.filter-btn');
+      if (!btn) return;
+      const filter = btn.dataset.filter;
+      bar.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('filter-active'));
+      btn.classList.add('filter-active');
+      allCards().forEach(card => {
+        if (filter === 'all') {
+          card.classList.remove('filter-hidden');
+        } else {
+          const tags = (card.dataset.tags || '').split(' ');
+          card.classList.toggle('filter-hidden', !tags.includes(filter));
+        }
+      });
+      updateCount();
+    });
+    updateCount();
+  }
+  setupFilters();
+
+  // ── QUIZ MODE ──
+  function setupQuiz() {
+    const foodBtn = document.getElementById('quiz-food-btn');
+    const bevBtn = document.getElementById('quiz-bev-btn');
+    function exitQuiz() {
+      document.body.classList.remove('quiz-food', 'quiz-bev');
+      document.querySelectorAll('.quiz-revealed').forEach(el => el.classList.remove('quiz-revealed'));
+      if (foodBtn) { foodBtn.classList.remove('active'); foodBtn.textContent = '🎓 Экзамен'; }
+      if (bevBtn) { bevBtn.classList.remove('active'); bevBtn.textContent = '🎓 Экзамен'; }
+    }
+    if (foodBtn) {
+      foodBtn.addEventListener('click', () => {
+        if (document.body.classList.contains('quiz-food')) { exitQuiz(); }
+        else { exitQuiz(); document.body.classList.add('quiz-food'); foodBtn.classList.add('active'); foodBtn.textContent = '❌ Выйти'; }
+      });
+    }
+    if (bevBtn) {
+      bevBtn.addEventListener('click', () => {
+        if (document.body.classList.contains('quiz-bev')) { exitQuiz(); }
+        else { exitQuiz(); document.body.classList.add('quiz-bev'); bevBtn.classList.add('active'); bevBtn.textContent = '❌ Выйти'; }
+      });
+    }
+    document.addEventListener('click', (e) => {
+      if (document.body.classList.contains('quiz-food')) {
+        const card = e.target.closest('#food-page .dish-card');
+        if (card && !e.target.closest('.learned-btn')) card.classList.toggle('quiz-revealed');
+      }
+      if (document.body.classList.contains('quiz-bev')) {
+        const ccard = e.target.closest('#bev-page .cocktail-card');
+        if (ccard) ccard.classList.toggle('quiz-revealed');
+        const bcard = e.target.closest('#bev-page .bev-card');
+        if (bcard && !e.target.closest('.learned-btn')) bcard.classList.toggle('quiz-revealed');
+      }
+    });
+    document.getElementById('tab-food')?.addEventListener('click', () => { if (document.body.classList.contains('quiz-bev')) exitQuiz(); });
+    document.getElementById('tab-bev')?.addEventListener('click', () => { if (document.body.classList.contains('quiz-food')) exitQuiz(); });
+  }
+  setupQuiz();
+
+  // ── PROGRESS TRACKING ──
+  function setupProgress() {
+    const STORAGE_KEY = 'menuLearned';
+    function getLearned() {
+      try { return new Set(JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')); } catch { return new Set(); }
+    }
+    function saveLearned(set) { localStorage.setItem(STORAGE_KEY, JSON.stringify([...set])); }
+    function updateCounters() {
+      const learned = getLearned();
+      const foodCards = document.querySelectorAll('#food-page .dish-card[id]');
+      const foodLearned = [...foodCards].filter(c => learned.has(c.id)).length;
+      const foodCounter = document.getElementById('food-progress-counter');
+      if (foodCounter) foodCounter.textContent = foodLearned > 0 ? `${foodLearned}/${foodCards.length} изучено` : '';
+      const bevCards = document.querySelectorAll('#bev-page [id].cocktail-card, #bev-page [id].bev-card');
+      const bevLearned = [...bevCards].filter(c => learned.has(c.id)).length;
+      const bevCounter = document.getElementById('bev-progress-counter');
+      if (bevCounter) bevCounter.textContent = bevLearned > 0 ? `${bevLearned}/${bevCards.length} изучено` : '';
+    }
+    function applyLearned() {
+      const learned = getLearned();
+      document.querySelectorAll('[id].dish-card, [id].cocktail-card, [id].bev-card').forEach(card => {
+        card.classList.toggle('learned', learned.has(card.id));
+      });
+      updateCounters();
+    }
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('.learned-btn');
+      if (!btn) return;
+      e.stopPropagation();
+      const card = btn.closest('[id].dish-card, [id].cocktail-card, [id].bev-card');
+      if (!card) return;
+      const learned = getLearned();
+      if (learned.has(card.id)) { learned.delete(card.id); } else { learned.add(card.id); }
+      saveLearned(learned);
+      applyLearned();
+    });
+    document.getElementById('food-reset-btn')?.addEventListener('click', () => {
+      if (!confirm('Сбросить весь прогресс Food?')) return;
+      const learned = getLearned();
+      document.querySelectorAll('#food-page [id].dish-card').forEach(c => learned.delete(c.id));
+      saveLearned(learned); applyLearned();
+    });
+    document.getElementById('bev-reset-btn')?.addEventListener('click', () => {
+      if (!confirm('Сбросить весь прогресс Beverage?')) return;
+      const learned = getLearned();
+      document.querySelectorAll('#bev-page [id].cocktail-card, #bev-page [id].bev-card').forEach(c => learned.delete(c.id));
+      saveLearned(learned); applyLearned();
+    });
+    applyLearned();
+  }
+  setupProgress();
+
+  // ── FAQ ACCORDION ──
+  document.querySelectorAll('.faq-item').forEach(item => {
+    const q = item.querySelector('.faq-question');
+    if (q) q.addEventListener('click', () => {
+      const isOpen = item.classList.contains('open');
+      document.querySelectorAll('.faq-item.open').forEach(i => i.classList.remove('open'));
+      if (!isOpen) item.classList.add('open');
+    });
+  });
+
+  setupScrollSpy();
+
+  // ── DATA-LABEL for bev-table mobile cards ──
+  document.querySelectorAll('.bev-table').forEach(table => {
+    const headers = Array.from(table.querySelectorAll('th')).map(th => th.textContent.trim());
+    table.querySelectorAll('tr').forEach(row => {
+      Array.from(row.querySelectorAll('td')).forEach((td, i) => {
+        if (i > 0 && headers[i]) td.setAttribute('data-label', headers[i]);
+      });
+    });
+  });
 });
 </script>
 
