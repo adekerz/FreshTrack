@@ -825,6 +825,20 @@
   }
 
   /* ── SCROLL TO TOP ── */
+  /* ── FLOATING PROGRESS BADGE ── */
+  .float-progress {
+    position: fixed; bottom: 78px; right: 16px; z-index: 499;
+    background: var(--gold); color: var(--dark);
+    font-size: 0.72rem; font-weight: 700; font-family: 'Crimson Pro', serif;
+    padding: 3px 10px; border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    opacity: 0; pointer-events: none;
+    transform: translateY(6px); transition: opacity 0.25s, transform 0.25s;
+    white-space: nowrap;
+  }
+  .float-progress.visible { opacity: 1; transform: translateY(0); }
+  [data-tab="bev"] .float-progress { background: var(--bev-accent); color: #fff; }
+
   .scroll-top-btn {
     position: fixed;
     bottom: 24px; right: 16px;
@@ -920,6 +934,7 @@
 </div>
 
 <!-- ════ SCROLL TO TOP ════ -->
+<div class="float-progress" id="float-progress"></div>
 <button class="scroll-top-btn" id="scroll-top-btn" aria-label="Наверх">↑</button>
 
 <!-- ════════════════════════════════════
@@ -3033,11 +3048,11 @@ document.addEventListener('DOMContentLoaded', () => {
   // ── SCROLL TO TOP BUTTON ──
   const scrollTopBtn = document.getElementById('scroll-top-btn');
   window.addEventListener('scroll', () => {
-    if (window.scrollY > 300) {
-      scrollTopBtn.classList.add('visible');
-    } else {
-      scrollTopBtn.classList.remove('visible');
-    }
+    const show = window.scrollY > 300;
+    scrollTopBtn.classList.toggle('visible', show);
+    // Sync floating progress badge visibility with scroll-to-top btn
+    const floatBadge = document.getElementById('float-progress');
+    if (floatBadge) floatBadge.classList.toggle('visible', show && floatBadge.textContent !== '');
   }, { passive: true });
   scrollTopBtn.addEventListener('click', () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -3494,6 +3509,15 @@ document.addEventListener('DOMContentLoaded', () => {
       const bevLearned = [...bevCards].filter(c => learned.has(c.id)).length;
       const bevCounter = document.getElementById('bev-progress-counter');
       if (bevCounter) bevCounter.textContent = bevLearned > 0 ? `✓ ${bevLearned}/${bevCards.length}` : '';
+      // Update floating badge
+      const floatBadge = document.getElementById('float-progress');
+      if (floatBadge) {
+        const isFood = document.body.getAttribute('data-tab') !== 'bev';
+        const count = isFood ? foodLearned : bevLearned;
+        const total = isFood ? foodCards.length : bevCards.length;
+        floatBadge.textContent = count > 0 ? `✓ ${count}/${total}` : '';
+        floatBadge.classList.toggle('visible', count > 0 && document.getElementById('scroll-top-btn')?.classList.contains('visible'));
+      }
     }
     function applyLearned() {
       const learned = getLearned();
