@@ -187,6 +187,7 @@
   .tag.custom { background: #faf0ff; color: #5c1a8c; border: 1px solid #d4a8f0; }
   .tag.veg { background: #f0faf4; color: #1a7a3c; border: 1px solid #8dd4a8; }
   .tag.bev-tag { background: #e8f4ff; color: #1a3a5c; border: 1px solid #a0c8e8; }
+  .tag-label { font-size: 10px; color: var(--red-flag); font-weight: 700; margin-right: 4px; text-transform: uppercase; letter-spacing: 0.04em; align-self: center; flex-shrink: 0; }
 
   .dish-card p { font-size: 0.88rem; color: var(--medium); line-height: 1.5; margin-top: 4px; }
   .dish-card .ingredients { font-size: 0.85rem; color: #7a6030; margin-top: 5px; }
@@ -315,7 +316,7 @@
   .term:hover { color: var(--bev-accent); background: rgba(74, 143, 168, 0.08); border-bottom-style: solid; }
 
   .term-tooltip {
-    position: absolute; z-index: 2000;
+    position: fixed; z-index: 2000;
     background: rgba(26, 30, 36, 0.98);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
@@ -975,7 +976,7 @@
     <span class="progress-counter" id="food-progress-counter"></span>
   </div>
   <div class="study-bar-center">
-    <button class="study-btn quiz-food-trigger" id="quiz-food-btn">🎓 Режим экзамена</button>
+    <button class="study-btn quiz-food-trigger" id="quiz-food-btn" title="Карточки скроются — угадай состав и нажми ещё раз, чтобы проверить ответ">🎓 Режим экзамена</button>
     <button class="study-btn reveal-all-btn" id="quiz-food-reveal-all" style="display:none;">👁 Открыть все</button>
   </div>
   <div class="study-bar-right">
@@ -1156,6 +1157,7 @@
       <div class="ingredients">Куриный бульон, курица, яичная лапша, соль, перец → петрушка</div>
       <div class="tag-row"><span class="tag allergy">Глютен</span><span class="tag allergy">Яйцо</span></div>
       <div class="flex-note">✓ Предлагать хлеб</div>
+      <div class="memory">Единственный суп с лапшой. Яичная лапша = Глютен + Яйцо. Бульон — из <strong>целой</strong> курицы.</div>
     </div>
   </div>
 </section>
@@ -1180,6 +1182,7 @@
       <div class="ingredients">Свёкла, белая+краснокочанная капуста, корень сельдерея, шпинат, морковь, ромэн, фисташки, цуккини</div>
       <div class="tag-row"><span class="tag allergy">Сельдерей</span><span class="tag allergy">Орехи</span><span class="tag custom">+Халлуми (Лактоза)</span><span class="tag veg">Веган (без халлуми)</span></div>
       <p style="margin-top:5px;"><strong>Вино:</strong> Arba Sary Rkatseteli</p>
+      <div class="memory">Без халлуми = веган. +Халлуми = вегетарианский + добавляется Лактоза. Халлуми = кипрский сыр, не плавится при жарке.</div>
     </div>
     <div class="dish-card" id="dc-caesar" data-tags="fast">
       <button class="learned-btn" aria-label="Отметить изученным"><span class="check-icon">✓</span></button>
@@ -1197,6 +1200,7 @@
       <div class="ingredients">Кале, брокколи (мисо+уксус), шиитаке (кунжут+мёд+соевый), кешью, семена тыквы, эдамаме → куркума + соево-имбирная заправка</div>
       <div class="tag-row"><span class="tag allergy">Соя</span><span class="tag allergy">Лактоза</span><span class="tag allergy">Семена</span><span class="tag allergy">Орехи</span><span class="tag veg">Вегетарианский</span></div>
       <p style="margin-top:5px;"><strong>Вино:</strong> Hans Greyl SB / Markus Molitor Riesling</p>
+      <div class="memory">Три «азиатских» элемента: мисо (брокколи) + соевый (шиитаке) + эдамаме. Кале = горьковатый листовой. Шиитаке = только шляпки, ножки не берут.</div>
     </div>
   </div>
 </section>
@@ -1210,6 +1214,7 @@
       <div class="dish-name">Куриные Крылья — Буффало 🌶️</div>
       <p><strong>Острые.</strong> 6 штук. Маринад в молоке 12 ч. Соус: Шрирача + сливочное масло. 15–20 мин.</p>
       <div class="tag-row"><span class="tag allergy">Глютен</span><span class="tag allergy">Яйцо</span><span class="tag allergy">Лактоза</span></div>
+      <div class="memory">Буффало = острые (шрирача). Барбекю = сладкие (кленовый сироп). <strong>У Барбекю есть ещё аллерген Семена</strong> (кунжут).</div>
     </div>
     <div class="dish-card" id="dc-wings-bbq" data-tags="fast">
       <button class="learned-btn" aria-label="Отметить изученным"><span class="check-icon">✓</span></button>
@@ -1238,6 +1243,7 @@
       <div class="dish-name">Креветки Динамит</div>
       <p>Тигровые креветки во фритюре (темпура). Соус «Динамит»: шрирача + сладкий чили + мёд + майонез. 15–20 мин.</p>
       <div class="tag-row"><span class="tag allergy">Глютен</span><span class="tag allergy">Рак</span><span class="tag allergy">Лактоза</span><span class="tag allergy">Семена</span><span class="tag allergy">Яйцо</span></div>
+      <div class="memory">Тигровые = самые крупные (до 30 см). Темпура = лёгкий японский кляр на газировке. Рак — аллерген.</div>
     </div>
   </div>
 </section>
@@ -1253,6 +1259,7 @@
       <p>«Сердитая» — острый томатный соус. Самая простая. Подаётся с пармезаном. 10–15 мин.</p>
       <div class="ingredients">Чеснок, перец чили, оливковое масло, томат Мутти → пармезан</div>
       <div class="tag-row"><span class="tag allergy">Лактоза</span><span class="tag allergy">Глютен</span><span class="tag veg">Веган (без пармезана)</span><span class="tag method">🌶️ Острая</span></div>
+      <div class="memory">Единственная паста без белка и без сливок. «Без пармезана» = веган. Самая острая паста в меню.</div>
     </div>
     <div class="dish-card" id="dc-bolognese">
       <button class="learned-btn" aria-label="Отметить изученным"><span class="check-icon">✓</span></button>
@@ -1260,6 +1267,7 @@
       <p>Мясной соус из Болоньи, конец XVIII в. Исторически — с тальятелле. 15–20 мин.</p>
       <div class="ingredients">Фарш, томат Пилати Мутти, морковь, сельдерей, красное вино, лук, чеснок</div>
       <div class="tag-row"><span class="tag allergy">Диоксид</span><span class="tag allergy">Глютен</span><span class="tag allergy">Сельдерей</span><span class="tag allergy">Яйцо</span></div>
+      <div class="memory">Из Болоньи, XVIII в. Томат + говяжий фарш. Сельдерей — аллерген. Паста на выбор гостя (5 из 7).</div>
     </div>
     <div class="dish-card" id="dc-porcini">
       <button class="learned-btn" aria-label="Отметить изученным"><span class="check-icon">✓</span></button>
@@ -1275,6 +1283,7 @@
       <p>Рим, нач. XX в., Альфредо ди Лелио. Сливочный соус с грибами и пармезаном. Белок на выбор. 15–20 мин.</p>
       <div class="ingredients">Сливки, шампиньоны, пармезан, белое вино, тимьян → + курица ИЛИ тигровые креветки</div>
       <div class="tag-row"><span class="tag allergy">Алкоголь</span><span class="tag allergy">Лактоза</span><span class="tag custom">Курица или Креветки</span></div>
+      <div class="memory"><strong>Уточнять белок!</strong> Курица → нет рака. Тигровые креветки → аллерген Рак. Единственная сливочная паста с выбором белка.</div>
     </div>
     <div class="dish-card" id="dc-tagliatelle">
       <button class="learned-btn" aria-label="Отметить изученным"><span class="check-icon">✓</span></button>
@@ -1282,6 +1291,7 @@
       <p>Домашняя тальятеле (желток+мука) с говяжьими щёчками (5 ч при 150°С) + трюфельное масло. 10–15 мин.</p>
       <div class="ingredients">Домашняя тальятеле, говяжьи щёчки, красное вино, демиглас → зелёный соус (каперсы, мята, дижонская горчица) + трюфель</div>
       <div class="tag-row"><span class="tag allergy">Диоксид</span><span class="tag allergy">Лактоза</span><span class="tag allergy">Глютен</span><span class="tag allergy">Яйцо</span><span class="tag method">Паста фиксирована</span></div>
+      <div class="memory">Домашняя паста (желток+мука) = нельзя менять. Щёчки тушатся <strong>5 ч при 150°С</strong>. Каперсы + горчица в зелёном соусе.</div>
     </div>
     <div class="dish-card" id="dc-caserecce">
       <button class="learned-btn" aria-label="Отметить изученным"><span class="check-icon">✓</span></button>
@@ -1297,6 +1307,7 @@
       <p>Linguine — «маленькие язычки», плоская длинная паста из Лигурии. Вонголе = моллюски. Соус Алио Олио = чеснок + масло. 15–20 мин.</p>
       <div class="ingredients">Паста на выбор, вонголе (моллюски), белое вино, лук-шалот, чеснок, чили, петрушка, оливковое масло, соус алио олио</div>
       <div class="tag-row"><span class="tag allergy">Глютен</span><span class="tag allergy">Морепродукты</span><span class="tag allergy">Диоксид</span></div>
+      <div class="memory">Единственная паста с моллюсками. Паста на выбор. Нет сливок — лёгкий вкус. Вонголе = аллерген Морепродукты.</div>
     </div>
   </div>
 </section>
@@ -1338,12 +1349,14 @@
       <div class="dish-name">Тартуфо 🍄</div>
       <p>Единственная <strong>без томатного соуса</strong>. Сливочно-трюфельная. Рецепт шефа Рикардо, вдохновлён Пьемонтом.</p>
       <div class="ingredients">Тартуфата, Маскарпоне, Творожный сыр, Шампиньоны, Моцарелла</div>
+      <div class="memory"><strong>Единственная без томата.</strong> Белая база = маскарпоне + творожный сыр. Тартуфата = трюфельная паста.</div>
     </div>
     <div class="dish-card" id="dc-quattro-formaggi">
       <button class="learned-btn" aria-label="Отметить изученным"><span class="check-icon">✓</span></button>
       <div class="dish-name">Четыре Сыра</div>
       <p>4 сыра с разным характером. По выдержке: Моцарелла (часы) → Скаморца (5 дней) → Голубой (мес.) → Пармезан (12–36 мес.).</p>
       <div class="ingredients">Томат Мутти + Моцарелла + Пармезан + Голубой сыр + Скаморца</div>
+      <div class="memory">4 стадии выдержки = 4 вкуса. Голубой сыр = самый острый. Скаморца = немного копчёный. Всё — лактоза.</div>
     </div>
   </div>
 
@@ -1385,6 +1398,7 @@
       <p>Пастрами готовится <strong>12 дней</strong> (4 этапа). Сувид 5ч при 75°С. Американский гриль-сэндвич.</p>
       <div class="ingredients">Бездрожжевой хлеб, пастрами из говяжьей грудинки, квашеная капуста, маринованные огурцы, Качковалло, соус Рубен</div>
       <div class="tag-row"><span class="tag allergy">Лактоза</span><span class="tag allergy">Глютен</span></div>
+      <div class="memory">Пастрами = 12 дней в 4 этапа. Единственный с квашеной капустой и качковалло (итальянский вытяжной сыр).</div>
     </div>
     <div class="dish-card" id="dc-veg-sandwich" data-tags="fast">
       <button class="learned-btn" aria-label="Отметить изученным"><span class="check-icon">✓</span></button>
@@ -1437,6 +1451,7 @@
       <p>Самое нежное мясо туши — мышца почти не работает, нет жира. <span class="highlight">Рек. Rare/Medium Rare — нельзя пересушить!</span> 25–35 мин.</p>
       <div class="ingredients">Вырезка 180г + зелёный салат + Peppercorn соус (сливки, перец, шалот, демиглас)</div>
       <div class="tag-row"><span class="tag allergy">Лактоза</span><span class="tag method">⚠️ Спрашивать прожарку!</span></div>
+      <div class="memory">Нет жира → нельзя WellDone. Peppercorn соус <strong>идентичен</strong> Рибаю. Разница только в весе (180 vs 300г) и нежности.</div>
     </div>
     <div class="dish-card" id="dc-ribeye" data-tags="gluten-free">
       <button class="learned-btn" aria-label="Отметить изученным"><span class="check-icon">✓</span></button>
@@ -1444,6 +1459,7 @@
       <p>Ribeye = rib + eye. Мраморная говядина, 6–12 ребро. Чем выше мраморность — тем сочнее. 25–35 мин.</p>
       <div class="ingredients">Рибай 300г + зелёный салат + Peppercorn соус (идентичен Тендерлойну)</div>
       <div class="tag-row"><span class="tag allergy">Лактоза</span><span class="tag method">⚠️ Спрашивать прожарку!</span></div>
+      <div class="memory">Rib = ребро, Eye = глаз (центр вырезки). Жирный = выдерживает Medium. Соус тот же, что у Тендерлойна.</div>
     </div>
     <div class="dish-card" id="dc-beef-cheeks" data-tags="gluten-free">
       <button class="learned-btn" aria-label="Отметить изученным"><span class="check-icon">✓</span></button>
@@ -1465,6 +1481,7 @@
       <p>Бройлер 270–380г. Засолка 2.5 ч → сувид → гриль. <span class="highlight">30–35 МИН — предупреждать сразу!</span></p>
       <div class="ingredients">Цыплёнок → грибной соус (шампиньоны, сливки, говяжий+куриный бульон) + овощи гриль</div>
       <div class="tag-row"><span class="tag allergy">Сельдерей</span><span class="tag allergy">Лактоза</span><span class="tag method">⏰ Самый долгий!</span></div>
+      <div class="memory"><strong>30–35 мин — говорить НЕМЕДЛЕННО при заказе.</strong> Засолка + сувид + гриль = 3 этапа. Самое долгое блюдо в меню.</div>
     </div>
     <div class="dish-card" id="dc-halibut" data-tags="gluten-free">
       <button class="learned-btn" aria-label="Отметить изученным"><span class="check-icon">✓</span></button>
@@ -1493,6 +1510,7 @@
       <div class="dish-name">Стейк из Цветной Капусты</div>
       <p>Веган. Маринад: корица, тмин, карри, кардамон. Кунжутно-куркумный соус (тахини + финики). 20–25 мин.</p>
       <div class="tag-row"><span class="tag allergy">Семена</span><span class="tag allergy">Орехи</span><span class="tag veg">Веган</span></div>
+      <div class="memory">Единственное веганское основное. Тахини = кунжутная паста. Семена (кунжут) + Орехи — аллергены!</div>
     </div>
     <div class="dish-card" id="dc-lamb" data-tags="gluten-free">
       <button class="learned-btn" aria-label="Отметить изученным"><span class="check-icon">✓</span></button>
@@ -1500,6 +1518,7 @@
       <p>С полентой (итальянская кукурузная каша). Соус Вустер → содержит анчоусы! 15–20 мин.</p>
       <div class="ingredients">Баранина + полента (кукурузная крупа, сливки, пармезан) + маринованный лук с редисом</div>
       <div class="tag-row"><span class="tag allergy">Диоксид</span><span class="tag allergy">Лактоза</span><span class="tag allergy">Горчица</span><span class="tag allergy">Анчоусы</span></div>
+      <div class="memory">Анчоусы в вустерском соусе → аллерген Рыба! Полента = кукурузная крупа (безглютеновая). Гостю «без рыбы» — нельзя.</div>
     </div>
   </div>
 </section>
@@ -1570,6 +1589,7 @@
       <p>«Обожжённые сливки», XVII в. <strong>Только желтки</strong> → нет яичного запаха. Карамельная корочка делается горелкой перед подачей. Комнатная температура. <strong>5 минут</strong>.</p>
       <div class="ingredients">Сливки, молоко, яичные желтки, сахар, стручковая ваниль</div>
       <div class="tag-row"><span class="tag allergy">Яйцо</span><span class="tag allergy">Лактоза</span></div>
+      <div class="memory"><strong>5 мин</strong> — самый быстрый десерт. Только желтки (без белков). Подаётся при комнатной температуре, не горячий.</div>
     </div>
     <div class="dish-card" id="dc-cheesecake" data-tags="fast">
       <button class="learned-btn" aria-label="Отметить изученным"><span class="check-icon">✓</span></button>
@@ -1825,7 +1845,7 @@
     <span class="progress-counter bev" id="bev-progress-counter"></span>
   </div>
   <div class="study-bar-center">
-    <button class="study-btn bev-style quiz-bev-trigger" id="quiz-bev-btn">🎓 Режим экзамена</button>
+    <button class="study-btn bev-style quiz-bev-trigger" id="quiz-bev-btn" title="Карточки скроются — угадай состав и нажми ещё раз, чтобы проверить ответ">🎓 Режим экзамена</button>
     <button class="study-btn bev-style reveal-all-btn" id="quiz-bev-reveal-all" style="display:none;">👁 Открыть все</button>
   </div>
   <div class="study-bar-right">
@@ -3013,6 +3033,11 @@ document.addEventListener('DOMContentLoaded', () => {
       tabBev.setAttribute('aria-selected', 'true'); tabFood.setAttribute('aria-selected', 'false');
     }
     window.scrollTo(0, 0);
+    // п.6: обновляем placeholder поля поиска под текущую вкладку
+    const searchInputEl = document.getElementById('search-input');
+    if (searchInputEl) {
+      searchInputEl.placeholder = tab === 'food' ? 'Поиск по меню (еда)…' : 'Поиск по напиткам…';
+    }
     // Re-run search highlights for new tab
     if (document.getElementById('search-input').value.trim()) {
       applySearch(document.getElementById('search-input').value);
@@ -3362,12 +3387,10 @@ document.addEventListener('DOMContentLoaded', () => {
       const total = allCards().length;
       countEl.textContent = visible < total ? `Показано блюд: ${visible} из ${total}` : '';
     }
-    bar.addEventListener('click', (e) => {
-      const btn = e.target.closest('.filter-btn');
-      if (!btn) return;
-      const filter = btn.dataset.filter;
+    function applyFilter(filter) {
       bar.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('filter-active'));
-      btn.classList.add('filter-active');
+      const btn = bar.querySelector(`[data-filter="${filter}"]`);
+      if (btn) btn.classList.add('filter-active');
       allCards().forEach(card => {
         if (filter === 'all') {
           card.classList.remove('filter-hidden');
@@ -3378,7 +3401,18 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       updateSections(filter);
       updateCount();
+    }
+    bar.addEventListener('click', (e) => {
+      const btn = e.target.closest('.filter-btn');
+      if (!btn) return;
+      const filter = btn.dataset.filter;
+      // п.5: сохраняем фильтр при переключении вкладок
+      sessionStorage.setItem('foodFilter', filter);
+      applyFilter(filter);
     });
+    // п.5: восстанавливаем фильтр после переключения вкладки
+    const savedFilter = sessionStorage.getItem('foodFilter') || 'all';
+    if (savedFilter !== 'all') applyFilter(savedFilter);
     updateCount();
   }
   setupFilters();
@@ -3432,6 +3466,18 @@ document.addEventListener('DOMContentLoaded', () => {
       updateQuizScore('food'); updateQuizScore('bev');
     }
 
+    // п.7: показать одноразовую подсказку при первом открытии режима экзамена
+    function maybeShowQuizHint() {
+      if (localStorage.getItem('quizHintSeen')) return;
+      localStorage.setItem('quizHintSeen', '1');
+      const toast = document.getElementById('hint-toast');
+      if (!toast) return;
+      const span = toast.querySelector('.toast-text');
+      if (span) span.innerHTML = '🎓 <strong>Режим экзамена:</strong> карточки скроются. Нажми на карточку — увидишь ответ. Отметь ✓, если знаешь.';
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 6000);
+    }
+
     if (foodBtn) {
       foodBtn.addEventListener('click', () => {
         if (document.body.classList.contains('quiz-food')) { exitQuiz(); }
@@ -3441,6 +3487,7 @@ document.addEventListener('DOMContentLoaded', () => {
           foodBtn.classList.add('active'); foodBtn.textContent = '❌ Выйти из режима';
           if (foodRevealAll) foodRevealAll.style.display = '';
           updateQuizScore('food');
+          maybeShowQuizHint();
         }
       });
     }
@@ -3553,6 +3600,22 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     applyLearned();
   }
+  // ── Bev cards: auto-assign IDs + inject learned-btn (если ещё нет) ──
+  let bevCardIdx = 0;
+  document.querySelectorAll('#bev-page .cocktail-card, #bev-page .bev-card').forEach(card => {
+    if (!card.id) {
+      const prefix = card.classList.contains('cocktail-card') ? 'cc' : 'bc';
+      card.id = `${prefix}-${++bevCardIdx}`;
+    }
+    if (!card.querySelector('.learned-btn')) {
+      const btn = document.createElement('button');
+      btn.className = 'learned-btn';
+      btn.setAttribute('aria-label', 'Отметить изученным');
+      btn.innerHTML = '<span class="check-icon">✓</span>';
+      card.insertBefore(btn, card.firstChild);
+    }
+  });
+
   setupProgress();
 
   // ── FAQ ACCORDION ──
@@ -3563,6 +3626,31 @@ document.addEventListener('DOMContentLoaded', () => {
       document.querySelectorAll('.faq-item.open').forEach(i => i.classList.remove('open'));
       if (!isOpen) item.classList.add('open');
     });
+  });
+
+  // ── п.9: Allergen label ── добавляем ⚠️ перед тегами аллергенов в каждой .tag-row
+  document.querySelectorAll('.dish-card .tag-row, .bev-card .tag-row').forEach(row => {
+    if (row.querySelector('.tag-label')) return; // уже есть
+    const allergyTags = row.querySelectorAll('.tag.allergy');
+    if (allergyTags.length === 0) return;
+    const label = document.createElement('span');
+    label.className = 'tag-label';
+    label.textContent = '⚠️';
+    row.insertBefore(label, row.firstChild);
+  });
+
+  // ── п.10: Prep-time badge ── автоматически извлекаем время из текста описания
+  document.querySelectorAll('#food-page .dish-card[id]').forEach(card => {
+    if (card.querySelector('.prep-time')) return; // уже есть
+    // Ищем паттерн "X–Y мин" или одиночное "X мин" в тексте карточки
+    const allText = card.textContent;
+    const match = allText.match(/(\d+[–—\-]\d+|\d+)\s*мин/);
+    if (!match) return;
+    const badge = document.createElement('span');
+    badge.className = 'prep-time';
+    badge.textContent = `⏱ ${match[1]} мин`;
+    const nameEl = card.querySelector('.dish-name');
+    if (nameEl) nameEl.after(badge);
   });
 
   setupScrollSpy();
@@ -4386,24 +4474,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     tooltip.classList.add('show');
-    
+
+    // п.2: use getBoundingClientRect (viewport coords) — works correctly on iOS Safari with rubber scroll
     const rect = el.getBoundingClientRect();
-    const tooltipWidth = tooltip.offsetWidth || 250; 
+    const tooltipWidth = tooltip.offsetWidth || 250;
+    const tooltipHeight = tooltip.offsetHeight || 80;
     let left = rect.left + rect.width / 2 - tooltipWidth / 2;
-    let top = rect.top + window.scrollY - tooltip.offsetHeight - 12;
+    let top = rect.top - tooltipHeight - 12;
 
     if (left < 10) left = 10;
     if (left + tooltipWidth > window.innerWidth - 10) {
       left = window.innerWidth - tooltipWidth - 10;
     }
-    
-    // On mobile, try not to hide under finger, better place it slightly above or nicely
-    if (isMobile() && (rect.top - tooltip.offsetHeight - 20) < 0) {
-      // open below if goes out of screen at the top
-      top = rect.bottom + window.scrollY + 12;
-      tooltip.style.transform = "translateY(-8px)"; // flip the animation visually
-    } else if (isMobile()) {
-      tooltip.style.transform = "translateY(8px)";
+    // If tooltip goes above viewport, open below the term instead
+    if (top < 10) {
+      top = rect.bottom + 12;
     }
 
     tooltip.style.left = left + 'px';
