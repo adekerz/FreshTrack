@@ -3453,15 +3453,26 @@ document.addEventListener('DOMContentLoaded', () => {
     let revealed   = false;
     let currentPage = 'food';
 
+    // Только секции с реальными блюдами/напитками (не инфо-блоки)
+    const FOOD_SECTIONS = new Set(['soups','salads','starters','pasta','pizza','sandwiches','burgers','mains','sides','desserts']);
+    const BEV_SECTIONS  = new Set(['bev-sparkling','bev-white','bev-rose','bev-red','bev-fortified','bev-scotch','bev-world-whisky','bev-asian-whisky','bev-cognac','bev-gin','bev-tequila','bev-rum','bev-vodka','bev-beer','bev-sake','bev-aperitif','bev-cocktails']);
+
     // ── Собрать данные всех видимых карточек
     function buildQueue(page) {
       let els;
       if (page === 'food') {
         els = [...document.querySelectorAll('#food-page .dish-card')]
-          .filter(c => !c.classList.contains('filter-hidden') && c.offsetParent !== null);
+          .filter(c => {
+            const sec = c.closest('section');
+            return sec && FOOD_SECTIONS.has(sec.id) &&
+                   !c.classList.contains('filter-hidden') && c.offsetParent !== null;
+          });
       } else {
         els = [...document.querySelectorAll('#bev-page .cocktail-card, #bev-page .bev-card')]
-          .filter(c => c.offsetParent !== null);
+          .filter(c => {
+            const sec = c.closest('section');
+            return sec && BEV_SECTIONS.has(sec.id) && c.offsetParent !== null;
+          });
       }
       return els.map(card => {
         const nameEl = card.querySelector('.dish-name, .c-name, .bev-name');
