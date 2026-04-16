@@ -535,28 +535,90 @@
   .custom-modal-cancel:hover { color: #ccc; border-color: rgba(255,255,255,0.3); }
   .custom-modal-confirm { padding: 9px 22px; border-radius: 20px; border: none; background: #8b1a1a; color: #f8d0d0; font-family: 'Crimson Pro', serif; font-size: 0.9rem; cursor: pointer; transition: all 0.2s; font-weight: 600; }
   .custom-modal-confirm:hover { background: #a82020; }
-  /* ── QUIZ IMPROVEMENTS ── */
-  body.quiz-food .dish-card:not(.quiz-revealed),
-  body.quiz-bev .cocktail-card:not(.quiz-revealed),
-  body.quiz-bev .bev-card:not(.quiz-revealed) {
-    border: 2px dashed var(--gold) !important;
+  /* ── QUIZ OVERLAY ── */
+  #quiz-overlay {
+    display: none; position: fixed; inset: 0; z-index: 9999;
+    background: var(--dark); flex-direction: column;
+    font-family: 'Crimson Pro', Georgia, serif;
   }
-  body.quiz-food .dish-card.quiz-revealed,
-  body.quiz-bev .cocktail-card.quiz-revealed,
-  body.quiz-bev .bev-card.quiz-revealed {
-    border: 2px solid var(--green) !important;
+  #quiz-overlay.show { display: flex; }
+  #quiz-overlay.qo-bev { background: var(--bev-dark); }
+  .qo-header {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 16px; border-bottom: 1px solid rgba(184,150,46,0.15);
+    background: rgba(0,0,0,0.25); flex-shrink: 0;
   }
-  .quiz-score-bar {
-    position: sticky; top: calc(var(--tab-height,66px) + 48px + 44px + 44px); z-index: 88;
-    background: rgba(26,18,8,0.95); backdrop-filter: blur(8px);
-    padding: 8px 16px; display: none; align-items: center; gap: 12px;
-    border-bottom: 1px solid rgba(184,150,46,0.2); font-size: 0.85rem; color: var(--gold-light);
+  .qo-exit {
+    background: none; border: 1px solid rgba(184,150,46,0.3); color: var(--gold-light);
+    font-size: 0.82rem; cursor: pointer; padding: 5px 10px; border-radius: 4px;
+    font-family: 'Crimson Pro', serif; transition: all 0.2s; white-space: nowrap;
   }
-  body.quiz-food .quiz-score-bar,
-  body.quiz-bev .quiz-score-bar-bev { display: flex; }
-  .quiz-score-progress { flex: 1; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden; }
-  .quiz-score-fill { height: 100%; background: var(--gold); transition: width 0.3s; border-radius: 2px; }
-  .quiz-score-text { white-space: nowrap; font-size: 0.8rem; }
+  .qo-exit:hover { background: rgba(255,255,255,0.1); }
+  #quiz-overlay.qo-bev .qo-exit { border-color: rgba(74,143,168,0.4); color: var(--bev-accent-light); }
+  .qo-section-label {
+    flex: 1; text-align: center; font-size: 0.72rem; letter-spacing: 0.09em;
+    text-transform: uppercase; color: var(--gold); opacity: 0.65;
+  }
+  #quiz-overlay.qo-bev .qo-section-label { color: var(--bev-accent-light); }
+  .qo-counter { font-size: 0.8rem; color: var(--gold-light); white-space: nowrap; }
+  #quiz-overlay.qo-bev .qo-counter { color: var(--bev-accent-light); }
+  .qo-progress-bar { height: 3px; background: rgba(255,255,255,0.08); flex-shrink: 0; }
+  .qo-progress-fill { height: 100%; background: var(--gold); transition: width 0.35s ease; width: 0%; }
+  #quiz-overlay.qo-bev .qo-progress-fill { background: var(--bev-accent); }
+  .qo-body {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    padding: 20px 16px; overflow-y: auto;
+  }
+  .qo-card {
+    background: var(--cream); border-radius: 12px; padding: 24px 20px;
+    max-width: 560px; width: 100%; cursor: pointer;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+    -webkit-tap-highlight-color: transparent;
+  }
+  #quiz-overlay.qo-bev .qo-card { background: var(--bev-card); }
+  .qo-card-name {
+    font-family: 'Playfair Display', serif; font-size: 1.35rem;
+    color: var(--charcoal); font-weight: 700; line-height: 1.3; margin-bottom: 4px;
+  }
+  #quiz-overlay.qo-bev .qo-card-name { color: var(--bev-dark); }
+  .qo-card-content { margin-top: 14px; border-top: 1px solid var(--divider); padding-top: 12px; }
+  #quiz-overlay.qo-bev .qo-card-content { border-color: var(--bev-divider); }
+  .qo-card-content .learned-btn { display: none !important; }
+  .qo-tap-hint {
+    margin-top: 18px; text-align: center; font-style: italic;
+    color: var(--gold); font-size: 0.88rem; font-weight: 600; opacity: 0.85;
+  }
+  #quiz-overlay.qo-bev .qo-tap-hint { color: var(--bev-accent); }
+  .qo-actions {
+    display: flex; gap: 10px; padding: 14px 16px; flex-shrink: 0;
+    background: rgba(0,0,0,0.2); border-top: 1px solid rgba(255,255,255,0.06);
+  }
+  .qo-btn {
+    flex: 1; padding: 14px 10px; border: none; border-radius: 8px;
+    font-family: 'Playfair Display', serif; font-size: 1rem; font-weight: 700;
+    cursor: pointer; transition: all 0.18s; letter-spacing: 0.01em;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .qo-btn-knew { background: var(--green); color: #fff; }
+  .qo-btn-knew:hover { opacity: 0.88; }
+  .qo-btn-didnt { background: var(--red-flag); color: #fff; }
+  .qo-btn-didnt:hover { opacity: 0.88; }
+  .qo-complete {
+    flex: 1; display: flex; flex-direction: column; align-items: center;
+    justify-content: center; padding: 32px 24px; text-align: center; color: var(--cream);
+  }
+  .qo-complete-icon { font-size: 3.5rem; margin-bottom: 16px; }
+  .qo-complete-title {
+    font-family: 'Playfair Display', serif; font-size: 1.8rem;
+    color: var(--gold-light); margin-bottom: 10px;
+  }
+  #quiz-overlay.qo-bev .qo-complete-title { color: var(--bev-accent-light); }
+  .qo-complete-text { font-size: 1rem; opacity: 0.75; margin-bottom: 28px; line-height: 1.6; max-width: 340px; }
+  .qo-complete-actions { display: flex; gap: 12px; }
+  .qo-btn-restart { background: var(--gold); color: var(--dark); padding: 13px 28px; }
+  .qo-btn-restart:hover { background: var(--gold-light); }
+  .qo-btn-exit-complete { background: rgba(255,255,255,0.12); color: var(--cream); padding: 13px 20px; }
+  .qo-btn-exit-complete:hover { background: rgba(255,255,255,0.2); }
   /* ── QUICK FILTERS ── */
   .filter-bar {
     display: flex; gap: 8px; padding: 10px 16px; overflow-x: auto; scrollbar-width: none;
@@ -576,38 +638,6 @@
   [data-theme="dark"] .filter-bar { background: #1a1610; border-color: #3a2e18; }
   [data-theme="dark"] .filter-btn { background: #2a2010; color: var(--gold-light); border-color: #3a2e18; }
   [data-theme="dark"] .filter-btn.filter-active { background: var(--gold); color: var(--dark); }
-
-  /* ── QUIZ MODE ── */
-  body.quiz-food .dish-card { cursor: pointer; position: relative; }
-  body.quiz-food .dish-card .ingredients,
-  body.quiz-food .dish-card .tag-row,
-  body.quiz-food .dish-card .memory,
-  body.quiz-food .dish-card .flex-note,
-  body.quiz-food .dish-card > p:not(:first-of-type) { opacity: 0; pointer-events: none; transition: opacity 0.3s; }
-  body.quiz-food .dish-card:not(.quiz-revealed)::after {
-    content: '👆 Нажмите для ответа'; position: absolute; bottom: 10px; right: 12px;
-    font-size: 0.75rem; color: var(--gold); font-style: italic; font-weight: 600;
-  }
-  body.quiz-food .dish-card.quiz-revealed .ingredients,
-  body.quiz-food .dish-card.quiz-revealed .tag-row,
-  body.quiz-food .dish-card.quiz-revealed .memory,
-  body.quiz-food .dish-card.quiz-revealed .flex-note,
-  body.quiz-food .dish-card.quiz-revealed > p:not(:first-of-type) { opacity: 1; pointer-events: auto; }
-  body.quiz-food .dish-card.quiz-revealed::after { content: '✓'; color: var(--green); font-style: normal; font-size: 1rem; }
-  body.quiz-bev .cocktail-card { cursor: pointer; position: relative; }
-  body.quiz-bev .cocktail-card .c-ingredients,
-  body.quiz-bev .cocktail-card .c-style { opacity: 0; pointer-events: none; transition: opacity 0.3s; }
-  body.quiz-bev .cocktail-card:not(.quiz-revealed)::after { content: '👆 Нажмите для ответа'; position: absolute; bottom: 8px; right: 10px; font-size: 0.72rem; color: var(--bev-accent); font-style: italic; font-weight: 600; }
-  body.quiz-bev .cocktail-card.quiz-revealed .c-ingredients,
-  body.quiz-bev .cocktail-card.quiz-revealed .c-style { opacity: 1; pointer-events: auto; }
-  body.quiz-bev .cocktail-card.quiz-revealed::after { content: '✓'; color: var(--bev-accent); font-style: normal; }
-  body.quiz-bev .bev-card { cursor: pointer; position: relative; }
-  body.quiz-bev .bev-card .bev-notes,
-  body.quiz-bev .bev-card .memory { opacity: 0; pointer-events: none; transition: opacity 0.3s; }
-  body.quiz-bev .bev-card:not(.quiz-revealed)::after { content: '👆 Нажмите для ответа'; position: absolute; bottom: 8px; right: 12px; font-size: 0.72rem; color: var(--bev-accent); font-style: italic; font-weight: 600; }
-  body.quiz-bev .bev-card.quiz-revealed .bev-notes,
-  body.quiz-bev .bev-card.quiz-revealed .memory { opacity: 1; pointer-events: auto; }
-  body.quiz-bev .bev-card.quiz-revealed::after { content: '✓'; color: var(--bev-accent); font-style: normal; }
 
   /* ── PROGRESS TRACKING ── */
   .learned-btn {
@@ -976,17 +1006,11 @@
     <span class="progress-counter" id="food-progress-counter"></span>
   </div>
   <div class="study-bar-center">
-    <button class="study-btn quiz-food-trigger" id="quiz-food-btn" title="Карточки скроются — угадай состав и нажми ещё раз, чтобы проверить ответ">🎓 Режим экзамена</button>
-    <button class="study-btn reveal-all-btn" id="quiz-food-reveal-all" style="display:none;">👁 Открыть все</button>
+    <button class="study-btn quiz-food-trigger" id="quiz-food-btn" title="Anki-режим: только название — вспомни, нажми, оцени себя">🎓 Экзамен</button>
   </div>
   <div class="study-bar-right">
     <button class="study-btn reset-btn" id="food-reset-btn">🔄 Сбросить</button>
   </div>
-</div>
-<div class="quiz-score-bar" id="food-quiz-score">
-  <span>🎓 Экзамен</span>
-  <div class="quiz-score-progress"><div class="quiz-score-fill" id="food-quiz-fill" style="width:0%"></div></div>
-  <span class="quiz-score-text" id="food-quiz-text">0 / 0</span>
 </div>
 
 <header class="food-header">
@@ -1838,17 +1862,11 @@
     <span class="progress-counter bev" id="bev-progress-counter"></span>
   </div>
   <div class="study-bar-center">
-    <button class="study-btn bev-style quiz-bev-trigger" id="quiz-bev-btn" title="Карточки скроются — угадай состав и нажми ещё раз, чтобы проверить ответ">🎓 Режим экзамена</button>
-    <button class="study-btn bev-style reveal-all-btn" id="quiz-bev-reveal-all" style="display:none;">👁 Открыть все</button>
+    <button class="study-btn bev-style quiz-bev-trigger" id="quiz-bev-btn" title="Anki-режим: только название — вспомни, нажми, оцени себя">🎓 Экзамен</button>
   </div>
   <div class="study-bar-right">
     <button class="study-btn bev-style reset-btn" id="bev-reset-btn">🔄 Сбросить</button>
   </div>
-</div>
-<div class="quiz-score-bar quiz-score-bar-bev" id="bev-quiz-score">
-  <span>🎓 Экзамен</span>
-  <div class="quiz-score-progress"><div class="quiz-score-fill" id="bev-quiz-fill" style="width:0%"></div></div>
-  <span class="quiz-score-text" id="bev-quiz-text">0 / 0</span>
 </div>
 
 <header class="bev-header">
@@ -3424,111 +3442,149 @@ document.addEventListener('DOMContentLoaded', () => {
     overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); }, { once: true });
   }
 
-  // ── QUIZ MODE ──
+  // ── QUIZ MODE (Anki-style overlay) ──
   function setupQuiz() {
     const foodBtn = document.getElementById('quiz-food-btn');
-    const bevBtn = document.getElementById('quiz-bev-btn');
-    const foodRevealAll = document.getElementById('quiz-food-reveal-all');
-    const bevRevealAll = document.getElementById('quiz-bev-reveal-all');
+    const bevBtn  = document.getElementById('quiz-bev-btn');
+    const overlay = document.getElementById('quiz-overlay');
 
-    function updateQuizScore(page) {
+    let queue      = [];   // карточки оставшиеся в сессии
+    let totalCards = 0;    // исходный размер очереди
+    let revealed   = false;
+    let currentPage = 'food';
+
+    // ── Собрать данные всех видимых карточек
+    function buildQueue(page) {
+      let els;
       if (page === 'food') {
-        const cards = document.querySelectorAll('#food-page .dish-card');
-        const revealed = document.querySelectorAll('#food-page .dish-card.quiz-revealed').length;
-        const fill = document.getElementById('food-quiz-fill');
-        const text = document.getElementById('food-quiz-text');
-        if (fill) fill.style.width = cards.length ? `${(revealed/cards.length)*100}%` : '0%';
-        if (text) text.textContent = `${revealed} / ${cards.length}`;
+        els = [...document.querySelectorAll('#food-page .dish-card')]
+          .filter(c => !c.classList.contains('filter-hidden') && c.offsetParent !== null);
       } else {
-        const cards = document.querySelectorAll('#bev-page .cocktail-card, #bev-page .bev-card');
-        const revealed = document.querySelectorAll('#bev-page .cocktail-card.quiz-revealed, #bev-page .bev-card.quiz-revealed').length;
-        const fill = document.getElementById('bev-quiz-fill');
-        const text = document.getElementById('bev-quiz-text');
-        if (fill) fill.style.width = cards.length ? `${(revealed/cards.length)*100}%` : '0%';
-        if (text) text.textContent = `${revealed} / ${cards.length}`;
+        els = [...document.querySelectorAll('#bev-page .cocktail-card, #bev-page .bev-card')]
+          .filter(c => c.offsetParent !== null);
       }
+      return els.map(card => {
+        const nameEl = card.querySelector('.dish-name, .c-name, .bev-name');
+        const sec    = card.closest('section');
+        // Заголовок секции — текст h2 без эмодзи
+        const sectionLabel = sec
+          ? (sec.querySelector('h2')?.textContent || '').replace(/[^\wа-яёА-ЯЁ\s]/gu, '').trim()
+          : '';
+        // Клонируем всё содержимое карточки, кроме названия и кнопки «изучил»
+        const wrap = document.createElement('div');
+        [...card.children].forEach(child => {
+          if (!child.classList.contains('dish-name') &&
+              !child.classList.contains('c-name') &&
+              !child.classList.contains('bev-name') &&
+              !child.classList.contains('learned-btn')) {
+            wrap.appendChild(child.cloneNode(true));
+          }
+        });
+        return {
+          name:        nameEl?.textContent?.trim() || '—',
+          section:     sectionLabel,
+          contentHTML: wrap.innerHTML
+        };
+      });
     }
 
+    // ── Обновить прогресс-бар и счётчик
+    function updateProgress() {
+      const done = totalCards - queue.length;
+      document.getElementById('qo-counter').textContent = `Осталось: ${queue.length} / ${totalCards}`;
+      document.getElementById('qo-progress-fill').style.width =
+        totalCards ? `${(done / totalCards) * 100}%` : '0%';
+    }
+
+    // ── Показать текущую карточку (queue[0])
+    function showCard() {
+      const item = queue[0];
+      document.getElementById('qo-card-name').textContent   = item.name;
+      document.getElementById('qo-section-label').textContent = item.section;
+      document.getElementById('qo-card-content').innerHTML  = item.contentHTML;
+      document.getElementById('qo-card-content').style.display = 'none';
+      document.getElementById('qo-tap-hint').style.display  = '';
+      document.getElementById('qo-actions').style.display   = 'none';
+      document.getElementById('qo-body').style.display      = 'flex';
+      document.getElementById('qo-complete').style.display  = 'none';
+      revealed = false;
+      updateProgress();
+    }
+
+    // ── Финальный экран
+    function showComplete() {
+      document.getElementById('qo-body').style.display     = 'none';
+      document.getElementById('qo-actions').style.display  = 'none';
+      document.getElementById('qo-complete').style.display = 'flex';
+      document.getElementById('qo-complete-text').textContent =
+        `Прошёл все ${totalCards} карточек — всё знаешь!`;
+      document.getElementById('qo-progress-fill').style.width = '100%';
+      document.getElementById('qo-counter').textContent = `✓ ${totalCards} / ${totalCards}`;
+    }
+
+    // ── Запустить квиз
+    function startQuiz(page) {
+      currentPage = page;
+      queue       = buildQueue(page);
+      totalCards  = queue.length;
+      overlay.className = 'show' + (page === 'bev' ? ' qo-bev' : '');
+      document.body.style.overflow = 'hidden'; // заблокировать скролл фона
+      if (queue.length === 0) { showComplete(); return; }
+      showCard();
+    }
+
+    // ── Выйти из квиза
     function exitQuiz() {
-      document.body.classList.remove('quiz-food', 'quiz-bev');
-      document.querySelectorAll('.quiz-revealed').forEach(el => el.classList.remove('quiz-revealed'));
-      if (foodBtn) { foodBtn.classList.remove('active'); foodBtn.textContent = '🎓 Режим экзамена'; }
-      if (bevBtn) { bevBtn.classList.remove('active'); bevBtn.textContent = '🎓 Режим экзамена'; }
-      if (foodRevealAll) foodRevealAll.style.display = 'none';
-      if (bevRevealAll) bevRevealAll.style.display = 'none';
-      updateQuizScore('food'); updateQuizScore('bev');
+      overlay.className = '';
+      document.body.style.overflow = '';
+      if (foodBtn) { foodBtn.classList.remove('active'); foodBtn.textContent = '🎓 Экзамен'; }
+      if (bevBtn)  { bevBtn.classList.remove('active');  bevBtn.textContent  = '🎓 Экзамен'; }
     }
 
-    // п.7: показать одноразовую подсказку при первом открытии режима экзамена
-    function maybeShowQuizHint() {
-      if (localStorage.getItem('quizHintSeen')) return;
-      localStorage.setItem('quizHintSeen', '1');
-      const toast = document.getElementById('hint-toast');
-      if (!toast) return;
-      const span = toast.querySelector('.toast-text');
-      if (span) span.innerHTML = '🎓 <strong>Режим экзамена:</strong> карточки скроются. Нажми на карточку — увидишь ответ. Отметь ✓, если знаешь.';
-      toast.classList.add('show');
-      setTimeout(() => toast.classList.remove('show'), 6000);
-    }
-
-    if (foodBtn) {
-      foodBtn.addEventListener('click', () => {
-        if (document.body.classList.contains('quiz-food')) { exitQuiz(); }
-        else {
-          exitQuiz();
-          document.body.classList.add('quiz-food');
-          foodBtn.classList.add('active'); foodBtn.textContent = '❌ Выйти из режима';
-          if (foodRevealAll) foodRevealAll.style.display = '';
-          updateQuizScore('food');
-          maybeShowQuizHint();
-        }
-      });
-    }
-
-    if (bevBtn) {
-      bevBtn.addEventListener('click', () => {
-        if (document.body.classList.contains('quiz-bev')) { exitQuiz(); }
-        else {
-          exitQuiz();
-          document.body.classList.add('quiz-bev');
-          bevBtn.classList.add('active'); bevBtn.textContent = '❌ Выйти из режима';
-          if (bevRevealAll) bevRevealAll.style.display = '';
-          updateQuizScore('bev');
-        }
-      });
-    }
-
-    if (foodRevealAll) {
-      foodRevealAll.addEventListener('click', () => {
-        document.querySelectorAll('#food-page .dish-card').forEach(c => c.classList.add('quiz-revealed'));
-        updateQuizScore('food');
-      });
-    }
-    if (bevRevealAll) {
-      bevRevealAll.addEventListener('click', () => {
-        document.querySelectorAll('#bev-page .cocktail-card, #bev-page .bev-card').forEach(c => c.classList.add('quiz-revealed'));
-        updateQuizScore('bev');
-      });
-    }
-
-    document.addEventListener('click', (e) => {
-      if (document.body.classList.contains('quiz-food')) {
-        const card = e.target.closest('#food-page .dish-card');
-        if (card && !e.target.closest('.learned-btn') && !e.target.closest('.filter-btn')) {
-          card.classList.toggle('quiz-revealed');
-          updateQuizScore('food');
-        }
-      }
-      if (document.body.classList.contains('quiz-bev')) {
-        const ccard = e.target.closest('#bev-page .cocktail-card');
-        if (ccard && !e.target.closest('.learned-btn')) { ccard.classList.toggle('quiz-revealed'); updateQuizScore('bev'); }
-        const bcard = e.target.closest('#bev-page .bev-card');
-        if (bcard && !e.target.closest('.learned-btn')) { bcard.classList.toggle('quiz-revealed'); updateQuizScore('bev'); }
-      }
+    // ── Тап по карточке — раскрыть
+    document.getElementById('qo-card').addEventListener('click', () => {
+      if (revealed) return;
+      revealed = true;
+      document.getElementById('qo-card-content').style.display = '';
+      document.getElementById('qo-tap-hint').style.display     = 'none';
+      document.getElementById('qo-actions').style.display      = 'flex';
     });
 
-    document.getElementById('tab-food')?.addEventListener('click', () => { if (document.body.classList.contains('quiz-bev')) exitQuiz(); });
-    document.getElementById('tab-bev')?.addEventListener('click', () => { if (document.body.classList.contains('quiz-food')) exitQuiz(); });
+    // ── Кнопка «Знал» — убрать из очереди
+    document.getElementById('qo-btn-knew').addEventListener('click', () => {
+      queue.shift();
+      if (queue.length === 0) { showComplete(); return; }
+      showCard();
+    });
+
+    // ── Кнопка «Не знал» — переместить в конец очереди
+    document.getElementById('qo-btn-didnt').addEventListener('click', () => {
+      queue.push(queue.shift());
+      showCard();
+    });
+
+    // ── Кнопки выхода
+    document.getElementById('qo-exit').addEventListener('click', exitQuiz);
+    document.getElementById('qo-btn-complete-exit').addEventListener('click', exitQuiz);
+
+    // ── Повторить
+    document.getElementById('qo-btn-restart').addEventListener('click', () => startQuiz(currentPage));
+
+    // ── Кнопки запуска
+    if (foodBtn) {
+      foodBtn.addEventListener('click', () => {
+        foodBtn.classList.add('active');
+        foodBtn.textContent = '🎓 Экзамен идёт…';
+        startQuiz('food');
+      });
+    }
+    if (bevBtn) {
+      bevBtn.addEventListener('click', () => {
+        bevBtn.classList.add('active');
+        bevBtn.textContent = '🎓 Экзамен идёт…';
+        startQuiz('bev');
+      });
+    }
   }
   setupQuiz();
 
@@ -4586,6 +4642,39 @@ document.addEventListener('DOMContentLoaded', () => {
   <span class="toast-icon">💡</span>
   <span class="toast-text">Нажмите на <span class="toast-hl">подчеркнутый текст</span>, чтобы прочитать подробную подсказку (глоссарий).</span>
   <button class="toast-close" aria-label="Закрыть">&times;</button>
+</div>
+
+<!-- ════════════ QUIZ OVERLAY ════════════ -->
+<div id="quiz-overlay">
+  <div class="qo-header">
+    <button class="qo-exit" id="qo-exit">✕ Выйти</button>
+    <span class="qo-section-label" id="qo-section-label"></span>
+    <span class="qo-counter" id="qo-counter">0 / 0</span>
+  </div>
+  <div class="qo-progress-bar"><div class="qo-progress-fill" id="qo-progress-fill"></div></div>
+
+  <div class="qo-body" id="qo-body">
+    <div class="qo-card" id="qo-card">
+      <div class="qo-card-name" id="qo-card-name"></div>
+      <div class="qo-card-content" id="qo-card-content" style="display:none;"></div>
+      <div class="qo-tap-hint" id="qo-tap-hint">👆 Нажмите — увидите ответ</div>
+    </div>
+  </div>
+
+  <div class="qo-actions" id="qo-actions" style="display:none;">
+    <button class="qo-btn qo-btn-didnt" id="qo-btn-didnt">❌ Не знал</button>
+    <button class="qo-btn qo-btn-knew" id="qo-btn-knew">✅ Знал</button>
+  </div>
+
+  <div class="qo-complete" id="qo-complete" style="display:none;">
+    <div class="qo-complete-icon">🎉</div>
+    <div class="qo-complete-title">Отлично!</div>
+    <div class="qo-complete-text" id="qo-complete-text"></div>
+    <div class="qo-complete-actions">
+      <button class="qo-btn qo-btn-restart" id="qo-btn-restart">🔄 Повторить</button>
+      <button class="qo-btn qo-btn-exit-complete" id="qo-btn-complete-exit">✕ Выйти</button>
+    </div>
+  </div>
 </div>
 
 </body>
