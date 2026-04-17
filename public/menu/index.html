@@ -224,6 +224,20 @@
   .bev-card p { font-size: 0.87rem; color: #3a5060; line-height: 1.5; margin-top: 4px; }
   .bev-card .bev-notes { font-size: 0.84rem; color: #2a4050; margin-top: 6px; font-style: italic; }
 
+  /* ── PHONETIC PRONUNCIATION ── */
+  .phonetic {
+    display: block;
+    font-family: 'Crimson Pro', Georgia, serif;
+    font-size: 0.72rem;
+    font-style: italic;
+    color: var(--bev-accent);
+    letter-spacing: 0.04em;
+    margin: 0px 0 5px;
+    opacity: 0.9;
+  }
+  .phonetic::before { content: '['; font-style: normal; opacity: 0.55; }
+  .phonetic::after  { content: ']'; font-style: normal; opacity: 0.55; }
+
   /* ── TABLES ── */
   .compare-table { width: 100%; border-collapse: collapse; margin-bottom: 18px; font-size: 0.88rem; background: var(--card-bg); border: 1px solid var(--divider); }
   .compare-table th { background: var(--dark); color: var(--gold-light); padding: 9px 12px; font-family: 'Playfair Display', serif; font-weight: 400; font-size: 0.9rem; text-align: left; }
@@ -730,6 +744,7 @@
   [data-theme="dark"] .bev-card .bev-notes { color: #90b0c0; }
   [data-theme="dark"] .bev-card .bev-name { color: #e0eff8; }
   [data-theme="dark"] .bev-card .bev-sub { color: var(--bev-accent-light); }
+  [data-theme="dark"] .bev-card .phonetic { color: var(--bev-accent-light); opacity: 0.8; }
   [data-theme="dark"] .section-title.bev { color: #c8dce8; }
   [data-theme="dark"] .subsection.bev { color: var(--bev-accent-light); }
   [data-theme="dark"] .cocktail-card { background: var(--bev-card); border-color: var(--bev-divider); }
@@ -1931,6 +1946,7 @@
     <div class="bev-card">
       <div class="bev-sub">Champagne · France · N.V.</div>
       <div class="bev-name">Taittinger Brut Réserve</div>
+      <div class="phonetic">тэ-тэн-ЖЕ · брют рэ-ЗЕР-в</div>
       <p>Купаж: ~40% Chardonnay + 35% Pinot Noir + 25% Pinot Meunier. Необычно высокое содержание Chardonnay для NV — отсюда особая свежесть. Выдержка 3 года на дрожжах.</p>
       <p><strong>Вкус:</strong> белые фрукты, белые цветы, бриошь, мягкая кислотность.</p>
       <div class="bev-notes">Идеально как аперитив, к морепродуктам, рыбе, лёгким закускам.</div>
@@ -1940,6 +1956,7 @@
     <div class="bev-card">
       <div class="bev-sub">Sparkling · Italy · Veneto · N.V.</div>
       <div class="bev-name">Prosecco Belstar Extra Dry</div>
+      <div class="phonetic">про-СЕ-ко · бэл-СТАР</div>
       <p>100% Glera. Метод Шарма (чаны). Стиль Extra Dry = чуть мягче и фруктовее, чем Brut.</p>
       <p><strong>Вкус:</strong> зелёное яблоко, груша, персик, лёгкая сладость в послевкусии.</p>
       <div class="bev-notes">Как аперитив, к лёгким закускам. Основа для Aperol Spritz.</div>
@@ -1987,6 +2004,7 @@
     <div class="bev-card">
       <div class="bev-sub">White · Spain · Rioja · N.V.</div>
       <div class="bev-name">Voche Blanco · Rioja</div>
+      <div class="phonetic">ВО-чэ · РИО-ха</div>
       <p>Viura + Chardonnay. Выдержка в дубе → сливочные и ванильные ноты.</p>
       <p><strong>Вкус:</strong> цитрусы, белые цветы, лёгкая ваниль, округлая текстура.</p>
       <div class="bev-notes">К рыбе, морепродуктам, ризотто, пасте с белым соусом, мягким сырам.</div>
@@ -1995,6 +2013,7 @@
     <div class="bev-card">
       <div class="bev-sub">White · Spain · Penedès · 2021</div>
       <div class="bev-name">Gramona Gessami · Penedès</div>
+      <div class="phonetic">гра-МО-на жэ-СА-ми · пэ-нэ-ДЕС</div>
       <p>Мускат + Совиньон Блан + Гевюрцтраминер. Холодная ферментация в стали — для сохранения ароматов.</p>
       <p><strong>Вкус:</strong> жасмин, виноград, личи, цитрусовая цедра. Очень ароматное и лёгкое.</p>
       <div class="bev-notes">Как аперитив, к салатам, морепродуктам, азиатской кухне, козьему сыру.</div>
@@ -2004,6 +2023,7 @@
     <div class="bev-card">
       <div class="bev-sub">White · France · Burgundy · 2022</div>
       <div class="bev-name">Domaine Maldant-Pauvelot · Bourgogne Chardonnay</div>
+      <div class="phonetic">до-МЕН маль-ДАН по-вэ-ЛО · бур-ГОНЬ</div>
       <p>100% Chardonnay. Semya Maldant-Pauvelot из Côte de Beaune. Выдержка в дубовых бочках 10–12 мес + работа на осадке.</p>
       <p><strong>Вкус:</strong> белые фрукты, цветы, мёд, лёгкое масло, ореховые нюансы, минеральность.</p>
       <div class="bev-notes">К рыбе, морепродуктам, белому мясу, пасте, мягким сырам.</div>
@@ -2012,6 +2032,7 @@
     <div class="bev-card">
       <div class="bev-sub">White · New Zealand · Marlborough · 2023</div>
       <div class="bev-name">Hans Greyl · Sauvignon Blanc</div>
+      <div class="phonetic">Ханс ГРЭЙЛ · Совинь-ОН БЛАН · Мол-бро</div>
       <p>100% Sauvignon Blanc. Ферментация в стальных чанах — для максимальной свежести.</p>
       <p><strong>Вкус:</strong> тропические фрукты, крыжовник, манго, маракуйя, свежая трава, высокая кислотность.</p>
       <div class="bev-notes">К морепродуктам, рыбе, курице, суши, салатам, козьему сыру, спарже.</div>
@@ -2021,6 +2042,7 @@
     <div class="bev-card">
       <div class="bev-sub">White · Italy · Friuli · 2022</div>
       <div class="bev-name">Tunella · Pinot Grigio · Friuli</div>
+      <div class="phonetic">ту-НЕЛ-ла · ФРИУ-ли</div>
       <p>100% Pinot Grigio. Холодная ферментация в стали. Хозяйство La Tunella — Friuli Colli Orientali.</p>
       <p><strong>Вкус:</strong> зелёное яблоко, груша, белые цветы, цитрусы, лёгкая минеральность и миндаль.</p>
       <div class="bev-notes">К рыбе, морепродуктам, салатам, пасте с овощами, ризотто.</div>
@@ -2029,6 +2051,7 @@
     <div class="bev-card">
       <div class="bev-sub">White · Germany · Mosel · 2022</div>
       <div class="bev-name">Riesling Trocken · Markus Molitor · Haus Klosterberg</div>
+      <div class="phonetic">РИС-линг ТРО-кэн · МА-ркус МО-ли-тор · ХАУС КЛО-стэр-бэрг</div>
       <p>100% Riesling. Trocken = сухое (по-немецки). Ручной сбор, ферментация в стали и старых дубовых фудрах. Markus Molitor — культовый производитель Мозеля.</p>
       <p><strong>Вкус:</strong> лайм, лимонная цедра, зелёное яблоко, белые цветы, сланцевая минералика. Очень свежий и строгий.</p>
       <div class="bev-notes">К устрицам, морепродуктам, рыбе, азиатской кухне, блюдам с цитрусами. <strong>К острым блюдам.</strong></div>
@@ -2037,6 +2060,7 @@
     <div class="bev-card">
       <div class="bev-sub">White · Italy · Puglia · 2023</div>
       <div class="bev-name">Edda Bianco · Salento · Cantine San Marzano</div>
+      <div class="phonetic">ЭД-да БЬЯН-ко · са-ЛЕН-то · кан-ТИ-нэ сан мар-ЦА-но</div>
       <p>100% Chardonnay из солнечной Апулии. Частичная выдержка в дубе + батонаж → кремовая текстура.</p>
       <p><strong>Вкус:</strong> абрикос, персик, ваниль, тропические ноты, бархатистое и насыщенное.</p>
       <div class="bev-notes">К пасте со сливочными соусами, рыбе и морепродуктам на гриле, выдержанным сырам.</div>
@@ -2054,6 +2078,7 @@
     <div class="bev-card">
       <div class="bev-sub">Rosé · France · Côtes de Provence · 2021</div>
       <div class="bev-name">Domaines Ott By.Ott · Côtes de Provence Rosé</div>
+      <div class="phonetic">до-МЕН ОТ · КОТ дэ про-ВАНС · ро-ЗЕ</div>
       <p>Grenache + Cinsault + Syrah. Domaines Ott* — легендарный дом Прованса, эталон розового. Прямое прессование + холодная ферментация в стали.</p>
       <p><strong>Вкус:</strong> лесная земляника, белая вишня, персик, розовые лепестки, цитрусовая цедра. Сухое, лёгкое, освежающее.</p>
       <div class="bev-notes">Как аперитив, к морепродуктам, салатам, рыбе на гриле, средиземноморской кухне.</div>
@@ -2101,6 +2126,7 @@
     <div class="bev-card">
       <div class="bev-sub">Red · South Africa · 2021</div>
       <div class="bev-name">Barista · Pinotage Val de Vie</div>
+      <div class="phonetic">пино-ТАЖ · Валь дэ ВИ</div>
       <p>100% Pinotage (уникальный ЮАР сорт = Pinot Noir × Cinsaut). Выдержка во французском дубе.</p>
       <p><strong>Вкус:</strong> шелковица, слива, <strong>кофе, шоколад</strong>, ваниль. Бархатистые танины.</p>
       <div class="bev-notes">К красному мясу, жареной утке, шоколадным десертам.</div>
@@ -2110,6 +2136,7 @@
     <div class="bev-card">
       <div class="bev-sub">Red · France · Burgundy · 2022</div>
       <div class="bev-name">Domaine Maldant-Pauvelot · Bourgogne Pinot Noir</div>
+      <div class="phonetic">до-МЕН маль-ДАН по-вэ-ЛО · бур-ГОНЬ · КОТ дэ БОН</div>
       <p>100% Pinot Noir. Côte de Beaune. Выдержка в французских дубовых бочках (частично использованных).</p>
       <p><strong>Вкус:</strong> малина, вишня, красная смородина, лёгкая кислинка, мягкие танины, цветочные нотки. Элегантное.</p>
       <div class="bev-notes">К птице, лёгким мясным блюдам, грибной пасте, мягким сырам.</div>
@@ -2118,6 +2145,7 @@
     <div class="bev-card">
       <div class="bev-sub">Red · Italy · Puglia · 2021</div>
       <div class="bev-name">Talo · Primitivo-Merlot · Feudi di San Marzano</div>
+      <div class="phonetic">ТА-ло · при-ми-ТИ-во · ФЕУ-ди ди сан мар-ЦА-но</div>
       <p>50% Primitivo + 50% Merlot. Саленто, Апулия. Выдержка 4–6 мес в дубе.</p>
       <p><strong>Вкус:</strong> вишня, черешня, спелые тёмные ягоды, лёгкие пряности, возможно корица. Полнотелое.</p>
       <div class="bev-notes">К плотным первым блюдам, красному мясу, дичи, выдержанным сырам.</div>
@@ -2126,6 +2154,7 @@
     <div class="bev-card">
       <div class="bev-sub">Red · Argentina · Mendoza · 2018</div>
       <div class="bev-name">Clos de los Siete · Michel Rolland</div>
+      <div class="phonetic">КЛО дэ лос СЬЕТЕ · ми-ШЕЛЬ ро-ЛАН</div>
       <p>Malbec 57% + Merlot 15% + Cab. Sauv. 15% + Syrah 10% + Petit Verdot 3%. Проект французского энолога Мишеля Роллана. Выдержка 12 мес в французском дубе.</p>
       <p><strong>Вкус:</strong> чёрная вишня, ежевика, специи, ваниль, шоколад. Бархатистые танины, полнотелое.</p>
       <div class="bev-notes">К стейкам, запечённой дичи, выдержанным сырам. «Французская элегантность в аргентинском теле».</div>
@@ -2134,6 +2163,7 @@
     <div class="bev-card">
       <div class="bev-sub">Red · Italy · Maremma Tuscany · 2021</div>
       <div class="bev-name">Querciabella Mongrana Rosso · Maremma</div>
+      <div class="phonetic">куэр-ча-БЕЛ-ла мон-ГРА-на РОС-со · ма-РЕМ-ма</div>
       <p>Sangiovese + Cabernet Sauvignon + Merlot. Querciabella — органическое виноделие. Выдержка 12 мес в французском дубе.</p>
       <p><strong>Вкус:</strong> чёрные ягоды, вишня, ваниль, специи, лёгкая дымность. Плотная структура, бархатистые танины.</p>
       <div class="bev-notes">К стейкам, рёбрышкам, тушёной дичи, выдержанным сырам.</div>
@@ -2143,6 +2173,7 @@
     <div class="bev-card">
       <div class="bev-sub">Red · Italy · Friuli · 2022</div>
       <div class="bev-name">Tunella · Pinot Nero · Friuli</div>
+      <div class="phonetic">ту-НЕЛ-ла · пино НЕ-ро · ФРИУ-ли</div>
       <p>100% Pinot Nero (итальянское название Pinot Noir). Частичная выдержка в дубе 6–8 мес.</p>
       <p><strong>Вкус:</strong> красные ягоды, вишня, малина, лёгкие цветочные и минеральные ноты. Лёгкое и элегантное.</p>
       <div class="bev-notes">К пасте с грибами, птице, лёгким мясным блюдам, мягким сырам.</div>
@@ -2215,6 +2246,7 @@
     <div class="bev-card">
       <div class="region-badge region-speyside">Speyside</div>
       <div class="bev-name">The Glenlivet 15 / 18 / 25</div>
+      <div class="phonetic">глен-ЛИ-вит</div>
       <p>Эталон «классического» Speyside. Один из первых легальных производителей. Минимальное влияние торфа, акцент на чистоте.</p>
       <p>15 = свежие фрукты, лёгкая пряность · 18 = глубже, сухофрукты, специи · 25 = многослойный, зрелый</p>
       <div class="memory bev">Glenlivet = «входная точка» в мир Single Malt. Мягкий и доступный для новичков.</div>
@@ -2223,6 +2255,7 @@
     <div class="bev-card">
       <div class="region-badge region-speyside">Speyside</div>
       <div class="bev-name">The Macallan 12 / 15 / 18 / 25 + Classic Cut + M</div>
+      <div class="phonetic">мэ-КА-лэн</div>
       <p>«Король хересных бочек». Малые перегонные кубы → плотный, маслянистый спирт. Значительная выдержка в испанском хересном дубе.</p>
       <p><strong>Стиль:</strong> тёмный шоколад, апельсиновая цедра, сухофрукты, орехи, выразительный дуб.</p>
       <div class="bev-notes">Classic Cut = повышенная крепость, яркая пряность. M = премиальный коллекционный.</div>
@@ -2232,6 +2265,7 @@
     <div class="bev-card">
       <div class="region-badge region-speyside">Speyside</div>
       <div class="bev-name">Glenfiddich 18 / 21 / 30 / 40</div>
+      <div class="phonetic">глен-ФИД-их</div>
       <p>Эталон чистого и сбалансированного Speyside. Разные типы бочек, нет доминирования. Акцент на чистоте.</p>
       <p><strong>Стиль:</strong> груша, яблоко, цветочные ноты, лёгкий дуб, чистый профиль.</p>
       <div class="bev-notes">30/40 лет = коллекционные. 18/21 = для серьёзной дегустации.</div>
@@ -2240,12 +2274,14 @@
     <div class="bev-card">
       <div class="region-badge region-speyside">Speyside</div>
       <div class="bev-name">Aberlour 16 / 18</div>
+      <div class="phonetic">абэр-ЛАУэр</div>
       <p>Насыщенный шери-стиль. Сухофрукты, специи, ореховые ноты. Более доступен, чем Macallan.</p>
       <div class="prep-time">⏱ ~1 мин</div>
     </div>
     <div class="bev-card">
       <div class="region-badge region-speyside">Speyside</div>
       <div class="bev-name">Tamdhu 15</div>
+      <div class="phonetic">там-ДУ</div>
       <p>Фокус на sherry cask. Тёплый, округлый, насыщенный.</p>
       <div class="prep-time">⏱ ~1 мин</div>
     </div>
@@ -2262,6 +2298,7 @@
     <div class="bev-card">
       <div class="region-badge region-highland">Highland</div>
       <div class="bev-name">Glenmorangie · The Lasanta 15 / Quinta Ruban 14 / 18 / Signet</div>
+      <div class="phonetic">глен-МО-ран-джи · ла-САН-та · КИН-та РУ-бан</div>
       <p>Одна из самых высоких перегонных башен → очень лёгкий и чистый спирт. Лёгкий, фруктово-цветочный Highland.</p>
       <p>Lasanta = шери → мягкая сладость · Quinta Ruban = портвейн → тёмный шоколад · Signet = кофе, специи, премиум</p>
       <div class="prep-time">⏱ ~1 мин</div>
@@ -2269,18 +2306,21 @@
     <div class="bev-card">
       <div class="region-badge region-highland">Highland</div>
       <div class="bev-name">Dalmore 21</div>
+      <div class="phonetic">дал-МОР</div>
       <p>Плотный и насыщенный Highland. Большая часть выдержки в sherry cask. Шоколад, цедра апельсина, сухофрукты, орехи. 21 год = глубокая зрелость.</p>
       <div class="prep-time">⏱ ~1 мин</div>
     </div>
     <div class="bev-card">
       <div class="region-badge region-highland">Highland</div>
       <div class="bev-name">Glengoyne 15 / 25 / 30</div>
+      <div class="phonetic">глен-ГОЙН</div>
       <p>Без торфа. Медленная перегонка → мягкий и элегантный профиль. Sherry cask добавляет глубины. Цветочные ноты, мёд, карамель.</p>
       <div class="prep-time">⏱ ~1 мин</div>
     </div>
     <div class="bev-card">
       <div class="region-badge region-highland">Highland</div>
       <div class="bev-name">Glenfarclas 15 / 25 / 40</div>
+      <div class="phonetic">глен-ФАР-клас</div>
       <p>Все релизы без холодной фильтрации (non-chill-filtered) → плотный и насыщенный вкус. Шоколад, орехи, дуб. 40 лет = коллекционный раритет.</p>
       <div class="prep-time">⏱ ~1 мин</div>
     </div>
@@ -2293,6 +2333,7 @@
     <div class="bev-card">
       <div class="region-badge region-highland">Highland</div>
       <div class="bev-name">Aberfeldy 21 · Samaroli Deanston 1999</div>
+      <div class="phonetic">абэр-ФЕЛ-ди · са-ма-РО-ли · ДИН-стон</div>
       <p>Aberfeldy 21 = мёд, карамель, лёгкая сладость. Deanston 1999 = коллекционный, non-chill-filtered, мягкий, фруктовый.</p>
       <div class="prep-time">⏱ ~1 мин</div>
     </div>
@@ -2303,6 +2344,7 @@
     <div class="bev-card">
       <div class="region-badge region-lowland">Lowland</div>
       <div class="bev-name">Auchentoshan American Oak / 12 Y.O.</div>
+      <div class="phonetic">ахэн-ТО-шан</div>
       <p>Тройная перегонка (уникально для Шотландии) → очень чистый и элегантный профиль. American Oak = ваниль + фрукты. 12 лет = мягкий, свежий.</p>
       <div class="memory bev">Auchentoshan = лучший выбор для <strong>первого знакомства с Single Malt</strong>. Мягкий, понятный, без дыма.</div>
       <div class="prep-time">⏱ ~1 мин</div>
@@ -2320,6 +2362,7 @@
     <div class="bev-card">
       <div class="region-badge region-islay">Islay</div>
       <div class="bev-name">Lagavulin 16</div>
+      <div class="phonetic">лага-ВУ-лин</div>
       <p>Один из самых известных торфяных виски. Долгая выдержка в бурбоновых и шери-бочках.</p>
       <p><strong>Стиль:</strong> торф и дым, морская соль, йод, шоколад, сухофрукты. Плотный и многослойный.</p>
       <div class="prep-time">⏱ ~1 мин</div>
@@ -2327,6 +2370,7 @@
     <div class="bev-card">
       <div class="region-badge region-islay">Islay</div>
       <div class="bev-name">Ardbeg 10 / Corryvreckan</div>
+      <div class="phonetic">АРД-бег · кори-ВРЕК-кан</div>
       <p>Один из самых мощных и дымных. Узкие медные аламбики → концентрированный аромат. Non-chill-filtered.</p>
       <p>10 = экстремальный торф, прямой · Corryvreckan = более сложный, кофе, тёмный шоколад</p>
       <div class="memory bev">Ardbeg = для любителей «экстремального» Islay. Если гость хочет «самый дымный» — это оно.</div>
@@ -2335,12 +2379,14 @@
     <div class="bev-card">
       <div class="region-badge region-islay">Islay</div>
       <div class="bev-name">Laphroaig Quarter Cask</div>
+      <div class="phonetic">лэ-ФРОЙГ</div>
       <p>Интенсивный торф и дым, морская соль, йод. Quarter Cask = часть выдержки в маленьких бочках → ускоренный контакт с деревом → маслянистый вкус. Non-chill-filtered.</p>
       <div class="prep-time">⏱ ~1 мин</div>
     </div>
     <div class="bev-card">
       <div class="region-badge region-islay">Islay</div>
       <div class="bev-name">Bunnahabhain 18</div>
+      <div class="phonetic">буна-ХА-вэн</div>
       <p>Наименее торфяной из Islay — почти без дыма. Мягкая морская свежесть, фруктовый. Non-chill-filtered.</p>
       <div class="memory bev">Bunnahabhain = «мягкий Islay». Для гостей, которые хотят Islay, но боятся дыма.</div>
       <div class="prep-time">⏱ ~1 мин</div>
@@ -2348,6 +2394,7 @@
     <div class="bev-card">
       <div class="region-badge region-islay">Islay</div>
       <div class="bev-name">Port Charlotte · Kilchoman Machir Bay / Sanaig · Bruichladdich</div>
+      <div class="phonetic">кил-ХО-мэн · МА-хир · БРУК-лэди</div>
       <p>Port Charlotte = умеренный торф, фруктовый.<br>Kilchoman Machir Bay = лёгкий, свежий. Sanaig = насыщеннее, но мягче Lagavulin.<br>Bruichladdich = почти без торфа, фруктово-цветочный.</p>
       <div class="prep-time">⏱ ~1 мин</div>
     </div>
@@ -2358,6 +2405,7 @@
     <div class="bev-card">
       <div class="region-badge region-islands">Islands · Skye</div>
       <div class="bev-name">Talisker Skye</div>
+      <div class="phonetic">ТА-лис-кэр</div>
       <p>Остров Скай. Стиль близок к Islay, но мягче. Лёгкий торф, морская соль, пряности, цитрус. Non-chill-filtered. Хорошо показывает «островной» стиль без экстремальности Ardbeg.</p>
       <div class="prep-time">⏱ ~1 мин</div>
     </div>
@@ -2430,6 +2478,7 @@
     <div class="bev-card">
       <div class="bev-sub">French Whisky · Brittany</div>
       <div class="bev-name">Armorik / Armorik Yeun Elez / Marcel Cabelier Trésor Légendaire</div>
+      <div class="phonetic">ар-МО-рик · ЕН э-ЛЕЗ · ка-бэ-ЛЬЕ · трэ-ЗОР лэ-жан-ДЕР</div>
       <p>Французский виски — нетипично и интересно. Armorik = из Бретани, солёный морской характер. Cabelier = бургундский стиль, выдержан в бочках из-под вина.</p>
       <div class="prep-time">⏱ ~1 мин</div>
     </div>
@@ -2454,30 +2503,35 @@
     <div class="bev-card">
       <div class="region-badge region-japan">Japan · Blended Malt</div>
       <div class="bev-name">Nikka Taketsuru Pure Malt / From the Barrel / Gold&Gold</div>
+      <div class="phonetic">НИ-кка та-кэ-ЦУ-ру</div>
       <p>Taketsuru = основатель японского виски, учился в Шотландии. Pure Malt = blended malt, мягкий, округлый. From the Barrel = бочковая крепость (~51%), насыщенный, концентрированный. Gold&Gold = премиум, богатый.</p>
       <div class="prep-time">⏱ ~1 мин</div>
     </div>
     <div class="bev-card">
       <div class="region-badge region-japan">Japan · Blended</div>
       <div class="bev-name">Hibiki Suntory / Yamazaki Distillers Reserve</div>
+      <div class="phonetic">хи-БИ-ки САН-тори · яма-ЗА-ки</div>
       <p>Hibiki = самый узнаваемый японский blended whisky. Гармоничный, цветочный, элегантный. Коллекционный. Yamazaki = Single Malt от Suntory, тропические фрукты, водяная лилия, японский стиль.</p>
       <div class="prep-time">⏱ ~1 мин</div>
     </div>
     <div class="bev-card">
       <div class="region-badge region-japan">Japan</div>
       <div class="bev-name">Kamiki Blended Malt / Intense Wood / Sakura Wood</div>
+      <div class="phonetic">ка-МИ-ки</div>
       <p>Kamiki = японский malt, выдержан в японских горных бочках. Intense Wood = насыщенный, дубовый. Sakura Wood = выдержан в бочках сакуры = цветочный, уникальный японский.</p>
       <div class="prep-time">⏱ ~1 мин</div>
     </div>
     <div class="bev-card">
       <div class="region-badge region-japan">Japan</div>
       <div class="bev-name">Hakushu Single Malt</div>
+      <div class="phonetic">ха-КУ-шу</div>
       <p>Дистиллерия в горном лесу. Лёгкий, свежий, травяной, слегка торфяной. Уникальный для японского виски.</p>
       <div class="prep-time">⏱ ~1 мин</div>
     </div>
     <div class="bev-card">
       <div class="region-badge region-japan">Japan</div>
       <div class="bev-name">Matsui Single Malt The Peated · Kurayoshi Sherry Cask</div>
+      <div class="phonetic">МА-цуи · ку-ра-ЁШИ</div>
       <p><strong>Matsui Peated</strong> — торфяной японский. Дым + морской бриз, японская интерпретация Islay-стиля.<br>
       <strong>Kurayoshi Sherry Cask</strong> — выдержка в хересных бочках. Сухофрукты, специи, тёплый финиш.</p>
       <div class="bev-notes">Для гостей, которые хотят «японский Scotch» — привычный стиль, азиатская точность.</div>
@@ -2486,6 +2540,7 @@
     <div class="bev-card">
       <div class="region-badge region-japan">Japan</div>
       <div class="bev-name">Togouchi Beer/Sake Cask · Kura Blended Malt · Suntory Kakubin 7 Y.O.</div>
+      <div class="phonetic">то-ГУ-чи · ка-КУ-бин</div>
       <p><strong>Togouchi Beer/Sake Cask</strong> — финиш в пивных и саке бочках = экзотика, уникальный вкус.<br>
       <strong>Kura Blended Malt</strong> — мягкий, доступный, хороший вход в японский виски.<br>
       <strong>Kakubin 7 Y.O.</strong> — культовый японский хайбольный виски Suntory.</p>
@@ -2495,12 +2550,14 @@
     <div class="bev-card">
       <div class="region-badge" style="background:#fff0e8;color:#803000;border:1px solid #e09060;">Taiwan</div>
       <div class="bev-name">Kavalan Port Cask Finish</div>
+      <div class="phonetic">КА-ва-лан</div>
       <p>Тайваньский Single Malt. Тропический климат = быстрое взаимодействие с деревом = насыщенный фруктовый вкус. Port Cask Finish = портвейновые бочки → ягоды, шоколад, полнотелый.</p>
       <div class="prep-time">⏱ ~1 мин</div>
     </div>
     <div class="bev-card">
       <div class="region-badge" style="background:#f0e8ff;color:#600060;border:1px solid #c080c0;">Korea</div>
       <div class="bev-name">Hwayo X Premium</div>
+      <div class="phonetic">ХВА-йо</div>
       <p>Корейский спиритус. Рисовый зерновой дистиллят в стиле виски. Мягкий, слегка сладкий.</p>
       <div class="prep-time">⏱ ~1 мин</div>
     </div>
@@ -2524,26 +2581,31 @@
     <div class="bev-card">
       <div class="bev-sub">Cognac · France</div>
       <div class="bev-name">Martell VS / VSOP / XO / Cordon Bleu Extra / L'Or</div>
+      <div class="phonetic">мар-ТЕЛ · кор-ДОН БЛЁЙ · Эль-ОР</div>
       <p>Один из старейших домов коньяка (1715). Стиль: более сухой и фруктовый, чем Hennessy. XO = слива, сухофрукты, цветы, специи. L'Or = люкс.</p>
     </div>
     <div class="bev-card">
       <div class="bev-sub">Cognac · France</div>
       <div class="bev-name">Hennessy VS / VSOP / XO / Paradis Imperial / Richard</div>
+      <div class="phonetic">ХЕ-нэ-си · па-ра-ДИ ам-пэ-РЬЯ-аль</div>
       <p>Самый продаваемый коньяк в мире. VS = ванильный, лёгкий. VSOP = ореховый, цветочный. XO = интенсивный, дубовый, специи. Richard / Paradis = коллекционный уровень.</p>
     </div>
     <div class="bev-card">
       <div class="bev-sub">Cognac · France</div>
       <div class="bev-name">Rémy Martin XO / Louis XIII</div>
+      <div class="phonetic">РЕ-ми мар-ТАН · ЛУИ трэ-ЗЬЕМ</div>
       <p>Rémy Martin XO = Grande Champagne, самый деликатный терруар. Фруктовый, цветочный, изысканный. Louis XIII = коллекционный, смесь 1200+ Eaux-de-Vie, в хрустале. До 100 лет некоторых спиртов.</p>
     </div>
     <div class="bev-card">
       <div class="bev-sub">Armagnac · France</div>
       <div class="bev-name">Delord Bas Armagnac 25 Ans d'Age</div>
+      <div class="phonetic">дэ-ЛОР · БА ар-ман-ЬЯК · ан д-АЖ</div>
       <p>25 лет. Bas Armagnac = лучший терруар Гаскони. Одинарная дистилляция → более «сырой» и характерный, чем коньяк. Чернослив, ваниль, пряности, кожа.</p>
     </div>
     <div class="bev-card">
       <div class="bev-sub">Brandy · Various</div>
       <div class="bev-name">Ararat 15 / 20 · Calvados du Breuil XO · Torres Brandy 10</div>
+      <div class="phonetic">каль-ва-ДО дю БРЁЙ</div>
       <p>Ararat = армянский бренди из Арарата (15/20 лет). Calvados = яблочный бренди из Нормандии (Франция). Torres = испанский виноградный бренди.</p>
     </div>
   </div>
@@ -2576,6 +2638,7 @@
     <div class="bev-card">
       <div class="bev-sub">Gin · England (London Dry)</div>
       <div class="bev-name">Tanqueray London Dry / №10 / Flor de Sevilla / Black Currant</div>
+      <div class="phonetic">ТАН-кэ-рэй · Флор дэ сэ-ВИ-лья</div>
       <p>Tanqueray = классика. №10 = citrus forward, свежий. Flor de Sevilla = апельсин из Севильи. Black Currant = смородина.</p>
     </div>
     <div class="bev-card">
@@ -2586,11 +2649,13 @@
     <div class="bev-card">
       <div class="bev-sub">Gin · France</div>
       <div class="bev-name">Citadelle Original / Jardin d'Été · Yu Gin</div>
+      <div class="phonetic">си-та-ДЕЛ · жар-ДАН дэ-ТЕ</div>
       <p>Citadelle = французский стиль, цветочный, пряный, деликатный. Jardin d'Été = летний, цветочный. Yu Gin = ароматный французский с восточными нотами.</p>
     </div>
     <div class="bev-card">
       <div class="bev-sub">Gin · Japan</div>
       <div class="bev-name">Ki No Bi · Tenjaku · Nikka Coffey Gin · Roku</div>
+      <div class="phonetic">Ки но БИ · тэн-ДЯ-ку · РО-ку</div>
       <p>Ki No Bi = Kyoto Dry Gin, с японскими ботаниками (сансё, чайный лист). Tenjaku = миный и цветочный. Roku = «6» ботаников (сакура, чайный цветок и т.д.). Nikka Coffey = на колонных аппаратах Coffey.</p>
     </div>
     <div class="bev-card">
@@ -2601,6 +2666,7 @@
     <div class="bev-card">
       <div class="bev-sub">Genever · Holland</div>
       <div class="bev-name">Bols Genever Original</div>
+      <div class="phonetic">БОЛС · жэ-НЕ-вэр</div>
       <p>Голландский прародитель джина. Более солодовый и тяжёлый, чем London Dry. Пьют чистым или с пивом (Belgian tradition).</p>
     </div>
   </div>
@@ -2883,6 +2949,7 @@
     <div class="bev-card">
       <div class="bev-sub">Liqueur · Various</div>
       <div class="bev-name">Baileys · Kahlua · Cointreau · Grand Marnier · Drambuie · Sambuca · Malibu</div>
+      <div class="phonetic">БЕЙ-лис · ка-ЛУА · КУАН-тро · Гран мар-НЬЕ · драм-БЬЮ-и · сам-БУ-ка</div>
       <p>Baileys = ирландский сливочный, к кофе. Kahlua = кофейный мексиканский. Cointreau = апельсиновый (основа Cosmopolitan, Margarita). Grand Marnier = Cognac + апельсин. Drambuie = шотландский мёд+виски. Sambuca = анисовый итальянский. Malibu = кокосовый ром.</p>
     </div>
     <div class="bev-card">
