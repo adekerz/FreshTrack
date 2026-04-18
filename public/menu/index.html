@@ -738,12 +738,6 @@
   [data-theme="dark"] .bev-price .price-label { color: var(--bev-accent-light); }
 
   /* ── CHAMPAGE SUBSECTION ── */
-  .sparkling-sub {
-    font-family: 'Playfair Display', serif; font-size: 0.82rem; font-weight: 700;
-    color: #fff; background: var(--bev-dark); letter-spacing: 0.08em; text-transform: uppercase;
-    padding: 5px 14px; border-radius: 4px; display: inline-block; margin: 20px 0 10px;
-  }
-  [data-theme="dark"] .sparkling-sub { background: #0d1c2a; color: var(--bev-accent-light); }
 
   /* ── PREVENT ZOOM ON BUTTONS (iOS) ── */
   .search-nav-btn, .search-btn, .search-clear, .theme-toggle, .scroll-top-btn, .tab-btn, .pwa-btn, .pwa-close { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
@@ -1978,7 +1972,7 @@
   </div>
   <div class="memory bev">Extra Dry — слегка сладкое, несмотря на слово «Dry». Это ловушка для гостей. Если хочет «совсем сухое» — Brut или Brut Nature.</div>
 
-  <div class="sparkling-sub">🥂 Шампанское · Champagne · France</div>
+  <p class="subsection bev">🥂 Шампанское · Champagne · France</p>
   <div class="card-grid">
     <div class="bev-card">
       <div class="bev-sub">Champagne · France · N.V.</div>
@@ -2066,7 +2060,7 @@
     </div>
   </div>
 
-  <div class="sparkling-sub">🍾 Просекко · Prosecco · Italy</div>
+  <p class="subsection bev">🍾 Просекко · Prosecco · Italy</p>
   <div class="card-grid">
     <div class="bev-card">
       <div class="bev-sub">Sparkling · Italy · Veneto · N.V.</div>
@@ -2380,6 +2374,8 @@
       <p>Эталон «классического» Speyside. Один из первых легальных производителей. Минимальное влияние торфа, акцент на чистоте.</p>
       <p>15 = свежие фрукты, лёгкая пряность · 18 = глубже, сухофрукты, специи · 25 = многослойный, зрелый</p>
       <div class="memory bev">Glenlivet = «входная точка» в мир Single Malt. Мягкий и доступный для новичков.</div>
+      <div class="bev-price"><span class="price-label">🥃 18 лет · Порция</span><span class="price-amount">26 000 KZT</span></div>
+      <div class="bev-price"><span class="price-label">🥃 25 лет · Порция</span><span class="price-amount">85 000 KZT</span></div>
       <div class="prep-time">⏱ ~1 мин</div>
     </div>
     <div class="bev-card">
@@ -2390,6 +2386,8 @@
       <p><strong>Стиль:</strong> тёмный шоколад, апельсиновая цедра, сухофрукты, орехи, выразительный дуб.</p>
       <div class="bev-notes">Classic Cut = повышенная крепость, яркая пряность. M = премиальный коллекционный.</div>
       <div class="memory bev">Macallan ≠ лёгкий Speyside. Это плотный, насыщенный стиль. Для ценителей богатого виски.</div>
+      <div class="bev-price"><span class="price-label">🥃 Fine Oak 18 · Порция</span><span class="price-amount">72 300 KZT</span></div>
+      <div class="bev-price"><span class="price-label">🥃 M · Порция</span><span class="price-amount">845 000 KZT</span></div>
       <div class="prep-time">⏱ ~1 мин</div>
     </div>
     <div class="bev-card">
@@ -2438,6 +2436,7 @@
       <div class="bev-name">Dalmore 21</div>
       <div class="phonetic">дал-МОР</div>
       <p>Плотный и насыщенный Highland. Большая часть выдержки в sherry cask. Шоколад, цедра апельсина, сухофрукты, орехи. 21 год = глубокая зрелость.</p>
+      <div class="bev-price"><span class="price-label">🥃 Порция</span><span class="price-amount">20 000 KZT</span></div>
       <div class="prep-time">⏱ ~1 мин</div>
     </div>
     <div class="bev-card">
@@ -2465,6 +2464,7 @@
       <div class="bev-name">Aberfeldy 21 · Samaroli Deanston 1999</div>
       <div class="phonetic">абэр-ФЕЛ-ди · са-ма-РО-ли · ДИН-стон</div>
       <p>Aberfeldy 21 = мёд, карамель, лёгкая сладость. Deanston 1999 = коллекционный, non-chill-filtered, мягкий, фруктовый.</p>
+      <div class="bev-price"><span class="price-label">🥃 Aberfeldy 21 · Порция</span><span class="price-amount">37 500 KZT</span></div>
       <div class="prep-time">⏱ ~1 мин</div>
     </div>
   </div>
@@ -2553,6 +2553,7 @@
       <div class="bev-sub">Scotch Blended Whisky</div>
       <div class="bev-name">Chivas Regal 15 / 18 / Ultis / 25</div>
       <p>Blended = солодовый + зерновой спирт из нескольких дистиллерий. Более лёгкий и доступный стиль. Для тех, кто «не хочет Single Malt».</p>
+      <div class="bev-price"><span class="price-label">🥃 25 лет · Порция</span><span class="price-amount">92 300 KZT</span></div>
       <div class="prep-time">⏱ ~1 мин</div>
     </div>
     <div class="bev-card">
@@ -2719,18 +2720,24 @@
       <div class="bev-name">Hennessy VS / VSOP / XO / Paradis Imperial / Richard</div>
       <div class="phonetic">ХЕ-нэ-си · па-ра-ДИ ам-пэ-РЬЯ-аль</div>
       <p>Самый продаваемый коньяк в мире. VS = ванильный, лёгкий. VSOP = ореховый, цветочный. XO = интенсивный, дубовый, специи. Richard / Paradis = коллекционный уровень.</p>
+      <div class="bev-price"><span class="price-label">🥃 XO · Порция</span><span class="price-amount">56 600 KZT</span></div>
+      <div class="bev-price"><span class="price-label">🥃 Paradis Imperial · Порция</span><span class="price-amount">300 000 KZT</span></div>
+      <div class="bev-price"><span class="price-label">🥃 Richard · Порция</span><span class="price-amount">415 000 KZT</span></div>
     </div>
     <div class="bev-card">
       <div class="bev-sub">Cognac · France</div>
       <div class="bev-name">Rémy Martin XO / Louis XIII</div>
       <div class="phonetic">РЕ-ми мар-ТАН · ЛУИ трэ-ЗЬЕМ</div>
       <p>Rémy Martin XO = Grande Champagne, самый деликатный терруар. Фруктовый, цветочный, изысканный. Louis XIII = коллекционный, смесь 1200+ Eaux-de-Vie, в хрустале. До 100 лет некоторых спиртов.</p>
+      <div class="bev-price"><span class="price-label">🥃 XO · Порция</span><span class="price-amount">430 000 KZT</span></div>
+      <div class="bev-price"><span class="price-label">🥃 Louis XIII · Порция</span><span class="price-amount">335 000 KZT</span></div>
     </div>
     <div class="bev-card">
       <div class="bev-sub">Armagnac · France</div>
       <div class="bev-name">Delord Bas Armagnac 25 Ans d'Age</div>
       <div class="phonetic">дэ-ЛОР · БА ар-ман-ЬЯК · ан д-АЖ</div>
       <p>25 лет. Bas Armagnac = лучший терруар Гаскони. Одинарная дистилляция → более «сырой» и характерный, чем коньяк. Чернослив, ваниль, пряности, кожа.</p>
+      <div class="bev-price"><span class="price-label">🥃 Порция</span><span class="price-amount">29 000 KZT</span></div>
     </div>
     <div class="bev-card">
       <div class="bev-sub">Brandy · Various</div>
@@ -2821,6 +2828,7 @@
       <div class="bev-sub">Tequila · Mexico</div>
       <div class="bev-name">Don Julio Blanco / Reposado / Añejo / 1942</div>
       <p>Один из лучших брендов премиум-текилы. 1942 = Extra Añejo, выдержан 2.5 года, карамель, ваниль, дерево, дымок. Культовый. Для сиппинга.</p>
+      <div class="bev-price"><span class="price-label">🥃 1942 · Порция</span><span class="price-amount">38 300 KZT</span></div>
     </div>
     <div class="bev-card">
       <div class="bev-sub">Tequila · Mexico · Premium</div>
@@ -2913,6 +2921,7 @@
       <div class="bev-sub">Vodka · Russia</div>
       <div class="bev-name">Beluga Noble / Gold</div>
       <p>Пшеничная. Noble = мягкая, нейтральная. Gold = коллекционный, очень редкая фильтрация через активированный уголь + серебро.</p>
+      <div class="bev-price"><span class="price-label">🥃 Gold · Порция</span><span class="price-amount">21 000 KZT</span></div>
     </div>
     <div class="bev-card">
       <div class="bev-sub">Vodka · Poland</div>
