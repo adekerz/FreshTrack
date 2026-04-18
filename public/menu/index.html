@@ -708,6 +708,43 @@
     border-radius: 10px; padding: 1px 7px; margin-top: 4px; font-weight: 600;
   }
   [data-theme="dark"] .prep-time { background: rgba(74,143,168,0.15); }
+  /* ── SERVE BADGE (glass / bottle) ── */
+  .serve-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 10px; border-radius: 20px;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+    margin-top: 8px; font-family: 'Crimson Pro', serif;
+  }
+  .serve-badge.glass { background: #e8f8ee; color: #1a5c2a; border: 1px solid #8dd4a8; }
+  .serve-badge.bottle-only { background: #fff8e0; color: #7a5c00; border: 1px solid #f0d870; }
+  [data-theme="dark"] .serve-badge.glass { background: #0e2018; color: #70c080; border-color: #1a4828; }
+  [data-theme="dark"] .serve-badge.bottle-only { background: #221c08; color: #c8a040; border-color: #484010; }
+
+  /* ── BEV PRICE ── */
+  .bev-price {
+    display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
+    margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--bev-divider);
+  }
+  .bev-price .price-label {
+    font-family: 'Crimson Pro', serif; font-size: 0.75rem; font-weight: 700;
+    color: var(--bev-accent); text-transform: uppercase; letter-spacing: 0.06em;
+  }
+  .bev-price .price-amount {
+    font-family: 'Playfair Display', serif; font-size: 1rem; font-weight: 700;
+    color: #c8900a; letter-spacing: 0.01em;
+  }
+  [data-theme="dark"] .bev-price { border-top-color: var(--bev-divider); }
+  [data-theme="dark"] .bev-price .price-amount { color: #d4a840; }
+  [data-theme="dark"] .bev-price .price-label { color: var(--bev-accent-light); }
+
+  /* ── CHAMPAGE SUBSECTION ── */
+  .sparkling-sub {
+    font-family: 'Playfair Display', serif; font-size: 0.82rem; font-weight: 700;
+    color: #fff; background: var(--bev-dark); letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 5px 14px; border-radius: 4px; display: inline-block; margin: 20px 0 10px;
+  }
+  [data-theme="dark"] .sparkling-sub { background: #0d1c2a; color: var(--bev-accent-light); }
+
   /* ── PREVENT ZOOM ON BUTTONS (iOS) ── */
   .search-nav-btn, .search-btn, .search-clear, .theme-toggle, .scroll-top-btn, .tab-btn, .pwa-btn, .pwa-close { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 
@@ -1941,7 +1978,7 @@
   </div>
   <div class="memory bev">Extra Dry — слегка сладкое, несмотря на слово «Dry». Это ловушка для гостей. Если хочет «совсем сухое» — Brut или Brut Nature.</div>
 
-  <p class="subsection bev">Наши игристые вина</p>
+  <div class="sparkling-sub">🥂 Шампанское · Champagne · France</div>
   <div class="card-grid">
     <div class="bev-card">
       <div class="bev-sub">Champagne · France · N.V.</div>
@@ -1953,6 +1990,84 @@
       <div class="memory bev">«Много Chardonnay = свежее и элегантное». Выдержка 3 года = более сложный вкус, чем у бюджетных NV.</div>
       <div class="prep-time">⏱ ~3 мин</div>
     </div>
+    <div class="bev-card">
+      <div class="bev-sub">Champagne · France · N.V.</div>
+      <div class="bev-name">Perrier-Jouët Grand Brut</div>
+      <div class="phonetic">пэ-рье-жу-ЭТ · гран брют</div>
+      <p>Купаж Chardonnay + Pinot Noir + Pinot Meunier. Дом основан в 1811 г. — один из старейших в Шампани. Фирменный стиль: свежесть и цветочность.</p>
+      <p><strong>Вкус:</strong> белые цветы, зелёное яблоко, груша, лёгкая минеральность, бриошь.</p>
+      <div class="bev-notes">Аперитив, морепродукты, устрицы, лёгкие закуски.</div>
+      <div class="bev-price"><span class="price-label">🍾 Бутылка</span><span class="price-amount">157 500 KZT</span></div>
+      <div class="prep-time">⏱ ~3 мин</div>
+    </div>
+    <div class="bev-card">
+      <div class="bev-sub">Champagne · France · N.V.</div>
+      <div class="bev-name">Gosset Grand Rosé Brut</div>
+      <div class="phonetic">гос-СЕ · гран ро-ЗЕ брют</div>
+      <p>Gosset — старейший дом Шампани (1584). Rosé de saignée + мацерация. Pinot Noir доминирует.</p>
+      <p><strong>Вкус:</strong> красные ягоды, малина, земляника, розы, тосты. Структурное и насыщенное для розового.</p>
+      <div class="bev-notes">К красной рыбе на гриле, утке, клубничным десертам.</div>
+      <div class="bev-price"><span class="price-label">🍾 Бутылка</span><span class="price-amount">160 550 KZT</span></div>
+      <div class="prep-time">⏱ ~3 мин</div>
+    </div>
+    <div class="bev-card">
+      <div class="bev-sub">Champagne · France · N.V.</div>
+      <div class="bev-name">Perrier-Jouët Blason Rosé Brut</div>
+      <div class="phonetic">пэ-рье-жу-ЭТ · бла-ЗОН ро-ЗЕ брют</div>
+      <p>Розовое шампанское Perrier-Jouët. Сборка Pinot Noir + Chardonnay + вино rouge для цвета. Изящный и нежный стиль.</p>
+      <p><strong>Вкус:</strong> свежие красные ягоды, розовые лепестки, персик, лёгкие тосты.</p>
+      <div class="bev-notes">Аперитив, десерты, клубника. Идеален для романтических ужинов.</div>
+      <div class="bev-price"><span class="price-label">🍾 Бутылка</span><span class="price-amount">181 000 KZT</span></div>
+      <div class="prep-time">⏱ ~3 мин</div>
+    </div>
+    <div class="bev-card">
+      <div class="bev-sub">Champagne · France · N.V.</div>
+      <div class="bev-name">Ruinart Blanc de Blancs Brut</div>
+      <div class="phonetic">рюи-НАР · блан дэ БЛАН брют</div>
+      <p>100% Chardonnay. Дом Ruinart — старейший в Шампани (1729). Blanc de Blancs = только белый виноград = максимум элегантности и минеральности.</p>
+      <p><strong>Вкус:</strong> цитрусы, зелёное яблоко, белые цветы, мел, лёгкая кремовость. Очень чистое и точное.</p>
+      <div class="bev-notes">К устрицам, морепродуктам, лёгкой рыбе, севиче.</div>
+      <div class="memory bev">Blanc de Blancs = только Chardonnay = самое «хрустящее» и минеральное шампанское.</div>
+      <div class="bev-price"><span class="price-label">🍾 Бутылка</span><span class="price-amount">295 400 KZT</span></div>
+      <div class="prep-time">⏱ ~3 мин</div>
+    </div>
+    <div class="bev-card">
+      <div class="bev-sub">Champagne · France · Vintage</div>
+      <div class="bev-name">Cristal Brut Rosé · Louis Roederer</div>
+      <div class="phonetic">кри-СТАЛЬ · брют ро-ЗЕ · луи ро-ДЕ-рэр</div>
+      <p>Престижный cuvée Roederer. Розовая версия легендарного Cristal. Pinot Noir + Chardonnay + мацерация. Выдержка на дрожжах 5+ лет.</p>
+      <p><strong>Вкус:</strong> малина, ежевика, вишня, розы, выпечка, минерал. Исключительная сложность и длина.</p>
+      <div class="bev-notes">К икре, лобстеру, белому трюфелю, утиной грудке. Событийное шампанское.</div>
+      <div class="memory bev">Cristal создан для царской семьи России. Прозрачная бутылка — историческая особенность. Один из самых престижных брендов мира.</div>
+      <div class="bev-price"><span class="price-label">🍾 Бутылка</span><span class="price-amount">535 600 KZT</span></div>
+      <div class="prep-time">⏱ ~5 мин</div>
+    </div>
+    <div class="bev-card">
+      <div class="bev-sub">Champagne · France · Vintage</div>
+      <div class="bev-name">Belle Époque Perrier-Jouët Brut</div>
+      <div class="phonetic">бэль эпок · пэ-рье-жу-ЭТ · брют</div>
+      <p>Prestige cuvée Perrier-Jouët. Chardonnay dominant. Знаменитая белая бутылка с анемонами от художника Галле. Выдержка 6+ лет на дрожжах.</p>
+      <p><strong>Вкус:</strong> белые цветы, белый персик, ваниль, бриошь, медовые нотки. Элегантное и комплексное.</p>
+      <div class="bev-notes">К трюфелям, фуа-гра, омару, дегустационным меню.</div>
+      <div class="memory bev">Belle Époque = самая красивая бутылка шампанского. Подарочный выбор. Акцент на эстетике и истории.</div>
+      <div class="bev-price"><span class="price-label">🍾 Бутылка</span><span class="price-amount">566 500 KZT</span></div>
+      <div class="prep-time">⏱ ~5 мин</div>
+    </div>
+    <div class="bev-card" style="border-left-color:#c8900a;">
+      <div class="bev-sub">Champagne · France · Vintage</div>
+      <div class="bev-name">Dom Pérignon Brut ⭐</div>
+      <div class="phonetic">дом пэ-ри-НЬ-он · брют</div>
+      <p>Prestige cuvée Moët & Chandon. Только vintage-шампанское — выпускается исключительно в лучшие урожаи. Chardonnay + Pinot Noir. Минимум 8 лет на дрожжах.</p>
+      <p><strong>Вкус:</strong> белый персик, цитрусовая цедра, миндаль, бриошь, минерал, тосты. Невероятная сложность.</p>
+      <div class="bev-notes">К икре, омару, фуа-гра, высокой кухне. Символ роскоши и торжества.</div>
+      <div class="memory bev">Dom Pérignon — монах, открывший метод шампанизации. «Я пью звёзды!» Самый узнаваемый в мире prestige cuvée.</div>
+      <div class="bev-price"><span class="price-label">🍾 Бутылка</span><span class="price-amount">860 000 KZT</span></div>
+      <div class="prep-time">⏱ ~5 мин</div>
+    </div>
+  </div>
+
+  <div class="sparkling-sub">🍾 Просекко · Prosecco · Italy</div>
+  <div class="card-grid">
     <div class="bev-card">
       <div class="bev-sub">Sparkling · Italy · Veneto · N.V.</div>
       <div class="bev-name">Prosecco Belstar Extra Dry</div>
@@ -1999,6 +2114,7 @@
       <p>100% Riesling. Arba Wine — виноградники у подножия Заилийского Алатау, 70 км от Алматы. Ферментация в стали + частично дуб, 6–8 мес.</p>
       <p><strong>Вкус:</strong> зелёное яблоко, цитрусы, минеральные ноты, лёгкая солоноватость в послевкусии. Характерные «бензольные» оттенки выдержанного рислинга.</p>
       <div class="bev-notes">К рыбе, морепродуктам, лёгким закускам. Продажная история: местное вино из Казахстана.</div>
+      <span class="serve-badge glass">🥂 Бокальная позиция</span>
       <div class="prep-time">⏱ ~2 мин</div>
     </div>
     <div class="bev-card">
@@ -2008,6 +2124,7 @@
       <p>Viura + Chardonnay. Выдержка в дубе → сливочные и ванильные ноты.</p>
       <p><strong>Вкус:</strong> цитрусы, белые цветы, лёгкая ваниль, округлая текстура.</p>
       <div class="bev-notes">К рыбе, морепродуктам, ризотто, пасте с белым соусом, мягким сырам.</div>
+      <span class="serve-badge glass">🥂 Бокальная позиция</span>
       <div class="prep-time">⏱ ~2 мин</div>
     </div>
     <div class="bev-card">
@@ -2018,6 +2135,7 @@
       <p><strong>Вкус:</strong> жасмин, виноград, личи, цитрусовая цедра. Очень ароматное и лёгкое.</p>
       <div class="bev-notes">Как аперитив, к салатам, морепродуктам, азиатской кухне, козьему сыру.</div>
       <div class="memory bev">Самое «цветочное» вино в карте. Гостям, которые хотят «что-то лёгкое и ароматное».</div>
+      <span class="serve-badge glass">🥂 Бокальная позиция</span>
       <div class="prep-time">⏱ ~2 мин</div>
     </div>
     <div class="bev-card">
@@ -2027,6 +2145,7 @@
       <p>100% Chardonnay. Semya Maldant-Pauvelot из Côte de Beaune. Выдержка в дубовых бочках 10–12 мес + работа на осадке.</p>
       <p><strong>Вкус:</strong> белые фрукты, цветы, мёд, лёгкое масло, ореховые нюансы, минеральность.</p>
       <div class="bev-notes">К рыбе, морепродуктам, белому мясу, пасте, мягким сырам.</div>
+      <span class="serve-badge glass">🥂 Бокальная позиция</span>
       <div class="prep-time">⏱ ~2 мин</div>
     </div>
     <div class="bev-card">
@@ -2037,6 +2156,7 @@
       <p><strong>Вкус:</strong> тропические фрукты, крыжовник, манго, маракуйя, свежая трава, высокая кислотность.</p>
       <div class="bev-notes">К морепродуктам, рыбе, курице, суши, салатам, козьему сыру, спарже.</div>
       <div class="memory bev">Самый продаваемый белый в меню. <strong>«Яркий, живой, тропический»</strong> — так описывать гостям.</div>
+      <span class="serve-badge glass">🥂 Бокальная позиция</span>
       <div class="prep-time">⏱ ~2 мин</div>
     </div>
     <div class="bev-card">
@@ -2046,6 +2166,7 @@
       <p>100% Pinot Grigio. Холодная ферментация в стали. Хозяйство La Tunella — Friuli Colli Orientali.</p>
       <p><strong>Вкус:</strong> зелёное яблоко, груша, белые цветы, цитрусы, лёгкая минеральность и миндаль.</p>
       <div class="bev-notes">К рыбе, морепродуктам, салатам, пасте с овощами, ризотто.</div>
+      <span class="serve-badge glass">🥂 Бокальная позиция</span>
       <div class="prep-time">⏱ ~2 мин</div>
     </div>
     <div class="bev-card">
@@ -2055,6 +2176,7 @@
       <p>100% Riesling. Trocken = сухое (по-немецки). Ручной сбор, ферментация в стали и старых дубовых фудрах. Markus Molitor — культовый производитель Мозеля.</p>
       <p><strong>Вкус:</strong> лайм, лимонная цедра, зелёное яблоко, белые цветы, сланцевая минералика. Очень свежий и строгий.</p>
       <div class="bev-notes">К устрицам, морепродуктам, рыбе, азиатской кухне, блюдам с цитрусами. <strong>К острым блюдам.</strong></div>
+      <span class="serve-badge glass">🥂 Бокальная позиция</span>
       <div class="prep-time">⏱ ~2 мин</div>
     </div>
     <div class="bev-card">
@@ -2065,6 +2187,7 @@
       <p><strong>Вкус:</strong> абрикос, персик, ваниль, тропические ноты, бархатистое и насыщенное.</p>
       <div class="bev-notes">К пасте со сливочными соусами, рыбе и морепродуктам на гриле, выдержанным сырам.</div>
       <div class="memory bev">Самое «плотное» белое в карте. Гостям, которые любят «богатое, сливочное» — это их вино.</div>
+      <span class="serve-badge glass">🥂 Бокальная позиция</span>
       <div class="prep-time">⏱ ~2 мин</div>
     </div>
   </div>
@@ -2083,6 +2206,7 @@
       <p><strong>Вкус:</strong> лесная земляника, белая вишня, персик, розовые лепестки, цитрусовая цедра. Сухое, лёгкое, освежающее.</p>
       <div class="bev-notes">Как аперитив, к морепродуктам, салатам, рыбе на гриле, средиземноморской кухне.</div>
       <div class="memory bev">Прованское розе = самый «летний» напиток. Гостям, которые хотят «что-то лёгкое и элегантное».</div>
+      <span class="serve-badge glass">🥂 Бокальная позиция</span>
       <div class="prep-time">⏱ ~2 мин</div>
     </div>
   </div>
@@ -2121,6 +2245,7 @@
       <p>Saperavi 87% + Shiraz 13%. Arba Wine, долина Ассы. Выдержка в дубе.</p>
       <p><strong>Вкус:</strong> вишня, тёмные ягоды, слива, лёгкие пряные и дубовые ноты. Мягкие танины, полнотелое.</p>
       <div class="bev-notes">К мясу, блюдам на гриле, выдержанным сырам. <strong>Локальное — продавать как особенность заведения.</strong></div>
+      <span class="serve-badge glass">🥂 Бокальная позиция</span>
       <div class="prep-time">⏱ ~2 мин</div>
     </div>
     <div class="bev-card">
@@ -2131,6 +2256,7 @@
       <p><strong>Вкус:</strong> шелковица, слива, <strong>кофе, шоколад</strong>, ваниль. Бархатистые танины.</p>
       <div class="bev-notes">К красному мясу, жареной утке, шоколадным десертам.</div>
       <div class="memory bev">Pinotage = «кофейный» виноград ЮАР. Запомни: <strong>кофе + шоколад + ягоды</strong>. Единственное африканское вино в карте.</div>
+      <span class="serve-badge glass">🥂 Бокальная позиция</span>
       <div class="prep-time">⏱ ~2 мин</div>
     </div>
     <div class="bev-card">
@@ -2140,6 +2266,7 @@
       <p>100% Pinot Noir. Côte de Beaune. Выдержка в французских дубовых бочках (частично использованных).</p>
       <p><strong>Вкус:</strong> малина, вишня, красная смородина, лёгкая кислинка, мягкие танины, цветочные нотки. Элегантное.</p>
       <div class="bev-notes">К птице, лёгким мясным блюдам, грибной пасте, мягким сырам.</div>
+      <span class="serve-badge glass">🥂 Бокальная позиция</span>
       <div class="prep-time">⏱ ~2 мин</div>
     </div>
     <div class="bev-card">
@@ -2149,6 +2276,7 @@
       <p>50% Primitivo + 50% Merlot. Саленто, Апулия. Выдержка 4–6 мес в дубе.</p>
       <p><strong>Вкус:</strong> вишня, черешня, спелые тёмные ягоды, лёгкие пряности, возможно корица. Полнотелое.</p>
       <div class="bev-notes">К плотным первым блюдам, красному мясу, дичи, выдержанным сырам.</div>
+      <span class="serve-badge glass">🥂 Бокальная позиция</span>
       <div class="prep-time">⏱ ~2 мин</div>
     </div>
     <div class="bev-card">
@@ -2158,6 +2286,7 @@
       <p>Malbec 57% + Merlot 15% + Cab. Sauv. 15% + Syrah 10% + Petit Verdot 3%. Проект французского энолога Мишеля Роллана. Выдержка 12 мес в французском дубе.</p>
       <p><strong>Вкус:</strong> чёрная вишня, ежевика, специи, ваниль, шоколад. Бархатистые танины, полнотелое.</p>
       <div class="bev-notes">К стейкам, запечённой дичи, выдержанным сырам. «Французская элегантность в аргентинском теле».</div>
+      <span class="serve-badge glass">🥂 Бокальная позиция</span>
       <div class="prep-time">⏱ ~2 мин</div>
     </div>
     <div class="bev-card">
@@ -2177,6 +2306,7 @@
       <p>100% Pinot Nero (итальянское название Pinot Noir). Частичная выдержка в дубе 6–8 мес.</p>
       <p><strong>Вкус:</strong> красные ягоды, вишня, малина, лёгкие цветочные и минеральные ноты. Лёгкое и элегантное.</p>
       <div class="bev-notes">К пасте с грибами, птице, лёгким мясным блюдам, мягким сырам.</div>
+      <span class="serve-badge glass">🥂 Бокальная позиция</span>
       <div class="prep-time">⏱ ~2 мин</div>
     </div>
   </div>
