@@ -220,7 +220,9 @@
     font-family: 'Playfair Display', serif; font-size: 1rem;
     color: var(--bev-dark); margin-bottom: 6px; font-weight: 700;
   }
-  .bev-card .bev-sub { font-size: 0.8rem; color: var(--bev-accent); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+  .bev-card .country-badge { margin-bottom: 0; }
+  .bev-card .bev-sub { display: inline; font-size: 0.8rem; color: var(--bev-accent); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-left: 6px; }
+  .bev-card .bev-grape { font-size: 0.78rem; color: #4a7a5a; font-weight: 600; letter-spacing: 0.02em; margin-bottom: 6px; }
   .bev-card p { font-size: 0.87rem; color: #3a5060; line-height: 1.5; margin-top: 4px; }
   .bev-card .bev-notes { font-size: 0.84rem; color: #2a4050; margin-top: 6px; font-style: italic; }
 
@@ -280,11 +282,20 @@
   .quick-ref li { margin-bottom: 3px; }
 
   /* ── REGION BADGE ── */
-  .region-badge {
+  .region-badge, .country-badge {
     display: inline-block; padding: 2px 10px; border-radius: 20px;
     font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
     margin-bottom: 6px;
   }
+  /* Wine country badges */
+  .country-france      { background: #e8ecff; color: #1a2880; border: 1px solid #8090e0; }
+  .country-italy       { background: #e8f8ee; color: #0a4020; border: 1px solid #60c080; }
+  .country-spain       { background: #fff4e0; color: #7a3000; border: 1px solid #e8a040; }
+  .country-nz          { background: #e4f0ff; color: #0a2860; border: 1px solid #6090d8; }
+  .country-germany     { background: #fff8e0; color: #5a3800; border: 1px solid #d0a030; }
+  .country-kazakhstan  { background: #e0f6ff; color: #004060; border: 1px solid #50b0d8; }
+  .country-argentina   { background: #eaf4ff; color: #003878; border: 1px solid #70aae0; }
+  .country-south-africa{ background: #eafff0; color: #0a3810; border: 1px solid #50a860; }
   .region-speyside { background: #fff3d4; color: #7a4800; border: 1px solid #e8c060; }
   .region-highland { background: #e8f4e0; color: #2a5010; border: 1px solid #90c060; }
   .region-islay { background: #e8eeff; color: #1a2880; border: 1px solid #8090e0; }
@@ -525,6 +536,12 @@
   .study-btn.bev-style { border-color: rgba(74,143,168,0.5); color: var(--bev-accent-light); }
   .study-btn.bev-style:hover { border-color: var(--bev-accent); color: #fff; }
   .study-btn.bev-style.active { background: var(--bev-accent); color: #fff; border-color: var(--bev-accent); }
+  .study-btn.term-style { border-color: rgba(184,150,46,0.3); color: #a08040; }
+  .study-btn.term-style:hover { border-color: var(--gold); color: var(--gold); }
+  .study-btn.term-style.active { background: #7a5c1a; color: #f0d880; border-color: #7a5c1a; font-weight: 600; }
+  .study-btn.bev-style.term-style { border-color: rgba(74,143,168,0.3); color: #5a9070; }
+  .study-btn.bev-style.term-style:hover { border-color: #4a9070; color: #7abf98; }
+  .study-btn.bev-style.term-style.active { background: #1a4030; color: #7abf98; border-color: #1a4030; font-weight: 600; }
   .study-btn.reset-btn { border-color: rgba(255,255,255,0.15); color: #888; font-size: 0.8rem; }
   .study-btn.reset-btn:hover { border-color: #c55; color: #f88; }
   .progress-counter { font-size: 0.78rem; color: #888; white-space: nowrap; }
@@ -569,6 +586,12 @@
   }
   .qo-exit:hover { background: rgba(255,255,255,0.1); }
   #quiz-overlay.qo-bev .qo-exit { border-color: rgba(74,143,168,0.4); color: var(--bev-accent-light); }
+  .qo-mode-label {
+    font-size: 0.7rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase;
+    padding: 2px 8px; border-radius: 10px; white-space: nowrap;
+    background: rgba(184,150,46,0.18); color: var(--gold-light); border: 1px solid rgba(184,150,46,0.3);
+  }
+  #quiz-overlay.qo-bev .qo-mode-label { background: rgba(74,143,168,0.18); color: var(--bev-accent-light); border-color: rgba(74,143,168,0.3); }
   .qo-section-label {
     flex: 1; text-align: center; font-size: 0.72rem; letter-spacing: 0.09em;
     text-transform: uppercase; color: var(--gold); opacity: 0.65;
@@ -1052,7 +1075,8 @@
     <span class="progress-counter" id="food-progress-counter"></span>
   </div>
   <div class="study-bar-center">
-    <button class="study-btn quiz-food-trigger" id="quiz-food-btn" title="Anki-режим: только название — вспомни, нажми, оцени себя">🎓 Экзамен</button>
+    <button class="study-btn" id="quiz-food-pos-btn" data-quiz="food-positions" data-label="🍽 Позиции" title="Анки-режим: блюда меню">🍽 Позиции</button>
+    <button class="study-btn term-style" id="quiz-food-term-btn" data-quiz="food-terms" data-label="📚 Термины" title="Анки-режим: правила, принципы, термины">📚 Термины</button>
   </div>
   <div class="study-bar-right">
     <button class="study-btn reset-btn" id="food-reset-btn">🔄 Сбросить</button>
@@ -1506,6 +1530,7 @@
       <p>Котлета Вагю 250г. Японская порода. Исключительная мраморность, жир тает при низкой t. <strong>Рек. Medium Rare.</strong> Дорогой: особый рацион, отсутствие стресса, медленный рост.</p>
       <div class="ingredients">Картофельная булочка, Вагю котлета 250г, Чеддар ×2, маринованные огурцы, чесночный айоли, чатни из говяжьего бекона, халапеньо → фри с каджуном</div>
       <div class="tag-row"><span class="tag allergy">Лактоза</span><span class="tag allergy">Глютен</span><span class="tag allergy">Яйцо</span><span class="tag method">⭐ Wagyu · Рек. MR</span></div>
+      <div class="prep-time">⏱ ~20 мин</div>
     </div>
   </div>
 </section>
@@ -1703,15 +1728,15 @@
   <div class="alert info"><span class="alert-icon">🍷</span><div><strong>3 правила:</strong> Красное мясо = красное. Рыба/морепродукты = белое. Острое = Riesling. Chardonnay = к сливочным блюдам.</div></div>
   <table class="compare-table">
     <tr><th>Вино</th><th>Регион</th><th>GLS ₸</th><th>К чему подходит</th></tr>
-    <tr><td>Hans Greyl Sauvignon Blanc</td><td>Malborough, NZ</td><td>9 400</td><td>Греч. салат, Кейл, Лосось, Палтус, Цветная капуста — <strong>универсальный белый</strong></td></tr>
+    <tr><td>Hans Greyl Sauvignon Blanc</td><td>Marlborough, NZ</td><td>9 400</td><td>Греч. салат, Кейл, Лосось, Палтус, Цветная капуста — <strong>универсальный белый</strong></td></tr>
     <tr><td>Tunella Pinot Grigio</td><td>Friuli, Italy</td><td>11 960</td><td>Форель, Альфредо, Маргарита, Тартуфо</td></tr>
     <tr><td>Voche Blanco Viura·Chard.</td><td>Rioja, Spain</td><td>7 500</td><td>Цезарь, Котлеты из креветок, Цыплёнок</td></tr>
-    <tr><td>Marcus Molitor Riesling</td><td>Mosel, Germany</td><td>12 500</td><td><strong>Крылья Буффало (острые!)</strong>, Форель</td></tr>
-    <tr><td>Arba Saperavi</td><td>Almaty, Kazakhstan</td><td>6 400</td><td>Рибай, Рёбрышки</td></tr>
+    <tr><td>Markus Molitor Riesling</td><td>Mosel, Germany</td><td>12 500</td><td><strong>Крылья Буффало (острые!)</strong>, Форель</td></tr>
+    <tr><td>Lagyl Arba</td><td>Assa Valley, Kazakhstan</td><td>6 400</td><td>Рибай, Рёбрышки</td></tr>
     <tr><td>Talo Primitivo·Merlot</td><td>Puglia, Italy</td><td>8 900</td><td>Крылья BBQ, Аррабиата, Дьявола, Щёчки</td></tr>
     <tr><td>Querciabella Mongrana Rosso</td><td>Maremma Tuscany</td><td>—</td><td>Рибай, Говяжьи щёчки, Дьявола</td></tr>
     <tr><td>Tunella Pinot Nero</td><td>Friuli, Italy</td><td>—</td><td>Тендерлойн — тонкое вино к нежному мясу</td></tr>
-    <tr><td>Domaine Maldant Chard.</td><td>Burgundy, France</td><td>11 500</td><td>Рыба на гриле, белое мясо, паста</td></tr>
+    <tr><td>Domaine Maldant-Pauvelot Chard.</td><td>Burgundy, France</td><td>11 500</td><td>Рыба на гриле, белое мясо, паста</td></tr>
     <tr><td>Edda Bianco Chardonnay</td><td>Puglia, Italy</td><td>13 250</td><td>Тартуфо, Четыре сыра, сливочные пасты</td></tr>
   </table>
   <div class="memory">Якоря: <strong>Hans Greyl</strong> = go-to белый к рыбе. <strong>Querciabella</strong> = go-to красный к стейкам. <strong>Riesling</strong> = к острому.</div>
@@ -1908,7 +1933,8 @@
     <span class="progress-counter bev" id="bev-progress-counter"></span>
   </div>
   <div class="study-bar-center">
-    <button class="study-btn bev-style quiz-bev-trigger" id="quiz-bev-btn" title="Anki-режим: только название — вспомни, нажми, оцени себя">🎓 Экзамен</button>
+    <button class="study-btn bev-style" id="quiz-bev-pos-btn" data-quiz="bev-positions" data-label="🍷 Позиции" title="Анки-режим: позиции меню напитков">🍷 Позиции</button>
+    <button class="study-btn bev-style term-style" id="quiz-bev-term-btn" data-quiz="bev-terms" data-label="📚 Термины" title="Анки-режим: термины, стили, категории">📚 Термины</button>
   </div>
   <div class="study-bar-right">
     <button class="study-btn bev-style reset-btn" id="bev-reset-btn">🔄 Сбросить</button>
@@ -1961,6 +1987,13 @@
   </table>
   <div class="memory bev">Champagne = Champagne = Champagne (только там). Prosecco = Prosecco (только Veneto + только Glera + только Charmat). Cava = Испания. Sekt = Германия. Crémant = Франция, но не Шампань.</div>
 
+  <div class="bev-card" style="margin-bottom:14px;">
+    <div class="bev-name">Méthode Traditionnelle vs Charmat</div>
+    <p><strong>Méthode Traditionnelle (Традиционный метод):</strong> вторая ферментация прямо в бутылке. Пузырьки мелкие и стойкие. Добавляет хлебный/дрожжевой вкус (бриошь, тост). Долго и дорого → шампанское, Cava, Crémant.</p>
+    <p><strong>Charmat (Метод Шарма):</strong> вторая ферментация в больших стальных чанах. Пузырьки крупнее, вкус свежее и фруктовее. Быстро и дёшево → просекко.</p>
+    <div class="memory bev">Шампанское = бутылка = мелкие пузырьки = дрожжи/бриошь. Просекко = чан = крупные пузырьки = свежие яблоко+груша.</div>
+  </div>
+
   <p class="subsection bev">Виды шампанского по сладости (от сухого к сладкому)</p>
   <div class="card-grid three">
     <div class="bev-card"><div class="bev-name">Brut Nature</div><p>0–3 г/л сахара. Очень сухое. Для ценителей.</p></div>
@@ -1975,7 +2008,9 @@
   <p class="subsection bev">🥂 Шампанское · Champagne · France</p>
   <div class="card-grid">
     <div class="bev-card">
-      <div class="bev-sub">Champagne · France · N.V.</div>
+      <div class="country-badge country-france">🇫🇷 France</div>
+      <div class="bev-sub">Champagne · N.V.</div>
+      <div class="bev-grape">🍇 Chardonnay, Pinot Noir, Pinot Meunier</div>
       <div class="bev-name">Taittinger Brut Réserve</div>
       <div class="phonetic">тэ-тэн-ЖЕ · брют рэ-ЗЕР-в</div>
       <p>Купаж: ~40% Chardonnay + 35% Pinot Noir + 25% Pinot Meunier. Необычно высокое содержание Chardonnay для NV — отсюда особая свежесть. Выдержка 3 года на дрожжах.</p>
@@ -1985,7 +2020,9 @@
       <div class="prep-time">⏱ ~3 мин</div>
     </div>
     <div class="bev-card">
-      <div class="bev-sub">Champagne · France · N.V.</div>
+      <div class="country-badge country-france">🇫🇷 France</div>
+      <div class="bev-sub">Champagne · N.V.</div>
+      <div class="bev-grape">🍇 Chardonnay, Pinot Noir, Pinot Meunier</div>
       <div class="bev-name">Perrier-Jouët Grand Brut</div>
       <div class="phonetic">пэ-рье-жу-ЭТ · гран брют</div>
       <p>Купаж Chardonnay + Pinot Noir + Pinot Meunier. Дом основан в 1811 г. — один из старейших в Шампани. Фирменный стиль: свежесть и цветочность.</p>
@@ -1995,7 +2032,9 @@
       <div class="prep-time">⏱ ~3 мин</div>
     </div>
     <div class="bev-card">
-      <div class="bev-sub">Champagne · France · N.V.</div>
+      <div class="country-badge country-france">🇫🇷 France</div>
+      <div class="bev-sub">Champagne · N.V.</div>
+      <div class="bev-grape">🍇 Pinot Noir, Chardonnay, Pinot Meunier</div>
       <div class="bev-name">Gosset Grand Rosé Brut</div>
       <div class="phonetic">гос-СЕ · гран ро-ЗЕ брют</div>
       <p>Gosset — старейший дом Шампани (1584). Rosé de saignée + мацерация. Pinot Noir доминирует.</p>
@@ -2005,7 +2044,9 @@
       <div class="prep-time">⏱ ~3 мин</div>
     </div>
     <div class="bev-card">
-      <div class="bev-sub">Champagne · France · N.V.</div>
+      <div class="country-badge country-france">🇫🇷 France</div>
+      <div class="bev-sub">Champagne · N.V.</div>
+      <div class="bev-grape">🍇 Pinot Noir, Chardonnay</div>
       <div class="bev-name">Perrier-Jouët Blason Rosé Brut</div>
       <div class="phonetic">пэ-рье-жу-ЭТ · бла-ЗОН ро-ЗЕ брют</div>
       <p>Розовое шампанское Perrier-Jouët. Сборка Pinot Noir + Chardonnay + вино rouge для цвета. Изящный и нежный стиль.</p>
@@ -2015,7 +2056,9 @@
       <div class="prep-time">⏱ ~3 мин</div>
     </div>
     <div class="bev-card">
-      <div class="bev-sub">Champagne · France · N.V.</div>
+      <div class="country-badge country-france">🇫🇷 France</div>
+      <div class="bev-sub">Champagne · N.V.</div>
+      <div class="bev-grape">🍇 Chardonnay</div>
       <div class="bev-name">Ruinart Blanc de Blancs Brut</div>
       <div class="phonetic">рюи-НАР · блан дэ БЛАН брют</div>
       <p>100% Chardonnay. Дом Ruinart — старейший в Шампани (1729). Blanc de Blancs = только белый виноград = максимум элегантности и минеральности.</p>
@@ -2026,7 +2069,9 @@
       <div class="prep-time">⏱ ~3 мин</div>
     </div>
     <div class="bev-card">
-      <div class="bev-sub">Champagne · France · Vintage</div>
+      <div class="country-badge country-france">🇫🇷 France</div>
+      <div class="bev-sub">Champagne · Vintage</div>
+      <div class="bev-grape">🍇 Pinot Noir, Chardonnay</div>
       <div class="bev-name">Cristal Brut Rosé · Louis Roederer</div>
       <div class="phonetic">кри-СТАЛЬ · брют ро-ЗЕ · луи ро-ДЕ-рэр</div>
       <p>Престижный cuvée Roederer. Розовая версия легендарного Cristal. Pinot Noir + Chardonnay + мацерация. Выдержка на дрожжах 5+ лет.</p>
@@ -2037,7 +2082,9 @@
       <div class="prep-time">⏱ ~5 мин</div>
     </div>
     <div class="bev-card">
-      <div class="bev-sub">Champagne · France · Vintage</div>
+      <div class="country-badge country-france">🇫🇷 France</div>
+      <div class="bev-sub">Champagne · Vintage</div>
+      <div class="bev-grape">🍇 Chardonnay, Pinot Noir</div>
       <div class="bev-name">Belle Époque Perrier-Jouët Brut</div>
       <div class="phonetic">бэль эпок · пэ-рье-жу-ЭТ · брют</div>
       <p>Prestige cuvée Perrier-Jouët. Chardonnay dominant. Знаменитая белая бутылка с анемонами от художника Галле. Выдержка 6+ лет на дрожжах.</p>
@@ -2048,7 +2095,9 @@
       <div class="prep-time">⏱ ~5 мин</div>
     </div>
     <div class="bev-card" style="border-left-color:#c8900a;">
-      <div class="bev-sub">Champagne · France · Vintage</div>
+      <div class="country-badge country-france">🇫🇷 France</div>
+      <div class="bev-sub">Champagne · Vintage</div>
+      <div class="bev-grape">🍇 Chardonnay, Pinot Noir</div>
       <div class="bev-name">Dom Pérignon Brut ⭐</div>
       <div class="phonetic">дом пэ-ри-НЬ-он · брют</div>
       <p>Prestige cuvée Moët & Chandon. Только vintage-шампанское — выпускается исключительно в лучшие урожаи. Chardonnay + Pinot Noir. Минимум 8 лет на дрожжах.</p>
@@ -2063,7 +2112,9 @@
   <p class="subsection bev">🍾 Просекко · Prosecco · Italy</p>
   <div class="card-grid">
     <div class="bev-card">
-      <div class="bev-sub">Sparkling · Italy · Veneto · N.V.</div>
+      <div class="country-badge country-italy">🇮🇹 Italy</div>
+      <div class="bev-sub">Sparkling · Veneto · N.V.</div>
+      <div class="bev-grape">🍇 Glera</div>
       <div class="bev-name">Prosecco Belstar Extra Dry</div>
       <div class="phonetic">про-СЕ-ко · бэл-СТАР</div>
       <p>100% Glera. Метод Шарма (чаны). Стиль Extra Dry = чуть мягче и фруктовее, чем Brut.</p>
@@ -2103,7 +2154,9 @@
 
   <div class="card-grid">
     <div class="bev-card">
-      <div class="bev-sub">White · Kazakhstan · 2016</div>
+      <div class="country-badge country-kazakhstan">🇰🇿 Kazakhstan</div>
+      <div class="bev-sub">White · Assa Valley · 2016</div>
+      <div class="bev-grape">🍇 Riesling</div>
       <div class="bev-name">Ak Arba Riesling · Assa Valley</div>
       <p>100% Riesling. Arba Wine — виноградники у подножия Заилийского Алатау, 70 км от Алматы. Ферментация в стали + частично дуб, 6–8 мес.</p>
       <p><strong>Вкус:</strong> зелёное яблоко, цитрусы, минеральные ноты, лёгкая солоноватость в послевкусии. Характерные «бензольные» оттенки выдержанного рислинга.</p>
@@ -2112,7 +2165,9 @@
       <div class="prep-time">⏱ ~2 мин</div>
     </div>
     <div class="bev-card">
-      <div class="bev-sub">White · Spain · Rioja · N.V.</div>
+      <div class="country-badge country-spain">🇪🇸 Spain</div>
+      <div class="bev-sub">White · Rioja · N.V.</div>
+      <div class="bev-grape">🍇 Viura, Chardonnay</div>
       <div class="bev-name">Voche Blanco · Rioja</div>
       <div class="phonetic">ВО-чэ · РИО-ха</div>
       <p>Viura + Chardonnay. Выдержка в дубе → сливочные и ванильные ноты.</p>
@@ -2122,7 +2177,9 @@
       <div class="prep-time">⏱ ~2 мин</div>
     </div>
     <div class="bev-card">
-      <div class="bev-sub">White · Spain · Penedès · 2021</div>
+      <div class="country-badge country-spain">🇪🇸 Spain</div>
+      <div class="bev-sub">White · Penedès · 2021</div>
+      <div class="bev-grape">🍇 Muscat, Sauvignon Blanc, Gewürztraminer</div>
       <div class="bev-name">Gramona Gessami · Penedès</div>
       <div class="phonetic">гра-МО-на жэ-СА-ми · пэ-нэ-ДЕС</div>
       <p>Мускат + Совиньон Блан + Гевюрцтраминер. Холодная ферментация в стали — для сохранения ароматов.</p>
@@ -2133,7 +2190,9 @@
       <div class="prep-time">⏱ ~2 мин</div>
     </div>
     <div class="bev-card">
-      <div class="bev-sub">White · France · Burgundy · 2022</div>
+      <div class="country-badge country-france">🇫🇷 France</div>
+      <div class="bev-sub">White · Burgundy · 2022</div>
+      <div class="bev-grape">🍇 Chardonnay</div>
       <div class="bev-name">Domaine Maldant-Pauvelot · Bourgogne Chardonnay</div>
       <div class="phonetic">до-МЕН маль-ДАН по-вэ-ЛО · бур-ГОНЬ</div>
       <p>100% Chardonnay. Semya Maldant-Pauvelot из Côte de Beaune. Выдержка в дубовых бочках 10–12 мес + работа на осадке.</p>
@@ -2143,7 +2202,9 @@
       <div class="prep-time">⏱ ~2 мин</div>
     </div>
     <div class="bev-card">
-      <div class="bev-sub">White · New Zealand · Marlborough · 2023</div>
+      <div class="country-badge country-nz">🇳🇿 New Zealand</div>
+      <div class="bev-sub">White · Marlborough · 2023</div>
+      <div class="bev-grape">🍇 Sauvignon Blanc</div>
       <div class="bev-name">Hans Greyl · Sauvignon Blanc</div>
       <div class="phonetic">Ханс ГРЭЙЛ · Совинь-ОН БЛАН · Мол-бро</div>
       <p>100% Sauvignon Blanc. Ферментация в стальных чанах — для максимальной свежести.</p>
@@ -2154,7 +2215,9 @@
       <div class="prep-time">⏱ ~2 мин</div>
     </div>
     <div class="bev-card">
-      <div class="bev-sub">White · Italy · Friuli · 2022</div>
+      <div class="country-badge country-italy">🇮🇹 Italy</div>
+      <div class="bev-sub">White · Friuli · 2022</div>
+      <div class="bev-grape">🍇 Pinot Grigio</div>
       <div class="bev-name">Tunella · Pinot Grigio · Friuli</div>
       <div class="phonetic">ту-НЕЛ-ла · ФРИУ-ли</div>
       <p>100% Pinot Grigio. Холодная ферментация в стали. Хозяйство La Tunella — Friuli Colli Orientali.</p>
@@ -2164,7 +2227,9 @@
       <div class="prep-time">⏱ ~2 мин</div>
     </div>
     <div class="bev-card">
-      <div class="bev-sub">White · Germany · Mosel · 2022</div>
+      <div class="country-badge country-germany">🇩🇪 Germany</div>
+      <div class="bev-sub">White · Mosel · 2022</div>
+      <div class="bev-grape">🍇 Riesling</div>
       <div class="bev-name">Riesling Trocken · Markus Molitor · Haus Klosterberg</div>
       <div class="phonetic">РИС-линг ТРО-кэн · МА-ркус МО-ли-тор · ХАУС КЛО-стэр-бэрг</div>
       <p>100% Riesling. Trocken = сухое (по-немецки). Ручной сбор, ферментация в стали и старых дубовых фудрах. Markus Molitor — культовый производитель Мозеля.</p>
@@ -2174,7 +2239,9 @@
       <div class="prep-time">⏱ ~2 мин</div>
     </div>
     <div class="bev-card">
-      <div class="bev-sub">White · Italy · Puglia · 2023</div>
+      <div class="country-badge country-italy">🇮🇹 Italy</div>
+      <div class="bev-sub">White · Puglia · 2023</div>
+      <div class="bev-grape">🍇 Chardonnay</div>
       <div class="bev-name">Edda Bianco · Salento · Cantine San Marzano</div>
       <div class="phonetic">ЭД-да БЬЯН-ко · са-ЛЕН-то · кан-ТИ-нэ сан мар-ЦА-но</div>
       <p>100% Chardonnay из солнечной Апулии. Частичная выдержка в дубе + батонаж → кремовая текстура.</p>
@@ -2193,7 +2260,9 @@
   <div class="alert bev-info"><span class="alert-icon">💡</span><div><strong>Розовое ≠ смесь белого и красного</strong> (кроме игристых). Цвет берётся из кожицы тёмного винограда при коротком контакте сока с ней (несколько часов). Чем дольше контакт — тем темнее и насыщеннее.</div></div>
   <div class="card-grid">
     <div class="bev-card">
-      <div class="bev-sub">Rosé · France · Côtes de Provence · 2021</div>
+      <div class="country-badge country-france">🇫🇷 France</div>
+      <div class="bev-sub">Rosé · Côtes de Provence · 2021</div>
+      <div class="bev-grape">🍇 Grenache, Cinsault, Syrah</div>
       <div class="bev-name">Domaines Ott By.Ott · Côtes de Provence Rosé</div>
       <div class="phonetic">до-МЕН ОТ · КОТ дэ про-ВАНС · ро-ЗЕ</div>
       <p>Grenache + Cinsault + Syrah. Domaines Ott* — легендарный дом Прованса, эталон розового. Прямое прессование + холодная ферментация в стали.</p>
@@ -2234,7 +2303,9 @@
 
   <div class="card-grid">
     <div class="bev-card">
-      <div class="bev-sub">Red · Kazakhstan · 2018</div>
+      <div class="country-badge country-kazakhstan">🇰🇿 Kazakhstan</div>
+      <div class="bev-sub">Red · Assa Valley · 2018</div>
+      <div class="bev-grape">🍇 Saperavi, Shiraz</div>
       <div class="bev-name">Lagyl Arba · Assa Valley</div>
       <p>Saperavi 87% + Shiraz 13%. Arba Wine, долина Ассы. Выдержка в дубе.</p>
       <p><strong>Вкус:</strong> вишня, тёмные ягоды, слива, лёгкие пряные и дубовые ноты. Мягкие танины, полнотелое.</p>
@@ -2243,7 +2314,9 @@
       <div class="prep-time">⏱ ~2 мин</div>
     </div>
     <div class="bev-card">
-      <div class="bev-sub">Red · South Africa · 2021</div>
+      <div class="country-badge country-south-africa">🇿🇦 South Africa</div>
+      <div class="bev-sub">Red · Western Cape · 2021</div>
+      <div class="bev-grape">🍇 Pinotage</div>
       <div class="bev-name">Barista · Pinotage Val de Vie</div>
       <div class="phonetic">пино-ТАЖ · Валь дэ ВИ</div>
       <p>100% Pinotage (уникальный ЮАР сорт = Pinot Noir × Cinsaut). Выдержка во французском дубе.</p>
@@ -2254,7 +2327,9 @@
       <div class="prep-time">⏱ ~2 мин</div>
     </div>
     <div class="bev-card">
-      <div class="bev-sub">Red · France · Burgundy · 2022</div>
+      <div class="country-badge country-france">🇫🇷 France</div>
+      <div class="bev-sub">Red · Burgundy · 2022</div>
+      <div class="bev-grape">🍇 Pinot Noir</div>
       <div class="bev-name">Domaine Maldant-Pauvelot · Bourgogne Pinot Noir</div>
       <div class="phonetic">до-МЕН маль-ДАН по-вэ-ЛО · бур-ГОНЬ · КОТ дэ БОН</div>
       <p>100% Pinot Noir. Côte de Beaune. Выдержка в французских дубовых бочках (частично использованных).</p>
@@ -2264,7 +2339,9 @@
       <div class="prep-time">⏱ ~2 мин</div>
     </div>
     <div class="bev-card">
-      <div class="bev-sub">Red · Italy · Puglia · 2021</div>
+      <div class="country-badge country-italy">🇮🇹 Italy</div>
+      <div class="bev-sub">Red · Puglia · 2021</div>
+      <div class="bev-grape">🍇 Primitivo, Merlot</div>
       <div class="bev-name">Talo · Primitivo-Merlot · Feudi di San Marzano</div>
       <div class="phonetic">ТА-ло · при-ми-ТИ-во · ФЕУ-ди ди сан мар-ЦА-но</div>
       <p>50% Primitivo + 50% Merlot. Саленто, Апулия. Выдержка 4–6 мес в дубе.</p>
@@ -2274,7 +2351,9 @@
       <div class="prep-time">⏱ ~2 мин</div>
     </div>
     <div class="bev-card">
-      <div class="bev-sub">Red · Argentina · Mendoza · 2018</div>
+      <div class="country-badge country-argentina">🇦🇷 Argentina</div>
+      <div class="bev-sub">Red · Mendoza · 2018</div>
+      <div class="bev-grape">🍇 Malbec, Merlot, Cab. Sauvignon, Syrah, Petit Verdot</div>
       <div class="bev-name">Clos de los Siete · Michel Rolland</div>
       <div class="phonetic">КЛО дэ лос СЬЕТЕ · ми-ШЕЛЬ ро-ЛАН</div>
       <p>Malbec 57% + Merlot 15% + Cab. Sauv. 15% + Syrah 10% + Petit Verdot 3%. Проект французского энолога Мишеля Роллана. Выдержка 12 мес в французском дубе.</p>
@@ -2284,7 +2363,9 @@
       <div class="prep-time">⏱ ~2 мин</div>
     </div>
     <div class="bev-card">
-      <div class="bev-sub">Red · Italy · Maremma Tuscany · 2021</div>
+      <div class="country-badge country-italy">🇮🇹 Italy</div>
+      <div class="bev-sub">Red · Maremma Tuscany · 2021</div>
+      <div class="bev-grape">🍇 Sangiovese, Cab. Sauvignon, Merlot</div>
       <div class="bev-name">Querciabella Mongrana Rosso · Maremma</div>
       <div class="phonetic">куэр-ча-БЕЛ-ла мон-ГРА-на РОС-со · ма-РЕМ-ма</div>
       <p>Sangiovese + Cabernet Sauvignon + Merlot. Querciabella — органическое виноделие. Выдержка 12 мес в французском дубе.</p>
@@ -2294,7 +2375,9 @@
       <div class="prep-time">⏱ ~2 мин</div>
     </div>
     <div class="bev-card">
-      <div class="bev-sub">Red · Italy · Friuli · 2022</div>
+      <div class="country-badge country-italy">🇮🇹 Italy</div>
+      <div class="bev-sub">Red · Friuli · 2022</div>
+      <div class="bev-grape">🍇 Pinot Nero</div>
       <div class="bev-name">Tunella · Pinot Nero · Friuli</div>
       <div class="phonetic">ту-НЕЛ-ла · пино НЕ-ро · ФРИУ-ли</div>
       <p>100% Pinot Nero (итальянское название Pinot Noir). Частичная выдержка в дубе 6–8 мес.</p>
@@ -2313,6 +2396,13 @@
     <div class="bev-name">Что такое крепленое вино?</div>
     <p>Вино, в которое добавили виноградный спирт во время или после ферментации. Это останавливает брожение (сохраняет сладость) и повышает крепость до 15–22%. <strong>Порт</strong> (Португалия) — добавляют спирт во время брожения → сладкое. <strong>Херес/Sherry</strong> (Испания) — добавляют после → от сухого до сладкого.</p>
     <div class="memory bev">Крепленое = вино + виноградный спирт = дольше хранится + выше крепость + разные стили от сухого до очень сладкого.</div>
+  </div>
+
+  <div class="bev-card" style="margin-bottom:14px;">
+    <div class="bev-name">Портвейн vs Херес — ключевое отличие</div>
+    <p><strong>Портвейн (Португалия):</strong> виноградный спирт добавляют <strong>во время</strong> брожения → дрожжи погибают → сахар остаётся → вино сладкое. Тёмное, плотное. Подавать слегка охлаждённым.</p>
+    <p><strong>Херес / Sherry (Испания):</strong> спирт добавляют <strong>после</strong> брожения → уже отбродило → широкий диапазон от очень сухого (Fino) до очень сладкого (Pedro Ximénez).</p>
+    <div class="memory bev">Порт = спирт ВО ВРЕМЯ = всегда сладкий. Херес = спирт ПОСЛЕ = от сухого до сладкого. Fino охлаждать как аперитив, PX — поливать на мороженое.</div>
   </div>
 
   <p class="subsection bev">Портвейн (Port) — Португалия</p>
@@ -2363,6 +2453,19 @@
     <strong>Blended</strong> = смесь нескольких дистиллерий (Chivas, Johnnie Walker). Более мягкий и доступный.<br>
     <strong>Бочки важны:</strong> херес (sherry) = сухофрукты, орехи, шоколад. Бурбон = ваниль, карамель. Торф = дым, йод.</p>
     <div class="memory bev">5 регионов = 5 разных характеров: Speyside = фрукты+мёд. Highland = разнообразие. Lowland = лёгкий. Islay = дым+торф. Islands = морской+умеренный торф.</div>
+  </div>
+
+  <div class="bev-card" style="margin-bottom:14px;">
+    <div class="bev-name">5 регионов Scotch — характеры</div>
+    <table class="bev-table" style="margin-top:8px;">
+      <tr><th>Регион</th><th>Характер</th><th>Примеры из карты</th></tr>
+      <tr><td>Speyside</td><td>Фруктовый, мёд, цветы — мягкий</td><td>Glenlivet, Macallan, Glenfiddich, Aberlour</td></tr>
+      <tr><td>Highland</td><td>Разнообразный: фрукты, торф, мёд</td><td>Dalmore, Oban, Glenmorangie</td></tr>
+      <tr><td>Islay</td><td>Сильный дым, торф, йод, морской</td><td>Laphroaig, Ardbeg, Lagavulin</td></tr>
+      <tr><td>Lowland</td><td>Лёгкий, деликатный, без торфа</td><td>Auchentoshan</td></tr>
+      <tr><td>Islands</td><td>Морской, умеренный торф</td><td>Talisker, Highland Park</td></tr>
+    </table>
+    <div class="memory bev">Speyside = мёд+фрукты. Islay = дым+торф+йод. Highland = всё понемногу. Lowland = лёгкий. Islands = морской.</div>
   </div>
 
   <p class="subsection bev">🌾 Speyside — фруктовый и элегантный</p>
@@ -3700,44 +3803,53 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ── QUIZ MODE (Anki-style overlay) ──
   function setupQuiz() {
-    const foodBtn = document.getElementById('quiz-food-btn');
-    const bevBtn  = document.getElementById('quiz-bev-btn');
     const overlay = document.getElementById('quiz-overlay');
 
-    let queue      = [];   // карточки оставшиеся в сессии
-    let totalCards = 0;    // исходный размер очереди
-    let revealed   = false;
-    let currentPage = 'food';
+    let queue           = [];
+    let totalCards      = 0;
+    let revealed        = false;
+    let currentQuizType = 'food-positions';
 
-    // Только секции с реальными блюдами/напитками (не инфо-блоки)
+    // Секции с реальными позициями
     const FOOD_SECTIONS = new Set(['soups','salads','starters','pasta','pizza','sandwiches','burgers','mains','sides','desserts']);
     const BEV_SECTIONS  = new Set(['bev-sparkling','bev-white','bev-rose','bev-red','bev-fortified','bev-scotch','bev-world-whisky','bev-asian-whisky','bev-cognac','bev-gin','bev-tequila','bev-rum','bev-vodka','bev-beer','bev-sake','bev-aperitif','bev-cocktails']);
 
-    // ── Собрать данные всех видимых карточек
-    function buildQueue(page) {
+    // ── Собрать данные карточек по типу квиза
+    function buildQueue(quizType) {
       let els;
-      if (page === 'food') {
+      if (quizType === 'food-positions') {
         els = [...document.querySelectorAll('#food-page .dish-card')]
           .filter(c => {
             const sec = c.closest('section');
             return sec && FOOD_SECTIONS.has(sec.id) &&
                    !c.classList.contains('filter-hidden') && c.offsetParent !== null;
           });
-      } else {
+      } else if (quizType === 'food-terms') {
+        els = [...document.querySelectorAll('#food-page #memory-tips .dish-card')]
+          .filter(c => c.offsetParent !== null);
+      } else if (quizType === 'bev-positions') {
+        // Только реальные позиции меню — карточки с .bev-sub (страна/регион)
         els = [...document.querySelectorAll('#bev-page .cocktail-card, #bev-page .bev-card')]
           .filter(c => {
             const sec = c.closest('section');
-            return sec && BEV_SECTIONS.has(sec.id) && c.offsetParent !== null;
+            return sec && BEV_SECTIONS.has(sec.id) && c.offsetParent !== null
+                   && c.querySelector('.bev-sub');
+          });
+      } else {
+        // bev-terms: карточки без .bev-sub — термины, стили, понятия
+        els = [...document.querySelectorAll('#bev-page .bev-card')]
+          .filter(c => {
+            const sec = c.closest('section');
+            return sec && BEV_SECTIONS.has(sec.id) && c.offsetParent !== null
+                   && !c.querySelector('.bev-sub');
           });
       }
       return els.map(card => {
         const nameEl = card.querySelector('.dish-name, .c-name, .bev-name');
         const sec    = card.closest('section');
-        // Заголовок секции — текст h2 без эмодзи
         const sectionLabel = sec
           ? (sec.querySelector('h2')?.textContent || '').replace(/[^\wа-яёА-ЯЁ\s]/gu, '').trim()
           : '';
-        // Клонируем всё содержимое карточки, кроме названия и кнопки «изучил»
         const wrap = document.createElement('div');
         [...card.children].forEach(child => {
           if (!child.classList.contains('dish-name') &&
@@ -3766,14 +3878,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // ── Показать текущую карточку (queue[0])
     function showCard() {
       const item = queue[0];
-      document.getElementById('qo-card-name').textContent   = item.name;
+      document.getElementById('qo-card-name').textContent     = item.name;
       document.getElementById('qo-section-label').textContent = item.section;
-      document.getElementById('qo-card-content').innerHTML  = item.contentHTML;
+      document.getElementById('qo-card-content').innerHTML    = item.contentHTML;
       document.getElementById('qo-card-content').style.display = 'none';
-      document.getElementById('qo-tap-hint').style.display  = '';
-      document.getElementById('qo-actions').style.display   = 'none';
-      document.getElementById('qo-body').style.display      = 'flex';
-      document.getElementById('qo-complete').style.display  = 'none';
+      document.getElementById('qo-tap-hint').style.display    = '';
+      document.getElementById('qo-actions').style.display     = 'none';
+      document.getElementById('qo-body').style.display        = 'flex';
+      document.getElementById('qo-complete').style.display    = 'none';
       revealed = false;
       updateProgress();
     }
@@ -3789,13 +3901,24 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('qo-counter').textContent = `✓ ${totalCards} / ${totalCards}`;
     }
 
+    // ── Все кнопки запуска экзамена
+    const allQuizBtns = [...document.querySelectorAll('[data-quiz]')];
+
     // ── Запустить квиз
-    function startQuiz(page) {
-      currentPage = page;
-      queue       = buildQueue(page);
-      totalCards  = queue.length;
-      overlay.className = 'show' + (page === 'bev' ? ' qo-bev' : '');
-      document.body.style.overflow = 'hidden'; // заблокировать скролл фона
+    const MODE_LABELS = {
+      'food-positions': '🍽 Позиции',
+      'food-terms':     '📚 Термины',
+      'bev-positions':  '🍷 Позиции',
+      'bev-terms':      '📚 Термины'
+    };
+    function startQuiz(quizType) {
+      currentQuizType = quizType;
+      queue      = buildQueue(quizType);
+      totalCards = queue.length;
+      const isBev = quizType.startsWith('bev');
+      overlay.className = 'show' + (isBev ? ' qo-bev' : '');
+      document.getElementById('qo-mode-label').textContent = MODE_LABELS[quizType] || '';
+      document.body.style.overflow = 'hidden';
       if (queue.length === 0) { showComplete(); return; }
       showCard();
     }
@@ -3804,8 +3927,10 @@ document.addEventListener('DOMContentLoaded', () => {
     function exitQuiz() {
       overlay.className = '';
       document.body.style.overflow = '';
-      if (foodBtn) { foodBtn.classList.remove('active'); foodBtn.textContent = '🎓 Экзамен'; }
-      if (bevBtn)  { bevBtn.classList.remove('active');  bevBtn.textContent  = '🎓 Экзамен'; }
+      allQuizBtns.forEach(btn => {
+        btn.classList.remove('active');
+        btn.textContent = btn.dataset.label || btn.textContent;
+      });
     }
 
     // ── Тап по карточке — раскрыть
@@ -3835,23 +3960,17 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('qo-btn-complete-exit').addEventListener('click', exitQuiz);
 
     // ── Повторить
-    document.getElementById('qo-btn-restart').addEventListener('click', () => startQuiz(currentPage));
+    document.getElementById('qo-btn-restart').addEventListener('click', () => startQuiz(currentQuizType));
 
-    // ── Кнопки запуска
-    if (foodBtn) {
-      foodBtn.addEventListener('click', () => {
-        foodBtn.classList.add('active');
-        foodBtn.textContent = '🎓 Экзамен идёт…';
-        startQuiz('food');
+    // ── Навесить обработчики на все кнопки запуска
+    allQuizBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        allQuizBtns.forEach(b => { b.classList.remove('active'); b.textContent = b.dataset.label; });
+        btn.classList.add('active');
+        btn.textContent = (btn.dataset.label || '') + ' идёт…';
+        startQuiz(btn.dataset.quiz);
       });
-    }
-    if (bevBtn) {
-      bevBtn.addEventListener('click', () => {
-        bevBtn.classList.add('active');
-        bevBtn.textContent = '🎓 Экзамен идёт…';
-        startQuiz('bev');
-      });
-    }
+    });
   }
   setupQuiz();
 
@@ -4915,6 +5034,7 @@ document.addEventListener('DOMContentLoaded', () => {
 <div id="quiz-overlay">
   <div class="qo-header">
     <button class="qo-exit" id="qo-exit">✕ Выйти</button>
+    <span class="qo-mode-label" id="qo-mode-label"></span>
     <span class="qo-section-label" id="qo-section-label"></span>
     <span class="qo-counter" id="qo-counter">0 / 0</span>
   </div>
