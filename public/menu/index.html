@@ -207,8 +207,35 @@
     background: var(--bev-memory-bg); border: 1px solid var(--bev-memory-border);
     border-left: 4px solid var(--bev-accent); color: var(--bev-memory);
   }
-  .memory.bev::before { content: '💡 '; }
+  .memory.bev::before { content: '🎯 '; }
   .memory.bev strong { color: var(--bev-accent); }
+
+  /* ── ADVANCED MODE (pro toggle) ──
+     Content marked .bev-advanced is hidden by default (basic mode).
+     When body has .bev-pro, advanced content appears with a visible marker. */
+  .bev-advanced { display: none; }
+  body.bev-pro .bev-advanced { display: block; position: relative; outline: 1px dashed rgba(200,144,10,0.45); outline-offset: 4px; }
+  body.bev-pro .bev-advanced::after {
+    content: '🔬 Углублённо';
+    position: absolute; top: -10px; right: 10px;
+    background: linear-gradient(135deg,#6a4a10,#8a6418);
+    color: #f5dca0; font-size: 0.66rem; font-weight: 700;
+    padding: 2px 9px; border-radius: 10px; letter-spacing: 0.4px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.35); white-space: nowrap;
+  }
+  /* Sticky banner showing pro mode is active */
+  body.bev-pro #bev-page::before {
+    content: '🔬 Продвинутый режим включён — показаны углублённые объяснения и нюансы';
+    display: block; text-align: center;
+    background: linear-gradient(90deg,#3a2a08,#6a4a10,#3a2a08);
+    color: #f0d090; font-size: 0.78rem; font-weight: 600;
+    padding: 6px 12px; border-bottom: 1px solid rgba(200,144,10,0.4);
+    letter-spacing: 0.3px;
+  }
+  /* Pro mode indicator on toggle button */
+  .study-btn.bev-style.pro-style { border-color: rgba(200,144,10,0.5); color: #d0a050; }
+  .study-btn.bev-style.pro-style:hover { border-color: var(--gold); color: var(--gold); }
+  .study-btn.bev-style.pro-style.active { background: #6a4a10; color: #f0d090; border-color: #6a4a10; font-weight: 600; }
 
   /* ── BEV CARDS ── */
   .bev-card {
@@ -286,6 +313,14 @@
     display: inline-block; padding: 2px 10px; border-radius: 20px;
     font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
     margin-bottom: 6px;
+  }
+  /* Region внутри country-badge — единая пилюля "СТРАНА · РЕГИОН" */
+  .country-badge .region-part {
+    display: inline-block;
+    margin-left: 8px; padding-left: 8px;
+    border-left: 1px solid currentColor;
+    opacity: 0.85;
+    font-weight: 600;
   }
   /* Wine country badges */
   .country-france      { background: #e8ecff; color: #1a2880; border: 1px solid #8090e0; }
@@ -759,6 +794,53 @@
   [data-theme="dark"] .bev-price { border-top-color: var(--bev-divider); }
   [data-theme="dark"] .bev-price .price-amount { color: #d4a840; }
   [data-theme="dark"] .bev-price .price-label { color: var(--bev-accent-light); }
+  /* Price collapse */
+  .bev-price.price-hidden { display: none; }
+  .bev-card.prices-open .bev-price.price-hidden { display: flex; }
+  .price-toggle {
+    display: inline-block; margin-top: 6px;
+    background: transparent; border: 1px dashed var(--bev-divider);
+    color: var(--bev-accent); font-size: 0.78rem; font-weight: 600;
+    padding: 3px 10px; border-radius: 12px; cursor: pointer;
+    letter-spacing: 0.02em;
+  }
+  .price-toggle:hover { border-color: var(--bev-accent); background: rgba(74,143,168,0.08); }
+  [data-theme="dark"] .price-toggle { color: var(--bev-accent-light); border-color: #3a4a58; }
+  [data-theme="dark"] .price-toggle:hover { border-color: var(--bev-accent-light); background: rgba(122,184,216,0.08); }
+
+  /* Per-section accent colours for .bev-card left border — карточка читается по цвету */
+  #bev-sparkling    .bev-card { border-left-color: #c89a3a; }   /* шампанское — золото */
+  #bev-white        .bev-card { border-left-color: #d4b860; }   /* белое вино — соломенный */
+  #bev-rose         .bev-card { border-left-color: #e89bb0; }   /* розовое */
+  #bev-red          .bev-card { border-left-color: #8a2438; }   /* красное — бордо */
+  #bev-fortified    .bev-card { border-left-color: #a06030; }   /* крепленое — тёмная амбра */
+  #bev-scotch       .bev-card { border-left-color: #c8841c; }   /* виски — янтарь */
+  #bev-world-whisky .bev-card { border-left-color: #b07028; }   /* виски мира */
+  #bev-asian-whisky .bev-card { border-left-color: #c84840; }   /* японский — красный */
+  #bev-cognac       .bev-card { border-left-color: #a87018; }   /* коньяк — тёмное золото */
+  #bev-gin          .bev-card { border-left-color: #5a9070; }   /* джин — зелёный (ботаники) */
+  #bev-tequila      .bev-card { border-left-color: #6ab058; }   /* текила — агава */
+  #bev-rum          .bev-card { border-left-color: #8a5028; }   /* ром — коричневый сахар */
+  #bev-vodka        .bev-card { border-left-color: #6aa0c8; }   /* водка — лёд */
+  #bev-beer         .bev-card { border-left-color: #c89030; }   /* пиво — золото */
+  #bev-sake         .bev-card { border-left-color: #9ab0c8; }   /* саке — светло-серый */
+  #bev-aperitif     .bev-card { border-left-color: #c85c30; }   /* аперитивы — красно-оранж */
+
+  /* Section summary box — "Из этой секции вынеси" */
+  .section-summary {
+    background: linear-gradient(135deg, rgba(74,143,168,0.08), rgba(74,143,168,0.03));
+    border: 1px solid rgba(74,143,168,0.3); border-left: 4px solid var(--bev-accent);
+    border-radius: 6px; padding: 12px 16px; margin: 0 0 16px;
+  }
+  .section-summary .summary-title {
+    font-weight: 700; color: var(--bev-accent); font-size: 0.85rem;
+    text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;
+  }
+  .section-summary ol { margin: 0; padding-left: 22px; color: var(--bev-text, #2a3848); }
+  .section-summary li { margin-bottom: 4px; font-size: 0.92rem; line-height: 1.45; }
+  .section-summary li:last-child { margin-bottom: 0; }
+  [data-theme="dark"] .section-summary { background: linear-gradient(135deg, rgba(122,184,216,0.06), rgba(122,184,216,0.02)); }
+  [data-theme="dark"] .section-summary ol { color: var(--bev-text-light, #d8e2ec); }
 
   /* ── CHAMPAGE SUBSECTION ── */
 
@@ -1935,6 +2017,7 @@
   <div class="study-bar-center">
     <button class="study-btn bev-style" id="quiz-bev-pos-btn" data-quiz="bev-positions" data-label="🍷 Позиции" title="Анки-режим: позиции меню напитков">🍷 Позиции</button>
     <button class="study-btn bev-style term-style" id="quiz-bev-term-btn" data-quiz="bev-terms" data-label="📚 Термины" title="Анки-режим: термины, стили, категории">📚 Термины</button>
+    <button class="study-btn bev-style pro-style" id="bev-pro-btn" title="Раскрывает углублённые объяснения и нюансы для тех, кто уже знает основы">🔬 Продвинутый</button>
   </div>
   <div class="study-bar-right">
     <button class="study-btn bev-style reset-btn" id="bev-reset-btn">🔄 Сбросить</button>
@@ -1949,6 +2032,8 @@
 
 <div class="wrapper">
 
+<div class="alert bev-info" style="margin-bottom:14px;"><span class="alert-icon">🎓</span><div><strong>Режим обучения.</strong> По умолчанию показываются основы — то, что нужно знать каждому. Когда освоишь базу, включи <strong>🔬 Продвинутый</strong> в панели сверху — откроются нюансы и углублённые сравнения для более глубокого изучения.</div></div>
+
 <!-- ════ INTRO ════ -->
 <section id="bev-intro">
   <h2 class="section-title bev"><span class="emoji">📖</span> Основы: как понимать алкоголь</h2>
@@ -1956,7 +2041,7 @@
     <div class="bev-card">
       <div class="bev-name">Как делают любой алкоголь — 3 шага</div>
       <p><strong>1. Ферментация</strong> — дрожжи превращают сахар в спирт (вино, пиво, саке). Максимум ~15% алкоголя.<br><strong>2. Дистилляция</strong> — нагревают и собирают пары спирта → крепкий алкоголь (виски, водка, коньяк, джин). Можно получить 40–96%.<br><strong>3. Выдержка</strong> — хранение в бочках или ёмкостях. Добавляет цвет, вкус, сложность.</p>
-      <div class="memory bev">Вино и пиво = ферментация. Виски/коньяк/ром = ферментация + дистилляция + выдержка. Водка = дистилляция без выдержки.</div>
+      <div class="memory bev">Вино и пиво — только ферментация. Виски, коньяк, ром — ферментация плюс дистилляция плюс выдержка. Водка — дистилляция без выдержки.</div>
     </div>
     <div class="bev-card">
       <div class="bev-name">Как говорить с гостем о напитке</div>
@@ -1966,7 +2051,7 @@
       <ul>
         <li><strong>Красное вино (пример):</strong> «Querciabella из Тосканы — Sangiovese с Cabernet. Тёмные ягоды, немного специй, хорошая структура. Отлично к стейку или пасте в томатном соусе.»</li>
       </ul>
-      <div class="memory bev">Не говори «10 лет выдержки» без объяснения. Говори: <strong>«10 лет выдержки = более глубокий, мягкий, сложный вкус»</strong>.</div>
+      <div class="memory bev bev-advanced">Возраст выдержки нужно раскрывать смыслом: <strong>«10 лет — более глубокий, мягкий, сложный вкус»</strong>, а не просто сухой цифрой.</div>
     </div>
   </div>
 </section>
@@ -1985,13 +2070,13 @@
     <tr><td>Вкус</td><td>Сложный, дрожжевой, хлебный, долгое послевкусие</td><td>Лёгкий, свежий, фруктовый (яблоко, груша)</td></tr>
     <tr><td>Правило</td><td>Шампанское = место + метод + виноград. Всё остальное = просто игристое вино</td><td>Хорошая альтернатива шампанскому — легче и доступнее</td></tr>
   </table>
-  <div class="memory bev">Champagne = Champagne = Champagne (только там). Prosecco = Prosecco (только Veneto + только Glera + только Charmat). Cava = Испания. Sekt = Германия. Crémant = Франция, но не Шампань.</div>
+  <div class="memory bev">Шампанским называется только то, что произведено в регионе Шампань (Франция). Просекко — только из Венето, только сорт Glera, только метод Шарма. Cava — Испания. Sekt — Германия. Crémant — Франция, но за пределами Шампани.</div>
 
-  <div class="bev-card" style="margin-bottom:14px;">
+  <div class="bev-card bev-advanced" style="margin-bottom:14px;">
     <div class="bev-name">Méthode Traditionnelle vs Charmat</div>
     <p><strong>Méthode Traditionnelle (Традиционный метод):</strong> вторая ферментация прямо в бутылке. Пузырьки мелкие и стойкие. Добавляет хлебный/дрожжевой вкус (бриошь, тост). Долго и дорого → шампанское, Cava, Crémant.</p>
     <p><strong>Charmat (Метод Шарма):</strong> вторая ферментация в больших стальных чанах. Пузырьки крупнее, вкус свежее и фруктовее. Быстро и дёшево → просекко.</p>
-    <div class="memory bev">Шампанское = бутылка = мелкие пузырьки = дрожжи/бриошь. Просекко = чан = крупные пузырьки = свежие яблоко+груша.</div>
+    <div class="memory bev">Шампанское — вторая ферментация в бутылке, мелкие пузырьки, дрожжевые и хлебные ноты. Просекко — ферментация в чане, крупные пузырьки, свежие яблоко и груша.</div>
   </div>
 
   <p class="subsection bev">Виды шампанского по сладости (от сухого к сладкому)</p>
@@ -2016,7 +2101,6 @@
       <p>Купаж: ~40% Chardonnay + 35% Pinot Noir + 25% Pinot Meunier. Необычно высокое содержание Chardonnay для NV — отсюда особая свежесть. Выдержка 3 года на дрожжах.</p>
       <p><strong>Вкус:</strong> белые фрукты, белые цветы, бриошь, мягкая кислотность.</p>
       <div class="bev-notes">Идеально как аперитив, к морепродуктам, рыбе, лёгким закускам.</div>
-      <div class="memory bev">«Много Chardonnay = свежее и элегантное». Выдержка 3 года = более сложный вкус, чем у бюджетных NV.</div>
       <div class="prep-time">⏱ ~3 мин</div>
     </div>
     <div class="bev-card">
@@ -2064,7 +2148,7 @@
       <p>100% Chardonnay. Дом Ruinart — старейший в Шампани (1729). Blanc de Blancs = только белый виноград = максимум элегантности и минеральности.</p>
       <p><strong>Вкус:</strong> цитрусы, зелёное яблоко, белые цветы, мел, лёгкая кремовость. Очень чистое и точное.</p>
       <div class="bev-notes">К устрицам, морепродуктам, лёгкой рыбе, севиче.</div>
-      <div class="memory bev">Blanc de Blancs = только Chardonnay = самое «хрустящее» и минеральное шампанское.</div>
+      <div class="memory bev">Blanc de Blancs — шампанское только из Chardonnay. Самое «хрустящее» и минеральное по стилю.</div>
       <div class="bev-price"><span class="price-label">🍾 Бутылка</span><span class="price-amount">295 400 KZT</span></div>
       <div class="prep-time">⏱ ~3 мин</div>
     </div>
@@ -2077,7 +2161,7 @@
       <p>Престижный cuvée Roederer. Розовая версия легендарного Cristal. Pinot Noir + Chardonnay + мацерация. Выдержка на дрожжах 5+ лет.</p>
       <p><strong>Вкус:</strong> малина, ежевика, вишня, розы, выпечка, минерал. Исключительная сложность и длина.</p>
       <div class="bev-notes">К икре, лобстеру, белому трюфелю, утиной грудке. Событийное шампанское.</div>
-      <div class="memory bev">Cristal создан для царской семьи России. Прозрачная бутылка — историческая особенность. Один из самых престижных брендов мира.</div>
+      <div class="memory bev bev-advanced">Cristal создан для царской семьи России. Прозрачная бутылка — историческая особенность.</div>
       <div class="bev-price"><span class="price-label">🍾 Бутылка</span><span class="price-amount">535 600 KZT</span></div>
       <div class="prep-time">⏱ ~5 мин</div>
     </div>
@@ -2090,7 +2174,6 @@
       <p>Prestige cuvée Perrier-Jouët. Chardonnay dominant. Знаменитая белая бутылка с анемонами от художника Галле. Выдержка 6+ лет на дрожжах.</p>
       <p><strong>Вкус:</strong> белые цветы, белый персик, ваниль, бриошь, медовые нотки. Элегантное и комплексное.</p>
       <div class="bev-notes">К трюфелям, фуа-гра, омару, дегустационным меню.</div>
-      <div class="memory bev">Belle Époque = самая красивая бутылка шампанского. Подарочный выбор. Акцент на эстетике и истории.</div>
       <div class="bev-price"><span class="price-label">🍾 Бутылка</span><span class="price-amount">566 500 KZT</span></div>
       <div class="prep-time">⏱ ~5 мин</div>
     </div>
@@ -2103,7 +2186,7 @@
       <p>Prestige cuvée Moët & Chandon. Только vintage-шампанское — выпускается исключительно в лучшие урожаи. Chardonnay + Pinot Noir. Минимум 8 лет на дрожжах.</p>
       <p><strong>Вкус:</strong> белый персик, цитрусовая цедра, миндаль, бриошь, минерал, тосты. Невероятная сложность.</p>
       <div class="bev-notes">К икре, омару, фуа-гра, высокой кухне. Символ роскоши и торжества.</div>
-      <div class="memory bev">Dom Pérignon — монах, открывший метод шампанизации. «Я пью звёзды!» Самый узнаваемый в мире prestige cuvée.</div>
+      <div class="memory bev bev-advanced">Dom Pérignon — монах, открывший метод шампанизации. Легендарная фраза при первой дегустации: «Я пью звёзды!»</div>
       <div class="bev-price"><span class="price-label">🍾 Бутылка</span><span class="price-amount">860 000 KZT</span></div>
       <div class="prep-time">⏱ ~5 мин</div>
     </div>
@@ -2131,27 +2214,6 @@
 
   <div class="alert bev-info"><span class="alert-icon">💡</span><div><strong>Ключ к белым:</strong> Кислое и лёгкое → Sauvignon Blanc. Мягкое и ароматное → Riesling. Сливочное и плотное → Chardonnay. Нежное и минеральное → Pinot Grigio. Цветочное и ароматное → Gessami (мускат+гевюрц).</div></div>
 
-  <div class="card-grid three" style="margin-bottom:18px;">
-    <div class="memory bev" style="margin:0;border-radius:8px;">
-      <strong style="color:#7bcca0;">🟢 Для новичка</strong><br>
-      <strong>Tunella Pinot Grigio</strong> — лёгкое, фруктовое, без сложности<br>
-      <strong>Voche Blanco</strong> — мягкое, чистое, универсальное<br>
-      <strong>Ak Arba Riesling</strong> — местное казахстанское, интересная история
-    </div>
-    <div class="memory bev" style="margin:0;border-radius:8px;">
-      <strong style="color:#7baad0;">🔵 Для ценителя</strong><br>
-      <strong>Domaine Maldant-Pauvelot</strong> — бургундская элегантность<br>
-      <strong>Edda Bianco</strong> — богатый, маслянистый стиль<br>
-      <strong>Gramona Gessami</strong> — ароматное, цветочное, редкое
-    </div>
-    <div class="memory bev" style="margin:0;border-radius:8px;">
-      <strong style="color:#b07ad0;">🟣 Для экстрима</strong><br>
-      <strong>Decoy Chardonnay (Napa)</strong> — американский стиль, мощный<br>
-      <strong>Fume Blanc Mondavi</strong> — напа-долина, только бутылка<br>
-      <strong>Poggio alle Gazze</strong> — тосканское, авторское, редкость
-    </div>
-  </div>
-
   <div class="card-grid">
     <div class="bev-card">
       <div class="country-badge country-kazakhstan">🇰🇿 Kazakhstan</div>
@@ -2160,7 +2222,7 @@
       <div class="bev-name">Ak Arba Riesling · Assa Valley</div>
       <p>100% Riesling. Arba Wine — виноградники у подножия Заилийского Алатау, 70 км от Алматы. Ферментация в стали + частично дуб, 6–8 мес.</p>
       <p><strong>Вкус:</strong> зелёное яблоко, цитрусы, минеральные ноты, лёгкая солоноватость в послевкусии. Характерные «бензольные» оттенки выдержанного рислинга.</p>
-      <div class="bev-notes">К рыбе, морепродуктам, лёгким закускам. Продажная история: местное вино из Казахстана.</div>
+      <div class="bev-notes">К рыбе, морепродуктам, лёгким закускам. Местное казахстанское вино.</div>
       <span class="serve-badge glass">🥂 Бокальная позиция</span>
       <div class="prep-time">⏱ ~2 мин</div>
     </div>
@@ -2185,7 +2247,6 @@
       <p>Мускат + Совиньон Блан + Гевюрцтраминер. Холодная ферментация в стали — для сохранения ароматов.</p>
       <p><strong>Вкус:</strong> жасмин, виноград, личи, цитрусовая цедра. Очень ароматное и лёгкое.</p>
       <div class="bev-notes">Как аперитив, к салатам, морепродуктам, азиатской кухне, козьему сыру.</div>
-      <div class="memory bev">Самое «цветочное» вино в карте. Гостям, которые хотят «что-то лёгкое и ароматное».</div>
       <span class="serve-badge glass">🥂 Бокальная позиция</span>
       <div class="prep-time">⏱ ~2 мин</div>
     </div>
@@ -2210,7 +2271,6 @@
       <p>100% Sauvignon Blanc. Ферментация в стальных чанах — для максимальной свежести.</p>
       <p><strong>Вкус:</strong> тропические фрукты, крыжовник, манго, маракуйя, свежая трава, высокая кислотность.</p>
       <div class="bev-notes">К морепродуктам, рыбе, курице, суши, салатам, козьему сыру, спарже.</div>
-      <div class="memory bev">Самый продаваемый белый в меню. <strong>«Яркий, живой, тропический»</strong> — так описывать гостям.</div>
       <span class="serve-badge glass">🥂 Бокальная позиция</span>
       <div class="prep-time">⏱ ~2 мин</div>
     </div>
@@ -2247,7 +2307,6 @@
       <p>100% Chardonnay из солнечной Апулии. Частичная выдержка в дубе + батонаж → кремовая текстура.</p>
       <p><strong>Вкус:</strong> абрикос, персик, ваниль, тропические ноты, бархатистое и насыщенное.</p>
       <div class="bev-notes">К пасте со сливочными соусами, рыбе и морепродуктам на гриле, выдержанным сырам.</div>
-      <div class="memory bev">Самое «плотное» белое в карте. Гостям, которые любят «богатое, сливочное» — это их вино.</div>
       <span class="serve-badge glass">🥂 Бокальная позиция</span>
       <div class="prep-time">⏱ ~2 мин</div>
     </div>
@@ -2257,7 +2316,7 @@
 <!-- ════ ROSÉ ════ -->
 <section id="bev-rose">
   <h2 class="section-title bev"><span class="emoji">🌸</span> Розовое вино</h2>
-  <div class="alert bev-info"><span class="alert-icon">💡</span><div><strong>Розовое ≠ смесь белого и красного</strong> (кроме игристых). Цвет берётся из кожицы тёмного винограда при коротком контакте сока с ней (несколько часов). Чем дольше контакт — тем темнее и насыщеннее.</div></div>
+  <div class="alert bev-info"><span class="alert-icon">💡</span><div><strong>Розовое — это не смесь белого и красного</strong> (кроме игристых). Цвет берётся из кожицы тёмного винограда при коротком контакте сока с ней (несколько часов). Чем дольше контакт — тем темнее и насыщеннее.</div></div>
   <div class="card-grid">
     <div class="bev-card">
       <div class="country-badge country-france">🇫🇷 France</div>
@@ -2268,7 +2327,6 @@
       <p>Grenache + Cinsault + Syrah. Domaines Ott* — легендарный дом Прованса, эталон розового. Прямое прессование + холодная ферментация в стали.</p>
       <p><strong>Вкус:</strong> лесная земляника, белая вишня, персик, розовые лепестки, цитрусовая цедра. Сухое, лёгкое, освежающее.</p>
       <div class="bev-notes">Как аперитив, к морепродуктам, салатам, рыбе на гриле, средиземноморской кухне.</div>
-      <div class="memory bev">Прованское розе = самый «летний» напиток. Гостям, которые хотят «что-то лёгкое и элегантное».</div>
       <span class="serve-badge glass">🥂 Бокальная позиция</span>
       <div class="prep-time">⏱ ~2 мин</div>
     </div>
@@ -2280,27 +2338,6 @@
   <h2 class="section-title bev"><span class="emoji">🍷</span> Красные вина</h2>
   <div class="alert bev-info"><span class="alert-icon">💡</span><div><strong>Танины</strong> = вещества из кожицы/косточек → ощущение сухости и вяжущее ощущение во рту (как от крепкого чая). Чем больше танинов — тем «серьёзнее» вино и лучше к мясу. Выдержка в дубе добавляет ваниль, специи, шоколад.</div></div>
 
-  <div class="card-grid three" style="margin-bottom:18px;">
-    <div class="memory bev" style="margin:0;border-radius:8px;">
-      <strong style="color:#7bcca0;">🟢 Для новичка</strong><br>
-      <strong>Talo Primitivo·Merlot</strong> — фруктовое, нетаниновое<br>
-      <strong>Lagyl Arba (Saperavi)</strong> — местное, мягкое, с историей<br>
-      <strong>Barista Pinotage</strong> — кофейно-ягодный, ЮАР
-    </div>
-    <div class="memory bev" style="margin:0;border-radius:8px;">
-      <strong style="color:#7baad0;">🔵 Для ценителя</strong><br>
-      <strong>Querciabella Mongrana Rosso</strong> — тосканская органика<br>
-      <strong>Domaine Maldant-Pauvelot</strong> — бургундская деликатность<br>
-      <strong>Clos de los Siete</strong> — Мишель Роллан, Мендоза
-    </div>
-    <div class="memory bev" style="margin:0;border-radius:8px;">
-      <strong style="color:#b07ad0;">🟣 Для коллекционера</strong><br>
-      <strong>Vega Sicilia Unico</strong> — легенда Испании, только бутылка<br>
-      <strong>Chateau Haut-Brion</strong> — Premier Cru Classe, Бордо<br>
-      <strong>Pommard Premier Cru</strong> — бургундский терруар
-    </div>
-  </div>
-
   <div class="card-grid">
     <div class="bev-card">
       <div class="country-badge country-kazakhstan">🇰🇿 Kazakhstan</div>
@@ -2309,7 +2346,7 @@
       <div class="bev-name">Lagyl Arba · Assa Valley</div>
       <p>Saperavi 87% + Shiraz 13%. Arba Wine, долина Ассы. Выдержка в дубе.</p>
       <p><strong>Вкус:</strong> вишня, тёмные ягоды, слива, лёгкие пряные и дубовые ноты. Мягкие танины, полнотелое.</p>
-      <div class="bev-notes">К мясу, блюдам на гриле, выдержанным сырам. <strong>Локальное — продавать как особенность заведения.</strong></div>
+      <div class="bev-notes">К мясу, блюдам на гриле, выдержанным сырам. Локальное казахстанское вино.</div>
       <span class="serve-badge glass">🥂 Бокальная позиция</span>
       <div class="prep-time">⏱ ~2 мин</div>
     </div>
@@ -2322,7 +2359,7 @@
       <p>100% Pinotage (уникальный ЮАР сорт = Pinot Noir × Cinsaut). Выдержка во французском дубе.</p>
       <p><strong>Вкус:</strong> шелковица, слива, <strong>кофе, шоколад</strong>, ваниль. Бархатистые танины.</p>
       <div class="bev-notes">К красному мясу, жареной утке, шоколадным десертам.</div>
-      <div class="memory bev">Pinotage = «кофейный» виноград ЮАР. Запомни: <strong>кофе + шоколад + ягоды</strong>. Единственное африканское вино в карте.</div>
+      <div class="memory bev">Pinotage — «кофейный» виноград ЮАР. Запомни вкус: <strong>кофе, шоколад, ягоды</strong>. Единственное африканское вино в карте.</div>
       <span class="serve-badge glass">🥂 Бокальная позиция</span>
       <div class="prep-time">⏱ ~2 мин</div>
     </div>
@@ -2371,7 +2408,6 @@
       <p>Sangiovese + Cabernet Sauvignon + Merlot. Querciabella — органическое виноделие. Выдержка 12 мес в французском дубе.</p>
       <p><strong>Вкус:</strong> чёрные ягоды, вишня, ваниль, специи, лёгкая дымность. Плотная структура, бархатистые танины.</p>
       <div class="bev-notes">К стейкам, рёбрышкам, тушёной дичи, выдержанным сырам.</div>
-      <div class="memory bev">Самое «мощное» красное в карте. Для любителей насыщенных итальянских вин.</div>
       <div class="prep-time">⏱ ~2 мин</div>
     </div>
     <div class="bev-card">
@@ -2395,14 +2431,14 @@
   <div class="bev-card" style="margin-bottom:14px;">
     <div class="bev-name">Что такое крепленое вино?</div>
     <p>Вино, в которое добавили виноградный спирт во время или после ферментации. Это останавливает брожение (сохраняет сладость) и повышает крепость до 15–22%. <strong>Порт</strong> (Португалия) — добавляют спирт во время брожения → сладкое. <strong>Херес/Sherry</strong> (Испания) — добавляют после → от сухого до сладкого.</p>
-    <div class="memory bev">Крепленое = вино + виноградный спирт = дольше хранится + выше крепость + разные стили от сухого до очень сладкого.</div>
+    <div class="memory bev">Крепленое — это вино с добавлением виноградного спирта. Дольше хранится, выше крепость, диапазон от сухого до очень сладкого.</div>
   </div>
 
-  <div class="bev-card" style="margin-bottom:14px;">
+  <div class="bev-card bev-advanced" style="margin-bottom:14px;">
     <div class="bev-name">Портвейн vs Херес — ключевое отличие</div>
     <p><strong>Портвейн (Португалия):</strong> виноградный спирт добавляют <strong>во время</strong> брожения → дрожжи погибают → сахар остаётся → вино сладкое. Тёмное, плотное. Подавать слегка охлаждённым.</p>
     <p><strong>Херес / Sherry (Испания):</strong> спирт добавляют <strong>после</strong> брожения → уже отбродило → широкий диапазон от очень сухого (Fino) до очень сладкого (Pedro Ximénez).</p>
-    <div class="memory bev">Порт = спирт ВО ВРЕМЯ = всегда сладкий. Херес = спирт ПОСЛЕ = от сухого до сладкого. Fino охлаждать как аперитив, PX — поливать на мороженое.</div>
+    <div class="memory bev">Портвейн — спирт добавляют <strong>во время</strong> брожения, поэтому всегда сладкий. Херес — спирт добавляют <strong>после</strong>, поэтому бывает от сухого до сладкого. Fino подавать охлаждённым как аперитив, PX — поливать на мороженое.</div>
   </div>
 
   <p class="subsection bev">Портвейн (Port) — Португалия</p>
@@ -2429,22 +2465,20 @@
     <div class="fort-card"><div class="f-name">Marco de Bartoli · Marsala Superiore Oro DOC</div><div class="f-origin">Italy · Sicilia · 75ml</div><p>Марсала = итальянское крепленое из Сицилии. Золотистое, ореховое, медовое. К десертам и как ингредиент в тирамису.</p></div>
     <div class="fort-card"><div class="f-name">Penfolds Father Grand Tawny 10 Y.O.</div><div class="f-origin">Australia · 75ml</div><p>Австралийский стиль Tawny. Более фруктовый и тёплый, чем португальский. Орехи, ваниль, карамель.</p></div>
   </div>
-  <div class="memory bev">Подавать: Fino Sherry — холодным, как аперитив. Tawny Port — слегка охлаждённым, к орехам и сырам. PX Sherry — как десертное, небольшими порциями. Vintage Port — комнатная температура, декантировать.</div>
+  <div class="memory bev">Как подавать: Fino Sherry — холодным, как аперитив. Tawny Port — слегка охлаждённым, к орехам и сырам. PX Sherry — как десертное, небольшими порциями. Vintage Port — комнатной температуры, декантировать.</div>
 </section>
 
 <!-- ════ SCOTCH ════ -->
 <section id="bev-scotch">
   <h2 class="section-title bev"><span class="emoji">🥃</span> Scotch Single Malt Whisky</h2>
 
-  <div class="quick-ref bev" style="margin-bottom:14px;">
-    <h4>⚡ Быстрая шпаргалка — Гость хочет X → рекомендуй Y</h4>
-    <ul>
-      <li><strong>Что-то лёгкое и мягкое →</strong> Glenlivet 15 или Singleton of Dufftown 15</li>
-      <li><strong>Богатое, шоколад, сухофрукты →</strong> Macallan 12 или Aberlour 16</li>
-      <li><strong>Дымное, торфяное →</strong> Laphroaig 10 или Ardbeg 10</li>
-      <li><strong>Что-то необычное →</strong> Hakushu (травяной) или Kavalan Port Cask (тропический)</li>
-      <li><strong>Впервые пробует виски →</strong> Glenlivet 15 или Glenfiddich 18</li>
-    </ul>
+  <div class="section-summary">
+    <div class="summary-title">📌 Из этой секции вынеси</div>
+    <ol>
+      <li><strong>Single Malt</strong> — только ячмень, одна винокурня, Шотландия, минимум 3 года в дубе.</li>
+      <li><strong>5 регионов:</strong> Speyside (мёд, фрукты), Highland (всё понемногу), Lowland (лёгкий), Islay (дым, торф), Islands (морской).</li>
+      <li><strong>Бочка задаёт вкус:</strong> херес — сухофрукты и шоколад; бурбон — ваниль и карамель; торф — дым и йод.</li>
+    </ol>
   </div>
 
   <div class="bev-card" style="margin-bottom:14px;">
@@ -2452,10 +2486,10 @@
     <p>Виски = зерновой дистиллят, выдержанный в дубовых бочках. <strong>Single Malt</strong> = из <strong>соложенного ячменя</strong> (только ячмень!) + одна дистиллерия + Шотландия + выдержка минимум 3 года + не менее 40%. «Single» = одна дистиллерия. «Malt» = соложенный ячмень.<br>
     <strong>Blended</strong> = смесь нескольких дистиллерий (Chivas, Johnnie Walker). Более мягкий и доступный.<br>
     <strong>Бочки важны:</strong> херес (sherry) = сухофрукты, орехи, шоколад. Бурбон = ваниль, карамель. Торф = дым, йод.</p>
-    <div class="memory bev">5 регионов = 5 разных характеров: Speyside = фрукты+мёд. Highland = разнообразие. Lowland = лёгкий. Islay = дым+торф. Islands = морской+умеренный торф.</div>
+    <div class="memory bev">5 регионов — 5 разных характеров. Speyside — фрукты и мёд. Highland — разнообразие. Lowland — лёгкий. Islay — дым и торф. Islands — морской с умеренным торфом.</div>
   </div>
 
-  <div class="bev-card" style="margin-bottom:14px;">
+  <div class="bev-card bev-advanced" style="margin-bottom:14px;">
     <div class="bev-name">5 регионов Scotch — характеры</div>
     <table class="bev-table" style="margin-top:8px;">
       <tr><th>Регион</th><th>Характер</th><th>Примеры из карты</th></tr>
@@ -2465,7 +2499,7 @@
       <tr><td>Lowland</td><td>Лёгкий, деликатный, без торфа</td><td>Auchentoshan</td></tr>
       <tr><td>Islands</td><td>Морской, умеренный торф</td><td>Talisker, Highland Park</td></tr>
     </table>
-    <div class="memory bev">Speyside = мёд+фрукты. Islay = дым+торф+йод. Highland = всё понемногу. Lowland = лёгкий. Islands = морской.</div>
+    <div class="memory bev bev-advanced">Speyside — мёд и фрукты. Islay — дым, торф, йод. Highland — всё понемногу. Lowland — лёгкий. Islands — морской.</div>
   </div>
 
   <p class="subsection bev">🌾 Speyside — фруктовый и элегантный</p>
@@ -2476,7 +2510,6 @@
       <div class="phonetic">глен-ЛИ-вит</div>
       <p>Эталон «классического» Speyside. Один из первых легальных производителей. Минимальное влияние торфа, акцент на чистоте.</p>
       <p>15 = свежие фрукты, лёгкая пряность · 18 = глубже, сухофрукты, специи · 25 = многослойный, зрелый</p>
-      <div class="memory bev">Glenlivet = «входная точка» в мир Single Malt. Мягкий и доступный для новичков.</div>
       <div class="bev-price"><span class="price-label">🥃 18 лет · Порция</span><span class="price-amount">31 400 KZT</span></div>
       <div class="bev-price"><span class="price-label">🥃 25 лет · Порция</span><span class="price-amount">96 000 KZT</span></div>
       <div class="prep-time">⏱ ~1 мин</div>
@@ -2488,7 +2521,7 @@
       <p>«Король хересных бочек». Малые перегонные кубы → плотный, маслянистый спирт. Значительная выдержка в испанском хересном дубе.</p>
       <p><strong>Стиль:</strong> тёмный шоколад, апельсиновая цедра, сухофрукты, орехи, выразительный дуб.</p>
       <div class="bev-notes">Classic Cut = повышенная крепость, яркая пряность. M = премиальный коллекционный.</div>
-      <div class="memory bev">Macallan ≠ лёгкий Speyside. Это плотный, насыщенный стиль. Для ценителей богатого виски.</div>
+<div class="memory bev bev-advanced">Macallan — <strong>не</strong> типичный лёгкий Speyside. Это плотный шери-стиль из-за выдержки в испанских хересных бочках.</div>
       <div class="bev-price"><span class="price-label">🥃 Classic Cut · Порция</span><span class="price-amount">22 000 KZT</span></div>
       <div class="bev-price"><span class="price-label">🥃 Double Cask 15 · Порция</span><span class="price-amount">34 500 KZT</span></div>
       <div class="bev-price"><span class="price-label">🥃 Double Cask 18 · Порция</span><span class="price-amount">72 300 KZT</span></div>
@@ -2526,7 +2559,7 @@
     <div class="bev-card">
       <div class="region-badge region-speyside">Speyside</div>
       <div class="bev-name">Singleton of Dufftown 15</div>
-      <p>Мягкий, сливочный стиль. Лёгкий вход в мир Single Malt. Отличный выбор для гостей без опыта.</p>
+      <p>Мягкий, сливочный стиль. Лёгкий вход в мир Single Malt — без дыма, без резкости.</p>
       <div class="prep-time">⏱ ~1 мин</div>
     </div>
   </div>
@@ -2593,7 +2626,6 @@
       <div class="bev-name">Auchentoshan American Oak / 12 Y.O.</div>
       <div class="phonetic">ахэн-ТО-шан</div>
       <p>Тройная перегонка (уникально для Шотландии) → очень чистый и элегантный профиль. American Oak = ваниль + фрукты. 12 лет = мягкий, свежий.</p>
-      <div class="memory bev">Auchentoshan = лучший выбор для <strong>первого знакомства с Single Malt</strong>. Мягкий, понятный, без дыма.</div>
       <div class="prep-time">⏱ ~1 мин</div>
     </div>
     <div class="bev-card">
@@ -2621,7 +2653,6 @@
       <div class="phonetic">АРД-бег · кори-ВРЕК-кан</div>
       <p>Один из самых мощных и дымных. Узкие медные аламбики → концентрированный аромат. Non-chill-filtered.</p>
       <p>10 = экстремальный торф, прямой · Corryvreckan = более сложный, кофе, тёмный шоколад</p>
-      <div class="memory bev">Ardbeg = для любителей «экстремального» Islay. Если гость хочет «самый дымный» — это оно.</div>
       <div class="prep-time">⏱ ~1 мин</div>
     </div>
     <div class="bev-card">
@@ -2636,7 +2667,7 @@
       <div class="bev-name">Bunnahabhain 18</div>
       <div class="phonetic">буна-ХА-вэн</div>
       <p>Наименее торфяной из Islay — почти без дыма. Мягкая морская свежесть, фруктовый. Non-chill-filtered.</p>
-      <div class="memory bev">Bunnahabhain = «мягкий Islay». Для гостей, которые хотят Islay, но боятся дыма.</div>
+<div class="memory bev bev-advanced">Bunnahabhain — нетипичный Islay: почти без торфа. Парадокс региона.</div>
       <div class="bev-price"><span class="price-label">🥃 18 · Порция</span><span class="price-amount">58 500 KZT</span></div>
       <div class="prep-time">⏱ ~1 мин</div>
     </div>
@@ -2660,7 +2691,6 @@
     </div>
   </div>
 
-  <div class="memory bev" style="margin-top:14px;"><strong>Навигация по стилю для гостя:</strong> Хочет мягкий → Lowland (Auchentoshan) или Speyside (Glenlivet/Singleton). Хочет фруктовый шери-стиль → Macallan, Aberlour, Glenfarclas. Хочет лёгкий дым → Talisker, Port Charlotte. Хочет «экстремальный» дым → Ardbeg, Laphroaig, Lagavulin.</div>
 </section>
 
 <!-- ════ WORLD WHISKY ════ -->
@@ -2752,7 +2782,6 @@
   <div class="bev-card" style="margin-bottom:14px;">
     <div class="bev-name">Японский виски — в чём отличие?</div>
     <p>Вдохновлён шотландским, но со своей философией — баланс, гармония, точность. Из ячменя (или ржи/зерновые). Часто более мягкий и цветочный. Бочки Mizunara (японский дуб) = редкость, добавляет сандал и ваниль.<br><strong>Ключевые дома:</strong> Nikka, Suntory, Kamiki, Hakushu, Hibiki.</p>
-    <div class="memory bev">Японский виски ≠ дешевле шотландского. Хороший японский = редкость и высокое мастерство.</div>
   </div>
   <div class="card-grid">
     <div class="bev-card">
@@ -2795,7 +2824,6 @@
       <div class="phonetic">МА-цуи · ку-ра-ЁШИ</div>
       <p><strong>Matsui Peated</strong> — торфяной японский. Дым + морской бриз, японская интерпретация Islay-стиля.<br>
       <strong>Kurayoshi Sherry Cask</strong> — выдержка в хересных бочках. Сухофрукты, специи, тёплый финиш.</p>
-      <div class="bev-notes">Для гостей, которые хотят «японский Scotch» — привычный стиль, азиатская точность.</div>
       <div class="bev-price"><span class="price-label">🥃 The Peated · Порция</span><span class="price-amount">34 300 KZT</span></div>
       <div class="bev-price"><span class="price-label">🥃 Kurayoshi Sherry Cask · Порция</span><span class="price-amount">26 500 KZT</span></div>
       <div class="prep-time">⏱ ~1 мин</div>
@@ -2807,7 +2835,6 @@
       <p><strong>Togouchi Beer/Sake Cask</strong> — финиш в пивных и саке бочках = экзотика, уникальный вкус.<br>
       <strong>Kura Blended Malt</strong> — мягкий, доступный, хороший вход в японский виски.<br>
       <strong>Kakubin 7 Y.O.</strong> — культовый японский хайбольный виски Suntory.</p>
-      <div class="bev-notes">Для гостей, которые любят эксперименты и нестандартные вкусы.</div>
       <div class="bev-price"><span class="price-label">🥃 Togouchi Sake Cask · Порция</span><span class="price-amount">21 500 KZT</span></div>
       <div class="bev-price"><span class="price-label">🥃 Kura Blended Malt · Порция</span><span class="price-amount">22 000 KZT</span></div>
       <div class="prep-time">⏱ ~1 мин</div>
@@ -2832,6 +2859,16 @@
 <!-- ════ COGNAC ════ -->
 <section id="bev-cognac">
   <h2 class="section-title bev"><span class="emoji">✨</span> Коньяк, Арманьяк, Бренди</h2>
+
+  <div class="section-summary">
+    <div class="summary-title">📌 Из этой секции вынеси</div>
+    <ol>
+      <li><strong>Коньяк</strong> — это французский бренди из региона Cognac, из белого винограда Ugni Blanc.</li>
+      <li><strong>Шкала возраста:</strong> VS — минимум 2 года, VSOP — минимум 4, XO — минимум 10.</li>
+      <li><strong>Как пить:</strong> VS — в коктейли, VSOP — со льдом, XO — чистым из снифтера.</li>
+    </ol>
+  </div>
+
   <div class="bev-card" style="margin-bottom:14px;">
     <div class="bev-name">Коньяк — что это?</div>
     <p>Коньяк = <strong>французский бренди</strong> из региона Cognac. Делается из <strong>белого винограда</strong> (Ugni Blanc) → двойная дистилляция в медных кубах → выдержка в дубовых бочках (лимузенский дуб).<br>
@@ -2839,8 +2876,8 @@
     <strong>VS</strong> (Very Special) = выдержка мин. 2 года. Лёгкий, фруктовый, для коктейлей.<br>
     <strong>VSOP</strong> (Very Superior Old Pale) = мин. 4 года. Более сложный. Пить чистым или со льдом.<br>
     <strong>XO</strong> (Extra Old) = мин. 10 лет. Богатый, сложный. Пить чистым.<br>
-    <strong>Коньяк ≠ Арманьяк:</strong> Арманьяк тоже французский бренди, но из Гаскони, одинарная дистилляция → более сырой и характерный. Коньяк = более полированный.</p>
-    <div class="memory bev">VS = коктейли. VSOP = сиппинг. XO = праздник. Hennessy Richard / Martell L'Or = крайний люкс.</div>
+    <strong>Коньяк — это не Арманьяк:</strong> Арманьяк тоже французский бренди, но из Гаскони и с одинарной дистилляцией — более сырой и характерный. Коньяк по сравнению с ним более полированный.</p>
+    <div class="memory bev">VS — для коктейлей. VSOP — для сиппинга (медленно потягивать чистым). XO — для праздничного повода. Hennessy Richard и Martell L'Or — крайний люкс.</div>
   </div>
   <div class="card-grid">
     <div class="bev-card">
@@ -2896,7 +2933,7 @@
     <strong>Contemporary/New Wave</strong> = ботаники на первом плане (цветы, фрукты, экзотика) (Monkey 47, Roku).<br>
     <strong>Genever</strong> = голландский прародитель джина, более солодовый и тяжёлый.<br>
     Базовое правило: хороший джин = хороший тоник + правильный лёд + правильный гарнир.</p>
-    <div class="memory bev">London Dry = можжевельник главный. Contemporary = ботаники главные. Джин пьют в G&T (джин + тоник) или в Negroni, Martini.</div>
+    <div class="memory bev">London Dry — в центре можжевельник. Contemporary — в центре ботаники (цветы, фрукты, специи). Джин пьют в G&T (джин с тоником) или в составе Negroni, Martini.</div>
   </div>
   <div class="card-grid">
     <div class="bev-card">
@@ -2936,7 +2973,7 @@
     <div class="bev-card">
       <div class="bev-sub">Gin · Italy</div>
       <div class="bev-name">Del Professore Monsieur / Madame · Roby Marton / Big Gino</div>
-      <p>Итальянские арtisan джины. Del Professore = можжевельник + итальянские специи. Roby Marton Big Gino = мощный, пряный стиль.</p>
+      <p>Итальянские artisan-джины (ремесленные, малые партии). Del Professore — можжевельник плюс итальянские специи. Roby Marton Big Gino — мощный, пряный стиль.</p>
     </div>
     <div class="bev-card">
       <div class="bev-sub">Genever · Holland</div>
@@ -2950,6 +2987,16 @@
 <!-- ════ TEQUILA ════ -->
 <section id="bev-tequila">
   <h2 class="section-title bev"><span class="emoji">🌵</span> Текила и Мескаль</h2>
+
+  <div class="section-summary">
+    <div class="summary-title">📌 Из этой секции вынеси</div>
+    <ol>
+      <li><strong>Текила</strong> — только из голубой агавы, только из 5 штатов Мексики (главный — Халиско).</li>
+      <li><strong>Шкала выдержки:</strong> Blanco (без выдержки) → Reposado (2–12 мес) → Añejo (1–3 года) → Extra Añejo (3+ лет).</li>
+      <li><strong>Мескаль</strong> — из любой агавы, обычно с дымным вкусом (агаву запекают в земляных печах).</li>
+    </ol>
+  </div>
+
   <div class="bev-card" style="margin-bottom:14px;">
     <div class="bev-name">Текила — что это?</div>
     <p>Текила = мексиканский дистиллят из <strong>голубой агавы</strong> (Blue Agave Tequilana Weber), только из региона Халиско и ещё 4 штатов.<br>
@@ -2959,7 +3006,7 @@
     <strong>Añejo</strong> = 1–3 года. Сложный, карамель, специи. Пить чистым.<br>
     <strong>Extra Añejo</strong> = 3+ года. Как коньяк. Для сиппинга.<br>
     <strong>Мескаль vs Текила:</strong> Мескаль = из ЛЮБОГО вида агавы, чаще с дымным вкусом (пьеча). Текила = только из голубой агавы. Мескаль = более традиционный и сложный.</p>
-    <div class="memory bev">Blanco = коктейли. Reposado = переходный. Añejo = сиппинг. Don Julio 1942 = культовый. Clase Azul = самый дорогой в карте.</div>
+    <div class="memory bev">Blanco — для коктейлей. Reposado — переходный стиль. Añejo — для сиппинга. Don Julio 1942 — культовый. Clase Azul — самая дорогая текила в карте.</div>
   </div>
   <div class="card-grid">
     <div class="bev-card">
@@ -3003,7 +3050,7 @@
     <div class="bev-name">Ром — что это?</div>
     <p>Ром = дистиллят из <strong>сахарного тростника</strong> (сока или мелассы). Производится в основном в Карибском регионе. Стили:<br>
     <strong>Белый/Silver</strong> = лёгкий, для коктейлей. <strong>Золотой/Amber</strong> = выдержка → карамель, ваниль. <strong>Тёмный/Dark</strong> = длительная выдержка → сухофрукты, шоколад, специи. <strong>Agricole/Rhum</strong> = из свежего тростникового сока (Мартиника, Гваделупа) → более живой и травяной вкус.</p>
-    <div class="memory bev">Barbados = мягкий. Martinique (Agricole) = живой, травяной. Guatemala = богатый, сладкий. Jamaica = интенсивный, фруктовый.</div>
+    <div class="memory bev">Barbados — мягкий ром. Martinique (Agricole) — живой, травяной. Guatemala — богатый, сладкий. Jamaica — интенсивный, фруктовый.</div>
   </div>
   <div class="card-grid">
     <div class="bev-card">
@@ -3021,13 +3068,12 @@
       <div class="bev-sub">Rum · Guatemala</div>
       <div class="bev-name">Zacapa Centenario 23 / XO</div>
       <p>Один из лучших ромов в мире. Sistema Solera = смешивание разных возрастов. Зрел на высоте 2300м → медленная выдержка. Очень сладкий, богатый, шоколад, ваниль, сухофрукты.</p>
-      <div class="memory bev">Zacapa 23 = «шоколадный ром». Для гостей, которые любят «что-то сладкое и богатое».</div>
       <div class="bev-price"><span class="price-label">🥃 XO · Порция</span><span class="price-amount">27 300 KZT</span></div>
     </div>
     <div class="bev-card">
       <div class="bev-sub">Rum · Dominican Republic</div>
       <div class="bev-name">Brugal 1888 · Matusalem Gran Reserva</div>
-      <p>Brugal 1888 = двойная выдержка (бурбон + херес). Матуcалем = Sistema Solera, очень мягкий и элегантный.</p>
+      <p>Brugal 1888 — двойная выдержка в бочках из-под бурбона и хереса. Matusalem — метод Sistema Solera (смешивание выдержек разных лет), очень мягкий и элегантный.</p>
     </div>
     <div class="bev-card">
       <div class="bev-sub">Rum · Japan · Puerto Rico</div>
@@ -3049,7 +3095,7 @@
     <div class="bev-name">Водка — что это?</div>
     <p>Водка = нейтральный зерновой (или картофельный) дистиллят, очищенный фильтрацией, разбавленный водой до ~40%. Максимальная чистота — минимум посторонних вкусов. Разница брендов в мягкости, «водяном» ощущении, лёгкости.<br>
     Делают из: пшеница, рожь, ячмень, картофель (Belvedere = рожь; Grey Goose = пшеница; Beluga = пшеница/рожь).</p>
-    <div class="memory bev">Водка = чистота + мягкость. Тёплая водка = не ошибка — раскрывает вкус. Холодная = максимальная чистота ощущений.</div>
+    <div class="memory bev">Главное в водке — чистота и мягкость. Тёплая подача не ошибка: она раскрывает вкус. Холодная даёт максимальную чистоту ощущений.</div>
   </div>
   <div class="card-grid">
     <div class="bev-card">
@@ -3135,6 +3181,15 @@
 <section id="bev-sake">
   <h2 class="section-title bev"><span class="emoji">🍶</span> Саке и Байцзю</h2>
 
+  <div class="section-summary">
+    <div class="summary-title">📌 Из этой секции вынеси</div>
+    <ol>
+      <li><strong>Саке</strong> — ферментированный рис, не вино и не дистиллят. Крепость 14–16%.</li>
+      <li><strong>Чем больше шлифовка</strong> зерна — тем чище и дороже: Daiginjo (50%+) выше Ginjo (40%+) выше Junmai.</li>
+      <li><strong>Байцзю</strong> — крепкий китайский дистиллят из сорго. Strong Aroma — мягче, для новичков; Sauce Aroma — сложнее, для опытных.</li>
+    </ol>
+  </div>
+
   <p class="subsection bev">Саке — японский рисовый напиток</p>
   <div class="bev-card" style="margin-bottom:14px;">
     <div class="bev-name">Что такое саке?</div>
@@ -3177,8 +3232,7 @@
     <strong>Sauce Aroma</strong> = сложный, ферментированные ноты, соевые оттенки, длинное послевкусие.<br>
     <strong>Light Aroma</strong> = чистый, мягкий, лёгкий.<br>
     Это <strong>не водка, не саке</strong>. Уникальная категория. В культуре — напиток для тостов в компании.</p>
-    <div class="memory bev">Strong Aroma = для первого знакомства. Sauce Aroma = для знающих гостей. Подаётся в маленьких рюмках в графинчике даже при заказе 50 мл.</div>
-      <div class="memory bev" style="border-left-color:#e8a040;margin-top:8px;">⚠️ <strong>Совет официанту:</strong> Большинство гостей не знакомы с байцзю. Предложите попробовать 50 мл перед заказом бутылки — это предотвратит разочарование.</div>
+    <div class="memory bev">Strong Aroma — для первого знакомства. Sauce Aroma — для опытных. Подаётся в маленьких рюмках в графинчике даже при заказе 50 мл.</div>
   </div>
   <div class="card-grid">
     <div class="bev-card">
@@ -3211,7 +3265,7 @@
   <div class="bev-card" style="margin-bottom:14px;">
     <div class="bev-name">Что такое аперитив?</div>
     <p>Аперитив = напиток перед едой, стимулирующий аппетит. Вермут = вино, настоянное на полыни и ботаниках. Биттер = крепкий, горький настой трав. Ликёр = сладкий настой. Амаро = горький итальянский ликёр после ужина.</p>
-    <div class="memory bev">Lillet Blanc = к рыбе + как аперитив. Campari = Negroni + Spritz. Contratto / Antica Formula = для классических коктейлей. Amaro = после ужина.</div>
+    <div class="memory bev">Lillet Blanc — к рыбе и как аперитив. Campari — основа Negroni и Spritz. Contratto и Antica Formula — для классических коктейлей. Amaro — после ужина (диджестив).</div>
   </div>
   <div class="card-grid">
     <div class="bev-card">
@@ -3276,35 +3330,13 @@
 <section id="bev-cocktails">
   <h2 class="section-title bev"><span class="emoji">🍹</span> Авторские коктейли — Mixology</h2>
   <div class="alert bev-info"><span class="alert-icon">💡</span><div>Все авторские коктейли — <strong>7 000 ₸</strong>. Уметь объяснить основу каждого: что за алкоголь, какой вкус ожидать (сладкий/кислый/горький/освежающий).</div></div>
+
+  <p class="subsection bev">🌿 На джине</p>
   <div class="card-grid three">
     <div class="cocktail-card">
       <div class="c-name">Hanami Harmony</div>
       <div class="c-ingredients">Sagaan Dali Gin + Elderflower Liqueur + Grapefruit Soda</div>
       <div class="c-style">Лёгкий · Цветочный · Освежающий</div>
-      <div class="prep-time">⏱ ~5 мин</div>
-    </div>
-    <div class="cocktail-card">
-      <div class="c-name">Aloe Pear Serenity</div>
-      <div class="c-ingredients">Pear Vodka + Aloe Chamomile Cordial<span class="term" data-def="Cordial — концентрированный сладкий сироп на основе фруктов или цветов. В отличие от ликёра — безалкогольный."> (?)</span> + Sour Apple Liqueur</div>
-      <div class="c-style">Фруктовый · Мягкий · Травяной</div>
-      <div class="prep-time">⏱ ~5 мин</div>
-    </div>
-    <div class="cocktail-card">
-      <div class="c-name">Zen Star Punch</div>
-      <div class="c-ingredients">Vodka + Passion Fruit + Vanilla Ice Cream</div>
-      <div class="c-style">Тропический · Кремовый · Сладкий</div>
-      <div class="prep-time">⏱ ~5 мин</div>
-    </div>
-    <div class="cocktail-card">
-      <div class="c-name">Art Groni</div>
-      <div class="c-ingredients">Tequila + Mezcal + Bianco Vermouth + Apricot Brandy</div>
-      <div class="c-style">Сложный · Горький · Дымный</div>
-      <div class="prep-time">⏱ ~5 мин</div>
-    </div>
-    <div class="cocktail-card">
-      <div class="c-name">Mango Chili Fusion</div>
-      <div class="c-ingredients">Tequila + Chili + Mango + Sparkling Wine</div>
-      <div class="c-style">Острый · Тропический · Игристый</div>
       <div class="prep-time">⏱ ~5 мин</div>
     </div>
     <div class="cocktail-card">
@@ -3317,6 +3349,22 @@
       <div class="c-name">Fujian Sour</div>
       <div class="c-ingredients">Fujian Oolong Gin + Yuzu + Kaffir Lime Syrup</div>
       <div class="c-style">Кислый · Цитрусовый · Чайный</div>
+      <div class="prep-time">⏱ ~5 мин</div>
+    </div>
+  </div>
+
+  <p class="subsection bev">❄️ На водке</p>
+  <div class="card-grid three">
+    <div class="cocktail-card">
+      <div class="c-name">Aloe Pear Serenity</div>
+      <div class="c-ingredients">Pear Vodka + Aloe Chamomile Cordial<span class="term" data-def="Cordial — концентрированный сладкий сироп на основе фруктов или цветов. В отличие от ликёра — безалкогольный."> (?)</span> + Sour Apple Liqueur</div>
+      <div class="c-style">Фруктовый · Мягкий · Травяной</div>
+      <div class="prep-time">⏱ ~5 мин</div>
+    </div>
+    <div class="cocktail-card">
+      <div class="c-name">Zen Star Punch</div>
+      <div class="c-ingredients">Vodka + Passion Fruit + Vanilla Ice Cream</div>
+      <div class="c-style">Тропический · Кремовый · Сладкий</div>
       <div class="prep-time">⏱ ~5 мин</div>
     </div>
     <div class="cocktail-card">
@@ -3335,6 +3383,22 @@
       <div class="c-name">Basil Bliss</div>
       <div class="c-ingredients">Vodka + Grape-Basil Cordial<span class="term" data-def="Cordial — концентрированный сладкий сироп на основе фруктов или цветов. В отличие от ликёра — безалкогольный."> (?)</span></div>
       <div class="c-style">Травяной · Виноградный · Освежающий</div>
+      <div class="prep-time">⏱ ~5 мин</div>
+    </div>
+  </div>
+
+  <p class="subsection bev">🌵 На текиле</p>
+  <div class="card-grid three">
+    <div class="cocktail-card">
+      <div class="c-name">Art Groni</div>
+      <div class="c-ingredients">Tequila + Mezcal + Bianco Vermouth + Apricot Brandy</div>
+      <div class="c-style">Сложный · Горький · Дымный</div>
+      <div class="prep-time">⏱ ~5 мин</div>
+    </div>
+    <div class="cocktail-card">
+      <div class="c-name">Mango Chili Fusion</div>
+      <div class="c-ingredients">Tequila + Chili + Mango + Sparkling Wine</div>
+      <div class="c-style">Острый · Тропический · Игристый</div>
       <div class="prep-time">⏱ ~5 мин</div>
     </div>
   </div>
@@ -3402,6 +3466,7 @@ document.addEventListener('DOMContentLoaded', () => {
       tabBev.classList.add('active'); tabFood.classList.remove('active');
       tabBev.setAttribute('aria-selected', 'true'); tabFood.setAttribute('aria-selected', 'false');
     }
+    try { localStorage.setItem('active-tab', tab); } catch (_) {}
     window.scrollTo(0, 0);
     // п.6: обновляем placeholder поля поиска под текущую вкладку
     const searchInputEl = document.getElementById('search-input');
@@ -3416,11 +3481,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
   tabFood.addEventListener('click', (e) => { e.preventDefault(); switchTab('food'); });
   tabBev.addEventListener('click', (e) => { e.preventDefault(); switchTab('bev'); });
-  document.body.setAttribute('data-tab', 'food');
-  foodPage.style.opacity = '1';
-  foodPage.style.pointerEvents = 'auto';
-  bevPage.style.opacity = '0';
-  bevPage.style.pointerEvents = 'none';
+
+  // ── Восстановление активной вкладки из localStorage ──
+  let savedTab = 'food';
+  try { savedTab = localStorage.getItem('active-tab') === 'bev' ? 'bev' : 'food'; } catch (_) {}
+  currentTab = savedTab;
+  document.body.setAttribute('data-tab', savedTab);
+  if (savedTab === 'bev') {
+    foodPage.style.display = 'none';
+    bevPage.style.display = 'block';
+    bevPage.style.opacity = '1';
+    bevPage.style.pointerEvents = 'auto';
+    foodPage.style.opacity = '0';
+    foodPage.style.pointerEvents = 'none';
+    tabBev.classList.add('active'); tabFood.classList.remove('active');
+    tabBev.setAttribute('aria-selected', 'true'); tabFood.setAttribute('aria-selected', 'false');
+    const searchInputEl = document.getElementById('search-input');
+    if (searchInputEl) searchInputEl.placeholder = 'Поиск по напиткам…';
+  } else {
+    foodPage.style.opacity = '1';
+    foodPage.style.pointerEvents = 'auto';
+    bevPage.style.opacity = '0';
+    bevPage.style.pointerEvents = 'none';
+  }
 
   // ── SMOOTH SCROLL for anchor links ──
   document.addEventListener('click', function(e) {
@@ -4026,6 +4109,23 @@ document.addEventListener('DOMContentLoaded', () => {
         saveLearned(learned); applyLearned();
       });
     });
+    // ── Beverage Pro Mode toggle (показ продвинутого контента) ──
+    (function initBevProMode(){
+      const KEY = 'bev-pro-mode';
+      const btn = document.getElementById('bev-pro-btn');
+      if (!btn) return;
+      const apply = (on) => {
+        document.body.classList.toggle('bev-pro', on);
+        btn.classList.toggle('active', on);
+        btn.textContent = on ? '🔬 Продвинутый ✓' : '🔬 Продвинутый';
+      };
+      apply(localStorage.getItem(KEY) === '1');
+      btn.addEventListener('click', () => {
+        const next = !document.body.classList.contains('bev-pro');
+        localStorage.setItem(KEY, next ? '1' : '0');
+        apply(next);
+      });
+    })();
     document.getElementById('bev-reset-btn')?.addEventListener('click', () => {
       showModal('Сбросить прогресс Beverage', 'Все отметки "Изучено" в разделе Beverage будут удалены. Это действие нельзя отменить.', () => {
         const learned = getLearned();
@@ -4086,6 +4186,102 @@ document.addEventListener('DOMContentLoaded', () => {
     badge.textContent = `⏱ ${match[1]} мин`;
     const nameEl = card.querySelector('.dish-name');
     if (nameEl) nameEl.after(badge);
+  });
+
+  // ── Jargon tooltips: оборачиваем профессиональные термины в карточках напитков ──
+  (function jargonTooltips(){
+    const glossary = [
+      ['non-chill-filtered', 'Виски без холодной фильтрации — сохраняет масляные кислоты и плотность вкуса, может мутнеть от холода.'],
+      ['Sistema Solera', 'Метод смешивания: новое вино/спирт постепенно перетекает по «этажам» бочек с более старым. На выходе — стабильный купаж разных выдержек.'],
+      ['Tahona process', 'Традиционное мексиканское дробление печёной агавы каменным колесом (тахона). Даёт интенсивный, землистый вкус текилы.'],
+      ['Tahona', 'Каменное колесо для дробления печёной агавы. Традиционный метод производства премиум-текилы.'],
+      ['terroir', 'Уникальное сочетание климата, почвы и рельефа места — то, что делает вино/виски «таким, какое оно есть».'],
+      ['mizunara', 'Японский дуб. Редкая бочка, добавляет ноты сандала, ладана, кокоса. Используется в премиум-японском виски.'],
+      ['Mizunara', 'Японский дуб. Редкая бочка, добавляет ноты сандала, ладана, кокоса. Используется в премиум-японском виски.'],
+      ['Pot Still', 'Перегонный куб классической грушевидной формы. Даёт более плотный и характерный спирт, чем колонна.'],
+      ['Quarter Cask', 'Маленькая бочка (~125 л). Больше контакта с деревом — быстрее даёт плотный маслянистый вкус.'],
+      ['Single Cask', 'Виски из одной отдельной бочки, без купажа. Уникальный, неповторимый вкус.'],
+      ['Single Barrel', 'Бурбон из одной отдельной бочки, без купажа. Уникальный, неповторимый вкус.'],
+      ['flor', 'Слой живых дрожжей на поверхности вина при выдержке хереса Fino. Защищает от окисления, придаёт солёные и миндальные ноты.'],
+      ['estufa', 'Камеры нагрева для выдержки мадейры (45–50 °C). Имитируют долгие морские путешествия — отсюда характерный окисленный, карамельный вкус.'],
+      ['sherry cask', 'Бочка из-под хереса. Даёт ноты сухофруктов, орехов, тёмного шоколада, специй.'],
+      ['Sherry Oak', 'Бочка из-под хереса. Даёт ноты сухофруктов, орехов, тёмного шоколада, специй.']
+    ];
+    const cards = document.querySelectorAll('#bev-page .bev-card p, #bev-page .bev-card .bev-notes, #bev-page .bev-card .bev-name + p');
+    // Track which terms already wrapped per card to avoid multiple tooltips on same word
+    const wrappedPerCard = new WeakMap();
+    cards.forEach(el => {
+      const card = el.closest('.bev-card');
+      if (!card) return;
+      let wrapped = wrappedPerCard.get(card) || new Set();
+      glossary.forEach(([term, def]) => {
+        if (wrapped.has(term.toLowerCase())) return;
+        const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null);
+        const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const re = new RegExp('\\b' + escaped + '\\b', 'i');
+        let node;
+        while ((node = walker.nextNode())) {
+          if (node.parentElement.closest('.term')) continue;
+          const m = node.nodeValue.match(re);
+          if (!m) continue;
+          const idx = m.index;
+          const before = node.nodeValue.slice(0, idx);
+          const match = node.nodeValue.slice(idx, idx + m[0].length);
+          const after = node.nodeValue.slice(idx + m[0].length);
+          const span = document.createElement('span');
+          span.className = 'term';
+          span.setAttribute('data-def', def);
+          span.textContent = match;
+          const frag = document.createDocumentFragment();
+          frag.append(document.createTextNode(before), span, document.createTextNode(after));
+          node.parentNode.replaceChild(frag, node);
+          wrapped.add(term.toLowerCase());
+          break;
+        }
+      });
+      wrappedPerCard.set(card, wrapped);
+    });
+  })();
+
+  // ── Price collapse: в карточках с 2+ ценниками сворачиваем лишние под кнопку ──
+  document.querySelectorAll('#bev-page .bev-card').forEach(card => {
+    const prices = card.querySelectorAll('.bev-price');
+    if (prices.length < 2) return;
+    if (card.querySelector('.price-toggle')) return;
+    // Скрываем все кроме первого
+    prices.forEach((p,i) => { if (i > 0) p.classList.add('price-hidden'); });
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'price-toggle';
+    const extraN = prices.length - 1;
+    btn.textContent = `▾ ещё ${extraN} ${extraN === 1 ? 'цена' : (extraN < 5 ? 'цены' : 'цен')}`;
+    btn.addEventListener('click', () => {
+      const open = card.classList.toggle('prices-open');
+      btn.textContent = open
+        ? `▴ свернуть цены`
+        : `▾ ещё ${extraN} ${extraN === 1 ? 'цена' : (extraN < 5 ? 'цены' : 'цен')}`;
+    });
+    prices[prices.length - 1].after(btn);
+  });
+
+  // ── Region: вшиваем регион внутрь country-badge как единую пилюлю "СТРАНА · РЕГИОН" ──
+  document.querySelectorAll('#bev-page .bev-card').forEach(card => {
+    const country = card.querySelector('.country-badge');
+    const sub = card.querySelector('.bev-sub');
+    if (!country || !sub) return;
+    if (country.querySelector('.region-part')) return;
+    const parts = sub.textContent.split('·').map(s => s.trim()).filter(Boolean);
+    if (parts.length < 3) return;
+    const region = parts[1];
+    // Пропускаем если "регион" — это страна (Japan, USA, France и т.п.)
+    const countryWords = ['Japan','USA','France','Italy','Spain','Mexico','Various','Ireland','Indonesia','Brazil'];
+    if (countryWords.includes(region)) return;
+    const span = document.createElement('span');
+    span.className = 'region-part';
+    span.textContent = region;
+    country.appendChild(span);
+    // Убираем регион из bev-sub, чтобы не дублировать
+    sub.textContent = parts.filter((_, i) => i !== 1).join(' · ');
   });
 
   setupScrollSpy();
